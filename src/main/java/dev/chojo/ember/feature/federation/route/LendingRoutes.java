@@ -72,37 +72,58 @@ public class LendingRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Federated available inventory (aggregated from partners)
-        routes.get(prefix + "/federated/lending/available", this::listAvailable, StationPermission.INVENTORY_LENDING_REQUEST);
+        routes.get(
+                prefix + "/federated/lending/available",
+                this::listAvailable,
+                StationPermission.INVENTORY_LENDING_REQUEST);
 
         // Remote (server-to-server, RSA signature auth)
         routes.get(prefix + "/remote/lending/messages/{requestId}", this::remoteGetMessages);
 
         // Lending requests — both roles can list/view/chat; handler filters by role
-        routes.get(prefix + "/lending/requests", this::listRequests,
-                StationPermission.INVENTORY_LENDING_REQUEST, StationPermission.INVENTORY_LENDING_MANAGER);
+        routes.get(
+                prefix + "/lending/requests",
+                this::listRequests,
+                StationPermission.INVENTORY_LENDING_REQUEST,
+                StationPermission.INVENTORY_LENDING_MANAGER);
         routes.post(prefix + "/lending/requests", this::createRequest, StationPermission.INVENTORY_LENDING_REQUEST);
-        routes.get(prefix + "/lending/requests/{id}", this::getRequest,
-                StationPermission.INVENTORY_LENDING_REQUEST, StationPermission.INVENTORY_LENDING_MANAGER);
+        routes.get(
+                prefix + "/lending/requests/{id}",
+                this::getRequest,
+                StationPermission.INVENTORY_LENDING_REQUEST,
+                StationPermission.INVENTORY_LENDING_MANAGER);
 
         // Owner-only management actions
         routes.post(
-                prefix + "/lending/requests/{id}/approve", this::approveRequest, StationPermission.INVENTORY_LENDING_MANAGER);
+                prefix + "/lending/requests/{id}/approve",
+                this::approveRequest,
+                StationPermission.INVENTORY_LENDING_MANAGER);
         routes.post(
-                prefix + "/lending/requests/{id}/decline", this::declineRequest, StationPermission.INVENTORY_LENDING_MANAGER);
+                prefix + "/lending/requests/{id}/decline",
+                this::declineRequest,
+                StationPermission.INVENTORY_LENDING_MANAGER);
         routes.get(
                 prefix + "/lending/requests/{id}/available-items",
                 this::availableItemsForRequest,
                 StationPermission.INVENTORY_LENDING_MANAGER);
         routes.post(
-                prefix + "/lending/requests/{id}/assign-items", this::assignItems, StationPermission.INVENTORY_LENDING_MANAGER);
-        routes.post(prefix + "/lending/requests/{id}/lent", this::markLent, StationPermission.INVENTORY_LENDING_MANAGER);
+                prefix + "/lending/requests/{id}/assign-items",
+                this::assignItems,
+                StationPermission.INVENTORY_LENDING_MANAGER);
+        routes.post(
+                prefix + "/lending/requests/{id}/lent", this::markLent, StationPermission.INVENTORY_LENDING_MANAGER);
 
         // Both sides can mark returned and close
         routes.post(
-                prefix + "/lending/requests/{id}/returned", this::markReturned,
-                StationPermission.INVENTORY_LENDING_REQUEST, StationPermission.INVENTORY_LENDING_MANAGER);
-        routes.post(prefix + "/lending/requests/{id}/close", this::closeRequest,
-                StationPermission.INVENTORY_LENDING_REQUEST, StationPermission.INVENTORY_LENDING_MANAGER);
+                prefix + "/lending/requests/{id}/returned",
+                this::markReturned,
+                StationPermission.INVENTORY_LENDING_REQUEST,
+                StationPermission.INVENTORY_LENDING_MANAGER);
+        routes.post(
+                prefix + "/lending/requests/{id}/close",
+                this::closeRequest,
+                StationPermission.INVENTORY_LENDING_REQUEST,
+                StationPermission.INVENTORY_LENDING_MANAGER);
 
         // Lent-out items by inventory
         routes.get(
@@ -111,10 +132,16 @@ public class LendingRoutes implements Routes {
                 StationPermission.INVENTORY_READ);
 
         // Chat messages — both roles
-        routes.get(prefix + "/lending/requests/{id}/messages", this::getMessages,
-                StationPermission.INVENTORY_LENDING_REQUEST, StationPermission.INVENTORY_LENDING_MANAGER);
-        routes.post(prefix + "/lending/requests/{id}/messages", this::sendMessage,
-                StationPermission.INVENTORY_LENDING_REQUEST, StationPermission.INVENTORY_LENDING_MANAGER);
+        routes.get(
+                prefix + "/lending/requests/{id}/messages",
+                this::getMessages,
+                StationPermission.INVENTORY_LENDING_REQUEST,
+                StationPermission.INVENTORY_LENDING_MANAGER);
+        routes.post(
+                prefix + "/lending/requests/{id}/messages",
+                this::sendMessage,
+                StationPermission.INVENTORY_LENDING_REQUEST,
+                StationPermission.INVENTORY_LENDING_MANAGER);
 
         // Inventory blocks — manager only
         routes.get(prefix + "/lending/blocks", this::listBlocks, StationPermission.INVENTORY_LENDING_MANAGER);

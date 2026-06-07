@@ -47,6 +47,7 @@ const event = ref<StationEvent | null>(null)
 const categories = ref<EventCategory[]>([])
 const templates = ref<AttendanceTemplate[]>([])
 const fields = ref<EventField[]>([])
+const reminders = ref<number[]>([])
 const registrations = ref<EventRegistrationEntry[]>([])
 const absentMembers = ref<AbsentMember[]>([])
 const registrationStats = ref<MemberRegistrationStats[]>([])
@@ -173,6 +174,7 @@ async function loadData() {
     event.value = ev
     categories.value = cats
     fields.value = flds
+    try { reminders.value = await events.getEventReminders(eventId.value) } catch { reminders.value = [] }
     if (canManageEvents()) {
       templates.value = await attendance.listTemplates()
     }
@@ -337,6 +339,11 @@ onMounted(loadData)
           <span v-if="event.registrationDeadline" class="text-(--text-muted)">{{ t('events.registrationDeadline') }}: {{ formatDatetime(event.registrationDeadline) }}</span>
           <span v-if="event.minRegistrations" class="text-(--text-muted)">{{ t('events.minRegistrations') }}: {{ event.minRegistrations }}</span>
           <span v-if="event.thresholdDate" class="text-(--text-muted)">{{ t('events.thresholdDate') }}: {{ formatDatetime(event.thresholdDate) }}</span>
+        </div>
+
+        <div v-if="reminders.length > 0" class="flex flex-wrap gap-2 text-sm">
+          <span class="text-(--text-muted)">{{ t('eventEdit.reminders') }}:</span>
+          <InfoBadge v-for="days in reminders" :key="days">{{ days }} {{ t('eventEdit.daysBefore') }}</InfoBadge>
         </div>
 
         <NeutralContainer class="space-y-3">

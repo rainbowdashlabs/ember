@@ -147,4 +147,26 @@ public class EventTemplateRepository {
                     .insert();
         }
     }
+
+    // --- Reminders ---
+
+    public List<Integer> findReminderDays(int templateId) {
+        return Query.query(
+                        "SELECT days_before FROM event_template_reminder WHERE template_id = :template_id ORDER BY days_before;")
+                .single(Call.of().bind("template_id", templateId))
+                .map(row -> row.getInt("days_before"))
+                .all();
+    }
+
+    public void replaceReminders(int templateId, List<Integer> daysBefore) {
+        Query.query("DELETE FROM event_template_reminder WHERE template_id = :template_id;")
+                .single(Call.of().bind("template_id", templateId))
+                .delete();
+        for (int days : daysBefore) {
+            Query.query(
+                            "INSERT INTO event_template_reminder(template_id, days_before) VALUES(:template_id, :days_before) ON CONFLICT DO NOTHING;")
+                    .single(Call.of().bind("template_id", templateId).bind("days_before", days))
+                    .insert();
+        }
+    }
 }

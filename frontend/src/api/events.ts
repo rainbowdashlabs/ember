@@ -363,8 +363,23 @@ export async function setTemplateFields(id: number, data: { fields: EventTemplat
     await client.put(`/event-templates/${id}/fields`, data)
 }
 
-export async function setTemplateRestrictions(id: number, data: { roleIds: number[] }): Promise<void> {
+export async function setTemplateRestrictions(id: number, data: { userTypes: string[] }): Promise<void> {
     await client.put(`/event-templates/${id}/restrictions`, data)
+}
+
+// -- Reminders --
+
+export async function getEventReminders(eventId: number): Promise<number[]> {
+    const res = await client.get<number[]>(`/events/${eventId}/reminders`)
+    return res.data
+}
+
+export async function setEventReminders(eventId: number, daysBefore: number[]): Promise<void> {
+    await client.put(`/events/${eventId}/reminders`, { daysBefore })
+}
+
+export async function setTemplateReminders(templateId: number, daysBefore: number[]): Promise<void> {
+    await client.put(`/event-templates/${templateId}/reminders`, { daysBefore })
 }
 
 // -- Batch Creation --

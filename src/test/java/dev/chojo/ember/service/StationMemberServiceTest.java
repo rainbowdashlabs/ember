@@ -199,8 +199,10 @@ class StationMemberServiceTest extends RepositoryTestBase {
         var account3 = accountRepo.create("svc-login@test.com", "Login", "Test");
         var member3 = service.create(station.id(), account3.id());
 
-        var loginPerm = stationMemberRepo.findPermissionByName(StationPermission.LOGIN).orElseThrow();
-        var userPerm = stationMemberRepo.findPermissionByName(StationPermission.USER).orElseThrow();
+        var loginPerm =
+                stationMemberRepo.findPermissionByName(StationPermission.LOGIN).orElseThrow();
+        var userPerm =
+                stationMemberRepo.findPermissionByName(StationPermission.USER).orElseThrow();
 
         var result = service.setPermissions(
                 member3.id(),
@@ -216,19 +218,18 @@ class StationMemberServiceTest extends RepositoryTestBase {
     @Test
     @Order(26)
     void setPermissionsRevokesExisting() {
-        var userPerm = stationMemberRepo.findPermissionByName(StationPermission.USER).orElseThrow();
+        var userPerm =
+                stationMemberRepo.findPermissionByName(StationPermission.USER).orElseThrow();
         // Grant first
         service.setPermissions(
                 member2.id(),
                 List.of(userPerm.id()),
                 EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER));
-        assertTrue(service.findPermissions(member2.id()).stream()
-                .anyMatch(p -> p.permission() == StationPermission.USER));
+        assertTrue(
+                service.findPermissions(member2.id()).stream().anyMatch(p -> p.permission() == StationPermission.USER));
         // Revoke by passing empty list
         service.setPermissions(
-                member2.id(),
-                List.of(),
-                EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER));
+                member2.id(), List.of(), EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER));
         assertTrue(service.findPermissions(member2.id()).isEmpty());
     }
 

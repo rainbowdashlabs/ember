@@ -28,10 +28,12 @@ import { useSession } from '@/composables/useSession'
 import { protocol, stationMembers, memberGroups, userTags } from '@/api'
 import type { TestProtocol, TestProtocolRun } from '@/api/protocol'
 import type { StationMember, PermissionGrant, MemberGroup, UserTag } from '@/api/types'
+import { StationPermission } from '@/api/types'
 
 const { t } = useI18n()
 const router = useRouter()
-const { canManageProtocol, loaded } = useSession()
+const { hasPermission, loaded } = useSession()
+const canCreateRun = computed(() => hasPermission(StationPermission.PROTOCOL_CREATE))
 
 const runs = ref<TestProtocolRun[]>([])
 const protocols = ref<TestProtocol[]>([])
@@ -118,7 +120,7 @@ onMounted(() => { if (loaded.value) loadData() })
   <ViewContent>
     <div class="flex items-center justify-between mb-4">
       <SectionHeader>{{ t('protocol.runs') }}</SectionHeader>
-      <PrimaryButton v-if="canManageProtocol()" @click="showCreateModal = true">
+      <PrimaryButton v-if="canCreateRun" @click="showCreateModal = true">
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" /> {{ t('protocol.createRun') }}
       </PrimaryButton>
     </div>

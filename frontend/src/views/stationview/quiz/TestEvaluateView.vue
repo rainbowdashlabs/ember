@@ -18,16 +18,22 @@ import DecimalInput from '@/components/input/number/DecimalInput.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import type { QuizAttemptDetail, QuizQuestion, QuizTestAnswer, StationMember } from '@/api/types'
+import MemberName from '@/components/avatar/MemberName.vue'
+import type { QuizAttemptDetail, QuizQuestion, QuizTestAnswer } from '@/api/types'
 import { QuizQuestionTypes } from '@/api/types'
-import { quiz, stationMembers } from '@/api'
+import { quiz } from '@/api'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import MutedText from '@/components/typography/MutedText.vue'
+
 import SectionLabel from '@/components/typography/SectionLabel.vue'
+
+import { StationPermission } from '@/api/types'
+import { useSession } from '@/composables/useSession'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const { hasPermission } = useSession()
+const canReview = computed(() => hasPermission(StationPermission.TEST_REVIEW))
 
 const testId = computed(() => Number(route.params.id))
 const attemptId = computed(() => Number(route.params.attemptId))
@@ -40,7 +46,6 @@ const graded = ref(false)
 const attemptDetail = ref<QuizAttemptDetail | null>(null)
 const questionsMap = ref<Map<number, QuizQuestion>>(new Map())
 const pointsOverrides = ref<Map<number, number>>(new Map())
-const member = ref<StationMember | null>(null)
 
 const totalPoints = computed(() => {
   if (!attemptDetail.value) return 0
@@ -151,16 +156,11 @@ async function loadData() {
     const detail = await quiz.getAttemptDetail(attemptId.value)
     attemptDetail.value = detail
 
-    // Load member info
-    try {
-      member.value = await stationMembers.getMember(detail.attempt.memberId)
-    } catch { /* skip */ }
-
-    // Load questions
-    const questionIds = new Set(detail.questions.map(q => q.questionId))
-    const questions = await Promise.all(Array.from(questionIds).map(qId => quiz.getQuestion(qId)))
-    for (const q of questions) {
-      questionsMap.value.set(q.id, q)
+    // Build questions map from enriched response
+    if (detail.questionDetails) {
+      for (const q of detail.questionDetails) {
+        questionsMap.value.set(q.id, q)
+      }
     }
 
     // Initialize points from existing graded answers
@@ -206,9 +206,7 @@ onMounted(loadData)
         <div class="flex items-center justify-between flex-wrap gap-4">
           <div>
             <SectionHeader>{{ t('quiz.evaluate.title') }}</SectionHeader>
-            <MutedText tag="p" size="sm" class="mt-1">
-              {{ member?.name ?? member?.email ?? `#${attemptDetail.attempt.memberId}` }}
-            </MutedText>
+            <MemberName :identity="attemptDetail.memberIdentity" size="md" class="mt-1" />
           </div>
           <div class="flex items-center gap-2">
             <span class="text-sm font-medium">
@@ -402,10 +400,10 @@ onMounted(loadData)
                   </div>
                 </template>
 
-                <!-- Points input -->
+                <!-- Points -->
                 <div class="flex items-center gap-2 pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent flex-wrap">
                   <label class="text-sm font-medium shrink-0">{{ t('quiz.evaluate.points') }}:</label>
-                  <div class="flex items-center gap-1">
+                  <div v-if="canReview" class="flex items-center gap-1">
                     <DecimalInput
                       :model-value="getAnswerForQuestion(aq.questionId)
                         ? getPointsForAnswer(getAnswerForQuestion(aq.questionId)!)
@@ -419,6 +417,7 @@ onMounted(loadData)
                     />
                     <span class="text-sm text-(--text-muted) shrink-0">/ {{ questionsMap.get(aq.questionId)!.points }}</span>
                   </div>
+                  <span v-else class="text-sm font-mono">{{ getAnswerForQuestion(aq.questionId) ? getPointsForAnswer(getAnswerForQuestion(aq.questionId)!) : 0 }} / {{ questionsMap.get(aq.questionId)!.points }}</span>
                 </div>
               </div>
             </template>
@@ -433,7 +432,7 @@ onMounted(loadData)
             </div>
             <div class="flex gap-3">
               <SecondaryButton @click="goBack">{{ t('common.back') }}</SecondaryButton>
-              <SuccessButton :disabled="grading || graded" @click="finishGrading">
+              <SuccessButton v-if="canReview" :disabled="grading || graded" @click="finishGrading">
                 <Spinner v-if="grading" size="sm" />
                 <template v-else>{{ t('quiz.evaluate.finishGrading') }}</template>
               </SuccessButton>

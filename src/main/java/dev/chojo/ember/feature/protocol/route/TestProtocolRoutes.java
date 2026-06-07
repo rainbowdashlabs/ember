@@ -85,33 +85,33 @@ public class TestProtocolRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Protocol list (static paths first, before {id} params)
-        routes.get(prefix + "/protocols", this::listProtocols, StationPermission.PROTOCOL_MANAGER);
-        routes.post(prefix + "/protocols", this::createProtocol, StationPermission.PROTOCOL_MANAGER);
+        routes.get(prefix + "/protocols", this::listProtocols, StationPermission.PROTOCOL_TESTER);
+        routes.post(prefix + "/protocols", this::createProtocol, StationPermission.PROTOCOL_CONFIGURE);
 
         // Runs (static "runs" path must be registered before "/protocols/{id}")
         routes.get(prefix + "/protocols/runs", this::listRuns, StationPermission.PROTOCOL_TESTER);
         routes.get(prefix + "/protocols/runs/{id}", this::getRun, StationPermission.PROTOCOL_TESTER);
-        routes.put(prefix + "/protocols/runs/{id}", this::updateRun, StationPermission.PROTOCOL_MANAGER);
+        routes.put(prefix + "/protocols/runs/{id}", this::updateRun, StationPermission.PROTOCOL_CREATE);
         routes.delete(prefix + "/protocols/runs/{id}", this::deleteRun, StationPermission.PROTOCOL_MANAGER);
-        routes.post(prefix + "/protocols/runs/{id}/close", this::closeRun, StationPermission.PROTOCOL_MANAGER);
+        routes.post(prefix + "/protocols/runs/{id}/close", this::closeRun, StationPermission.PROTOCOL_CREATE);
 
         // Sections (static "sections" path before {id})
-        routes.put(prefix + "/protocols/sections/{id}", this::updateSection, StationPermission.PROTOCOL_MANAGER);
-        routes.delete(prefix + "/protocols/sections/{id}", this::deleteSection, StationPermission.PROTOCOL_MANAGER);
+        routes.put(prefix + "/protocols/sections/{id}", this::updateSection, StationPermission.PROTOCOL_CONFIGURE);
+        routes.delete(prefix + "/protocols/sections/{id}", this::deleteSection, StationPermission.PROTOCOL_CONFIGURE);
 
         // Items (static "items" path before {id})
-        routes.put(prefix + "/protocols/items/{id}", this::updateItem, StationPermission.PROTOCOL_MANAGER);
-        routes.delete(prefix + "/protocols/items/{id}", this::deleteItem, StationPermission.PROTOCOL_MANAGER);
+        routes.put(prefix + "/protocols/items/{id}", this::updateItem, StationPermission.PROTOCOL_CONFIGURE);
+        routes.delete(prefix + "/protocols/items/{id}", this::deleteItem, StationPermission.PROTOCOL_CONFIGURE);
 
         // Protocol CRUD with {id} param (after all static sub-paths)
         routes.get(prefix + "/protocols/{id}", this::getProtocol, StationPermission.PROTOCOL_TESTER);
-        routes.put(prefix + "/protocols/{id}", this::updateProtocol, StationPermission.PROTOCOL_MANAGER);
-        routes.delete(prefix + "/protocols/{id}", this::deleteProtocol, StationPermission.PROTOCOL_MANAGER);
-        routes.post(prefix + "/protocols/{id}/sections", this::createSection, StationPermission.PROTOCOL_MANAGER);
-        routes.post(prefix + "/protocols/{id}/runs", this::createRun, StationPermission.PROTOCOL_MANAGER);
+        routes.put(prefix + "/protocols/{id}", this::updateProtocol, StationPermission.PROTOCOL_CONFIGURE);
+        routes.delete(prefix + "/protocols/{id}", this::deleteProtocol, StationPermission.PROTOCOL_CONFIGURE);
+        routes.post(prefix + "/protocols/{id}/sections", this::createSection, StationPermission.PROTOCOL_CONFIGURE);
+        routes.post(prefix + "/protocols/{id}/runs", this::createRun, StationPermission.PROTOCOL_CREATE);
 
         // Section items (needs section {id})
-        routes.post(prefix + "/protocols/sections/{id}/items", this::createItem, StationPermission.PROTOCOL_MANAGER);
+        routes.post(prefix + "/protocols/sections/{id}/items", this::createItem, StationPermission.PROTOCOL_CONFIGURE);
         routes.get(
                 prefix + "/protocols/runs/{runId}/members/{memberId}/export",
                 this::exportMemberPdf,

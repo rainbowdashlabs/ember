@@ -48,7 +48,7 @@ public class TransferRoutes implements Routes {
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/public/version", this::getVersion);
         routes.post(
-                prefix + "/station/transfer/create-token", this::createToken, StationPermission.STATION_ADMINISTRATOR);
+                prefix + "/station/transfer/create-token", this::createToken, StationPermission.STATION_IMPORT_EXPORT);
 
         // Token-authenticated export (public, for remote import)
         routes.get(prefix + "/public/transfer/{token}/tables", this::tokenListTables);

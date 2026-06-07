@@ -31,7 +31,9 @@ import { useSession } from '@/composables/useSession'
 
 const { t } = useI18n()
 const router = useRouter()
-const { canManageNews } = useSession()
+import { StationPermission } from '@/api/types'
+const { hasPermission } = useSession()
+const canEditNews = computed(() => hasPermission(StationPermission.NEWS_EDIT))
 
 const PAGE_SIZE = 20
 
@@ -183,7 +185,7 @@ onUnmounted(() => {
     <div class="space-y-6">
       <div class="flex items-center justify-between">
         <SectionHeader>{{ t('news.title') }}</SectionHeader>
-        <PrimaryButton :icon="['fas', 'plus']" v-if="canManageNews()" @click="router.push({ name: 'news-create' })">
+        <PrimaryButton :icon="['fas', 'plus']" v-if="canEditNews" @click="router.push({ name: 'news-create' })">
           {{ t('news.create') }}
         </PrimaryButton>
       </div>
@@ -218,7 +220,7 @@ onUnmounted(() => {
                 </p>
               </div>
             </div>
-            <div v-if="item.kind === 'local' && canManageNews()" class="flex items-center gap-1 shrink-0">
+            <div v-if="item.kind === 'local' && canEditNews" class="flex items-center gap-1 shrink-0">
               <EditButton @click.stop="router.push({ name: 'news-edit', params: { id: item.id } })" />
               <DeleteButton @click.stop="requestDelete(item.localEntry!)" />
             </div>

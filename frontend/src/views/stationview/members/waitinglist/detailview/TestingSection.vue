@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
@@ -26,6 +27,11 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const expandedId = ref<number | null>(null)
+
+function toggleExpand(entryId: number) {
+  expandedId.value = expandedId.value === entryId ? null : entryId
+}
 
 function entryFullName(item: WaitingListEntryWithScore): string {
   const e = item.entry
@@ -43,27 +49,35 @@ function entryFullName(item: WaitingListEntryWithScore): string {
       <NeutralContainer
         v-for="item in entries"
         :key="item.entry.id"
-        class="space-y-2"
+        class="space-y-2 cursor-pointer"
         :class="{ 'ring-2 ring-success/40': item.entry.attendanceCount >= attendanceThreshold }"
+        @click="toggleExpand(item.entry.id)"
       >
         <div class="flex items-center justify-between">
-          <span class="font-semibold text-primary hover:underline cursor-pointer" role="link" tabindex="0" @click="emit('navigateToEntry', item.entry.id)" @keydown.enter="emit('navigateToEntry', item.entry.id)">
+          <span class="font-semibold text-primary hover:underline cursor-pointer" role="link" tabindex="0" @click.stop="emit('navigateToEntry', item.entry.id)" @keydown.enter="emit('navigateToEntry', item.entry.id)">
             {{ entryFullName(item) }}
           </span>
           <PrimaryBadge>{{ t('waitingList.status_TESTING') }}</PrimaryBadge>
         </div>
-        <div class="text-sm text-(--text-muted)">
-          {{ item.entry.parentName }} &middot; {{ item.entry.email }}
+        <div v-if="expandedId === item.entry.id" class="border-t border-bg-light-accent dark:border-bg-dark-accent pt-2 space-y-1">
+          <template v-if="item.guardians && item.guardians.length > 0">
+            <span class="text-xs font-semibold uppercase text-(--text-muted)">{{ t('waitingList.guardians') }}</span>
+            <div v-for="g in item.guardians" :key="g.id" class="text-sm flex flex-col">
+              <span class="font-medium">{{ g.name || '-' }}</span>
+              <span class="text-(--text-muted)">{{ g.email }}{{ g.phone ? ` · ${g.phone}` : '' }}</span>
+            </div>
+          </template>
+          <span v-else class="text-sm text-(--text-muted)">{{ t('waitingList.noGuardians') }}</span>
         </div>
         <div class="flex items-center justify-between text-sm">
           <span>
             {{ t('waitingList.attendanceCount') }}: <span class="font-mono font-medium" :class="{ 'text-success': item.entry.attendanceCount >= attendanceThreshold }">{{ item.entry.attendanceCount }} / {{ attendanceThreshold }}</span>
           </span>
           <div v-if="!readonly" class="flex items-center gap-1">
-            <SuccessButton :icon="['fas', 'check']" @click="emit('moveToJoined', item.entry.id)">
+            <SuccessButton :icon="['fas', 'check']" @click.stop="emit('moveToJoined', item.entry.id)">
               {{ t('waitingList.join') }}
             </SuccessButton>
-            <ErrorButton :icon="['fas', 'xmark']" @click="emit('withdraw', item.entry.id)">
+            <ErrorButton :icon="['fas', 'xmark']" @click.stop="emit('withdraw', item.entry.id)">
               {{ t('waitingList.withdraw') }}
             </ErrorButton>
           </div>

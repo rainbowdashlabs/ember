@@ -41,14 +41,33 @@ public class EventTemplateRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/event-templates", this::list, StationPermission.EVENT_EDIT, StationPermission.EVENT_MANAGE_TEMPLATE);
+        routes.get(
+                prefix + "/event-templates",
+                this::list,
+                StationPermission.EVENT_EDIT,
+                StationPermission.EVENT_MANAGE_TEMPLATE);
         routes.post(prefix + "/event-templates", this::create, StationPermission.EVENT_MANAGE_TEMPLATE);
-        routes.get(prefix + "/event-templates/{id}", this::get, StationPermission.EVENT_EDIT, StationPermission.EVENT_MANAGE_TEMPLATE);
+        routes.get(
+                prefix + "/event-templates/{id}",
+                this::get,
+                StationPermission.EVENT_EDIT,
+                StationPermission.EVENT_MANAGE_TEMPLATE);
         routes.put(prefix + "/event-templates/{id}", this::update, StationPermission.EVENT_MANAGE_TEMPLATE);
         routes.delete(prefix + "/event-templates/{id}", this::delete, StationPermission.EVENT_MANAGE_TEMPLATE);
         routes.put(prefix + "/event-templates/{id}/fields", this::setFields, StationPermission.EVENT_MANAGE_TEMPLATE);
         routes.put(
-                prefix + "/event-templates/{id}/restrictions", this::setRestrictions, StationPermission.EVENT_MANAGE_TEMPLATE);
+                prefix + "/event-templates/{id}/restrictions",
+                this::setRestrictions,
+                StationPermission.EVENT_MANAGE_TEMPLATE);
+        routes.get(
+                prefix + "/event-templates/{id}/reminders",
+                this::getReminders,
+                StationPermission.EVENT_EDIT,
+                StationPermission.EVENT_MANAGE_TEMPLATE);
+        routes.put(
+                prefix + "/event-templates/{id}/reminders",
+                this::setReminders,
+                StationPermission.EVENT_MANAGE_TEMPLATE);
     }
 
     @OpenApi(
@@ -97,7 +116,8 @@ public class EventTemplateRoutes implements Routes {
         }
         var fields = eventTemplateService.findFields(id);
         var restrictionUserTypes = eventTemplateService.findRestrictions(id);
-        ctx.json(new TemplateDetailResponse(template, fields, restrictionUserTypes));
+        var reminderDays = eventTemplateService.findReminderDays(id);
+        ctx.json(new TemplateDetailResponse(template, fields, restrictionUserTypes, reminderDays));
     }
 
     @OpenApi(
@@ -223,9 +243,26 @@ public class EventTemplateRoutes implements Routes {
             Integer registrationLimit) {}
 
     public record TemplateDetailResponse(
-            EventTemplate template, List<EventTemplateField> fields, List<String> restrictionUserTypes) {}
+            EventTemplate template,
+            List<EventTemplateField> fields,
+            List<String> restrictionUserTypes,
+            List<Integer> reminderDays) {}
 
     public record SetFieldsRequest(List<EventTemplateFieldData> fields) {}
 
     public record SetRestrictionsRequest(List<String> userTypes) {}
+
+    public record SetRemindersRequest(List<Integer> daysBefore) {}
+
+    private void getReminders(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        ctx.json(eventTemplateService.findReminderDays(id));
+    }
+
+    private void setReminders(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var req = ctx.bodyAsClass(SetRemindersRequest.class);
+        eventTemplateService.setReminders(id, req.daysBefore() != null ? req.daysBefore() : List.of());
+        ctx.json(eventTemplateService.findReminderDays(id));
+    }
 }

@@ -42,6 +42,12 @@ export function useSession() {
 
     function isManager(): boolean {
         return hasPermission(StationPermission.STATION_ADMINISTRATOR)
+            || hasPermission(StationPermission.STATION_GENERAL)
+            || hasPermission(StationPermission.STATION_LOOK_AND_FEEL)
+            || hasPermission(StationPermission.STATION_MAIL)
+            || hasPermission(StationPermission.STATION_MODULES)
+            || hasPermission(StationPermission.STATION_IMPORT_EXPORT)
+            || hasPermission(StationPermission.STATION_STATISTICS)
     }
 
     function canManageMembers(): boolean {
@@ -103,7 +109,7 @@ export function useSession() {
 
     function hasAnyNewsPermission(): boolean {
         return hasPermission(StationPermission.NEWS_MANAGER)
-            || hasPermission(StationPermission.NEWS_CREATE)
+            || hasPermission(StationPermission.NEWS_EDIT)
             || hasPermission(StationPermission.NEWS_FEDERATE)
     }
 
@@ -138,16 +144,16 @@ export function useSession() {
     function hasAnyWaitlistPermission(): boolean {
         return hasPermission(StationPermission.WAITLIST_MANAGER)
             || hasPermission(StationPermission.WAITLIST_READ)
+            || hasPermission(StationPermission.WAITLIST_ADD)
             || hasPermission(StationPermission.WAITLIST_EDIT)
     }
 
     function canManageQuiz(): boolean {
-        return hasPermission(StationPermission.QUIZ_MANAGER)
+        return hasPermission(StationPermission.TEST_MANAGER)
     }
 
     function hasAnyQuizPermission(): boolean {
-        return hasPermission(StationPermission.QUIZ_MANAGER)
-            || hasPermission(StationPermission.TEST_MANAGER)
+        return hasPermission(StationPermission.TEST_MANAGER)
             || hasPermission(StationPermission.TEST_CATALOG_VIEW)
             || hasPermission(StationPermission.TEST_CATALOG_EDIT)
             || hasPermission(StationPermission.TEST_CONFIGURE)

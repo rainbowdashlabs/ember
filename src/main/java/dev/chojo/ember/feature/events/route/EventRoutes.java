@@ -19,8 +19,8 @@ import dev.chojo.ember.feature.events.entity.BatchRequest;
 import dev.chojo.ember.feature.events.entity.BatchRow;
 import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
-import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
+import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
@@ -137,9 +137,13 @@ public class EventRoutes implements Routes {
 
         routes.get(prefix + "/events/categories", this::listCategories, StationPermission.USER);
         routes.post(prefix + "/events/categories", this::createCategory, StationPermission.EVENT_MANAGE_CATEGORY);
-        routes.put(prefix + "/events/categories/reorder", this::reorderCategories, StationPermission.EVENT_MANAGE_CATEGORY);
+        routes.put(
+                prefix + "/events/categories/reorder",
+                this::reorderCategories,
+                StationPermission.EVENT_MANAGE_CATEGORY);
         routes.put(prefix + "/events/categories/{id}", this::updateCategory, StationPermission.EVENT_MANAGE_CATEGORY);
-        routes.delete(prefix + "/events/categories/{id}", this::deleteCategory, StationPermission.EVENT_MANAGE_CATEGORY);
+        routes.delete(
+                prefix + "/events/categories/{id}", this::deleteCategory, StationPermission.EVENT_MANAGE_CATEGORY);
 
         routes.get(prefix + "/events/breaks", this::listBreaks, StationPermission.USER);
         routes.post(prefix + "/events/breaks", this::createBreak, StationPermission.EVENT_EDIT);
@@ -167,7 +171,8 @@ public class EventRoutes implements Routes {
         // Federation sharing
         routes.get(prefix + "/events/{id}/federation", this::getFederationShare, StationPermission.EVENTS_FEDERATE);
         routes.put(prefix + "/events/{id}/federation", this::setFederationShare, StationPermission.EVENTS_FEDERATE);
-        routes.delete(prefix + "/events/{id}/federation", this::removeFederationShare, StationPermission.EVENTS_FEDERATE);
+        routes.delete(
+                prefix + "/events/{id}/federation", this::removeFederationShare, StationPermission.EVENTS_FEDERATE);
         routes.get(
                 prefix + "/events/{id}/federation-registrations",
                 this::listFederationRegistrations,
@@ -198,6 +203,9 @@ public class EventRoutes implements Routes {
         routes.get(prefix + "/events/{id}/restrictions", this::getRestrictions, StationPermission.USER);
         routes.put(prefix + "/events/{id}/restrictions", this::setRestrictions, StationPermission.EVENT_EDIT);
 
+        routes.get(prefix + "/events/{id}/reminders", this::getReminders, StationPermission.USER);
+        routes.put(prefix + "/events/{id}/reminders", this::setReminders, StationPermission.EVENT_EDIT);
+
         routes.get(prefix + "/events/{id}/field-defaults", this::getFieldDefaults, StationPermission.USER);
         routes.put(prefix + "/events/{id}/field-defaults", this::setFieldDefaults, StationPermission.EVENT_EDIT);
 
@@ -221,10 +229,7 @@ public class EventRoutes implements Routes {
                 prefix + "/federated/{stationuid}/events/{id}/register",
                 this::federatedWithdraw,
                 StationPermission.USER);
-        routes.get(
-                prefix + "/federated/my-registrations",
-                this::federatedMyRegistrations,
-                StationPermission.USER);
+        routes.get(prefix + "/federated/my-registrations", this::federatedMyRegistrations, StationPermission.USER);
 
         // Federated event comment proxy endpoints (bearer auth)
         routes.get(
@@ -608,12 +613,11 @@ public class EventRoutes implements Routes {
         ctx.json(registrations.stream()
                 .map(r -> {
                     var member = stationMemberRepository.findById(r.memberId());
-                    String memberName = member
-                            .flatMap(m -> accountRepository.findById(m.accountId()))
+                    String memberName = member.flatMap(m -> accountRepository.findById(m.accountId()))
                             .map(a -> (a.firstName() + " " + a.lastName()).trim())
                             .orElse("");
-                    MemberIdentity memberIdentity = member
-                            .map(m -> memberIdentityFactory.local(m.stationId(), r.memberId()))
+                    MemberIdentity memberIdentity = member.map(
+                                    m -> memberIdentityFactory.local(m.stationId(), r.memberId()))
                             .orElse(null);
                     String createdByName = resolveCreatedByName(r.createdBy());
                     return new RegistrationResponse(
@@ -642,17 +646,22 @@ public class EventRoutes implements Routes {
         ctx.json(regs.stream()
                 .map(r -> {
                     var member = stationMemberRepository.findById(r.memberId());
-                    String memberName = member
-                            .flatMap(m -> accountRepository.findById(m.accountId()))
+                    String memberName = member.flatMap(m -> accountRepository.findById(m.accountId()))
                             .map(a -> (a.firstName() + " " + a.lastName()).trim())
                             .orElse("");
-                    MemberIdentity identity = member
-                            .map(m -> memberIdentityFactory.local(m.stationId(), r.memberId()))
+                    MemberIdentity identity = member.map(m -> memberIdentityFactory.local(m.stationId(), r.memberId()))
                             .orElse(null);
                     String createdByName = resolveCreatedByName(r.createdBy());
                     return new RegistrationResponse(
-                            r.id(), r.eventId(), r.memberId(), memberName, identity,
-                            r.eventDate(), r.status().name(), r.createdAt(), createdByName);
+                            r.id(),
+                            r.eventId(),
+                            r.memberId(),
+                            memberName,
+                            identity,
+                            r.eventDate(),
+                            r.status().name(),
+                            r.createdAt(),
+                            createdByName);
                 })
                 .toList());
     }
@@ -713,12 +722,11 @@ public class EventRoutes implements Routes {
         ctx.json(regs.stream()
                 .map(r -> {
                     var member = stationMemberRepository.findById(r.memberId());
-                    String memberName = member
-                            .flatMap(m -> accountRepository.findById(m.accountId()))
+                    String memberName = member.flatMap(m -> accountRepository.findById(m.accountId()))
                             .map(a -> (a.firstName() + " " + a.lastName()).trim())
                             .orElse("");
-                    MemberIdentity memberIdentity = member
-                            .map(m -> memberIdentityFactory.local(m.stationId(), r.memberId()))
+                    MemberIdentity memberIdentity = member.map(
+                                    m -> memberIdentityFactory.local(m.stationId(), r.memberId()))
                             .orElse(null);
                     String createdByName = resolveCreatedByName(r.createdBy());
                     return new RegistrationResponse(
@@ -896,7 +904,8 @@ public class EventRoutes implements Routes {
                 && session.hasPermission(StationPermission.MEMBER_GUARDIAN)
                 && stationMemberService.findManaged(session.member().id()).stream()
                         .anyMatch(m -> m.id() == regMemberId);
-        if (!isOwn && !manages
+        if (!isOwn
+                && !manages
                 && !session.hasPermission(StationPermission.EVENT_MANAGER)
                 && !session.hasPermission(StationPermission.EVENT_REGISTRATION)) {
             throw new ForbiddenResponse("You cannot withdraw this registration");
@@ -1283,12 +1292,11 @@ public class EventRoutes implements Routes {
         ctx.json(absences.stream()
                 .map(a -> {
                     var member = stationMemberRepository.findById(a.memberId());
-                    String memberName = member
-                            .flatMap(m -> accountRepository.findById(m.accountId()))
+                    String memberName = member.flatMap(m -> accountRepository.findById(m.accountId()))
                             .map(acc -> (acc.firstName() + " " + acc.lastName()).trim())
                             .orElse("");
-                    MemberIdentity memberIdentity = member
-                            .map(m -> memberIdentityFactory.local(m.stationId(), a.memberId()))
+                    MemberIdentity memberIdentity = member.map(
+                                    m -> memberIdentityFactory.local(m.stationId(), a.memberId()))
                             .orElse(null);
                     return new AbsentMemberResponse(
                             a.memberId(), memberName, memberIdentity, a.absentFrom(), a.absentUntil(), a.reason());
@@ -1395,7 +1403,12 @@ public class EventRoutes implements Routes {
     public record FieldDefaultEntry(int fieldId, String source, String value) {}
 
     public record AbsentMemberResponse(
-            int memberId, String memberName, MemberIdentity memberIdentity, LocalDate absentFrom, LocalDate absentUntil, String reason) {}
+            int memberId,
+            String memberName,
+            MemberIdentity memberIdentity,
+            LocalDate absentFrom,
+            LocalDate absentUntil,
+            String reason) {}
 
     public record EventExportRequest(
             List<Integer> categoryIds, List<ExportColumnRequest> columns, String from, String to) {}
@@ -1511,7 +1524,8 @@ public class EventRoutes implements Routes {
                 : eventFederationService.findRegistrations(id, null);
         var enriched = registrations.stream()
                 .map(r -> {
-                    var partner = federationRepository.findPartnerById(r.partnerId()).orElse(null);
+                    var partner =
+                            federationRepository.findPartnerById(r.partnerId()).orElse(null);
                     UUID partnerStationUid = partner != null ? partner.partnerStationId() : null;
 
                     // Try to resolve as a local member (same-instance federation)
@@ -1523,7 +1537,8 @@ public class EventRoutes implements Routes {
                                     partnerStation.get().id(), r.remoteMemberId());
                             if (localMember.isPresent()) {
                                 identity = memberIdentityFactory.local(
-                                        localMember.get().stationId(), localMember.get().id());
+                                        localMember.get().stationId(),
+                                        localMember.get().id());
                             }
                         }
                     }
@@ -1533,8 +1548,10 @@ public class EventRoutes implements Routes {
                         String cachedName = eventFederationService
                                 .getCachedName(r.partnerId(), r.remoteMemberId())
                                 .orElse(null);
-                        String stationName = stationRepository.findByUid(partnerStationUid)
-                                .map(s -> s.name()).orElse(null);
+                        String stationName = stationRepository
+                                .findByUid(partnerStationUid)
+                                .map(s -> s.name())
+                                .orElse(null);
                         identity = new MemberIdentity(partnerStationUid, r.remoteMemberId())
                                 .withDisplay(cachedName, stationName, null, null);
                     }
@@ -1574,7 +1591,8 @@ public class EventRoutes implements Routes {
         var partner = resolvePartner(ctx, session.stationId());
         int eventId = ctx.pathParamAsClass("id", Integer.class).get();
         var req = ctx.bodyAsClass(FederatedRegBody.class);
-        UUID remoteMemberId = req.memberId() != null ? req.memberId() : session.member().uid();
+        UUID remoteMemberId =
+                req.memberId() != null ? req.memberId() : session.member().uid();
 
         if (partner.isRemote()) {
             boolean success = eventFederationService.registerForFederatedEvent(
@@ -1624,7 +1642,8 @@ public class EventRoutes implements Routes {
         var partner = resolvePartner(ctx, session.stationId());
         int eventId = ctx.pathParamAsClass("id", Integer.class).get();
         var req = ctx.bodyAsClass(FederatedRegBody.class);
-        UUID remoteMemberId = req.memberId() != null ? req.memberId() : session.member().uid();
+        UUID remoteMemberId =
+                req.memberId() != null ? req.memberId() : session.member().uid();
 
         if (partner.isRemote()) {
             eventFederationService.withdrawFederatedRegistration(
@@ -1810,6 +1829,20 @@ public class EventRoutes implements Routes {
     public record RemoteCommentUpdateRequest(UUID remoteMemberUid, String content) {}
 
     public record RemoteCommentDeleteRequest(UUID remoteMemberUid) {}
+
+    public record SetRemindersRequest(List<Integer> daysBefore) {}
+
+    private void getReminders(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        ctx.json(eventService.findReminderDays(id));
+    }
+
+    private void setReminders(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var req = ctx.bodyAsClass(SetRemindersRequest.class);
+        eventService.setReminders(id, req.daysBefore() != null ? req.daysBefore() : List.of());
+        ctx.json(eventService.findReminderDays(id));
+    }
 
     // -- Federated event comment proxy endpoints (user-facing) --
 

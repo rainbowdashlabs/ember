@@ -65,7 +65,8 @@ class MemberNameResolverTest {
 
     @Test
     void resolveLocal_withDisplayName_returnsDisplayName() {
-        var member = new StationMember(2, 1, UUID.randomUUID(), null, false, null, "Firefighter Joe", StationUserType.MEMBER);
+        var member = new StationMember(
+                2, 1, UUID.randomUUID(), null, false, null, "Firefighter Joe", StationUserType.MEMBER);
         when(memberService.findById(2)).thenReturn(Optional.of(member));
 
         assertEquals("Firefighter Joe", resolver.resolveLocal(2));

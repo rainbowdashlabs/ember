@@ -308,6 +308,11 @@ const router = createRouter({
                     component: () => import('@/views/stationview/members/waitinglist/FieldEditorView.vue'),
                 },
                 {
+                    path: 'members/waiting-lists/:id/entries/new',
+                    name: 'waiting-list-create-entry',
+                    component: () => import('@/views/stationview/members/waitinglist/CreateEntryView.vue'),
+                },
+                {
                     path: 'members/waiting-lists/:id/entries/:entryId',
                     name: 'waiting-list-entry',
                     component: () => import('@/views/stationview/members/waitinglist/EntryDetailView.vue'),

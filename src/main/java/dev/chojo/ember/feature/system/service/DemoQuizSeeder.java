@@ -567,7 +567,12 @@ public class DemoQuizSeeder {
                 test.id(), "Fortgeschrittenen-Wissen", "10 Fragen aus dem Fortgeschrittenen-Katalog", 1);
         quizTestRepository.createSource(section2.id(), fortCatalog.id(), null, 10);
         // Set start/end dates and activate the test
-        quizService.updateTest(test.id(), test.title(), test.description(), test.timeLimit(), test.shuffle(),
+        quizService.updateTest(
+                test.id(),
+                test.title(),
+                test.description(),
+                test.timeLimit(),
+                test.shuffle(),
                 Instant.now().minus(7, java.time.temporal.ChronoUnit.DAYS),
                 Instant.now().plus(30, java.time.temporal.ChronoUnit.DAYS));
         quizService.activateTest(test.id());
@@ -669,8 +674,12 @@ public class DemoQuizSeeder {
         var showcaseSection =
                 quizTestRepository.createSection(showcaseTest.id(), "Alle Typen", "Je eine Frage pro Fragetyp", 0);
         quizTestRepository.createSource(showcaseSection.id(), showcaseCatalog.id(), null, 0);
-        quizService.updateTest(showcaseTest.id(), showcaseTest.title(), showcaseTest.description(),
-                showcaseTest.timeLimit(), showcaseTest.shuffle(),
+        quizService.updateTest(
+                showcaseTest.id(),
+                showcaseTest.title(),
+                showcaseTest.description(),
+                showcaseTest.timeLimit(),
+                showcaseTest.shuffle(),
                 Instant.now().minus(3, java.time.temporal.ChronoUnit.DAYS),
                 Instant.now().plus(60, java.time.temporal.ChronoUnit.DAYS));
         quizService.activateTest(showcaseTest.id());

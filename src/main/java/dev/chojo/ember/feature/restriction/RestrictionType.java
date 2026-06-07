@@ -16,7 +16,7 @@ import dev.chojo.ember.api.roles.StationPermission;
  */
 public enum RestrictionType {
     EVENT("event_restriction", "event_id", "station_event", "id", StationPermission.EVENT_MANAGER),
-    QUIZ_TEST("quiz_test_restriction", "test_id", "quiz_test", "id", StationPermission.QUIZ_MANAGER),
+    QUIZ_TEST("quiz_test_restriction", "test_id", "quiz_test", "id", StationPermission.TEST_MANAGER),
     FORM("form_restriction", "form_id", "form", "id", StationPermission.POLL_MANAGER),
     NEWS("news_restriction", "news_id", "news", "id", StationPermission.NEWS_MANAGER),
     KB_FOLDER("kb_access_restriction", "folder_id", "kb_folder", "id", StationPermission.KNOWLEDGE_MANAGER),

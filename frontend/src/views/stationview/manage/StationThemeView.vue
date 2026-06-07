@@ -6,7 +6,16 @@
 <script setup lang="ts">
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
+import {StationPermission} from '@/api/types'
+import {useSession} from '@/composables/useSession'
+
+const {hasPermission} = useSession()
+const router = useRouter()
+if (!hasPermission(StationPermission.STATION_LOOK_AND_FEEL)) {
+  router.replace({name: 'dashboard-overview'})
+}
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'

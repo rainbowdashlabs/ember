@@ -78,28 +78,51 @@ public class StationMemberRoutes implements Routes {
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/permissions", this::listAllPermissions, StationPermission.LOGIN);
         routes.get(prefix + "/station-members/completions", this::completions, StationPermission.LOGIN);
-        routes.get(prefix + "/station-members", this::listByStation, StationPermission.MEMBER_READ, StationPermission.ATTENDANCE_READ, StationPermission.EVENT_EDIT, StationPermission.INVENTORY_READ);
-        routes.get(prefix + "/station-members/former", this::listFormer, StationPermission.MEMBER_READ, StationPermission.ATTENDANCE_READ);
-        routes.get(prefix + "/station-members/all-permissions", this::getAllMemberPermissions, StationPermission.MEMBER_MANAGER);
+        routes.get(
+                prefix + "/station-members",
+                this::listByStation,
+                StationPermission.MEMBER_READ,
+                StationPermission.ATTENDANCE_READ,
+                StationPermission.EVENT_EDIT,
+                StationPermission.INVENTORY_READ,
+                StationPermission.POLL_VIEW_RESULTS,
+                StationPermission.PROTOCOL_TESTER,
+                StationPermission.TEST_RESULT_READ);
+        routes.get(
+                prefix + "/station-members/former",
+                this::listFormer,
+                StationPermission.MEMBER_READ,
+                StationPermission.ATTENDANCE_READ);
+        routes.get(
+                prefix + "/station-members/all-permissions",
+                this::getAllMemberPermissions,
+                StationPermission.MEMBER_READ,
+                StationPermission.POLL_CREATE,
+                StationPermission.EVENT_EDIT);
         routes.get(prefix + "/station-members/rich", this::listRichMembers, StationPermission.MEMBER_READ);
-        routes.get(prefix + "/station-members/{id}", this::get, StationPermission.MEMBER_READ);
+        routes.get(
+                prefix + "/station-members/{id}",
+                this::get,
+                StationPermission.MEMBER_READ,
+                StationPermission.TEST_RESULT_READ);
         routes.post(prefix + "/station-members", this::create, StationPermission.MEMBER_EDIT);
-        routes.delete(prefix + "/station-members/{id}", this::delete, StationPermission.MEMBER_MANAGER);
-        routes.get(prefix + "/station-members/{id}/permissions", this::getPermissions, StationPermission.MEMBER_MANAGER);
-        routes.put(prefix + "/station-members/{id}/permissions", this::setPermissions, StationPermission.MEMBER_MANAGER);
+        routes.delete(prefix + "/station-members/{id}", this::delete, StationPermission.MEMBER_EDIT);
+        routes.get(prefix + "/station-members/{id}/permissions", this::getPermissions, StationPermission.MEMBER_READ);
+        routes.put(prefix + "/station-members/{id}/permissions", this::setPermissions, StationPermission.MEMBER_EDIT);
 
-        routes.get(prefix + "/station-members/{id}/managed", this::getManaged, StationPermission.MEMBER_MANAGER);
+        routes.get(prefix + "/station-members/{id}/managed", this::getManaged, StationPermission.MEMBER_READ);
+        routes.put(prefix + "/station-members/{id}/managed", this::setManaged, StationPermission.MEMBER_EDIT);
         routes.get(prefix + "/station-members/{id}/managers", this::getManagers, StationPermission.MEMBER_READ);
-        routes.put(prefix + "/station-members/{id}/managers", this::setManagers, StationPermission.MEMBER_MANAGER);
+        routes.put(prefix + "/station-members/{id}/managers", this::setManagers, StationPermission.MEMBER_EDIT);
 
-        routes.put(prefix + "/station-members/{id}/user-type", this::setUserType, StationPermission.MEMBER_MANAGER);
-        routes.post(prefix + "/station-members/{id}/mark-former", this::markFormer, StationPermission.MEMBER_MANAGER);
-        routes.post(prefix + "/station-members/{id}/reactivate", this::reactivate, StationPermission.MEMBER_MANAGER);
+        routes.put(prefix + "/station-members/{id}/user-type", this::setUserType, StationPermission.MEMBER_EDIT);
+        routes.post(prefix + "/station-members/{id}/mark-former", this::markFormer, StationPermission.MEMBER_EDIT);
+        routes.post(prefix + "/station-members/{id}/reactivate", this::reactivate, StationPermission.MEMBER_EDIT);
 
         routes.get(
                 prefix + "/user-type-permissions/{userType}",
                 this::getUserTypePermissions,
-                StationPermission.MEMBER_MANAGER);
+                StationPermission.MEMBER_READ);
         routes.put(
                 prefix + "/user-type-permissions/{userType}",
                 this::setUserTypePermissions,
@@ -107,7 +130,7 @@ public class StationMemberRoutes implements Routes {
         routes.get(
                 prefix + "/user-type-permissions/{userType}/effective",
                 this::getEffectiveUserTypePermissions,
-                StationPermission.MEMBER_MANAGER);
+                StationPermission.MEMBER_READ);
     }
 
     @OpenApi(
@@ -300,6 +323,15 @@ public class StationMemberRoutes implements Routes {
         ctx.json(memberService.setManagers(managedId, managerIds));
     }
 
+    private void setManaged(Context ctx) {
+        int managerId = ctx.pathParamAsClass("id", Integer.class).get();
+        var request = ctx.bodyAsClass(SetManagedRequest.class);
+        List<Integer> managedIds = request.managedIds() != null ? request.managedIds() : List.of();
+        ctx.json(memberService.setManaged(managerId, managedIds).stream()
+                .map(this::toMemberWithName)
+                .toList());
+    }
+
     @OpenApi(
             path = "/api/v1/station-members/former",
             methods = HttpMethod.GET,
@@ -428,6 +460,8 @@ public class StationMemberRoutes implements Routes {
     public record SetPermissionsRequest(List<Integer> permissionIds) {}
 
     public record SetManagersRequest(List<Integer> managerIds) {}
+
+    public record SetManagedRequest(List<Integer> managedIds) {}
 
     public record FormerCheckResponse(boolean canMarkFormer, String reason) {}
 

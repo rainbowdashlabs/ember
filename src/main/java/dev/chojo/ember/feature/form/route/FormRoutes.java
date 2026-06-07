@@ -84,22 +84,22 @@ public class FormRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Management
-        routes.get(prefix + "/forms", this::list, StationPermission.POLL_MANAGER);
-        routes.post(prefix + "/forms", this::create, StationPermission.POLL_MANAGER);
+        routes.get(prefix + "/forms", this::list, StationPermission.POLL_VIEW_RESULTS);
+        routes.post(prefix + "/forms", this::create, StationPermission.POLL_CREATE);
         routes.get(prefix + "/forms/available", this::listAvailable, StationPermission.USER);
         routes.get(prefix + "/forms/{id}", this::get, StationPermission.USER);
-        routes.put(prefix + "/forms/{id}", this::update, StationPermission.POLL_MANAGER);
-        routes.delete(prefix + "/forms/{id}", this::delete, StationPermission.POLL_MANAGER);
-        routes.post(prefix + "/forms/{id}/publish", this::publish, StationPermission.POLL_MANAGER);
-        routes.post(prefix + "/forms/{id}/close", this::close, StationPermission.POLL_MANAGER);
+        routes.put(prefix + "/forms/{id}", this::update, StationPermission.POLL_CREATE);
+        routes.delete(prefix + "/forms/{id}", this::delete, StationPermission.POLL_CREATE);
+        routes.post(prefix + "/forms/{id}/publish", this::publish, StationPermission.POLL_CREATE);
+        routes.post(prefix + "/forms/{id}/close", this::close, StationPermission.POLL_CREATE);
 
         // Questions
         routes.get(prefix + "/forms/{id}/questions", this::listQuestions, StationPermission.USER);
-        routes.put(prefix + "/forms/{id}/questions", this::setQuestions, StationPermission.POLL_MANAGER);
+        routes.put(prefix + "/forms/{id}/questions", this::setQuestions, StationPermission.POLL_CREATE);
 
         // Restrictions
         routes.get(prefix + "/forms/{id}/restrictions", this::getRestrictions, StationPermission.USER);
-        routes.put(prefix + "/forms/{id}/restrictions", this::setRestrictions, StationPermission.POLL_MANAGER);
+        routes.put(prefix + "/forms/{id}/restrictions", this::setRestrictions, StationPermission.POLL_CREATE);
 
         // Responding
         routes.get(prefix + "/forms/{id}/my-response", this::getMyResponse, StationPermission.USER);
@@ -111,10 +111,12 @@ public class FormRoutes implements Routes {
         routes.put(prefix + "/forms/{id}/respond/{memberId}", this::updateForMember, StationPermission.MEMBER_GUARDIAN);
 
         // Analytics
-        routes.get(prefix + "/forms/{id}/analytics", this::getAnalytics, StationPermission.POLL_MANAGER);
-        routes.get(prefix + "/forms/{id}/responses", this::listResponses, StationPermission.POLL_MANAGER);
+        routes.get(prefix + "/forms/{id}/analytics", this::getAnalytics, StationPermission.POLL_VIEW_RESULTS);
+        routes.get(prefix + "/forms/{id}/responses", this::listResponses, StationPermission.POLL_VIEW_RESULTS);
         routes.get(
-                prefix + "/forms/{id}/responses/{responseId}", this::getResponseDetail, StationPermission.POLL_MANAGER);
+                prefix + "/forms/{id}/responses/{responseId}",
+                this::getResponseDetail,
+                StationPermission.POLL_VIEW_RESULTS);
     }
 
     // -- Form CRUD --
@@ -672,11 +674,19 @@ public class FormRoutes implements Routes {
      */
     private FormResponseEntry toResponseEntry(FormResponse r) {
         String submittedByName = r.submittedBy() != r.memberId() ? resolveMemberName(r.submittedBy()) : null;
-        MemberIdentity memberIdentity = stationMemberRepository.findById(r.memberId())
+        MemberIdentity memberIdentity = stationMemberRepository
+                .findById(r.memberId())
                 .map(m -> memberIdentityFactory.local(m.stationId(), r.memberId()))
                 .orElse(null);
         return new FormResponseEntry(
-                r.id(), r.formId(), r.memberId(), r.submittedBy(), submittedByName, memberIdentity, r.submittedAt(), r.updatedAt());
+                r.id(),
+                r.formId(),
+                r.memberId(),
+                r.submittedBy(),
+                submittedByName,
+                memberIdentity,
+                r.submittedAt(),
+                r.updatedAt());
     }
 
     private void listResponses(Context ctx) {

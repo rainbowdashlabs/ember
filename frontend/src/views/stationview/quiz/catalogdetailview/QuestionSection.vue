@@ -7,6 +7,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import ReadonlyQuestionList from './ReadonlyQuestionList.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -34,6 +35,7 @@ const props = defineProps<{
   questions: QuizQuestion[]
   categories: QuizCategory[]
   isFederated: boolean
+  readonly?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -276,7 +278,7 @@ function onBatchDone() {
 
 <template>
   <!-- Editable questions section -->
-  <div v-if="!isFederated" class="space-y-3">
+  <div v-if="!readonly" class="space-y-3">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
       <SectionHeader>{{ t('quiz.questions.title') }}</SectionHeader>
       <div class="grid grid-cols-2 sm:flex gap-2">
@@ -442,25 +444,8 @@ function onBatchDone() {
     </div>
   </div>
 
-  <!-- Read-only question list for federated catalogs -->
-  <div v-if="isFederated && questions.length > 0" class="space-y-3">
-    <SectionHeader>{{ t('quiz.questions.title') }}</SectionHeader>
-    <div class="space-y-2">
-      <NeutralContainer v-for="q in questions" :key="q.id">
-        <div class="flex items-center justify-between gap-4">
-          <div class="flex-1 min-w-0 space-y-1">
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="font-medium">{{ q.title }}</span>
-              <InfoBadge>{{ t(`quiz.questionTypes.${q.quizQuestionType}`) }}</InfoBadge>
-              <SecondaryBadge>{{ getCategoryName(q.categoryId) }}</SecondaryBadge>
-            </div>
-            <p v-if="q.description" class="text-xs text-(--text-muted) truncate">{{ q.description }}</p>
-          </div>
-          <span class="text-sm text-(--text-muted) shrink-0">{{ q.points }} {{ t('quiz.questions.points') }}</span>
-        </div>
-      </NeutralContainer>
-    </div>
-  </div>
+  <!-- Read-only question list -->
+  <ReadonlyQuestionList v-if="readonly" :questions="questions" :categories="categories" />
 
   <!-- Question Delete Modal -->
   <Modal v-model="showDeleteQuestionModal">

@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
-import type {MemberGroup, UserTag} from '@/api/types'
+import type {MemberGroup, StationMember, UserTag} from '@/api/types'
 import {StationUserType} from '@/api/types'
 
 const {t} = useI18n()
@@ -17,19 +17,24 @@ const {t} = useI18n()
 const props = withDefaults(defineProps<{
   groups?: MemberGroup[]
   tags?: UserTag[]
+  members?: StationMember[]
   selectedUserTypes?: string[]
   selectedGroupIds: number[]
   selectedTagIds: number[]
+  selectedMemberIds?: number[]
   mode?: 'AND' | 'OR'
   showUserTypes?: boolean
   showGroups?: boolean
   showTags?: boolean
+  showMembers?: boolean
   showMode?: boolean
 }>(), {
   selectedUserTypes: () => [],
+  selectedMemberIds: () => [],
   showUserTypes: true,
   showGroups: true,
   showTags: true,
+  showMembers: false,
   showMode: true,
   mode: 'AND',
 })
@@ -38,6 +43,7 @@ const emit = defineEmits<{
   'update:selectedUserTypes': [types: string[]]
   'update:selectedGroupIds': [ids: number[]]
   'update:selectedTagIds': [ids: number[]]
+  'update:selectedMemberIds': [ids: number[]]
   'update:mode': [mode: 'AND' | 'OR']
 }>()
 
@@ -61,9 +67,14 @@ const tagOptions = computed(() =>
     (props.tags ?? []).map(t => ({value: String(t.id), label: t.name}))
 )
 
+const memberOptions = computed(() =>
+    (props.members ?? []).map(m => ({value: String(m.id), label: m.name ?? m.email ?? `#${m.id}`}))
+)
+
 const selectedUserTypeValues = computed(() => props.selectedUserTypes)
 const selectedGroupValues = computed(() => props.selectedGroupIds.map(String))
 const selectedTagValues = computed(() => props.selectedTagIds.map(String))
+const selectedMemberValues = computed(() => props.selectedMemberIds.map(String))
 
 function onUserTypesChange(values: string[]) {
   emit('update:selectedUserTypes', values)
@@ -77,6 +88,10 @@ function onTagsChange(values: string[]) {
   emit('update:selectedTagIds', values.map(Number))
 }
 
+function onMembersChange(values: string[]) {
+  emit('update:selectedMemberIds', values.map(Number))
+}
+
 const internalMode = ref<'AND' | 'OR'>(props.mode ?? 'AND')
 
 function toggleMode() {
@@ -85,13 +100,14 @@ function toggleMode() {
 }
 
 const hasActiveSelection = computed(() =>
-    props.selectedUserTypes.length > 0 || props.selectedGroupIds.length > 0 || props.selectedTagIds.length > 0
+    props.selectedUserTypes.length > 0 || props.selectedGroupIds.length > 0 || props.selectedTagIds.length > 0 || props.selectedMemberIds.length > 0
 )
 
 function reset() {
   emit('update:selectedUserTypes', [])
   emit('update:selectedGroupIds', [])
   emit('update:selectedTagIds', [])
+  emit('update:selectedMemberIds', [])
 }
 </script>
 
@@ -132,6 +148,15 @@ function reset() {
         :model-value="selectedTagValues"
         :placeholder="t('restriction.tags')"
         @update:model-value="onTagsChange"
+    />
+
+    <!-- Members dropdown -->
+    <MultiSelectDropdown
+        v-if="showMembers && memberOptions.length > 0"
+        :options="memberOptions"
+        :model-value="selectedMemberValues"
+        :placeholder="t('restriction.members')"
+        @update:model-value="onMembersChange"
     />
 
     <!-- Reset button -->

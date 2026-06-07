@@ -29,6 +29,5 @@ public record MemberIdentity(
         return new MemberIdentity(stationUid, memberUid, name, stationName, nameColor, displayTag);
     }
 
-    public record DisplayTag(String name, String color) {
-    }
+    public record DisplayTag(String name, String color) {}
 }

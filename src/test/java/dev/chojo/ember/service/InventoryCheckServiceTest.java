@@ -40,7 +40,12 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         service = new InventoryCheckService(
-                inventoryCheckRepo, inventoryRepo, stationMemberRepo, memberGroupRepo, accountRepo, memberIdentityFactory);
+                inventoryCheckRepo,
+                inventoryRepo,
+                stationMemberRepo,
+                memberGroupRepo,
+                accountRepo,
+                memberIdentityFactory);
         station = stationRepo.create("CheckSvcStation");
         checkerAccount = accountRepo.create("checker-svc@test.com", "Check", "Er");
         targetAccount = accountRepo.create("target-svc@test.com", "Target", "Member");

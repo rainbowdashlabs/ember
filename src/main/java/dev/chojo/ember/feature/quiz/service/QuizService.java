@@ -147,6 +147,10 @@ public class QuizService {
         return catalogRepository.findQuestionById(id);
     }
 
+    public List<QuizQuestion> findQuestionsByIds(List<Integer> ids) {
+        return catalogRepository.findQuestionsByIds(ids);
+    }
+
     public QuizQuestion createQuestion(
             int catalogId,
             Integer categoryId,

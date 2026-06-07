@@ -43,7 +43,9 @@ public record StationMember(
                 row.get("uid", StandardValueConverter.UUID_STRING),
                 row.getObject("account_id", Integer.class),
                 row.getBoolean("former"),
-                row.getTimestamp("former_at") != null ? row.getTimestamp("former_at").toInstant() : null,
+                row.getTimestamp("former_at") != null
+                        ? row.getTimestamp("former_at").toInstant()
+                        : null,
                 row.getString("display_name"),
                 row.getEnum("user_type", StationUserType.class));
     }

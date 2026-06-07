@@ -90,7 +90,7 @@ public class SidebarCountService {
         int openEvents = 0;
 
         int waitingListEntries = 0;
-        if (roles.contains(StationPermission.WAITLIST_MANAGER)) {
+        if (roles.contains(StationPermission.WAITLIST_READ)) {
             waitingListEntries = waitingListRepository.countPendingEntries(stationId);
         }
 

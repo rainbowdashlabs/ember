@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
@@ -143,6 +144,14 @@ public class QuizCatalogRepository {
                 .single(Call.of().bind("id", id))
                 .map(QuizQuestion.map())
                 .first();
+    }
+
+    public List<QuizQuestion> findQuestionsByIds(List<Integer> ids) {
+        if (ids.isEmpty()) return List.of();
+        return Query.query("SELECT * FROM quiz_question WHERE id = ANY(:ids);")
+                .single(Call.of().bind("ids", ids, PostgreSqlTypes.INTEGER))
+                .map(QuizQuestion.map())
+                .all();
     }
 
     public QuizQuestion createQuestion(

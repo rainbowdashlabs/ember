@@ -136,6 +136,8 @@ const {t} = useI18n()
       </div>
     </template>
 
+    <slot name="after-schedule" />
+
     <!-- Registration -->
     <template v-if="requiresRegistration !== undefined">
       <hr class="border-(--border)"/>

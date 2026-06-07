@@ -212,7 +212,7 @@ public class ProfileFieldRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
         var request = ctx.bodyAsClass(SetValuesRequest.class);
-        boolean canEditReadonly = session.hasPermission(StationPermission.MEMBER_MANAGER);
+        boolean canEditReadonly = session.hasPermission(StationPermission.MEMBER_EDIT);
 
         List<FieldValueEntry> entries = request.values() != null
                 ? request.values().stream()

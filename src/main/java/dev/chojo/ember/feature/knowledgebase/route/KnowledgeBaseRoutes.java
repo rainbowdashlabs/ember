@@ -213,9 +213,13 @@ public class KnowledgeBaseRoutes implements Routes {
                 this::setFolderRestrictions,
                 StationPermission.KNOWLEDGE_FEDERATE);
         routes.get(
-                prefix + "/kb/files/{id}/restrictions", this::getFileRestrictions, StationPermission.KNOWLEDGE_FEDERATE);
+                prefix + "/kb/files/{id}/restrictions",
+                this::getFileRestrictions,
+                StationPermission.KNOWLEDGE_FEDERATE);
         routes.put(
-                prefix + "/kb/files/{id}/restrictions", this::setFileRestrictions, StationPermission.KNOWLEDGE_FEDERATE);
+                prefix + "/kb/files/{id}/restrictions",
+                this::setFileRestrictions,
+                StationPermission.KNOWLEDGE_FEDERATE);
 
         // Public visibility overrides
         routes.get(

@@ -1,167 +1,5 @@
 # Changelog
 
-## v26.7.0
-
-### New Features
-
-#### Permission System
-- **Granular permissions** — replaced the flat role system with a hierarchical permission tree; each feature area (events, members, inventory, boards, etc.) has its own read/edit/manage permissions
-- **User type permissions** — assign extra permissions to entire user types (Trial, Member, Guardian, Team) station-wide via a new management page
-- **Permission picker** — new hierarchical permission selector with collapsible groups, icons, and descriptions; replaces the old flat role checkboxes in member edit and group management
-- **Sidebar permission gating** — sidebar links are now shown or hidden based on the user's actual permissions rather than all-or-nothing manager checks
-- **Read-only views** — users with read permission but not edit permission see content without edit controls (e.g. waiting list, boards)
-
-#### Member Identity & Display
-- **Group colors** — assign a display color to groups; the highest-priority group's color is used as the member's name color everywhere
-- **Tag badges** — tags can be marked visible with a color and position; they appear as inline colored pill badges next to member names
-- **Unified member identity** — a single identity model (station UUID + member UUID + display name) is used everywhere from database through API to frontend, simplifying federation and enabling consistent display across local and remote members
-- **Identity carries display name** — the `MemberIdentity` object now includes the resolved member name; all API responses that reference members return an enriched identity with avatar, name, group color, and tag badge in one object
-- **MemberName driven by identity** — the `MemberName` component derives its display name solely from the identity object; separate name props have been removed across the entire frontend
-
-#### Federated Comments
-- **Event comments** — comment on events shared by federation partners; comments show the author's station badge
-- **News comments** — comment on news posts shared by partners with full threading support
-- **Knowledge base comments** — threaded comments on KB files with federation support and soft-delete
-
-#### News Federation
-- **Per-post sharing** — choose which news posts to share with partners: all partners or specific ones
-- **Visibility role** — set a minimum role (Member/Team/Manager) for shared news visibility at partner stations
-- **Federated news in feed** — partner news posts appear inline in the news list, marked with a federation badge
-- **Federated news detail** — dedicated view for reading partner station news with full content and comments
-
-#### Event Cancellation
-- **Manual cancellation** — managers can cancel events with a reason; a red alert banner is shown on cancelled events
-- **Auto-cancellation** — events that don't reach the minimum registration count by a threshold date are automatically cancelled
-- **Cancellation notifications** — all registered members receive an EVENT_CANCELLED notification
-
-#### Station Requirements View
-- **Requirements page** — new view showing outstanding requirements for the current member: incomplete profile, forced forms, and forced quizzes
-- **Sidebar badge** — a badge appears when the member has unfinished requirements
-
-#### Board Improvements
-- **Human-readable URLs** — board and ticket URLs now use short keys and ticket numbers (e.g. `/boards/jug/tickets/1`) instead of integer IDs
-- **Federated ticket links** — create and delete ticket links on federated boards with history logging
-- **Assignee change logging** — assignee changes are logged in ticket history and trigger notifications
-- **Lane replacement safety** — replacing lanes preserves existing lane IDs and moves orphaned tickets to the last remaining lane
-- **Chronological activity tab** — the history tab is now sorted chronologically instead of grouped by type
-- **Keyboard navigation in ticket link search** — arrow keys to navigate, Enter to select, self-linking prevented
-
-#### Help Center
-- **Boards help rewrite** — all 9 boards help pages rewritten with detailed sections and tips
-- **Type permissions help** — new article explaining the layered permission model
-- **Requirements help** — help article for the requirements view
-
-#### Quiz Improvements
-- **Shared question input card** — extracted `QuestionInputCard` component used by both test-taking and training views, supporting all question types in one place
-- **New question types** — enumeration, ordering, matching, and fill-in-the-gap questions with dedicated input UIs and answer-reveal rendering
-- **Test evaluation** — improved grading UI with per-answer correct/wrong marking, sample answers, and grader attribution
-- **Test list** — richer test list view with started-at/submitted-at timestamps and status badges
-
-#### Other
-- **Layered Ember logo** — new animated logo with blink, bounce, and FAQ shake animations, replacing the old static logo
-- **Sidebar counts** — all sidebar badges now load in a single API call for better performance
-- **Parallel demo seeding** — demo data seeding runs module seeders in parallel using virtual threads, significantly reducing startup time
-- **Dev tools button** — in development mode, a floating button shows the current session (account, station, permissions, groups, tags) for debugging
-- **Federation share picker** — reusable `FederationSharePicker` component for toggling share scope and selecting target partners, used in events, boards, and news
-- **Attendance group auto-population** — creating a session from a template with groups now auto-populates expected member entries, marking absent members as DECLINED
-- **Manual event registration** — managers can register members directly from the event detail view
-- **Federated event registration browsing** — the federated events section shows registration status and allows registering/withdrawing for partner events
-- **Attendance report filters** — replaced flat role/group dropdowns with multi-select for user types and groups
-- **Board federation settings** — configure share mode, minimum view role, and which user types may edit tickets on partner stations
-
-### Bug Fixes
-
-- Fixed federation comment badges showing incorrectly for own station's federated comments
-- Fixed federation access not respecting role hierarchy (MANAGER not matching TEAM restrictions)
-- Fixed ticket links not working on federated boards
-- Fixed assignee changes not being tracked in board ticket history
-- Fixed lane deletion removing tickets instead of moving them to remaining lanes
-- Fixed protocol views not rendering correctly with new permission model
-- Fixed federation HTTP client serialization issues
-
----
-
-### Technical Changes
-
-#### Permission Architecture
-- Four new enums: `StationPermission`, `StationUserType`, `InstancePermission`, `InstanceUserType` replacing flat role strings
-- New `station_user_type_permission` DB table with CRUD API endpoints
-- `AccessManager` extended to resolve type-level grants alongside individual and group grants
-- `PermissionPicker.vue` component with hierarchical display, implicit grant hiding, and "granted by" attribution
-- `hasAnyXPermission()` composable helpers in `useSession.ts` for all feature areas
-- Waitlist permission split: `WAITLIST_ADD` → `WAITLIST_EDIT`, separate `WAITLIST_READ`
-- Board permissions split: `BOARD_USE`, `BOARD_EDIT`, `BOARD_FEDERATE`, `BOARD_MANAGER`
-- Groups API renamed: `groups/{id}/roles` → `groups/{id}/permissions`, `Role` → `PermissionGrant`
-- Permission granularity pass: `ATTENDANCE_CREATE` → `ATTENDANCE_EDIT` + new `ATTENDANCE_READ`; new `INVENTORY_EDIT`, `INVENTORY_EXCHANGE`; `EVENT_CONFIGURE` → `EVENT_EDIT`; new `MEMBER_EXPORT`; new `TEST_RESULT_READ`, `TEST_REVIEW`
-- All route handlers updated to reference the renamed/new permissions; read-only routes accept `_READ` where previously they required the full manager grant
-- Database migration consolidated: patch 7 merged into patch 6 (version 1.6)
-
-#### Member Identity
-- `uid UUID` column added to `station_member` with unique `(station_id, uid)` index
-- `MemberIdentity(stationUid, memberUid)` record replaces dual local/federated member representation
-- Dropped satellite federation tables: `federated_assignee`, `federated_creator`, `federated_comment_author`, `federated_watcher` for boards, events, news, KB
-- `MemberIdentityFactory` service for enriching identities with display metadata
-- `MemberNameResolver` with Caffeine caching replaces static `StationUidResolver`/`MemberUidResolver`
-- Mention format migrated to `@[stationUid/memberUid:Name]` with legacy support
-- Avatar URLs use `stationUid/memberUid` path segments
-
-#### Group Colors & Tag Badges
-- `MemberGroup` extended with `color` (hex) and `position` (priority) fields
-- `UserTag` extended with `color`, `visible`, and `position` fields
-- `MemberIdentity` API response includes `nameColor`, `displayTag`, `stationName`
-
-#### Federation
-- `FederationHttpClient` refactored to typed generic API (`get<T>`, `getList<T>`, `post`, `put`, `delete`)
-- New tables: `event_comment_federated_author`, `news_comment_federated_author`, `kb_comment`, `kb_comment_federated_author`
-- `news_federation_share` + `news_federation_share_target` tables with `NEWS_SHARE` capability
-- Remote/proxy comment endpoints for events, news, and KB
-- Federated board access: two-tier model with shared required role + local override
-- Board `uid UUID` column for federation references
-- `all_remote_member_id` columns migrated from TEXT to native PostgreSQL UUID
-
-#### Frontend
-- `LayeredEmberLogo.vue` composited from individual image fragments with `useEmberLogo` composable
-- `SidebarCountService` + `useSidebarCounts` composable (replaces `usePendingChanges`)
-- `RequirementsView.vue`, `FederatedDetailView.vue` (news), `FederatedEventDetailView.vue`, `UserTypePermissionsView.vue`
-- `KbCommentSection.vue`, `EventCancelModal.vue`, `MemberName.vue` enriched
-- Dev error reporter (`devErrorReporter.ts`) for in-app exception display in dev mode
-- `DevToolsButton.vue` — floating dev-mode session inspector showing account, station, permissions, groups, tags with JSON export
-- `FederationSharePicker.vue` — reusable toggle+scope+partner selector for federation sharing
-- `RegistrationsPanel.vue` / `FederatedRegistrationsPanel.vue` — extracted event detail panels for local and federated registrations
-- `QuestionInputCard.vue` — unified question input component for all quiz question types, shared between test-taking and training views
-- Attendance report filters refactored from role/group to user-type/group multi-selects
-- `FederatedEventsSection` expanded with inline registration/withdrawal and status display
-
-#### Backend
-- `SidebarCountService` — single endpoint returning all sidebar badge counts
-- `EventThresholdChecker` — scheduled executor for auto-cancellation (every 30 minutes)
-- `StationExportService`/`StationImportService` extended to cover 45+ tables for full station portability
-- Caffeine cache dependency added (replaces `ConcurrentHashMap` caches)
-- Demo seeding parallelized with `CompletableFuture` + `Executors.newVirtualThreadPerTaskExecutor()`; exchange/procurement code extracted to `seedExchanges()`/`seedProcurements()` helper methods
-- `AttendanceService` — added `MemberGroupRepository` dependency for template group auto-population; field defaults now serialized via Jackson `toJsonValue()` instead of manual string formatting
-- `EventFederationService` / `EventFederationRepository` — new `findMyRegistrations` (local + remote via HTTP), `findRegistrationsByRemoteMember`
-- `QuizQuestion` record simplified: dropped `configRaw` field; `configNode()` now derives JSON from the typed `config` object
-- `QuizTestRepository` — new `updateAttemptMaxPoints` method for grading
-- `InventoryCheckService` — enriches checker identity via `MemberIdentityFactory`
-- `DemoFormSeeder` — expanded with richer demo data covering more field types
-- `FormAnswerValue` — added `OTHER` type for custom free-text answers
-
-#### Test Coverage
-- Fixed all JaCoCo coverage violations (11 original + 1 discovered), raising total test count from 2151 to 2219
-- New test class `EventCancelledHandlerTest` — verifies handler dispatches `EVENT_CANCELLED` notifications to registered members
-- New test class `EventThresholdCheckerTest` — verifies auto-cancellation logic: events below threshold are cancelled, events meeting threshold are left alone
-- New test class `MemberIdentityFactoryTest` — covers `local()`, `federated()`, `fromMemberId()`, `enrich()`, and `enrichCompletions()` factory methods
-- `EventRepositoryTest` — added tests for `cancelEvent`, `findAutoCancel`, `setThresholdNotified`, `countAcceptedRegistrations`, `findRegisteredMemberIds`, `countPendingRegistrations`
-- `EventFederationServiceTest` — added tests for `findRegistrationsNullDate`, `findRegistrationsByRemoteMember`, `findMyRegistrations`
-- `StationMemberRepositoryTest` — added tests for `invalidateMemberCache`, `resolveIdentity`, `setUserTypePermissions`, UID resolution caching
-- `StationMemberServiceTest` — added tests for `resolveUid`, `resolveId`, `resolveIdentity`, `findAllPermissions`, `setUserType`, LOGIN permission grant with onboarding
-- `ProfileFieldServiceTest` — added tests for `findApplicableFields` across all user types, `isProfileComplete` with GUARDIAN/TEAM/MANAGER/ADMIN/ATTENDANCE_MANAGER roles, readonly-required field skip, empty-value detection, GROUP scope exclusion, `acknowledgeAll`
-- `AttendanceServiceTest` — added tests for session creation with `EVENT_NAME`/`EVENT_DESCRIPTION`/`EVENT_START_TIME`/`EVENT_END_TIME` field default sources, group auto-population, PENDING registration sync skip, autoAttend new member creation
-- `BoardServiceTest` — added tests for due date change tracking, assignee change with unassign notifications, non-existent attachment delete, self-link prevention, watcher management by identity, new-format UUID mentions
-- `AccountRepositoryTest` — added tests for `anyAdministratorExists`, `deleteSessionById`, `findAllConsents`
-
----
-
 ## v26.6.0
 
 ### New Features
@@ -194,6 +32,76 @@
 - **Role hierarchy in board access** — MANAGER role now correctly grants access to TEAM-restricted boards via transitive role expansion
 - **Dedicated can-edit endpoint** — `GET /boards/{id}/can-edit` for frontend to check edit permission
 - **View/edit access restrictions** — per-board role, group, and tag based access control
+
+#### Permission System
+- **Granular permissions** — replaced the flat role system with a hierarchical permission tree; each feature area (events, members, inventory, boards, etc.) has its own read/edit/manage permissions
+- **User type permissions** — assign extra permissions to entire user types (Trial, Member, Guardian, Team) station-wide via a new management page
+- **Permission picker** — new hierarchical permission selector with collapsible groups, icons, and descriptions; replaces the old flat role checkboxes in member edit and group management
+- **Sidebar permission gating** — sidebar links are now shown or hidden based on the user's actual permissions rather than all-or-nothing manager checks
+- **Read-only views** — users with read permission but not edit permission see content without edit controls (e.g. waiting list, boards)
+- **Granular test permissions** — decomissioned QUIZ_MANAGER; replaced with TEST_CATALOG_VIEW, TEST_CATALOG_EDIT, TEST_CONFIGURE, TEST_RESULT_READ, TEST_REVIEW, and standalone TEST_MANAGER/PROTOCOL_MANAGER under STATION_ADMINISTRATOR
+- **Protocol permissions** — PROTOCOL_CONFIGURE for definitions, PROTOCOL_CREATE for runs, PROTOCOL_TESTER for grading
+- **NEWS_CREATE renamed to NEWS_EDIT** — covers creating, editing, and deleting news posts; NEWS_FEDERATE gates federation sharing
+- **Form permissions** — POLL_VIEW_RESULTS for viewing analytics, POLL_CREATE for creating/editing forms; member restrictions in restriction picker
+- **Station management permissions** — granular route permissions (STATION_GENERAL, STATION_LOOK_AND_FEEL, STATION_MAIL, STATION_MODULES, STATION_IMPORT_EXPORT) replace STATION_ADMINISTRATOR; sidebar restructured with manage and federation as separate top-level groups
+- **Member permissions** — MEMBER_EDIT replaces MEMBER_MANAGER on import/delete/permissions/user-type routes; MEMBER_MANAGE_TAGS for tag CRUD; MEMBER_READ for GET endpoints
+- **Inventory permissions** — INVENTORY_EDIT for update/delete items; MEMBER_READ for member inventory items
+
+#### Member Identity & Display
+- **Group colors** — assign a display color to groups; the highest-priority group's color is used as the member's name color everywhere
+- **Tag badges** — tags can be marked visible with a color and position; they appear as inline colored pill badges next to member names
+- **Unified member identity** — a single identity model (station UUID + member UUID + display name) is used everywhere from database through API to frontend
+- **MemberName driven by identity** — the `MemberName` component derives its display name solely from the identity object
+
+#### Waitlist Guardians
+- **Multiple guardians per waitlist entry** — each entry can have multiple guardians with name, email, and phone number, replacing the single parent name/email fields
+- **Guardian auto-onboarding** — when a waitlist entry is accepted, guardian accounts are automatically created with GUARDIAN user type, LOGIN and MEMBER_GUARDIAN permissions, and linked to the child member
+- **Trial member type** — waitlist entries are created as TRIAL type until accepted, then converted to MEMBER
+- **Expandable guardian details** — clicking a waitlist entry expands to show guardian contact details
+- **Dedicated entry creation view** — adding waitlist entries uses a full page view instead of a modal
+- **Waitlist permission split** — new WAITLIST_ADD permission for adding entries without full edit access
+
+#### Member Detail & Edit
+- **Member detail tabs** — split into tabs: Profile, Permissions, Guardians, Absences, Inventory, Notes
+- **Relations tab** — new tab on member edit for assigning guardians to members and members to guardians
+- **Absences tab** — users with MEMBER_EDIT can create, view, and delete absences from the member detail view
+- **Permissions tab** — shows user type, permissions with human-friendly names, groups, and tags
+
+#### Event Reminders
+- **Configurable reminders** — events and event templates support multiple reminders defined in days before the event
+- **Reminder scheduler** — background checker sends EVENT_REMINDER notifications to eligible members
+- **Smart targeting** — public events notify all non-declined members; registration-required events notify only accepted/pending registrants
+- **Template carry-over** — reminders from templates are applied when creating events from templates
+
+#### Federated Comments
+- **Event comments** — comment on events shared by federation partners; comments show the author's station badge
+- **News comments** — comment on news posts shared by partners with full threading support
+- **Knowledge base comments** — threaded comments on KB files with federation support and soft-delete
+
+#### News Federation
+- **Per-post sharing** — choose which news posts to share with partners: all partners or specific ones
+- **Visibility role** — set a minimum role for shared news visibility at partner stations
+- **Federated news in feed** — partner news posts appear inline in the news list, marked with a federation badge
+
+#### Event Cancellation
+- **Manual cancellation** — managers can cancel events with a reason
+- **Auto-cancellation** — events that don't reach the minimum registration count by a threshold date are automatically cancelled
+- **Cancellation notifications** — all registered members receive an EVENT_CANCELLED notification
+
+#### Quiz & Test Improvements
+- **New question types** — enumeration, ordering, matching, and fill-in-the-gap questions
+- **Readonly catalog view** — users with TEST_CATALOG_VIEW see catalogs and questions with answers without edit controls
+- **Test results tab** — test detail view has a Results tab showing all attempts
+- **Enriched attempt detail** — single API call returns attempt, full question details, and member identity
+- **Grading UX** — "Geprüft & Weiter" / "Geprüft & Beenden" shortcuts; compact icon buttons; reorganized mobile navigation
+
+#### Other
+- **Station requirements view** — shows outstanding requirements for the current member with sidebar badge
+- **Board improvements** — human-readable URLs, federated ticket links, chronological activity tab, keyboard navigation
+- **Sidebar counts** — all sidebar badges load in a single API call
+- **Dev error handler** — filename format `HH-mm-ss - source - hash.txt`; `reportCaughtError()` for frontend catch blocks
+- **Start/end date sync** — setting a start date auto-fills the end date if empty
+- **Modules toggle** — added TEST_PROTOCOL and BOARDS to the modules management page
 
 ### Improvements
 
@@ -251,10 +159,27 @@
 - **boards.ts API** — 40+ functions for all board, ticket, label, attachment, KB link, and history operations
 - **Authenticated file handling** — blob download/preview via axios instead of direct URLs
 
+#### Permission Architecture
+- Four new enums: `StationPermission`, `StationUserType`, `InstancePermission`, `InstanceUserType` replacing flat role strings
+- `station_user_type_permission` DB table with CRUD API endpoints
+- `PermissionPicker.vue` component with hierarchical display, implicit grant hiding, and "granted by" attribution
+- Permission granularity across all route handlers; read-only routes accept `_READ` where previously they required manager grants
+
+#### Member Identity
+- `uid UUID` column added to `station_member`; `MemberIdentity(stationUid, memberUid)` record replaces dual local/federated representation
+- `MemberIdentityFactory` service with `MemberNameResolver` Caffeine caching
+- Mention format migrated to `@[stationUid/memberUid:Name]` with legacy support
+
+#### Waitlist & Guardians
+- `waiting_list_entry_guardian` table with cascade delete; migration backfills from legacy `parent_name`/`email`
+- `event_reminder`, `event_template_reminder`, `event_reminder_sent` tables for reminder tracking
+- `EventReminderChecker` scheduled executor (every 30 minutes)
+- `QuizCatalogRepository.findQuestionsByIds()` batch query for enriched attempt detail
+
 #### Test Coverage
 - **Board repository tests** — 20+ tests covering tickets, lanes, labels, attachments, field values, weblinks, search, history, backlog, KB links
 - **Board service tests** — 25+ tests covering CRUD, access control with role hierarchy, labels, backlog, field values, attachments, comments, watchers, move/reorder/link operations
-- **JaCoCo exclusion** — DueDateReminderChecker excluded (daemon pattern, like RegistrationDeadlineChecker)
+- **JaCoCo exclusion** — DueDateReminderChecker, EventReminderChecker excluded (daemon pattern)
 - All coverage thresholds met: 95% repositories, 90% services, 80% handlers
 
 ---

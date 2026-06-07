@@ -872,18 +872,30 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 .id();
 
         // Set field defaults with different sources
-        eventRepo.setFieldDefaults(event.id(), List.of(
-                new dev.chojo.ember.feature.events.entity.EventFieldDefault(event.id(), nameFieldId, "EVENT_NAME", null),
-                new dev.chojo.ember.feature.events.entity.EventFieldDefault(event.id(), descFieldId, "EVENT_DESCRIPTION", null),
-                new dev.chojo.ember.feature.events.entity.EventFieldDefault(event.id(), startFieldId, "EVENT_START_TIME", null),
-                new dev.chojo.ember.feature.events.entity.EventFieldDefault(event.id(), endFieldId, "EVENT_END_TIME", null)));
+        eventRepo.setFieldDefaults(
+                event.id(),
+                List.of(
+                        new dev.chojo.ember.feature.events.entity.EventFieldDefault(
+                                event.id(), nameFieldId, "EVENT_NAME", null),
+                        new dev.chojo.ember.feature.events.entity.EventFieldDefault(
+                                event.id(), descFieldId, "EVENT_DESCRIPTION", null),
+                        new dev.chojo.ember.feature.events.entity.EventFieldDefault(
+                                event.id(), startFieldId, "EVENT_START_TIME", null),
+                        new dev.chojo.ember.feature.events.entity.EventFieldDefault(
+                                event.id(), endFieldId, "EVENT_END_TIME", null)));
 
         var session = service.createSession(fieldTemplate.id(), null, null, event.id(), null);
         assertNotNull(session);
 
         var sessionFields = service.findSessionFields(session.id());
-        assertTrue(sessionFields.stream().anyMatch(f -> f.fieldId() == nameFieldId && f.value() != null && f.value().contains("SourceDefaults Event")));
-        assertTrue(sessionFields.stream().anyMatch(f -> f.fieldId() == descFieldId && f.value() != null && f.value().contains("A description")));
+        assertTrue(sessionFields.stream()
+                .anyMatch(f -> f.fieldId() == nameFieldId
+                        && f.value() != null
+                        && f.value().contains("SourceDefaults Event")));
+        assertTrue(sessionFields.stream()
+                .anyMatch(f -> f.fieldId() == descFieldId
+                        && f.value() != null
+                        && f.value().contains("A description")));
         assertTrue(sessionFields.stream().anyMatch(f -> f.fieldId() == startFieldId && f.value() != null));
         assertTrue(sessionFields.stream().anyMatch(f -> f.fieldId() == endFieldId && f.value() != null));
 
@@ -903,7 +915,8 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var autoTemplate = service.createTemplate(station.id(), "Group Auto Template");
         service.setTemplateGroups(
                 autoTemplate.id(),
-                List.of(new dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup(group.id(), 1)));
+                List.of(new dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup(
+                        group.id(), 1)));
 
         var session = service.createSession(
                 autoTemplate.id(), Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, "Group Session");
@@ -941,7 +954,12 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        eventRepo.createRegistration(event.id(), member9.id(), LocalDate.now(), dev.chojo.ember.feature.events.entity.RegistrationStatus.PENDING, null);
+        eventRepo.createRegistration(
+                event.id(),
+                member9.id(),
+                LocalDate.now(),
+                dev.chojo.ember.feature.events.entity.RegistrationStatus.PENDING,
+                null);
 
         var session = service.createSession(templateId, null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());
@@ -977,7 +995,8 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         var entries = service.syncFromEvent(session.id());
         assertTrue(entries.stream()
-                .anyMatch(e -> e.memberId() == member10.id() && e.status() == AttendanceEntry.AttendanceStatus.PRESENT));
+                .anyMatch(
+                        e -> e.memberId() == member10.id() && e.status() == AttendanceEntry.AttendanceStatus.PRESENT));
 
         service.deleteSession(session.id());
         service.deleteTemplate(autoTemplate.id());

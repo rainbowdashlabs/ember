@@ -153,6 +153,24 @@ public class StationMemberService {
         return memberRepository.findManagers(managedId);
     }
 
+    public List<StationMember> setManaged(int managerId, List<Integer> desiredManagedIds) {
+        List<StationMember> currentManaged = memberRepository.findManaged(managerId);
+        var currentManagedIds = currentManaged.stream().map(StationMember::id).toList();
+
+        for (int managedId : currentManagedIds) {
+            if (!desiredManagedIds.contains(managedId)) {
+                memberRepository.removeManager(managerId, managedId);
+            }
+        }
+        for (int managedId : desiredManagedIds) {
+            if (!currentManagedIds.contains(managedId)) {
+                memberRepository.addManager(managerId, managedId);
+            }
+        }
+
+        return memberRepository.findManaged(managerId);
+    }
+
     public List<StationMember> setManagers(int managedId, List<Integer> desiredManagerIds) {
         List<StationMember> currentManagers = memberRepository.findManagers(managedId);
         var currentManagerIds = currentManagers.stream().map(StationMember::id).toList();

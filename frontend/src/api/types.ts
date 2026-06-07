@@ -52,9 +52,10 @@ export const StationPermission = {
     MEMBER_EXPORT: 'MEMBER_EXPORT',
     MEMBER_MANAGER: 'MEMBER_MANAGER',
     WAITLIST_READ: 'WAITLIST_READ',
+    WAITLIST_ADD: 'WAITLIST_ADD',
     WAITLIST_EDIT: 'WAITLIST_EDIT',
     WAITLIST_MANAGER: 'WAITLIST_MANAGER',
-    NEWS_CREATE: 'NEWS_CREATE',
+    NEWS_EDIT: 'NEWS_EDIT',
     NEWS_FEDERATE: 'NEWS_FEDERATE',
     NEWS_MANAGER: 'NEWS_MANAGER',
     POLL_VIEW_RESULTS: 'POLL_VIEW_RESULTS',
@@ -66,12 +67,13 @@ export const StationPermission = {
     TEST_CATALOG_VIEW: 'TEST_CATALOG_VIEW',
     TEST_CATALOG_EDIT: 'TEST_CATALOG_EDIT',
     TEST_CONFIGURE: 'TEST_CONFIGURE',
+    TEST_RESULT_READ: 'TEST_RESULT_READ',
+    TEST_REVIEW: 'TEST_REVIEW',
     TEST_MANAGER: 'TEST_MANAGER',
     PROTOCOL_TESTER: 'PROTOCOL_TESTER',
     PROTOCOL_CREATE: 'PROTOCOL_CREATE',
     PROTOCOL_CONFIGURE: 'PROTOCOL_CONFIGURE',
     PROTOCOL_MANAGER: 'PROTOCOL_MANAGER',
-    QUIZ_MANAGER: 'QUIZ_MANAGER',
     BOARD_USE: 'BOARD_USE',
     BOARD_EDIT: 'BOARD_EDIT',
     BOARD_FEDERATE: 'BOARD_FEDERATE',
@@ -444,7 +446,7 @@ export interface EventLayoutField {
 export interface LayoutFieldEntry {
     name: string
     fieldType?: string
-    config?: string
+    config?: Record<string, unknown>
     overview?: boolean
     attendanceFieldId?: number | null
 }
@@ -482,13 +484,14 @@ export interface EventTemplateField {
 export interface EventTemplateDetail {
     template: EventTemplate
     fields: EventTemplateField[]
-    restrictionRoleIds: number[]
+    restrictionUserTypes: string[]
+    reminderDays: number[]
 }
 
 export interface EventTemplateFieldEntry {
     name: string
     fieldType?: string
-    config?: string
+    config?: Record<string, unknown>
     position: number
     overview?: boolean
     isPublic?: boolean
@@ -600,9 +603,10 @@ export interface FormQuestionRequest {
 }
 
 export interface FormRestrictions {
-    roleIds: number[]
+    userTypes: string[]
     groupIds: number[]
     tagIds: number[]
+    memberIds?: number[]
     mode?: string
 }
 
@@ -1484,7 +1488,6 @@ export interface WaitingList {
     visibleFields: number[]
     testingGroupId?: number | null
     joinGroupId?: number | null
-    joinUserType?: string | null
     attendanceThreshold: number
 }
 
@@ -1535,10 +1538,20 @@ export interface WaitingListEntryValue {
     value: string
 }
 
+export interface WaitingListEntryGuardian {
+    id: number
+    entryId: number
+    name: string
+    email: string
+    phone: string
+    position: number
+}
+
 export interface WaitingListEntryWithScore {
     entry: WaitingListEntry
     values: WaitingListEntryValue[]
     score: number
+    guardians: WaitingListEntryGuardian[]
 }
 
 export interface WaitingListWithCount {
@@ -1556,6 +1569,7 @@ export interface WaitingListPublicStatus {
     listName: string
     fields: WaitingListField[]
     values: WaitingListEntryValue[]
+    guardians: WaitingListEntryGuardian[]
 }
 
 export interface WaitingListInviteInfo {
@@ -1738,6 +1752,8 @@ export interface QuizAttemptDetail {
     attempt: QuizTestAttempt
     questions: QuizTestAttemptQuestion[]
     answers: QuizTestAnswer[]
+    questionDetails?: QuizQuestion[] | null
+    memberIdentity?: MemberIdentity | null
 }
 
 export interface QuizCatalogExport {

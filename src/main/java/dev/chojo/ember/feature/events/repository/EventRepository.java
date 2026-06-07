@@ -780,6 +780,58 @@ public class EventRepository {
                 .all();
     }
 
+    // --- Reminders ---
+
+    public List<Integer> findReminderDays(int eventId) {
+        return Query.query("SELECT days_before FROM event_reminder WHERE event_id = :event_id ORDER BY days_before;")
+                .single(Call.of().bind("event_id", eventId))
+                .map(row -> row.getInt("days_before"))
+                .all();
+    }
+
+    public void replaceReminders(int eventId, List<Integer> daysBefore) {
+        Query.query("DELETE FROM event_reminder WHERE event_id = :event_id;")
+                .single(Call.of().bind("event_id", eventId))
+                .delete();
+        for (int days : daysBefore) {
+            Query.query(
+                            "INSERT INTO event_reminder(event_id, days_before) VALUES(:event_id, :days_before) ON CONFLICT DO NOTHING;")
+                    .single(Call.of().bind("event_id", eventId).bind("days_before", days))
+                    .insert();
+        }
+    }
+
+    public List<StationEvent> findEventsWithReminders() {
+        return Query.query("""
+                        SELECT DISTINCT se.* FROM station_event se
+                        JOIN event_reminder er ON er.event_id = se.id
+                        WHERE se.cancelled = FALSE;""").single(Call.of()).map(StationEvent.map()).all();
+    }
+
+    public boolean isReminderSent(int eventId, LocalDate eventDate, int daysBefore) {
+        return Query.query("""
+                        SELECT 1 FROM event_reminder_sent
+                        WHERE event_id = :event_id AND event_date = :event_date AND days_before = :days_before;""")
+                .single(Call.of()
+                        .bind("event_id", eventId)
+                        .bind("event_date", eventDate)
+                        .bind("days_before", daysBefore))
+                .map(row -> true)
+                .first()
+                .orElse(false);
+    }
+
+    public void markReminderSent(int eventId, LocalDate eventDate, int daysBefore) {
+        Query.query("""
+                        INSERT INTO event_reminder_sent(event_id, event_date, days_before)
+                        VALUES(:event_id, :event_date, :days_before) ON CONFLICT DO NOTHING;""")
+                .single(Call.of()
+                        .bind("event_id", eventId)
+                        .bind("event_date", eventDate)
+                        .bind("days_before", daysBefore))
+                .insert();
+    }
+
     public int countPendingRegistrations(int stationId) {
         return Query.query("""
                         SELECT count(*) AS cnt FROM event_registration er

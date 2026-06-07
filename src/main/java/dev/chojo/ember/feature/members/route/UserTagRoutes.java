@@ -62,16 +62,20 @@ public class UserTagRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/tags", this::list, StationPermission.USER);
-        routes.post(prefix + "/tags", this::create, StationPermission.MEMBER_MANAGER);
-        routes.put(prefix + "/tags/{id}", this::update, StationPermission.MEMBER_MANAGER);
-        routes.delete(prefix + "/tags/{id}", this::delete, StationPermission.MEMBER_MANAGER);
+        routes.post(prefix + "/tags", this::create, StationPermission.MEMBER_MANAGE_TAGS);
+        routes.put(prefix + "/tags/{id}", this::update, StationPermission.MEMBER_MANAGE_TAGS);
+        routes.delete(prefix + "/tags/{id}", this::delete, StationPermission.MEMBER_MANAGE_TAGS);
 
-        routes.get(prefix + "/tags/{id}/members", this::getMembers, StationPermission.MEMBER_MANAGER, StationPermission.INVENTORY_READ);
-        routes.put(prefix + "/tags/{id}/members", this::setMembers, StationPermission.MEMBER_MANAGER);
+        routes.get(
+                prefix + "/tags/{id}/members",
+                this::getMembers,
+                StationPermission.MEMBER_MANAGE_TAGS,
+                StationPermission.INVENTORY_READ);
+        routes.put(prefix + "/tags/{id}/members", this::setMembers, StationPermission.MEMBER_MANAGE_TAGS);
 
-        routes.get(prefix + "/station-members/{memberId}/tags", this::getMemberTags, StationPermission.MEMBER_MANAGER);
+        routes.get(prefix + "/station-members/{memberId}/tags", this::getMemberTags, StationPermission.MEMBER_READ);
 
-        routes.post(prefix + "/tags/{id}/convert-to-group", this::convertToGroup, StationPermission.MEMBER_MANAGER);
+        routes.post(prefix + "/tags/{id}/convert-to-group", this::convertToGroup, StationPermission.MEMBER_MANAGE_TAGS);
     }
 
     // -- Tags --

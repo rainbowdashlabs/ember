@@ -17,12 +17,15 @@ import TabBar from '@/components/navigation/TabBar.vue'
 import NoteEditor from '@/components/comment/NoteEditor.vue'
 import GeneralTab from './editview/GeneralTab.vue'
 import ProfileTab from './editview/ProfileTab.vue'
+import RelationsTab from './editview/RelationsTab.vue'
 import type {ProfileField, StationMember, PermissionGrant, MemberGroup, UserTag} from '@/api/types'
-import {StationUserType} from '@/api/types'
+import {StationPermission, StationUserType} from '@/api/types'
 import {profileFields, stationMembers, memberGroups, userTags, inventory} from '@/api'
 import type {MyInventoryItem} from '@/api/inventory'
+import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
+const {hasPermission} = useSession()
 const route = useRoute()
 const router = useRouter()
 
@@ -42,11 +45,14 @@ const editUserType = ref('')
 const memberInventory = ref<MyInventoryItem[]>([])
 const loading = ref(true)
 const error = ref('')
-const activeTab = ref('general')
+const activeTab = ref('profile')
+
+const allMembers = ref<StationMember[]>([])
 
 const tabs = computed(() => [
-  {key: 'general', label: t('memberEdit.tabGeneral')},
   {key: 'profile', label: t('memberEdit.tabProfile')},
+  {key: 'permissions', label: t('memberEdit.tabPermissions')},
+  {key: 'relations', label: t('memberEdit.tabRelations')},
   {key: 'notes', label: t('memberEdit.tabNotes')},
 ])
 
@@ -75,7 +81,7 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [allFields, allMembers, roles, memberData, memberPermissions, profileValues, groups, tags, mGroups, mTags] = await Promise.all([
+    const [allFields, allMembers_, roles, memberData, memberPermissions, profileValues, groups, tags, mGroups, mTags] = await Promise.all([
       profileFields.getMemberFields(memberId.value),
       stationMembers.listMembers(),
       stationMembers.listAllPermissions(),
@@ -88,12 +94,13 @@ async function loadData() {
       userTags.getMemberTags(memberId.value),
     ])
     fields.value = allFields
+    allMembers.value = allMembers_
     allRoles.value = roles
     allGroups.value = groups
     allTags.value = tags
     editGroupIds.value = new Set(mGroups.map(g => g.id))
     editTagIds.value = new Set(mTags.map(t => t.id))
-    member.value = allMembers.find(m => m.id === memberId.value) ?? null
+    member.value = allMembers_.find(m => m.id === memberId.value) ?? null
     editUserType.value = memberData.userType ?? StationUserType.MEMBER
     editRoleIds.value = new Set(memberPermissions.map(r => r.id))
     await loadTypePermissions(editUserType.value)
@@ -118,6 +125,7 @@ function goBack() {
 
 onMounted(async () => {
   await loadData()
+  if (!hasPermission(StationPermission.INVENTORY_READ)) return
   try {
     memberInventory.value = await inventory.memberItems(memberId.value)
   } catch {
@@ -141,8 +149,16 @@ onMounted(async () => {
 
         <TabBar v-model="activeTab" :tabs="tabs"/>
 
+        <ProfileTab
+            v-if="activeTab === 'profile'"
+            :member="member"
+            :member-id="memberId"
+            :fields="fields"
+            :initial-values="editValues"
+        />
+
         <GeneralTab
-            v-if="activeTab === 'general'"
+            v-if="activeTab === 'permissions'"
             :member="member"
             :member-id="memberId"
             :all-roles="allRoles"
@@ -157,12 +173,11 @@ onMounted(async () => {
             @user-type-changed="onUserTypeChanged"
         />
 
-        <ProfileTab
-            v-if="activeTab === 'profile'"
-            :member="member"
+        <RelationsTab
+            v-if="activeTab === 'relations'"
             :member-id="memberId"
-            :fields="fields"
-            :initial-values="editValues"
+            :user-type="editUserType"
+            :all-members="allMembers"
         />
 
         <NeutralContainer v-if="activeTab === 'notes'">

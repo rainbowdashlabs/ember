@@ -17,7 +17,6 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type { WaitingList, WaitingListField, MemberGroup } from '@/api/types'
-import { StationUserType } from '@/api/types'
 import { ref, computed } from 'vue'
 import { waitingList as waitingListApi } from '@/api'
 
@@ -46,7 +45,6 @@ const editScoringFormula = ref('')
 const editConfirmInterval = ref(0)
 const editTestingGroupId = ref<number | null>(null)
 const editJoinGroupId = ref<number | null>(null)
-const editJoinUserType = ref<string | null>(null)
 const editAttendanceThreshold = ref(5)
 const saving = ref(false)
 
@@ -57,7 +55,6 @@ function startEditing() {
   editConfirmInterval.value = props.list.confirmIntervalDays ?? 0
   editTestingGroupId.value = props.list.testingGroupId ?? null
   editJoinGroupId.value = props.list.joinGroupId ?? null
-  editJoinUserType.value = props.list.joinUserType ?? null
   editAttendanceThreshold.value = props.list.attendanceThreshold ?? 5
   editing.value = true
 }
@@ -77,7 +74,6 @@ async function saveEditing() {
       confirmIntervalDays: editConfirmInterval.value || undefined,
       testingGroupId: editTestingGroupId.value,
       joinGroupId: editJoinGroupId.value,
-      joinUserType: editJoinUserType.value,
       attendanceThreshold: editAttendanceThreshold.value,
     })
     editing.value = false
@@ -96,12 +92,7 @@ function groupName(groupId: number | null | undefined): string {
   return props.groups.find(g => g.id === groupId)?.name ?? '-'
 }
 
-const userTypeOptions = computed(() => Object.values(StationUserType))
 
-function userTypeLabel(userType: string | null | undefined): string {
-  if (!userType) return '-'
-  return userType
-}
 </script>
 
 <template>
@@ -136,10 +127,6 @@ function userTypeLabel(userType: string | null | undefined): string {
         <div class="text-sm">
           <span class="text-(--text-muted)">{{ t('waitingList.joinGroup') }}:</span>
           <span class="ml-1 font-medium">{{ groupName(list.joinGroupId) }}</span>
-        </div>
-        <div class="text-sm">
-          <span class="text-(--text-muted)">{{ t('waitingList.joinUserType') }}:</span>
-          <span class="ml-1 font-medium">{{ userTypeLabel(list.joinUserType) }}</span>
         </div>
         <div class="text-sm">
           <span class="text-(--text-muted)">{{ t('waitingList.attendanceThreshold') }}:</span>
@@ -181,13 +168,6 @@ function userTypeLabel(userType: string | null | undefined): string {
             <SelectInput :model-value="editJoinGroupId != null ? String(editJoinGroupId) : ''" @update:model-value="editJoinGroupId = $event ? Number($event) : null">
               <option value="">{{ t('waitingList.noGroup') }}</option>
               <option v-for="g in groups" :key="g.id" :value="String(g.id)">{{ g.name }}</option>
-            </SelectInput>
-          </div>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('waitingList.joinUserType') }}</FieldLabel>
-            <SelectInput :model-value="editJoinUserType ?? ''" @update:model-value="editJoinUserType = $event || null">
-              <option value="">{{ t('waitingList.noUserType') }}</option>
-              <option v-for="ut in userTypeOptions" :key="ut" :value="ut">{{ ut }}</option>
             </SelectInput>
           </div>
           <div class="space-y-1">

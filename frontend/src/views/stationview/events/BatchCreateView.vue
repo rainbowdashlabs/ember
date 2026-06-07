@@ -124,7 +124,7 @@ async function createBatch() {
     const inlineFields: LayoutFieldEntry[] = fieldDefs.value.filter(f => f.name.trim()).map(f => ({
       name: f.name,
       fieldType: f.fieldType,
-      config: f.config ? JSON.stringify(f.config) : undefined,
+      config: f.config ?? undefined,
       overview: f.overview,
       attendanceFieldId: f.attendanceFieldId,
     }))

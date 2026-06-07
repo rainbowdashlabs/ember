@@ -31,7 +31,9 @@ import type { TestProtocol, SharedProtocolEntry } from '@/api/protocol'
 
 const { t } = useI18n()
 const router = useRouter()
-const { canManageProtocol, loaded } = useSession()
+import { StationPermission } from '@/api/types'
+const { hasPermission, loaded } = useSession()
+const canConfigure = computed(() => hasPermission(StationPermission.PROTOCOL_CONFIGURE))
 
 const protocols = ref<TestProtocol[]>([])
 const sharedProtocols = ref<SharedProtocolEntry[]>([])
@@ -141,7 +143,7 @@ onMounted(() => { if (loaded.value) loadData() })
   <ViewContent>
     <div class="flex items-center justify-between mb-4">
       <SectionHeader>{{ t('protocol.title') }}</SectionHeader>
-      <PrimaryButton v-if="canManageProtocol()" @click="showCreateModal = true">
+      <PrimaryButton v-if="canConfigure" @click="showCreateModal = true">
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" /> {{ t('protocol.create') }}
       </PrimaryButton>
     </div>
@@ -190,7 +192,7 @@ onMounted(() => { if (loaded.value) loadData() })
           <div v-if="p.description" class="text-sm text-[var(--text-muted)] truncate">{{ p.description }}</div>
         </div>
         <span v-if="p.passThreshold" class="text-xs text-[var(--text-muted)]">{{ t('protocol.threshold') }}: {{ p.passThreshold }}P</span>
-        <div v-if="canManageProtocol()" class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div v-if="canConfigure" class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <EditButton :label="t('common.edit')" @click.stop="router.push({ name: 'protocol-detail', params: { id: p.id } })" />
           <DeleteButton :label="t('common.delete')" @click.stop="deleteTarget = p; showDeleteModal = true" />
         </div>

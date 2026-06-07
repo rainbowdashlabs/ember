@@ -149,7 +149,8 @@ public class MemberNameResolver {
         return new ResolvedMember(enriched, name);
     }
 
-    private record DisplayData(String name, String stationName, String nameColor, MemberIdentity.DisplayTag displayTag) {}
+    private record DisplayData(
+            String name, String stationName, String nameColor, MemberIdentity.DisplayTag displayTag) {}
 
     private final Cache<UUID, DisplayData> displayCache = Caffeine.newBuilder()
             .expireAfterAccess(5, TimeUnit.MINUTES)
@@ -170,7 +171,8 @@ public class MemberNameResolver {
             var memberId = memberService.resolveId(station.id(), uid);
             if (memberId.isEmpty()) return new DisplayData(null, stationName, null, null);
             String name = resolveLocal(memberId.get());
-            return new DisplayData(name, stationName, resolveNameColor(memberId.get()), resolveDisplayTag(memberId.get()));
+            return new DisplayData(
+                    name, stationName, resolveNameColor(memberId.get()), resolveDisplayTag(memberId.get()));
         });
 
         return identity.withDisplay(data.name(), data.stationName(), data.nameColor(), data.displayTag());

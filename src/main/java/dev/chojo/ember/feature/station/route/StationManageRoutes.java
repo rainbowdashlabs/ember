@@ -83,26 +83,28 @@ public class StationManageRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/station/manage", this::getStation, StationPermission.STATION_ADMINISTRATOR);
-        routes.put(prefix + "/station/manage", this::updateStation, StationPermission.STATION_ADMINISTRATOR);
-        routes.post(prefix + "/station/manage/logo", this::uploadLogo, StationPermission.STATION_ADMINISTRATOR);
+        routes.get(
+                prefix + "/station/manage",
+                this::getStation,
+                StationPermission.STATION_GENERAL,
+                StationPermission.STATION_LOOK_AND_FEEL,
+                StationPermission.STATION_FEDERATION);
+        routes.put(prefix + "/station/manage", this::updateStation, StationPermission.STATION_GENERAL);
+        routes.post(prefix + "/station/manage/logo", this::uploadLogo, StationPermission.STATION_LOOK_AND_FEEL);
         routes.get(prefix + "/station/manage/logo", this::getLogo, StationPermission.LOGIN);
         routes.get(prefix + "/stations/{stationId}/logo", this::getLogoByStation, StationPermission.LOGIN);
         routes.get(prefix + "/public/stations/{stationId}/logo", this::getLogoByStation);
-        routes.delete(prefix + "/station/manage/logo", this::deleteLogo, StationPermission.STATION_ADMINISTRATOR);
-        routes.get(prefix + "/station/manage/mail", this::getMailConfig, StationPermission.STATION_ADMINISTRATOR);
-        routes.put(prefix + "/station/manage/mail", this::updateMailConfig, StationPermission.STATION_ADMINISTRATOR);
-        routes.post(
-                prefix + "/station/manage/mail/test", this::testMailConfig, StationPermission.STATION_ADMINISTRATOR);
-        routes.get(
-                prefix + "/station/manage/modules", this::getDisabledModules, StationPermission.STATION_ADMINISTRATOR);
-        routes.put(
-                prefix + "/station/manage/modules", this::setDisabledModules, StationPermission.STATION_ADMINISTRATOR);
-        routes.post(prefix + "/station/manage/import", this::importInto, StationPermission.STATION_ADMINISTRATOR);
+        routes.delete(prefix + "/station/manage/logo", this::deleteLogo, StationPermission.STATION_LOOK_AND_FEEL);
+        routes.get(prefix + "/station/manage/mail", this::getMailConfig, StationPermission.STATION_MAIL);
+        routes.put(prefix + "/station/manage/mail", this::updateMailConfig, StationPermission.STATION_MAIL);
+        routes.post(prefix + "/station/manage/mail/test", this::testMailConfig, StationPermission.STATION_MAIL);
+        routes.get(prefix + "/station/manage/modules", this::getDisabledModules, StationPermission.STATION_MODULES);
+        routes.put(prefix + "/station/manage/modules", this::setDisabledModules, StationPermission.STATION_MODULES);
+        routes.post(prefix + "/station/manage/import", this::importInto, StationPermission.STATION_IMPORT_EXPORT);
         routes.get(
                 prefix + "/station/manage/import/progress",
                 this::importProgress,
-                StationPermission.STATION_ADMINISTRATOR);
+                StationPermission.STATION_IMPORT_EXPORT);
         routes.post(
                 prefix + "/station/manage/request-delete",
                 this::requestDelete,

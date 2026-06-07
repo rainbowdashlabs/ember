@@ -35,7 +35,8 @@ import MutedIcon from '@/components/display/MutedIcon.vue'
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { canManageProtocol, loaded } = useSession()
+import { StationPermission } from '@/api/types'
+const { hasPermission, loaded } = useSession()
 
 const isFederated = computed(() => {
   if (!proto.value) return false
@@ -43,7 +44,7 @@ const isFederated = computed(() => {
   return currentStationId != null && String(proto.value.stationId) !== currentStationId
 })
 
-const canEdit = computed(() => canManageProtocol() && !isFederated.value)
+const canEdit = computed(() => hasPermission(StationPermission.PROTOCOL_CONFIGURE) && !isFederated.value)
 
 const protocolId = computed(() => Number(route.params.id))
 const proto = ref<TestProtocol | null>(null)
@@ -241,7 +242,7 @@ onMounted(() => { if (loaded.value) loadData() })
       <SectionHeader>{{ proto?.name ?? '' }}</SectionHeader>
       <StationBadge v-if="isFederated" :station-name="''" />
       <EditButton v-if="canEdit" :label="t('common.edit')" @click="openEditProtocol" />
-      <PrimaryButton v-if="isFederated && canManageProtocol()" @click="copyToStation">
+      <PrimaryButton v-if="isFederated && canEdit" @click="copyToStation">
         <font-awesome-icon :icon="['fas', 'copy']" class="mr-1" /> {{ t('federation.copyToStation') }}
       </PrimaryButton>
       <span class="text-sm text-[var(--text-muted)] ml-auto">
@@ -269,11 +270,15 @@ onMounted(() => { if (loaded.value) loadData() })
               <DeleteButton :label="t('common.delete')" @click="handleDeleteSection(section.id)" />
             </template>
           </div>
+          <MutedText v-if="section.description" tag="p" size="sm">{{ section.description }}</MutedText>
 
           <!-- Items at section level -->
           <div v-for="item in sectionItems(section.id)" :key="item.id" class="flex items-center gap-2 pl-4 text-xs">
             <MutedIcon :icon="['fas', 'square']" />
-            <span class="flex-1">{{ item.label }}</span>
+            <div class="flex-1">
+              <span>{{ item.label }}</span>
+              <p v-if="item.description" class="text-[var(--text-muted)]">{{ item.description }}</p>
+            </div>
             <span class="text-xs text-[var(--text-muted)]">{{ item.points }}P</span>
             <template v-if="canEdit">
               <IconButton :icon="['fas', 'pen']" :label="t('common.edit')" @click="openEditItem(item)" />
@@ -292,9 +297,13 @@ onMounted(() => { if (loaded.value) loadData() })
                 <DeleteButton :label="t('common.delete')" @click="handleDeleteSection(sub.id)" />
               </template>
             </div>
+            <MutedText v-if="sub.description" tag="p" size="sm">{{ sub.description }}</MutedText>
             <div v-for="item in sectionItems(sub.id)" :key="item.id" class="flex items-center gap-2 pl-4 text-xs">
               <MutedIcon :icon="['fas', 'square']" />
-              <span class="flex-1">{{ item.label }}</span>
+              <div class="flex-1">
+                <span>{{ item.label }}</span>
+                <p v-if="item.description" class="text-[var(--text-muted)]">{{ item.description }}</p>
+              </div>
               <span class="text-xs text-[var(--text-muted)]">{{ item.points }}P</span>
               <template v-if="canEdit">
                 <IconButton :icon="['fas', 'pen']" :label="t('common.edit')" @click="openEditItem(item)" />

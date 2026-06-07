@@ -46,10 +46,7 @@ const {
   hasAnyMemberPermission,
   hasAnyAttendancePermission,
   canExportAttendance,
-  canManagePolls,
   hasAnyWaitlistPermission,
-  canManageQuiz,
-  canManageProtocol,
   canManageFederation,
   canTestProtocol,
   isGuardian,
@@ -119,6 +116,15 @@ const attendanceDefaultRoute = computed(() => {
   return undefined // no link — group header just toggles expand
 })
 
+const manageDefaultRoute = computed(() => {
+  if (hasPermission(StationPermission.STATION_GENERAL)) return '/station/manage'
+  if (hasPermission(StationPermission.STATION_LOOK_AND_FEEL)) return '/station/manage/theme'
+  if (hasPermission(StationPermission.STATION_MAIL)) return '/station/manage/mailing'
+  if (hasPermission(StationPermission.STATION_MODULES)) return '/station/manage/modules'
+  if (hasPermission(StationPermission.STATION_IMPORT_EXPORT)) return '/station/manage/import'
+  return undefined
+})
+
 async function handleLogout() {
   const token = getItem('session_token')
   if (token) {
@@ -168,33 +174,6 @@ async function handleLogout() {
           </SidebarLink>
           <SidebarLink :icon="['fas', 'bell']" name="profile-notifications" to="/station/profile/settings/notifications" @navigate="close">
             {{ t('sidebar.notifications') }}
-          </SidebarLink>
-        </SidebarExpandableLink>
-      </SidebarGroup>
-
-      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isManager()" :icon="['fas', 'gears']" :label="t('sidebar.station')" prefix="/station/manage">
-        <SidebarExpandableLink :icon="['fas', 'gears']" name="station-manage" to="/station/manage" prefix="/station/manage" @navigate="close">
-          <template #label>{{ t('sidebar.manage') }}</template>
-          <SidebarLink :icon="['fas', 'palette']" name="station-theme" to="/station/manage/theme" @navigate="close">
-            {{ t('sidebar.stationTheme') }}
-          </SidebarLink>
-          <SidebarLink :icon="['fas', 'envelope']" name="station-mailing" to="/station/manage/mailing" @navigate="close">
-            {{ t('sidebar.stationMailing') }}
-          </SidebarLink>
-          <SidebarLink :icon="['fas', 'puzzle-piece']" name="station-modules" to="/station/manage/modules" @navigate="close">
-            {{ t('sidebar.stationModules') }}
-          </SidebarLink>
-          <SidebarLink :icon="['fas', 'file-import']" name="station-import" to="/station/manage/import" @navigate="close">
-            {{ t('sidebar.stationImport') }}
-          </SidebarLink>
-        </SidebarExpandableLink>
-        <SidebarExpandableLink v-if="canManageFederation()" :icon="['fas', 'arrow-right-arrow-left']" name="station-federation" to="/station/manage/federation" :prefix="['/station/manage/federation', '/station/manage/discovery']" @navigate="close">
-          <template #label>{{ t('sidebar.federation') }}</template>
-          <SidebarLink :badge="counts.federationRequests" :icon="['fas', 'gear']" name="station-federation-settings" to="/station/manage/federation/settings" @navigate="close">
-            {{ t('sidebar.federationSettings') }}
-          </SidebarLink>
-          <SidebarLink :icon="['fas', 'compass']" name="station-discovery" to="/station/manage/discovery" @navigate="close">
-            {{ t('sidebar.discovery') }}
           </SidebarLink>
         </SidebarExpandableLink>
       </SidebarGroup>
@@ -310,7 +289,7 @@ async function handleLogout() {
       </SidebarGroup>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.FORMS)" :icon="['fas', 'square-poll-vertical']" :label="t('sidebar.forms')" prefix="/station/forms" to="/station/forms" name="forms-list" @navigate="close">
-        <SidebarLink v-if="canManagePolls()" :icon="['fas', 'plus']" name="forms-create" to="/station/forms/create"
+        <SidebarLink v-if="hasPermission(StationPermission.POLL_CREATE)" :icon="['fas', 'plus']" name="forms-create" to="/station/forms/create"
                      @navigate="close">
           {{ t('sidebar.formsCreate') }}
         </SidebarLink>
@@ -319,16 +298,16 @@ async function handleLogout() {
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.LOST_AND_FOUND)" :badge="counts.lostAndFoundPending" :icon="['fas', 'box-open']" :label="t('sidebar.lostAndFound')" prefix="/station/lost-and-found" to="/station/lost-and-found" name="lost-and-found" @navigate="close"/>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.QUIZ) || isModuleEnabled(StationModules.TEST_PROTOCOL)" :icon="['fas', 'graduation-cap']" :label="t('sidebar.quiz')" prefix="/station/quiz" group-key="quiz-protocols">
-        <SidebarLink v-if="canManageQuiz()" :icon="['fas', 'book']" name="quiz-catalogs" to="/station/quiz/catalogs" @navigate="close">
+        <SidebarLink v-if="hasPermission(StationPermission.TEST_CATALOG_VIEW)" :icon="['fas', 'book']" name="quiz-catalogs" to="/station/quiz/catalogs" @navigate="close">
           {{ t('sidebar.quizCatalogs') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'file-lines']" name="quiz-tests" to="/station/quiz/tests" @navigate="close">
+        <SidebarLink v-if="hasPermission(StationPermission.TEST_RESULT_READ)" :icon="['fas', 'file-lines']" name="quiz-tests" to="/station/quiz/tests" @navigate="close">
           {{ t('sidebar.quizTests') }}
         </SidebarLink>
         <SidebarLink :icon="['fas', 'brain']" name="quiz-training" to="/station/quiz/training" @navigate="close">
           {{ t('sidebar.quizTraining') }}
         </SidebarLink>
-        <SidebarLink v-if="canManageProtocol()" :icon="['fas', 'clipboard-list']" name="protocol-list" to="/station/protocols" @navigate="close">
+        <SidebarLink v-if="hasPermission(StationPermission.PROTOCOL_CREATE)" :icon="['fas', 'clipboard-list']" name="protocol-list" to="/station/protocols" @navigate="close">
           {{ t('sidebar.protocols') }}
         </SidebarLink>
         <SidebarLink v-if="canTestProtocol()" :icon="['fas', 'clipboard-check']" name="protocol-run-list" to="/station/protocols/runs" @navigate="close">
@@ -357,6 +336,30 @@ async function handleLogout() {
       </SidebarGroup>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.KNOWLEDGE_BASE)" :icon="['fas', 'book-open']" :label="t('sidebar.knowledgeBase')" prefix="/station/knowledge" to="/station/knowledge" name="kb-browse" @navigate="close"/>
+
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isManager()" :icon="['fas', 'gears']" :label="t('sidebar.manage')" prefix="/station/manage" :to="manageDefaultRoute" name="station-manage" @navigate="close">
+        <SidebarLink v-if="hasPermission(StationPermission.STATION_LOOK_AND_FEEL)" :icon="['fas', 'palette']" name="station-theme" to="/station/manage/theme" @navigate="close">
+          {{ t('sidebar.stationTheme') }}
+        </SidebarLink>
+        <SidebarLink v-if="hasPermission(StationPermission.STATION_MAIL)" :icon="['fas', 'envelope']" name="station-mailing" to="/station/manage/mailing" @navigate="close">
+          {{ t('sidebar.stationMailing') }}
+        </SidebarLink>
+        <SidebarLink v-if="hasPermission(StationPermission.STATION_MODULES)" :icon="['fas', 'puzzle-piece']" name="station-modules" to="/station/manage/modules" @navigate="close">
+          {{ t('sidebar.stationModules') }}
+        </SidebarLink>
+        <SidebarLink v-if="hasPermission(StationPermission.STATION_IMPORT_EXPORT)" :icon="['fas', 'file-import']" name="station-import" to="/station/manage/import" @navigate="close">
+          {{ t('sidebar.stationImport') }}
+        </SidebarLink>
+      </SidebarGroup>
+
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="canManageFederation()" :badge="counts.federationRequests" :icon="['fas', 'arrow-right-arrow-left']" :label="t('sidebar.federation')" :prefix="['/station/manage/federation', '/station/manage/discovery']" to="/station/manage/federation" name="station-federation" @navigate="close">
+        <SidebarLink :badge="counts.federationRequests" :icon="['fas', 'gear']" name="station-federation-settings" to="/station/manage/federation/settings" @navigate="close">
+          {{ t('sidebar.federationSettings') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'compass']" name="station-discovery" to="/station/manage/discovery" @navigate="close">
+          {{ t('sidebar.discovery') }}
+        </SidebarLink>
+      </SidebarGroup>
 
     </template>
 

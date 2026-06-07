@@ -47,7 +47,7 @@ public class DemoWaitingListSeeder {
         this.accountRepository = accountRepository;
     }
 
-    public void seedWaitingList(int stationId, int joinGroupId, String joinUserType) {
+    public void seedWaitingList(int stationId, int joinGroupId) {
         // Create the "Gäste" group for testing-phase members
         var gaesteGroup = memberGroupRepository.create(stationId, "Gäste");
 
@@ -59,7 +59,6 @@ public class DemoWaitingListSeeder {
                 180,
                 gaesteGroup.id(),
                 joinGroupId,
-                joinUserType,
                 5);
 
         var nameField = waitingListRepository.createField(
@@ -161,6 +160,17 @@ public class DemoWaitingListSeeder {
             waitingListRepository.upsertEntryValue(entry.id(), ageField.id(), kid.alter);
             waitingListRepository.upsertEntryValue(entry.id(), expField.id(), "\"" + kid.erfahrung + "\"");
 
+            waitingListRepository.createGuardian(
+                    entry.id(), kid.parentName, kid.email, "+49 170 " + (1000000 + entry.id()), 0);
+            if (entry.id() % 2 == 0) {
+                waitingListRepository.createGuardian(
+                        entry.id(),
+                        "Zweit-EB " + kid.lastname,
+                        "zweit-" + kid.email,
+                        "+49 171 " + (2000000 + entry.id()),
+                        1);
+            }
+
             // For entries that progressed beyond WAITING, create a linked member
             if (kid.status != WaitingListEntryStatus.WAITING) {
                 var account = accountRepository.create(null, kid.firstname, kid.lastname);
@@ -186,7 +196,7 @@ public class DemoWaitingListSeeder {
                         stationMemberRepository
                                 .findPermissionByName(StationPermission.USER)
                                 .ifPresent(role -> stationMemberRepository.revokePermission(member.id(), role.id()));
-                        stationMemberRepository.setUserType(member.id(), StationUserType.valueOf(joinUserType));
+                        stationMemberRepository.setUserType(member.id(), StationUserType.MEMBER);
                         memberGroupRepository.addMember(joinGroupId, member.id());
                         waitingListRepository.updateEntryStatusWithTimestamp(
                                 entry.id(), WaitingListEntryStatus.JOINED, "joined_at");

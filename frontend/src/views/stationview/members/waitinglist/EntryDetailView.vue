@@ -12,6 +12,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
+import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
@@ -50,8 +51,7 @@ const saving = ref(false)
 // Edit form
 const editFirstname = ref('')
 const editLastname = ref('')
-const editParentName = ref('')
-const editEmail = ref('')
+const editGuardians = ref<{ name: string; email: string; phone: string }[]>([])
 const editNotes = ref('')
 const editValues = ref<Map<number, string>>(new Map())
 const editingCreatedAt = ref(false)
@@ -76,8 +76,9 @@ async function loadData() {
 
     editFirstname.value = found.entry.firstname
     editLastname.value = found.entry.lastname
-    editParentName.value = found.entry.parentName
-    editEmail.value = found.entry.email
+    editGuardians.value = found.guardians.length > 0
+      ? found.guardians.map(g => ({ name: g.name, email: g.email, phone: g.phone }))
+      : [{ name: found.entry.parentName || '', email: found.entry.email || '', phone: '' }]
     editNotes.value = found.entry.notes ?? ''
 
     const valMap = new Map<number, string>()
@@ -124,8 +125,20 @@ function parseConfig(configStr: string | undefined | null): Record<string, unkno
   try { return JSON.parse(configStr) } catch { return {} }
 }
 
+function addGuardian() {
+  editGuardians.value = [...editGuardians.value, { name: '', email: '', phone: '' }]
+}
+
+function removeGuardian(index: number) {
+  editGuardians.value = editGuardians.value.filter((_, i) => i !== index)
+}
+
+const canSave = computed(() =>
+  editFirstname.value.trim() && editGuardians.value.some(g => g.email.trim()),
+)
+
 async function save() {
-  if (!editFirstname.value.trim() || !editEmail.value.trim()) return
+  if (!canSave.value) return
   saving.value = true
   error.value = ''
   try {
@@ -136,8 +149,7 @@ async function save() {
     await waitingList.updateEntry(listId.value, entryId.value, {
       firstname: editFirstname.value.trim(),
       lastname: editLastname.value.trim(),
-      parentName: editParentName.value.trim(),
-      email: editEmail.value.trim(),
+      guardians: editGuardians.value.map(g => ({ name: g.name.trim(), email: g.email.trim(), phone: g.phone.trim() })),
       notes: editNotes.value.trim(),
       values,
     })
@@ -248,14 +260,21 @@ onMounted(loadData)
               <FieldLabel>{{ t('waitingList.lastname') }}</FieldLabel>
               <TextInput v-model="editLastname" />
             </div>
-            <div class="space-y-1">
-              <FieldLabel>{{ t('waitingList.parentName') }}</FieldLabel>
-              <TextInput v-model="editParentName" />
-            </div>
-            <div class="space-y-1">
-              <FieldLabel>{{ t('waitingList.email') }}</FieldLabel>
-              <TextInput v-model="editEmail" />
-            </div>
+          </div>
+          <div class="space-y-3">
+            <FieldLabel>{{ t('waitingList.guardians') }}</FieldLabel>
+            <NeutralContainer v-for="(g, i) in editGuardians" :key="i" class="space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium">{{ t('waitingList.guardian') }} {{ i + 1 }}</span>
+                <DeleteButton v-if="editGuardians.length > 1" @click="removeGuardian(i)" />
+              </div>
+              <div class="grid gap-2 sm:grid-cols-3">
+                <TextInput v-model="g.name" :placeholder="t('waitingList.guardianNamePlaceholder')" />
+                <TextInput v-model="g.email" :placeholder="t('waitingList.guardianEmailPlaceholder')" />
+                <TextInput v-model="g.phone" :placeholder="t('waitingList.guardianPhonePlaceholder')" />
+              </div>
+            </NeutralContainer>
+            <SecondaryButton :icon="['fas', 'plus']" @click="addGuardian">{{ t('waitingList.addGuardian') }}</SecondaryButton>
           </div>
           <div class="space-y-1">
             <FieldLabel>{{ t('waitingList.notes') }}</FieldLabel>
@@ -310,7 +329,7 @@ onMounted(loadData)
         </NeutralContainer>
 
         <div class="flex justify-end">
-          <PrimaryButton :disabled="saving || !editFirstname.trim() || !editEmail.trim()" @click="save">
+          <PrimaryButton :disabled="saving || !canSave" @click="save">
             {{ saving ? t('common.loading') : t('common.save') }}
           </PrimaryButton>
         </div>

@@ -209,19 +209,24 @@ public enum StationPermission implements RouteRole {
     WAITLIST_READ,
 
     /**
-     * Allows adding member to the member waitlist.
+     * Allows adding entries to the member waitlist.
      */
-    WAITLIST_EDIT(WAITLIST_READ),
+    WAITLIST_ADD(WAITLIST_READ),
+
+    /**
+     * Allows editing and managing entries on the member waitlist.
+     */
+    WAITLIST_EDIT(WAITLIST_ADD),
 
     /**
      * Allows managing the member waitlist.
      */
-    WAITLIST_MANAGER(WAITLIST_EDIT, MEMBER_EDIT),
+    WAITLIST_MANAGER(WAITLIST_EDIT),
 
     /**
      * Allows creating news entries
      */
-    NEWS_CREATE,
+    NEWS_EDIT,
 
     /**
      * Allows federating news entries to other stations
@@ -231,7 +236,7 @@ public enum StationPermission implements RouteRole {
     /**
      * Allows managing news entries
      */
-    NEWS_MANAGER(NEWS_CREATE, NEWS_FEDERATE),
+    NEWS_MANAGER(NEWS_EDIT, NEWS_FEDERATE),
 
     /**
      * Allows reading poll results
@@ -304,8 +309,6 @@ public enum StationPermission implements RouteRole {
     PROTOCOL_CONFIGURE(PROTOCOL_CREATE),
 
     PROTOCOL_MANAGER(PROTOCOL_CONFIGURE),
-
-    QUIZ_MANAGER(PROTOCOL_MANAGER, TEST_MANAGER),
 
     /**
      * Allows generally using boards.
@@ -399,8 +402,9 @@ public enum StationPermission implements RouteRole {
             MEMBER_MANAGER,
             NEWS_MANAGER,
             POLL_MANAGER,
-            QUIZ_MANAGER,
+            PROTOCOL_MANAGER,
             STATION_MANAGER,
+            TEST_MANAGER,
             WAITLIST_MANAGER);
 
     private final StationPermission[] children;

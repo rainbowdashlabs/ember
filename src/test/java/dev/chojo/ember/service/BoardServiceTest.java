@@ -926,12 +926,10 @@ class BoardServiceTest extends RepositoryTestBase {
     @Order(894)
     void commentWithNewFormatMentions() {
         var memberIdentity = memberIdentityFactory.local(station.id(), member.id());
-        String mentionText = "Hello @[" + memberIdentity.stationUid() + "/" + memberIdentity.memberUid() + ":TestUser]!";
+        String mentionText =
+                "Hello @[" + memberIdentity.stationUid() + "/" + memberIdentity.memberUid() + ":TestUser]!";
         var comment = ticketService.createComment(
-                ticketId1,
-                null,
-                memberIdentityFactory.local(station.id(), member.id()),
-                mentionText);
+                ticketId1, null, memberIdentityFactory.local(station.id(), member.id()), mentionText);
         assertNotNull(comment);
         ticketService.deleteComment(comment.id());
     }

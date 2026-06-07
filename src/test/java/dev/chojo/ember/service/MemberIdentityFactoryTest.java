@@ -93,14 +93,7 @@ class MemberIdentityFactoryTest extends RepositoryTestBase {
     @Order(6)
     void enrichCompletionsAddsMetadata() {
         var completions = List.of(
-                new MemberCompletion(
-                        member.id(),
-                        "Identity Factory",
-                        station.uid(),
-                        member.uid(),
-                        null,
-                        null,
-                        null));
+                new MemberCompletion(member.id(), "Identity Factory", station.uid(), member.uid(), null, null, null));
         var enriched = memberIdentityFactory.enrichCompletions(completions);
         assertNotNull(enriched);
         assertEquals(1, enriched.size());

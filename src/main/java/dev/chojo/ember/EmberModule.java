@@ -56,6 +56,7 @@ import dev.chojo.ember.feature.comment.route.NoteRoutes;
 import dev.chojo.ember.feature.events.route.EventRoutes;
 import dev.chojo.ember.feature.events.route.EventTemplateRoutes;
 import dev.chojo.ember.feature.events.route.PublicEventRoutes;
+import dev.chojo.ember.feature.events.service.EventReminderChecker;
 import dev.chojo.ember.feature.events.service.EventThresholdChecker;
 import dev.chojo.ember.feature.federation.route.FederationRemoteRoutes;
 import dev.chojo.ember.feature.federation.route.FederationRoutes;
@@ -216,6 +217,7 @@ public class EmberModule extends AbstractModule {
 
         // Eager singletons — started on boot
         bind(EventThresholdChecker.class).asEagerSingleton();
+        bind(EventReminderChecker.class).asEagerSingleton();
     }
 
     @Provides

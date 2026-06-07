@@ -42,6 +42,7 @@ const activeTab = ref('ALL')
 
 const tabStates = ref<Record<string, TabFilterState>>({
   ALL: emptyTabState(),
+  TRIAL: emptyTabState(),
   MEMBER: emptyTabState(),
   GUARDIAN: emptyTabState(),
   TEAM: emptyTabState(),
@@ -59,6 +60,7 @@ const sortAsc = computed(() => currentTabState.value.sortAsc)
 
 const tabs = computed(() => [
   { key: 'ALL', label: t('membersList.tabAll') },
+  { key: 'TRIAL', label: t('membersList.tabTrial') },
   { key: 'MEMBER', label: t('membersList.tabMember') },
   { key: 'GUARDIAN', label: t('membersList.tabMemberManager') },
   { key: 'TEAM', label: t('membersList.tabTeam') },
@@ -74,7 +76,8 @@ const extraColumnIds = ref<Set<number>>(new Set())
 
 const tabScopedFields = computed(() => {
   const scopeForTab: Record<string, string[]> = {
-    ALL: [StationUserType.MEMBER, StationUserType.GUARDIAN, StationUserType.TEAM, StationUserType.MANAGER],
+    ALL: [StationUserType.TRIAL, StationUserType.MEMBER, StationUserType.GUARDIAN, StationUserType.TEAM, StationUserType.MANAGER],
+    [StationUserType.TRIAL]: [StationUserType.TRIAL],
     [StationUserType.MEMBER]: [StationUserType.MEMBER],
     [StationUserType.GUARDIAN]: [StationUserType.GUARDIAN],
     [StationUserType.TEAM]: [StationUserType.TEAM],

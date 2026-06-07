@@ -59,21 +59,23 @@ public class AiRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Settings
-        routes.get(prefix + "/ai/settings", this::getSettings, StationPermission.QUIZ_MANAGER);
-        routes.put(prefix + "/ai/settings/prompt", this::savePrompt, StationPermission.QUIZ_MANAGER);
+        routes.get(prefix + "/ai/settings", this::getSettings, StationPermission.TEST_CATALOG_EDIT);
+        routes.put(prefix + "/ai/settings/prompt", this::savePrompt, StationPermission.TEST_CATALOG_EDIT);
 
         // Provider management
-        routes.put(prefix + "/ai/providers/{provider}", this::saveProvider, StationPermission.QUIZ_MANAGER);
-        routes.delete(prefix + "/ai/providers/{provider}", this::deleteProvider, StationPermission.QUIZ_MANAGER);
+        routes.put(prefix + "/ai/providers/{provider}", this::saveProvider, StationPermission.TEST_CATALOG_EDIT);
+        routes.delete(prefix + "/ai/providers/{provider}", this::deleteProvider, StationPermission.TEST_CATALOG_EDIT);
 
         // Model listing
-        routes.post(prefix + "/ai/providers/{provider}/models", this::fetchModels, StationPermission.QUIZ_MANAGER);
+        routes.post(prefix + "/ai/providers/{provider}/models", this::fetchModels, StationPermission.TEST_CATALOG_EDIT);
 
         // Generation
-        routes.post(prefix + "/ai/generate", this::generate, StationPermission.QUIZ_MANAGER);
-        routes.post(prefix + "/ai/generate-questions", this::generateQuestions, StationPermission.QUIZ_MANAGER);
-        routes.get(prefix + "/ai/generate-questions/{jobId}", this::pollGeneration, StationPermission.QUIZ_MANAGER);
-        routes.post(prefix + "/ai/batch-generate/{catalogId}", this::batchGenerate, StationPermission.QUIZ_MANAGER);
+        routes.post(prefix + "/ai/generate", this::generate, StationPermission.TEST_CATALOG_EDIT);
+        routes.post(prefix + "/ai/generate-questions", this::generateQuestions, StationPermission.TEST_CATALOG_EDIT);
+        routes.get(
+                prefix + "/ai/generate-questions/{jobId}", this::pollGeneration, StationPermission.TEST_CATALOG_EDIT);
+        routes.post(
+                prefix + "/ai/batch-generate/{catalogId}", this::batchGenerate, StationPermission.TEST_CATALOG_EDIT);
     }
 
     @OpenApi(

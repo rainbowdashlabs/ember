@@ -59,4 +59,6 @@ public sealed interface NotificationParams {
     record RegistrationDeadlineExpired(String eventName, int pendingCount) implements NotificationParams {}
 
     record EventCancelled(String eventName, String reason) implements NotificationParams {}
+
+    record EventReminder(String eventName, int daysBefore, String eventDate) implements NotificationParams {}
 }

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -28,7 +28,10 @@ import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const { t } = useI18n()
 const router = useRouter()
-const { canManagePolls, loaded } = useSession()
+import { StationPermission } from '@/api/types'
+const { hasPermission, loaded } = useSession()
+const canViewResults = computed(() => hasPermission(StationPermission.POLL_VIEW_RESULTS))
+const canCreatePolls = computed(() => hasPermission(StationPermission.POLL_CREATE))
 
 const managedForms = ref<Form[]>([])
 const availableForms = ref<FormListEntry[]>([])
@@ -57,7 +60,7 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    if (canManagePolls()) {
+    if (canViewResults.value) {
       managedForms.value = await forms.listForms()
     }
     availableForms.value = await forms.listAvailableForms()
@@ -112,10 +115,10 @@ watch(loaded, (isLoaded) => {
 
       <template v-if="!loading">
         <!-- Management Section -->
-        <div v-if="canManagePolls()" class="space-y-4">
+        <div v-if="canViewResults" class="space-y-4">
           <div class="flex items-center justify-between">
             <SectionHeader>{{ t('forms.title') }}</SectionHeader>
-            <PrimaryButton :icon="['fas', 'plus']" @click="router.push({ name: 'forms-create' })">
+            <PrimaryButton v-if="canCreatePolls" :icon="['fas', 'plus']" @click="router.push({ name: 'forms-create' })">
               {{ t('forms.create') }}
             </PrimaryButton>
           </div>
@@ -136,13 +139,13 @@ watch(loaded, (isLoaded) => {
                   <p v-if="form.description" class="text-xs text-(--text-muted)">{{ form.description }}</p>
                 </div>
                 <div class="flex items-center gap-2 flex-wrap">
-                  <SecondaryButton v-if="form.status === FormStatus.DRAFT" @click="publishForm(form)">
+                  <SecondaryButton v-if="canCreatePolls && form.status === FormStatus.DRAFT" @click="publishForm(form)">
                     {{ t('forms.publish') }}
                   </SecondaryButton>
-                  <SecondaryButton v-if="form.status === FormStatus.OPEN" @click="closeForm(form)">
+                  <SecondaryButton v-if="canCreatePolls && form.status === FormStatus.OPEN" @click="closeForm(form)">
                     {{ t('forms.close') }}
                   </SecondaryButton>
-                  <SecondaryButton v-if="form.status !== FormStatus.CLOSED"
+                  <SecondaryButton v-if="canCreatePolls && form.status !== FormStatus.CLOSED"
                                    @click="router.push({ name: 'forms-edit', params: { id: form.id } })">
                     {{ t('forms.edit') }}
                   </SecondaryButton>
@@ -150,7 +153,7 @@ watch(loaded, (isLoaded) => {
                                    @click="router.push({ name: 'forms-analytics', params: { id: form.id } })">
                     {{ t('forms.viewAnalytics') }}
                   </SecondaryButton>
-                  <ErrorButton @click="deleteForm(form)">
+                  <ErrorButton v-if="canCreatePolls" @click="deleteForm(form)">
                     {{ t('forms.delete') }}
                   </ErrorButton>
                 </div>
@@ -161,7 +164,7 @@ watch(loaded, (isLoaded) => {
 
         <!-- Available Forms for User -->
         <div class="space-y-4">
-          <SectionHeader v-if="canManagePolls()" class="mt-6">{{ t('forms.fillForm') }}</SectionHeader>
+          <SectionHeader v-if="canViewResults" class="mt-6">{{ t('forms.fillForm') }}</SectionHeader>
 
           <EmptyState compact v-if="availableForms.length === 0">{{ t('forms.noAvailableForms') }}</EmptyState>
 

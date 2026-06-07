@@ -133,9 +133,15 @@ onMounted(loadStatus)
               <span class="text-(--text-muted)">{{ t('waitingList.lastname') }}:</span>
               <span class="ml-1 font-medium">{{ status.lastname || '-' }}</span>
             </div>
-            <div class="text-sm">
+            <div v-if="status.guardians && status.guardians.length > 0" class="text-sm sm:col-span-2">
+              <span class="text-(--text-muted)">{{ t('waitingList.guardians') }}:</span>
+              <span v-for="(g, i) in status.guardians" :key="i" class="ml-1 font-medium">
+                {{ g.name || g.email }}{{ g.phone ? ` (${g.phone})` : '' }}{{ i < status.guardians.length - 1 ? ', ' : '' }}
+              </span>
+            </div>
+            <div v-else-if="status.parentName" class="text-sm">
               <span class="text-(--text-muted)">{{ t('waitingList.parentName') }}:</span>
-              <span class="ml-1 font-medium">{{ status.parentName || '-' }}</span>
+              <span class="ml-1 font-medium">{{ status.parentName }}</span>
             </div>
             <div class="text-sm">
               <span class="text-(--text-muted)">{{ t('waitingList.status') }}:</span>

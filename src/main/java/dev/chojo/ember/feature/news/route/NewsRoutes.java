@@ -92,18 +92,18 @@ public class NewsRoutes implements Routes {
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/news", this::list, StationPermission.LOGIN);
         routes.get(prefix + "/news/{id}", this::get, StationPermission.LOGIN);
-        routes.post(prefix + "/news", this::create, StationPermission.NEWS_MANAGER);
-        routes.put(prefix + "/news/{id}", this::update, StationPermission.NEWS_MANAGER);
-        routes.delete(prefix + "/news/{id}", this::delete, StationPermission.NEWS_MANAGER);
+        routes.post(prefix + "/news", this::create, StationPermission.NEWS_EDIT);
+        routes.put(prefix + "/news/{id}", this::update, StationPermission.NEWS_EDIT);
+        routes.delete(prefix + "/news/{id}", this::delete, StationPermission.NEWS_EDIT);
         routes.get(prefix + "/news/{id}/comments", this::listComments, StationPermission.LOGIN);
         routes.post(prefix + "/news/{id}/comments", this::createComment, StationPermission.LOGIN);
         routes.put(prefix + "/news/comments/{commentId}", this::updateComment, StationPermission.LOGIN);
         routes.delete(prefix + "/news/comments/{commentId}", this::deleteComment, StationPermission.LOGIN);
 
         // Federation sharing management
-        routes.get(prefix + "/news/{id}/federation", this::getFederationShare, StationPermission.NEWS_MANAGER);
-        routes.put(prefix + "/news/{id}/federation", this::setFederationShare, StationPermission.NEWS_MANAGER);
-        routes.delete(prefix + "/news/{id}/federation", this::removeFederationShare, StationPermission.NEWS_MANAGER);
+        routes.get(prefix + "/news/{id}/federation", this::getFederationShare, StationPermission.NEWS_FEDERATE);
+        routes.put(prefix + "/news/{id}/federation", this::setFederationShare, StationPermission.NEWS_FEDERATE);
+        routes.delete(prefix + "/news/{id}/federation", this::removeFederationShare, StationPermission.NEWS_FEDERATE);
 
         // Federated (user-facing, bearer token auth)
         routes.get(prefix + "/federated/news", this::federatedListNews, StationPermission.LOGIN);

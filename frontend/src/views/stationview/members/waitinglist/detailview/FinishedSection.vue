@@ -15,12 +15,14 @@ import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import type { WaitingListEntryWithScore } from '@/api/types'
 
-defineProps<{
+const props = defineProps<{
   entries: WaitingListEntryWithScore[]
+  canLinkMember?: boolean
 }>()
 
 const emit = defineEmits<{
   navigateToEntry: [entryId: number]
+  navigateToMember: [memberId: number]
 }>()
 
 const { t } = useI18n()
@@ -36,6 +38,18 @@ function statusBadgeComponent(status: string) {
   if (status === 'TESTING') return PrimaryBadge
   if (status === 'INVITED') return InfoBadge
   return SecondaryBadge
+}
+
+function canNavigateToMember(item: WaitingListEntryWithScore): boolean {
+  return item.entry.status === 'JOINED' && !!item.entry.memberId && !!props.canLinkMember
+}
+
+function onNameClick(item: WaitingListEntryWithScore) {
+  if (canNavigateToMember(item)) {
+    emit('navigateToMember', item.entry.memberId!)
+  } else {
+    emit('navigateToEntry', item.entry.id)
+  }
 }
 
 function formatDate(dateStr: string | undefined | null): string {
@@ -57,7 +71,13 @@ function formatDate(dateStr: string | undefined | null): string {
         class="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-bg-light-accent/20 dark:bg-bg-dark-accent/20"
       >
         <div class="flex items-center gap-2">
-          <span class="font-medium text-primary hover:underline cursor-pointer" role="link" tabindex="0" @click="emit('navigateToEntry', item.entry.id)" @keydown.enter="emit('navigateToEntry', item.entry.id)">
+          <span
+            class="font-medium"
+            :class="canNavigateToMember(item) ? 'text-primary hover:underline cursor-pointer' : ''"
+            role="link" tabindex="0"
+            @click="canNavigateToMember(item) && onNameClick(item)"
+            @keydown.enter="canNavigateToMember(item) && onNameClick(item)"
+          >
             {{ entryFullName(item) }}
           </span>
           <component :is="statusBadgeComponent(item.entry.status)">{{ t('waitingList.status_' + item.entry.status) }}</component>

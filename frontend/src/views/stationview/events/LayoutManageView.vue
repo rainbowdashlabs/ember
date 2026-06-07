@@ -108,7 +108,7 @@ async function saveLayout() {
     const fieldEntries: LayoutFieldEntry[] = editFields.value.filter(f => f.name.trim()).map(f => ({
       name: f.name,
       fieldType: f.fieldType,
-      config: f.config ? JSON.stringify(f.config) : undefined,
+      config: f.config ?? undefined,
       overview: f.overview,
       attendanceFieldId: f.attendanceFieldId,
     }))

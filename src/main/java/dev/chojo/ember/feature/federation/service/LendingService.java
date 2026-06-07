@@ -156,7 +156,9 @@ public class LendingService {
             }
             // Otherwise assign first N free items from the inventory for the requested period
             if (ri.inventoryId() == null) continue;
-            var dateTo = request.requestedDateTo() != null ? request.requestedDateTo() : request.requestedDateFrom().plusDays(1);
+            var dateTo = request.requestedDateTo() != null
+                    ? request.requestedDateTo()
+                    : request.requestedDateFrom().plusDays(1);
             var freeItems = inventoryRepository.findFreeItems(ri.inventoryId(), request.requestedDateFrom(), dateTo);
             for (int q = 0; q < ri.quantity() && q < freeItems.size(); q++) {
                 repository.assignItem(ri.id(), freeItems.get(q).id());

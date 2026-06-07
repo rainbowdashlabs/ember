@@ -37,7 +37,8 @@ public class ProfileFieldChangeRoutes implements Routes {
     private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
-    public ProfileFieldChangeRoutes(ProfileFieldService profileFieldService, MemberIdentityFactory memberIdentityFactory) {
+    public ProfileFieldChangeRoutes(
+            ProfileFieldService profileFieldService, MemberIdentityFactory memberIdentityFactory) {
         this.profileFieldService = profileFieldService;
         this.memberIdentityFactory = memberIdentityFactory;
     }
@@ -87,8 +88,8 @@ public class ProfileFieldChangeRoutes implements Routes {
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(20);
         var result = profileFieldService.findChangesByStation(session.stationId(), limit, offset);
         var enriched = result.changes().stream()
-                .map(c -> new EnrichedProfileFieldChange(c,
-                        memberIdentityFactory.local(session.stationId(), c.memberId())))
+                .map(c -> new EnrichedProfileFieldChange(
+                        c, memberIdentityFactory.local(session.stationId(), c.memberId())))
                 .toList();
         ctx.json(new PagedChangesResponse(enriched, result.total(), offset, limit));
     }
@@ -103,16 +104,23 @@ public class ProfileFieldChangeRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var summaries = profileFieldService.findUnacknowledgedSummary(
                 session.stationId(), session.member().id());
-        var enriched = summaries.stream().map(s -> new EnrichedMemberChangeSummary(
-                s.memberId(), s.memberName(), s.pendingCount(), s.latestChange(),
-                memberIdentityFactory.local(session.stationId(), s.memberId())
-        )).toList();
+        var enriched = summaries.stream()
+                .map(s -> new EnrichedMemberChangeSummary(
+                        s.memberId(),
+                        s.memberName(),
+                        s.pendingCount(),
+                        s.latestChange(),
+                        memberIdentityFactory.local(session.stationId(), s.memberId())))
+                .toList();
         ctx.json(enriched);
     }
 
     public record EnrichedMemberChangeSummary(
-            int memberId, String memberName, int pendingCount,
-            java.time.Instant latestChange, MemberIdentity identity) {}
+            int memberId,
+            String memberName,
+            int pendingCount,
+            java.time.Instant latestChange,
+            MemberIdentity identity) {}
 
     @OpenApi(
             path = "/api/v1/station-members/{memberId}/profile-changes",

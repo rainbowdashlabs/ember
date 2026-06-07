@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
@@ -21,8 +22,6 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-
-import dev.chojo.ember.api.roles.StationUserType;
 
 import java.util.List;
 
@@ -249,7 +248,12 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     void findApplicableFieldsForGuardian() {
         stationMemberRepo.setUserType(member.id(), StationUserType.GUARDIAN);
         var guardianField = service.create(
-                station.id(), "GuardianField", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), 20, ProfileFieldScope.GUARDIAN);
+                station.id(),
+                "GuardianField",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{}"),
+                20,
+                ProfileFieldScope.GUARDIAN);
         var fields = service.findApplicableFields(member.id());
         assertTrue(fields.stream().anyMatch(f -> f.id() == guardianField.id()));
         service.delete(guardianField.id());
@@ -261,7 +265,12 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     void findApplicableFieldsForTeam() {
         stationMemberRepo.setUserType(member.id(), StationUserType.TEAM);
         var teamField = service.create(
-                station.id(), "TeamField", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), 20, ProfileFieldScope.TEAM);
+                station.id(),
+                "TeamField",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{}"),
+                20,
+                ProfileFieldScope.TEAM);
         var fields = service.findApplicableFields(member.id());
         assertTrue(fields.stream().anyMatch(f -> f.id() == teamField.id()));
         service.delete(teamField.id());
@@ -273,7 +282,12 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     void findApplicableFieldsForManager() {
         stationMemberRepo.setUserType(member.id(), StationUserType.MANAGER);
         var mgrField = service.create(
-                station.id(), "ManagerField", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), 20, ProfileFieldScope.MANAGER);
+                station.id(),
+                "ManagerField",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{}"),
+                20,
+                ProfileFieldScope.MANAGER);
         var fields = service.findApplicableFields(member.id());
         assertTrue(fields.stream().anyMatch(f -> f.id() == mgrField.id()));
         service.delete(mgrField.id());
@@ -397,8 +411,12 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     void acknowledgeAllWithPendingChanges() {
         // Create a new field change by setting a value
         var tmpField = service.create(
-                station.id(), "AckAllField", ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{\"notifyOnChange\":true}"), 40, ProfileFieldScope.MEMBER);
+                station.id(),
+                "AckAllField",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{\"notifyOnChange\":true}"),
+                40,
+                ProfileFieldScope.MEMBER);
         service.setValues(member.id(), List.of(new FieldValueEntry(tmpField.id(), "\"initial\"")), member.id());
         service.setValues(member.id(), List.of(new FieldValueEntry(tmpField.id(), "\"changed\"")), member.id());
 

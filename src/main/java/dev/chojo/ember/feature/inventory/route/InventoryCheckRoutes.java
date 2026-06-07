@@ -42,8 +42,10 @@ public class InventoryCheckRoutes implements Routes {
     private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
-    public InventoryCheckRoutes(InventoryCheckService checkService, InventoryService inventoryService,
-                                MemberIdentityFactory memberIdentityFactory) {
+    public InventoryCheckRoutes(
+            InventoryCheckService checkService,
+            InventoryService inventoryService,
+            MemberIdentityFactory memberIdentityFactory) {
         this.checkService = checkService;
         this.inventoryService = inventoryService;
         this.memberIdentityFactory = memberIdentityFactory;
@@ -52,8 +54,7 @@ public class InventoryCheckRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/inventory-checks", this::overview, StationPermission.INVENTORY_CHECK);
-        routes.post(
-                prefix + "/inventory-checks/{memberId}/start", this::startCheck, StationPermission.INVENTORY_CHECK);
+        routes.post(prefix + "/inventory-checks/{memberId}/start", this::startCheck, StationPermission.INVENTORY_CHECK);
         routes.post(
                 prefix + "/inventory-checks/{memberId}/complete",
                 this::completeCheck,
@@ -61,8 +62,7 @@ public class InventoryCheckRoutes implements Routes {
         routes.post(
                 prefix + "/inventory-checks/{memberId}/cancel", this::cancelCheck, StationPermission.INVENTORY_CHECK);
         routes.get(prefix + "/inventory-checks/{memberId}/last", this::lastCheck, StationPermission.INVENTORY_CHECK);
-        routes.put(
-                prefix + "/inventory-checks/{memberId}/assign", this::assignItem, StationPermission.INVENTORY_CHECK);
+        routes.put(prefix + "/inventory-checks/{memberId}/assign", this::assignItem, StationPermission.INVENTORY_CHECK);
         routes.put(
                 prefix + "/inventory-checks/{memberId}/unassign",
                 this::unassignItem,
@@ -83,19 +83,39 @@ public class InventoryCheckRoutes implements Routes {
     private void overview(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var summaries = checkService.getCheckOverview(session.stationId());
-        var enriched = summaries.stream().map(s -> new EnrichedCheckSummary(s,
-                memberIdentityFactory.local(session.stationId(), s.memberId()))).toList();
+        var enriched = summaries.stream()
+                .map(s -> new EnrichedCheckSummary(s, memberIdentityFactory.local(session.stationId(), s.memberId())))
+                .toList();
         ctx.json(enriched);
     }
 
     public record EnrichedCheckSummary(
-            int memberId, String firstName, String lastName, java.time.Instant lastCheckedAt,
-            String checkerFirstName, String checkerLastName, boolean locked, Integer lockedBy,
-            String lockerFirstName, String lockerLastName, String userType, MemberIdentity identity) {
+            int memberId,
+            String firstName,
+            String lastName,
+            java.time.Instant lastCheckedAt,
+            String checkerFirstName,
+            String checkerLastName,
+            boolean locked,
+            Integer lockedBy,
+            String lockerFirstName,
+            String lockerLastName,
+            String userType,
+            MemberIdentity identity) {
         EnrichedCheckSummary(MemberCheckSummary s, MemberIdentity identity) {
-            this(s.memberId(), s.firstName(), s.lastName(), s.lastCheckedAt(),
-                    s.checkerFirstName(), s.checkerLastName(), s.locked(), s.lockedBy(),
-                    s.lockerFirstName(), s.lockerLastName(), s.userType(), identity);
+            this(
+                    s.memberId(),
+                    s.firstName(),
+                    s.lastName(),
+                    s.lastCheckedAt(),
+                    s.checkerFirstName(),
+                    s.checkerLastName(),
+                    s.locked(),
+                    s.lockedBy(),
+                    s.lockerFirstName(),
+                    s.lockerLastName(),
+                    s.userType(),
+                    identity);
         }
     }
 

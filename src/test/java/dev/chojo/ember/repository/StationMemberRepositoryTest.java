@@ -306,8 +306,7 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
                 .findFirst()
                 .orElseThrow();
 
-        stationMemberRepo.setUserTypePermissions(
-                station.id(), StationUserType.GUARDIAN, List.of(loginPerm.id()));
+        stationMemberRepo.setUserTypePermissions(station.id(), StationUserType.GUARDIAN, List.of(loginPerm.id()));
         var perms = stationMemberRepo.findUserTypePermissions(station.id(), StationUserType.GUARDIAN);
         assertFalse(perms.isEmpty());
         assertTrue(perms.stream().anyMatch(p -> p.permission() == StationPermission.LOGIN));

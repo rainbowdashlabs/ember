@@ -51,11 +51,11 @@ public class MemberImportRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.post(prefix + "/members/import/parse", this::parse, StationPermission.MEMBER_MANAGER);
-        routes.post(prefix + "/members/import/preview", this::preview, StationPermission.MEMBER_MANAGER);
-        routes.post(prefix + "/members/import", this::importMembers, StationPermission.MEMBER_MANAGER);
-        routes.post(prefix + "/members/import-team/preview", this::previewTeam, StationPermission.MEMBER_MANAGER);
-        routes.post(prefix + "/members/import-team", this::importTeamMembers, StationPermission.MEMBER_MANAGER);
+        routes.post(prefix + "/members/import/parse", this::parse, StationPermission.MEMBER_EDIT);
+        routes.post(prefix + "/members/import/preview", this::preview, StationPermission.MEMBER_EDIT);
+        routes.post(prefix + "/members/import", this::importMembers, StationPermission.MEMBER_EDIT);
+        routes.post(prefix + "/members/import-team/preview", this::previewTeam, StationPermission.MEMBER_EDIT);
+        routes.post(prefix + "/members/import-team", this::importTeamMembers, StationPermission.MEMBER_EDIT);
     }
 
     @OpenApi(

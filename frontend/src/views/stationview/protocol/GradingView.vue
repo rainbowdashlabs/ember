@@ -12,6 +12,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -191,6 +192,37 @@ async function finishGrading() {
   finally { saving.value = false }
 }
 
+async function markDoneAndNext() {
+  saving.value = true
+  try {
+    const checksObj: Record<number, boolean> = {}
+    for (const [k, v] of checks.value) checksObj[k] = v
+    await protocol.saveChecks(runId.value, memberId.value, checksObj)
+    if (!doneSections.value.has(currentSection.value.id)) {
+      doneSections.value = new Set(await protocol.toggleSectionDone(runId.value, memberId.value, currentSection.value.id))
+    }
+    if (currentSectionIndex.value < topSections.value.length - 1) {
+      currentSectionIndex.value++
+    }
+  } catch { error.value = t('common.error') }
+  finally { saving.value = false }
+}
+
+async function markDoneAndExit() {
+  saving.value = true
+  try {
+    const checksObj: Record<number, boolean> = {}
+    for (const [k, v] of checks.value) checksObj[k] = v
+    await protocol.saveChecks(runId.value, memberId.value, checksObj)
+    if (!doneSections.value.has(currentSection.value.id)) {
+      await protocol.toggleSectionDone(runId.value, memberId.value, currentSection.value.id)
+    }
+    await protocol.unlockMember(runId.value, memberId.value)
+    router.push({ name: 'protocol-run-detail', params: { id: runId.value } })
+  } catch { error.value = t('common.error') }
+  finally { saving.value = false }
+}
+
 async function saveAndExit() {
   saving.value = true
   try {
@@ -261,12 +293,8 @@ onMounted(() => { if (loaded.value) loadData() })
           </SectionHeader>
           <div class="flex items-center gap-2">
             <SuccessBadge>{{ currentSectionScore }} / {{ currentSectionMaxPoints }}P</SuccessBadge>
-            <SuccessButton compact v-if="!doneSections.has(currentSection.id)" @click="toggleSectionDone(currentSection.id)">
-              <font-awesome-icon :icon="['fas', 'check']" class="mr-1" /> {{ t('protocol.markDone') }}
-            </SuccessButton>
-            <SecondaryButton compact v-else @click="toggleSectionDone(currentSection.id)">
-              <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1" /> {{ t('protocol.unmarkDone') }}
-            </SecondaryButton>
+            <IconButton v-if="!doneSections.has(currentSection.id)" icon="check" :label="t('protocol.markDone')" @click="toggleSectionDone(currentSection.id)" />
+            <IconButton v-else icon="rotate-left" :label="t('protocol.unmarkDone')" @click="toggleSectionDone(currentSection.id)" />
           </div>
         </div>
 
@@ -317,17 +345,27 @@ onMounted(() => { if (loaded.value) loadData() })
       </NeutralContainer>
 
       <!-- Navigation -->
-      <div class="flex items-center gap-2">
-        <SecondaryButton v-if="currentSectionIndex > 0" @click="savePrev" :disabled="saving">
-          <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-1" /> {{ t('protocol.prevSection') }}
-        </SecondaryButton>
-        <div class="flex-1" />
-        <SuccessButton v-if="currentSectionIndex === topSections.length - 1" @click="finishGrading" :disabled="saving">
-          <font-awesome-icon :icon="['fas', 'check']" class="mr-1" /> {{ t('protocol.finish') }}
-        </SuccessButton>
-        <PrimaryButton v-else @click="saveAndNext" :disabled="saving">
-          {{ t('protocol.nextSection') }} <font-awesome-icon :icon="['fas', 'chevron-right']" class="ml-1" />
-        </PrimaryButton>
+      <div class="space-y-2">
+        <div class="flex items-center gap-2">
+          <SuccessButton v-if="!doneSections.has(currentSection.id) && currentSectionIndex < topSections.length - 1" class="flex-1 sm:flex-initial" @click="markDoneAndNext" :disabled="saving">
+            <font-awesome-icon :icon="['fas', 'check']" class="mr-1" /> {{ t('protocol.markDoneAndNext') }}
+          </SuccessButton>
+          <SuccessButton v-if="!doneSections.has(currentSection.id)" class="flex-1 sm:flex-initial" @click="markDoneAndExit" :disabled="saving">
+            <font-awesome-icon :icon="['fas', 'check']" class="mr-1" /> {{ t('protocol.markDoneAndExit') }}
+          </SuccessButton>
+        </div>
+        <div class="flex items-center gap-2">
+          <SecondaryButton v-if="currentSectionIndex > 0" class="flex-1 sm:flex-initial" @click="savePrev" :disabled="saving">
+            <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-1" /> {{ t('protocol.prevSection') }}
+          </SecondaryButton>
+          <div class="hidden sm:block flex-1" />
+          <SuccessButton v-if="currentSectionIndex === topSections.length - 1" class="flex-1 sm:flex-initial" @click="finishGrading" :disabled="saving">
+            <font-awesome-icon :icon="['fas', 'flag']" class="mr-1" /> {{ t('protocol.finish') }}
+          </SuccessButton>
+          <PrimaryButton v-if="currentSectionIndex < topSections.length - 1" class="flex-1 sm:flex-initial" @click="saveAndNext" :disabled="saving">
+            {{ t('protocol.nextSection') }} <font-awesome-icon :icon="['fas', 'chevron-right']" class="ml-1" />
+          </PrimaryButton>
+        </div>
       </div>
     </template>
   </ViewContent>

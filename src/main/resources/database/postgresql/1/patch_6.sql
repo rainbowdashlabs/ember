@@ -1935,13 +1935,12 @@ INSERT INTO ember_schema.station_permission (name) VALUES
     ('MEMBER_READ'), ('MEMBER_NOTES'), ('MEMBER_GUARDIAN'), ('MEMBER_CHANGES'),
     ('MEMBER_MANAGE_GROUP'), ('MEMBER_MANAGE_TAGS'), ('MEMBER_EDIT'), ('MEMBER_FIELDS'), ('MEMBER_EXPORT'),
     ('MEMBER_MANAGER'),
-    ('WAITLIST_READ'), ('WAITLIST_EDIT'), ('WAITLIST_MANAGER'),
-    ('NEWS_CREATE'), ('NEWS_FEDERATE'), ('NEWS_MANAGER'),
+    ('WAITLIST_READ'), ('WAITLIST_EDIT'), ('WAITLIST_ADD'), ('WAITLIST_MANAGER'),
+    ('NEWS_EDIT'), ('NEWS_FEDERATE'), ('NEWS_MANAGER'),
     ('POLL_VIEW_RESULTS'), ('POLL_CREATE'), ('POLL_MANAGER'),
     ('LOST_AND_FOUND_CREATE'), ('LOST_AND_FOUND_MANAGE'), ('LOST_AND_FOUND_MANAGER'),
-    ('TEST_CATALOG_VIEW'), ('TEST_CATALOG_EDIT'), ('TEST_CONFIGURE'), ('TEST_MANAGER'),
+    ('TEST_CATALOG_VIEW'), ('TEST_CATALOG_EDIT'), ('TEST_CONFIGURE'), ('TEST_RESULT_READ'), ('TEST_REVIEW'), ('TEST_MANAGER'),
     ('PROTOCOL_TESTER'), ('PROTOCOL_CREATE'), ('PROTOCOL_CONFIGURE'), ('PROTOCOL_MANAGER'),
-    ('QUIZ_MANAGER'),
     ('BOARD_USE'), ('BOARD_EDIT'), ('BOARD_FEDERATE'), ('BOARD_MANAGER'),
     ('KNOWLEDGE_EDIT'), ('KNOWLEDGE_FEDERATE'), ('KNOWLEDGE_MANAGER'),
     ('STATION_LOOK_AND_FEEL'), ('STATION_GENERAL'), ('STATION_MAIL'),
@@ -2208,4 +2207,50 @@ WHERE a.attempt_id = b.attempt_id
 -- Add unique constraint
 ALTER TABLE ember_schema.quiz_test_answer
     ADD CONSTRAINT uq_quiz_test_answer_attempt_question UNIQUE (attempt_id, question_id);
+
+-- waiting_list_entry_guardian: multiple guardians per waitlist entry
+CREATE TABLE IF NOT EXISTS ember_schema.waiting_list_entry_guardian (
+    id       SERIAL PRIMARY KEY,
+    entry_id INTEGER NOT NULL REFERENCES ember_schema.waiting_list_entry (id) ON DELETE CASCADE,
+    name     TEXT    NOT NULL,
+    email    TEXT    NOT NULL DEFAULT '',
+    phone    TEXT    NOT NULL DEFAULT '',
+    position INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_wle_guardian_entry ON ember_schema.waiting_list_entry_guardian (entry_id);
+
+-- Migrate existing parent_name/email into guardian rows
+INSERT INTO ember_schema.waiting_list_entry_guardian (entry_id, name, email, position)
+SELECT id, parent_name, email, 0
+FROM ember_schema.waiting_list_entry
+WHERE parent_name != '' OR email != '';
+
+-- event_reminder: configurable reminders N days before an event
+CREATE TABLE IF NOT EXISTS ember_schema.event_reminder (
+    id          SERIAL PRIMARY KEY,
+    event_id    INTEGER NOT NULL REFERENCES ember_schema.station_event (id) ON DELETE CASCADE,
+    days_before INTEGER NOT NULL CHECK (days_before > 0),
+    UNIQUE (event_id, days_before)
+);
+CREATE INDEX IF NOT EXISTS idx_event_reminder_event ON ember_schema.event_reminder (event_id);
+
+-- event_template_reminder: default reminders on templates
+CREATE TABLE IF NOT EXISTS ember_schema.event_template_reminder (
+    id          SERIAL PRIMARY KEY,
+    template_id INTEGER NOT NULL REFERENCES ember_schema.event_template (id) ON DELETE CASCADE,
+    days_before INTEGER NOT NULL CHECK (days_before > 0),
+    UNIQUE (template_id, days_before)
+);
+
+-- event_reminder_sent: track sent reminders per event occurrence
+CREATE TABLE IF NOT EXISTS ember_schema.event_reminder_sent (
+    id          SERIAL PRIMARY KEY,
+    event_id    INTEGER NOT NULL REFERENCES ember_schema.station_event (id) ON DELETE CASCADE,
+    event_date  DATE    NOT NULL,
+    days_before INTEGER NOT NULL,
+    sent_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (event_id, event_date, days_before)
+);
+CREATE INDEX IF NOT EXISTS idx_event_reminder_sent_event ON ember_schema.event_reminder_sent (event_id);
 

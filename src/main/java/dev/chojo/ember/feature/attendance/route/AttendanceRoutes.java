@@ -94,9 +94,18 @@ public class AttendanceRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/attendance/templates", this::listTemplates, StationPermission.ATTENDANCE_READ, StationPermission.ATTENDANCE_CONFIGURE, StationPermission.EVENT_EDIT);
+        routes.get(
+                prefix + "/attendance/templates",
+                this::listTemplates,
+                StationPermission.ATTENDANCE_READ,
+                StationPermission.ATTENDANCE_CONFIGURE,
+                StationPermission.EVENT_EDIT);
         routes.post(prefix + "/attendance/templates", this::createTemplate, StationPermission.ATTENDANCE_CONFIGURE);
-        routes.get(prefix + "/attendance/templates/{id}", this::getTemplate, StationPermission.ATTENDANCE_READ, StationPermission.ATTENDANCE_CONFIGURE);
+        routes.get(
+                prefix + "/attendance/templates/{id}",
+                this::getTemplate,
+                StationPermission.ATTENDANCE_READ,
+                StationPermission.ATTENDANCE_CONFIGURE);
         routes.put(prefix + "/attendance/templates/{id}", this::updateTemplate, StationPermission.ATTENDANCE_CONFIGURE);
         routes.delete(
                 prefix + "/attendance/templates/{id}", this::deleteTemplate, StationPermission.ATTENDANCE_CONFIGURE);
@@ -109,7 +118,9 @@ public class AttendanceRoutes implements Routes {
         routes.get(
                 prefix + "/attendance/templates/{templateId}/fields",
                 this::listTemplateFields,
-                StationPermission.ATTENDANCE_READ, StationPermission.ATTENDANCE_CONFIGURE, StationPermission.EVENT_EDIT);
+                StationPermission.ATTENDANCE_READ,
+                StationPermission.ATTENDANCE_CONFIGURE,
+                StationPermission.EVENT_EDIT);
         routes.post(
                 prefix + "/attendance/templates/{templateId}/fields",
                 this::createTemplateField,
@@ -154,16 +165,11 @@ public class AttendanceRoutes implements Routes {
                 this::createEntry,
                 StationPermission.ATTENDANCE_EDIT);
         routes.post(prefix + "/attendance/entries/{id}/check-in", this::checkIn, StationPermission.ATTENDANCE_EDIT);
-        routes.post(
-                prefix + "/attendance/entries/{id}/check-out", this::checkOut, StationPermission.ATTENDANCE_EDIT);
+        routes.post(prefix + "/attendance/entries/{id}/check-out", this::checkOut, StationPermission.ATTENDANCE_EDIT);
         routes.put(
-                prefix + "/attendance/entries/{id}/status",
-                this::updateEntryStatus,
-                StationPermission.ATTENDANCE_EDIT);
+                prefix + "/attendance/entries/{id}/status", this::updateEntryStatus, StationPermission.ATTENDANCE_EDIT);
         routes.post(
-                prefix + "/attendance/entries/{id}/reset-times",
-                this::resetTimes,
-                StationPermission.ATTENDANCE_EDIT);
+                prefix + "/attendance/entries/{id}/reset-times", this::resetTimes, StationPermission.ATTENDANCE_EDIT);
         routes.delete(prefix + "/attendance/entries/{id}", this::deleteEntry, StationPermission.ATTENDANCE_EDIT);
         routes.post(
                 prefix + "/attendance/sessions/{sessionId}/sync-event",
@@ -184,13 +190,26 @@ public class AttendanceRoutes implements Routes {
         routes.delete(
                 prefix + "/attendance/report/presets/{id}", this::deletePreset, StationPermission.ATTENDANCE_EXPORT);
 
-        routes.get(prefix + "/attendance/absences", this::listActiveAbsences, StationPermission.ATTENDANCE_MANAGER);
+        routes.get(
+                prefix + "/attendance/absences",
+                this::listActiveAbsences,
+                StationPermission.ATTENDANCE_EDIT,
+                StationPermission.MEMBER_EDIT);
         routes.get(
                 prefix + "/attendance/absences/member/{memberId}",
                 this::listMemberAbsences,
-                StationPermission.ATTENDANCE_MANAGER);
-        routes.post(prefix + "/attendance/absences", this::createAbsence, StationPermission.ATTENDANCE_MANAGER);
-        routes.delete(prefix + "/attendance/absences/{id}", this::deleteAbsence, StationPermission.ATTENDANCE_MANAGER);
+                StationPermission.ATTENDANCE_EDIT,
+                StationPermission.MEMBER_EDIT);
+        routes.post(
+                prefix + "/attendance/absences",
+                this::createAbsence,
+                StationPermission.ATTENDANCE_MANAGER,
+                StationPermission.MEMBER_EDIT);
+        routes.delete(
+                prefix + "/attendance/absences/{id}",
+                this::deleteAbsence,
+                StationPermission.ATTENDANCE_MANAGER,
+                StationPermission.MEMBER_EDIT);
 
         // Self-service absence management
         routes.get(prefix + "/profile/absences", this::listMyAbsences, StationPermission.USER);
@@ -834,7 +853,10 @@ public class AttendanceRoutes implements Routes {
         String groupIdStr = ctx.queryParam("groupId");
         List<String> groupIds = ctx.queryParams("groupIds");
         Integer groupId = groupIdStr != null && !groupIdStr.isBlank() ? Integer.parseInt(groupIdStr) : null;
-        List<Integer> groupIdList = groupIds.stream().filter(s -> !s.isBlank()).map(Integer::parseInt).toList();
+        List<Integer> groupIdList = groupIds.stream()
+                .filter(s -> !s.isBlank())
+                .map(Integer::parseInt)
+                .toList();
         String fromStr = ctx.queryParam("from");
         String toStr = ctx.queryParam("to");
         String rounding = ctx.queryParamAsClass("rounding", String.class).getOrDefault("exact");
@@ -878,12 +900,15 @@ public class AttendanceRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         List<String> userTypes = ctx.queryParams("userTypes");
         List<Integer> groupIds = ctx.queryParams("groupIds").stream()
-                .filter(s -> !s.isBlank()).map(Integer::parseInt).toList();
+                .filter(s -> !s.isBlank())
+                .map(Integer::parseInt)
+                .toList();
         // Legacy fallback
         String role = ctx.queryParam("role");
         if (role != null && !role.isBlank() && userTypes.isEmpty()) userTypes = List.of(role);
         String groupIdStr = ctx.queryParam("groupId");
-        if (groupIdStr != null && !groupIdStr.isBlank() && groupIds.isEmpty()) groupIds = List.of(Integer.parseInt(groupIdStr));
+        if (groupIdStr != null && !groupIdStr.isBlank() && groupIds.isEmpty())
+            groupIds = List.of(Integer.parseInt(groupIdStr));
 
         String fromStr = ctx.queryParam("from");
         String toStr = ctx.queryParam("to");

@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -13,6 +14,14 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {stationManage} from '@/api'
+import {StationPermission} from '@/api/types'
+import {useSession} from '@/composables/useSession'
+
+const {hasPermission} = useSession()
+const router = useRouter()
+if (!hasPermission(StationPermission.STATION_MODULES)) {
+  router.replace({name: 'dashboard-overview'})
+}
 
 const {t} = useI18n()
 
@@ -30,7 +39,9 @@ const allModules = [
   {key: 'LOST_AND_FOUND', label: 'moduleLostAndFound'},
   {key: 'WAITING_LIST', label: 'moduleWaitingList'},
   {key: 'QUIZ', label: 'moduleQuiz'},
+  {key: 'TEST_PROTOCOL', label: 'moduleTestProtocol'},
   {key: 'KNOWLEDGE_BASE', label: 'moduleKnowledgeBase'},
+  {key: 'BOARDS', label: 'moduleBoards'},
 ]
 
 function isModuleEnabled(key: string): boolean {
@@ -70,9 +81,9 @@ onMounted(async () => {
         <SectionHeader>{{ t('stationManage.modulesTitle') }}</SectionHeader>
         <p class="text-sm text-(--text-muted)">{{ t('stationManage.modulesHint') }}</p>
         <div class="space-y-3">
-          <div v-for="mod in allModules" :key="mod.key" class="flex items-center justify-between">
-            <span class="text-sm font-medium">{{ t(`stationManage.${mod.label}`) }}</span>
+          <div v-for="mod in allModules" :key="mod.key" class="flex items-center gap-3">
             <ToggleInput :model-value="isModuleEnabled(mod.key)" :disabled="modulesSaving" @update:model-value="toggleModule(mod.key)"/>
+            <span class="text-sm font-medium">{{ t(`stationManage.${mod.label}`) }}</span>
           </div>
         </div>
       </NeutralContainer>

@@ -464,83 +464,118 @@ public class DemoFormSeeder {
 
         // 1. CHOICE — single select
         formRepository.createQuestion(
-                showcase.id(), 0, FormQuestionType.CHOICE,
+                showcase.id(),
+                0,
+                FormQuestionType.CHOICE,
                 "Welche Farbe gefällt dir am besten?",
                 "Wähle genau eine Farbe aus.",
-                true, false,
+                true,
+                false,
                 new FormQuestionConfig.Choice(
                         List.of("Rot", "Blau", "Grün", "Gelb", "Lila"),
-                        false, false, false,
-                        FormQuestionConfig.MultiLimitType.NONE, null));
+                        false,
+                        false,
+                        false,
+                        FormQuestionConfig.MultiLimitType.NONE,
+                        null));
 
         // 2. CHOICE — multi select with dropdown and "other"
         formRepository.createQuestion(
-                showcase.id(), 1, FormQuestionType.CHOICE,
+                showcase.id(),
+                1,
+                FormQuestionType.CHOICE,
                 "Welche Hobbys hast du?",
                 "Wähle bis zu 3 Hobbys. Du kannst auch ein eigenes angeben.",
-                false, true,
+                false,
+                true,
                 new FormQuestionConfig.Choice(
                         List.of("Sport", "Musik", "Lesen", "Gaming", "Kochen", "Basteln"),
-                        true, false, true,
-                        FormQuestionConfig.MultiLimitType.AT_MOST, 3));
+                        true,
+                        false,
+                        true,
+                        FormQuestionConfig.MultiLimitType.AT_MOST,
+                        3));
 
         // 3. TEXT — short answer
         formRepository.createQuestion(
-                showcase.id(), 2, FormQuestionType.TEXT,
+                showcase.id(),
+                2,
+                FormQuestionType.TEXT,
                 "Wie heißt dein Lieblingstier?",
                 "Kurze Antwort genügt.",
-                false, false,
+                false,
+                false,
                 new FormQuestionConfig.Text(false));
 
         // 4. TEXT — long answer
         formRepository.createQuestion(
-                showcase.id(), 3, FormQuestionType.TEXT,
+                showcase.id(),
+                3,
+                FormQuestionType.TEXT,
                 "Beschreibe deinen perfekten Tag",
                 "Hier hast du viel Platz zum Schreiben.",
-                false, false,
+                false,
+                false,
                 new FormQuestionConfig.Text(true));
 
         // 5. RATING — 5 stars
         formRepository.createQuestion(
-                showcase.id(), 4, FormQuestionType.RATING,
+                showcase.id(),
+                4,
+                FormQuestionType.RATING,
                 "Wie findest du dieses Formular?",
                 "1 = langweilig, 5 = super",
-                true, false,
+                true,
+                false,
                 new FormQuestionConfig.Rating(5, FormQuestionConfig.Rating.RatingIcon.STAR));
 
         // 6. RATING — 10 hearts
         formRepository.createQuestion(
-                showcase.id(), 5, FormQuestionType.RATING,
+                showcase.id(),
+                5,
+                FormQuestionType.RATING,
                 "Wie sehr magst du Ember?",
                 "1–10 Herzen",
-                false, false,
+                false,
+                false,
                 new FormQuestionConfig.Rating(10, FormQuestionConfig.Rating.RatingIcon.HEART));
 
         // 7. DATE
         formRepository.createQuestion(
-                showcase.id(), 6, FormQuestionType.DATE,
+                showcase.id(),
+                6,
+                FormQuestionType.DATE,
                 "Wann hast du Geburtstag?",
                 "",
-                false, false,
+                false,
+                false,
                 new FormQuestionConfig.Date());
 
         // 8. RANKING
         formRepository.createQuestion(
-                showcase.id(), 7, FormQuestionType.RANKING,
+                showcase.id(),
+                7,
+                FormQuestionType.RANKING,
                 "Ordne die Jahreszeiten nach deiner Vorliebe",
                 "Ziehe die Einträge in die richtige Reihenfolge.",
-                true, true,
+                true,
+                true,
                 new FormQuestionConfig.Ranking(List.of("Frühling", "Sommer", "Herbst", "Winter")));
 
         // 9. LIKERT
         formRepository.createQuestion(
-                showcase.id(), 8, FormQuestionType.LIKERT,
+                showcase.id(),
+                8,
+                FormQuestionType.LIKERT,
                 "Wie stimmst du folgenden Aussagen zu?",
                 "1 = stimme gar nicht zu, 5 = stimme voll zu",
-                true, false,
+                true,
+                false,
                 new FormQuestionConfig.Likert(
                         List.of("Ich bin gerne draußen", "Ich arbeite gerne im Team", "Ich probiere gerne Neues aus"),
-                        1, 5, List.of("stimme nicht zu", "", "", "", "stimme zu")));
+                        1,
+                        5,
+                        List.of("stimme nicht zu", "", "", "", "stimme zu")));
 
         log.info(
                 "Demo: Created 7 forms (open all types, closed all types, member-only, member+manager, tag-restricted, group-restricted, showcase)");

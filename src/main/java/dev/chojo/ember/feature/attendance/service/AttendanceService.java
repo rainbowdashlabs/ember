@@ -6,8 +6,6 @@
 package dev.chojo.ember.feature.attendance.service;
 
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
@@ -21,11 +19,13 @@ import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.Templa
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.entity.MemberAbsence;
-import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -261,7 +261,8 @@ public class AttendanceService {
             for (var m : members) {
                 if (!existingMemberIds.contains(m.id()) && !m.former()) {
                     attendanceRepository.createEntry(
-                            session.id(), m.id(),
+                            session.id(),
+                            m.id(),
                             attendanceRepository.isAbsent(m.id())
                                     ? AttendanceEntry.AttendanceStatus.DECLINED
                                     : AttendanceEntry.AttendanceStatus.UNCONFIRMED,

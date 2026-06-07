@@ -33,7 +33,7 @@ class RolesTest {
         assertTrue(expanded.contains(StationPermission.POLL_MANAGER));
         assertTrue(expanded.contains(StationPermission.LOST_AND_FOUND_MANAGER));
         assertTrue(expanded.contains(StationPermission.WAITLIST_MANAGER));
-        assertTrue(expanded.contains(StationPermission.QUIZ_MANAGER));
+        assertTrue(expanded.contains(StationPermission.TEST_MANAGER));
         assertTrue(expanded.contains(StationPermission.KNOWLEDGE_MANAGER));
         assertTrue(expanded.contains(StationPermission.PROTOCOL_MANAGER));
         assertTrue(expanded.contains(StationPermission.PROTOCOL_TESTER));

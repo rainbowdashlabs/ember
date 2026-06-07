@@ -69,3 +69,19 @@ export function reportApiError(method: string, url: string, status: number, mess
         `${method.toUpperCase()} ${url}`,
     )
 }
+
+/**
+ * Reports a caught error from application code (e.g. inside catch blocks).
+ * Use this instead of silently swallowing errors.
+ */
+export function reportCaughtError(err: unknown, context?: string) {
+    if (!DEV) return
+    const error = err instanceof Error ? err : new Error(String(err))
+    console.error('[Caught Error]', context ?? '', error)
+    reportError(
+        'caught',
+        error.message,
+        error.stack ?? '',
+        context ?? window.location.pathname,
+    )
+}

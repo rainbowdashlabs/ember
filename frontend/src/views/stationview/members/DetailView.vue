@@ -17,15 +17,17 @@ import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
+import TabBar from '@/components/navigation/TabBar.vue'
 import ChangeHistory from './detailview/ChangeHistory.vue'
 import ManagerSection from './detailview/ManagerSection.vue'
 import InventorySection from './detailview/InventorySection.vue'
+import AbsencesTab from './detailview/AbsencesTab.vue'
 import DetailModals from './detailview/DetailModals.vue'
 import type { ProfileField, ProfileFieldChange, StationMember, Inventory, InventoryItem } from '@/api/types'
 import { StationPermission, StationUserType, ExchangeStatus, StationModules } from '@/api/types'
 import type { MyInventoryItem } from '@/api/inventory'
 import type { ExchangeRequestEntry } from '@/api/types'
-import { profileFields, profileFieldChanges, stationMembers, members, inventory, exchanges } from '@/api'
+import { profileFields, profileFieldChanges, stationMembers, members, inventory, exchanges, memberGroups, userTags } from '@/api'
 import { useSession } from '@/composables/useSession'
 import NoteEditor from '@/components/comment/NoteEditor.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -55,6 +57,9 @@ const allMembers = ref<StationMember[]>([])
 const changes = ref<ProfileFieldChange[]>([])
 const memberInventory = ref<MyInventoryItem[]>([])
 const memberExchanges = ref<ExchangeRequestEntry[]>([])
+const memberPermissions = ref<import('@/api/types').PermissionGrant[]>([])
+const memberGroupList = ref<import('@/api/types').MemberGroup[]>([])
+const memberTagList = ref<import('@/api/types').UserTag[]>([])
 const loading = ref(true)
 const error = ref('')
 const formerSuccess = ref(false)
@@ -66,6 +71,26 @@ const deletingMember = ref(false)
 const inventories = ref<Inventory[]>([])
 const assignItems = ref<InventoryItem[]>([])
 const exchangeSizes = ref<import('@/api/types').InventorySize[]>([])
+
+const activeTab = ref('profile')
+
+const tabs = computed(() => {
+  const t_ = [
+    { key: 'profile', label: t('memberDetail.tabProfile') },
+    { key: 'permissions', label: t('memberDetail.tabPermissions') },
+    { key: 'guardians', label: t('memberDetail.tabGuardians') },
+  ]
+  if (canEdit.value) {
+    t_.push({ key: 'absences', label: t('memberDetail.tabAbsences') })
+  }
+  if (canReadInventory.value) {
+    t_.push({ key: 'inventory', label: t('memberDetail.tabInventory') })
+  }
+  if (hasPermission(StationPermission.MEMBER_NOTES)) {
+    t_.push({ key: 'notes', label: t('memberDetail.tabNotes') })
+  }
+  return t_
+})
 
 const modalsRef = ref<InstanceType<typeof DetailModals> | null>(null)
 
@@ -161,18 +186,24 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [allFields, allMems, memberData, profileValues, mgrs] = await Promise.all([
+    const [allFields, allMems, memberData, profileValues, mgrs, perms, mGroups, mTags] = await Promise.all([
       profileFields.listFields(),
       stationMembers.listMembers(),
       stationMembers.getMember(memberId.value),
       profileFields.getValues(memberId.value),
       stationMembers.getManagers(memberId.value),
+      stationMembers.getPermissions(memberId.value),
+      memberGroups.getMemberGroups(memberId.value),
+      userTags.getMemberTags(memberId.value),
     ])
     fields.value = allFields
     allMembers.value = allMems
     member.value = allMems.find(m => m.id === memberId.value) ?? null
     memberUserType.value = (memberData as any).userType ?? ''
     managers.value = mgrs
+    memberPermissions.value = perms
+    memberGroupList.value = mGroups
+    memberTagList.value = mTags
     const map = new Map<number, string>()
     for (const v of profileValues) { map.set(v.fieldId, v.value ?? '') }
     values.value = map
@@ -337,59 +368,102 @@ onMounted(loadData)
         <SectionHeader>{{ memberDisplayName(member) }}</SectionHeader>
         <p v-if="member.email" class="text-sm text-(--text-muted)">{{ member.email }}</p>
 
-        <!-- Profile fields -->
-        <NeutralContainer class="space-y-3">
-          <SubHeader class="text-sm">{{ t('memberDetail.fields') }}</SubHeader>
-          <MutedText tag="div" size="sm" class="py-2" v-if="applicableFields.length === 0">
-            {{ t('memberDetail.noFields') }}
-          </MutedText>
-          <div class="grid gap-2 sm:grid-cols-2">
-            <div v-for="field in applicableFields" :key="field.id" class="text-sm">
-              <span class="text-(--text-muted)">{{ field.name }}:</span>
-              <span class="ml-1 font-medium"><FieldValueDisplay :value="getFieldValue(field.id)" :field-type="field.fieldType"/></span>
+        <TabBar v-model="activeTab" :tabs="tabs" />
+
+        <!-- Profile tab -->
+        <template v-if="activeTab === 'profile'">
+          <NeutralContainer class="space-y-3">
+            <SubHeader class="text-sm">{{ t('memberDetail.fields') }}</SubHeader>
+            <MutedText tag="div" size="sm" class="py-2" v-if="applicableFields.length === 0">
+              {{ t('memberDetail.noFields') }}
+            </MutedText>
+            <div class="grid gap-2 sm:grid-cols-2">
+              <div v-for="field in applicableFields" :key="field.id" class="text-sm">
+                <span class="text-(--text-muted)">{{ field.name }}:</span>
+                <span class="ml-1 font-medium"><FieldValueDisplay :value="getFieldValue(field.id)" :field-type="field.fieldType"/></span>
+              </div>
             </div>
-          </div>
+          </NeutralContainer>
+          <ChangeHistory
+            v-if="showChangeHistory"
+            :member-id="memberId"
+            :changes="changes"
+            :current-member-id="currentMemberId"
+            @reload="loadChanges"
+          />
+        </template>
+
+        <!-- Permissions tab -->
+        <template v-if="activeTab === 'permissions'">
+          <NeutralContainer class="space-y-3">
+            <SubHeader class="text-sm">{{ t('memberDetail.userType') }}</SubHeader>
+            <span class="text-sm font-medium">{{ t('memberEdit.userType' + memberUserType.charAt(0).toUpperCase() + memberUserType.slice(1).toLowerCase()) }}</span>
+          </NeutralContainer>
+          <NeutralContainer v-if="memberPermissions.length > 0" class="space-y-3">
+            <SubHeader class="text-sm">{{ t('memberDetail.permissions') }}</SubHeader>
+            <div class="flex flex-wrap gap-2">
+              <span v-for="p in memberPermissions" :key="p.id" class="text-xs rounded-full bg-primary/10 text-primary px-3 py-1">{{ t(`permissions.${p.permission}.label`) }}</span>
+            </div>
+          </NeutralContainer>
+          <NeutralContainer v-if="memberGroupList.length > 0" class="space-y-3">
+            <SubHeader class="text-sm">{{ t('memberDetail.groups') }}</SubHeader>
+            <div class="flex flex-wrap gap-2">
+              <span v-for="g in memberGroupList" :key="g.id" class="text-xs rounded-full bg-secondary/10 text-secondary px-3 py-1">{{ g.name }}</span>
+            </div>
+          </NeutralContainer>
+          <NeutralContainer v-if="memberTagList.length > 0" class="space-y-3">
+            <SubHeader class="text-sm">{{ t('memberDetail.tags') }}</SubHeader>
+            <div class="flex flex-wrap gap-2">
+              <span v-for="tag in memberTagList" :key="tag.id" class="text-xs rounded-full bg-info/10 text-info px-3 py-1">{{ tag.name }}</span>
+            </div>
+          </NeutralContainer>
+        </template>
+
+        <!-- Guardians tab -->
+        <template v-if="activeTab === 'guardians'">
+          <ManagerSection
+            v-if="showManagerSection"
+            :managers="managers"
+            :available-managers="availableManagers"
+            :manager-values="managerValues"
+            :manager-roles="managerUserTypesAsRoleMap"
+            :fields="fields"
+            :readonly="!canEdit"
+            :member-display-name-fn="memberDisplayName"
+            :get-manager-fields-fn="getManagerFields"
+            :get-manager-field-value-fn="getManagerFieldValue"
+            @link-manager="handleLinkManager"
+            @remove-manager="handleRemoveManager"
+            @create-manager="handleCreateManager"
+            @edit-manager="(id) => router.push({ name: 'members-edit', params: { id } })"
+          />
+          <NeutralContainer v-else class="space-y-3">
+            <MutedText tag="div" size="sm">{{ t('memberDetail.noGuardians') }}</MutedText>
+          </NeutralContainer>
+        </template>
+
+        <!-- Inventory tab -->
+        <!-- Absences tab -->
+        <AbsencesTab v-if="activeTab === 'absences'" :member-id="memberId" />
+
+        <template v-if="activeTab === 'inventory'">
+          <InventorySection
+            v-if="memberInventory.length > 0 || showInventoryManagement"
+            :member-inventory="memberInventory"
+            :member-exchanges="memberExchanges"
+            :show-inventory-management="showInventoryManagement && canEdit"
+            :can-manage-inventory="canManageInventory() && canEdit"
+            @assign-item="modalsRef?.openAssignModal()"
+            @request-exchange="modalsRef?.openExchangeModal($event)"
+            @unassign="handleUnassignItem"
+            @reassign="modalsRef?.openReassignModal($event)"
+          />
+        </template>
+
+        <!-- Notes tab -->
+        <NeutralContainer v-if="activeTab === 'notes'">
+          <NoteEditor :entity-type="'MEMBER'" :entity-id="memberId"/>
         </NeutralContainer>
-
-        <!-- Managers -->
-        <ManagerSection
-          v-if="showManagerSection"
-          :managers="managers"
-          :available-managers="availableManagers"
-          :manager-values="managerValues"
-          :manager-roles="managerUserTypesAsRoleMap"
-          :fields="fields"
-          :readonly="!canEdit"
-          :member-display-name-fn="memberDisplayName"
-          :get-manager-fields-fn="getManagerFields"
-          :get-manager-field-value-fn="getManagerFieldValue"
-          @link-manager="handleLinkManager"
-          @remove-manager="handleRemoveManager"
-          @create-manager="handleCreateManager"
-          @edit-manager="(id) => router.push({ name: 'members-edit', params: { id } })"
-        />
-
-        <!-- Inventory -->
-        <InventorySection
-          v-if="canReadInventory && (memberInventory.length > 0 || showInventoryManagement)"
-          :member-inventory="memberInventory"
-          :member-exchanges="memberExchanges"
-          :show-inventory-management="showInventoryManagement && canEdit"
-          :can-manage-inventory="canManageInventory() && canEdit"
-          @assign-item="modalsRef?.openAssignModal()"
-          @request-exchange="modalsRef?.openExchangeModal($event)"
-          @unassign="handleUnassignItem"
-          @reassign="modalsRef?.openReassignModal($event)"
-        />
-
-        <!-- Change History -->
-        <ChangeHistory
-          v-if="showChangeHistory"
-          :member-id="memberId"
-          :changes="changes"
-          :current-member-id="currentMemberId"
-          @reload="loadChanges"
-        />
       </template>
 
       <Alert v-if="formerSuccess" variant="success">{{ t('memberDetail.formerSuccess') }}</Alert>
@@ -417,10 +491,6 @@ onMounted(loadData)
         @load-exchange-sizes="handleLoadExchangeSizes"
         @load-inventories="handleLoadInventories"
       />
-      <!-- Manager Notes -->
-      <NeutralContainer v-if="hasPermission(StationPermission.MEMBER_NOTES)">
-        <NoteEditor :entity-type="'MEMBER'" :entity-id="memberId"/>
-      </NeutralContainer>
     </div>
   </ViewContent>
 </template>

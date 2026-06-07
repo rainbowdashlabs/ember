@@ -7,6 +7,7 @@
 import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
+import {reportCaughtError} from '@/util/devErrorReporter'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -24,6 +25,7 @@ import {attendance, events, federation, memberGroups, stationMembers, userTags} 
 import type {PartnerResponse} from '@/api/federation'
 import FederationSharePicker from '@/components/input/FederationSharePicker.vue'
 import EventFormPanel from './eventshared/EventFormPanel.vue'
+import EventReminderEditor from './eventshared/EventReminderEditor.vue'
 import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
@@ -78,12 +80,12 @@ async function applyEventTemplate(templateId: string | undefined) {
       }))
       eventCustomFields.value = [...eventCustomFields.value, ...newFields]
     }
-    if (detail.restrictionRoleIds.length > 0) {
-      selectedRoleIds.value = [...new Set([...selectedRoleIds.value, ...detail.restrictionRoleIds])]
+    if (detail.reminderDays?.length) {
+      eventReminders.value = [...new Set([...eventReminders.value, ...detail.reminderDays])]
     }
     templateApplied.value = true
     setTimeout(() => { templateApplied.value = false }, 3000)
-  } catch { error.value = t('common.error') }
+  } catch (e) { reportCaughtError(e, 'applyEventTemplate'); error.value = t('common.error') }
 }
 
 // Form state
@@ -93,6 +95,12 @@ const eventType = ref<string>(EventTypes.ONE_TIME)
 const eventDayOfWeek = ref('1')
 const eventStartTime = ref('')
 const eventEndTime = ref('')
+
+watch(eventStartTime, (val) => {
+  if (val && !eventEndTime.value) {
+    eventEndTime.value = val
+  }
+})
 const eventTemplateId = ref('')
 const eventCategoryId = ref('')
 const eventRequiresRegistration = ref(false)
@@ -103,6 +111,8 @@ const eventRegistrationLimit = ref<number | undefined>(undefined)
 const eventMinRegistrations = ref<number | undefined>(undefined)
 const eventHasThreshold = ref(false)
 const eventThresholdDate = ref('')
+
+const eventReminders = ref<number[]>([])
 
 const selectedRoleIds = ref<number[]>([])
 const selectedGroupIds = ref<number[]>([])
@@ -194,6 +204,10 @@ async function loadData() {
       selectedTagIds.value = [...eventTagIds.value]
       restrictionMode.value = (restrictions.mode as 'AND' | 'OR') ?? 'AND'
 
+      try {
+        eventReminders.value = await events.getEventReminders(eventId.value!)
+      } catch { eventReminders.value = [] }
+
       const fdMap = new Map<number, { source: string; value: string }>()
       for (const fd of defaults) {
         fdMap.set(fd.fieldId, {source: fd.source, value: fd.value ?? ''})
@@ -215,7 +229,8 @@ async function loadData() {
         } catch { /* no federation permission */ }
       }
     }
-  } catch {
+  } catch (e) {
+    reportCaughtError(e, 'EventEditView.loadData')
     error.value = t('common.error')
   } finally {
     loading.value = false
@@ -300,6 +315,8 @@ async function submit() {
       await events.setFieldDefaults(savedEventId, fieldDefaultEntries)
     }
 
+    await events.setEventReminders(savedEventId, eventReminders.value)
+
     const customFields = eventCustomFields.value.filter(f => f.name.trim())
     await events.setEventFields(savedEventId, {fields: customFields})
 
@@ -313,7 +330,8 @@ async function submit() {
     }
 
     router.push({name: 'events'})
-  } catch {
+  } catch (e) {
+    reportCaughtError(e, 'EventEditView.submit')
     error.value = t('common.error')
   } finally {
     saving.value = false
@@ -389,7 +407,11 @@ watch(loaded, (isLoaded) => {
               :group-members="groupMembersMap"
               show-schedule
               show-value
-          />
+          >
+            <template #after-schedule>
+              <EventReminderEditor v-model="eventReminders" />
+            </template>
+          </EventFormPanel>
         </NeutralContainer>
 
         <NeutralContainer class="space-y-2">

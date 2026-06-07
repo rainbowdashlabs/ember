@@ -99,6 +99,11 @@ export async function setManagers(memberId: number, data: SetManagersRequest): P
     return res.data
 }
 
+export async function setManaged(memberId: number, managedIds: number[]): Promise<StationMember[]> {
+    const res = await client.put<StationMember[]>(`/station-members/${memberId}/managed`, { managedIds })
+    return res.data
+}
+
 export async function listFormerMembers(): Promise<StationMember[]> {
     const res = await client.get<StationMember[]>('/station-members/former')
     return res.data

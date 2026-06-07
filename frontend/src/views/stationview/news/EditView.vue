@@ -30,7 +30,9 @@ import { useSession } from '@/composables/useSession'
 const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
-const { loaded, canManageFederation } = useSession()
+import { StationPermission } from '@/api/types'
+const { loaded, hasPermission } = useSession()
+const canFederateNews = () => hasPermission(StationPermission.NEWS_FEDERATE)
 
 const isEdit = computed(() => !!route.params.id)
 const newsId = computed(() => isEdit.value ? Number(route.params.id) : null)
@@ -73,7 +75,7 @@ async function loadData() {
     groups.value = groupList
     roles.value = roleList
     tags.value = tagList
-    if (canManageFederation()) {
+    if (canFederateNews()) {
       partners.value = (await federation.listPartners()).filter(p => p.partner.status === 'ACTIVE')
     }
 
@@ -85,7 +87,7 @@ async function loadData() {
       selectedGroupIds.value = entry.groupIds ?? []
       selectedTagIds.value = entry.tagIds ?? []
 
-      if (canManageFederation()) {
+      if (canFederateNews()) {
         const fedShare = await news.getFederationShare(newsId.value)
         federationShared.value = fedShare.shared
         if (fedShare.shared) {
@@ -125,7 +127,7 @@ async function save() {
       savedId = created.id
     }
 
-    if (canManageFederation()) {
+    if (canFederateNews()) {
       if (federationShared.value) {
         const pIds = federationScope.value === 'SPECIFIC_PARTNERS' ? federationPartnerIds.value : undefined
         await news.setFederationShare(savedId, federationScope.value, federationVisibilityRole.value, pIds)
@@ -201,13 +203,13 @@ watch(loaded, (isLoaded) => {
               :scope="federationScope"
               :partner-ids="federationPartnerIds"
               :partners="partners"
-              :disabled="!canManageFederation()"
+              :disabled="!canFederateNews()"
               :no-permission-hint="t('news.federationNoPermission')"
               @update:shared="federationShared = $event"
               @update:scope="federationScope = $event"
               @update:partner-ids="federationPartnerIds = $event"
           />
-          <template v-if="federationShared && canManageFederation()">
+          <template v-if="federationShared && canFederateNews()">
             <div class="space-y-1">
               <FieldLabel>{{ t('news.federationVisibility') }}</FieldLabel>
               <SelectInput v-model="federationVisibilityRole">

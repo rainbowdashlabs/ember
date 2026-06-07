@@ -45,7 +45,7 @@ public class QuizTestRepository {
     public List<QuizTest> findByStationForMember(int stationId, int memberId) {
         return Query.query("SELECT " + TEST_COLUMNS + " FROM quiz_test t"
                         + " WHERE t.station_id = :station_id"
-                        + " AND check_restriction('quiz_test_restriction', 'test_id', 'quiz_test', 'id', t.id, :member_id, 'QUIZ_MANAGER')"
+                        + " AND check_restriction('quiz_test_restriction', 'test_id', 'quiz_test', 'id', t.id, :member_id, 'TEST_MANAGER')"
                         + " ORDER BY t.created_at DESC;")
                 .single(Call.of().bind("station_id", stationId).bind("member_id", memberId))
                 .map(QuizTest.map())

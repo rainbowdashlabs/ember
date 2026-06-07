@@ -80,8 +80,9 @@ class SidebarCountServiceTest {
         var account = new Account(1, "test@test.com", "Test", "User", true, InstanceUserType.USER);
         var member = new StationMember(
                 MEMBER_ID, STATION_ID, UUID.randomUUID(), 1, false, null, "Test User", StationUserType.MEMBER);
+        var expanded = StationPermission.expand(EnumSet.copyOf(permissions));
         return new UserSession(
-                account, STATION_ID, STATION_UID, member, permissions, EnumSet.noneOf(InstancePermission.class));
+                account, STATION_ID, STATION_UID, member, expanded, EnumSet.noneOf(InstancePermission.class));
     }
 
     @Test

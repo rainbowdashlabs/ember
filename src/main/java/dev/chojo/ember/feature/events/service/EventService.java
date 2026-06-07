@@ -699,4 +699,14 @@ public class EventService {
     public List<MemberRegistrationStats> findRegistrationStats(int eventId, Integer categoryId, int months) {
         return eventRepository.findRegistrationStatsByEvent(eventId, categoryId, months);
     }
+
+    // --- Reminders ---
+
+    public List<Integer> findReminderDays(int eventId) {
+        return eventRepository.findReminderDays(eventId);
+    }
+
+    public void setReminders(int eventId, List<Integer> daysBefore) {
+        eventRepository.replaceReminders(eventId, daysBefore);
+    }
 }

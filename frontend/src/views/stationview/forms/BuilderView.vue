@@ -21,9 +21,9 @@ import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import QuestionEditor from './builderview/QuestionEditor.vue'
 import type { QuestionDraft } from './builderview/types'
-import type { FormQuestionRequest, QuestionType, PermissionGrant, MemberGroup, UserTag } from '@/api/types'
+import type { FormQuestionRequest, QuestionType, MemberGroup, StationMember, UserTag } from '@/api/types'
 import { QuestionTypes } from '@/api/types'
-import { forms, stationMembers, memberGroups, userTags } from '@/api'
+import { forms, memberGroups, userTags, stationMembers } from '@/api'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const { t } = useI18n()
@@ -45,12 +45,13 @@ const startAt = ref('')
 const endAt = ref('')
 
 // Restrictions
-const allRoles = ref<PermissionGrant[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
-const selectedRoleIds = ref<number[]>([])
+const allMembers = ref<StationMember[]>([])
+const selectedUserTypes = ref<string[]>([])
 const selectedGroupIds = ref<number[]>([])
 const selectedTagIds = ref<number[]>([])
+const selectedMemberIds = ref<number[]>([])
 
 // Questions
 const questions = ref<QuestionDraft[]>([])
@@ -97,14 +98,14 @@ function moveQuestion(index: number, direction: -1 | 1) {
 async function loadForm() {
   loading.value = true
   try {
-    const [roles, groups, tags] = await Promise.all([
-      stationMembers.listAllPermissions(),
+    const [groups, tags, members] = await Promise.all([
       memberGroups.listGroups(),
       userTags.listTags(),
+      stationMembers.listMembers(),
     ])
-    allRoles.value = roles
     allGroups.value = groups
     allTags.value = tags
+    allMembers.value = members
 
     if (!formId.value) { loading.value = false; return }
 
@@ -121,9 +122,10 @@ async function loadForm() {
     startAt.value = form.startAt ? form.startAt.slice(0, 16) : ''
     endAt.value = form.endAt ? form.endAt.slice(0, 16) : ''
 
-    selectedRoleIds.value = restrictions.roleIds
-    selectedGroupIds.value = restrictions.groupIds
-    selectedTagIds.value = restrictions.tagIds
+    selectedUserTypes.value = restrictions.userTypes ?? []
+    selectedGroupIds.value = restrictions.groupIds ?? []
+    selectedTagIds.value = restrictions.tagIds ?? []
+    selectedMemberIds.value = restrictions.memberIds ?? []
 
     questions.value = qs.map(q => ({
       id: `existing-${q.id}`,
@@ -173,9 +175,10 @@ async function save() {
     await forms.setQuestions(id!, questionRequests)
 
     await forms.setRestrictions(id!, {
-      roleIds: selectedRoleIds.value,
+      userTypes: selectedUserTypes.value,
       groupIds: selectedGroupIds.value,
       tagIds: selectedTagIds.value,
+      memberIds: selectedMemberIds.value,
     })
 
     router.push({ name: 'forms-list' })
@@ -231,15 +234,18 @@ onMounted(loadForm)
           <div class="space-y-4">
             <SubHeader>{{ t('forms.restrictions.title') }}</SubHeader>
             <RestrictionPicker
-              :roles="allRoles"
               :groups="allGroups"
               :tags="allTags"
-              :selected-role-ids="selectedRoleIds"
+              :members="allMembers"
+              :selected-user-types="selectedUserTypes"
               :selected-group-ids="selectedGroupIds"
               :selected-tag-ids="selectedTagIds"
-              @update:selected-role-ids="selectedRoleIds = $event"
+              :selected-member-ids="selectedMemberIds"
+              show-members
+              @update:selected-user-types="selectedUserTypes = $event"
               @update:selected-group-ids="selectedGroupIds = $event"
               @update:selected-tag-ids="selectedTagIds = $event"
+              @update:selected-member-ids="selectedMemberIds = $event"
             />
           </div>
         </NeutralContainer>

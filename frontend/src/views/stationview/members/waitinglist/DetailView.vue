@@ -11,8 +11,6 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -47,6 +45,8 @@ const { hasPermission } = useSession()
 
 const canManage = computed(() => hasPermission(StationPermission.WAITLIST_MANAGER))
 const canEdit = computed(() => hasPermission(StationPermission.WAITLIST_EDIT))
+const canAdd = computed(() => hasPermission(StationPermission.WAITLIST_ADD))
+const canReadMembers = computed(() => hasPermission(StationPermission.MEMBER_READ))
 
 const listId = computed(() => Number(route.params.id))
 
@@ -65,14 +65,6 @@ const inviteMaxUses = ref<number | undefined>(undefined)
 const inviteExpiresAt = ref('')
 const creatingInvite = ref(false)
 
-// Entry creation
-const showEntryModal = ref(false)
-const entryFirstname = ref('')
-const entryLastname = ref('')
-const entryParentName = ref('')
-const entryEmail = ref('')
-const entryNotes = ref('')
-const creatingEntry = ref(false)
 
 // Delete list
 const showDeleteModal = ref(false)
@@ -182,34 +174,8 @@ async function copyInviteLink(code: string) {
 }
 
 // Entries
-function openEntryModal() {
-  entryFirstname.value = ''
-  entryLastname.value = ''
-  entryParentName.value = ''
-  entryEmail.value = ''
-  entryNotes.value = ''
-  showEntryModal.value = true
-}
-
-async function createEntry() {
-  if (!entryFirstname.value.trim() || !entryEmail.value.trim()) return
-  creatingEntry.value = true
-  error.value = ''
-  try {
-    await waitingList.createEntry(listId.value, {
-      firstname: entryFirstname.value.trim(),
-      lastname: entryLastname.value.trim(),
-      parentName: entryParentName.value.trim(),
-      email: entryEmail.value.trim(),
-      notes: entryNotes.value.trim(),
-    })
-    entries.value = await waitingList.listEntries(listId.value)
-    showEntryModal.value = false
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    creatingEntry.value = false
-  }
+function navigateToCreateEntry() {
+  router.push({ name: 'waiting-list-create-entry', params: { id: listId.value } })
 }
 
 // State transitions
@@ -244,7 +210,7 @@ async function doMoveToJoined(entryId: number) {
   try {
     const result = await waitingList.moveToJoined(listId.value, entryId)
     refreshSidebarCounts()
-    if (result.memberId) {
+    if (result.memberId && hasPermission(StationPermission.MEMBER_EDIT)) {
       router.push({ name: 'members-edit', params: { id: result.memberId } })
     } else {
       entries.value = await waitingList.listEntries(listId.value)
@@ -293,6 +259,10 @@ async function confirmDeleteEntry() {
 
 function navigateToEntry(entryId: number) {
   router.push({ name: 'waiting-list-entry', params: { id: listId.value, entryId } })
+}
+
+function navigateToMember(memberId: number) {
+  router.push({ name: 'members-detail', params: { id: memberId } })
 }
 
 function navigateToFields() {
@@ -372,13 +342,14 @@ onMounted(loadData)
           :is-mobile="isMobile"
           :show-field-toggle="showFieldToggle"
           :readonly="!canEdit"
+          :can-add="canAdd"
           @invite="doInviteEntry"
           @move-to-testing="doMoveToTesting"
           @navigate-to-entry="navigateToEntry"
           @delete-entry="requestDeleteEntry"
           @toggle-field="toggleFieldVisibility"
           @toggle-field-menu="showFieldToggle = !showFieldToggle"
-          @add-entry="openEntryModal"
+          @add-entry="navigateToCreateEntry"
         />
 
         <TestingSection
@@ -392,7 +363,9 @@ onMounted(loadData)
 
         <FinishedSection
           :entries="finishedEntries"
+          :can-link-member="canReadMembers"
           @navigate-to-entry="navigateToEntry"
+          @navigate-to-member="navigateToMember"
         />
 
         <InvitesSection
@@ -422,39 +395,6 @@ onMounted(loadData)
             <SecondaryButton @click="showInviteModal = false">{{ t('common.cancel') }}</SecondaryButton>
             <PrimaryButton :disabled="creatingInvite" @click="createInvite">
               {{ creatingInvite ? t('common.loading') : t('waitingList.createInvite') }}
-            </PrimaryButton>
-          </div>
-        </div>
-      </Modal>
-
-      <!-- Create entry modal -->
-      <Modal v-model="showEntryModal">
-        <div class="space-y-4">
-          <SectionHeader>{{ t('waitingList.addEntry') }}</SectionHeader>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('waitingList.firstname') }}</FieldLabel>
-            <TextInput v-model="entryFirstname" :placeholder="t('waitingList.firstnamePlaceholder')" />
-          </div>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('waitingList.lastname') }}</FieldLabel>
-            <TextInput v-model="entryLastname" :placeholder="t('waitingList.lastnamePlaceholder')" />
-          </div>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('waitingList.parentName') }}</FieldLabel>
-            <TextInput v-model="entryParentName" :placeholder="t('waitingList.parentNamePlaceholder')" />
-          </div>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('waitingList.email') }}</FieldLabel>
-            <TextInput v-model="entryEmail" :placeholder="t('waitingList.emailPlaceholder')" />
-          </div>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('waitingList.notes') }}</FieldLabel>
-            <TextAreaInput v-model="entryNotes" :placeholder="t('waitingList.notesPlaceholder')" />
-          </div>
-          <div class="flex justify-end gap-2">
-            <SecondaryButton @click="showEntryModal = false">{{ t('common.cancel') }}</SecondaryButton>
-            <PrimaryButton :disabled="creatingEntry || !entryFirstname.trim() || !entryEmail.trim()" @click="createEntry">
-              {{ creatingEntry ? t('common.loading') : t('waitingList.addEntry') }}
             </PrimaryButton>
           </div>
         </div>

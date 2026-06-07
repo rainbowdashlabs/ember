@@ -48,6 +48,12 @@ const eventType = ref<string>(EventTypes.RECURRING)
 const eventDayOfWeek = ref('1')
 const eventStartTime = ref('')
 const eventEndTime = ref('')
+
+watch(eventStartTime, (val) => {
+  if (val && !eventEndTime.value) {
+    eventEndTime.value = val
+  }
+})
 const eventTemplateId = ref('')
 const eventCategoryId = ref('')
 const eventRequiresRegistration = ref(false)
