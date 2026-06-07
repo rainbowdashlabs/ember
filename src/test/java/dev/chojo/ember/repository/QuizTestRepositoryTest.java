@@ -7,7 +7,7 @@ package dev.chojo.ember.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.quiz.entity.QuestionType;
+import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.entity.TestStatus;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -43,7 +43,7 @@ class QuizTestRepositoryTest extends RepositoryTestBase {
                 .createQuestion(
                         catalogId,
                         null,
-                        QuestionType.TRUE_FALSE,
+                        QuizQuestionType.TRUE_FALSE,
                         "Is the sky blue?",
                         "",
                         null,

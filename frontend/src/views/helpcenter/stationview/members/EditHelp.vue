@@ -8,23 +8,33 @@ import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
+import TabBar from '@/components/navigation/TabBar.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
+import ErrorButton from '@/components/button/ErrorButton.vue'
+import SelectInput from '@/components/input/select/SelectInput.vue'
+import PermissionPicker from '@/components/input/PermissionPicker.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import {ref} from 'vue'
-import Th from '@/components/table/Th.vue'
-import Td from '@/components/table/Td.vue'
-import THead from '@/components/table/THead.vue'
-import TRow from '@/components/table/TRow.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const {t} = useI18n()
 
-const dummyFirstName = ref('Max')
-const dummyLastName = ref('Mustermann')
-const dummyEmail = ref('max@example.com')
+const activeTab = ref('profile')
+const tabs = [
+  {key: 'profile', label: t('memberEdit.tabProfile')},
+  {key: 'permissions', label: t('memberEdit.tabPermissions')},
+  {key: 'relations', label: t('memberEdit.tabRelations')},
+  {key: 'notes', label: t('memberEdit.tabNotes')},
+]
+
+const dummyUserType = ref('MEMBER')
+const dummyRoles = [
+  {id: 1, permission: 'ATTENDANCE_MANAGEMENT', label: 'Anwesenheitsverwaltung'},
+  {id: 2, permission: 'INVENTORY_READ', label: 'Inventar lesen'},
+]
+const dummySelected = new Set([1])
 </script>
 
 <template>
@@ -34,99 +44,93 @@ const dummyEmail = ref('max@example.com')
     </HelpSection>
 
     <!-- Dummy: Back button + header -->
-    <SecondaryButton :icon="['fas', 'chevron-left']">
-      {{ t('memberEdit.back') }}
-    </SecondaryButton>
-    <SectionHeader>Max Mustermann</SectionHeader>
+    <HelpSection :title="t('helpCenter.membersEdit.exampleTitle')">
+      <SecondaryButton :icon="['fas', 'chevron-left']">
+        {{ t('memberEdit.back') }}
+      </SecondaryButton>
+      <SectionHeader class="mt-3">Max Mustermann</SectionHeader>
+
+      <!-- Dummy: Tab bar with correct 4 tabs -->
+      <TabBar :model-value="activeTab" :tabs="tabs" class="mt-3"/>
+    </HelpSection>
 
     <HelpSection :title="t('helpCenter.membersEdit.accountTitle')">
       <p>{{ t('helpCenter.membersEdit.accountText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Base fields -->
-    <NeutralContainer class="space-y-4">
-      <SubHeader class="text-sm">{{ t('memberEdit.baseFields') }}</SubHeader>
-      <div class="grid gap-4 sm:grid-cols-3">
-        <div class="space-y-1">
-          <FieldLabel hint>{{ t('memberEdit.firstName') }}</FieldLabel>
-          <TextInput v-model="dummyFirstName"/>
-        </div>
-        <div class="space-y-1">
-          <FieldLabel hint>{{ t('memberEdit.lastName') }}</FieldLabel>
-          <TextInput v-model="dummyLastName"/>
-        </div>
-        <div class="space-y-1">
-          <FieldLabel hint>{{ t('memberEdit.email') }}</FieldLabel>
-          <TextInput v-model="dummyEmail"/>
-        </div>
-      </div>
-    </NeutralContainer>
-
-    <HelpSection :title="t('helpCenter.membersEdit.rolesTitle')">
-      <p>{{ t('helpCenter.membersEdit.rolesText') }}</p>
-    </HelpSection>
-
-    <!-- Dummy: Role cards -->
-    <NeutralContainer class="space-y-3">
-      <SubHeader class="text-sm">{{ t('memberEdit.roles') }}</SubHeader>
-      <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        <div class="flex items-center justify-between rounded-lg px-3 py-2.5 border border-primary bg-primary/10 ring-2 ring-primary/30">
-          <span class="text-sm font-medium">{{ t('membersCreate.roleMember') }}</span>
-          <font-awesome-icon :icon="['fas', 'check']" class="text-primary"/>
-        </div>
-        <div class="flex items-center justify-between rounded-lg px-3 py-2.5 border border-primary bg-primary/10 ring-2 ring-primary/30">
-          <span class="text-sm font-medium">{{ t('memberEdit.roleLogin') }}</span>
-          <font-awesome-icon :icon="['fas', 'check']" class="text-primary"/>
-        </div>
-        <div class="flex items-center justify-between rounded-lg px-3 py-2.5 border border-bg-light-accent dark:border-bg-dark-accent hover:border-primary">
-          <span class="text-sm font-medium">{{ t('membersCreate.roleTeam') }}</span>
-        </div>
-        <div class="flex items-center justify-between rounded-lg px-3 py-2.5 border border-bg-light-accent dark:border-bg-dark-accent opacity-40">
-          <div>
-            <span class="text-sm font-medium">{{ t('membersCreate.roleMemberManager') }}</span>
-            <p class="text-xs text-(--text-muted)">{{ t('memberEdit.roleConflicting') }}</p>
-          </div>
-        </div>
-      </div>
-    </NeutralContainer>
-
     <HelpSection :title="t('helpCenter.membersEdit.fieldsTitle')">
       <p>{{ t('helpCenter.membersEdit.fieldsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Profile fields table -->
-    <NeutralContainer class="space-y-4">
-      <SubHeader class="text-sm">{{ t('memberEdit.fields') }}</SubHeader>
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead>
-            <THead>
-              <Th class="text-(--text-muted)">{{ t('memberEdit.fieldName') }}</Th>
-              <Th class="text-(--text-muted)">{{ t('memberEdit.fieldValue') }}</Th>
-            </THead>
-          </thead>
-          <tbody>
-            <TRow>
-              <Td class="font-medium whitespace-nowrap">Telefon</Td>
-              <Td>0170 1234567</Td>
-            </TRow>
-            <TRow>
-              <Td class="font-medium whitespace-nowrap">Geburtstag</Td>
-              <Td>2010-03-15</Td>
-            </TRow>
-            <TRow>
-              <Td class="font-medium whitespace-nowrap">Kleidergröße</Td>
-              <Td>M</Td>
-            </TRow>
-          </tbody>
-        </table>
-      </div>
-    </NeutralContainer>
+    <HelpSection :title="t('helpCenter.membersEdit.permissionsTitle')">
+      <p>{{ t('helpCenter.membersEdit.permissionsText') }}</p>
+    </HelpSection>
 
-    <!-- Dummy: Save button -->
-    <div class="flex items-center justify-between">
-      <PrimaryButton>{{ t('memberEdit.save') }}</PrimaryButton>
-    </div>
+    <!-- Dummy: Permissions tab content -->
+    <HelpSection :title="t('helpCenter.membersEdit.permissionsExampleTitle')">
+      <NeutralContainer class="space-y-4">
+        <div class="space-y-2">
+          <SubHeader>{{ t('memberEdit.userType') }}</SubHeader>
+          <SelectInput :model-value="dummyUserType" class="w-full sm:w-64">
+            <option value="TRIAL">{{ t('memberEdit.userTypeTrial') }}</option>
+            <option value="MEMBER">{{ t('memberEdit.userTypeMember') }}</option>
+            <option value="GUARDIAN">{{ t('memberEdit.userTypeGuardian') }}</option>
+            <option value="TEAM">{{ t('memberEdit.userTypeTeam') }}</option>
+            <option value="MANAGER">{{ t('memberEdit.userTypeManager') }}</option>
+          </SelectInput>
+        </div>
+
+        <div class="space-y-2">
+          <SubHeader>{{ t('memberEdit.permissions') }}</SubHeader>
+          <PermissionPicker :model-value="dummySelected" :all-roles="dummyRoles"/>
+        </div>
+
+        <div class="space-y-2">
+          <SubHeader>{{ t('memberGroups.title') }}</SubHeader>
+          <div class="flex flex-wrap gap-2">
+            <span class="text-xs rounded-full bg-secondary/10 text-secondary px-3 py-1">Anfänger</span>
+            <span class="text-xs rounded-full bg-secondary/10 text-secondary px-3 py-1 opacity-50">Fortgeschrittene</span>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <SubHeader>{{ t('userTags.title') }}</SubHeader>
+          <div class="flex flex-wrap gap-2">
+            <span class="text-xs rounded-full bg-info/10 text-info px-3 py-1">Ersthelfer</span>
+            <span class="text-xs rounded-full bg-info/10 text-info px-3 py-1 opacity-50">Fahrer</span>
+          </div>
+        </div>
+      </NeutralContainer>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.membersEdit.relationsTitle')">
+      <p>{{ t('helpCenter.membersEdit.relationsText') }}</p>
+    </HelpSection>
+
+    <!-- Dummy: Relations tab content -->
+    <HelpSection :title="t('helpCenter.membersEdit.relationsExampleTitle')">
+      <NeutralContainer class="space-y-3">
+        <SubHeader>{{ t('memberEdit.guardians') }}</SubHeader>
+        <div class="rounded-lg px-3 py-2 bg-bg-light-accent/30 dark:bg-bg-dark-accent/30 flex items-center justify-between">
+          <span class="text-sm font-medium">Petra Mustermann</span>
+          <MutedText size="sm">petra@example.com</MutedText>
+        </div>
+        <SecondaryButton :icon="['fas', 'plus']">
+          {{ t('memberEdit.addGuardian') }}
+        </SecondaryButton>
+      </NeutralContainer>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.membersEdit.notesTitle')">
+      <p>{{ t('helpCenter.membersEdit.notesText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.membersEdit.formerTitle')">
+      <p>{{ t('helpCenter.membersEdit.formerText') }}</p>
+      <ErrorButton :icon="['fas', 'user-slash']" class="mt-2">
+        {{ t('memberDetail.markFormer') }}
+      </ErrorButton>
+    </HelpSection>
 
     <HelpTip>{{ t('helpCenter.membersEdit.tip') }}</HelpTip>
   </HelpArticle>

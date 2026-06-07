@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.repository;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
@@ -42,10 +42,10 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
         account2 = accountRepo.create("check2@test.com", "Check", "Checker");
         member1 = stationMemberRepo.create(station.id(), account1.id());
         member2 = stationMemberRepo.create(station.id(), account2.id());
-        // Assign MEMBER role so nextUncheckedMember role filter works
-        stationMemberRepo.findRoleByName(Roles.MEMBER).ifPresent(r -> {
-            stationMemberRepo.addRole(member1.id(), r.id());
-            stationMemberRepo.addRole(member2.id(), r.id());
+        // Assign MEMBER permission so nextUncheckedMember filter works
+        stationMemberRepo.findPermissionByName(StationPermission.USER).ifPresent(r -> {
+            stationMemberRepo.grantPermission(member1.id(), r.id());
+            stationMemberRepo.grantPermission(member2.id(), r.id());
         });
         inventory = inventoryRepo.create(station.id(), "Check Inv", InventoryType.EXTERNAL, false);
         item = inventoryRepo.createItem(inventory.id(), "C-001", "Check Item", null, "{}");

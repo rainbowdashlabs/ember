@@ -20,6 +20,7 @@ const props = defineProps<{
   fieldValues: Map<number, string>
   groupMembers: Map<number, StationMember[]>
   allMembers: StationMember[]
+  readonly?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -27,25 +28,20 @@ const emit = defineEmits<{
   fieldMemberIds: [fieldId: number, ids: string[]]
 }>()
 
-function parseFieldConfig(configStr?: string): { options?: string[]; groupId?: number; autoAttend?: boolean } {
-  if (!configStr) return {}
-  try {
-    return JSON.parse(configStr)
-  } catch {
-    return {}
-  }
+function parseFieldConfig(config?: Record<string, unknown>): { options?: string[]; groupId?: number; autoAttend?: boolean } {
+  return (config ?? {}) as { options?: string[]; groupId?: number; autoAttend?: boolean }
 }
 
 function isMemberField(fieldType: string): boolean {
-  return ['member', 'member_list', 'member_of_group', 'member_list_of_group'].includes(fieldType)
+  return ['MEMBER', 'MEMBER_LIST', 'MEMBER_OF_GROUP', 'MEMBER_LIST_OF_GROUP'].includes(fieldType)
 }
 
 function isListField(fieldType: string): boolean {
-  return ['member_list', 'member_list_of_group'].includes(fieldType)
+  return ['MEMBER_LIST', 'MEMBER_LIST_OF_GROUP'].includes(fieldType)
 }
 
 function isImmediateField(fieldType: string): boolean {
-  return ['boolean', 'date', 'enum', 'member', 'member_list', 'member_of_group', 'member_list_of_group'].includes(fieldType)
+  return ['BOOLEAN', 'DATE', 'ENUM', 'MEMBER', 'MEMBER_LIST', 'MEMBER_OF_GROUP', 'MEMBER_LIST_OF_GROUP'].includes(fieldType)
 }
 
 function getFieldValue(fieldId: number): string {
@@ -83,34 +79,44 @@ function getMemberOptions(field: AttendanceTemplateField): { value: string; labe
     <div class="space-y-3">
       <div v-for="field in templateFields" :key="field.id" class="space-y-1">
         <FieldLabel>{{ field.name }}</FieldLabel>
-        <!-- Member list fields -->
-        <template v-if="isMemberField(field.fieldType ?? '')">
-          <MultiSelectInput
-              v-if="isListField(field.fieldType ?? '')"
-              :model-value="getFieldMemberIds(field.id)"
-              :options="getMemberOptions(field)"
-              :placeholder="t('attendanceSession.addMember')"
-              @update:model-value="emit('fieldMemberIds', field.id, $event)"
-          />
-          <SelectInput
-              v-else
-              :model-value="getFieldValue(field.id)"
-              @update:model-value="emit('fieldMemberIds', field.id, $event ? [$event] : [])"
-          >
-            <option value="">—</option>
-            <option v-for="opt in getMemberOptions(field)" :key="opt.value" :value="opt.value">
-              {{ opt.label }}
-            </option>
-          </SelectInput>
+        <template v-if="!readonly">
+          <!-- Member list fields -->
+          <template v-if="isMemberField(field.fieldType ?? '')">
+            <MultiSelectInput
+                v-if="isListField(field.fieldType ?? '')"
+                :model-value="getFieldMemberIds(field.id)"
+                :options="getMemberOptions(field)"
+                :placeholder="t('attendanceSession.addMember')"
+                @update:model-value="emit('fieldMemberIds', field.id, $event)"
+            />
+            <SelectInput
+                v-else
+                class="w-full"
+                :model-value="getFieldValue(field.id)"
+                @update:model-value="emit('fieldMemberIds', field.id, $event ? [$event] : [])"
+            >
+              <option value="">—</option>
+              <option v-for="opt in getMemberOptions(field)" :key="opt.value" :value="opt.value">
+                {{ opt.label }}
+              </option>
+            </SelectInput>
+          </template>
+          <!-- Regular fields -->
+          <template v-else>
+            <ProfileFieldInput
+                :field-type="field.fieldType ?? 'TEXT'"
+                :model-value="getFieldValue(field.id)"
+                :options="(parseFieldConfig(field.config).options as string[]) ?? []"
+                @update:model-value="emit('fieldUpdate', field.id, $event, isImmediateField(field.fieldType ?? ''))"
+            />
+          </template>
         </template>
-        <!-- Regular fields -->
+        <!-- Read-only display -->
         <template v-else>
-          <ProfileFieldInput
-              :field-type="field.fieldType ?? 'text'"
-              :model-value="getFieldValue(field.id)"
-              :options="(parseFieldConfig(field.config).options as string[]) ?? []"
-              @update:model-value="emit('fieldUpdate', field.id, $event, isImmediateField(field.fieldType ?? ''))"
-          />
+          <span v-if="isMemberField(field.fieldType ?? '')" class="text-sm">
+            {{ getFieldMemberIds(field.id).map(id => getMemberOptions(field).find(o => o.value === id)?.label ?? id).join(', ') || '—' }}
+          </span>
+          <span v-else class="text-sm">{{ getFieldValue(field.id) || '—' }}</span>
         </template>
       </div>
     </div>

@@ -6,9 +6,10 @@
 package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
@@ -17,6 +18,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
 import dev.chojo.ember.feature.inventory.service.InventoryExportService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -47,15 +49,18 @@ public class InventoryRoutes implements Routes {
     private final InventoryService inventoryService;
     private final InventoryCheckService checkService;
     private final InventoryExportService inventoryExportService;
+    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public InventoryRoutes(
             InventoryService inventoryService,
             InventoryCheckService checkService,
-            InventoryExportService inventoryExportService) {
+            InventoryExportService inventoryExportService,
+            MemberIdentityFactory memberIdentityFactory) {
         this.inventoryService = inventoryService;
         this.checkService = checkService;
         this.inventoryExportService = inventoryExportService;
+        this.memberIdentityFactory = memberIdentityFactory;
     }
 
     private static boolean isBlank(String s) {
@@ -74,46 +79,62 @@ public class InventoryRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/my-inventory-items", this::myItems, Roles.USER);
-        routes.get(prefix + "/my-inventory-requirements", this::myRequirements, Roles.USER);
+        routes.get(prefix + "/my-inventory-items", this::myItems, StationPermission.USER);
+        routes.get(prefix + "/my-inventory-requirements", this::myRequirements, StationPermission.USER);
         routes.get(
                 prefix + "/station-members/{memberId}/inventory-items",
                 this::memberItems,
-                Roles.MEMBER_MANAGER,
-                Roles.INVENTORY_MANAGER);
-        routes.get(prefix + "/inventories", this::list, Roles.INVENTORY_MANAGER);
-        routes.post(prefix + "/inventories", this::create, Roles.INVENTORY_MANAGER);
-        routes.get(prefix + "/inventories/all-items", this::listAllItems, Roles.INVENTORY_MANAGER);
-        routes.get(prefix + "/inventories/all-sizes", this::listAllSizes, Roles.LOGIN);
-        routes.get(prefix + "/inventories/{id}", this::get, Roles.INVENTORY_MANAGER);
-        routes.put(prefix + "/inventories/{id}", this::update, Roles.INVENTORY_MANAGER);
-        routes.delete(prefix + "/inventories/{id}", this::delete, Roles.INVENTORY_MANAGER);
+                StationPermission.MEMBER_READ,
+                StationPermission.INVENTORY_READ);
+        // Inventory CRUD — read vs write
+        routes.get(prefix + "/inventories", this::list, StationPermission.INVENTORY_READ);
+        routes.post(prefix + "/inventories", this::create, StationPermission.INVENTORY_CREATE);
+        routes.get(prefix + "/inventories/all-items", this::listAllItems, StationPermission.INVENTORY_READ);
+        routes.get(prefix + "/inventories/all-sizes", this::listAllSizes, StationPermission.LOGIN);
+        routes.get(prefix + "/inventories/summary", this::listSummaries, StationPermission.INVENTORY_READ);
+        routes.get(prefix + "/inventories/{id}", this::get, StationPermission.INVENTORY_READ);
+        routes.put(prefix + "/inventories/{id}", this::update, StationPermission.INVENTORY_EDIT);
+        routes.delete(prefix + "/inventories/{id}", this::delete, StationPermission.INVENTORY_MANAGER);
 
-        routes.get(prefix + "/inventories/{inventoryId}/sizes", this::listSizes, Roles.LOGIN);
-        routes.post(prefix + "/inventories/{inventoryId}/sizes", this::createSize, Roles.INVENTORY_MANAGER);
-        routes.put(prefix + "/inventories/{inventoryId}/sizes/{sizeId}", this::updateSize, Roles.INVENTORY_MANAGER);
-        routes.delete(prefix + "/inventories/{inventoryId}/sizes/{sizeId}", this::deleteSize, Roles.INVENTORY_MANAGER);
+        routes.get(prefix + "/inventories/{inventoryId}/sizes", this::listSizes, StationPermission.LOGIN);
+        routes.post(prefix + "/inventories/{inventoryId}/sizes", this::createSize, StationPermission.INVENTORY_CREATE);
+        routes.put(
+                prefix + "/inventories/{inventoryId}/sizes/{sizeId}",
+                this::updateSize,
+                StationPermission.INVENTORY_EDIT);
+        routes.delete(
+                prefix + "/inventories/{inventoryId}/sizes/{sizeId}",
+                this::deleteSize,
+                StationPermission.INVENTORY_EDIT);
+        // Items — read needs INVENTORY_READ, edit needs INVENTORY_EDIT, create needs INVENTORY_CREATE
+        routes.get(prefix + "/inventories/{inventoryId}/items", this::listItems, StationPermission.INVENTORY_READ);
+        routes.post(
+                prefix + "/inventories/{inventoryId}/items",
+                this::createItem,
+                StationPermission.INVENTORY_CREATE_EXTERNAL,
+                StationPermission.INVENTORY_CREATE_INTERNAL);
+        routes.get(
+                prefix + "/inventory-items/by-internal-id", this::findByInternalId, StationPermission.INVENTORY_READ);
+        routes.get(prefix + "/inventory-items/{id}", this::getItem, StationPermission.INVENTORY_READ);
+        routes.put(prefix + "/inventory-items/{id}", this::updateItem, StationPermission.INVENTORY_EDIT);
+        routes.put(prefix + "/inventory-items/{id}/assign", this::assignItem, StationPermission.INVENTORY_EDIT);
+        routes.get(prefix + "/inventory-items/{id}/history", this::getHistory, StationPermission.INVENTORY_READ);
+        routes.put(prefix + "/inventory-items/{id}/lost", this::markLost, StationPermission.INVENTORY_EDIT);
+        routes.delete(prefix + "/inventory-items/{id}/lost", this::markFound, StationPermission.INVENTORY_EDIT);
+        routes.delete(prefix + "/inventory-items/{id}", this::deleteItem, StationPermission.INVENTORY_EDIT);
 
-        routes.get(prefix + "/inventories/{inventoryId}/items", this::listItems, Roles.INVENTORY_MANAGER);
-        routes.post(prefix + "/inventories/{inventoryId}/items", this::createItem, Roles.INVENTORY_MANAGER);
-        routes.get(prefix + "/inventory-items/{id}", this::getItem, Roles.INVENTORY_MANAGER);
-        routes.put(prefix + "/inventory-items/{id}", this::updateItem, Roles.INVENTORY_MANAGER);
-        routes.put(prefix + "/inventory-items/{id}/assign", this::assignItem, Roles.INVENTORY_MANAGER);
-        routes.get(prefix + "/inventory-items/{id}/history", this::getHistory, Roles.INVENTORY_MANAGER);
-        routes.put(prefix + "/inventory-items/{id}/lost", this::markLost, Roles.INVENTORY_MANAGER);
-        routes.delete(prefix + "/inventory-items/{id}/lost", this::markFound, Roles.INVENTORY_MANAGER);
-        routes.delete(prefix + "/inventory-items/{id}", this::deleteItem, Roles.INVENTORY_MANAGER);
-
-        routes.get(prefix + "/inventory-requirements", this::listAllRequirements, Roles.INVENTORY_MANAGER);
-        routes.post(prefix + "/inventory-requirements", this::createRequirement, Roles.INVENTORY_MANAGER);
-        routes.put(prefix + "/inventory-requirements/{id}", this::updateRequirement, Roles.INVENTORY_MANAGER);
+        routes.get(prefix + "/inventory-requirements", this::listAllRequirements, StationPermission.INVENTORY_READ);
+        routes.post(prefix + "/inventory-requirements", this::createRequirement, StationPermission.INVENTORY_MANAGER);
+        routes.put(
+                prefix + "/inventory-requirements/{id}", this::updateRequirement, StationPermission.INVENTORY_MANAGER);
         routes.patch(
                 prefix + "/inventory-requirements/{id}/position",
                 this::updateRequirementPosition,
-                Roles.INVENTORY_MANAGER);
-        routes.delete(prefix + "/inventory-requirements/{id}", this::deleteRequirement, Roles.INVENTORY_MANAGER);
+                StationPermission.INVENTORY_MANAGER);
+        routes.delete(
+                prefix + "/inventory-requirements/{id}", this::deleteRequirement, StationPermission.INVENTORY_MANAGER);
 
-        routes.post(prefix + "/inventories/members/export", this::exportMembers, Roles.INVENTORY_MANAGER);
+        routes.post(prefix + "/inventories/members/export", this::exportMembers, StationPermission.INVENTORY_READ);
     }
 
     @OpenApi(
@@ -212,6 +233,11 @@ public class InventoryRoutes implements Routes {
             summary = "List inventories for the current station",
             tags = {"Inventory"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Inventory[].class)))
+    private void listSummaries(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        ctx.json(inventoryService.findSummaries(session.stationId()));
+    }
+
     private void list(Context ctx) {
         UserSession session = UserSession.from(ctx);
         ctx.json(inventoryService.findByStation(session.stationId()));
@@ -467,6 +493,13 @@ public class InventoryRoutes implements Routes {
         if (request.itemSource() != null) {
             source = InventoryItem.ItemSource.valueOf(request.itemSource());
         }
+        StationPermission required = source == InventoryItem.ItemSource.EXTERNAL
+                ? StationPermission.INVENTORY_CREATE_EXTERNAL
+                : StationPermission.INVENTORY_CREATE_INTERNAL;
+        if (!session.hasPermission(required)) {
+            throw new ForbiddenResponse("Missing permission " + required.name() + " to create "
+                    + source.name().toLowerCase() + " items");
+        }
         ctx.status(HttpStatus.CREATED)
                 .json(inventoryService.createItem(
                         inventoryId,
@@ -475,6 +508,27 @@ public class InventoryRoutes implements Routes {
                         request.sizeId(),
                         request.metadata(),
                         source));
+    }
+
+    @OpenApi(
+            path = "/api/v1/inventory-items/by-internal-id",
+            methods = HttpMethod.GET,
+            summary = "Find an inventory item by internal ID",
+            tags = {"Inventory"},
+            queryParams = @OpenApiParam(name = "internalId", type = String.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventoryItem.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void findByInternalId(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        String internalId = ctx.queryParam("internalId");
+        if (internalId == null || internalId.isBlank()) {
+            throw new BadRequestResponse("internalId is required");
+        }
+        inventoryService.findByInternalId(session.stationId(), internalId).ifPresentOrElse(ctx::json, () -> {
+            throw new NotFoundResponse();
+        });
     }
 
     @OpenApi(
@@ -543,8 +597,27 @@ public class InventoryRoutes implements Routes {
 
     private void getHistory(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        ctx.json(inventoryService.findHistory(id));
+        var session = UserSession.from(ctx);
+        ctx.json(inventoryService.findHistory(id).stream()
+                .map(h -> new HistoryResponse(
+                        h.id(),
+                        h.itemId(),
+                        h.memberId(),
+                        h.memberName(),
+                        h.memberId() != null ? memberIdentityFactory.local(session.stationId(), h.memberId()) : null,
+                        h.givenOut(),
+                        h.returned()))
+                .toList());
     }
+
+    public record HistoryResponse(
+            int id,
+            int itemId,
+            Integer memberId,
+            String memberName,
+            MemberIdentity memberIdentity,
+            Instant givenOut,
+            Instant returned) {}
 
     @OpenApi(
             path = "/api/v1/inventory-items/{id}/lost",
@@ -631,14 +704,14 @@ public class InventoryRoutes implements Routes {
         if (request.inventoryId() == 0) {
             throw new BadRequestResponse("inventoryId is required");
         }
-        int roleId = request.roleId() != null ? request.roleId() : 0;
+        String userType = request.userType();
         int groupId = request.groupId() != null ? request.groupId() : 0;
-        if (roleId == 0 && groupId == 0) {
-            throw new BadRequestResponse("roleId or groupId is required");
+        if ((userType == null || userType.isBlank()) && groupId == 0) {
+            throw new BadRequestResponse("userType or groupId is required");
         }
         ctx.status(HttpStatus.CREATED)
                 .json(inventoryService.createRequirement(
-                        request.inventoryId(), roleId, groupId, request.quantity() > 0 ? request.quantity() : 1));
+                        request.inventoryId(), userType, groupId, request.quantity() > 0 ? request.quantity() : 1));
     }
 
     @OpenApi(
@@ -768,7 +841,7 @@ public class InventoryRoutes implements Routes {
 
     public record AssignRequest(Integer memberId, String memberName) {}
 
-    public record RequirementRequest(int inventoryId, Integer roleId, Integer groupId, int quantity) {}
+    public record RequirementRequest(int inventoryId, String userType, Integer groupId, int quantity) {}
 
     public record UpdateRequirementRequest(int quantity) {}
 

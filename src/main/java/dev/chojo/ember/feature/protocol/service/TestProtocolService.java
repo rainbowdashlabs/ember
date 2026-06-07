@@ -5,6 +5,13 @@
  */
 package dev.chojo.ember.feature.protocol.service;
 
+import dev.chojo.ember.feature.federation.entity.CapabilityType;
+import dev.chojo.ember.feature.federation.entity.ContentType;
+import dev.chojo.ember.feature.federation.entity.Direction;
+import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationHttpClient;
+import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.protocol.entity.TestProtocol;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolItem;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRun;
@@ -12,23 +19,45 @@ import dev.chojo.ember.feature.protocol.entity.TestProtocolRunCheck;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRunMember;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolSection;
 import dev.chojo.ember.feature.protocol.repository.TestProtocolRepository;
+import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Singleton
 public class TestProtocolService {
+    private static final Logger log = LoggerFactory.getLogger(TestProtocolService.class);
 
     private final TestProtocolRepository repository;
+    private final FederationService federationService;
+    private final FederationRepository federationRepository;
+    private final FederationHttpClient federationHttpClient;
+    private final StationRepository stationRepository;
 
     @Inject
-    public TestProtocolService(TestProtocolRepository repository) {
+    public TestProtocolService(
+            TestProtocolRepository repository,
+            FederationService federationService,
+            FederationRepository federationRepository,
+            FederationHttpClient federationHttpClient,
+            StationRepository stationRepository) {
         this.repository = repository;
+        this.federationService = federationService;
+        this.federationRepository = federationRepository;
+        this.federationHttpClient = federationHttpClient;
+        this.stationRepository = stationRepository;
     }
 
     // -- Protocols --
@@ -232,4 +261,181 @@ public class TestProtocolService {
 
         return repository.completeMember(runMemberId, totalScore);
     }
+
+    // -- Federated protocols --
+
+    public List<SharedProtocolItem> browseSharedProtocols(int stationId) {
+        var futures = new ArrayList<CompletableFuture<List<SharedProtocolItem>>>();
+        for (var partner : federationService.findPartners(stationId)) {
+            if (partner.status() != FederationPartner.FederationStatus.ACTIVE) continue;
+            if (!federationService.hasCapability(partner.id(), CapabilityType.PROTOCOL_SHARE, Direction.IMPORT))
+                continue;
+            int remoteStationId = resolvePartnerStationId(partner);
+
+            futures.add(CompletableFuture.supplyAsync(() -> {
+                var items = new ArrayList<SharedProtocolItem>();
+                if (partner.isRemote()) {
+                    browseSharedProtocolsViaHttp(stationId, partner, remoteStationId, items);
+                } else {
+                    browseSharedProtocolsDirect(remoteStationId, partner, items);
+                }
+                return items;
+            }));
+        }
+        return collectResults(futures);
+    }
+
+    private void browseSharedProtocolsDirect(
+            int remoteStationId, FederationPartner partner, List<SharedProtocolItem> result) {
+        var shares = federationRepository.findProtocolShares(remoteStationId);
+        for (var share : shares) {
+            if (share.protocolId() != null) {
+                findProtocol(share.protocolId()).ifPresent(proto -> {
+                    result.add(new SharedProtocolItem(
+                            proto.id(), proto.name(), proto.description(), remoteStationId, partner.id()));
+                    federationRepository.upsertMetadataCache(
+                            partner.id(), ContentType.PROTOCOL, proto.id(), proto.name(), proto.description());
+                });
+            }
+        }
+    }
+
+    private void browseSharedProtocolsViaHttp(
+            int localStationId, FederationPartner partner, int remoteStationId, List<SharedProtocolItem> result) {
+        var protocols = fetchSharedProtocols(partner.remoteHost(), localStationId, getPrivateKey(localStationId));
+        for (var remoteProto : protocols) {
+            result.add(new SharedProtocolItem(
+                    remoteProto.id(), remoteProto.name(), remoteProto.description(), remoteStationId, partner.id()));
+            federationRepository.upsertMetadataCache(
+                    partner.id(),
+                    ContentType.PROTOCOL,
+                    remoteProto.id(),
+                    remoteProto.name(),
+                    remoteProto.description());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getFederatedProtocol(int localStationId, UUID partnerStationUid, int protocolId) {
+        var partner = resolveActivePartner(localStationId, partnerStationUid);
+        if (partner.isRemote()) {
+            var result = federationHttpClient.get(
+                    partner.remoteHost(),
+                    "/remote/protocols/" + protocolId,
+                    localStationId,
+                    getPrivateKey(localStationId),
+                    Map.class);
+            if (result == null) throw new IllegalStateException("Failed to fetch protocol from remote partner");
+            return result;
+        }
+        var protocol = findProtocol(protocolId).orElseThrow();
+        int partnerStationId = resolvePartnerStationId(partner);
+        if (protocol.stationId() != partnerStationId) {
+            throw new IllegalArgumentException("Protocol does not belong to this partner");
+        }
+        var sections = findSections(protocolId);
+        var items = findAllItemsByProtocol(protocolId);
+        return Map.of("protocol", protocol, "sections", sections, "items", items);
+    }
+
+    public TestProtocol copyProtocol(int protocolId, int targetStationId) {
+        var source = findProtocol(protocolId).orElseThrow();
+        var newProto = createProtocol(targetStationId, source.name(), source.description(), source.passThreshold());
+
+        var sections = findSections(source.id());
+        var sectionMap = new HashMap<Integer, Integer>();
+
+        for (var sec : sections) {
+            if (sec.parentId() != null) continue;
+            var newSec = createSection(
+                    newProto.id(),
+                    null,
+                    sec.name(),
+                    sec.description(),
+                    sec.maxPoints(),
+                    sec.passThreshold(),
+                    sec.position());
+            sectionMap.put(sec.id(), newSec.id());
+        }
+
+        for (var sec : sections) {
+            if (sec.parentId() == null) continue;
+            Integer newParentId = sectionMap.get(sec.parentId());
+            var newSec = createSection(
+                    newProto.id(),
+                    newParentId,
+                    sec.name(),
+                    sec.description(),
+                    sec.maxPoints(),
+                    sec.passThreshold(),
+                    sec.position());
+            sectionMap.put(sec.id(), newSec.id());
+        }
+
+        var allItems = findAllItemsByProtocol(source.id());
+        for (var item : allItems) {
+            Integer newSectionId = sectionMap.get(item.sectionId());
+            if (newSectionId != null) {
+                createItem(newSectionId, item.label(), item.description(), item.points(), item.position());
+            }
+        }
+
+        return newProto;
+    }
+
+    // -- Federation helpers --
+
+    private <T> List<T> collectResults(List<CompletableFuture<List<T>>> futures) {
+        var allFuture = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
+        try {
+            allFuture.join();
+        } catch (Exception e) {
+            log.error("Error during parallel federation fetch", e);
+        }
+        var result = new ArrayList<T>();
+        for (var future : futures) {
+            try {
+                result.addAll(future.get());
+            } catch (Exception e) {
+                log.error("Error collecting federation results", e);
+            }
+        }
+        return result;
+    }
+
+    private FederationPartner resolveActivePartner(int localStationId, UUID partnerStationUid) {
+        var partner = federationRepository
+                .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
+        if (partner.status() != FederationPartner.FederationStatus.ACTIVE) {
+            throw new IllegalArgumentException("Partner is not active");
+        }
+        return partner;
+    }
+
+    private int resolvePartnerStationId(FederationPartner partner) {
+        return stationRepository
+                .findByUid(partner.partnerStationId())
+                .map(Station::id)
+                .orElse(0);
+    }
+
+    private String getPrivateKey(int stationId) {
+        return stationRepository
+                .findById(stationId)
+                .map(Station::federationPrivateKey)
+                .orElse(null);
+    }
+
+    public record SharedProtocolItem(int id, String name, String description, int sourceStationId, int partnerId) {}
+
+    // -- Federation HTTP convenience methods --
+
+    public List<RemoteProtocol> fetchSharedProtocols(
+            String remoteHost, int localStationId, String localPrivateKeyBase64) {
+        return federationHttpClient.getList(
+                remoteHost, "/remote/protocols", localStationId, localPrivateKeyBase64, RemoteProtocol.class);
+    }
+
+    public record RemoteProtocol(int id, String name, String description) {}
 }

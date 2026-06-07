@@ -4,9 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { ref, readonly } from 'vue'
-import { THEMES, DarkMode, Feel, FEEL_RADIUS, type ThemeColors, type DarkModeValue, type FeelValue } from '@/theme/themes'
+import { THEMES, DarkMode, Feel, FEEL_RADIUS, type ThemeColors, type ModeColors, type DarkModeValue, type FeelValue } from '@/theme/themes'
+import { contrastTextColor, ensureContrast } from '@/theme/contrast'
 import { getItem, setItem } from '@/api/storage'
 import { userSettings } from '@/api'
+import { usePride } from '@/composables/usePride'
 
 const activeTheme = ref<string>('ember')
 const activeFeel = ref<FeelValue>(Feel.ROUNDED)
@@ -18,24 +20,63 @@ const instanceTheme = ref('ember')
 const instanceFeel = ref<FeelValue>(Feel.ROUNDED)
 const customThemeColors = ref<ThemeColors | null>(null)
 
+function isDarkActive(): boolean {
+    return document.documentElement.classList.contains('dark')
+}
+
+function resolveCurrentThemeColors(): ThemeColors {
+    const key = activeTheme.value
+    if (key === 'custom' && customThemeColors.value) return customThemeColors.value
+    return THEMES[key]?.colors ?? THEMES.ember.colors
+}
+
+function resolveModeColors(themeColors: ThemeColors): ModeColors {
+    return isDarkActive() ? themeColors.dark : themeColors.light
+}
+
 function applyTheme(themeKey: string) {
     const colors =
         themeKey === 'custom' && customThemeColors.value
             ? customThemeColors.value
             : (THEMES[themeKey]?.colors ?? THEMES.ember.colors)
     const root = document.documentElement.style
-    root.setProperty('--color-primary', colors.primary)
-    root.setProperty('--color-primary-accent', colors.primaryAccent)
-    root.setProperty('--color-secondary', colors.secondary)
-    root.setProperty('--color-secondary-accent', colors.secondaryAccent)
-    root.setProperty('--color-info', colors.info)
-    root.setProperty('--color-info-accent', colors.infoAccent)
-    root.setProperty('--color-success', colors.success)
-    root.setProperty('--color-error', colors.error)
     root.setProperty('--color-bg-light', colors.bgLight)
     root.setProperty('--color-bg-light-accent', colors.bgLightAccent)
     root.setProperty('--color-bg-dark', colors.bgDark)
     root.setProperty('--color-bg-dark-accent', colors.bgDarkAccent)
+
+    applyModeColors(colors)
+}
+
+function applyModeColors(themeColors?: ThemeColors) {
+    const colors = themeColors ?? resolveCurrentThemeColors()
+    const mode = resolveModeColors(colors)
+    const root = document.documentElement.style
+
+    root.setProperty('--color-primary', mode.primary)
+    root.setProperty('--color-primary-accent', mode.primaryAccent)
+    root.setProperty('--color-secondary', mode.secondary)
+    root.setProperty('--color-secondary-accent', mode.secondaryAccent)
+    root.setProperty('--color-info', mode.info)
+    root.setProperty('--color-info-accent', mode.infoAccent)
+    root.setProperty('--color-success', mode.success)
+    root.setProperty('--color-error', mode.error)
+
+    root.setProperty('--color-primary-text', contrastTextColor(mode.primary))
+    root.setProperty('--color-primary-accent-text', contrastTextColor(mode.primaryAccent))
+    root.setProperty('--color-secondary-text', contrastTextColor(mode.secondary))
+    root.setProperty('--color-secondary-accent-text', contrastTextColor(mode.secondaryAccent))
+    root.setProperty('--color-info-text', contrastTextColor(mode.info))
+    root.setProperty('--color-info-accent-text', contrastTextColor(mode.infoAccent))
+    root.setProperty('--color-success-text', contrastTextColor(mode.success))
+    root.setProperty('--color-error-text', contrastTextColor(mode.error))
+
+    const pageBg = isDarkActive() ? colors.bgDark : colors.bgLight
+    root.setProperty('--color-primary-badge', ensureContrast(mode.primaryAccent, pageBg))
+    root.setProperty('--color-secondary-badge', ensureContrast(mode.secondaryAccent, pageBg))
+    root.setProperty('--color-info-badge', ensureContrast(mode.infoAccent, pageBg))
+    root.setProperty('--color-success-badge', ensureContrast(mode.success, pageBg))
+    root.setProperty('--color-error-badge', ensureContrast(mode.error, pageBg))
 }
 
 function applyFeel(feel: FeelValue) {
@@ -61,6 +102,7 @@ function applyDarkMode(mode: DarkModeValue) {
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
         html.classList.add(prefersDark ? 'dark' : 'light')
     }
+    applyModeColors()
 }
 
 function initFromLocalStorage() {
@@ -104,6 +146,7 @@ async function fetchPublicTheme() {
         const pub = await getPublicTheme()
         instanceTheme.value = pub.defaultTheme
         instanceFeel.value = (pub.defaultFeel ?? 'ROUNDED') as FeelValue
+        usePride().setForcePrideFlag(pub.forcePrideFlag ?? false)
 
         // Apply instance defaults only if no session/user theme has been set
         const savedTheme = getItem('theme_name')
@@ -140,7 +183,7 @@ function initFromSession(
     allowUserFeel.value = themeInfo.allowUserFeel ?? true
     if (themeInfo.customThemeColors) {
         try {
-            customThemeColors.value = JSON.parse(themeInfo.customThemeColors)
+            customThemeColors.value = JSON.parse(themeInfo.customThemeColors) as ThemeColors
         } catch {
             /* ignore malformed JSON */
         }

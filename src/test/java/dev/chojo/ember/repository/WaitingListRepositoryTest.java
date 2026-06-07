@@ -26,7 +26,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
     @Test
     void createAndFindList() {
-        var list = waitingListRepo.create(stationId, "Test List", "Description", "[age] * 2", 180, null, null, null, 5);
+        var list = waitingListRepo.create(stationId, "Test List", "Description", "[age] * 2", 180, null, null, 5);
         assertNotNull(list);
         assertEquals("Test List", list.name());
         assertEquals("[age] * 2", list.scoringFormula());
@@ -39,16 +39,16 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
     @Test
     void findByStation() {
-        waitingListRepo.create(stationId, "List A", "", null, 180, null, null, null, 5);
-        waitingListRepo.create(stationId, "List B", "", null, 90, null, null, null, 5);
+        waitingListRepo.create(stationId, "List A", "", null, 180, null, null, 5);
+        waitingListRepo.create(stationId, "List B", "", null, 90, null, null, 5);
         var lists = waitingListRepo.findByStation(stationId);
         assertEquals(2, lists.size());
     }
 
     @Test
     void updateList() {
-        var list = waitingListRepo.create(stationId, "Original", "", null, 180, null, null, null, 5);
-        var updated = waitingListRepo.update(list.id(), "Updated", "New desc", "[a] + [b]", 90, null, null, null, 5);
+        var list = waitingListRepo.create(stationId, "Original", "", null, 180, null, null, 5);
+        var updated = waitingListRepo.update(list.id(), "Updated", "New desc", "[a] + [b]", 90, null, null, 5);
         assertTrue(updated.isPresent());
         assertEquals("Updated", updated.get().name());
         assertEquals("[a] + [b]", updated.get().scoringFormula());
@@ -56,14 +56,14 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
     @Test
     void deleteList() {
-        var list = waitingListRepo.create(stationId, "To Delete", "", null, 180, null, null, null, 5);
+        var list = waitingListRepo.create(stationId, "To Delete", "", null, 180, null, null, 5);
         waitingListRepo.delete(list.id());
         assertTrue(waitingListRepo.findById(list.id()).isEmpty());
     }
 
     @Test
     void createAndFindFields() {
-        var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, null, 5);
+        var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5);
         var field = waitingListRepo.createField(list.id(), "Name", "TEXT", WaitingListFieldConfig.parse("{}"), 0, true);
         assertNotNull(field);
         assertEquals("Name", field.name());
@@ -75,7 +75,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
     @Test
     void updateField() {
-        var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, null, 5);
+        var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5);
         var field =
                 waitingListRepo.createField(list.id(), "Name", "TEXT", WaitingListFieldConfig.parse("{}"), 0, false);
         var updated = waitingListRepo.updateField(
@@ -87,7 +87,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
     @Test
     void createAndFindInvite() {
-        var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, null, 5);
+        var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5);
         String code = UUID.randomUUID().toString();
         var invite = waitingListRepo.createInvite(list.id(), code, 1, null);
         assertEquals(code, invite.code());
@@ -100,7 +100,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
     @Test
     void incrementInviteUses() {
-        var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, null, 5);
+        var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5);
         var invite = waitingListRepo.createInvite(list.id(), UUID.randomUUID().toString(), 1, null);
         waitingListRepo.incrementInviteUses(invite.id());
 
@@ -111,7 +111,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
     @Test
     void createAndFindEntry() {
-        var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, null, 5);
+        var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5);
         String token = UUID.randomUUID().toString();
         var entry = waitingListRepo.createEntry(list.id(), "Max", "Müller", "Sabine", "test@test.com", token, "Notes");
         assertNotNull(entry);
@@ -126,7 +126,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
     @Test
     void updateEntryStatus() {
-        var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, null, 5);
+        var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5);
         var entry = waitingListRepo.createEntry(
                 list.id(),
                 "Max",
@@ -143,7 +143,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
     @Test
     void upsertAndFindEntryValues() {
-        var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, null, 5);
+        var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5);
         var field =
                 waitingListRepo.createField(list.id(), "Age", "NUMBER", WaitingListFieldConfig.parse("{}"), 0, true);
         var entry = waitingListRepo.createEntry(
@@ -163,7 +163,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
     @Test
     void countEntriesByList() {
-        var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, null, 5);
+        var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5);
         assertEquals(0, waitingListRepo.countEntriesByList(list.id()));
 
         waitingListRepo.createEntry(
@@ -175,7 +175,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
     @Test
     void cascadeDeleteListRemovesEntries() {
-        var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, null, 5);
+        var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5);
         var field =
                 waitingListRepo.createField(list.id(), "Age", "NUMBER", WaitingListFieldConfig.parse("{}"), 0, false);
         var entry = waitingListRepo.createEntry(
@@ -192,7 +192,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
     @Test
     void updateConfirmedAtClearsReminder() {
-        var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, null, 5);
+        var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5);
         var entry = waitingListRepo.createEntry(
                 list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "");
 
@@ -207,7 +207,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
     @Test
     void deleteField() {
-        var list = waitingListRepo.create(stationId, "DelField List", "", null, 180, null, null, null, 5);
+        var list = waitingListRepo.create(stationId, "DelField List", "", null, 180, null, null, 5);
         var field = waitingListRepo.createField(
                 list.id(), "ToDelete", "TEXT", WaitingListFieldConfig.parse("{}"), 0, false);
         waitingListRepo.deleteField(field.id());
@@ -216,7 +216,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
     @Test
     void deleteInvite() {
-        var list = waitingListRepo.create(stationId, "DelInvite List", "", null, 180, null, null, null, 5);
+        var list = waitingListRepo.create(stationId, "DelInvite List", "", null, 180, null, null, 5);
         var invite = waitingListRepo.createInvite(list.id(), UUID.randomUUID().toString(), 5, null);
         waitingListRepo.deleteInvite(invite.id());
         assertTrue(waitingListRepo.findInviteByCode(invite.code()).isEmpty());
@@ -224,7 +224,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
     @Test
     void deleteEntry() {
-        var list = waitingListRepo.create(stationId, "DelEntry List", "", null, 180, null, null, null, 5);
+        var list = waitingListRepo.create(stationId, "DelEntry List", "", null, 180, null, null, 5);
         var entry = waitingListRepo.createEntry(
                 list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "");
         waitingListRepo.deleteEntry(entry.id());
@@ -233,7 +233,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
     @Test
     void updateEntryStatusWithTimestamp() {
-        var list = waitingListRepo.create(stationId, "StatusTs List", "", null, 180, null, null, null, 5);
+        var list = waitingListRepo.create(stationId, "StatusTs List", "", null, 180, null, null, 5);
         var entry = waitingListRepo.createEntry(
                 list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "");
         waitingListRepo.updateEntryStatusWithTimestamp(entry.id(), WaitingListEntryStatus.WITHDRAWN, "withdrawn_at");
@@ -243,7 +243,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
     @Test
     void updateEntry() {
-        var list = waitingListRepo.create(stationId, "UpdEntry List", "", null, 180, null, null, null, 5);
+        var list = waitingListRepo.create(stationId, "UpdEntry List", "", null, 180, null, null, 5);
         var entry = waitingListRepo.createEntry(
                 list.id(),
                 "Old",
@@ -260,7 +260,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
     @Test
     void linkMember() {
-        var list = waitingListRepo.create(stationId, "Link List", "", null, 180, null, null, null, 5);
+        var list = waitingListRepo.create(stationId, "Link List", "", null, 180, null, null, 5);
         var entry = waitingListRepo.createEntry(
                 list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "");
         // Create a station member to link
@@ -275,7 +275,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
     @Test
     void incrementAttendanceCount() {
-        var list = waitingListRepo.create(stationId, "Attendance List", "", null, 180, null, null, null, 5);
+        var list = waitingListRepo.create(stationId, "Attendance List", "", null, 180, null, null, 5);
         var entry = waitingListRepo.createEntry(
                 list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "");
         waitingListRepo.incrementAttendanceCount(entry.id());
@@ -285,7 +285,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
     @Test
     void findEntriesByStatus() {
-        var list = waitingListRepo.create(stationId, "ByStatus List", "", null, 180, null, null, null, 5);
+        var list = waitingListRepo.create(stationId, "ByStatus List", "", null, 180, null, null, 5);
         waitingListRepo.createEntry(
                 list.id(), "A", "", "", "a@test.com", UUID.randomUUID().toString(), "");
         var waiting = waitingListRepo.findEntriesByStatus(list.id(), WaitingListEntryStatus.WAITING);
@@ -296,14 +296,14 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
     @Test
     void updateVisibleFields() {
-        var list = waitingListRepo.create(stationId, "VisField List", "", null, 180, null, null, null, 5);
+        var list = waitingListRepo.create(stationId, "VisField List", "", null, 180, null, null, 5);
         var updated = waitingListRepo.updateVisibleFields(list.id(), "[\"name\"]");
         assertTrue(updated.isPresent());
     }
 
     @Test
     void updateCreatedAt() {
-        var list = waitingListRepo.create(stationId, "CreatedAt List", "", null, 180, null, null, null, 5);
+        var list = waitingListRepo.create(stationId, "CreatedAt List", "", null, 180, null, null, 5);
         var entry = waitingListRepo.createEntry(
                 list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "");
         var newCreatedAt = Instant.parse("2020-06-15T10:00:00Z");

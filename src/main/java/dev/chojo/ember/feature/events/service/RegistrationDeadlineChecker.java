@@ -5,39 +5,38 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.RegistrationDeadlineExpired;
+import dev.chojo.ember.feature.events.entity.EventBreak;
+import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRepository;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Periodically checks for events whose registration deadline has just passed
- * and still have pending registrations. Notifies event managers.
- */
 @Singleton
 public class RegistrationDeadlineChecker {
     private static final Logger log = LoggerFactory.getLogger(RegistrationDeadlineChecker.class);
 
     private final EventRepository eventRepository;
-    private final StationRepository stationRepository;
+    private final EventService eventService;
     private final DomainEventBus eventBus;
 
     @Inject
     public RegistrationDeadlineChecker(
-            EventRepository eventRepository, StationRepository stationRepository, DomainEventBus eventBus) {
+            EventRepository eventRepository, EventService eventService, DomainEventBus eventBus) {
         this.eventRepository = eventRepository;
-        this.stationRepository = stationRepository;
+        this.eventService = eventService;
         this.eventBus = eventBus;
 
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -48,44 +47,87 @@ public class RegistrationDeadlineChecker {
         scheduler.scheduleWithFixedDelay(this::check, 5, 5, TimeUnit.MINUTES);
     }
 
-    // TODO most of those checks can be done in the database query already.
     private void check() {
         try {
-            var now = Instant.now();
-            var stations = stationRepository.findAll();
-            for (var station : stations) {
-                var events = eventRepository.findByStation(station.id());
-                for (var event : events) {
-                    if (!event.requiresRegistration()) continue;
-                    if (event.registrationDeadline() == null) continue;
-                    if (event.registrationDeadline().isAfter(now)) continue;
-
-                    if (isDeadlineNotified(event.id())) continue;
-
-                    // Deadline has passed — check for pending registrations
-                    var pending = eventRepository.findPendingRegistrations(event.id());
-                    if (!pending.isEmpty()) {
-                        eventRepository.markDeadlineNotified(event.id());
-                        eventBus.publish(new RegistrationDeadlineExpired(
-                                station.id(), event.id(), event.name(), pending.size()));
-                        log.info(
-                                "Registration deadline expired for event '{}' (id={}) with {} pending registrations",
-                                event.name(),
-                                event.id(),
-                                pending.size());
-                    }
-                }
-            }
+            checkOneTimeEvents();
+            checkRecurringEvents();
         } catch (Exception e) {
             log.error("Error checking registration deadlines", e);
         }
     }
 
-    private boolean isDeadlineNotified(int eventId) {
-        return Query.query("SELECT deadline_notified FROM station_event WHERE id = :id;")
-                .single(Call.of().bind("id", eventId))
-                .map(row -> row.getBoolean("deadline_notified"))
-                .first()
-                .orElse(false);
+    private void checkOneTimeEvents() {
+        var expired = eventRepository.findOneTimeEventsWithExpiredDeadline();
+        for (var entry : expired) {
+            eventRepository.markDeadlineNotified(entry.eventId());
+            eventBus.publish(new RegistrationDeadlineExpired(
+                    entry.stationId(), entry.eventId(), entry.name(), entry.pendingCount()));
+            log.info(
+                    "Registration deadline expired for one-time event '{}' (id={}) with {} pending registrations",
+                    entry.name(),
+                    entry.eventId(),
+                    entry.pendingCount());
+        }
+    }
+
+    private void checkRecurringEvents() {
+        var today = LocalDate.now(ZoneOffset.UTC);
+        var events = eventRepository.findRecurringEventsWithCloseDays();
+        var breaks = new HashMap<Integer, List<EventBreak>>();
+
+        for (var event : events) {
+            var stationBreaks = breaks.computeIfAbsent(event.stationId(), eventRepository::findBreaksByStation);
+            var nextDate = findNextOccurrence(event, today, stationBreaks);
+            if (nextDate == null) continue;
+
+            var deadlineDate = nextDate.minusDays(event.registrationCloseDays());
+            if (today.isBefore(deadlineDate)) continue;
+
+            var pending = eventRepository.findPendingRegistrationsForDate(event.id(), nextDate);
+            if (pending.isEmpty()) continue;
+
+            for (EventRegistration reg : pending) {
+                eventService.decline(event.id(), reg.memberId(), nextDate, null);
+            }
+            eventBus.publish(
+                    new RegistrationDeadlineExpired(event.stationId(), event.id(), event.name(), pending.size()));
+            log.info(
+                    "Auto-declined {} pending registrations for recurring event '{}' (id={}) on {}",
+                    pending.size(),
+                    event.name(),
+                    event.id(),
+                    nextDate);
+        }
+    }
+
+    private LocalDate findNextOccurrence(StationEvent event, LocalDate today, List<EventBreak> breaks) {
+        if (event.dayOfWeek() == null) return null;
+        for (int d = 0; d <= 28; d++) {
+            var date = today.plusDays(d);
+            var dateStr = date.toString();
+            boolean inBreak = breaks.stream()
+                    .anyMatch(b -> b.startDate() != null
+                            && b.endDate() != null
+                            && dateStr.compareTo(b.startDate().toString()) >= 0
+                            && dateStr.compareTo(b.endDate().toString()) <= 0);
+            if (inBreak) continue;
+
+            int dow = date.getDayOfWeek().getValue();
+            if (dow != event.dayOfWeek()) continue;
+
+            boolean matches =
+                    switch (event.eventType()) {
+                        case RECURRING -> true;
+                        case MONTHLY_FIRST -> date.getDayOfMonth() <= 7;
+                        case QUARTERLY -> date.getDayOfMonth() <= 7 && (date.getMonthValue() - 1) % 3 == 0;
+                        case YEARLY ->
+                            event.startTime() != null
+                                    && event.startTime().atZone(ZoneOffset.UTC).getMonthValue() == date.getMonthValue()
+                                    && event.startTime().atZone(ZoneOffset.UTC).getDayOfMonth() == date.getDayOfMonth();
+                        default -> false;
+                    };
+            if (matches) return date;
+        }
+        return null;
     }
 }

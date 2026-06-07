@@ -5,29 +5,41 @@
  */
 package dev.chojo.ember.feature.knowledgebase.route;
 
+import dev.chojo.ember.api.FederationSession;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.CommentCreated;
+import dev.chojo.ember.event.events.CommentDeleted;
+import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.federation.entity.CapabilityType;
-import dev.chojo.ember.feature.federation.entity.Direction;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.entity.FederationShare;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
-import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessRestriction;
+import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
+import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
-import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.PandocConverter;
@@ -47,8 +59,12 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -58,6 +74,8 @@ public class KnowledgeBaseRoutes implements Routes {
     private static final long MAX_UPLOAD_SIZE = 50 * 1024 * 1024; // 50 MB
 
     private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of("image/png", "image/jpeg", "image/webp");
+    private static final Pattern MENTION_PATTERN_LEGACY = Pattern.compile("@\\[(\\d+):([^\\]]+)]");
+    private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[([^/]+)/([^:]+):([^\\]]+)]");
 
     private final KnowledgeBaseService service;
     private final StationMemberRepository stationMemberRepository;
@@ -65,9 +83,15 @@ public class KnowledgeBaseRoutes implements Routes {
     private final MemberGroupRepository memberGroupRepository;
     private final UserTagRepository userTagRepository;
     private final ImageService imageService;
-    private final FederationService federationService;
-    private final FederationHttpClient federationHttpClient;
+    private final FederationRepository federationRepository;
     private final StationRepository stationRepository;
+    private final KbCommentRepository kbCommentRepository;
+    private final EventFederationRepository eventFederationRepository;
+    private final FederationHttpClient federationHttpClient;
+    private final DomainEventBus eventBus;
+    private final MemberNameResolver memberNameResolver;
+    private final MemberIdentityFactory memberIdentityFactory;
+    private final StationMemberService stationMemberService;
 
     @Inject
     public KnowledgeBaseRoutes(
@@ -77,18 +101,30 @@ public class KnowledgeBaseRoutes implements Routes {
             MemberGroupRepository memberGroupRepository,
             UserTagRepository userTagRepository,
             ImageService imageService,
-            FederationService federationService,
+            FederationRepository federationRepository,
+            StationRepository stationRepository,
+            KbCommentRepository kbCommentRepository,
+            EventFederationRepository eventFederationRepository,
             FederationHttpClient federationHttpClient,
-            StationRepository stationRepository) {
+            DomainEventBus eventBus,
+            MemberNameResolver memberNameResolver,
+            MemberIdentityFactory memberIdentityFactory,
+            StationMemberService stationMemberService) {
         this.service = service;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.userTagRepository = userTagRepository;
         this.imageService = imageService;
-        this.federationService = federationService;
-        this.federationHttpClient = federationHttpClient;
+        this.federationRepository = federationRepository;
         this.stationRepository = stationRepository;
+        this.kbCommentRepository = kbCommentRepository;
+        this.eventFederationRepository = eventFederationRepository;
+        this.federationHttpClient = federationHttpClient;
+        this.eventBus = eventBus;
+        this.memberNameResolver = memberNameResolver;
+        this.memberIdentityFactory = memberIdentityFactory;
+        this.stationMemberService = stationMemberService;
     }
 
     private String resolveFolderPath(Integer folderId) {
@@ -125,66 +161,146 @@ public class KnowledgeBaseRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Folders
-        routes.get(prefix + "/kb/folders", this::listFolders, Roles.USER);
-        routes.post(prefix + "/kb/folders", this::createFolder, Roles.KNOWLEDGE_MANAGER);
-        routes.get(prefix + "/kb/folders/{id}", this::getFolder, Roles.USER);
-        routes.put(prefix + "/kb/folders/{id}", this::updateFolder, Roles.KNOWLEDGE_MANAGER);
-        routes.delete(prefix + "/kb/folders/{id}", this::deleteFolder, Roles.KNOWLEDGE_MANAGER);
+        routes.get(prefix + "/kb/folders", this::listFolders, StationPermission.USER);
+        routes.post(prefix + "/kb/folders", this::createFolder, StationPermission.KNOWLEDGE_EDIT);
+        routes.get(prefix + "/kb/folders/{id}", this::getFolder, StationPermission.USER);
+        routes.put(prefix + "/kb/folders/{id}", this::updateFolder, StationPermission.KNOWLEDGE_EDIT);
+        routes.delete(prefix + "/kb/folders/{id}", this::deleteFolder, StationPermission.KNOWLEDGE_EDIT);
 
         // Files
-        routes.get(prefix + "/kb/files", this::listFiles, Roles.USER);
-        routes.get(prefix + "/kb/files/{id}", this::getFile, Roles.USER);
-        routes.put(prefix + "/kb/files/{id}", this::updateFile, Roles.KNOWLEDGE_MANAGER);
-        routes.delete(prefix + "/kb/files/{id}", this::deleteFile, Roles.KNOWLEDGE_MANAGER);
+        routes.get(prefix + "/kb/files", this::listFiles, StationPermission.USER);
+        routes.get(prefix + "/kb/files/{id}", this::getFile, StationPermission.USER);
+        routes.put(prefix + "/kb/files/{id}", this::updateFile, StationPermission.KNOWLEDGE_EDIT);
+        routes.delete(prefix + "/kb/files/{id}", this::deleteFile, StationPermission.KNOWLEDGE_EDIT);
 
         // File creation
-        routes.post(prefix + "/kb/files/markdown", this::createMarkdownFile, Roles.KNOWLEDGE_MANAGER);
-        routes.post(prefix + "/kb/files/youtube", this::createYoutubeFile, Roles.KNOWLEDGE_MANAGER);
-        routes.post(prefix + "/kb/files/upload", this::uploadFile, Roles.KNOWLEDGE_MANAGER);
-        routes.post(prefix + "/kb/files/import-document", this::importDocument, Roles.KNOWLEDGE_MANAGER);
-        routes.post(prefix + "/kb/files/link", this::createLinkFile, Roles.KNOWLEDGE_MANAGER);
+        routes.post(prefix + "/kb/files/markdown", this::createMarkdownFile, StationPermission.KNOWLEDGE_EDIT);
+        routes.post(prefix + "/kb/files/youtube", this::createYoutubeFile, StationPermission.KNOWLEDGE_EDIT);
+        routes.post(prefix + "/kb/files/upload", this::uploadFile, StationPermission.KNOWLEDGE_EDIT);
+        routes.post(prefix + "/kb/files/import-document", this::importDocument, StationPermission.KNOWLEDGE_EDIT);
+        routes.post(prefix + "/kb/files/link", this::createLinkFile, StationPermission.KNOWLEDGE_EDIT);
 
         // File content
-        routes.get(prefix + "/kb/files/{id}/content", this::getFileContent, Roles.USER);
-        routes.get(prefix + "/kb/files/{id}/html", this::getMarkdownHtml, Roles.USER);
-        routes.put(prefix + "/kb/files/{id}/content", this::updateMarkdownContent, Roles.KNOWLEDGE_MANAGER);
+        routes.get(prefix + "/kb/files/{id}/content", this::getFileContent, StationPermission.USER);
+        routes.get(prefix + "/kb/files/{id}/html", this::getMarkdownHtml, StationPermission.USER);
+        routes.put(prefix + "/kb/files/{id}/content", this::updateMarkdownContent, StationPermission.KNOWLEDGE_EDIT);
 
         // Versions (markdown only)
-        routes.get(prefix + "/kb/files/{id}/versions", this::listVersions, Roles.KNOWLEDGE_MANAGER);
-        routes.get(prefix + "/kb/files/{id}/versions/{version}", this::getVersion, Roles.KNOWLEDGE_MANAGER);
+        routes.get(prefix + "/kb/files/{id}/versions", this::listVersions, StationPermission.USER);
+        routes.get(prefix + "/kb/files/{id}/versions/{version}", this::getVersion, StationPermission.USER);
         routes.post(
-                prefix + "/kb/files/{id}/versions/{version}/revert", this::revertToVersion, Roles.KNOWLEDGE_MANAGER);
+                prefix + "/kb/files/{id}/versions/{version}/revert",
+                this::revertToVersion,
+                StationPermission.KNOWLEDGE_EDIT);
 
         // Related files
-        routes.get(prefix + "/kb/files/{id}/related", this::getRelatedFiles, Roles.USER);
-        routes.put(prefix + "/kb/files/{id}/related", this::setRelatedFiles, Roles.KNOWLEDGE_MANAGER);
+        routes.get(prefix + "/kb/files/{id}/related", this::getRelatedFiles, StationPermission.USER);
+        routes.put(prefix + "/kb/files/{id}/related", this::setRelatedFiles, StationPermission.KNOWLEDGE_EDIT);
 
         // Search
-        routes.get(prefix + "/kb/search", this::search, Roles.USER);
+        routes.get(prefix + "/kb/search", this::search, StationPermission.USER);
 
         // Browse (combined folders + files for a given parent)
-        routes.get(prefix + "/kb/browse", this::browse, Roles.USER);
+        routes.get(prefix + "/kb/browse", this::browse, StationPermission.USER);
 
         // Access restrictions
-        routes.get(prefix + "/kb/folders/{id}/restrictions", this::getFolderRestrictions, Roles.KNOWLEDGE_MANAGER);
-        routes.put(prefix + "/kb/folders/{id}/restrictions", this::setFolderRestrictions, Roles.KNOWLEDGE_MANAGER);
-        routes.get(prefix + "/kb/files/{id}/restrictions", this::getFileRestrictions, Roles.KNOWLEDGE_MANAGER);
-        routes.put(prefix + "/kb/files/{id}/restrictions", this::setFileRestrictions, Roles.KNOWLEDGE_MANAGER);
+        routes.get(
+                prefix + "/kb/folders/{id}/restrictions",
+                this::getFolderRestrictions,
+                StationPermission.KNOWLEDGE_FEDERATE);
+        routes.put(
+                prefix + "/kb/folders/{id}/restrictions",
+                this::setFolderRestrictions,
+                StationPermission.KNOWLEDGE_FEDERATE);
+        routes.get(
+                prefix + "/kb/files/{id}/restrictions",
+                this::getFileRestrictions,
+                StationPermission.KNOWLEDGE_FEDERATE);
+        routes.put(
+                prefix + "/kb/files/{id}/restrictions",
+                this::setFileRestrictions,
+                StationPermission.KNOWLEDGE_FEDERATE);
+
+        // Public visibility overrides
+        routes.get(
+                prefix + "/kb/files/{id}/public-visibility",
+                this::getFilePublicVisibility,
+                StationPermission.KNOWLEDGE_EDIT);
+        routes.put(
+                prefix + "/kb/files/{id}/public-visibility",
+                this::setFilePublicVisibility,
+                StationPermission.KNOWLEDGE_EDIT);
+        routes.get(
+                prefix + "/kb/folders/{id}/public-visibility",
+                this::getFolderPublicVisibility,
+                StationPermission.KNOWLEDGE_EDIT);
+        routes.put(
+                prefix + "/kb/folders/{id}/public-visibility",
+                this::setFolderPublicVisibility,
+                StationPermission.KNOWLEDGE_EDIT);
 
         // Folder icons
-        routes.get(prefix + "/kb/folders/{id}/icon", this::getFolderIcon, Roles.USER);
-        routes.post(prefix + "/kb/folders/{id}/icon", this::uploadFolderIcon, Roles.KNOWLEDGE_MANAGER);
+        routes.get(prefix + "/kb/folders/{id}/icon", this::getFolderIcon, StationPermission.USER);
+        routes.post(prefix + "/kb/folders/{id}/icon", this::uploadFolderIcon, StationPermission.KNOWLEDGE_EDIT);
 
         // KB Images (for markdown embedding)
-        routes.post(prefix + "/kb/files/{id}/images", this::uploadKbImage, Roles.KNOWLEDGE_MANAGER);
-        routes.get(prefix + "/kb/images/{imageId}", this::getKbImage, Roles.USER);
+        routes.post(prefix + "/kb/files/{id}/images", this::uploadKbImage, StationPermission.KNOWLEDGE_EDIT);
+        routes.get(prefix + "/kb/images/{imageId}", this::getKbImage, StationPermission.USER);
 
         // Tags
-        routes.get(prefix + "/kb/tags", this::listTags, Roles.USER);
-        routes.get(prefix + "/kb/files/{id}/tags", this::getFileTags, Roles.USER);
-        routes.put(prefix + "/kb/files/{id}/tags", this::setFileTags, Roles.KNOWLEDGE_MANAGER);
-        routes.get(prefix + "/kb/folders/{id}/tags", this::getFolderTags, Roles.USER);
-        routes.put(prefix + "/kb/folders/{id}/tags", this::setFolderTags, Roles.KNOWLEDGE_MANAGER);
+        routes.get(prefix + "/kb/tags", this::listTags, StationPermission.USER);
+        routes.get(prefix + "/kb/files/{id}/tags", this::getFileTags, StationPermission.USER);
+        routes.put(prefix + "/kb/files/{id}/tags", this::setFileTags, StationPermission.KNOWLEDGE_EDIT);
+        routes.get(prefix + "/kb/folders/{id}/tags", this::getFolderTags, StationPermission.USER);
+        routes.put(prefix + "/kb/folders/{id}/tags", this::setFolderTags, StationPermission.KNOWLEDGE_EDIT);
+
+        // KB Comments (local)
+        routes.get(prefix + "/kb/files/{fileId}/comments", this::listComments, StationPermission.LOGIN);
+        routes.post(prefix + "/kb/files/{fileId}/comments", this::createComment, StationPermission.LOGIN);
+        routes.put(prefix + "/kb/comments/{commentId}", this::updateComment, StationPermission.LOGIN);
+        routes.delete(prefix + "/kb/comments/{commentId}", this::deleteComment, StationPermission.LOGIN);
+
+        // Federated (user-facing, bearer token auth)
+        routes.get(prefix + "/federated/kb", this::federatedBrowseKb, StationPermission.USER);
+        routes.get(prefix + "/federated/{stationuid}/kb/files/{id}", this::federatedGetFile, StationPermission.USER);
+        routes.get(
+                prefix + "/federated/{stationuid}/kb/files/{id}/content",
+                this::federatedGetFileContent,
+                StationPermission.USER);
+        routes.post(
+                prefix + "/federated/kb/files/{id}/copy", this::federatedCopyFile, StationPermission.KNOWLEDGE_EDIT);
+        routes.post(
+                prefix + "/federated/{stationuid}/kb/files/{id}/copy",
+                this::federatedCopyFile,
+                StationPermission.KNOWLEDGE_EDIT);
+
+        // Federated KB comments (user-facing proxy)
+        routes.get(
+                prefix + "/federated/{stationuid}/kb/files/{fileId}/comments",
+                this::federatedListComments,
+                StationPermission.LOGIN);
+        routes.post(
+                prefix + "/federated/{stationuid}/kb/files/{fileId}/comments",
+                this::federatedCreateComment,
+                StationPermission.LOGIN);
+        routes.put(
+                prefix + "/federated/{stationuid}/kb/comments/{commentId}",
+                this::federatedUpdateComment,
+                StationPermission.LOGIN);
+        routes.delete(
+                prefix + "/federated/{stationuid}/kb/comments/{commentId}",
+                this::federatedDeleteComment,
+                StationPermission.LOGIN);
+
+        // Remote (server-to-server, RSA signature auth)
+        routes.get(prefix + "/remote/kb/browse", this::remoteBrowseKb);
+        routes.get(prefix + "/remote/kb/search", this::remoteSearchKb);
+        routes.get(prefix + "/remote/kb/files/{id}", this::remoteGetFile);
+        routes.get(prefix + "/remote/kb/files/{id}/content", this::remoteGetFileContent);
+        routes.get(prefix + "/remote/kb/files/{fileId}/comments", this::remoteListComments);
+        routes.post(prefix + "/remote/kb/files/{fileId}/comments", this::remoteCreateComment);
+        routes.put(prefix + "/remote/kb/comments/{commentId}", this::remoteUpdateComment);
+        routes.delete(prefix + "/remote/kb/comments/{commentId}", this::remoteDeleteComment);
     }
 
     // -- Folders --
@@ -255,7 +371,9 @@ public class KnowledgeBaseRoutes implements Routes {
         Integer folderId = ctx.queryParam("folderId") != null
                 ? ctx.queryParamAsClass("folderId", Integer.class).get()
                 : null;
-        ctx.json(service.findFiles(session.stationId(), folderId));
+        ctx.json(service.findFiles(session.stationId(), folderId).stream()
+                .map(KbFileSummary::of)
+                .toList());
     }
 
     private void getFile(Context ctx) {
@@ -560,72 +678,10 @@ public class KnowledgeBaseRoutes implements Routes {
     }
 
     private List<SearchResultResponse> searchFederated(int stationId, String query) {
-        var results = new ArrayList<SearchResultResponse>();
-        var partners = federationService.findPartners(stationId).stream()
-                .filter(p -> p.status() == FederationPartner.FederationStatus.ACTIVE)
-                .filter(p -> federationService.hasCapability(p.id(), CapabilityType.KB_SHARE, Direction.IMPORT))
+        return service.searchFederatedKb(stationId, query).stream()
+                .map(r ->
+                        new SearchResultResponse(r.file().toKbFile(), r.snippet(), "", r.stationName(), r.stationUid()))
                 .toList();
-
-        var futures = new ArrayList<CompletableFuture<Void>>();
-        for (var partner : partners) {
-            int remoteStationId = partner.stationId() == stationId ? partner.partnerStationId() : partner.stationId();
-            String stationName = stationRepository
-                    .findById(remoteStationId)
-                    .map(Station::name)
-                    .orElse("?");
-            String stationUid = stationRepository
-                    .findById(remoteStationId)
-                    .map(s -> s.uid().toString())
-                    .orElse("");
-
-            futures.add(CompletableFuture.runAsync(() -> {
-                List<SearchResultResponse> partnerResults;
-                if (partner.isRemote()) {
-                    var station = stationRepository.findById(stationId).orElse(null);
-                    if (station == null || station.federationPrivateKey() == null) return;
-                    var remote = federationHttpClient.searchKb(
-                            partner.remoteHost(), stationId, station.federationPrivateKey(), query);
-                    partnerResults = remote.stream()
-                            .map(r -> new SearchResultResponse(
-                                    new KbFile(
-                                            r.id(),
-                                            remoteStationId,
-                                            null,
-                                            r.name(),
-                                            r.description(),
-                                            null,
-                                            null,
-                                            0,
-                                            null,
-                                            null,
-                                            null,
-                                            0,
-                                            0,
-                                            Instant.now(),
-                                            Instant.now(),
-                                            null,
-                                            null,
-                                            null,
-                                            false),
-                                    r.snippet(),
-                                    "",
-                                    stationName,
-                                    stationUid))
-                            .toList();
-                } else {
-                    var local = service.searchWithSnippets(remoteStationId, query);
-                    partnerResults = local.stream()
-                            .map(r -> new SearchResultResponse(r.file(), r.snippet(), "", stationName, stationUid))
-                            .toList();
-                }
-                synchronized (results) {
-                    results.addAll(partnerResults);
-                }
-            }));
-        }
-
-        CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
-        return results;
     }
 
     // -- Browse (combined) --
@@ -640,11 +696,9 @@ public class KnowledgeBaseRoutes implements Routes {
         KbFolder currentFolder = folderId != null ? service.findFolder(folderId).orElse(null) : null;
 
         // Filter by access restrictions unless user has KNOWLEDGE_MANAGER role
-        if (!session.hasRole(Roles.KNOWLEDGE_MANAGER)) {
+        if (!session.hasPermission(StationPermission.KNOWLEDGE_MANAGER)) {
             int memberId = session.member().id();
-            var memberRoleIds = stationMemberRepository.findRoles(memberId).stream()
-                    .map(Role::id)
-                    .toList();
+            String memberUserType = session.member().userType().name();
             var memberGroupIds = memberGroupRepository.findGroupsForMember(memberId).stream()
                     .map(MemberGroup::id)
                     .toList();
@@ -653,14 +707,17 @@ public class KnowledgeBaseRoutes implements Routes {
                     .toList();
 
             folders = folders.stream()
-                    .filter(f -> service.canAccess(memberId, f.id(), null, memberRoleIds, memberGroupIds, memberTagIds))
+                    .filter(f ->
+                            service.canAccess(memberId, f.id(), null, memberUserType, memberGroupIds, memberTagIds))
                     .toList();
             files = files.stream()
-                    .filter(f -> service.canAccess(memberId, null, f.id(), memberRoleIds, memberGroupIds, memberTagIds))
+                    .filter(f ->
+                            service.canAccess(memberId, null, f.id(), memberUserType, memberGroupIds, memberTagIds))
                     .toList();
         }
 
-        ctx.json(new BrowseResponse(currentFolder, folders, files));
+        ctx.json(new BrowseResponse(
+                currentFolder, folders, files.stream().map(KbFileSummary::of).toList()));
     }
 
     // -- Access Restrictions --
@@ -682,7 +739,7 @@ public class KnowledgeBaseRoutes implements Routes {
         service.setRestrictions(
                 id,
                 null,
-                req.roleIds() != null ? req.roleIds() : List.of(),
+                req.userTypes() != null ? req.userTypes() : List.of(),
                 req.groupIds() != null ? req.groupIds() : List.of(),
                 req.tagIds() != null ? req.tagIds() : List.of(),
                 req.memberIds() != null ? req.memberIds() : List.of());
@@ -706,7 +763,7 @@ public class KnowledgeBaseRoutes implements Routes {
         service.setRestrictions(
                 null,
                 id,
-                req.roleIds() != null ? req.roleIds() : List.of(),
+                req.userTypes() != null ? req.userTypes() : List.of(),
                 req.groupIds() != null ? req.groupIds() : List.of(),
                 req.tagIds() != null ? req.tagIds() : List.of(),
                 req.memberIds() != null ? req.memberIds() : List.of());
@@ -714,28 +771,78 @@ public class KnowledgeBaseRoutes implements Routes {
     }
 
     private RestrictionResponse toRestrictionResponse(List<KbAccessRestriction> restrictions) {
-        var roleIds = restrictions.stream()
-                .filter(r -> r.roleId() != null)
-                .map(KbAccessRestriction::roleId)
+        var userTypes = restrictions.stream()
+                .map(KbAccessRestriction::userType)
+                .filter(ut -> ut != null)
                 .toList();
         var groupIds = restrictions.stream()
-                .filter(r -> r.groupId() != null)
                 .map(KbAccessRestriction::groupId)
+                .filter(integer -> integer != null)
                 .toList();
         var tagIds = restrictions.stream()
-                .filter(r -> r.tagId() != null)
                 .map(KbAccessRestriction::tagId)
+                .filter(integer -> integer != null)
                 .toList();
         var memberIds = restrictions.stream()
-                .filter(r -> r.memberId() != null)
                 .map(KbAccessRestriction::memberId)
+                .filter(integer -> integer != null)
                 .toList();
-        return new RestrictionResponse(roleIds, groupIds, tagIds, memberIds);
+        return new RestrictionResponse(userTypes, groupIds, tagIds, memberIds);
+    }
+
+    // -- Public Visibility --
+
+    private void getFilePublicVisibility(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var visible = service.findPublicVisibility(null, id).orElse(null);
+        ctx.json(new PublicVisibilityResponse(visible));
+    }
+
+    private void setFilePublicVisibility(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var file = service.findFile(id).orElseThrow(NotFoundResponse::new);
+        if (file.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
+        var req = ctx.bodyAsClass(PublicVisibilityRequest.class);
+        if (req.visible() == null) {
+            service.removePublicVisibility(null, id);
+        } else {
+            service.setPublicVisibility(null, id, req.visible());
+        }
+        ctx.json(new PublicVisibilityResponse(req.visible()));
+    }
+
+    private void getFolderPublicVisibility(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var visible = service.findPublicVisibility(id, null).orElse(null);
+        ctx.json(new PublicVisibilityResponse(visible));
+    }
+
+    private void setFolderPublicVisibility(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var folder = service.findFolder(id).orElseThrow(NotFoundResponse::new);
+        if (folder.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
+        var req = ctx.bodyAsClass(PublicVisibilityRequest.class);
+        if (req.visible() == null) {
+            service.removePublicVisibility(id, null);
+        } else {
+            service.setPublicVisibility(id, null, req.visible());
+        }
+        ctx.json(new PublicVisibilityResponse(req.visible()));
     }
 
     // -- Request/Response Records --
 
     public record FolderRequest(Integer parentId, String name, String description, String iconUrl, Integer position) {}
+
+    public record PublicVisibilityRequest(Boolean visible) {}
+
+    public record PublicVisibilityResponse(Boolean visible) {}
 
     public record FileUpdateRequest(String name, String description, String iconUrl, Integer position) {}
 
@@ -746,7 +853,7 @@ public class KnowledgeBaseRoutes implements Routes {
     public record LinkFileRequest(Integer folderId, String name, String description, String linkUrl) {}
 
     public record RestrictionRequest(
-            List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {}
+            List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {}
 
     public record ContentUpdateRequest(String content) {}
 
@@ -757,9 +864,9 @@ public class KnowledgeBaseRoutes implements Routes {
     public record MarkdownHtmlResponse(String html, String markdown) {}
 
     public record RestrictionResponse(
-            List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {}
+            List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {}
 
-    public record BrowseResponse(KbFolder currentFolder, List<KbFolder> folders, List<KbFile> files) {}
+    public record BrowseResponse(KbFolder currentFolder, List<KbFolder> folders, List<KbFileSummary> files) {}
 
     // -- Folder Icons --
 
@@ -900,4 +1007,488 @@ public class KnowledgeBaseRoutes implements Routes {
             KbFile file, String snippet, String folderPath, String stationName, String sourceStationId) {}
 
     public record ImageUploadResponse(String imageId) {}
+
+    // -- Federated endpoints (user-facing, aggregates from partners) --
+
+    private void federatedBrowseKb(Context ctx) {
+        var session = UserSession.from(ctx);
+        var items = service.browseSharedKb(session.stationId());
+        ctx.json(items.stream()
+                .map(i -> {
+                    String name = stationRepository
+                            .findById(i.sourceStationId())
+                            .map(Station::name)
+                            .orElse("Unknown");
+                    return Map.of(
+                            "remoteId", i.file().id(),
+                            "title", i.file().name(),
+                            "description",
+                                    i.file().description() != null ? i.file().description() : "",
+                            "stationName", name,
+                            "stationId", i.sourceStationId(),
+                            "partnerId", i.partnerId());
+                })
+                .toList());
+    }
+
+    private void federatedGetFile(Context ctx) {
+        var session = UserSession.from(ctx);
+        var stationUid = UUID.fromString(ctx.pathParam("stationuid"));
+        int fileId = ctx.pathParamAsClass("id", Integer.class).get();
+        ctx.json(service.getFederatedKbFile(session.stationId(), stationUid, fileId));
+    }
+
+    private void federatedGetFileContent(Context ctx) {
+        var session = UserSession.from(ctx);
+        var stationUid = UUID.fromString(ctx.pathParam("stationuid"));
+        int fileId = ctx.pathParamAsClass("id", Integer.class).get();
+        var content = service.getFederatedKbFileContent(session.stationId(), stationUid, fileId);
+        ctx.json(Map.of("fileId", fileId, "content", content));
+    }
+
+    private void federatedCopyFile(Context ctx) {
+        var session = UserSession.from(ctx);
+        int fileId = ctx.pathParamAsClass("id", Integer.class).get();
+        var copied =
+                service.copyKbFile(fileId, session.stationId(), session.member().id());
+        ctx.status(HttpStatus.CREATED).json(copied);
+    }
+
+    // -- Remote endpoints (server-to-server, RSA signature auth) --
+
+    private void remoteBrowseKb(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        var shares = federationRepository.findKbShares(partner.stationId());
+        var result = shares.stream()
+                .filter(s -> s.fileId() != null)
+                .flatMap(s -> service.findFile(s.fileId()).stream())
+                .filter(file -> file.stationId() == partner.stationId())
+                .map(file -> Map.<String, Object>of(
+                        "id", file.id(),
+                        "name", file.name(),
+                        "description", file.description() != null ? file.description() : "",
+                        "fileType", file.fileType().name(),
+                        "updatedAt", file.updatedAt().toString()))
+                .toList();
+        ctx.json(result);
+    }
+
+    private void remoteSearchKb(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        String query = ctx.queryParam("q");
+        if (query == null || query.isBlank()) {
+            ctx.json(List.of());
+            return;
+        }
+        var results = service.searchWithSnippets(partner.stationId(), query);
+        var shares = federationRepository.findKbShares(partner.stationId());
+        var sharedFileIds = shares.stream()
+                .map(FederationShare::fileId)
+                .filter(integer -> integer != null)
+                .collect(Collectors.toSet());
+        ctx.json(results.stream()
+                .filter(r -> sharedFileIds.contains(r.file().id()))
+                .map(r -> Map.<String, Object>of(
+                        "id",
+                        r.file().id(),
+                        "name",
+                        r.file().name(),
+                        "description",
+                        r.file().description() != null ? r.file().description() : "",
+                        "snippet",
+                        r.snippet() != null ? r.snippet() : ""))
+                .toList());
+    }
+
+    private void remoteGetFile(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int fileId = ctx.pathParamAsClass("id", Integer.class).get();
+        var file = service.findFile(fileId).orElseThrow(NotFoundResponse::new);
+        if (file.stationId() != partner.stationId()) {
+            throw new ForbiddenResponse("File not shared with this partner");
+        }
+        ctx.json(file);
+    }
+
+    private void remoteGetFileContent(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int fileId = ctx.pathParamAsClass("id", Integer.class).get();
+        var file = service.findFile(fileId).orElseThrow(NotFoundResponse::new);
+        if (file.stationId() != partner.stationId()) {
+            throw new ForbiddenResponse("File not shared with this partner");
+        }
+        var content = service.getMarkdownContent(fileId).orElse("");
+        ctx.json(Map.of("fileId", fileId, "content", content));
+    }
+
+    // -- Local KB comment endpoints --
+
+    private void listComments(Context ctx) {
+        int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
+        var comments = kbCommentRepository.findByFile(fileId);
+        ctx.json(comments.stream().map(this::toCommentResponse).toList());
+    }
+
+    private void createComment(Context ctx) {
+        int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var req = ctx.bodyAsClass(CreateKbCommentRequest.class);
+        if (req.content() == null || req.content().isBlank()) {
+            throw new BadRequestResponse("content is required");
+        }
+        var comment = kbCommentRepository.create(
+                fileId,
+                req.parentId(),
+                memberIdentityFactory.local(
+                        session.stationId(), session.member().id()),
+                req.content());
+
+        // Publish domain events for notifications
+        int authorId = session.member().id();
+        String authorName = resolveMemberName(authorId);
+        var file = service.findFile(fileId).orElse(null);
+        String fileTitle = file != null ? file.name() : "";
+        String preview = req.content().length() > 100 ? req.content().substring(0, 100) + "..." : req.content();
+
+        Integer parentAuthorId = null;
+        if (req.parentId() != null) {
+            var parentComment = kbCommentRepository.findById(req.parentId()).orElse(null);
+            if (parentComment != null && parentComment.author() != null) {
+                parentAuthorId = stationRepository
+                        .resolveId(parentComment.author().stationUid())
+                        .flatMap(sid -> stationMemberService.resolveId(
+                                sid, parentComment.author().memberUid()))
+                        .orElse(null);
+            }
+        }
+        eventBus.publish(new CommentCreated(
+                session.stationId(),
+                CommentEntityType.KB,
+                fileId,
+                fileTitle,
+                comment.id(),
+                req.parentId(),
+                parentAuthorId,
+                authorId,
+                authorName,
+                preview));
+
+        // Parse @mentions and publish events (new format)
+        var matcher = MENTION_PATTERN.matcher(req.content());
+        while (matcher.find()) {
+            try {
+                var memberUid = UUID.fromString(matcher.group(2));
+                stationMemberService.resolveId(session.stationId(), memberUid).ifPresent(mentionedId -> {
+                    if (mentionedId != authorId) {
+                        eventBus.publish(new MentionedInComment(
+                                session.stationId(), mentionedId, authorId, authorName, CommentEntityType.KB, fileId));
+                    }
+                });
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        // Legacy format
+        var legacyMatcher = MENTION_PATTERN_LEGACY.matcher(req.content());
+        while (legacyMatcher.find()) {
+            int mentionedId = Integer.parseInt(legacyMatcher.group(1));
+            if (mentionedId != authorId) {
+                eventBus.publish(new MentionedInComment(
+                        session.stationId(), mentionedId, authorId, authorName, CommentEntityType.KB, fileId));
+            }
+        }
+
+        ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
+    }
+
+    private void updateComment(Context ctx) {
+        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var comment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
+        var memberIdentity = memberIdentityFactory.local(
+                session.stationId(), session.member().id());
+        if (comment.author() == null || !comment.author().equals(memberIdentity)) {
+            throw new ForbiddenResponse("You can only edit your own comments");
+        }
+        var req = ctx.bodyAsClass(UpdateKbCommentRequest.class);
+        if (req.content() == null || req.content().isBlank()) {
+            throw new BadRequestResponse("content is required");
+        }
+        kbCommentRepository.update(commentId, req.content());
+        var updated = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
+        ctx.json(toCommentResponse(updated));
+    }
+
+    private void deleteComment(Context ctx) {
+        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var comment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
+        var authorIdentity = memberIdentityFactory.local(
+                session.stationId(), session.member().id());
+        boolean isAuthor = comment.author() != null && comment.author().equals(authorIdentity);
+        boolean canModerate = session.hasPermission(StationPermission.KNOWLEDGE_MANAGER);
+        if (!isAuthor && !canModerate) {
+            throw new ForbiddenResponse("You can only delete your own comments");
+        }
+        if (kbCommentRepository.delete(commentId)) {
+            String preview =
+                    comment.content().length() > 100 ? comment.content().substring(0, 100) + "..." : comment.content();
+            eventBus.publish(new CommentDeleted(session.stationId(), commentId, preview));
+            ctx.status(HttpStatus.NO_CONTENT);
+        } else {
+            throw new NotFoundResponse();
+        }
+    }
+
+    // -- Remote KB comment endpoints (server-to-server) --
+
+    private void remoteListComments(Context ctx) {
+        requireFederationPartner(ctx);
+        int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
+        var comments = kbCommentRepository.findByFile(fileId);
+        ctx.json(comments.stream().map(this::toCommentResponse).toList());
+    }
+
+    private void remoteCreateComment(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
+        var req = ctx.bodyAsClass(RemoteKbCommentRequest.class);
+        if (req.content() == null || req.content().isBlank()) {
+            throw new BadRequestResponse("content is required");
+        }
+        var authorIdentity = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
+        var comment = kbCommentRepository.create(fileId, req.parentId(), authorIdentity, req.content());
+        eventFederationRepository.cacheName(partner.id(), req.remoteMemberUid(), req.displayName());
+        ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
+    }
+
+    private void remoteUpdateComment(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        var req = ctx.bodyAsClass(RemoteKbCommentUpdateRequest.class);
+        if (req.content() == null || req.content().isBlank()) {
+            throw new BadRequestResponse("content is required");
+        }
+        var comment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
+        var expectedAuthor = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
+        if (comment.author() == null || !comment.author().equals(expectedAuthor)) {
+            throw new ForbiddenResponse("You can only edit your own comments");
+        }
+        kbCommentRepository.update(commentId, req.content());
+        var updated = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
+        ctx.json(toCommentResponse(updated));
+    }
+
+    private void remoteDeleteComment(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        var req = ctx.bodyAsClass(RemoteKbCommentDeleteRequest.class);
+        var comment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
+        var expectedAuthor = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
+        if (comment.author() == null || !comment.author().equals(expectedAuthor)) {
+            throw new ForbiddenResponse("You can only delete your own comments");
+        }
+        if (kbCommentRepository.delete(commentId)) {
+            String preview =
+                    comment.content().length() > 100 ? comment.content().substring(0, 100) + "..." : comment.content();
+            eventBus.publish(new CommentDeleted(partner.stationId(), commentId, preview));
+            ctx.status(HttpStatus.NO_CONTENT);
+        } else {
+            throw new NotFoundResponse();
+        }
+    }
+
+    // -- Federated KB comment proxy endpoints (user-facing) --
+
+    private void federatedListComments(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var station = stationRepository.findById(session.stationId()).orElseThrow();
+        var partner = resolvePartner(ctx, session.stationId());
+        int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
+
+        if (partner.isRemote()) {
+            var result = federationHttpClient.getList(
+                    partner.remoteHost(),
+                    "/remote/kb/files/" + fileId + "/comments",
+                    station.id(),
+                    station.federationPrivateKey(),
+                    KbCommentResponse.class);
+            ctx.json(result);
+        } else {
+            var comments = kbCommentRepository.findByFile(fileId);
+            ctx.json(comments.stream().map(this::toCommentResponse).toList());
+        }
+    }
+
+    private void federatedCreateComment(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var station = stationRepository.findById(session.stationId()).orElseThrow();
+        var partner = resolvePartner(ctx, session.stationId());
+        int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
+        var req = ctx.bodyAsClass(CreateKbCommentRequest.class);
+        if (req.content() == null || req.content().isBlank()) {
+            throw new BadRequestResponse("content is required");
+        }
+
+        UUID memberUid = session.member().uid();
+        String displayName = session.account().fullName().trim();
+
+        if (partner.isRemote()) {
+            var body = new RemoteKbCommentRequest(memberUid, displayName, req.parentId(), req.content());
+            var result = federationHttpClient.post(
+                    partner.remoteHost(),
+                    "/remote/kb/files/" + fileId + "/comments",
+                    body,
+                    station.id(),
+                    station.federationPrivateKey(),
+                    KbCommentResponse.class);
+            if (result == null) throw new InternalServerErrorResponse("Failed to create comment on partner");
+            ctx.status(HttpStatus.CREATED).json(result);
+        } else {
+            var authorId = new MemberIdentity(partner.partnerStationId(), memberUid);
+            var comment = kbCommentRepository.create(fileId, req.parentId(), authorId, req.content());
+            eventFederationRepository.cacheName(partner.id(), memberUid, displayName);
+            ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
+        }
+    }
+
+    private void federatedUpdateComment(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var station = stationRepository.findById(session.stationId()).orElseThrow();
+        var partner = resolvePartner(ctx, session.stationId());
+        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        var req = ctx.bodyAsClass(UpdateKbCommentRequest.class);
+        if (req.content() == null || req.content().isBlank()) {
+            throw new BadRequestResponse("content is required");
+        }
+
+        UUID memberUid = session.member().uid();
+
+        if (partner.isRemote()) {
+            var body = new RemoteKbCommentUpdateRequest(memberUid, req.content());
+            var result = federationHttpClient.put(
+                    partner.remoteHost(),
+                    "/remote/kb/comments/" + commentId,
+                    body,
+                    station.id(),
+                    station.federationPrivateKey(),
+                    KbCommentResponse.class);
+            if (result == null) throw new InternalServerErrorResponse("Failed to update comment on partner");
+            ctx.json(result);
+        } else {
+            var existingComment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
+            if (existingComment.author() == null
+                    || !existingComment.author().memberUid().equals(memberUid)) {
+                throw new ForbiddenResponse("You can only edit your own comments");
+            }
+            kbCommentRepository.update(commentId, req.content());
+            var updated = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
+            ctx.json(toCommentResponse(updated));
+        }
+    }
+
+    private void federatedDeleteComment(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var station = stationRepository.findById(session.stationId()).orElseThrow();
+        var partner = resolvePartner(ctx, session.stationId());
+        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+
+        UUID memberUid = session.member().uid();
+
+        if (partner.isRemote()) {
+            boolean success = federationHttpClient.delete(
+                    partner.remoteHost(),
+                    "/remote/kb/comments/" + commentId,
+                    station.id(),
+                    station.federationPrivateKey());
+            if (!success) throw new InternalServerErrorResponse("Failed to delete comment on partner");
+            ctx.status(HttpStatus.NO_CONTENT);
+        } else {
+            var existingComment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
+            if (existingComment.author() == null
+                    || !existingComment.author().memberUid().equals(memberUid)) {
+                throw new ForbiddenResponse("You can only delete your own comments");
+            }
+            if (kbCommentRepository.delete(commentId)) {
+                ctx.status(HttpStatus.NO_CONTENT);
+            } else {
+                throw new NotFoundResponse();
+            }
+        }
+    }
+
+    // -- Federation helpers --
+
+    private FederationPartner requireFederationPartner(Context ctx) {
+        var session = FederationSession.from(ctx);
+        if (session == null) {
+            throw new ForbiddenResponse("Missing or invalid federation signature");
+        }
+        return session.partner();
+    }
+
+    private FederationPartner resolvePartner(Context ctx, int stationId) {
+        var partnerUid = UUID.fromString(ctx.pathParam("stationuid"));
+        return federationRepository
+                .findPartnerByStationAndRemoteUid(stationId, partnerUid)
+                .orElseThrow(() -> new NotFoundResponse("Unknown partner"));
+    }
+
+    // -- KB Comment response mapping --
+
+    private KbCommentResponse toCommentResponse(KbComment comment) {
+        if (comment.deleted()) {
+            return new KbCommentResponse(
+                    comment.id(),
+                    comment.fileId(),
+                    comment.parentId(),
+                    null,
+                    null,
+                    "",
+                    true,
+                    comment.createdAt(),
+                    null);
+        }
+
+        // Resolve author name and display metadata from inline identity
+        var identity = comment.author();
+        String authorName = "";
+        if (identity != null) {
+            var resolved = memberNameResolver.resolveDisplay(identity);
+            identity = resolved.identity();
+            authorName = resolved.name() != null ? resolved.name() : "";
+        }
+        return new KbCommentResponse(
+                comment.id(),
+                comment.fileId(),
+                comment.parentId(),
+                identity,
+                authorName,
+                comment.content(),
+                false,
+                comment.createdAt(),
+                comment.updatedAt());
+    }
+
+    // -- KB Comment request/response records --
+
+    public record CreateKbCommentRequest(Integer parentId, String content) {}
+
+    public record UpdateKbCommentRequest(String content) {}
+
+    public record RemoteKbCommentRequest(UUID remoteMemberUid, String displayName, Integer parentId, String content) {}
+
+    public record RemoteKbCommentUpdateRequest(UUID remoteMemberUid, String content) {}
+
+    public record RemoteKbCommentDeleteRequest(UUID remoteMemberUid) {}
+
+    public record KbCommentResponse(
+            int id,
+            int fileId,
+            Integer parentId,
+            MemberIdentity author,
+            String authorName,
+            String content,
+            boolean deleted,
+            Instant createdAt,
+            Instant updatedAt) {}
 }

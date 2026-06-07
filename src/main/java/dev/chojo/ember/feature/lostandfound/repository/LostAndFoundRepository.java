@@ -137,4 +137,13 @@ public class LostAndFoundRepository {
                 .delete()
                 .changed();
     }
+
+    public int countClaimedNotProvided(int stationId) {
+        return Query.query(
+                        "SELECT count(*) AS cnt FROM lost_and_found_item WHERE station_id = :station_id AND claimed_by IS NOT NULL;")
+                .single(Call.of().bind("station_id", stationId))
+                .map(row -> row.getInt("cnt"))
+                .first()
+                .orElse(0);
+    }
 }

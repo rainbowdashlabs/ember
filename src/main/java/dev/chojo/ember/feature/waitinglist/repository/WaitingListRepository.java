@@ -9,6 +9,7 @@ import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryGuardian;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryValue;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListField;
@@ -56,13 +57,12 @@ public class WaitingListRepository {
             int confirmIntervalDays,
             Integer testingGroupId,
             Integer joinGroupId,
-            Integer joinRoleId,
             int attendanceThreshold) {
         return Query.query("""
                         INSERT INTO waiting_list (station_id, name, description, scoring_formula, confirm_interval_days,
-                            testing_group_id, join_group_id, join_role_id, attendance_threshold)
+                            testing_group_id, join_group_id, attendance_threshold)
                         VALUES (:station_id, :name, :description, :scoring_formula, :confirm_interval_days,
-                            :testing_group_id, :join_group_id, :join_role_id, :attendance_threshold)
+                            :testing_group_id, :join_group_id, :attendance_threshold)
                         RETURNING *;""")
                 .single(Call.of()
                         .bind("station_id", stationId)
@@ -72,7 +72,6 @@ public class WaitingListRepository {
                         .bind("confirm_interval_days", confirmIntervalDays)
                         .bind("testing_group_id", testingGroupId)
                         .bind("join_group_id", joinGroupId)
-                        .bind("join_role_id", joinRoleId)
                         .bind("attendance_threshold", attendanceThreshold))
                 .map(WaitingList.map())
                 .first()
@@ -87,13 +86,12 @@ public class WaitingListRepository {
             int confirmIntervalDays,
             Integer testingGroupId,
             Integer joinGroupId,
-            Integer joinRoleId,
             int attendanceThreshold) {
         return Query.query("""
                         UPDATE waiting_list SET name = :name, description = :description,
                         scoring_formula = :scoring_formula, confirm_interval_days = :confirm_interval_days,
                         testing_group_id = :testing_group_id, join_group_id = :join_group_id,
-                        join_role_id = :join_role_id, attendance_threshold = :attendance_threshold
+                        attendance_threshold = :attendance_threshold
                         WHERE id = :id RETURNING *;""")
                 .single(Call.of()
                         .bind("id", id)
@@ -103,7 +101,6 @@ public class WaitingListRepository {
                         .bind("confirm_interval_days", confirmIntervalDays)
                         .bind("testing_group_id", testingGroupId)
                         .bind("join_group_id", joinGroupId)
-                        .bind("join_role_id", joinRoleId)
                         .bind("attendance_threshold", attendanceThreshold))
                 .map(WaitingList.map())
                 .first();
@@ -401,5 +398,57 @@ public class WaitingListRepository {
                         .bind("field_id", fieldId)
                         .bind("value", value))
                 .insert();
+    }
+
+    public int countPendingEntries(int stationId) {
+        return Query.query("""
+                        SELECT count(*) AS cnt FROM waiting_list_entry wle
+                        JOIN waiting_list wl ON wl.id = wle.list_id
+                        WHERE wl.station_id = :station_id AND wle.status = 'WAITING';""")
+                .single(Call.of().bind("station_id", stationId))
+                .map(row -> row.getInt("cnt"))
+                .first()
+                .orElse(0);
+    }
+
+    // --- Guardians ---
+
+    public List<WaitingListEntryGuardian> findGuardiansByEntry(int entryId) {
+        return Query.query("SELECT * FROM waiting_list_entry_guardian WHERE entry_id = :entry_id ORDER BY position;")
+                .single(Call.of().bind("entry_id", entryId))
+                .map(WaitingListEntryGuardian.map())
+                .all();
+    }
+
+    public List<WaitingListEntryGuardian> findGuardiansByList(int listId) {
+        return Query.query("""
+                        SELECT g.* FROM waiting_list_entry_guardian g
+                        JOIN waiting_list_entry e ON e.id = g.entry_id
+                        WHERE e.list_id = :list_id
+                        ORDER BY g.entry_id, g.position;""")
+                .single(Call.of().bind("list_id", listId))
+                .map(WaitingListEntryGuardian.map())
+                .all();
+    }
+
+    public WaitingListEntryGuardian createGuardian(int entryId, String name, String email, String phone, int position) {
+        return Query.query("""
+                        INSERT INTO waiting_list_entry_guardian (entry_id, name, email, phone, position)
+                        VALUES (:entry_id, :name, :email, :phone, :position) RETURNING *;""")
+                .single(Call.of()
+                        .bind("entry_id", entryId)
+                        .bind("name", name)
+                        .bind("email", email)
+                        .bind("phone", phone)
+                        .bind("position", position))
+                .map(WaitingListEntryGuardian.map())
+                .first()
+                .orElseThrow();
+    }
+
+    public void deleteGuardiansByEntry(int entryId) {
+        Query.query("DELETE FROM waiting_list_entry_guardian WHERE entry_id = :entry_id;")
+                .single(Call.of().bind("entry_id", entryId))
+                .delete();
     }
 }

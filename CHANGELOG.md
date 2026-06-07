@@ -1,5 +1,189 @@
 # Changelog
 
+## v26.6.0
+
+### New Features
+
+#### Boards (Planer)
+- **Kanban boards** — per-station scrum/kanban boards with customizable lanes, drag-and-drop ticket reordering between lanes, and position indicators
+- **Ticket management** — create, edit, delete tickets with title, rich markdown description (tiptap editor), priority (5 levels with icons), assignee, due date, and custom fields
+- **Checklists** — add checklists to tickets with drag-and-drop reordering, progress bar, and bulk delete
+- **Ticket links** — link tickets with typed relationships (Relates to, Blocks, Blocked by, Causes, Caused by) with confluence-style display
+- **Weblinks** — add external URLs to tickets
+- **File attachments** — upload files to tickets with tile-based preview grid; image thumbnails, PDF viewer, and CSV table preview in a fullscreen overlay with keyboard navigation (arrow keys)
+- **Labels** — color-coded labels per board with multi-select dropdown, inline creation, and label filter on the board and archived views
+- **Knowledge base links** — link KB pages to tickets with title search and folder path display
+- **Comments** — threaded comments using CommentThread component with @mentions, reply, edit, delete
+- **Watch/unwatch** — subscribe to ticket changes and receive notifications
+- **Activity feed** — interleaved timeline of comments, lane transitions, and history entries (priority changes, label assignments, title/description/due date changes, field changes) with rich formatting (lane color pills, priority icons, label badges)
+- **Lane colors** — assign colors to lanes; used for lane column top borders and the ticket status button
+- **Lane assignee** — custom field type `lane_assignee` that auto-assigns a member when a ticket moves to the referenced lane
+- **Backlog** — board-level toggle that creates a hidden backlog lane; dedicated table view at `/station/boards/:boardId/backlog`
+- **Archived view** — dedicated table view for tickets past the hide-done-after-days threshold at `/station/boards/:boardId/archived` with label filtering
+- **Board overview** — `/station/boards` shows only boards accessible to the user
+- **Board management** — `/station/boards/manage` for managers to create, edit, delete boards with settings icon per card
+- **Board settings** — lane editor with color picker, field editor (string, number, boolean, enum, date, lane_assignee), backlog toggle, view/edit access restrictions
+- **Due date reminders** — daily notification to assignee for overdue tickets not in the last lane
+- **Full-text search** — PostgreSQL tsvector/tsquery on ticket title and description with relevance ranking
+- **Read-only access** — users with view-only access see all content but cannot edit; all edit controls hidden
+- **Drag-and-drop** — tickets between lanes with visual drop indicator; checklist items with grip handles
+
+#### Board Access & Permissions
+- **Role hierarchy in board access** — MANAGER role now correctly grants access to TEAM-restricted boards via transitive role expansion
+- **Dedicated can-edit endpoint** — `GET /boards/{id}/can-edit` for frontend to check edit permission
+- **View/edit access restrictions** — per-board role, group, and tag based access control
+
+#### Permission System
+- **Granular permissions** — replaced the flat role system with a hierarchical permission tree; each feature area (events, members, inventory, boards, etc.) has its own read/edit/manage permissions
+- **User type permissions** — assign extra permissions to entire user types (Trial, Member, Guardian, Team) station-wide via a new management page
+- **Permission picker** — new hierarchical permission selector with collapsible groups, icons, and descriptions; replaces the old flat role checkboxes in member edit and group management
+- **Sidebar permission gating** — sidebar links are now shown or hidden based on the user's actual permissions rather than all-or-nothing manager checks
+- **Read-only views** — users with read permission but not edit permission see content without edit controls (e.g. waiting list, boards)
+- **Granular test permissions** — decomissioned QUIZ_MANAGER; replaced with TEST_CATALOG_VIEW, TEST_CATALOG_EDIT, TEST_CONFIGURE, TEST_RESULT_READ, TEST_REVIEW, and standalone TEST_MANAGER/PROTOCOL_MANAGER under STATION_ADMINISTRATOR
+- **Protocol permissions** — PROTOCOL_CONFIGURE for definitions, PROTOCOL_CREATE for runs, PROTOCOL_TESTER for grading
+- **NEWS_CREATE renamed to NEWS_EDIT** — covers creating, editing, and deleting news posts; NEWS_FEDERATE gates federation sharing
+- **Form permissions** — POLL_VIEW_RESULTS for viewing analytics, POLL_CREATE for creating/editing forms; member restrictions in restriction picker
+- **Station management permissions** — granular route permissions (STATION_GENERAL, STATION_LOOK_AND_FEEL, STATION_MAIL, STATION_MODULES, STATION_IMPORT_EXPORT) replace STATION_ADMINISTRATOR; sidebar restructured with manage and federation as separate top-level groups
+- **Member permissions** — MEMBER_EDIT replaces MEMBER_MANAGER on import/delete/permissions/user-type routes; MEMBER_MANAGE_TAGS for tag CRUD; MEMBER_READ for GET endpoints
+- **Inventory permissions** — INVENTORY_EDIT for update/delete items; MEMBER_READ for member inventory items
+
+#### Member Identity & Display
+- **Group colors** — assign a display color to groups; the highest-priority group's color is used as the member's name color everywhere
+- **Tag badges** — tags can be marked visible with a color and position; they appear as inline colored pill badges next to member names
+- **Unified member identity** — a single identity model (station UUID + member UUID + display name) is used everywhere from database through API to frontend
+- **MemberName driven by identity** — the `MemberName` component derives its display name solely from the identity object
+
+#### Waitlist Guardians
+- **Multiple guardians per waitlist entry** — each entry can have multiple guardians with name, email, and phone number, replacing the single parent name/email fields
+- **Guardian auto-onboarding** — when a waitlist entry is accepted, guardian accounts are automatically created with GUARDIAN user type, LOGIN and MEMBER_GUARDIAN permissions, and linked to the child member
+- **Trial member type** — waitlist entries are created as TRIAL type until accepted, then converted to MEMBER
+- **Expandable guardian details** — clicking a waitlist entry expands to show guardian contact details
+- **Dedicated entry creation view** — adding waitlist entries uses a full page view instead of a modal
+- **Waitlist permission split** — new WAITLIST_ADD permission for adding entries without full edit access
+
+#### Member Detail & Edit
+- **Member detail tabs** — split into tabs: Profile, Permissions, Guardians, Absences, Inventory, Notes
+- **Relations tab** — new tab on member edit for assigning guardians to members and members to guardians
+- **Absences tab** — users with MEMBER_EDIT can create, view, and delete absences from the member detail view
+- **Permissions tab** — shows user type, permissions with human-friendly names, groups, and tags
+
+#### Event Reminders
+- **Configurable reminders** — events and event templates support multiple reminders defined in days before the event
+- **Reminder scheduler** — background checker sends EVENT_REMINDER notifications to eligible members
+- **Smart targeting** — public events notify all non-declined members; registration-required events notify only accepted/pending registrants
+- **Template carry-over** — reminders from templates are applied when creating events from templates
+
+#### Federated Comments
+- **Event comments** — comment on events shared by federation partners; comments show the author's station badge
+- **News comments** — comment on news posts shared by partners with full threading support
+- **Knowledge base comments** — threaded comments on KB files with federation support and soft-delete
+
+#### News Federation
+- **Per-post sharing** — choose which news posts to share with partners: all partners or specific ones
+- **Visibility role** — set a minimum role for shared news visibility at partner stations
+- **Federated news in feed** — partner news posts appear inline in the news list, marked with a federation badge
+
+#### Event Cancellation
+- **Manual cancellation** — managers can cancel events with a reason
+- **Auto-cancellation** — events that don't reach the minimum registration count by a threshold date are automatically cancelled
+- **Cancellation notifications** — all registered members receive an EVENT_CANCELLED notification
+
+#### Quiz & Test Improvements
+- **New question types** — enumeration, ordering, matching, and fill-in-the-gap questions
+- **Readonly catalog view** — users with TEST_CATALOG_VIEW see catalogs and questions with answers without edit controls
+- **Test results tab** — test detail view has a Results tab showing all attempts
+- **Enriched attempt detail** — single API call returns attempt, full question details, and member identity
+- **Grading UX** — "Geprüft & Weiter" / "Geprüft & Beenden" shortcuts; compact icon buttons; reorganized mobile navigation
+
+#### Other
+- **Station requirements view** — shows outstanding requirements for the current member with sidebar badge
+- **Board improvements** — human-readable URLs, federated ticket links, chronological activity tab, keyboard navigation
+- **Sidebar counts** — all sidebar badges load in a single API call
+- **Dev error handler** — filename format `HH-mm-ss - source - hash.txt`; `reportCaughtError()` for frontend catch blocks
+- **Start/end date sync** — setting a start date auto-fills the end date if empty
+- **Modules toggle** — added TEST_PROTOCOL and BOARDS to the modules management page
+
+### Improvements
+
+- **Borderless input fields** — new `borderless` prop on BaseInput/TextInput for clean inline editing
+- **Click-to-edit title** — ticket title renders as heading, switches to borderless input on click
+- **MemberSelectInput auto-open** — opens dropdown and focuses search immediately on mount
+- **IconSelectInput auto-open** — priority selector opens dropdown immediately
+- **Click-outside handling** — all sidebar editors (lane, priority, assignee, due date) close when clicking outside the right column
+- **Color input component** — new ColorInput.vue for lane color selection in settings
+- **SelectInput min-w-0** — global fix for dropdown width issues in flex containers
+- **Checklist progress bar** — fixed invisible bar (was using undefined `--accent`, now uses `bg-primary`)
+- **Overdue due dates** — highlighted in red on ticket tiles
+- **Attachment count on tiles** — paperclip icon with count in ticket tile bottom row
+- **Description save button** — replaced checkmark icon with proper "Speichern" PrimaryButton
+- **Comment submit button** — changed to "Absenden" matching news comment pattern
+- **Sidebar boards** — only shows boards the user can view (managers see all in manage view)
+
+### Bug Fixes
+
+- Fixed getViewAccess/getEditAccess returning empty lists instead of actual stored restriction IDs
+- Fixed manage view not showing create/edit controls
+- Fixed board managers seeing all boards in sidebar instead of only accessible ones
+- Fixed role hierarchy not applied in board access checks (MANAGER not matching TEAM restrictions)
+- Fixed file download throwing unauthorized (switched from direct URL to authenticated blob download)
+- Fixed `createTicket` CTE missing `attachment_count` column causing runtime error
+- Fixed KB link `folderPath` showing double `/` for root-level files
+- Fixed KB links not loading on initial ticket detail page load
+- Fixed checklist progress bar invisible (undefined CSS variable)
+- Fixed lane top border using undefined `--accent` variable
+
+---
+
+### Technical Changes
+
+#### Database
+- **Patch 6** — 15 new tables: `board`, `board_lane` (with color), `board_field`, `board_view_access`, `board_edit_access`, `board_ticket` (with full-text search vector), `board_ticket_field_value`, `board_ticket_link`, `board_ticket_checklist_item`, `board_ticket_transition`, `board_ticket_comment`, `board_ticket_watcher`, `board_ticket_weblink`, `board_ticket_attachment`, `board_ticket_history`, `board_label`, `board_ticket_label`, `board_ticket_kb_link`
+- Generated tsvector column with GIN index for full-text search
+- Board-level `backlog_lane_id` FK for backlog support
+
+#### Backend Architecture
+- **18 new entity records** with RowMapping: Board, BoardLane, BoardField, BoardFieldConfig, BoardTicket, BoardTicketLink, LinkType, BoardTicketTransition, BoardChecklistItem, BoardComment, BoardWeblink, BoardTicketAttachment, BoardTicketFieldValue, BoardTicketWatcher, BoardTicketHistory, BoardLabel, BoardTicketKbLink, TicketPriority
+- **BoardRepository** — CRUD for boards, lanes, fields, labels, access restrictions, backlog management
+- **BoardTicketRepository** — CRUD for tickets, links, checklist, comments, weblinks, attachments, field values, watchers, history, KB links, activity feed (UNION ALL query)
+- **BoardService** — access control with role hierarchy expansion via `Roles.expand()`, label management, backlog toggle
+- **BoardTicketService** — ticket lifecycle, lane_assignee auto-assignment on move, @mention parsing in comments, watcher notifications, history logging for all changes
+- **BoardRoutes / BoardTicketRoutes** — 50+ REST endpoints
+- **DueDateReminderChecker** — scheduled executor for daily due date notifications
+- **BoardTicketChanged** domain event — consolidated watcher notification for all ticket changes
+- **MentionedInComment** extended — `BOARD_TICKET` entity type with ticket-detail link
+- **LaneData, AccessData, TicketLabelMapping** — extracted to top-level records by spotless
+
+#### Frontend Architecture
+- **15 new views**: BoardOverviewView, BoardListView, BoardView, TicketDetailView, BoardSettingsView, BacklogView, ArchivedView + 5 help center pages
+- **7 new components**: TicketTile, TicketChecklist, TicketActivity, TicketLinksSection, LabelSelectInput, ColorInput, DragList (reused)
+- **boards.ts API** — 40+ functions for all board, ticket, label, attachment, KB link, and history operations
+- **Authenticated file handling** — blob download/preview via axios instead of direct URLs
+
+#### Permission Architecture
+- Four new enums: `StationPermission`, `StationUserType`, `InstancePermission`, `InstanceUserType` replacing flat role strings
+- `station_user_type_permission` DB table with CRUD API endpoints
+- `PermissionPicker.vue` component with hierarchical display, implicit grant hiding, and "granted by" attribution
+- Permission granularity across all route handlers; read-only routes accept `_READ` where previously they required manager grants
+
+#### Member Identity
+- `uid UUID` column added to `station_member`; `MemberIdentity(stationUid, memberUid)` record replaces dual local/federated representation
+- `MemberIdentityFactory` service with `MemberNameResolver` Caffeine caching
+- Mention format migrated to `@[stationUid/memberUid:Name]` with legacy support
+
+#### Waitlist & Guardians
+- `waiting_list_entry_guardian` table with cascade delete; migration backfills from legacy `parent_name`/`email`
+- `event_reminder`, `event_template_reminder`, `event_reminder_sent` tables for reminder tracking
+- `EventReminderChecker` scheduled executor (every 30 minutes)
+- `QuizCatalogRepository.findQuestionsByIds()` batch query for enriched attempt detail
+
+#### Test Coverage
+- **Board repository tests** — 20+ tests covering tickets, lanes, labels, attachments, field values, weblinks, search, history, backlog, KB links
+- **Board service tests** — 25+ tests covering CRUD, access control with role hierarchy, labels, backlog, field values, attachments, comments, watchers, move/reorder/link operations
+- **JaCoCo exclusion** — DueDateReminderChecker, EventReminderChecker excluded (daemon pattern)
+- All coverage thresholds met: 95% repositories, 90% services, 80% handlers
+
+---
+
 ## v26.5.0
 
 ### New Features

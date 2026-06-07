@@ -21,7 +21,7 @@ import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 public record MentionedInComment(
         int stationId,
         int mentionedMemberId,
-        int authorMemberId,
+        Integer authorMemberId,
         String authorName,
         CommentEntityType entityType,
         int entityId)

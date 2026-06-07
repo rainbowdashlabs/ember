@@ -14,10 +14,10 @@ import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import {knowledgeBase, stationMembers, memberGroups, userTags} from '@/api'
+import {knowledgeBase, memberGroups, userTags} from '@/api'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {KbFolder} from '@/api/knowledgeBase'
-import type {Role, MemberGroup, UserTag} from '@/api/types'
+import type {MemberGroup, UserTag} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 
 const {isKbPublic} = useSession()
@@ -36,14 +36,13 @@ const emit = defineEmits<{
 
 const editName = ref('')
 const editDescription = ref('')
-const roleIds = ref<number[]>([])
+const selectedUserTypes = ref<string[]>([])
 const groupIds = ref<number[]>([])
 const tagIds = ref<number[]>([])
 const tags = ref<string[]>([])
 const newTag = ref('')
 const iconFile = ref<File | null>(null)
 const publicVisibility = ref<string>('default')
-const allRoles = ref<Role[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
 const error = ref('')
@@ -68,7 +67,7 @@ watch(() => props.show, async (visible) => {
     if (visible && props.folder) {
         editName.value = props.folder.name
         editDescription.value = props.folder.description
-        roleIds.value = []
+        selectedUserTypes.value = []
         groupIds.value = []
         tagIds.value = []
         tags.value = []
@@ -78,12 +77,10 @@ watch(() => props.show, async (visible) => {
         error.value = ''
 
         try {
-            const [roleList, groupList, tagList] = await Promise.all([
-                stationMembers.listAllRoles(),
+            const [groupList, tagList] = await Promise.all([
                 memberGroups.listGroups(),
                 userTags.listTags(),
             ])
-            allRoles.value = roleList
             allGroups.value = groupList
             allTags.value = tagList
         } catch {
@@ -96,7 +93,7 @@ watch(() => props.show, async (visible) => {
                 knowledgeBase.getFolderTags(props.folder.id),
                 knowledgeBase.getPublicVisibility('folders', props.folder.id),
             ])
-            roleIds.value = r.roleIds
+            selectedUserTypes.value = r.userTypes ?? []
             groupIds.value = r.groupIds
             tagIds.value = r.tagIds
             tags.value = folderTags.map(t => t.name)
@@ -117,7 +114,7 @@ async function handleSave() {
                 description: editDescription.value,
             }),
             knowledgeBase.setFolderRestrictions(props.folder.id, {
-                roleIds: roleIds.value,
+                userTypes: selectedUserTypes.value,
                 groupIds: groupIds.value,
                 tagIds: tagIds.value,
                 memberIds: [],
@@ -150,7 +147,7 @@ async function handleSave() {
                 <input
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
-                    class="block w-full text-sm text-[var(--text)] file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-[var(--primary)] file:text-white cursor-pointer"
+                    class="block w-full text-sm text-[var(--text)] file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-[var(--primary)] file:text-[var(--color-primary-text)] cursor-pointer"
                     @change="onIconSelect"
                 />
             </div>
@@ -159,13 +156,12 @@ async function handleSave() {
             <div class="space-y-3 border-t border-bg-light-accent dark:border-bg-dark-accent pt-3">
                 <SubHeader class="text-sm">{{ t('kb.restrictions') }}</SubHeader>
                 <RestrictionPicker
-                    :roles="allRoles"
                     :groups="allGroups"
                     :tags="allTags"
-                    :selected-role-ids="roleIds"
+                    :selected-user-types="selectedUserTypes"
                     :selected-group-ids="groupIds"
                     :selected-tag-ids="tagIds"
-                    @update:selected-role-ids="roleIds = $event"
+                    @update:selected-user-types="selectedUserTypes = $event"
                     @update:selected-group-ids="groupIds = $event"
                     @update:selected-tag-ids="tagIds = $event"
                 />

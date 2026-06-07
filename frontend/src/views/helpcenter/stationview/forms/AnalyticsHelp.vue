@@ -112,7 +112,7 @@ const tabs = [
 
         <NeutralContainer>
           <div class="space-y-1 mb-4">
-            <p class="font-medium"><MemberName name="Max Mustermann"/></p>
+            <p class="font-medium"><MemberName :identity="{ stationUid: '', memberUid: '', name: 'Max Mustermann' }"/></p>
             <p class="text-xs text-(--text-muted)">15.05.2026, 14:32</p>
           </div>
           <div class="space-y-4">
@@ -135,6 +135,11 @@ const tabs = [
 
     <HelpSection :title="t('helpCenter.formsAnalytics.responsesTitle')">
       <p>{{ t('helpCenter.formsAnalytics.responsesText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.formsAnalytics.exportTitle')">
+      <p>{{ t('helpCenter.formsAnalytics.exportText') }}</p>
+      <p>{{ t('helpCenter.formsAnalytics.exportFieldsText') }}</p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.formsAnalytics.tip') }}</HelpTip>

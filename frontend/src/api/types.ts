@@ -3,49 +3,95 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// -- Roles --
+// -- Station User Types --
 
-export const Roles = {
-    LOGIN: 'LOGIN',
-    USER: 'USER',
+export const StationUserType = {
+    TRIAL: 'TRIAL',
     MEMBER: 'MEMBER',
     GUARDIAN: 'GUARDIAN',
     TEAM: 'TEAM',
-    TRIAL: 'TRIAL',
-    ATTENDANCE_MANAGER: 'ATTENDANCE_MANAGER',
-    ATTENDANCE_EXPORT_MANAGER: 'ATTENDANCE_EXPORT_MANAGER',
-    INVENTORY_MANAGER: 'INVENTORY_MANAGER',
-    EVENT_MANAGER: 'EVENT_MANAGER',
-    MEMBER_MANAGER: 'MEMBER_MANAGER',
-    NEWS_MANAGER: 'NEWS_MANAGER',
-    POLL_MANAGER: 'POLL_MANAGER',
-    LOST_AND_FOUND_MANAGER: 'LOST_AND_FOUND_MANAGER',
-    WAITLIST_MANAGER: 'WAITLIST_MANAGER',
-    QUIZ_MANAGER: 'QUIZ_MANAGER',
-    KNOWLEDGE_MANAGER: 'KNOWLEDGE_MANAGER',
-    FEDERATION_MANAGER: 'FEDERATION_MANAGER',
-    PROTOCOL_MANAGER: 'PROTOCOL_MANAGER',
-    PROTOCOL_TESTER: 'PROTOCOL_TESTER',
     MANAGER: 'MANAGER',
-    ADMIN: 'ADMIN',
 } as const
+export type StationUserTypeName = (typeof StationUserType)[keyof typeof StationUserType]
 
-export type RoleName = (typeof Roles)[keyof typeof Roles]
+// -- Station Permissions --
 
-export const TEAM_ROLES: readonly RoleName[] = [
-    Roles.TEAM, Roles.MANAGER, Roles.ADMIN,
-    Roles.ATTENDANCE_MANAGER, Roles.INVENTORY_MANAGER,
-    Roles.EVENT_MANAGER, Roles.MEMBER_MANAGER,
-    Roles.POLL_MANAGER,
-] as const
-
-export function isTeamRole(role: string): boolean {
-    return (TEAM_ROLES as readonly string[]).includes(role)
-}
-
-export function hasTeamRole(roles: string[]): boolean {
-    return roles.some(r => isTeamRole(r))
-}
+export const StationPermission = {
+    LOGIN: 'LOGIN',
+    USER: 'USER',
+    ATTENDANCE_READ: 'ATTENDANCE_READ',
+    ATTENDANCE_EDIT: 'ATTENDANCE_EDIT',
+    ATTENDANCE_CONFIGURE: 'ATTENDANCE_CONFIGURE',
+    ATTENDANCE_EXPORT: 'ATTENDANCE_EXPORT',
+    ATTENDANCE_MANAGER: 'ATTENDANCE_MANAGER',
+    INVENTORY_CREATE_EXTERNAL: 'INVENTORY_CREATE_EXTERNAL',
+    INVENTORY_CREATE_INTERNAL: 'INVENTORY_CREATE_INTERNAL',
+    INVENTORY_CREATE: 'INVENTORY_CREATE',
+    INVENTORY_READ: 'INVENTORY_READ',
+    INVENTORY_EDIT: 'INVENTORY_EDIT',
+    INVENTORY_PROCUREMENT: 'INVENTORY_PROCUREMENT',
+    INVENTORY_EXCHANGE: 'INVENTORY_EXCHANGE',
+    INVENTORY_CHECK: 'INVENTORY_CHECK',
+    INVENTORY_LENDING_REQUEST: 'INVENTORY_LENDING_REQUEST',
+    INVENTORY_LENDING_MANAGER: 'INVENTORY_LENDING_MANAGER',
+    INVENTORY_MANAGER: 'INVENTORY_MANAGER',
+    EVENT_MANAGE_TEMPLATE: 'EVENT_MANAGE_TEMPLATE',
+    EVENT_MANAGE_CATEGORY: 'EVENT_MANAGE_CATEGORY',
+    EVENT_EDIT: 'EVENT_EDIT',
+    EVENT_REGISTRATION: 'EVENT_REGISTRATION',
+    EVENTS_FEDERATE: 'EVENTS_FEDERATE',
+    EVENT_MANAGER: 'EVENT_MANAGER',
+    MEMBER_READ: 'MEMBER_READ',
+    MEMBER_NOTES: 'MEMBER_NOTES',
+    MEMBER_GUARDIAN: 'MEMBER_GUARDIAN',
+    MEMBER_CHANGES: 'MEMBER_CHANGES',
+    MEMBER_MANAGE_GROUP: 'MEMBER_MANAGE_GROUP',
+    MEMBER_MANAGE_TAGS: 'MEMBER_MANAGE_TAGS',
+    MEMBER_EDIT: 'MEMBER_EDIT',
+    MEMBER_FIELDS: 'MEMBER_FIELDS',
+    MEMBER_EXPORT: 'MEMBER_EXPORT',
+    MEMBER_MANAGER: 'MEMBER_MANAGER',
+    WAITLIST_READ: 'WAITLIST_READ',
+    WAITLIST_ADD: 'WAITLIST_ADD',
+    WAITLIST_EDIT: 'WAITLIST_EDIT',
+    WAITLIST_MANAGER: 'WAITLIST_MANAGER',
+    NEWS_EDIT: 'NEWS_EDIT',
+    NEWS_FEDERATE: 'NEWS_FEDERATE',
+    NEWS_MANAGER: 'NEWS_MANAGER',
+    POLL_VIEW_RESULTS: 'POLL_VIEW_RESULTS',
+    POLL_CREATE: 'POLL_CREATE',
+    POLL_MANAGER: 'POLL_MANAGER',
+    LOST_AND_FOUND_CREATE: 'LOST_AND_FOUND_CREATE',
+    LOST_AND_FOUND_MANAGE: 'LOST_AND_FOUND_MANAGE',
+    LOST_AND_FOUND_MANAGER: 'LOST_AND_FOUND_MANAGER',
+    TEST_CATALOG_VIEW: 'TEST_CATALOG_VIEW',
+    TEST_CATALOG_EDIT: 'TEST_CATALOG_EDIT',
+    TEST_CONFIGURE: 'TEST_CONFIGURE',
+    TEST_RESULT_READ: 'TEST_RESULT_READ',
+    TEST_REVIEW: 'TEST_REVIEW',
+    TEST_MANAGER: 'TEST_MANAGER',
+    PROTOCOL_TESTER: 'PROTOCOL_TESTER',
+    PROTOCOL_CREATE: 'PROTOCOL_CREATE',
+    PROTOCOL_CONFIGURE: 'PROTOCOL_CONFIGURE',
+    PROTOCOL_MANAGER: 'PROTOCOL_MANAGER',
+    BOARD_USE: 'BOARD_USE',
+    BOARD_EDIT: 'BOARD_EDIT',
+    BOARD_FEDERATE: 'BOARD_FEDERATE',
+    BOARD_MANAGER: 'BOARD_MANAGER',
+    KNOWLEDGE_EDIT: 'KNOWLEDGE_EDIT',
+    KNOWLEDGE_FEDERATE: 'KNOWLEDGE_FEDERATE',
+    KNOWLEDGE_MANAGER: 'KNOWLEDGE_MANAGER',
+    STATION_LOOK_AND_FEEL: 'STATION_LOOK_AND_FEEL',
+    STATION_GENERAL: 'STATION_GENERAL',
+    STATION_MAIL: 'STATION_MAIL',
+    STATION_FEDERATION: 'STATION_FEDERATION',
+    STATION_MODULES: 'STATION_MODULES',
+    STATION_IMPORT_EXPORT: 'STATION_IMPORT_EXPORT',
+    STATION_STATISTICS: 'STATION_STATISTICS',
+    STATION_MANAGER: 'STATION_MANAGER',
+    STATION_ADMINISTRATOR: 'STATION_ADMINISTRATOR',
+} as const
+export type StationPermissionName = (typeof StationPermission)[keyof typeof StationPermission]
 
 // -- Common --
 
@@ -120,17 +166,28 @@ export interface MemberInfo {
     id: number
     stationId: string
     accountId: number
+    uid: string
+}
+
+export interface ManagedMemberSummary {
+    id: number
+    stationId: string
+    uid?: string | null
+    accountId: number
+    name?: string
+    email?: string
 }
 
 export interface SessionInfo {
     account?: AccountInfo
     stationId?: string
     member?: MemberInfo
-    roles?: string[]
-    managedMembers?: StationMember[]
+    permissions?: string[]
+    userType?: string
+    instanceUserType?: string
+    managedMembers?: ManagedMemberSummary[]
     groups?: MemberGroup[]
     tags?: UserTag[]
-    roleIds?: number[]
     groupIds?: number[]
     tagIds?: number[]
     profileComplete?: boolean
@@ -164,6 +221,7 @@ export const StationModules = {
     QUIZ: 'QUIZ',
     KNOWLEDGE_BASE: 'KNOWLEDGE_BASE',
     TEST_PROTOCOL: 'TEST_PROTOCOL',
+    BOARDS: 'BOARDS',
 } as const
 
 export type StationModuleName = (typeof StationModules)[keyof typeof StationModules]
@@ -263,6 +321,13 @@ export interface StationEvent {
     restricted?: boolean
     isPublic?: boolean
     registrationLimit?: number | null
+    cancelled?: boolean
+    cancelledAt?: string | null
+    cancelReason?: string | null
+    minRegistrations?: number | null
+    thresholdDate?: string | null
+    thresholdNotified?: boolean
+    registrationCloseDays?: number | null
 }
 
 export interface EventRequest {
@@ -277,23 +342,26 @@ export interface EventRequest {
     registrationDeadline?: string | null
     requiresConfirmation?: boolean
     categoryId?: number | null
-    restrictedRoleIds?: number[]
+    restrictedUserTypes?: string[]
     restrictedGroupIds?: number[]
+    restrictedTagIds?: number[]
     isPublic?: boolean
     registrationLimit?: number | null
+    minRegistrations?: number | null
+    thresholdDate?: string | null
+    registrationCloseDays?: number | null
 }
 
 export interface EventRestrictions {
-    roleIds: number[]
+    userTypes: string[]
     groupIds: number[]
     tagIds: number[]
+    memberIds: number[]
     mode?: string
 }
 
 export interface AllEventRestrictions {
-    roleRestrictions: Record<number, number[]>
-    groupRestrictions: Record<number, number[]>
-    tagRestrictions: Record<number, number[]>
+    [eventId: number]: EventRestrictions
 }
 
 export interface EventBreak {
@@ -313,15 +381,18 @@ export interface BreakRequest {
 // -- Event Fields --
 
 export const EventFieldTypes = {
-    STRING: 'string',
-    TIME: 'time',
-    DATE: 'date',
-    BOOLEAN: 'boolean',
-    ENUM: 'enum',
-    MEMBER: 'member',
-    MEMBER_LIST: 'member_list',
-    MEMBER_OF_GROUP: 'member_of_group',
-    MEMBER_LIST_OF_GROUP: 'member_list_of_group',
+    STRING: 'STRING',
+    NUMBER: 'NUMBER',
+    TIME: 'TIME',
+    DATE: 'DATE',
+    BOOLEAN: 'BOOLEAN',
+    ENUM: 'ENUM',
+    URL: 'URL',
+    TEXTAREA: 'TEXTAREA',
+    MEMBER: 'MEMBER',
+    MEMBER_LIST: 'MEMBER_LIST',
+    MEMBER_OF_GROUP: 'MEMBER_OF_GROUP',
+    MEMBER_LIST_OF_GROUP: 'MEMBER_LIST_OF_GROUP',
 } as const
 
 export type EventFieldTypeName = (typeof EventFieldTypes)[keyof typeof EventFieldTypes]
@@ -331,7 +402,7 @@ export interface EventField {
     eventId: number
     name?: string
     fieldType?: string
-    config?: string
+    config?: Record<string, unknown>
     value?: string
     position: number
     overview?: boolean
@@ -343,7 +414,7 @@ export interface EventField {
 export interface EventFieldEntry {
     name: string
     fieldType?: string
-    config?: string
+    config?: Record<string, unknown>
     value?: string
     overview?: boolean
     attendanceFieldId?: number | null
@@ -377,7 +448,7 @@ export interface EventLayoutField {
 export interface LayoutFieldEntry {
     name: string
     fieldType?: string
-    config?: string
+    config?: Record<string, unknown>
     overview?: boolean
     attendanceFieldId?: number | null
 }
@@ -415,13 +486,14 @@ export interface EventTemplateField {
 export interface EventTemplateDetail {
     template: EventTemplate
     fields: EventTemplateField[]
-    restrictionRoleIds: number[]
+    restrictionUserTypes: string[]
+    reminderDays: number[]
 }
 
 export interface EventTemplateFieldEntry {
     name: string
     fieldType?: string
-    config?: string
+    config?: Record<string, unknown>
     position: number
     overview?: boolean
     isPublic?: boolean
@@ -460,6 +532,7 @@ export interface Form {
     status: FormStatusName
     shuffleQuestions: boolean
     allowEdit: boolean
+    forced?: boolean
     startAt?: string | null
     endAt?: string | null
     closedAt?: string | null
@@ -487,12 +560,12 @@ export interface FormQuestion {
     id: number
     formId: number
     position: number
-    questionType: QuestionType
+    formQuestionType: QuestionType
     title: string
     description: string
     required: boolean
     shuffle: boolean
-    config: string
+    config: Record<string, unknown>
 }
 
 export interface FormResponse {
@@ -503,6 +576,7 @@ export interface FormResponse {
     submittedByName?: string | null
     submittedAt: string
     updatedAt: string
+    memberIdentity?: MemberIdentity | null
 }
 
 export interface FormAnswer {
@@ -531,14 +605,15 @@ export interface FormQuestionRequest {
 }
 
 export interface FormRestrictions {
-    roleIds: number[]
+    userTypes: string[]
     groupIds: number[]
     tagIds: number[]
+    memberIds?: number[]
     mode?: string
 }
 
 export interface FormSubmitRequest {
-    answers: Record<number, string>
+    answers: Record<number, Record<string, unknown>>
 }
 
 export interface FormResponseDetail {
@@ -556,7 +631,7 @@ export interface FormQuestionAnalytics {
     questionId: number
     questionType: string
     title: string
-    config: string
+    config: Record<string, unknown>
     values: string[]
 }
 
@@ -631,7 +706,10 @@ export interface StationMember {
     accountId: number
     name?: string
     email?: string
+    userType?: string
     profileComplete?: boolean
+    formerAt?: string | null
+    identity?: MemberIdentity | null
 }
 
 export interface CreateMemberRequest {
@@ -639,13 +717,26 @@ export interface CreateMemberRequest {
     accountId?: number
 }
 
-export interface Role {
+export interface PermissionGrant {
     id: number
-    role: RoleName
+    permission: string
 }
 
 export interface SetRolesRequest {
     roleIds?: number[]
+}
+
+export interface SetPermissionsRequest {
+    permissions?: string[]
+}
+
+export interface PermissionNode {
+    name: string
+    children: string[]
+}
+
+export interface SetUserTypeRequest {
+    userType?: string
 }
 
 export interface SetManagersRequest {
@@ -689,14 +780,14 @@ export interface AttendanceTemplateField {
     templateId: number
     name?: string
     fieldType?: string
-    config?: string
+    config?: Record<string, unknown>
     position: number
 }
 
 export interface TemplateFieldRequest {
     name?: string
     fieldType?: string
-    config?: string
+    config?: Record<string, unknown>
     position: number
 }
 
@@ -791,12 +882,12 @@ export function needsDayOfWeek(eventType?: string): boolean {
 // -- Profile Field Type --
 
 export const FieldTypes = {
-    TEXT: 'text',
-    NUMBER: 'number',
-    DATE: 'date',
-    BOOLEAN: 'boolean',
-    ENUM: 'enum',
-    AGE: 'age',
+    TEXT: 'TEXT',
+    NUMBER: 'NUMBER',
+    DATE: 'DATE',
+    BOOLEAN: 'BOOLEAN',
+    ENUM: 'ENUM',
+    AGE: 'AGE',
 } as const
 
 export type FieldTypeName = (typeof FieldTypes)[keyof typeof FieldTypes]
@@ -909,7 +1000,7 @@ export interface AssignRequest {
 export interface InventoryRequirement {
     id: number
     inventoryId: number
-    roleId: number
+    userType: string
     groupId: number
     quantity: number
     position: number
@@ -917,7 +1008,7 @@ export interface InventoryRequirement {
 
 export interface RequirementRequest {
     inventoryId: number
-    roleId?: number
+    userType?: string
     groupId?: number
     quantity?: number
 }
@@ -929,6 +1020,7 @@ export interface InventoryItemHistory {
     memberName?: string
     givenOut?: string
     returned?: string | null
+    memberIdentity?: MemberIdentity | null
 }
 
 // -- Inventory Checks --
@@ -944,7 +1036,8 @@ export interface MemberCheckSummary {
     lockedBy?: number | null
     lockerFirstName?: string | null
     lockerLastName?: string | null
-    roles: string[]
+    userType?: string
+    identity?: MemberIdentity | null
 }
 
 export interface CheckDetail {
@@ -975,6 +1068,7 @@ export interface InventoryCheckItem {
 
 export interface MemberCheckState {
     memberName: string
+    memberIdentity?: MemberIdentity | null
     required: RequiredInventoryItem[]
     assigned: InventoryItem[]
     lastCheck?: InventoryCheck | null
@@ -1023,10 +1117,16 @@ export interface ProfileField {
     stationId: string
     name?: string
     fieldType?: string
-    config?: string
+    config?: string | Record<string, unknown>
     position: number
     scope?: string
     keepOnArchive?: boolean
+}
+
+export function parseFieldConfig(config: string | Record<string, unknown> | undefined | null): Record<string, unknown> {
+    if (!config) return {}
+    if (typeof config === 'object') return config
+    try { return JSON.parse(config) } catch { return {} }
 }
 
 export interface ProfileFieldRequest {
@@ -1077,6 +1177,7 @@ export interface ProfileFieldChange {
     fieldName?: string
     acknowledgements: ProfileFieldChangeAcknowledgement[]
     memberName?: string | null
+    memberIdentity?: MemberIdentity | null
 }
 
 export interface MemberChangeSummary {
@@ -1084,6 +1185,7 @@ export interface MemberChangeSummary {
     memberName?: string
     pendingCount: number
     latestChange?: string
+    identity?: MemberIdentity | null
 }
 
 export interface AcknowledgeRequest {
@@ -1096,10 +1198,14 @@ export interface MemberGroup {
     id: number
     stationId: string
     name?: string
+    color?: string | null
+    position?: number
 }
 
 export interface GroupRequest {
     name?: string
+    color?: string | null
+    position?: number
 }
 
 export interface GroupDetail {
@@ -1150,12 +1256,11 @@ export interface NewsEntry {
     title: string
     contentMarkdown: string
     contentHtml: string
-    authorId: number
-    authorAccountId?: number | null
+    author: MemberIdentity | null
     authorName: string
     publishedAt?: string
     createdAt?: string
-    roleIds: number[]
+    userTypes: string[]
     groupIds: number[]
     tagIds: number[]
     memberIds: number[]
@@ -1167,7 +1272,7 @@ export interface NewsRequest {
     title: string
     contentMarkdown: string
     contentHtml: string
-    roleIds: number[]
+    userTypes: string[]
     groupIds: number[]
     tagIds: number[]
     memberIds: number[]
@@ -1177,12 +1282,12 @@ export interface NewsComment {
     id: number
     newsId: number
     parentId: number | null
-    authorId: number
-    authorAccountId?: number | null
+    author: MemberIdentity | null
     authorName: string
     content: string
     deleted?: boolean
     createdAt: string
+    updatedAt?: string | null
 }
 
 export interface CommentRequest {
@@ -1245,6 +1350,7 @@ export interface ExchangeRequestEntry {
     createdAt: string
     updatedAt: string
     createdByName?: string | null
+    memberIdentity?: MemberIdentity | null
 }
 
 export interface ExchangeLogEntry {
@@ -1285,6 +1391,7 @@ export interface ProcurementEntry {
     notes: string
     requestedAt: string
     fulfilledAt?: string | null
+    memberIdentity?: MemberIdentity | null
 }
 
 export interface CreateProcurementRequest {
@@ -1300,6 +1407,9 @@ export interface UserTag {
     id: number
     stationId: string
     name: string
+    color?: string | null
+    visible?: boolean
+    position?: number
 }
 
 // -- Notifications --
@@ -1380,7 +1490,6 @@ export interface WaitingList {
     visibleFields: number[]
     testingGroupId?: number | null
     joinGroupId?: number | null
-    joinRoleId?: number | null
     attendanceThreshold: number
 }
 
@@ -1431,10 +1540,20 @@ export interface WaitingListEntryValue {
     value: string
 }
 
+export interface WaitingListEntryGuardian {
+    id: number
+    entryId: number
+    name: string
+    email: string
+    phone: string
+    position: number
+}
+
 export interface WaitingListEntryWithScore {
     entry: WaitingListEntry
     values: WaitingListEntryValue[]
     score: number
+    guardians: WaitingListEntryGuardian[]
 }
 
 export interface WaitingListWithCount {
@@ -1452,6 +1571,7 @@ export interface WaitingListPublicStatus {
     listName: string
     fields: WaitingListField[]
     values: WaitingListEntryValue[]
+    guardians: WaitingListEntryGuardian[]
 }
 
 export interface WaitingListInviteInfo {
@@ -1513,13 +1633,13 @@ export interface QuizQuestion {
     id: number
     catalogId: number
     categoryId: number | null
-    questionType: QuizQuestionTypeName
+    quizQuestionType: QuizQuestionTypeName
     title: string
     description: string
     imageUrl: string | null
     points: number
     autoPoints: boolean
-    config: string
+    config: Record<string, unknown>
     position: number
     createdAt: string
     updatedAt: string
@@ -1553,6 +1673,13 @@ export interface QuizTest {
     updatedAt: string
     restrictionMode?: string
     restricted?: boolean
+}
+
+export interface QuizAvailableTest {
+    test: QuizTest
+    attemptStatus: string | null
+    startedAt: string | null
+    submittedAt: string | null
 }
 
 export interface QuizTestSummary {
@@ -1627,6 +1754,8 @@ export interface QuizAttemptDetail {
     attempt: QuizTestAttempt
     questions: QuizTestAttemptQuestion[]
     answers: QuizTestAnswer[]
+    questionDetails?: QuizQuestion[] | null
+    memberIdentity?: MemberIdentity | null
 }
 
 export interface QuizCatalogExport {
@@ -1637,12 +1766,24 @@ export interface QuizCatalogExport {
     questions: QuizQuestion[]
 }
 
+// -- Member Identity --
+
+export interface MemberIdentity {
+    stationUid: string
+    memberUid: string
+    name?: string | null
+    stationName?: string | null
+    nameColor?: string | null
+    displayTag?: { name: string; color: string } | null
+}
+
 // -- Comments --
 
 export interface Comment {
     id: number
     parentId?: number | null
-    authorId: number
+    author: MemberIdentity | null
+    authorName: string
     content: string
     deleted?: boolean
     createdAt: string

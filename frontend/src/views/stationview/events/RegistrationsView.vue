@@ -75,11 +75,6 @@ function getStats(memberId: number): MemberRegistrationStats | undefined {
   return registrationStats.value.find(s => s.memberId === memberId)
 }
 
-function memberName(memberId: number): string {
-  const m = allMembers.value.find(m => m.id === memberId)
-  if (!m) return `#${memberId}`
-  return m.name && m.name.trim() ? m.name : m.email ?? `#${memberId}`
-}
 
 function formatDeadline(iso?: string | null): string {
   if (!iso) return ''
@@ -187,7 +182,7 @@ onMounted(loadData)
                   <tbody>
                     <tr v-for="reg in group.pending" :key="reg.id" class="border-b border-(--border) last:border-0">
                       <td class="p-2">
-                        <MemberName :name="memberName(reg.memberId)" :member-id="reg.memberId"/>
+                        <MemberName :identity="reg.memberIdentity ?? null"/>
                       </td>
                       <td class="p-2 text-center font-bold" :class="getStats(reg.memberId)?.priority === 'HIGH' ? 'text-error' : getStats(reg.memberId)?.priority === 'MEDIUM' ? 'text-info' : ''">
                         {{ getStats(reg.memberId)?.fairnessScore ?? '-' }}

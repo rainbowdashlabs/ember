@@ -42,8 +42,8 @@ public class UserTagService {
         return tagRepository.findByStation(stationId);
     }
 
-    public boolean update(int id, String name) {
-        return tagRepository.update(id, name);
+    public boolean update(int id, String name, String color, boolean visible, int position) {
+        return tagRepository.update(id, name, color, visible, position);
     }
 
     public boolean delete(int id) {

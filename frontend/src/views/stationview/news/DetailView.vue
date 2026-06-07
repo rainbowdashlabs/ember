@@ -100,7 +100,7 @@ watch(loading, (isLoading) => {
       <NeutralContainer v-if="entry" class="space-y-3">
         <div class="flex items-start justify-between gap-3">
           <div class="flex items-center gap-2">
-            <UserAvatar :member-id="entry.authorId" :name="entry.authorName" size="md"/>
+            <UserAvatar :identity="entry.author" :name="entry.author?.name ?? entry.authorName" size="md"/>
             <div>
               <SubHeader class="flex items-center gap-1">
                 {{ entry.title }}
@@ -108,7 +108,7 @@ watch(loading, (isLoading) => {
                                    class="ml-1 h-3 w-3 text-[var(--text-muted)]"/>
               </SubHeader>
               <p class="text-xs text-(--text-muted)">
-                {{ entry.authorName }} &middot; {{ formatDate(entry.publishedAt) }}
+                {{ entry.author?.name ?? entry.authorName }} &middot; {{ formatDate(entry.publishedAt) }}
               </p>
             </div>
           </div>

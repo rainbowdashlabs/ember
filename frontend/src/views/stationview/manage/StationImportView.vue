@@ -5,10 +5,19 @@
  */
 <script setup lang="ts">
 import {ref} from 'vue'
+import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import StationImportSection from './stationview/StationImportSection.vue'
 import TransferSection from './stationview/TransferSection.vue'
+import {StationPermission} from '@/api/types'
+import {useSession} from '@/composables/useSession'
+
+const {hasPermission} = useSession()
+const router = useRouter()
+if (!hasPermission(StationPermission.STATION_IMPORT_EXPORT)) {
+  router.replace({name: 'dashboard-overview'})
+}
 
 const error = ref('')
 const success = ref('')

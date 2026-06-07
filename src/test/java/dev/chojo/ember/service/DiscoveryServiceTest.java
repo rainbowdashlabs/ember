@@ -24,13 +24,14 @@ import static org.junit.jupiter.api.Assertions.*;
 class DiscoveryServiceTest extends RepositoryTestBase {
 
     private static FederationService federationService;
+    private static FederationRepository federationRepo;
     private static Station stationA;
     private static Station stationB;
     private static Station stationC;
 
     @BeforeAll
     static void setup() {
-        var federationRepo = new FederationRepository();
+        federationRepo = new FederationRepository();
         federationService = new FederationService(federationRepo, stationRepo, new Api());
 
         stationA = stationRepo.create("DiscTestStationA");
@@ -46,6 +47,9 @@ class DiscoveryServiceTest extends RepositoryTestBase {
 
     @AfterAll
     static void cleanup() {
+        for (var p : federationService.findPartners(stationA.id())) federationRepo.deletePartner(p.id());
+        for (var p : federationService.findPartners(stationB.id())) federationRepo.deletePartner(p.id());
+        for (var p : federationService.findPartners(stationC.id())) federationRepo.deletePartner(p.id());
         stationRepo.delete(stationA.id());
         stationRepo.delete(stationB.id());
         stationRepo.delete(stationC.id());
@@ -129,7 +133,7 @@ class DiscoveryServiceTest extends RepositoryTestBase {
         var partner = federationService.createPairRequest(stationA.id(), stationB.id());
         assertNotNull(partner);
         assertEquals(stationA.id(), partner.stationId());
-        assertEquals(stationB.id(), partner.partnerStationId());
+        assertEquals(stationB.uid(), partner.partnerStationId());
         assertEquals("PENDING", partner.status().name());
     }
 
@@ -156,12 +160,12 @@ class DiscoveryServiceTest extends RepositoryTestBase {
         // Both sides should have ACTIVE partners
         var partnersA = federationService.findPartners(stationA.id());
         assertTrue(partnersA.stream()
-                .anyMatch(p -> p.partnerStationId() == stationB.id()
+                .anyMatch(p -> p.partnerStationId().equals(stationB.uid())
                         && p.status().name().equals("ACTIVE")));
 
         var partnersB = federationService.findPartners(stationB.id());
         assertTrue(partnersB.stream()
-                .anyMatch(p -> p.partnerStationId() == stationA.id()
+                .anyMatch(p -> p.partnerStationId().equals(stationA.uid())
                         && p.status().name().equals("ACTIVE")));
     }
 

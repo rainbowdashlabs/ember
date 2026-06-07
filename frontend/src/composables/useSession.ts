@@ -6,7 +6,7 @@
 import {readonly, ref} from 'vue'
 import {session} from '@/api'
 import type {SessionInfo} from '@/api/types'
-import {Roles} from '@/api/types'
+import {StationPermission} from '@/api/types'
 import {useTheme} from '@/composables/useTheme'
 
 const sessionInfo = ref<SessionInfo | null>(null)
@@ -28,80 +28,172 @@ export function useSession() {
         loaded.value = false
     }
 
-    function hasRole(role: string): boolean {
-        return sessionInfo.value?.roles?.includes(role) ?? false
+    function hasPermission(permission: string): boolean {
+        return sessionInfo.value?.permissions?.includes(permission) ?? false
+    }
+
+    function userType(): string | undefined {
+        return sessionInfo.value?.userType
     }
 
     function isAdmin(): boolean {
-        return hasRole(Roles.ADMIN)
+        return sessionInfo.value?.instanceUserType === 'ADMINISTRATOR'
     }
 
     function isManager(): boolean {
-        return hasRole(Roles.MANAGER)
+        return hasPermission(StationPermission.STATION_ADMINISTRATOR)
+            || hasPermission(StationPermission.STATION_GENERAL)
+            || hasPermission(StationPermission.STATION_LOOK_AND_FEEL)
+            || hasPermission(StationPermission.STATION_MAIL)
+            || hasPermission(StationPermission.STATION_MODULES)
+            || hasPermission(StationPermission.STATION_IMPORT_EXPORT)
+            || hasPermission(StationPermission.STATION_STATISTICS)
     }
 
     function canManageMembers(): boolean {
-        return hasRole(Roles.MEMBER_MANAGER)
+        return hasPermission(StationPermission.MEMBER_MANAGER)
+    }
+
+    function hasAnyMemberPermission(): boolean {
+        return hasPermission(StationPermission.MEMBER_MANAGER)
+            || hasPermission(StationPermission.MEMBER_READ)
+            || hasPermission(StationPermission.MEMBER_EDIT)
+            || hasPermission(StationPermission.MEMBER_NOTES)
+            || hasPermission(StationPermission.MEMBER_CHANGES)
+            || hasPermission(StationPermission.MEMBER_MANAGE_GROUP)
+            || hasPermission(StationPermission.MEMBER_MANAGE_TAGS)
+            || hasPermission(StationPermission.MEMBER_FIELDS)
     }
 
     function canManageInventory(): boolean {
-        return hasRole(Roles.INVENTORY_MANAGER)
+        return hasPermission(StationPermission.INVENTORY_MANAGER)
+    }
+
+    function canManageExchanges(): boolean {
+        return hasPermission(StationPermission.INVENTORY_EXCHANGE)
     }
 
     function canManageAttendance(): boolean {
-        return hasRole(Roles.ATTENDANCE_MANAGER)
+        return hasPermission(StationPermission.ATTENDANCE_MANAGER)
+    }
+
+    function hasAnyAttendancePermission(): boolean {
+        return hasPermission(StationPermission.ATTENDANCE_MANAGER)
+            || hasPermission(StationPermission.ATTENDANCE_READ)
+            || hasPermission(StationPermission.ATTENDANCE_EDIT)
+            || hasPermission(StationPermission.ATTENDANCE_CONFIGURE)
+            || hasPermission(StationPermission.ATTENDANCE_EXPORT)
     }
 
     function canExportAttendance(): boolean {
-        return hasRole(Roles.ATTENDANCE_EXPORT_MANAGER)
+        return hasPermission(StationPermission.ATTENDANCE_EXPORT)
     }
 
     function canManageEvents(): boolean {
-        return hasRole(Roles.EVENT_MANAGER)
+        return hasPermission(StationPermission.EVENT_MANAGER)
+    }
+
+    function hasAnyEventPermission(): boolean {
+        return hasPermission(StationPermission.EVENT_MANAGER)
+            || hasPermission(StationPermission.EVENT_EDIT)
+            || hasPermission(StationPermission.EVENT_REGISTRATION)
+            || hasPermission(StationPermission.EVENT_MANAGE_TEMPLATE)
+            || hasPermission(StationPermission.EVENT_MANAGE_CATEGORY)
+            || hasPermission(StationPermission.EVENTS_FEDERATE)
     }
 
     function canManageNews(): boolean {
-        return hasRole(Roles.NEWS_MANAGER)
+        return hasPermission(StationPermission.NEWS_MANAGER)
+    }
+
+    function hasAnyNewsPermission(): boolean {
+        return hasPermission(StationPermission.NEWS_MANAGER)
+            || hasPermission(StationPermission.NEWS_EDIT)
+            || hasPermission(StationPermission.NEWS_FEDERATE)
     }
 
     function canManagePolls(): boolean {
-        return hasRole(Roles.POLL_MANAGER)
+        return hasPermission(StationPermission.POLL_MANAGER)
+    }
+
+    function hasAnyPollPermission(): boolean {
+        return hasPermission(StationPermission.POLL_MANAGER)
+            || hasPermission(StationPermission.POLL_CREATE)
+            || hasPermission(StationPermission.POLL_VIEW_RESULTS)
     }
 
     function isGuardian(): boolean {
-        return hasRole(Roles.GUARDIAN)
+        return hasPermission(StationPermission.MEMBER_GUARDIAN)
     }
 
     function canManageLostAndFound(): boolean {
-        return hasRole(Roles.LOST_AND_FOUND_MANAGER)
+        return hasPermission(StationPermission.LOST_AND_FOUND_MANAGER)
+    }
+
+    function hasAnyLostAndFoundPermission(): boolean {
+        return hasPermission(StationPermission.LOST_AND_FOUND_MANAGER)
+            || hasPermission(StationPermission.LOST_AND_FOUND_CREATE)
+            || hasPermission(StationPermission.LOST_AND_FOUND_MANAGE)
     }
 
     function canManageWaitlist(): boolean {
-        return hasRole(Roles.WAITLIST_MANAGER)
+        return hasPermission(StationPermission.WAITLIST_MANAGER)
+    }
+
+    function hasAnyWaitlistPermission(): boolean {
+        return hasPermission(StationPermission.WAITLIST_MANAGER)
+            || hasPermission(StationPermission.WAITLIST_READ)
+            || hasPermission(StationPermission.WAITLIST_ADD)
+            || hasPermission(StationPermission.WAITLIST_EDIT)
     }
 
     function canManageQuiz(): boolean {
-        return hasRole(Roles.QUIZ_MANAGER)
+        return hasPermission(StationPermission.TEST_MANAGER)
+    }
+
+    function hasAnyQuizPermission(): boolean {
+        return hasPermission(StationPermission.TEST_MANAGER)
+            || hasPermission(StationPermission.TEST_CATALOG_VIEW)
+            || hasPermission(StationPermission.TEST_CATALOG_EDIT)
+            || hasPermission(StationPermission.TEST_CONFIGURE)
+            || hasPermission(StationPermission.PROTOCOL_MANAGER)
+            || hasPermission(StationPermission.PROTOCOL_TESTER)
+            || hasPermission(StationPermission.PROTOCOL_CREATE)
+            || hasPermission(StationPermission.PROTOCOL_CONFIGURE)
     }
 
     function canManageKnowledge(): boolean {
-        return hasRole(Roles.KNOWLEDGE_MANAGER)
+        return hasPermission(StationPermission.KNOWLEDGE_MANAGER)
+    }
+
+    function canEditKnowledge(): boolean {
+        return hasPermission(StationPermission.KNOWLEDGE_EDIT)
+    }
+
+    function hasAnyKnowledgePermission(): boolean {
+        return hasPermission(StationPermission.KNOWLEDGE_MANAGER)
+            || hasPermission(StationPermission.KNOWLEDGE_EDIT)
+            || hasPermission(StationPermission.KNOWLEDGE_FEDERATE)
     }
 
     function canManageProtocol(): boolean {
-        return hasRole(Roles.PROTOCOL_MANAGER)
+        return hasPermission(StationPermission.PROTOCOL_MANAGER)
     }
 
     function canTestProtocol(): boolean {
-        return hasRole(Roles.PROTOCOL_TESTER)
+        return hasPermission(StationPermission.PROTOCOL_TESTER)
     }
 
     function isModuleEnabled(module: string): boolean {
         return !(sessionInfo.value?.disabledModules?.includes(module) ?? false)
     }
 
+    function canManageBoards(): boolean {
+        return hasPermission(StationPermission.BOARD_MANAGER)
+    }
+
     function canManageFederation(): boolean {
-        return hasRole(Roles.FEDERATION_MANAGER)
+        return hasPermission(StationPermission.STATION_FEDERATION)
     }
 
     function fullName(): string {
@@ -119,21 +211,34 @@ export function useSession() {
         loaded: readonly(loaded),
         load,
         clear,
-        hasRole,
+        hasPermission,
+        userType,
         isAdmin,
         isManager,
         canManageMembers,
+        hasAnyMemberPermission,
         canManageInventory,
+        canManageExchanges,
         canManageAttendance,
+        hasAnyAttendancePermission,
         canExportAttendance,
         canManageEvents,
+        hasAnyEventPermission,
         canManageNews,
+        hasAnyNewsPermission,
         canManagePolls,
+        hasAnyPollPermission,
         isGuardian,
         canManageLostAndFound,
+        hasAnyLostAndFoundPermission,
         canManageWaitlist,
+        hasAnyWaitlistPermission,
         canManageQuiz,
+        hasAnyQuizPermission,
         canManageKnowledge,
+        canEditKnowledge,
+        hasAnyKnowledgePermission,
+        canManageBoards,
         canManageFederation,
         canManageProtocol,
         canTestProtocol,

@@ -5,12 +5,17 @@
  */
 package dev.chojo.ember.feature.protocol.route;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.federation.service.FederatedContentService;
+import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.protocol.entity.TestProtocol;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolItem;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRun;
@@ -23,6 +28,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.InternalServerErrorResponse;
 import io.javalin.http.NotFoundResponse;
@@ -36,8 +42,10 @@ import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -49,8 +57,10 @@ public class TestProtocolRoutes implements Routes {
     private final TestProtocolService service;
     private final TestProtocolPdfService pdfService;
     private final StationMemberRepository stationMemberRepository;
+    private final MemberGroupRepository memberGroupRepository;
+    private final UserTagRepository userTagRepository;
     private final AccountRepository accountRepository;
-    private final FederatedContentService federatedContentService;
+    private final FederationRepository federationRepository;
     private final StationRepository stationRepository;
 
     @Inject
@@ -58,78 +68,110 @@ public class TestProtocolRoutes implements Routes {
             TestProtocolService service,
             TestProtocolPdfService pdfService,
             StationMemberRepository stationMemberRepository,
+            MemberGroupRepository memberGroupRepository,
+            UserTagRepository userTagRepository,
             AccountRepository accountRepository,
-            FederatedContentService federatedContentService,
+            FederationRepository federationRepository,
             StationRepository stationRepository) {
         this.service = service;
         this.pdfService = pdfService;
         this.stationMemberRepository = stationMemberRepository;
+        this.memberGroupRepository = memberGroupRepository;
+        this.userTagRepository = userTagRepository;
         this.accountRepository = accountRepository;
-        this.federatedContentService = federatedContentService;
+        this.federationRepository = federationRepository;
         this.stationRepository = stationRepository;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Protocol list (static paths first, before {id} params)
-        routes.get(prefix + "/protocols", this::listProtocols, Roles.PROTOCOL_MANAGER);
-        routes.post(prefix + "/protocols", this::createProtocol, Roles.PROTOCOL_MANAGER);
+        routes.get(prefix + "/protocols", this::listProtocols, StationPermission.PROTOCOL_TESTER);
+        routes.post(prefix + "/protocols", this::createProtocol, StationPermission.PROTOCOL_CONFIGURE);
 
         // Runs (static "runs" path must be registered before "/protocols/{id}")
-        routes.get(prefix + "/protocols/runs", this::listRuns, Roles.PROTOCOL_TESTER);
-        routes.get(prefix + "/protocols/runs/{id}", this::getRun, Roles.PROTOCOL_TESTER);
-        routes.put(prefix + "/protocols/runs/{id}", this::updateRun, Roles.PROTOCOL_MANAGER);
-        routes.delete(prefix + "/protocols/runs/{id}", this::deleteRun, Roles.PROTOCOL_MANAGER);
-        routes.post(prefix + "/protocols/runs/{id}/close", this::closeRun, Roles.PROTOCOL_MANAGER);
+        routes.get(prefix + "/protocols/runs", this::listRuns, StationPermission.PROTOCOL_TESTER);
+        routes.get(prefix + "/protocols/runs/{id}", this::getRun, StationPermission.PROTOCOL_TESTER);
+        routes.put(prefix + "/protocols/runs/{id}", this::updateRun, StationPermission.PROTOCOL_CREATE);
+        routes.delete(prefix + "/protocols/runs/{id}", this::deleteRun, StationPermission.PROTOCOL_MANAGER);
+        routes.post(prefix + "/protocols/runs/{id}/close", this::closeRun, StationPermission.PROTOCOL_CREATE);
 
         // Sections (static "sections" path before {id})
-        routes.put(prefix + "/protocols/sections/{id}", this::updateSection, Roles.PROTOCOL_MANAGER);
-        routes.delete(prefix + "/protocols/sections/{id}", this::deleteSection, Roles.PROTOCOL_MANAGER);
+        routes.put(prefix + "/protocols/sections/{id}", this::updateSection, StationPermission.PROTOCOL_CONFIGURE);
+        routes.delete(prefix + "/protocols/sections/{id}", this::deleteSection, StationPermission.PROTOCOL_CONFIGURE);
 
         // Items (static "items" path before {id})
-        routes.put(prefix + "/protocols/items/{id}", this::updateItem, Roles.PROTOCOL_MANAGER);
-        routes.delete(prefix + "/protocols/items/{id}", this::deleteItem, Roles.PROTOCOL_MANAGER);
+        routes.put(prefix + "/protocols/items/{id}", this::updateItem, StationPermission.PROTOCOL_CONFIGURE);
+        routes.delete(prefix + "/protocols/items/{id}", this::deleteItem, StationPermission.PROTOCOL_CONFIGURE);
 
         // Protocol CRUD with {id} param (after all static sub-paths)
-        routes.get(prefix + "/protocols/{id}", this::getProtocol, Roles.PROTOCOL_TESTER);
-        routes.put(prefix + "/protocols/{id}", this::updateProtocol, Roles.PROTOCOL_MANAGER);
-        routes.delete(prefix + "/protocols/{id}", this::deleteProtocol, Roles.PROTOCOL_MANAGER);
-        routes.post(prefix + "/protocols/{id}/sections", this::createSection, Roles.PROTOCOL_MANAGER);
-        routes.post(prefix + "/protocols/{id}/runs", this::createRun, Roles.PROTOCOL_MANAGER);
+        routes.get(prefix + "/protocols/{id}", this::getProtocol, StationPermission.PROTOCOL_TESTER);
+        routes.put(prefix + "/protocols/{id}", this::updateProtocol, StationPermission.PROTOCOL_CONFIGURE);
+        routes.delete(prefix + "/protocols/{id}", this::deleteProtocol, StationPermission.PROTOCOL_CONFIGURE);
+        routes.post(prefix + "/protocols/{id}/sections", this::createSection, StationPermission.PROTOCOL_CONFIGURE);
+        routes.post(prefix + "/protocols/{id}/runs", this::createRun, StationPermission.PROTOCOL_CREATE);
 
         // Section items (needs section {id})
-        routes.post(prefix + "/protocols/sections/{id}/items", this::createItem, Roles.PROTOCOL_MANAGER);
+        routes.post(prefix + "/protocols/sections/{id}/items", this::createItem, StationPermission.PROTOCOL_CONFIGURE);
         routes.get(
                 prefix + "/protocols/runs/{runId}/members/{memberId}/export",
                 this::exportMemberPdf,
-                Roles.PROTOCOL_TESTER);
-        routes.get(prefix + "/protocols/runs/{id}/evaluation", this::getEvaluation, Roles.PROTOCOL_TESTER);
-        routes.get(prefix + "/protocols/runs/{id}/evaluation/export", this::exportEvaluationPdf, Roles.PROTOCOL_TESTER);
-        routes.get(prefix + "/protocols/runs/{id}/export-all", this::exportAllZip, Roles.PROTOCOL_TESTER);
+                StationPermission.PROTOCOL_TESTER);
+        routes.get(prefix + "/protocols/runs/{id}/evaluation", this::getEvaluation, StationPermission.PROTOCOL_TESTER);
+        routes.get(
+                prefix + "/protocols/runs/{id}/evaluation/export",
+                this::exportEvaluationPdf,
+                StationPermission.PROTOCOL_TESTER);
+        routes.get(prefix + "/protocols/runs/{id}/export-all", this::exportAllZip, StationPermission.PROTOCOL_TESTER);
 
         // Grading
         routes.post(
-                prefix + "/protocols/runs/{runId}/members/{memberId}/lock", this::lockMember, Roles.PROTOCOL_TESTER);
+                prefix + "/protocols/runs/{runId}/members/{memberId}/lock",
+                this::lockMember,
+                StationPermission.PROTOCOL_TESTER);
         routes.post(
                 prefix + "/protocols/runs/{runId}/members/{memberId}/unlock",
                 this::unlockMember,
-                Roles.PROTOCOL_TESTER);
+                StationPermission.PROTOCOL_TESTER);
         routes.get(
-                prefix + "/protocols/runs/{runId}/members/{memberId}/checks", this::getChecks, Roles.PROTOCOL_TESTER);
+                prefix + "/protocols/runs/{runId}/members/{memberId}/checks",
+                this::getChecks,
+                StationPermission.PROTOCOL_TESTER);
         routes.put(
-                prefix + "/protocols/runs/{runId}/members/{memberId}/checks", this::saveChecks, Roles.PROTOCOL_TESTER);
+                prefix + "/protocols/runs/{runId}/members/{memberId}/checks",
+                this::saveChecks,
+                StationPermission.PROTOCOL_TESTER);
         routes.post(
                 prefix + "/protocols/runs/{runId}/members/{memberId}/complete",
                 this::completeMember,
-                Roles.PROTOCOL_TESTER);
+                StationPermission.PROTOCOL_TESTER);
         routes.get(
                 prefix + "/protocols/runs/{runId}/members/{memberId}/sections-done",
                 this::getSectionsDone,
-                Roles.PROTOCOL_TESTER);
+                StationPermission.PROTOCOL_TESTER);
         routes.post(
                 prefix + "/protocols/runs/{runId}/members/{memberId}/sections/{sectionId}/toggle-done",
                 this::toggleSectionDone,
-                Roles.PROTOCOL_TESTER);
+                StationPermission.PROTOCOL_TESTER);
+
+        // Federated (user-facing, bearer token auth)
+        routes.get(prefix + "/federated/protocols", this::federatedBrowseProtocols, StationPermission.USER);
+        routes.get(
+                prefix + "/federated/{stationuid}/protocols/{id}",
+                this::federatedGetProtocol,
+                StationPermission.PROTOCOL_MANAGER);
+        routes.post(
+                prefix + "/federated/protocols/{id}/copy",
+                this::federatedCopyProtocol,
+                StationPermission.PROTOCOL_MANAGER);
+        routes.post(
+                prefix + "/federated/{stationuid}/protocols/{id}/copy",
+                this::federatedCopyProtocol,
+                StationPermission.PROTOCOL_MANAGER);
+
+        // Remote (server-to-server, RSA signature auth)
+        routes.get(prefix + "/remote/protocols", this::remoteBrowseProtocols);
+        routes.get(prefix + "/remote/protocols/{id}", this::remoteGetProtocol);
     }
 
     // -- Protocol CRUD --
@@ -137,14 +179,15 @@ public class TestProtocolRoutes implements Routes {
     private void listProtocols(Context ctx) {
         var session = UserSession.from(ctx);
         var protocols = service.findProtocols(session.stationId());
-        var sharedItems = federatedContentService.browseSharedProtocols(session.stationId());
+        var sharedItems = service.browseSharedProtocols(session.stationId());
         var shared = sharedItems.stream()
                 .map(item -> {
                     String stationName = stationRepository
                             .findById(item.sourceStationId())
                             .map(Station::name)
                             .orElse("Unknown");
-                    return new SharedProtocolItem(item.protocol(), stationName, item.sourceStationId());
+                    return new SharedProtocolItem(
+                            item.id(), item.name(), item.description(), stationName, item.sourceStationId());
                 })
                 .toList();
         ctx.json(new ProtocolListResponse(protocols, shared));
@@ -152,7 +195,8 @@ public class TestProtocolRoutes implements Routes {
 
     private record ProtocolListResponse(List<TestProtocol> protocols, List<SharedProtocolItem> shared) {}
 
-    private record SharedProtocolItem(TestProtocol protocol, String stationName, int sourceStationId) {}
+    private record SharedProtocolItem(
+            int id, String name, String description, String stationName, int sourceStationId) {}
 
     private void createProtocol(Context ctx) {
         var session = UserSession.from(ctx);
@@ -275,9 +319,30 @@ public class TestProtocolRoutes implements Routes {
                 req.name(),
                 req.testDate() != null ? req.testDate() : LocalDate.now(),
                 session.member().id());
-        // Add members
+        // Collect members from all sources, deduplicated
+        var resolvedIds = new LinkedHashSet<Integer>();
         if (req.memberIds() != null) {
-            service.addRunMembers(run.id(), req.memberIds());
+            resolvedIds.addAll(req.memberIds());
+        }
+        if (req.userTypes() != null) {
+            for (String userType : req.userTypes()) {
+                stationMemberRepository
+                        .findByStationAndUserType(session.stationId(), StationUserType.valueOf(userType))
+                        .forEach(m -> resolvedIds.add(m.id()));
+            }
+        }
+        if (req.groupIds() != null) {
+            for (int groupId : req.groupIds()) {
+                memberGroupRepository.findMembers(groupId).forEach(m -> resolvedIds.add(m.id()));
+            }
+        }
+        if (req.tagIds() != null) {
+            for (int tagId : req.tagIds()) {
+                userTagRepository.findMembers(tagId).forEach(m -> resolvedIds.add(m.id()));
+            }
+        }
+        if (!resolvedIds.isEmpty()) {
+            service.addRunMembers(run.id(), new ArrayList<>(resolvedIds));
         }
         ctx.status(HttpStatus.CREATED).json(run);
     }
@@ -509,7 +574,13 @@ public class TestProtocolRoutes implements Routes {
 
     public record ItemRequest(String label, String description, Double points, Integer position) {}
 
-    public record RunRequest(String name, LocalDate testDate, List<Integer> memberIds) {}
+    public record RunRequest(
+            String name,
+            LocalDate testDate,
+            List<Integer> memberIds,
+            List<String> userTypes,
+            List<Integer> groupIds,
+            List<Integer> tagIds) {}
 
     public record ChecksRequest(Map<Integer, Boolean> checks) {}
 
@@ -529,4 +600,74 @@ public class TestProtocolRoutes implements Routes {
             Map<Integer, Double> sectionMaxPoints,
             List<EvalMemberData> members,
             Integer passThreshold) {}
+
+    // -- Federated endpoints (user-facing, aggregates from partners) --
+
+    private void federatedBrowseProtocols(Context ctx) {
+        var session = UserSession.from(ctx);
+        var items = service.browseSharedProtocols(session.stationId());
+        ctx.json(items.stream()
+                .map(i -> {
+                    String stationName = stationRepository
+                            .findById(i.sourceStationId())
+                            .map(Station::name)
+                            .orElse("Unknown");
+                    return new SharedProtocolItem(i.id(), i.name(), i.description(), stationName, i.sourceStationId());
+                })
+                .toList());
+    }
+
+    private void federatedGetProtocol(Context ctx) {
+        var session = UserSession.from(ctx);
+        var stationUid = UUID.fromString(ctx.pathParam("stationuid"));
+        int protocolId = ctx.pathParamAsClass("id", Integer.class).get();
+        ctx.json(service.getFederatedProtocol(session.stationId(), stationUid, protocolId));
+    }
+
+    private void federatedCopyProtocol(Context ctx) {
+        var session = UserSession.from(ctx);
+        int protocolId = ctx.pathParamAsClass("id", Integer.class).get();
+        var copied = service.copyProtocol(protocolId, session.stationId());
+        ctx.status(HttpStatus.CREATED).json(copied);
+    }
+
+    // -- Remote endpoints (server-to-server, RSA signature auth) --
+
+    private void remoteBrowseProtocols(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        var shares = federationRepository.findProtocolShares(partner.stationId());
+        var result = shares.stream()
+                .filter(s -> s.protocolId() != null)
+                .flatMap(s -> service.findProtocol(s.protocolId()).stream())
+                .filter(proto -> proto.stationId() == partner.stationId())
+                .map(proto -> Map.<String, Object>of(
+                        "id", proto.id(),
+                        "name", proto.name(),
+                        "description", proto.description(),
+                        "updatedAt", proto.updatedAt().toString()))
+                .toList();
+        ctx.json(result);
+    }
+
+    private void remoteGetProtocol(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int protocolId = ctx.pathParamAsClass("id", Integer.class).get();
+        var protocol = service.findProtocol(protocolId).orElseThrow(NotFoundResponse::new);
+        if (protocol.stationId() != partner.stationId()) {
+            throw new ForbiddenResponse("Protocol not shared with this partner");
+        }
+        var sections = service.findSections(protocolId);
+        var items = service.findAllItemsByProtocol(protocolId);
+        ctx.json(Map.of("protocol", protocol, "sections", sections, "items", items));
+    }
+
+    // -- Federation helpers --
+
+    private FederationPartner requireFederationPartner(Context ctx) {
+        var session = FederationSession.from(ctx);
+        if (session == null) {
+            throw new ForbiddenResponse("Missing or invalid federation signature");
+        }
+        return session.partner();
+    }
 }

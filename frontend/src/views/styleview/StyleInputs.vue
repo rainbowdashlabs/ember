@@ -111,7 +111,7 @@ const radioValue = ref('a')
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div class="space-y-1">
         <FieldLabel>Select</FieldLabel>
-        <SelectInput v-model="selectValue">
+        <SelectInput v-model="selectValue" class="w-full">
           <option value="option1">Option 1</option>
           <option value="option2">Option 2</option>
           <option value="option3">Option 3</option>
@@ -119,7 +119,7 @@ const radioValue = ref('a')
       </div>
       <div class="space-y-1">
         <FieldLabel>Select (disabled)</FieldLabel>
-        <SelectInput disabled>
+        <SelectInput disabled class="w-full">
           <option>Disabled</option>
         </SelectInput>
       </div>

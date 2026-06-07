@@ -13,6 +13,7 @@ const {t} = useI18n()
 defineProps<{
   checkMode: boolean
   uncheckedCount: number
+  readonly?: boolean
 }>()
 
 defineEmits<{
@@ -28,7 +29,7 @@ defineEmits<{
     <SecondaryButton :icon="['fas', 'chevron-left']" @click="$emit('back')">
       {{ t('attendanceSession.back') }}
     </SecondaryButton>
-    <div class="grid grid-cols-2 sm:flex sm:items-center gap-2">
+    <div v-if="!readonly" class="grid grid-cols-2 sm:flex sm:items-center gap-2">
       <SecondaryButton :icon="['fas', 'download']" @click="$emit('export')">
         {{ t('attendanceSession.export') }}
       </SecondaryButton>

@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
@@ -57,16 +57,17 @@ public class ProfileFieldRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        // Field definitions (station config) — requires MEMBER_MANAGER
-        routes.get(prefix + "/profile-fields", this::list, Roles.USER);
-        routes.post(prefix + "/profile-fields", this::create, Roles.MEMBER_MANAGER);
-        routes.get(prefix + "/profile-fields/{id}", this::get, Roles.USER);
-        routes.put(prefix + "/profile-fields/{id}", this::update, Roles.MEMBER_MANAGER);
-        routes.delete(prefix + "/profile-fields/{id}", this::delete, Roles.MEMBER_MANAGER);
+        // Field definitions (station config)
+        routes.get(prefix + "/profile-fields", this::list, StationPermission.USER);
+        routes.post(prefix + "/profile-fields", this::create, StationPermission.MEMBER_FIELDS);
+        routes.get(prefix + "/profile-fields/{id}", this::get, StationPermission.USER);
+        routes.put(prefix + "/profile-fields/{id}", this::update, StationPermission.MEMBER_FIELDS);
+        routes.delete(prefix + "/profile-fields/{id}", this::delete, StationPermission.MEMBER_FIELDS);
 
         // Field values per member — MEMBER or TEAM can read/write own, MEMBER_MANAGER for any
-        routes.get(prefix + "/station-members/{memberId}/profile", this::getValues, Roles.USER);
-        routes.put(prefix + "/station-members/{memberId}/profile", this::setValues, Roles.USER);
+        routes.get(prefix + "/station-members/{memberId}/fields", this::getApplicableFields, StationPermission.USER);
+        routes.get(prefix + "/station-members/{memberId}/profile", this::getValues, StationPermission.USER);
+        routes.put(prefix + "/station-members/{memberId}/profile", this::setValues, StationPermission.USER);
     }
 
     @OpenApi(
@@ -101,7 +102,7 @@ public class ProfileFieldRoutes implements Routes {
                         session.stationId(),
                         request.name(),
                         request.fieldType(),
-                        request.config(),
+                        request.parsedConfig(),
                         request.position(),
                         request.scope()));
     }
@@ -145,7 +146,7 @@ public class ProfileFieldRoutes implements Routes {
                         id,
                         request.name(),
                         request.fieldType(),
-                        request.config(),
+                        request.parsedConfig(),
                         request.position(),
                         request.keepOnArchive() != null ? request.keepOnArchive() : false)
                 .ifPresentOrElse(ctx::json, () -> {
@@ -175,6 +176,18 @@ public class ProfileFieldRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/station-members/{memberId}/fields",
+            methods = HttpMethod.GET,
+            summary = "Get applicable profile field definitions for a member based on their user type",
+            tags = {"Profile Fields"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProfileField[].class)))
+    private void getApplicableFields(Context ctx) {
+        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        ctx.json(profileFieldService.findApplicableFields(memberId));
+    }
+
+    @OpenApi(
             path = "/api/v1/station-members/{memberId}/profile",
             methods = HttpMethod.GET,
             summary = "Get profile field values for a member",
@@ -199,7 +212,7 @@ public class ProfileFieldRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
         var request = ctx.bodyAsClass(SetValuesRequest.class);
-        boolean canEditReadonly = session.hasRole(Roles.MEMBER_MANAGER);
+        boolean canEditReadonly = session.hasPermission(StationPermission.MEMBER_EDIT);
 
         List<FieldValueEntry> entries = request.values() != null
                 ? request.values().stream()
@@ -224,10 +237,15 @@ public class ProfileFieldRoutes implements Routes {
     public record ProfileFieldRequest(
             String name,
             ProfileFieldType fieldType,
-            ProfileFieldConfig config,
+            String config,
             int position,
             ProfileFieldScope scope,
-            Boolean keepOnArchive) {}
+            Boolean keepOnArchive) {
+
+        public ProfileFieldConfig parsedConfig() {
+            return ProfileFieldConfig.parse(config);
+        }
+    }
 
     public record SetValuesRequest(List<FieldValueEntry> values) {}
 }

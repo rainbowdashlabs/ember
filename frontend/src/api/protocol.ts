@@ -83,7 +83,9 @@ export interface RunDetailResponse {
 }
 
 export interface SharedProtocolEntry {
-    protocol: TestProtocol
+    id: number
+    name: string
+    description: string | null
     stationName: string
     sourceStationId: string
 }
@@ -156,7 +158,7 @@ export async function listRuns(): Promise<TestProtocolRun[]> {
     return res.data
 }
 
-export async function createRun(protocolId: number, data: { name: string; testDate?: string; memberIds?: number[] }): Promise<TestProtocolRun> {
+export async function createRun(protocolId: number, data: { name: string; testDate?: string; memberIds?: number[]; userTypes?: string[]; groupIds?: number[]; tagIds?: number[] }): Promise<TestProtocolRun> {
     const res = await client.post<TestProtocolRun>(`/protocols/${protocolId}/runs`, data)
     return res.data
 }

@@ -8,10 +8,12 @@ package dev.chojo.ember;
 import com.google.inject.Guice;
 import de.chojo.sadu.queries.api.configuration.QueryConfiguration;
 import dev.chojo.ember.api.ApiServer;
+import dev.chojo.ember.api.roles.InstanceUserType;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.board.service.DueDateReminderChecker;
 import dev.chojo.ember.feature.events.service.RegistrationDeadlineChecker;
 import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -43,7 +45,7 @@ public class Bootstrapper {
             PasswordHasher passwordHasher,
             StationRepository stationRepository,
             StationMemberRepository stationMemberRepository) {
-        if (accountRepository.anyAccountHasRole("ADMIN")) {
+        if (accountRepository.anyAdministratorExists()) {
             return;
         }
 
@@ -54,7 +56,7 @@ public class Bootstrapper {
         int accountId = account.id();
         accountRepository.createCredential(accountId, hash);
         accountRepository.setForcePasswordChange(accountId, true);
-        accountRepository.addAccountRole(accountId, "ADMIN");
+        accountRepository.setInstanceUserType(accountId, InstanceUserType.ADMINISTRATOR);
 
         var station = stationRepository.create("default");
         stationMemberRepository.create(station.id(), accountId);
@@ -86,6 +88,8 @@ public class Bootstrapper {
         injector.getInstance(DomainEventBus.class);
         // Start registration deadline checker (daemon thread)
         injector.getInstance(RegistrationDeadlineChecker.class);
+        // Start board due date reminder checker (daemon thread)
+        injector.getInstance(DueDateReminderChecker.class);
 
         // Initialize data directory from templates if empty
         injector.getInstance(DataInitializer.class).initialize();

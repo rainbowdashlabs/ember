@@ -14,6 +14,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
@@ -39,7 +40,7 @@ const {t} = useI18n()
     <NeutralContainer>
       <div class="space-y-3">
         <TextInput model-value="Zufriedenheitsumfrage" disabled />
-        <TextInput model-value="Wie gefällt dir unsere Jugendfeuerwehr?" disabled />
+        <TextAreaInput model-value="Wie gefällt dir unsere Jugendfeuerwehr?" disabled />
         <div class="grid grid-cols-2 gap-4">
           <div>
             <FieldLabel hint class="mb-1">{{ t('forms.startAt') }}</FieldLabel>
@@ -58,6 +59,10 @@ const {t} = useI18n()
           <FieldLabel inline class="opacity-60">
             <ToggleInput :model-value="true" disabled />
             {{ t('forms.allowEdit') }}
+          </FieldLabel>
+          <FieldLabel inline class="opacity-60">
+            <ToggleInput :model-value="false" disabled />
+            {{ t('forms.forced') }}
           </FieldLabel>
         </div>
       </div>
@@ -211,6 +216,7 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.formsBuilder.restrictionsTitle')">
       <p>{{ t('helpCenter.formsBuilder.restrictionsText') }}</p>
+      <p>{{ t('helpCenter.formsBuilder.restrictionsMemberText') }}</p>
     </HelpSection>
 
     <!-- Dummy: Restrictions -->

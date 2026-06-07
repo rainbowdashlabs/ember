@@ -7,7 +7,7 @@ package dev.chojo.ember.service;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
-import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
 import dev.chojo.ember.feature.legal.service.GdprExportService;
@@ -100,9 +100,11 @@ class GdprExportServiceTest extends RepositoryTestBase {
                 null,
                 false,
                 null,
+                null,
+                null,
+                null,
                 null);
-        eventRepo.createRegistration(
-                event.id(), member.id(), LocalDate.now(), EventRegistration.RegistrationStatus.ACCEPTED, null);
+        eventRepo.createRegistration(event.id(), member.id(), LocalDate.now(), RegistrationStatus.ACCEPTED, null);
 
         // Create absence
         attendanceRepo.createAbsence(
@@ -231,7 +233,8 @@ class GdprExportServiceTest extends RepositoryTestBase {
                 "stationId",
                 "former",
                 "stationName",
-                "roles",
+                "userType",
+                "permissions",
                 "profileFields",
                 "groups",
                 "tags",

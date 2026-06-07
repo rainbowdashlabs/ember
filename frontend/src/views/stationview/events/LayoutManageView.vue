@@ -19,7 +19,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import EventFieldEditor from '@/components/input/EventFieldEditor.vue'
-import type {AttendanceTemplateField, EventFieldEntry, EventLayout} from '@/api/types'
+import type {AttendanceTemplateField, EventFieldEntry, EventLayout, LayoutFieldEntry} from '@/api/types'
 import {attendance, events} from '@/api'
 import {useSession} from '@/composables/useSession'
 
@@ -79,7 +79,7 @@ async function openEdit(layout: EventLayout) {
   editFields.value = fields.map(f => ({
     name: f.name,
     fieldType: f.fieldType,
-    config: f.config,
+    config: f.config ? JSON.parse(f.config) : {},
     overview: f.overview,
     attendanceFieldId: f.attendanceFieldId ?? null,
   }))
@@ -87,7 +87,7 @@ async function openEdit(layout: EventLayout) {
 }
 
 function addField() {
-  editFields.value.push({name: '', fieldType: 'string', config: '{}', overview: false, attendanceFieldId: null})
+  editFields.value.push({name: '', fieldType: 'STRING', config: {}, overview: false, attendanceFieldId: null})
 }
 
 function removeField(index: number) {
@@ -105,10 +105,10 @@ async function saveLayout() {
       const created = await events.createLayout({name: editName.value})
       layoutId = created.id
     }
-    const fieldEntries = editFields.value.filter(f => f.name.trim()).map(f => ({
+    const fieldEntries: LayoutFieldEntry[] = editFields.value.filter(f => f.name.trim()).map(f => ({
       name: f.name,
       fieldType: f.fieldType,
-      config: f.config,
+      config: f.config ?? undefined,
       overview: f.overview,
       attendanceFieldId: f.attendanceFieldId,
     }))

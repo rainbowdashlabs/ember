@@ -13,17 +13,26 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import ThemeSelector from '@/components/theme/ThemeSelector.vue'
 
 const {t} = useI18n()
 
 const dummyEmailEnabled = ref(true)
-const dummyNotifyNews = ref(true)
-const dummyNotifyEvents = ref(false)
-const dummyNotifyEventStatus = ref(true)
 </script>
 
 <template>
   <HelpArticle :title="t('helpCenter.settings.title')" :subtitle="t('helpCenter.settings.subtitle')">
+    <!-- Theme section -->
+    <HelpSection :title="t('helpCenter.settings.themeTitle')">
+      <p>{{ t('helpCenter.settings.themeText') }}</p>
+    </HelpSection>
+
+    <NeutralContainer class="space-y-4">
+      <SubHeader>{{ t('theme.title') }}</SubHeader>
+      <ThemeSelector :show-themes="true" :show-feel="true"/>
+      <p class="text-sm text-(--text-muted)">{{ t('theme.controlledByStation') }}</p>
+    </NeutralContainer>
+
     <HelpSection :title="t('helpCenter.settings.emailTitle')">
       <p>{{ t('helpCenter.settings.emailText') }}</p>
     </HelpSection>
@@ -60,29 +69,94 @@ const dummyNotifyEventStatus = ref(true)
         <SubHeader class="text-sm pt-2">{{ t('userSettings.notifications') }}</SubHeader>
         <p class="text-xs text-(--text-muted)">{{ t('userSettings.notificationsHint') }}</p>
 
+        <!-- Header row -->
+        <div class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center text-xs font-semibold text-(--text-muted) border-b border-(--border) pb-2">
+          <span></span>
+          <span class="w-12 text-center">{{ t('userSettings.columnApp') }}</span>
+          <span class="w-12 text-center">{{ t('userSettings.columnEmail') }}</span>
+          <span class="w-12 text-center">{{ t('userSettings.columnFeed') }}</span>
+        </div>
+
+        <!-- All 8 notification type rows -->
         <div class="space-y-3">
-          <div class="flex items-center justify-between">
+          <div class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center py-1">
             <div>
               <span class="text-sm font-medium">{{ t('userSettings.notifyNews') }}</span>
               <p class="text-xs text-(--text-muted)">{{ t('userSettings.notifyNewsHint') }}</p>
             </div>
-            <ToggleInput v-model="dummyNotifyNews"/>
+            <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
+            <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
+            <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
           </div>
 
-          <div class="flex items-center justify-between">
+          <div class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center py-1">
             <div>
-              <span class="text-sm font-medium">{{ t('userSettings.notifyNewEvents') }}</span>
-              <p class="text-xs text-(--text-muted)">{{ t('userSettings.notifyNewEventsHint') }}</p>
+              <span class="text-sm font-medium">{{ t('userSettings.notifyComments') }}</span>
+              <p class="text-xs text-(--text-muted)">{{ t('userSettings.notifyCommentsHint') }}</p>
             </div>
-            <ToggleInput v-model="dummyNotifyEvents"/>
+            <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
+            <div class="w-12 flex justify-center"><ToggleInput :model-value="false" disabled/></div>
+            <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
           </div>
 
-          <div class="flex items-center justify-between">
+          <div class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center py-1">
+            <div>
+              <span class="text-sm font-medium">{{ t('userSettings.notifyEvents') }}</span>
+              <p class="text-xs text-(--text-muted)">{{ t('userSettings.notifyEventsHint') }}</p>
+            </div>
+            <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
+            <div class="w-12 flex justify-center"><ToggleInput :model-value="false" disabled/></div>
+            <div class="w-12 flex justify-center"><ToggleInput :model-value="false" disabled/></div>
+          </div>
+
+          <div class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center py-1">
             <div>
               <span class="text-sm font-medium">{{ t('userSettings.notifyEventStatus') }}</span>
               <p class="text-xs text-(--text-muted)">{{ t('userSettings.notifyEventStatusHint') }}</p>
             </div>
-            <ToggleInput v-model="dummyNotifyEventStatus"/>
+            <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
+            <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
+            <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
+          </div>
+
+          <div class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center py-1">
+            <div>
+              <span class="text-sm font-medium">{{ t('userSettings.notifyExchanges') }}</span>
+              <p class="text-xs text-(--text-muted)">{{ t('userSettings.notifyExchangesHint') }}</p>
+            </div>
+            <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
+            <div class="w-12 flex justify-center"><ToggleInput :model-value="false" disabled/></div>
+            <div class="w-12 flex justify-center"><ToggleInput :model-value="false" disabled/></div>
+          </div>
+
+          <div class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center py-1">
+            <div>
+              <span class="text-sm font-medium">{{ t('userSettings.notifyGroups') }}</span>
+              <p class="text-xs text-(--text-muted)">{{ t('userSettings.notifyGroupsHint') }}</p>
+            </div>
+            <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
+            <div class="w-12 flex justify-center"><ToggleInput :model-value="false" disabled/></div>
+            <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
+          </div>
+
+          <div class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center py-1">
+            <div>
+              <span class="text-sm font-medium">{{ t('userSettings.notifyProfile') }}</span>
+              <p class="text-xs text-(--text-muted)">{{ t('userSettings.notifyProfileHint') }}</p>
+            </div>
+            <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
+            <div class="w-12 flex justify-center"><ToggleInput :model-value="false" disabled/></div>
+            <div class="w-12 flex justify-center"><ToggleInput :model-value="false" disabled/></div>
+          </div>
+
+          <div class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center py-1">
+            <div>
+              <span class="text-sm font-medium">{{ t('userSettings.notifyProcurement') }}</span>
+              <p class="text-xs text-(--text-muted)">{{ t('userSettings.notifyProcurementHint') }}</p>
+            </div>
+            <div class="w-12 flex justify-center"><ToggleInput :model-value="false" disabled/></div>
+            <div class="w-12 flex justify-center"><ToggleInput :model-value="false" disabled/></div>
+            <div class="w-12 flex justify-center"><ToggleInput :model-value="false" disabled/></div>
           </div>
         </div>
       </template>
@@ -91,8 +165,13 @@ const dummyNotifyEventStatus = ref(true)
     <HelpSection :title="t('helpCenter.settings.typesTitle')">
       <p>{{ t('helpCenter.settings.typesText') }}</p>
       <p>{{ t('helpCenter.settings.typeNews') }}</p>
+      <p>{{ t('helpCenter.settings.typeComments') }}</p>
       <p>{{ t('helpCenter.settings.typeEvents') }}</p>
       <p>{{ t('helpCenter.settings.typeEventChanges') }}</p>
+      <p>{{ t('helpCenter.settings.typeExchanges') }}</p>
+      <p>{{ t('helpCenter.settings.typeGroups') }}</p>
+      <p>{{ t('helpCenter.settings.typeProfile') }}</p>
+      <p>{{ t('helpCenter.settings.typeProcurement') }}</p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.settings.tip') }}</HelpTip>

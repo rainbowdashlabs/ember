@@ -25,13 +25,8 @@ export function useSessionFields(
     fieldValues.value = new Map([...fieldValues.value, [fieldId, val]])
   }
 
-  function parseFieldConfig(configStr?: string): { options?: string[]; groupId?: number; autoAttend?: boolean } {
-    if (!configStr) return {}
-    try {
-      return JSON.parse(configStr)
-    } catch {
-      return {}
-    }
+  function parseFieldConfig(config?: Record<string, unknown>): { options?: string[]; groupId?: number; autoAttend?: boolean } {
+    return (config ?? {}) as { options?: string[]; groupId?: number; autoAttend?: boolean }
   }
 
   async function saveField(fieldId: number) {

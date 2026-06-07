@@ -60,7 +60,7 @@ public class ProblemReportRepository {
     }
 
     public int acknowledgeAll() {
-        return (int) Query.query("UPDATE problem_report SET acknowledged = TRUE WHERE acknowledged = FALSE;")
+        return Query.query("UPDATE problem_report SET acknowledged = TRUE WHERE acknowledged = FALSE;")
                 .single(Call.of())
                 .update()
                 .rows();

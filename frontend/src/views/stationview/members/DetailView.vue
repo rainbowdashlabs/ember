@@ -17,15 +17,17 @@ import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
+import TabBar from '@/components/navigation/TabBar.vue'
 import ChangeHistory from './detailview/ChangeHistory.vue'
 import ManagerSection from './detailview/ManagerSection.vue'
 import InventorySection from './detailview/InventorySection.vue'
+import AbsencesTab from './detailview/AbsencesTab.vue'
 import DetailModals from './detailview/DetailModals.vue'
 import type { ProfileField, ProfileFieldChange, StationMember, Inventory, InventoryItem } from '@/api/types'
-import { Roles, hasTeamRole, ExchangeStatus, StationModules } from '@/api/types'
+import { StationPermission, StationUserType, ExchangeStatus, StationModules } from '@/api/types'
 import type { MyInventoryItem } from '@/api/inventory'
 import type { ExchangeRequestEntry } from '@/api/types'
-import { profileFields, profileFieldChanges, stationMembers, members, inventory, exchanges } from '@/api'
+import { profileFields, profileFieldChanges, stationMembers, members, inventory, exchanges, memberGroups, userTags } from '@/api'
 import { useSession } from '@/composables/useSession'
 import NoteEditor from '@/components/comment/NoteEditor.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -34,25 +36,30 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
-const { sessionInfo, canManageMembers, isGuardian, canManageInventory, isModuleEnabled } = useSession()
+const { sessionInfo, hasPermission, canManageMembers, isGuardian, canManageInventory, isModuleEnabled } = useSession()
+const canEdit = computed(() => hasPermission(StationPermission.MEMBER_EDIT))
 const inventoryEnabled = computed(() => isModuleEnabled(StationModules.INVENTORY))
-const showInventoryManagement = computed(() => inventoryEnabled.value && canManageInventory())
+const canReadInventory = computed(() => inventoryEnabled.value && hasPermission(StationPermission.INVENTORY_READ))
+const showInventoryManagement = computed(() => canReadInventory.value && canManageInventory())
 
 const memberId = computed(() => Number(route.params.id))
 const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
-const showChangeHistory = computed(() => canManageMembers() || isGuardian())
+const showChangeHistory = computed(() => hasPermission(StationPermission.MEMBER_CHANGES) || isGuardian())
 
 const member = ref<StationMember | null>(null)
 const fields = ref<ProfileField[]>([])
 const values = ref<Map<number, string>>(new Map())
-const memberRoles = ref<string[]>([])
+const memberUserType = ref<string>('')
 const managers = ref<StationMember[]>([])
 const managerValues = ref<Map<number, Map<number, string>>>(new Map())
-const managerRoles = ref<Map<number, string[]>>(new Map())
+const managerUserTypes = ref<Map<number, string>>(new Map())
 const allMembers = ref<StationMember[]>([])
 const changes = ref<ProfileFieldChange[]>([])
 const memberInventory = ref<MyInventoryItem[]>([])
 const memberExchanges = ref<ExchangeRequestEntry[]>([])
+const memberPermissions = ref<import('@/api/types').PermissionGrant[]>([])
+const memberGroupList = ref<import('@/api/types').MemberGroup[]>([])
+const memberTagList = ref<import('@/api/types').UserTag[]>([])
 const loading = ref(true)
 const error = ref('')
 const formerSuccess = ref(false)
@@ -65,17 +72,39 @@ const inventories = ref<Inventory[]>([])
 const assignItems = ref<InventoryItem[]>([])
 const exchangeSizes = ref<import('@/api/types').InventorySize[]>([])
 
+const activeTab = ref('profile')
+
+const tabs = computed(() => {
+  const t_ = [
+    { key: 'profile', label: t('memberDetail.tabProfile') },
+    { key: 'permissions', label: t('memberDetail.tabPermissions') },
+    { key: 'guardians', label: t('memberDetail.tabGuardians') },
+  ]
+  if (canEdit.value) {
+    t_.push({ key: 'absences', label: t('memberDetail.tabAbsences') })
+  }
+  if (canReadInventory.value) {
+    t_.push({ key: 'inventory', label: t('memberDetail.tabInventory') })
+  }
+  if (hasPermission(StationPermission.MEMBER_NOTES)) {
+    t_.push({ key: 'notes', label: t('memberDetail.tabNotes') })
+  }
+  return t_
+})
+
 const modalsRef = ref<InstanceType<typeof DetailModals> | null>(null)
 
+function getScopeForUserType(ut: string): string {
+  if (ut === StationUserType.MEMBER || ut === StationUserType.TRIAL) return 'MEMBER'
+  if (ut === StationUserType.GUARDIAN) return 'GUARDIAN'
+  if (ut === StationUserType.TEAM) return 'TEAM'
+  if (ut === StationUserType.MANAGER) return 'MANAGER'
+  return 'MEMBER'
+}
+
 const applicableFields = computed(() => {
-  const scopes: string[] = []
-  if (memberRoles.value.includes(Roles.MEMBER)) scopes.push(Roles.MEMBER)
-  if (hasTeamRole(memberRoles.value)) scopes.push(Roles.TEAM)
-  if (memberRoles.value.includes(Roles.GUARDIAN)) scopes.push(Roles.GUARDIAN)
-  return fields.value.filter(f => {
-    if (f.scope === 'GROUP') return false
-    return scopes.includes(f.scope ?? Roles.MEMBER)
-  })
+  const scope = getScopeForUserType(memberUserType.value)
+  return fields.value.filter(f => f.scope === scope)
 })
 
 const availableManagers = computed(() => {
@@ -87,16 +116,25 @@ const availableManagers = computed(() => {
 })
 
 const showManagerSection = computed(() =>
-  memberRoles.value.includes(Roles.MEMBER) && !memberRoles.value.includes(Roles.GUARDIAN) && !hasTeamRole(memberRoles.value)
+  memberUserType.value === StationUserType.MEMBER || memberUserType.value === StationUserType.TRIAL
 )
+
+// Convert managerUserTypes (Map<number, string>) to Map<number, string[]> for ManagerSection compatibility
+const managerUserTypesAsRoleMap = computed(() => {
+  const result = new Map<number, string[]>()
+  for (const [id, ut] of managerUserTypes.value) {
+    result.set(id, ut ? [ut] : [])
+  }
+  return result
+})
 
 const formerBlockReasons = computed(() => {
   const reasons: string[] = []
   if (memberInventory.value.length > 0) {
     reasons.push(t('memberDetail.formerBlockInventory', { count: memberInventory.value.length }))
   }
-  const forbidden = [Roles.GUARDIAN, Roles.MANAGER, Roles.ADMIN]
-  if (memberRoles.value.some(r => forbidden.includes(r as any))) {
+  const forbidden = [StationUserType.GUARDIAN, StationUserType.MANAGER]
+  if (forbidden.includes(memberUserType.value as any)) {
     reasons.push(t('memberDetail.formerBlockRole'))
   }
   return reasons
@@ -120,52 +158,52 @@ function getManagerFieldValue(mgrId: number, fieldId: number): unknown {
 }
 
 function getManagerFields(mgrId: number): ProfileField[] {
-  const roles = managerRoles.value.get(mgrId) ?? []
-  const scopes: string[] = []
-  if (roles.includes(Roles.MEMBER)) scopes.push(Roles.MEMBER)
-  if (hasTeamRole(roles)) scopes.push(Roles.TEAM)
-  if (roles.includes(Roles.GUARDIAN)) scopes.push(Roles.GUARDIAN)
-  return fields.value.filter(f => {
-    if (f.scope === 'GROUP') return false
-    return scopes.includes(f.scope ?? Roles.MEMBER)
-  })
+  const ut = managerUserTypes.value.get(mgrId) ?? ''
+  const scope = getScopeForUserType(ut)
+  return fields.value.filter(f => f.scope === scope)
 }
 
 async function loadManagerDetails(mgrs: StationMember[]) {
   const mgrVals = new Map<number, Map<number, string>>()
-  const mgrRoles = new Map<number, string[]>()
+  const mgrTypes = new Map<number, string>()
   for (const mgr of mgrs) {
     try {
-      const [vals, roles] = await Promise.all([
+      const [vals, memberData] = await Promise.all([
         profileFields.getValues(mgr.id),
-        stationMembers.getRoles(mgr.id),
+        stationMembers.getMember(mgr.id),
       ])
       const fieldMap = new Map<number, string>()
       for (const v of vals) { fieldMap.set(v.fieldId, v.value ?? '') }
       mgrVals.set(mgr.id, fieldMap)
-      mgrRoles.set(mgr.id, roles.map(r => r.role))
+      mgrTypes.set(mgr.id, (memberData as any).userType ?? '')
     } catch { /* skip */ }
   }
   managerValues.value = mgrVals
-  managerRoles.value = mgrRoles
+  managerUserTypes.value = mgrTypes
 }
 
 async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [allFields, allMems, roles, profileValues, mgrs] = await Promise.all([
+    const [allFields, allMems, memberData, profileValues, mgrs, perms, mGroups, mTags] = await Promise.all([
       profileFields.listFields(),
       stationMembers.listMembers(),
-      stationMembers.getRoles(memberId.value),
+      stationMembers.getMember(memberId.value),
       profileFields.getValues(memberId.value),
       stationMembers.getManagers(memberId.value),
+      stationMembers.getPermissions(memberId.value),
+      memberGroups.getMemberGroups(memberId.value),
+      userTags.getMemberTags(memberId.value),
     ])
     fields.value = allFields
     allMembers.value = allMems
     member.value = allMems.find(m => m.id === memberId.value) ?? null
-    memberRoles.value = roles.map(r => r.role)
+    memberUserType.value = (memberData as any).userType ?? ''
     managers.value = mgrs
+    memberPermissions.value = perms
+    memberGroupList.value = mGroups
+    memberTagList.value = mTags
     const map = new Map<number, string>()
     for (const v of profileValues) { map.set(v.fieldId, v.value ?? '') }
     values.value = map
@@ -173,11 +211,13 @@ async function loadData() {
     if (showChangeHistory.value) {
       try { changes.value = await profileFieldChanges.getChanges(memberId.value) } catch { /* ignore */ }
     }
-    try { memberInventory.value = await inventory.memberItems(memberId.value) } catch { memberInventory.value = [] }
-    try {
-      const allExch = await exchanges.listExchanges()
-      memberExchanges.value = allExch.filter(e => e.memberId === memberId.value && e.status !== ExchangeStatus.EXCHANGED)
-    } catch { memberExchanges.value = [] }
+    if (canReadInventory.value) {
+      try { memberInventory.value = await inventory.memberItems(memberId.value) } catch { memberInventory.value = [] }
+      try {
+        const allExch = await exchanges.listExchanges()
+        memberExchanges.value = allExch.filter(e => e.memberId === memberId.value && e.status !== ExchangeStatus.EXCHANGED)
+      } catch { memberExchanges.value = [] }
+    }
   } catch {
     error.value = t('common.error')
   } finally {
@@ -213,10 +253,7 @@ async function handleCreateManager(data: { firstName: string; lastName: string; 
     if (newMember) {
       const currentIds = managers.value.map(m => m.id)
       await stationMembers.setManagers(memberId.value, { managerIds: [...currentIds, newMember.id] })
-      const allRoles = await stationMembers.listAllRoles()
-      const mgrRoleNames: readonly string[] = [Roles.LOGIN, Roles.GUARDIAN]
-      const mgrRoleIds = allRoles.filter(r => mgrRoleNames.includes(r.role)).map(r => r.id)
-      await stationMembers.setRoles(newMember.id, { roleIds: mgrRoleIds })
+      // New managers get GUARDIAN user type set by backend on invite
       managers.value = await stationMembers.getManagers(memberId.value)
       await loadManagerDetails(managers.value)
       allMembers.value = updatedMembers
@@ -311,7 +348,7 @@ onMounted(loadData)
         <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: 'members-list' })">
           {{ t('memberDetail.back') }}
         </SecondaryButton>
-        <div class="flex items-center gap-2">
+        <div v-if="canEdit" class="flex items-center gap-2">
           <ErrorButton :icon="['fas', 'user-slash']" v-if="canManageMembers() && !formerSuccess && !deleteSuccess" @click="modalsRef?.openFormerModal()">
             {{ t('memberDetail.markFormer') }}
           </ErrorButton>
@@ -331,58 +368,102 @@ onMounted(loadData)
         <SectionHeader>{{ memberDisplayName(member) }}</SectionHeader>
         <p v-if="member.email" class="text-sm text-(--text-muted)">{{ member.email }}</p>
 
-        <!-- Profile fields -->
-        <NeutralContainer class="space-y-3">
-          <SubHeader class="text-sm">{{ t('memberDetail.fields') }}</SubHeader>
-          <MutedText tag="div" size="sm" class="py-2" v-if="applicableFields.length === 0">
-            {{ t('memberDetail.noFields') }}
-          </MutedText>
-          <div class="grid gap-2 sm:grid-cols-2">
-            <div v-for="field in applicableFields" :key="field.id" class="text-sm">
-              <span class="text-(--text-muted)">{{ field.name }}:</span>
-              <span class="ml-1 font-medium"><FieldValueDisplay :value="getFieldValue(field.id)" :field-type="field.fieldType"/></span>
+        <TabBar v-model="activeTab" :tabs="tabs" />
+
+        <!-- Profile tab -->
+        <template v-if="activeTab === 'profile'">
+          <NeutralContainer class="space-y-3">
+            <SubHeader class="text-sm">{{ t('memberDetail.fields') }}</SubHeader>
+            <MutedText tag="div" size="sm" class="py-2" v-if="applicableFields.length === 0">
+              {{ t('memberDetail.noFields') }}
+            </MutedText>
+            <div class="grid gap-2 sm:grid-cols-2">
+              <div v-for="field in applicableFields" :key="field.id" class="text-sm">
+                <span class="text-(--text-muted)">{{ field.name }}:</span>
+                <span class="ml-1 font-medium"><FieldValueDisplay :value="getFieldValue(field.id)" :field-type="field.fieldType"/></span>
+              </div>
             </div>
-          </div>
+          </NeutralContainer>
+          <ChangeHistory
+            v-if="showChangeHistory"
+            :member-id="memberId"
+            :changes="changes"
+            :current-member-id="currentMemberId"
+            @reload="loadChanges"
+          />
+        </template>
+
+        <!-- Permissions tab -->
+        <template v-if="activeTab === 'permissions'">
+          <NeutralContainer class="space-y-3">
+            <SubHeader class="text-sm">{{ t('memberDetail.userType') }}</SubHeader>
+            <span class="text-sm font-medium">{{ t('memberEdit.userType' + memberUserType.charAt(0).toUpperCase() + memberUserType.slice(1).toLowerCase()) }}</span>
+          </NeutralContainer>
+          <NeutralContainer v-if="memberPermissions.length > 0" class="space-y-3">
+            <SubHeader class="text-sm">{{ t('memberDetail.permissions') }}</SubHeader>
+            <div class="flex flex-wrap gap-2">
+              <span v-for="p in memberPermissions" :key="p.id" class="text-xs rounded-full bg-primary/10 text-primary px-3 py-1">{{ t(`permissions.${p.permission}.label`) }}</span>
+            </div>
+          </NeutralContainer>
+          <NeutralContainer v-if="memberGroupList.length > 0" class="space-y-3">
+            <SubHeader class="text-sm">{{ t('memberDetail.groups') }}</SubHeader>
+            <div class="flex flex-wrap gap-2">
+              <span v-for="g in memberGroupList" :key="g.id" class="text-xs rounded-full bg-secondary/10 text-secondary px-3 py-1">{{ g.name }}</span>
+            </div>
+          </NeutralContainer>
+          <NeutralContainer v-if="memberTagList.length > 0" class="space-y-3">
+            <SubHeader class="text-sm">{{ t('memberDetail.tags') }}</SubHeader>
+            <div class="flex flex-wrap gap-2">
+              <span v-for="tag in memberTagList" :key="tag.id" class="text-xs rounded-full bg-info/10 text-info px-3 py-1">{{ tag.name }}</span>
+            </div>
+          </NeutralContainer>
+        </template>
+
+        <!-- Guardians tab -->
+        <template v-if="activeTab === 'guardians'">
+          <ManagerSection
+            v-if="showManagerSection"
+            :managers="managers"
+            :available-managers="availableManagers"
+            :manager-values="managerValues"
+            :manager-roles="managerUserTypesAsRoleMap"
+            :fields="fields"
+            :readonly="!canEdit"
+            :member-display-name-fn="memberDisplayName"
+            :get-manager-fields-fn="getManagerFields"
+            :get-manager-field-value-fn="getManagerFieldValue"
+            @link-manager="handleLinkManager"
+            @remove-manager="handleRemoveManager"
+            @create-manager="handleCreateManager"
+            @edit-manager="(id) => router.push({ name: 'members-edit', params: { id } })"
+          />
+          <NeutralContainer v-else class="space-y-3">
+            <MutedText tag="div" size="sm">{{ t('memberDetail.noGuardians') }}</MutedText>
+          </NeutralContainer>
+        </template>
+
+        <!-- Inventory tab -->
+        <!-- Absences tab -->
+        <AbsencesTab v-if="activeTab === 'absences'" :member-id="memberId" />
+
+        <template v-if="activeTab === 'inventory'">
+          <InventorySection
+            v-if="memberInventory.length > 0 || showInventoryManagement"
+            :member-inventory="memberInventory"
+            :member-exchanges="memberExchanges"
+            :show-inventory-management="showInventoryManagement && canEdit"
+            :can-manage-inventory="canManageInventory() && canEdit"
+            @assign-item="modalsRef?.openAssignModal()"
+            @request-exchange="modalsRef?.openExchangeModal($event)"
+            @unassign="handleUnassignItem"
+            @reassign="modalsRef?.openReassignModal($event)"
+          />
+        </template>
+
+        <!-- Notes tab -->
+        <NeutralContainer v-if="activeTab === 'notes'">
+          <NoteEditor :entity-type="'MEMBER'" :entity-id="memberId"/>
         </NeutralContainer>
-
-        <!-- Managers -->
-        <ManagerSection
-          v-if="showManagerSection"
-          :managers="managers"
-          :available-managers="availableManagers"
-          :manager-values="managerValues"
-          :manager-roles="managerRoles"
-          :fields="fields"
-          :member-display-name-fn="memberDisplayName"
-          :get-manager-fields-fn="getManagerFields"
-          :get-manager-field-value-fn="getManagerFieldValue"
-          @link-manager="handleLinkManager"
-          @remove-manager="handleRemoveManager"
-          @create-manager="handleCreateManager"
-          @edit-manager="(id) => router.push({ name: 'members-edit', params: { id } })"
-        />
-
-        <!-- Inventory -->
-        <InventorySection
-          v-if="inventoryEnabled && (memberInventory.length > 0 || showInventoryManagement)"
-          :member-inventory="memberInventory"
-          :member-exchanges="memberExchanges"
-          :show-inventory-management="showInventoryManagement"
-          :can-manage-inventory="canManageInventory()"
-          @assign-item="modalsRef?.openAssignModal()"
-          @request-exchange="modalsRef?.openExchangeModal($event)"
-          @unassign="handleUnassignItem"
-          @reassign="modalsRef?.openReassignModal($event)"
-        />
-
-        <!-- Change History -->
-        <ChangeHistory
-          v-if="showChangeHistory"
-          :member-id="memberId"
-          :changes="changes"
-          :current-member-id="currentMemberId"
-          @reload="loadChanges"
-        />
       </template>
 
       <Alert v-if="formerSuccess" variant="success">{{ t('memberDetail.formerSuccess') }}</Alert>
@@ -410,10 +491,6 @@ onMounted(loadData)
         @load-exchange-sizes="handleLoadExchangeSizes"
         @load-inventories="handleLoadInventories"
       />
-      <!-- Manager Notes -->
-      <NeutralContainer v-if="canManageMembers()">
-        <NoteEditor :entity-type="'MEMBER'" :entity-id="memberId"/>
-      </NeutralContainer>
     </div>
   </ViewContent>
 </template>

@@ -134,19 +134,19 @@ class EventTemplateServiceTest extends RepositoryTestBase {
     @Test
     @Order(20)
     void setAndFindRestrictions() {
-        service.setRestrictions(templateId, List.of(1, 2, 3));
+        service.setRestrictions(templateId, List.of("MEMBER", "TEAM", "MANAGER"));
         var restrictions = service.findRestrictions(templateId);
         assertEquals(3, restrictions.size());
-        assertTrue(restrictions.containsAll(List.of(1, 2, 3)));
+        assertTrue(restrictions.containsAll(List.of("MEMBER", "TEAM", "MANAGER")));
     }
 
     @Test
     @Order(21)
     void setRestrictionsReplaces() {
-        service.setRestrictions(templateId, List.of(5));
+        service.setRestrictions(templateId, List.of("GUARDIAN"));
         var restrictions = service.findRestrictions(templateId);
         assertEquals(1, restrictions.size());
-        assertEquals(5, restrictions.getFirst());
+        assertEquals("GUARDIAN", restrictions.getFirst());
     }
 
     @Test
@@ -155,6 +155,31 @@ class EventTemplateServiceTest extends RepositoryTestBase {
         service.setRestrictions(templateId, List.of());
         var restrictions = service.findRestrictions(templateId);
         assertTrue(restrictions.isEmpty());
+    }
+
+    @Test
+    @Order(30)
+    void setAndFindReminders() {
+        service.setReminders(templateId, List.of(1, 3, 7));
+        var days = service.findReminderDays(templateId);
+        assertEquals(3, days.size());
+        assertEquals(List.of(1, 3, 7), days);
+    }
+
+    @Test
+    @Order(31)
+    void setRemindersReplaces() {
+        service.setReminders(templateId, List.of(2));
+        var days = service.findReminderDays(templateId);
+        assertEquals(1, days.size());
+        assertEquals(2, days.getFirst());
+    }
+
+    @Test
+    @Order(32)
+    void setRemindersEmpty() {
+        service.setReminders(templateId, List.of());
+        assertTrue(service.findReminderDays(templateId).isEmpty());
     }
 
     @Test

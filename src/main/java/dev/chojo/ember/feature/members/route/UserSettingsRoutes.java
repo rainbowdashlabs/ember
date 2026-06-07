@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.members.route;
 
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.members.service.UserSettingsService;
 import dev.chojo.ember.feature.notifications.entity.NotificationSetting;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -43,8 +43,8 @@ public class UserSettingsRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/settings", this::getSettings, Roles.LOGIN);
-        routes.put(prefix + "/settings", this::updateSettings, Roles.LOGIN);
+        routes.get(prefix + "/settings", this::getSettings, StationPermission.LOGIN);
+        routes.put(prefix + "/settings", this::updateSettings, StationPermission.LOGIN);
     }
 
     @OpenApi(

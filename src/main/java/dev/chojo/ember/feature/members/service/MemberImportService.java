@@ -5,7 +5,8 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
@@ -130,10 +131,15 @@ public class MemberImportService {
         var parsed = parseCsv(csv, separator);
         var profileFields = profileFieldRepository.findByStation(stationId);
         var groups = new ArrayList<>(memberGroupRepository.findByStation(stationId));
-        var loginRole = stationMemberRepository.findRoleByName(Roles.LOGIN).orElseThrow();
-        var memberRole = stationMemberRepository.findRoleByName(Roles.MEMBER).orElseThrow();
-        var memberManagerRole =
-                stationMemberRepository.findRoleByName(Roles.GUARDIAN).orElseThrow();
+        var loginRole = stationMemberRepository
+                .findPermissionByName(StationPermission.LOGIN)
+                .orElseThrow();
+        var memberRole = stationMemberRepository
+                .findPermissionByName(StationPermission.USER)
+                .orElseThrow();
+        var guardianRole = stationMemberRepository
+                .findPermissionByName(StationPermission.MEMBER_GUARDIAN)
+                .orElseThrow();
         var warnings = new ArrayList<String>();
         var managerCache = new HashMap<String, StationMember>();
         int membersCreated = 0, managersCreated = 0, managersLinked = 0, groupsAssigned = 0, profileFieldsSet = 0;
@@ -154,8 +160,9 @@ public class MemberImportService {
             var account = accountRepository.create(email, mapped.firstName(), mapped.lastName(), true);
             accountRepository.createCredential(account.id(), passwordHasher.hash(generatePassword()));
             var member = stationMemberRepository.create(stationId, account.id());
-            stationMemberRepository.addRole(member.id(), loginRole.id());
-            stationMemberRepository.addRole(member.id(), memberRole.id());
+            stationMemberRepository.setUserType(member.id(), StationUserType.MEMBER);
+            stationMemberRepository.grantPermission(member.id(), loginRole.id());
+            stationMemberRepository.grantPermission(member.id(), memberRole.id());
             membersCreated++;
 
             // Group
@@ -210,8 +217,9 @@ public class MemberImportService {
                         var mgrAccount = accountRepository.create(mgrEmail, mgrFirst, mgrLast, true);
                         accountRepository.createCredential(mgrAccount.id(), passwordHasher.hash(generatePassword()));
                         manager = stationMemberRepository.create(stationId, mgrAccount.id());
-                        stationMemberRepository.addRole(manager.id(), loginRole.id());
-                        stationMemberRepository.addRole(manager.id(), memberManagerRole.id());
+                        stationMemberRepository.setUserType(manager.id(), StationUserType.GUARDIAN);
+                        stationMemberRepository.grantPermission(manager.id(), loginRole.id());
+                        stationMemberRepository.grantPermission(manager.id(), guardianRole.id());
                         managersCreated++;
 
                         if (!contact.phone().isBlank()) {
@@ -249,8 +257,9 @@ public class MemberImportService {
         var parsed = parseCsv(csv, separator);
         var profileFields = profileFieldRepository.findByStation(stationId);
         var groups = new ArrayList<>(memberGroupRepository.findByStation(stationId));
-        var loginRole = stationMemberRepository.findRoleByName(Roles.LOGIN).orElseThrow();
-        var teamRole = stationMemberRepository.findRoleByName(Roles.TEAM).orElseThrow();
+        var loginRole = stationMemberRepository
+                .findPermissionByName(StationPermission.LOGIN)
+                .orElseThrow();
         var warnings = new ArrayList<String>();
         int membersCreated = 0, groupsAssigned = 0, profileFieldsSet = 0;
 
@@ -270,8 +279,8 @@ public class MemberImportService {
             var account = accountRepository.create(email, mapped.firstName(), mapped.lastName(), true);
             accountRepository.createCredential(account.id(), passwordHasher.hash(generatePassword()));
             var member = stationMemberRepository.create(stationId, account.id());
-            stationMemberRepository.addRole(member.id(), loginRole.id());
-            stationMemberRepository.addRole(member.id(), teamRole.id());
+            stationMemberRepository.setUserType(member.id(), StationUserType.TEAM);
+            stationMemberRepository.grantPermission(member.id(), loginRole.id());
             membersCreated++;
 
             // Group

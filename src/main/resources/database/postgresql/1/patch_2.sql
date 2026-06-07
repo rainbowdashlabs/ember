@@ -199,7 +199,8 @@ CREATE TABLE ember_schema.quiz_test_answer
     answer       JSONB        NOT NULL DEFAULT '{}'::jsonb,
     points       INT,
     graded       BOOLEAN      NOT NULL DEFAULT FALSE,
-    position     INT          NOT NULL DEFAULT 0
+    position     INT          NOT NULL DEFAULT 0,
+    UNIQUE (attempt_id, question_id)
 );
 
 CREATE TABLE ember_schema.quiz_test_attempt_question

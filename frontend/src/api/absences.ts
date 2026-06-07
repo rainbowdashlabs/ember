@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import type {MemberIdentity} from '@/api/types'
 
 export interface MemberAbsence {
     id: number
@@ -13,6 +14,7 @@ export interface MemberAbsence {
     reason?: string
     createdAt?: string
     createdByName?: string | null
+    memberIdentity?: MemberIdentity | null
 }
 
 export async function listMyAbsences(): Promise<MemberAbsence[]> {
@@ -32,4 +34,23 @@ export async function createAbsence(data: {
 
 export async function deleteAbsence(id: number): Promise<void> {
     await client.delete(`/profile/absences/${id}`)
+}
+
+export async function listMemberAbsences(memberId: number): Promise<MemberAbsence[]> {
+    const res = await client.get<MemberAbsence[]>(`/attendance/absences/member/${memberId}`)
+    return res.data
+}
+
+export async function createMemberAbsence(data: {
+    memberId: number;
+    absentFrom: string;
+    absentUntil: string;
+    reason?: string;
+}): Promise<MemberAbsence> {
+    const res = await client.post<MemberAbsence>('/attendance/absences', data)
+    return res.data
+}
+
+export async function deleteMemberAbsence(id: number): Promise<void> {
+    await client.delete(`/attendance/absences/${id}`)
 }

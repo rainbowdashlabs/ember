@@ -21,7 +21,7 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import type {MemberCheckSummary} from '@/api/types'
-import {Roles, hasTeamRole} from '@/api/types'
+import {StationUserType} from '@/api/types'
 import {inventoryCheck} from '@/api'
 import {useSession} from '@/composables/useSession'
 import MemberName from '@/components/avatar/MemberName.vue'
@@ -37,19 +37,19 @@ const {sessionInfo} = useSession()
 const members = ref<MemberCheckSummary[]>([])
 const loading = ref(true)
 const error = ref('')
-const activeTab = ref<'team' | 'member'>('team')
+const activeTab = ref<'team' | 'member'>('member')
 const sortBy = ref<'name' | 'lastChecked'>('name')
 
 const currentMemberId = () => sessionInfo.value?.member?.id
 
 const filteredMembers = computed(() => {
   return members.value.filter(m => {
-    const roles = m.roles ?? []
-    if (roles.includes(Roles.GUARDIAN)) return false
+    const ut = m.userType ?? ''
+    if (ut === StationUserType.GUARDIAN) return false
     if (activeTab.value === 'team') {
-      return hasTeamRole(roles)
+      return ut === StationUserType.TEAM || ut === StationUserType.MANAGER
     } else {
-      return roles.includes(Roles.MEMBER) && !hasTeamRole(roles)
+      return ut === StationUserType.MEMBER
     }
   }).sort((a, b) => {
     if (sortBy.value === 'lastChecked') {
@@ -162,7 +162,7 @@ onMounted(loadData)
                 v-for="member in filteredMembers"
                 :key="member.memberId"
             >
-              <Td class="font-medium"><MemberName :name="memberName(member)" :member-id="member.memberId"/></Td>
+              <Td class="font-medium"><MemberName :identity="member.identity"/></Td>
               <Td muted>{{ formatDate(member.lastCheckedAt) }}</Td>
               <Td muted>{{ checkerName(member) }}</Td>
               <Td>
@@ -206,7 +206,7 @@ onMounted(loadData)
               class="space-y-2"
           >
             <div class="flex items-center justify-between gap-2">
-              <div class="font-medium truncate"><MemberName :name="memberName(member)" :member-id="member.memberId"/></div>
+              <div class="font-medium truncate"><MemberName :identity="member.identity"/></div>
               <div>
                 <ErrorBadge v-if="isLockedByOther(member)">
                   {{ t('inventory.check.locked') }}: {{ lockerName(member) }}

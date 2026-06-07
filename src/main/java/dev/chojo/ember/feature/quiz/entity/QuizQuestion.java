@@ -18,30 +18,25 @@ public record QuizQuestion(
         int id,
         int catalogId,
         Integer categoryId,
-        QuestionType questionType,
+        QuizQuestionType quizQuestionType,
         String title,
         String description,
         String imageUrl,
         double points,
         boolean autoPoints,
         QuestionConfig config,
-        String configRaw,
         int position,
         Instant createdAt,
         Instant updatedAt) {
 
     private static final ObjectMapper MAPPER = JsonMapper.builder().build();
 
-    public String configString() {
-        return configRaw != null ? configRaw : "{}";
-    }
-
     /**
      * Returns the config as a JsonNode (for legacy code that still uses raw JSON).
      */
     public JsonNode configNode() {
         try {
-            return configRaw != null ? MAPPER.readTree(configRaw) : MAPPER.createObjectNode();
+            return MAPPER.valueToTree(config);
         } catch (Exception e) {
             return MAPPER.createObjectNode();
         }
@@ -49,7 +44,7 @@ public record QuizQuestion(
 
     public static RowMapping<QuizQuestion> map() {
         return row -> {
-            var type = row.getEnum("question_type", QuestionType.class);
+            var type = row.getEnum("question_type", QuizQuestionType.class);
             String raw = row.getString("config");
             var config = type.parseConfig(raw != null ? raw : "{}");
             return new QuizQuestion(
@@ -63,7 +58,6 @@ public record QuizQuestion(
                     row.getDouble("points"),
                     row.getBoolean("auto_points"),
                     config,
-                    raw,
                     row.getInt("position"),
                     row.get("created_at", INSTANT_TIMESTAMP),
                     row.get("updated_at", INSTANT_TIMESTAMP));

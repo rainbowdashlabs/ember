@@ -10,23 +10,26 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpRoleToggle from '@/components/helpcenter/HelpRoleToggle.vue'
-import type {HelpRole} from '@/components/helpcenter/HelpRoleToggle.vue'
+import type {HelpPerspective} from '@/components/helpcenter/HelpRoleToggle.vue'
+import {StationPermission} from '@/api/types'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ErrorButton from '@/components/button/ErrorButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import MutedIcon from '@/components/display/MutedIcon.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import BulletList from '@/components/typography/BulletList.vue'
 
 const {t} = useI18n()
 
-const roles: HelpRole[] = [
-  {key: 'member', label: t('helpCenter.roles.member')},
-  {key: 'manager', label: t('helpCenter.roles.manager')},
+const perspectives: HelpPerspective[] = [
+  {key: 'member', label: t('helpCenter.roles.member'), permissions: [StationPermission.USER]},
+  {key: 'manager', label: t('helpCenter.roles.manager'), permissions: [StationPermission.POLL_MANAGER]},
 ]
-const activeRole = ref('')
+const activeView = ref('')
 </script>
 
 <template>
@@ -35,13 +38,13 @@ const activeRole = ref('')
       <p>{{ t('helpCenter.forms.whatIsText') }}</p>
     </HelpSection>
 
-    <HelpRoleToggle v-model="activeRole" :roles="roles"/>
+    <HelpRoleToggle v-model="activeView" :perspectives="perspectives"/>
 
     <!-- Dummy: Form list -->
     <div class="space-y-3">
       <div class="flex items-center justify-between">
         <SubHeader>{{ t('forms.title') }}</SubHeader>
-        <PrimaryButton :icon="['fas', 'plus']" v-if="activeRole === 'manager'">
+        <PrimaryButton :icon="['fas', 'plus']" v-if="activeView === 'manager'">
           {{ t('forms.create') }}
         </PrimaryButton>
       </div>
@@ -49,23 +52,39 @@ const activeRole = ref('')
       <NeutralContainer>
         <div class="flex items-center justify-between">
           <div class="space-y-1">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
               <span class="font-medium">Zufriedenheitsumfrage</span>
+              <MutedIcon v-if="activeView === 'manager'" :icon="['fas', 'lock']" class="ml-1"/>
               <SuccessBadge>{{ t('forms.statusOpen') }}</SuccessBadge>
             </div>
             <p class="text-xs text-(--text-muted)">Wie gefällt dir unsere Jugendfeuerwehr?</p>
           </div>
           <div class="flex gap-2">
-            <PrimaryButton v-if="activeRole === 'member'">{{ t('forms.fillForm') }}</PrimaryButton>
-            <template v-if="activeRole === 'manager'">
+            <PrimaryButton v-if="activeView === 'member'">{{ t('forms.fillForm') }}</PrimaryButton>
+            <template v-if="activeView === 'manager'">
               <SecondaryButton>{{ t('forms.viewAnalytics') }}</SecondaryButton>
               <SecondaryButton>{{ t('forms.close') }}</SecondaryButton>
+              <ErrorButton>{{ t('forms.delete') }}</ErrorButton>
             </template>
           </div>
         </div>
       </NeutralContainer>
 
-      <NeutralContainer>
+      <!-- Member: already answered form -->
+      <NeutralContainer v-if="activeView === 'member'">
+        <div class="flex items-center justify-between">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <span class="font-medium">Feedback Übungsabend</span>
+              <SuccessBadge>{{ t('forms.statusOpen') }}</SuccessBadge>
+            </div>
+            <p class="text-xs text-(--text-muted)">Rückmeldung zum letzten Übungsabend</p>
+          </div>
+          <SecondaryButton>{{ t('forms.editResponse') }}</SecondaryButton>
+        </div>
+      </NeutralContainer>
+
+      <NeutralContainer v-if="activeView === 'manager'">
         <div class="flex items-center justify-between">
           <div class="space-y-1">
             <div class="flex items-center gap-2">
@@ -74,11 +93,14 @@ const activeRole = ref('')
             </div>
             <p class="text-xs text-(--text-muted)">Rückmeldung zum letzten Übungsabend</p>
           </div>
-          <SecondaryButton v-if="activeRole === 'manager'">{{ t('forms.viewAnalytics') }}</SecondaryButton>
+          <div class="flex gap-2">
+            <SecondaryButton>{{ t('forms.viewAnalytics') }}</SecondaryButton>
+            <ErrorButton>{{ t('forms.delete') }}</ErrorButton>
+          </div>
         </div>
       </NeutralContainer>
 
-      <NeutralContainer v-if="activeRole === 'manager'">
+      <NeutralContainer v-if="activeView === 'manager'">
         <div class="flex items-center justify-between">
           <div class="space-y-1">
             <div class="flex items-center gap-2">
@@ -89,6 +111,7 @@ const activeRole = ref('')
           <div class="flex gap-2">
             <SecondaryButton>{{ t('forms.publish') }}</SecondaryButton>
             <SecondaryButton>{{ t('forms.edit') }}</SecondaryButton>
+            <ErrorButton>{{ t('forms.delete') }}</ErrorButton>
           </div>
         </div>
       </NeutralContainer>
@@ -111,7 +134,7 @@ const activeRole = ref('')
       </BulletList>
     </HelpSection>
 
-    <template v-if="activeRole === 'manager'">
+    <template v-if="activeView === 'manager'">
       <HelpSection :title="t('helpCenter.forms.managerTitle')">
         <p>{{ t('helpCenter.forms.managerText') }}</p>
       </HelpSection>

@@ -110,7 +110,7 @@ async function loadData() {
       sharedCatalogs.value = []
     } else {
       catalogs.value = response.catalogs ?? []
-      sharedCatalogs.value = response.sharedCatalogs ?? []
+      sharedCatalogs.value = (response.sharedCatalogs ?? []).filter(s => s.catalog != null)
     }
   } catch {
     error.value = t('common.error')

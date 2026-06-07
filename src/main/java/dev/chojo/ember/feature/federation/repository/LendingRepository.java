@@ -250,4 +250,13 @@ public class LendingRepository {
         }
         return false;
     }
+
+    public int countActionableRequests(int stationId) {
+        return Query.query(
+                        "SELECT count(*) AS cnt FROM federation_lending_request WHERE owning_station_id = :station_id AND status = 'REQUESTED';")
+                .single(Call.of().bind("station_id", stationId))
+                .map(row -> row.getInt("cnt"))
+                .first()
+                .orElse(0);
+    }
 }

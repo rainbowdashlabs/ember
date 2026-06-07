@@ -32,6 +32,11 @@ export async function deleteField(id: number): Promise<void> {
     await client.delete(`/profile-fields/${id}`)
 }
 
+export async function getMemberFields(memberId: number): Promise<ProfileField[]> {
+    const res = await client.get<ProfileField[]>(`/station-members/${memberId}/fields`)
+    return res.data
+}
+
 // -- Field Values --
 
 export async function getValues(memberId: number): Promise<ProfileFieldValue[]> {

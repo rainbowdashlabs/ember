@@ -14,8 +14,9 @@ import type {AttendanceSession} from '@/api/types'
 
 const {t} = useI18n()
 
-defineProps<{
+const props = defineProps<{
   session: AttendanceSession
+  readonly?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -38,21 +39,24 @@ function formatTime(iso?: string): string {
     <div class="grid gap-3 sm:grid-cols-3">
       <div class="space-y-1">
         <FieldLabel>{{ t('attendanceSession.title') }}</FieldLabel>
-        <TextInput :model-value="session.title ?? ''" @update:model-value="emit('updateTitle', ($event as string) ?? '')"/>
+        <TextInput v-if="!readonly" :model-value="session.title ?? ''" @update:model-value="emit('updateTitle', ($event as string) ?? '')"/>
+        <span v-else class="text-sm">{{ session.title || '—' }}</span>
       </div>
       <div class="space-y-1">
         <FieldLabel>{{ t('attendanceSession.startTime') }}</FieldLabel>
-        <TimeShortInput
+        <TimeShortInput v-if="!readonly"
             :model-value="formatTime(session.startTime)"
             @change="emit('updateStartTime', ($event.target as HTMLInputElement).value)"
         />
+        <span v-else class="text-sm">{{ formatTime(session.startTime) || '—' }}</span>
       </div>
       <div class="space-y-1">
         <FieldLabel>{{ t('attendanceSession.endTime') }}</FieldLabel>
-        <TimeShortInput
+        <TimeShortInput v-if="!readonly"
             :model-value="formatTime(session.endTime)"
             @change="emit('updateEndTime', ($event.target as HTMLInputElement).value)"
         />
+        <span v-else class="text-sm">{{ formatTime(session.endTime) || '—' }}</span>
       </div>
     </div>
   </NeutralContainer>

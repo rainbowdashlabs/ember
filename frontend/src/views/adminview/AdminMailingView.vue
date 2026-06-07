@@ -88,7 +88,7 @@ onMounted(async () => {
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <FieldLabel class="mb-1">{{ t('adminSettings.mailing.provider') }}</FieldLabel>
-              <SelectInput v-model="mailingConfig.provider">
+              <SelectInput v-model="mailingConfig.provider" class="w-full">
                 <option v-for="p in mailProviders" :key="p" :value="p">{{ p }}</option>
               </SelectInput>
             </div>

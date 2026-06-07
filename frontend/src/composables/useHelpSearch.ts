@@ -36,6 +36,8 @@ const HELP_PAGE_MAP: { route: string; path: string; i18nPrefix: string; section:
     {route: 'help-dashboard-module-overview', path: '/helpcenter/station/dashboard', i18nPrefix: 'helpCenter.dashboardOverview', section: 'Dashboard'},
     {route: 'help-dashboard-overview', path: '/helpcenter/station/dashboard/overview', i18nPrefix: 'helpCenter.dashboard', section: 'Dashboard > Übersicht'},
     {route: 'help-dashboard-statistics', path: '/helpcenter/station/dashboard/statistics', i18nPrefix: 'helpCenter.statistics', section: 'Dashboard > Statistiken'},
+    // Requirements
+    {route: 'help-station-requirements', path: '/helpcenter/station/requirements', i18nPrefix: 'helpCenter.requirements', section: 'Aufgaben'},
     // News
     {route: 'help-news-module-overview', path: '/helpcenter/station/news', i18nPrefix: 'helpCenter.newsOverview', section: 'Neuigkeiten'},
     {route: 'help-news-create', path: '/helpcenter/station/news/create', i18nPrefix: 'helpCenter.newsEdit', section: 'Neuigkeiten > Erstellen'},
@@ -49,9 +51,9 @@ const HELP_PAGE_MAP: { route: string; path: string; i18nPrefix: string; section:
     {route: 'help-profile-theme', path: '/helpcenter/station/profile/theme', i18nPrefix: 'helpCenter.themeUser', section: 'Profil > Erscheinungsbild'},
     // Station management
     {route: 'help-manage-module-overview', path: '/helpcenter/station/manage', i18nPrefix: 'helpCenter.manageOverview', section: 'Verwaltung'},
-    {route: 'help-station-attendance-config', path: '/helpcenter/station/manage/attendance-config', i18nPrefix: 'helpCenter.attendanceConfig', section: 'Verwaltung > Anwesenheitsvorlagen'},
-    {route: 'help-station-attendance-config-edit', path: '/helpcenter/station/manage/attendance-config/edit', i18nPrefix: 'helpCenter.attendanceConfigEdit', section: 'Verwaltung > Vorlage bearbeiten'},
-    {route: 'help-station-members-config', path: '/helpcenter/station/manage/members-config', i18nPrefix: 'helpCenter.membersConfig', section: 'Verwaltung > Mitglieder-Konfiguration'},
+    {route: 'help-station-attendance-config', path: '/helpcenter/station/attendance/config', i18nPrefix: 'helpCenter.attendanceConfig', section: 'Anwesenheit > Konfiguration'},
+    {route: 'help-station-attendance-config-edit', path: '/helpcenter/station/attendance/config/edit', i18nPrefix: 'helpCenter.attendanceConfigEdit', section: 'Anwesenheit > Vorlage bearbeiten'},
+    {route: 'help-station-members-config', path: '/helpcenter/station/members/config', i18nPrefix: 'helpCenter.membersConfig', section: 'Mitglieder > Konfiguration'},
     {route: 'help-station-mail-config', path: '/helpcenter/station/manage/mail-config', i18nPrefix: 'helpCenter.mailConfig', section: 'Verwaltung > E-Mail'},
     {route: 'help-station-theme-manage', path: '/helpcenter/station/manage/theme', i18nPrefix: 'helpCenter.themeManage', section: 'Verwaltung > Farbschema'},
     {route: 'help-station-federation', path: '/helpcenter/station/manage/federation', i18nPrefix: 'helpCenter.federation', section: 'Verwaltung > Föderation'},
@@ -65,6 +67,7 @@ const HELP_PAGE_MAP: { route: string; path: string; i18nPrefix: string; section:
     {route: 'help-members-detail', path: '/helpcenter/station/members/detail', i18nPrefix: 'helpCenter.membersDetail', section: 'Mitglieder > Detail'},
     {route: 'help-members-edit', path: '/helpcenter/station/members/edit', i18nPrefix: 'helpCenter.membersEdit', section: 'Mitglieder > Bearbeiten'},
     {route: 'help-members-groups', path: '/helpcenter/station/members/groups', i18nPrefix: 'helpCenter.membersGroups', section: 'Mitglieder > Gruppen'},
+    {route: 'help-members-type-permissions', path: '/helpcenter/station/members/type-permissions', i18nPrefix: 'helpCenter.typePermissions', section: 'Mitglieder > Typberechtigungen'},
     {route: 'help-members-tags', path: '/helpcenter/station/members/tags', i18nPrefix: 'helpCenter.membersTags', section: 'Mitglieder > Tags'},
     {route: 'help-members-changes', path: '/helpcenter/station/members/changes', i18nPrefix: 'helpCenter.membersChanges', section: 'Mitglieder > Änderungen'},
     {route: 'help-members-former', path: '/helpcenter/station/members/former', i18nPrefix: 'helpCenter.membersFormer', section: 'Mitglieder > Ehemalige'},
@@ -132,6 +135,16 @@ const HELP_PAGE_MAP: { route: string; path: string; i18nPrefix: string; section:
     {route: 'help-protocol-run-detail', path: '/helpcenter/station/protocols/runs/0', i18nPrefix: 'helpCenter.protocolRunDetail', section: 'Prüfungsprotokolle > Lauf-Details'},
     {route: 'help-protocol-evaluation', path: '/helpcenter/station/protocols/runs/0/evaluation', i18nPrefix: 'helpCenter.protocolEvaluation', section: 'Prüfungsprotokolle > Auswertung'},
     {route: 'help-protocol-grade', path: '/helpcenter/station/protocols/runs/0/grade/0', i18nPrefix: 'helpCenter.protocolGrading', section: 'Prüfungsprotokolle > Mitglied prüfen'},
+    // Boards
+    {route: 'help-board-overview', path: '/helpcenter/station/boards', i18nPrefix: 'helpCenter.boardOverview', section: 'Boards'},
+    {route: 'help-board-manage', path: '/helpcenter/station/boards/manage', i18nPrefix: 'helpCenter.boardManage', section: 'Boards > Verwalten'},
+    {route: 'help-board-view', path: '/helpcenter/station/boards/BOARD', i18nPrefix: 'helpCenter.boardView', section: 'Boards > Board-Ansicht'},
+    {route: 'help-ticket-create', path: '/helpcenter/station/boards/BOARD/tickets/new', i18nPrefix: 'helpCenter.ticketCreate', section: 'Boards > Ticket erstellen'},
+    {route: 'help-ticket-detail', path: '/helpcenter/station/boards/BOARD/tickets/1', i18nPrefix: 'helpCenter.ticketDetail', section: 'Boards > Ticket-Details'},
+    {route: 'help-board-backlog', path: '/helpcenter/station/boards/BOARD/backlog', i18nPrefix: 'helpCenter.backlog', section: 'Boards > Backlog'},
+    {route: 'help-board-archived', path: '/helpcenter/station/boards/BOARD/archived', i18nPrefix: 'helpCenter.archived', section: 'Boards > Archiv'},
+    {route: 'help-board-settings', path: '/helpcenter/station/boards/BOARD/settings', i18nPrefix: 'helpCenter.boardSettings', section: 'Boards > Einstellungen'},
+    {route: 'help-federated-boards', path: '/helpcenter/station/federation/boards', i18nPrefix: 'helpCenter.federatedBoards', section: 'Boards > Föderierte Boards'},
     // Knowledge Base
     {route: 'help-knowledge-module-overview', path: '/helpcenter/station/knowledge', i18nPrefix: 'helpCenter.knowledgeModuleOverview', section: 'Lernsammlung'},
     {route: 'help-knowledge-base', path: '/helpcenter/station/knowledge/browse', i18nPrefix: 'helpCenter.kb', section: 'Lernsammlung > Durchsuchen'},

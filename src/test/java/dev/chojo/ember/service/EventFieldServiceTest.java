@@ -53,6 +53,9 @@ class EventFieldServiceTest extends RepositoryTestBase {
                 null,
                 false,
                 null,
+                null,
+                null,
+                null,
                 null);
         eventId = event.id();
 
@@ -68,6 +71,9 @@ class EventFieldServiceTest extends RepositoryTestBase {
                 false,
                 null,
                 false,
+                null,
+                null,
+                null,
                 null,
                 null);
         event2Id = event2.id();

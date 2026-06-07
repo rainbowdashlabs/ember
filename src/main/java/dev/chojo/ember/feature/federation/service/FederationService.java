@@ -23,6 +23,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
@@ -37,7 +38,7 @@ import java.util.UUID;
 @Singleton
 public class FederationService {
     private static final Logger log = LoggerFactory.getLogger(FederationService.class);
-    public static final int FEDERATION_VERSION = 1;
+    public static final String FEDERATION_VERSION = loadFederationVersion();
 
     private final FederationRepository repository;
     private final StationRepository stationRepository;
@@ -48,6 +49,15 @@ public class FederationService {
         this.repository = repository;
         this.stationRepository = stationRepository;
         this.instanceHost = extractHost(apiConfig.baseUrl());
+    }
+
+    private static String loadFederationVersion() {
+        try (var is = FederationService.class.getResourceAsStream("/federation_version")) {
+            if (is == null) throw new IllegalStateException("federation_version resource not found");
+            return new String(is.readAllBytes(), StandardCharsets.UTF_8).trim();
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to load federation_version", e);
+        }
     }
 
     private static String extractHost(String baseUrl) {
@@ -164,7 +174,8 @@ public class FederationService {
      * This shows up on the target station's federation page for approval.
      */
     public FederationPartner createPairRequest(int requestingStationId, int targetStationId) {
-        return repository.createPartner(requestingStationId, targetStationId, null, null, null);
+        UUID targetUid = resolveStationUid(targetStationId);
+        return repository.createPartner(requestingStationId, targetUid, null, null, null);
     }
 
     /**
@@ -178,7 +189,11 @@ public class FederationService {
         }
 
         int requestingStationId = partner.stationId();
-        int targetStationId = partner.partnerStationId();
+        // partner.partnerStationId() is now a UUID — resolve back to int for local station lookup
+        int targetStationId = stationRepository
+                .findByUid(partner.partnerStationId())
+                .orElseThrow()
+                .id();
 
         // Delete the pending request record
         repository.deletePartner(partnerId);
@@ -199,7 +214,8 @@ public class FederationService {
      * Finds pending pair requests targeting the given station.
      */
     public List<FederationPartner> findPendingRequests(int targetStationId) {
-        return repository.findPendingRequestsForStation(targetStationId);
+        UUID targetUid = resolveStationUid(targetStationId);
+        return repository.findPendingRequestsForStation(targetUid);
     }
 
     /**
@@ -224,14 +240,17 @@ public class FederationService {
         // Store private key on accepting station (if not already set)
         stationRepository.updateFederationPrivateKey(acceptingStationId, encodePrivateKey(keyPair));
 
+        UUID acceptingUid = resolveStationUid(acceptingStationId);
+        UUID initiatingUid = resolveStationUid(initiatingStationId);
+
         // Create partner record: initiating -> accepting (from initiating's POV, accepting may be remote)
         var partner = repository.createPartner(
-                initiatingStationId, acceptingStationId, null, initiatingPublicKey, acceptingRemoteHost);
+                initiatingStationId, acceptingUid, null, initiatingPublicKey, acceptingRemoteHost);
         repository.activatePartner(partner.id(), acceptingPublicKey);
 
         // Create reverse partner record: accepting -> initiating (from accepting's POV, initiating may be remote)
         var reverse = repository.createPartner(
-                acceptingStationId, initiatingStationId, null, acceptingPublicKey, initiatingRemoteHost);
+                acceptingStationId, initiatingUid, null, acceptingPublicKey, initiatingRemoteHost);
         repository.activatePartner(reverse.id(), initiatingPublicKey);
 
         // Initialize default capabilities (all enabled for both directions)
@@ -257,23 +276,13 @@ public class FederationService {
      * Updates the remote host for all partner records pointing to the given station.
      * Called when a station announces it has moved to a new host.
      *
-     * @param stationId the station that moved
-     * @param newHost   the new base URL (null if the station moved to the same instance)
+     * @param stationUid the UUID of the station that moved
+     * @param newHost    the new base URL (null if the station moved to the same instance)
      */
-    public void updateRemoteHost(int stationId, String newHost) {
-        // Find all partner records where this station is the partner
-        // and update the remote_host on each
-        var allPartners = repository.findPartners(stationId);
-        for (var partner : allPartners) {
-            if (partner.partnerStationId() == stationId) {
-                // This is a record where stationId is the remote partner — should not happen
-                // in normal findPartners (which filters by station_id), but guard anyway
-                continue;
-            }
-        }
-        // We need to find all records across ALL stations where partner_station_id = stationId
+    public void updateRemoteHost(UUID stationUid, String newHost) {
+        // We need to find all records across ALL stations where partner_station_id = stationUid
         // and update their remote_host
-        repository.updateRemoteHostForPartnerStation(stationId, newHost);
+        repository.updateRemoteHostForPartnerStation(stationUid, newHost);
     }
 
     public boolean endFederation(int partnerId) {
@@ -281,11 +290,15 @@ public class FederationService {
         var partner = repository.findPartnerById(partnerId);
         if (partner.isPresent()) {
             var p = partner.get();
-            // Find reverse
-            var all = repository.findPartners(p.partnerStationId());
-            for (var rev : all) {
-                if (rev.partnerStationId() == p.stationId()) {
-                    repository.deletePartner(rev.id());
+            // Find reverse: look up the partner station by UUID, then find its partners
+            var partnerStation = stationRepository.findByUid(p.partnerStationId());
+            if (partnerStation.isPresent()) {
+                UUID ourUid = resolveStationUid(p.stationId());
+                var all = repository.findPartners(partnerStation.get().id());
+                for (var rev : all) {
+                    if (rev.partnerStationId().equals(ourUid)) {
+                        repository.deletePartner(rev.id());
+                    }
                 }
             }
         }
@@ -364,13 +377,14 @@ public class FederationService {
     /**
      * Returns the capabilities supported by this instance.
      */
-    public List<String> getSupportedCapabilities() {
+    public List<CapabilityType> getSupportedCapabilities() {
         return List.of(
-                CapabilityType.KB_SHARE.name(),
-                CapabilityType.QUIZ_SHARE.name(),
-                CapabilityType.PROTOCOL_SHARE.name(),
-                CapabilityType.INVENTORY_LEND.name(),
-                CapabilityType.EVENT_SHARE.name());
+                CapabilityType.KB_SHARE,
+                CapabilityType.QUIZ_SHARE,
+                CapabilityType.PROTOCOL_SHARE,
+                CapabilityType.INVENTORY_LEND,
+                CapabilityType.EVENT_SHARE,
+                CapabilityType.BOARD_SHARE);
     }
 
     // -- Change Tracking --
@@ -387,5 +401,12 @@ public class FederationService {
      */
     public List<FederationChangeLog> getChangesSince(int stationId, Instant since) {
         return repository.findChangesSince(stationId, since);
+    }
+
+    /**
+     * Resolves an internal station ID to its UUID.
+     */
+    private UUID resolveStationUid(int stationId) {
+        return stationRepository.resolveUid(stationId);
     }
 }

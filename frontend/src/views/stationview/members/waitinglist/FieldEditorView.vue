@@ -280,7 +280,7 @@ onMounted(loadData)
           </div>
           <div class="space-y-1">
             <FieldLabel>{{ t('waitingList.fieldType') }}</FieldLabel>
-            <SelectInput v-model="fieldType">
+            <SelectInput v-model="fieldType" class="w-full">
               <option v-for="ft in fieldTypes" :key="ft" :value="ft">{{ fieldTypeLabel(ft) }}</option>
             </SelectInput>
           </div>

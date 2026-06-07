@@ -20,6 +20,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.TextStyle;
 import java.time.temporal.IsoFields;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
@@ -40,18 +41,18 @@ public class DemoAttendanceSeeder {
 
     public void seedAttendanceSessions(
             Random rng,
-            AttendanceTemplate templateAnfaenger,
-            AttendanceTemplate templateFort,
+            AttendanceTemplate templateUebung,
             AttendanceTemplate templateGesamt,
-            StationEvent evAnfaenger,
-            StationEvent evFort,
+            StationEvent evUebung,
             StationEvent evGesamt,
             List<StationMember> anfaenger,
             List<StationMember> fortgeschritten,
             List<StationMember> betreuer) {
-        var teamForAnfaenger = betreuer.subList(0, Math.min(2, betreuer.size()));
-        var teamForFort = betreuer.subList(Math.min(1, betreuer.size()), Math.min(3, betreuer.size()));
+        var teamForUebung = betreuer.subList(0, Math.min(2, betreuer.size()));
         var teamForGesamt = betreuer.subList(0, Math.min(3, betreuer.size()));
+
+        var teilnehmer = new ArrayList<>(anfaenger);
+        teilnehmer.addAll(fortgeschritten);
 
         LocalDate today = LocalDate.now();
         LocalDate startDate = today.minusMonths(14).withDayOfMonth(1);
@@ -64,46 +65,20 @@ public class DemoAttendanceSeeder {
             int dow = date.getDayOfWeek().getValue();
             boolean isToday = date.equals(today);
 
-            if (dow == 1) { // Monday: Anfänger
-                log.info("Demo: Creating attendance session for week {}", weekOfYear);
+            if (dow == 1) { // Monday: Übung
                 Instant start = date.atTime(17, 30).toInstant(ZoneOffset.UTC);
                 Instant end = date.atTime(19, 0).toInstant(ZoneOffset.UTC);
                 var sess = attendanceRepository.createSession(
-                        templateAnfaenger.id(), start, end, evAnfaenger.id(), "Übung Anfänger KW" + weekOfYear);
+                        templateUebung.id(), start, end, evUebung.id(), "Übung KW" + weekOfYear);
                 if (!isToday) {
-                    for (var m : anfaenger) {
+                    for (var m : teilnehmer) {
                         var status = rng.nextInt(10) < 8
                                 ? AttendanceEntry.AttendanceStatus.PRESENT
                                 : AttendanceEntry.AttendanceStatus.ABSENT;
                         attendanceRepository.createEntry(
                                 sess.id(), m.id(), status, AttendanceEntry.EntrySource.EXPECTED);
                     }
-                    for (var m : teamForAnfaenger) {
-                        attendanceRepository.createEntry(
-                                sess.id(),
-                                m.id(),
-                                AttendanceEntry.AttendanceStatus.PRESENT,
-                                AttendanceEntry.EntrySource.EXTRA);
-                    }
-                }
-                sessionCount++;
-            }
-
-            if (dow == 3) { // Wednesday: Fortgeschritten
-                log.info("Demo: Creating attendance session for week {}", weekOfYear);
-                Instant start = date.atTime(18, 0).toInstant(ZoneOffset.UTC);
-                Instant end = date.atTime(19, 30).toInstant(ZoneOffset.UTC);
-                var sess = attendanceRepository.createSession(
-                        templateFort.id(), start, end, evFort.id(), "Übung Fortgeschritten KW" + weekOfYear);
-                if (!isToday) {
-                    for (var m : fortgeschritten) {
-                        var status = rng.nextInt(10) < 7
-                                ? AttendanceEntry.AttendanceStatus.PRESENT
-                                : AttendanceEntry.AttendanceStatus.ABSENT;
-                        attendanceRepository.createEntry(
-                                sess.id(), m.id(), status, AttendanceEntry.EntrySource.EXPECTED);
-                    }
-                    for (var m : teamForFort) {
+                    for (var m : teamForUebung) {
                         attendanceRepository.createEntry(
                                 sess.id(),
                                 m.id(),
@@ -115,7 +90,6 @@ public class DemoAttendanceSeeder {
             }
 
             if (dow == 6 && date.getDayOfMonth() <= 7) { // 1st Saturday: Gesamtübung
-                log.info("Demo: Creating attendance session for week {}", weekOfYear);
                 Instant start = date.atTime(10, 0).toInstant(ZoneOffset.UTC);
                 Instant end = date.atTime(13, 0).toInstant(ZoneOffset.UTC);
                 var sess = attendanceRepository.createSession(
@@ -127,14 +101,7 @@ public class DemoAttendanceSeeder {
                                 + date.getMonth().getDisplayName(TextStyle.FULL, Locale.GERMAN)
                                 + " " + date.getYear());
                 if (!isToday) {
-                    for (var m : anfaenger) {
-                        var status = rng.nextInt(10) < 7
-                                ? AttendanceEntry.AttendanceStatus.PRESENT
-                                : AttendanceEntry.AttendanceStatus.ABSENT;
-                        attendanceRepository.createEntry(
-                                sess.id(), m.id(), status, AttendanceEntry.EntrySource.EXPECTED);
-                    }
-                    for (var m : fortgeschritten) {
+                    for (var m : teilnehmer) {
                         var status = rng.nextInt(10) < 7
                                 ? AttendanceEntry.AttendanceStatus.PRESENT
                                 : AttendanceEntry.AttendanceStatus.ABSENT;

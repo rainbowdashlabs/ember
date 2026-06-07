@@ -12,23 +12,6 @@ import java.time.Instant;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
-/**
- * Represents a form (survey/questionnaire) belonging to a station.
- *
- * @param id               unique form identifier
- * @param stationId        the station this form belongs to
- * @param title            display title of the form
- * @param description      optional description shown to respondents
- * @param status           lifecycle status (DRAFT, OPEN, CLOSED)
- * @param shuffleQuestions whether question order should be randomized for respondents
- * @param allowEdit        whether respondents may edit their submitted response
- * @param startAt          optional start time after which the form accepts responses
- * @param endAt            optional end time after which the form stops accepting responses
- * @param closedAt         timestamp when the form was explicitly closed, or {@code null}
- * @param createdBy        member ID of the form creator
- * @param createdAt        creation timestamp
- * @param updatedAt        last-update timestamp
- */
 public record Form(
         int id,
         int stationId,
@@ -37,6 +20,7 @@ public record Form(
         FormStatus status,
         boolean shuffleQuestions,
         boolean allowEdit,
+        boolean forced,
         Instant startAt,
         Instant endAt,
         Instant closedAt,
@@ -46,9 +30,13 @@ public record Form(
         RestrictionMode restrictionMode,
         boolean restricted) {
 
-    /**
-     * Creates a row mapping for database result set conversion.
-     */
+    public boolean isAcceptingResponses() {
+        if (status != FormStatus.OPEN) return false;
+        var now = Instant.now();
+        if (startAt != null && now.isBefore(startAt)) return false;
+        return endAt == null || !now.isAfter(endAt);
+    }
+
     public static RowMapping<Form> map() {
         return row -> new Form(
                 row.getInt("id"),
@@ -58,6 +46,7 @@ public record Form(
                 FormStatus.valueOf(row.getString("status")),
                 row.getBoolean("shuffle_questions"),
                 row.getBoolean("allow_edit"),
+                row.getBoolean("forced"),
                 row.get("start_at", INSTANT_TIMESTAMP),
                 row.get("end_at", INSTANT_TIMESTAMP),
                 row.get("closed_at", INSTANT_TIMESTAMP),
@@ -68,9 +57,6 @@ public record Form(
                 row.getBoolean("restricted"));
     }
 
-    /**
-     * Lifecycle status of a form.
-     */
     public enum FormStatus {
         DRAFT,
         OPEN,

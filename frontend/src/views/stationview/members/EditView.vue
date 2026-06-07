@@ -4,133 +4,89 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useRoute, useRouter } from 'vue-router'
+import {ref, computed, onMounted} from 'vue'
+import {useI18n} from 'vue-i18n'
+import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
-import RoleSelector from '@/components/input/RoleSelector.vue'
-
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
-import Modal from '@/components/feedback/Modal.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import type { ProfileField, StationMember, Role, MemberGroup, UserTag } from '@/api/types'
-import { Roles, hasTeamRole } from '@/api/types'
-import { profileFields, stationMembers, members, inventory, memberGroups, userTags } from '@/api'
-import type { MyInventoryItem } from '@/api/inventory'
-import Th from '@/components/table/Th.vue'
-import Td from '@/components/table/Td.vue'
-import THead from '@/components/table/THead.vue'
-import TRow from '@/components/table/TRow.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
+import TabBar from '@/components/navigation/TabBar.vue'
+import NoteEditor from '@/components/comment/NoteEditor.vue'
+import GeneralTab from './editview/GeneralTab.vue'
+import ProfileTab from './editview/ProfileTab.vue'
+import RelationsTab from './editview/RelationsTab.vue'
+import type {ProfileField, StationMember, PermissionGrant, MemberGroup, UserTag} from '@/api/types'
+import {StationPermission, StationUserType} from '@/api/types'
+import {profileFields, stationMembers, memberGroups, userTags, inventory} from '@/api'
+import type {MyInventoryItem} from '@/api/inventory'
+import {useSession} from '@/composables/useSession'
 
-
-const { t } = useI18n()
+const {t} = useI18n()
+const {hasPermission} = useSession()
 const route = useRoute()
 const router = useRouter()
-
 
 const memberId = computed(() => Number(route.params.id))
 
 const member = ref<StationMember | null>(null)
 const fields = ref<ProfileField[]>([])
-const allRoles = ref<Role[]>([])
-const editValues = ref<Map<number, string>>(new Map())
-const editRoleIds = ref<Set<number>>(new Set())
-const editFirstName = ref('')
-const editLastName = ref('')
-const editEmail = ref('')
+const allRoles = ref<PermissionGrant[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
+const editValues = ref<Map<number, string>>(new Map())
+const editRoleIds = ref<Set<number>>(new Set())
 const editGroupIds = ref<Set<number>>(new Set())
 const editTagIds = ref<Set<number>>(new Set())
+const typeGrantedPermissions = ref<Set<string>>(new Set())
+const editUserType = ref('')
+const memberInventory = ref<MyInventoryItem[]>([])
 const loading = ref(true)
-const saving = ref(false)
 const error = ref('')
-const success = ref('')
+const activeTab = ref('profile')
 
-function parseConfig(configStr: string | undefined): { options?: string[]; [key: string]: unknown } {
-  if (!configStr) return {}
-  try { return JSON.parse(configStr) } catch { return {} }
-}
+const allMembers = ref<StationMember[]>([])
 
-// --- Role logic (uses RoleSelector component) ---
+const tabs = computed(() => [
+  {key: 'profile', label: t('memberEdit.tabProfile')},
+  {key: 'permissions', label: t('memberEdit.tabPermissions')},
+  {key: 'relations', label: t('memberEdit.tabRelations')},
+  {key: 'notes', label: t('memberEdit.tabNotes')},
+])
 
-function getAllChildren(roleName: string): string[] {
-  const hierarchy: Record<string, string[]> = {
-    [Roles.MANAGER]: [Roles.TEAM, Roles.ATTENDANCE_MANAGER, Roles.INVENTORY_MANAGER, Roles.EVENT_MANAGER, Roles.MEMBER_MANAGER, Roles.NEWS_MANAGER, Roles.POLL_MANAGER, Roles.LOST_AND_FOUND_MANAGER],
-    [Roles.TEAM]: [Roles.LOGIN, Roles.USER],
-    [Roles.GUARDIAN]: [Roles.USER, Roles.LOGIN],
-    [Roles.MEMBER]: [Roles.USER],
-    [Roles.ATTENDANCE_MANAGER]: [Roles.TEAM],
-    [Roles.INVENTORY_MANAGER]: [Roles.TEAM],
-    [Roles.EVENT_MANAGER]: [Roles.TEAM],
-    [Roles.MEMBER_MANAGER]: [Roles.TEAM],
-    [Roles.NEWS_MANAGER]: [Roles.TEAM],
-    [Roles.POLL_MANAGER]: [Roles.TEAM],
-    [Roles.LOST_AND_FOUND_MANAGER]: [Roles.TEAM],
+async function loadTypePermissions(userType: string) {
+  try {
+    const effective = await stationMembers.getEffectiveUserTypePermissions(userType)
+    // If the type grants STATION_ADMINISTRATOR, don't hide all children —
+    // only hide the top-level grant itself so the picker remains useful
+    if (effective.includes('STATION_ADMINISTRATOR')) {
+      typeGrantedPermissions.value = new Set(['STATION_ADMINISTRATOR'])
+    } else {
+      typeGrantedPermissions.value = new Set(effective)
+    }
+  } catch {
+    typeGrantedPermissions.value = new Set()
   }
-  const direct = hierarchy[roleName] ?? []
-  const all: string[] = [...direct]
-  for (const child of direct) all.push(...getAllChildren(child))
-  return [...new Set(all)]
 }
 
-// --- Applicable fields based on roles ---
-
-const applicableFields = computed(() => {
-  const roleNames = new Set<string>()
-  for (const id of editRoleIds.value) {
-    const role = allRoles.value.find(r => r.id === id)
-    if (role) roleNames.add(role.role)
-  }
-  // Also include children of selected roles (for role UI logic)
-  const expandedNames = new Set(roleNames)
-  for (const name of roleNames) {
-    for (const child of getAllChildren(name)) { expandedNames.add(child) }
-  }
-
-  // Scope resolution uses actual assigned roles only (not hierarchy children),
-  // matching the backend logic in ManagedMemberRoutes.applicableScopes
-  const scopes: string[] = []
-  if (roleNames.has(Roles.MEMBER)) scopes.push(Roles.MEMBER)
-  if (hasTeamRole([...roleNames])) scopes.push(Roles.TEAM)
-  if (roleNames.has(Roles.GUARDIAN)) scopes.push(Roles.GUARDIAN)
-
-  return fields.value.filter(f => {
-    if (f.scope === 'GROUP') return false
-    return scopes.includes(f.scope ?? Roles.MEMBER)
-  })
-})
-
-// --- Field values ---
-
-function getEditValue(fieldId: number): string {
-  return editValues.value.get(fieldId) ?? ''
+async function onUserTypeChanged(userType: string) {
+  editUserType.value = userType
+  await loadTypePermissions(userType)
+  fields.value = await profileFields.getMemberFields(memberId.value)
 }
-
-function setEditValue(fieldId: number, val: string) {
-  editValues.value = new Map([...editValues.value, [fieldId, val]])
-}
-
-// --- Load / Save ---
 
 async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [allFields, allMembers, roles, memberRoles, profileValues, groups, tags, mGroups, mTags] = await Promise.all([
-      profileFields.listFields(),
+    const [allFields, allMembers_, roles, memberData, memberPermissions, profileValues, groups, tags, mGroups, mTags] = await Promise.all([
+      profileFields.getMemberFields(memberId.value),
       stationMembers.listMembers(),
-      stationMembers.listAllRoles(),
-      stationMembers.getRoles(memberId.value),
+      stationMembers.listAllPermissions(),
+      stationMembers.getMember(memberId.value),
+      stationMembers.getPermissions(memberId.value),
       profileFields.getValues(memberId.value),
       memberGroups.listGroups(),
       userTags.listTags(),
@@ -138,16 +94,16 @@ async function loadData() {
       userTags.getMemberTags(memberId.value),
     ])
     fields.value = allFields
+    allMembers.value = allMembers_
     allRoles.value = roles
     allGroups.value = groups
     allTags.value = tags
     editGroupIds.value = new Set(mGroups.map(g => g.id))
     editTagIds.value = new Set(mTags.map(t => t.id))
-    member.value = allMembers.find(m => m.id === memberId.value) ?? null
-    editFirstName.value = member.value?.name?.split(' ')[0] ?? ''
-    editLastName.value = member.value?.name?.split(' ').slice(1).join(' ') ?? ''
-    editEmail.value = member.value?.email ?? ''
-    editRoleIds.value = new Set(memberRoles.map(r => r.id))
+    member.value = allMembers_.find(m => m.id === memberId.value) ?? null
+    editUserType.value = memberData.userType ?? StationUserType.MEMBER
+    editRoleIds.value = new Set(memberPermissions.map(r => r.id))
+    await loadTypePermissions(editUserType.value)
 
     const map = new Map<number, string>()
     for (const v of profileValues) {
@@ -163,101 +119,18 @@ async function loadData() {
   }
 }
 
-async function save() {
-  saving.value = true
-  error.value = ''
-  success.value = ''
-  try {
-    // Update account base fields
-    if (member.value) {
-      await members.updateAccount(member.value.accountId, {
-        email: editEmail.value,
-        firstName: editFirstName.value,
-        lastName: editLastName.value,
-      })
-    }
-    // Update profile field values
-    const entries = applicableFields.value.map(f => ({ fieldId: f.id, value: JSON.stringify(getEditValue(f.id)) }))
-    await profileFields.setValues(memberId.value, { values: entries })
-    // Update roles
-    await stationMembers.setRoles(memberId.value, { roleIds: [...editRoleIds.value] })
-    // Update group memberships
-    for (const group of allGroups.value) {
-      const currentMembers = await memberGroups.getGroupMembers(group.id)
-      const isMember = currentMembers.some(m => m.id === memberId.value)
-      const shouldBeMember = editGroupIds.value.has(group.id)
-      if (isMember && !shouldBeMember) {
-        const newIds = currentMembers.filter(m => m.id !== memberId.value).map(m => m.id)
-        await memberGroups.setGroupMembers(group.id, { memberIds: newIds })
-      } else if (!isMember && shouldBeMember) {
-        const newIds = [...currentMembers.map(m => m.id), memberId.value]
-        await memberGroups.setGroupMembers(group.id, { memberIds: newIds })
-      }
-    }
-    // Update tag memberships
-    for (const tag of allTags.value) {
-      const currentMembers = await userTags.getTagMembers(tag.id)
-      const isMember = currentMembers.some(m => m.id === memberId.value)
-      const shouldBeMember = editTagIds.value.has(tag.id)
-      if (isMember && !shouldBeMember) {
-        const newIds = currentMembers.filter(m => m.id !== memberId.value).map(m => m.id)
-        await userTags.setTagMembers(tag.id, newIds)
-      } else if (!isMember && shouldBeMember) {
-        const newIds = [...currentMembers.map(m => m.id), memberId.value]
-        await userTags.setTagMembers(tag.id, newIds)
-      }
-    }
-    success.value = t('memberEdit.saved')
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    saving.value = false
-  }
-}
-
 function goBack() {
-  router.push({ name: 'members-list' })
-}
-
-// -- Former member --
-const memberInventory = ref<MyInventoryItem[]>([])
-const showFormerModal = ref(false)
-const markingFormer = ref(false)
-const formerSuccess = ref(false)
-
-const formerBlockReasons = computed(() => {
-  const reasons: string[] = []
-  if (memberInventory.value.length > 0) {
-    reasons.push(t('memberDetail.formerBlockInventory', { count: memberInventory.value.length }))
-  }
-  const forbidden = [Roles.GUARDIAN, Roles.MANAGER, Roles.ADMIN]
-  const roleNames = allRoles.value.filter(r => editRoleIds.value.has(r.id)).map(r => r.role)
-  if (roleNames.some(r => forbidden.includes(r as any))) {
-    reasons.push(t('memberDetail.formerBlockRole'))
-  }
-  return reasons
-})
-const canMarkFormer = computed(() => formerBlockReasons.value.length === 0 && !!member.value)
-
-async function confirmMarkFormer() {
-  markingFormer.value = true
-  error.value = ''
-  try {
-    await stationMembers.markFormer(memberId.value)
-    formerSuccess.value = true
-    showFormerModal.value = false
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    markingFormer.value = false
-  }
+  router.push({name: 'members-list'})
 }
 
 onMounted(async () => {
   await loadData()
+  if (!hasPermission(StationPermission.INVENTORY_READ)) return
   try {
     memberInventory.value = await inventory.memberItems(memberId.value)
-  } catch { memberInventory.value = [] }
+  } catch {
+    memberInventory.value = []
+  }
 })
 </script>
 
@@ -268,138 +141,49 @@ onMounted(async () => {
         {{ t('memberEdit.back') }}
       </SecondaryButton>
 
-      <Spinner v-if="loading" size="lg" />
+      <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
-      <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <template v-if="!loading && member">
         <SectionHeader>{{ member.name || member.email }}</SectionHeader>
 
-        <!-- Base fields -->
-        <NeutralContainer class="space-y-4">
-          <SubHeader class="text-sm">{{ t('memberEdit.baseFields') }}</SubHeader>
-          <div class="grid gap-4 sm:grid-cols-3">
-            <div class="space-y-1">
-              <FieldLabel hint>{{ t('memberEdit.firstName') }}</FieldLabel>
-              <TextInput v-model="editFirstName" />
-            </div>
-            <div class="space-y-1">
-              <FieldLabel hint>{{ t('memberEdit.lastName') }}</FieldLabel>
-              <TextInput v-model="editLastName" />
-            </div>
-            <div class="space-y-1">
-              <FieldLabel hint>{{ t('memberEdit.email') }}</FieldLabel>
-              <TextInput v-model="editEmail" />
-            </div>
-          </div>
+        <TabBar v-model="activeTab" :tabs="tabs"/>
+
+        <ProfileTab
+            v-if="activeTab === 'profile'"
+            :member="member"
+            :member-id="memberId"
+            :fields="fields"
+            :initial-values="editValues"
+        />
+
+        <GeneralTab
+            v-if="activeTab === 'permissions'"
+            :member="member"
+            :member-id="memberId"
+            :all-roles="allRoles"
+            :all-groups="allGroups"
+            :all-tags="allTags"
+            :initial-user-type="editUserType"
+            :initial-role-ids="editRoleIds"
+            :initial-group-ids="editGroupIds"
+            :initial-tag-ids="editTagIds"
+            :type-granted-permissions="typeGrantedPermissions"
+            :member-inventory="memberInventory"
+            @user-type-changed="onUserTypeChanged"
+        />
+
+        <RelationsTab
+            v-if="activeTab === 'relations'"
+            :member-id="memberId"
+            :user-type="editUserType"
+            :all-members="allMembers"
+        />
+
+        <NeutralContainer v-if="activeTab === 'notes'">
+          <NoteEditor :entity-type="'MEMBER'" :entity-id="memberId"/>
         </NeutralContainer>
-
-        <!-- Roles -->
-        <NeutralContainer class="space-y-3">
-          <SubHeader class="text-sm">{{ t('memberEdit.roles') }}</SubHeader>
-          <RoleSelector v-model="editRoleIds" :all-roles="allRoles" />
-        </NeutralContainer>
-
-        <!-- Groups -->
-        <NeutralContainer class="space-y-3">
-          <SubHeader class="text-sm">{{ t('memberEdit.groups') }}</SubHeader>
-          <div class="flex flex-wrap gap-2">
-            <button
-              v-for="group in allGroups"
-              :key="group.id"
-              :class="editGroupIds.has(group.id) ? 'border-primary bg-primary/10 text-primary' : 'border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted) hover:border-primary'"
-              class="px-2.5 py-1 text-xs rounded-full border transition-colors"
-              @click="editGroupIds.has(group.id) ? editGroupIds.delete(group.id) : editGroupIds.add(group.id)"
-            >
-              {{ group.name }}
-            </button>
-            <span v-if="allGroups.length === 0" class="text-xs text-(--text-muted)">{{ t('memberEdit.noGroups') }}</span>
-          </div>
-        </NeutralContainer>
-
-        <!-- Tags -->
-        <NeutralContainer class="space-y-3">
-          <SubHeader class="text-sm">{{ t('memberEdit.tags') }}</SubHeader>
-          <div class="flex flex-wrap gap-2">
-            <button
-              v-for="tag in allTags"
-              :key="tag.id"
-              :class="editTagIds.has(tag.id) ? 'border-primary bg-primary/10 text-primary' : 'border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted) hover:border-primary'"
-              class="px-2.5 py-1 text-xs rounded-full border transition-colors"
-              @click="editTagIds.has(tag.id) ? editTagIds.delete(tag.id) : editTagIds.add(tag.id)"
-            >
-              {{ tag.name }}
-            </button>
-            <span v-if="allTags.length === 0" class="text-xs text-(--text-muted)">{{ t('memberEdit.noTags') }}</span>
-          </div>
-        </NeutralContainer>
-
-        <!-- Profile fields -->
-        <NeutralContainer class="space-y-4">
-          <SubHeader class="text-sm">{{ t('memberEdit.fields') }}</SubHeader>
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <THead>
-                  <Th class="text-(--text-muted)">{{ t('memberEdit.fieldName') }}</Th>
-                  <Th class="text-(--text-muted)">{{ t('memberEdit.fieldValue') }}</Th>
-                </THead>
-              </thead>
-              <tbody>
-                <TRow v-for="field in applicableFields" :key="field.id">
-                  <Td class="font-medium whitespace-nowrap">{{ field.name }}</Td>
-                  <Td>
-                    <ProfileFieldInput
-                      :field-type="field.fieldType ?? 'text'"
-                      :model-value="getEditValue(field.id)"
-                      :options="parseConfig(field.config).options as string[]"
-                      @update:model-value="setEditValue(field.id, $event)"
-                    />
-                  </Td>
-                </TRow>
-              </tbody>
-            </table>
-          </div>
-        </NeutralContainer>
-
-        <!-- Save -->
-        <div class="flex items-center justify-between">
-          <PrimaryButton :disabled="saving" @click="save">
-            {{ saving ? t('common.loading') : t('memberEdit.save') }}
-          </PrimaryButton>
-          <ErrorButton :icon="['fas', 'user-slash']" v-if="!formerSuccess" @click="showFormerModal = true">
-            {{ t('memberDetail.markFormer') }}
-          </ErrorButton>
-        </div>
-
-        <Alert v-if="formerSuccess" variant="success">{{ t('memberDetail.formerSuccess') }}</Alert>
       </template>
-
-      <!-- Former confirmation modal -->
-      <Modal v-model="showFormerModal">
-        <div class="space-y-4">
-          <SectionHeader>{{ t('memberDetail.markFormerTitle') }}</SectionHeader>
-          <template v-if="canMarkFormer">
-            <p class="text-sm">{{ t('memberDetail.markFormerConfirm', { name: member?.name || member?.email || '' }) }}</p>
-            <p class="text-xs text-(--text-muted)">{{ t('memberDetail.markFormerHint') }}</p>
-            <div class="flex justify-end gap-2">
-              <SecondaryButton @click="showFormerModal = false">{{ t('common.cancel') }}</SecondaryButton>
-              <ErrorButton :disabled="markingFormer" @click="confirmMarkFormer">
-                {{ markingFormer ? t('common.loading') : t('memberDetail.markFormer') }}
-              </ErrorButton>
-            </div>
-          </template>
-          <template v-else>
-            <p class="text-sm">{{ t('memberDetail.formerBlocked') }}</p>
-            <ul class="list-disc list-inside text-sm text-error space-y-1">
-              <li v-for="(reason, i) in formerBlockReasons" :key="i">{{ reason }}</li>
-            </ul>
-            <div class="flex justify-end">
-              <SecondaryButton @click="showFormerModal = false">{{ t('common.close') }}</SecondaryButton>
-            </div>
-          </template>
-        </div>
-      </Modal>
     </div>
   </ViewContent>
 </template>

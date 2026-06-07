@@ -10,7 +10,8 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpRoleToggle from '@/components/helpcenter/HelpRoleToggle.vue'
-import type {HelpRole} from '@/components/helpcenter/HelpRoleToggle.vue'
+import type {HelpPerspective} from '@/components/helpcenter/HelpRoleToggle.vue'
+import {StationPermission} from '@/api/types'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -18,16 +19,15 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
-import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 
 const {t} = useI18n()
 
-const roles: HelpRole[] = [
-  {key: 'member', label: t('helpCenter.roles.member')},
-  {key: 'team', label: t('helpCenter.roles.team')},
-  {key: 'manager', label: t('helpCenter.roles.manager')},
+const perspectives: HelpPerspective[] = [
+  {key: 'member', label: t('helpCenter.roles.member'), permissions: [StationPermission.USER]},
+  {key: 'team', label: t('helpCenter.roles.team'), permissions: [StationPermission.USER]},
+  {key: 'manager', label: t('helpCenter.roles.manager'), permissions: [StationPermission.MEMBER_GUARDIAN]},
 ]
-const activeRole = ref('')
+const activeView = ref('')
 </script>
 
 <template>
@@ -36,7 +36,7 @@ const activeRole = ref('')
       <p>{{ t('helpCenter.dashboard.whatIsText') }}</p>
     </HelpSection>
 
-    <HelpRoleToggle v-model="activeRole" :roles="roles"/>
+    <HelpRoleToggle v-model="activeView" :perspectives="perspectives"/>
 
     <HelpSection :title="t('helpCenter.dashboard.whatYouSee')">
       <p>{{ t('helpCenter.dashboard.notifications') }}</p>
@@ -134,11 +134,40 @@ const activeRole = ref('')
           <p class="text-sm font-medium">Wettkampf Vorbereitung</p>
           <p class="text-xs text-(--text-muted)">25.05.2026</p>
         </div>
-        <ErrorBadge>{{ t('dashboard.registrationStatus.PENDING') }}</ErrorBadge>
+        <InfoBadge>{{ t('dashboard.registrationStatus.PENDING') }}</InfoBadge>
       </NeutralContainer>
     </NeutralContainer>
 
-    <template v-if="activeRole === 'team' || activeRole === 'manager'">
+    <!-- Dummy: Upcoming events panel -->
+    <NeutralContainer class="space-y-3">
+      <SectionHeader>
+        <font-awesome-icon :icon="['fas', 'calendar-plus']" class="mr-2"/>
+        {{ t('dashboard.upcomingEvents') }}
+      </SectionHeader>
+      <NeutralContainer class="py-2 px-3">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <p class="text-sm font-medium">{{ t('helpCenter.dashboard.dummyEventName') }}</p>
+            <p class="text-xs text-(--text-muted)">{{ t('helpCenter.dashboard.dummyEventDate') }}</p>
+          </div>
+          <InfoBadge>{{ t('dashboard.registrationRequired') }}</InfoBadge>
+        </div>
+      </NeutralContainer>
+      <NeutralContainer class="py-2 px-3">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <p class="text-sm font-medium">{{ t('helpCenter.dashboard.dummyEventName2') }}</p>
+            <p class="text-xs text-(--text-muted)">{{ t('helpCenter.dashboard.dummyEventDate2') }}</p>
+          </div>
+        </div>
+      </NeutralContainer>
+    </NeutralContainer>
+
+    <HelpSection :title="t('helpCenter.dashboard.upcomingEventsTitle')">
+      <p>{{ t('helpCenter.dashboard.upcomingEventsText') }}</p>
+    </HelpSection>
+
+    <template v-if="activeView === 'team' || activeView === 'manager'">
       <HelpSection :title="t('helpCenter.dashboard.teamManagerExtra')">
         <p>{{ t('helpCenter.dashboard.teamManagerExtraText') }}</p>
         <p>{{ t('helpCenter.dashboard.managedRegistrations') }}</p>

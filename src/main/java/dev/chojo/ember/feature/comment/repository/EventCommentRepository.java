@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.comment.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import jakarta.inject.Singleton;
 
@@ -27,8 +29,9 @@ public class EventCommentRepository {
      * @return the list of comments
      */
     public List<Comment> findByEvent(int eventId) {
-        return Query.query("SELECT id, parent_id, author_id, content, deleted, created_at, updated_at"
-                        + " FROM event_comment WHERE event_id = :event_id ORDER BY created_at;")
+        return Query.query(
+                        "SELECT id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at"
+                                + " FROM event_comment WHERE event_id = :event_id ORDER BY created_at;")
                 .single(Call.of().bind("event_id", eventId))
                 .map(Comment.map())
                 .all();
@@ -42,7 +45,7 @@ public class EventCommentRepository {
      */
     public Optional<Comment> findById(int id) {
         return Query.query(
-                        "SELECT id, parent_id, author_id, content, deleted, created_at, updated_at FROM event_comment WHERE id = :id;")
+                        "SELECT id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at FROM event_comment WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(Comment.map())
                 .first();
@@ -53,18 +56,26 @@ public class EventCommentRepository {
      *
      * @param eventId  the event ID
      * @param parentId the parent comment ID for replies, or {@code null} for top-level comments
-     * @param authorId the member ID of the author
+     * @param author   the identity of the author, or {@code null}
      * @param content  the comment text
      * @return the created comment
      */
-    public Comment create(int eventId, Integer parentId, int authorId, String content) {
-        return Query.query("INSERT INTO event_comment (event_id, parent_id, author_id, content)"
-                        + " VALUES (:event_id, :parent_id, :author_id, :content)"
-                        + " RETURNING id, parent_id, author_id, content, deleted, created_at, updated_at;")
+    public Comment create(int eventId, Integer parentId, MemberIdentity author, String content) {
+        return Query.query(
+                        "INSERT INTO event_comment (event_id, parent_id, author_station_uid, author_member_uid, content)"
+                                + " VALUES (:event_id, :parent_id, :author_station_uid::uuid, :author_member_uid::uuid, :content)"
+                                + " RETURNING id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at;")
                 .single(Call.of()
                         .bind("event_id", eventId)
                         .bind("parent_id", parentId)
-                        .bind("author_id", authorId)
+                        .bind(
+                                "author_station_uid",
+                                author != null ? author.stationUid() : null,
+                                StandardValueConverter.UUID_STRING)
+                        .bind(
+                                "author_member_uid",
+                                author != null ? author.memberUid() : null,
+                                StandardValueConverter.UUID_STRING)
                         .bind("content", content))
                 .map(Comment.map())
                 .first()

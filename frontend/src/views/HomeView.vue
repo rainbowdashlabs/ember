@@ -12,19 +12,23 @@ import InfoButton from '@/components/button/InfoButton.vue'
 import InfiniteReel from '@/components/display/InfiniteReel.vue'
 import client from '@/api/client'
 import {adminSettings} from '@/api'
-import EmberLogo from '@/components/display/EmberLogo.vue'
+import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
+import { emberLogo } from '@/composables/useEmberLogo'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 
 const {t} = useI18n()
+const logo = emberLogo()
 const demoUrl = ref('')
+const isDemo = ref(false)
 const registrationEnabled = ref(true)
 
 onMounted(async () => {
   try {
-    const res = await client.get<{ demoUrl?: string }>('/public/config')
+    const res = await client.get<{ demoUrl?: string; demo?: boolean }>('/public/config')
     demoUrl.value = res.data.demoUrl ?? ''
+    isDemo.value = res.data.demo ?? false
   } catch { /* ignore */ }
   adminSettings.isRegistrationEnabled().then(v => registrationEnabled.value = v).catch(() => {})
 
@@ -81,7 +85,7 @@ const highlights = [
     <section aria-label="Einleitung" class="relative overflow-hidden">
       <div class="absolute inset-0 bg-gradient-to-b from-primary/10 via-secondary/5 to-transparent"/>
       <div class="relative mx-auto max-w-5xl px-6 py-20 sm:py-28 text-center">
-        <EmberLogo base="NoBG_OrangeGlow" blink-base="NoBG_OrangeGlow_Blink" :pixel-size="256" size="h-20 w-20 rounded-2xl mb-6 mx-auto" :blink="true" />
+        <LayeredEmberLogo :layers="logo.layers" :active-layers="logo.activeLayers" :auto-blink="true" :bounce="true" :gazePositions="['left', 'right', 'mid']" size="h-20 w-20 mb-6 mx-auto" :pixel-size="256" />
         <PageHeader class="text-4xl sm:text-5xl font-extrabold tracking-tight mb-4">
           {{ t('landing.heroTitle') }}
         </PageHeader>
@@ -94,12 +98,17 @@ const highlights = [
               {{ t('landing.cta') }}
             </PrimaryButton>
           </router-link>
-          <router-link to="/login">
+          <router-link v-if="!isDemo" to="/login">
             <SecondaryButton class="text-base px-6 py-3">
               {{ t('landing.login') }}
             </SecondaryButton>
           </router-link>
-          <a v-if="demoUrl" :href="demoUrl" target="_blank" rel="noopener noreferrer">
+          <router-link v-if="isDemo" to="/login">
+            <PrimaryButton :icon="['fas', 'rocket']" class="text-base px-6 py-3">
+              {{ t('landing.tryNow') }}
+            </PrimaryButton>
+          </router-link>
+          <a v-if="demoUrl && !isDemo" :href="demoUrl" target="_blank" rel="noopener noreferrer">
             <InfoButton :icon="['fas', 'eye']" class="text-base px-6 py-3">
               {{ t('landing.demo') }}
             </InfoButton>
@@ -171,7 +180,7 @@ const highlights = [
     <!-- Target Audience -->
     <section aria-label="Zielgruppe" class="mx-auto max-w-5xl px-6 py-16">
       <div class="rounded-2xl border border-(--border) bg-(--bg) p-8 sm:p-12 text-center">
-        <EmberLogo base="NoBG_OrangeGlow" blink-base="NoBG_OrangeGlow_Blink" :pixel-size="128" size="h-12 w-12 rounded-xl mx-auto mb-4" />
+        <LayeredEmberLogo :layers="logo.layers" :active-layers="logo.activeLayers" size="h-12 w-12 mx-auto mb-4" :pixel-size="128" />
         <SectionHeader class="text-2xl font-bold mb-3">{{ t('landing.audienceTitle') }}</SectionHeader>
         <p class="text-(--text-muted) max-w-2xl mx-auto mb-6 leading-relaxed">
           {{ t('landing.audienceText') }}
@@ -203,7 +212,12 @@ const highlights = [
               {{ t('landing.selfHostCta') }}
             </PrimaryButton>
           </router-link>
-          <a v-if="demoUrl" :href="demoUrl" target="_blank" rel="noopener noreferrer">
+          <router-link v-if="isDemo" to="/login">
+            <PrimaryButton :icon="['fas', 'rocket']" class="text-base px-6 py-3">
+              {{ t('landing.tryNow') }}
+            </PrimaryButton>
+          </router-link>
+          <a v-if="demoUrl && !isDemo" :href="demoUrl" target="_blank" rel="noopener noreferrer">
             <SecondaryButton :icon="['fas', 'eye']" class="text-base px-6 py-3">
               {{ t('landing.demo') }}
             </SecondaryButton>

@@ -55,6 +55,11 @@ const router = createRouter({
             component: LoginView,
         },
         {
+            path: '/requirements',
+            name: 'requirements',
+            redirect: '/station/requirements',
+        },
+        {
             path: '/forgot-password',
             name: 'forgot-password',
             component: ForgotPasswordView,
@@ -143,6 +148,11 @@ const router = createRouter({
                     component: StatisticsView,
                 },
                 {
+                    path: 'requirements',
+                    name: 'station-requirements',
+                    component: () => import('@/views/stationview/RequirementsView.vue'),
+                },
+                {
                     path: 'news',
                     name: 'news-list',
                     component: () => import('@/views/stationview/news/ListView.vue'),
@@ -161,6 +171,11 @@ const router = createRouter({
                     path: 'news/:id/edit',
                     name: 'news-edit',
                     component: () => import('@/views/stationview/news/EditView.vue'),
+                },
+                {
+                    path: 'federation/news/:stationUid/:newsId',
+                    name: 'federated-news-detail',
+                    component: () => import('@/views/stationview/news/FederatedDetailView.vue'),
                 },
                 {
                     path: 'manage',
@@ -188,17 +203,17 @@ const router = createRouter({
                     component: () => import('@/views/stationview/manage/StationImportView.vue'),
                 },
                 {
-                    path: 'manage/attendance-config',
+                    path: 'attendance/config',
                     name: 'station-attendance-config',
                     component: AttendanceConfigView,
                 },
                 {
-                    path: 'manage/attendance-config/edit/:id?',
+                    path: 'attendance/config/edit/:id?',
                     name: 'station-attendance-config-edit',
                     component: AttendanceConfigEditView,
                 },
                 {
-                    path: 'manage/members-config',
+                    path: 'members/config',
                     name: 'station-members-config',
                     component: MembersConfigView,
                 },
@@ -258,6 +273,11 @@ const router = createRouter({
                     component: MembersGroupsView,
                 },
                 {
+                    path: 'members/type-permissions',
+                    name: 'members-type-permissions',
+                    component: () => import('@/views/stationview/members/UserTypePermissionsView.vue'),
+                },
+                {
                     path: 'members/tags',
                     name: 'members-tags',
                     component: () => import('@/views/stationview/members/TagsView.vue'),
@@ -286,6 +306,11 @@ const router = createRouter({
                     path: 'members/waiting-lists/:id/fields',
                     name: 'waiting-list-fields',
                     component: () => import('@/views/stationview/members/waitinglist/FieldEditorView.vue'),
+                },
+                {
+                    path: 'members/waiting-lists/:id/entries/new',
+                    name: 'waiting-list-create-entry',
+                    component: () => import('@/views/stationview/members/waitinglist/CreateEntryView.vue'),
                 },
                 {
                     path: 'members/waiting-lists/:id/entries/:entryId',
@@ -441,6 +466,11 @@ const router = createRouter({
                     path: 'events/batch',
                     name: 'event-batch',
                     component: () => import('@/views/stationview/events/BatchCreateView.vue'),
+                },
+                {
+                    path: 'federation/events/:stationUid/:eventId',
+                    name: 'federated-event-detail',
+                    component: () => import('@/views/stationview/events/FederatedEventDetailView.vue'),
                 },
                 {
                     path: 'forms',
@@ -640,6 +670,63 @@ const router = createRouter({
                     name: 'protocol-evaluation',
                     component: () => import('@/views/stationview/protocol/EvaluationView.vue'),
                 },
+                // -- Federated Boards --
+                {
+                    path: 'federation/boards',
+                    name: 'federated-boards',
+                    component: () => import('@/views/stationview/federation/FederatedBoardsView.vue'),
+                },
+                {
+                    path: 'federation/boards/:partnerUid/:boardKey',
+                    name: 'federated-board-view',
+                    component: () => import('@/views/stationview/federation/FederatedBoardView.vue'),
+                },
+                {
+                    path: 'federation/boards/:partnerUid/:boardKey/tickets/:ticketNumber',
+                    name: 'federated-ticket-detail',
+                    component: () => import('@/views/stationview/boards/TicketDetailView.vue'),
+                },
+                // -- Boards --
+                {
+                    path: 'boards',
+                    name: 'board-overview',
+                    component: () => import('@/views/stationview/boards/BoardOverviewView.vue'),
+                },
+                {
+                    path: 'boards/manage',
+                    name: 'board-manage',
+                    component: () => import('@/views/stationview/boards/BoardListView.vue'),
+                },
+                {
+                    path: 'boards/:boardKey',
+                    name: 'board-view',
+                    component: () => import('@/views/stationview/boards/BoardView.vue'),
+                },
+                {
+                    path: 'boards/:boardKey/tickets/new',
+                    name: 'ticket-create',
+                    component: () => import('@/views/stationview/boards/TicketCreateView.vue'),
+                },
+                {
+                    path: 'boards/:boardKey/tickets/:ticketNumber',
+                    name: 'ticket-detail',
+                    component: () => import('@/views/stationview/boards/TicketDetailView.vue'),
+                },
+                {
+                    path: 'boards/:boardKey/archived',
+                    name: 'board-archived',
+                    component: () => import('@/views/stationview/boards/ArchivedView.vue'),
+                },
+                {
+                    path: 'boards/:boardKey/backlog',
+                    name: 'board-backlog',
+                    component: () => import('@/views/stationview/boards/BacklogView.vue'),
+                },
+                {
+                    path: 'boards/:boardKey/settings',
+                    name: 'board-settings',
+                    component: () => import('@/views/stationview/boards/BoardSettingsView.vue'),
+                },
                 {
                     path: ':pathMatch(.*)*',
                     name: 'station-not-found',
@@ -769,6 +856,12 @@ const router = createRouter({
                     name: 'help-dashboard-statistics',
                     component: () => import('@/views/helpcenter/dashboardview/StatisticsHelp.vue')
                 },
+                // Requirements
+                {
+                    path: 'requirements',
+                    name: 'help-station-requirements',
+                    component: () => import('@/views/helpcenter/stationview/RequirementsHelp.vue')
+                },
                 // News
                 {
                     path: 'news',
@@ -789,6 +882,11 @@ const router = createRouter({
                     path: 'news/:id/edit',
                     name: 'help-news-edit',
                     component: () => import('@/views/helpcenter/stationview/news/EditHelp.vue')
+                },
+                {
+                    path: 'federation/news/:stationUid/:newsId',
+                    name: 'help-federated-news-detail',
+                    redirect: { name: 'help-news-module-overview' },
                 },
                 // Profile
                 {
@@ -853,17 +951,17 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/stationview/manage/OverviewHelp.vue')
                 },
                 {
-                    path: 'manage/attendance-config',
+                    path: 'attendance/config',
                     name: 'help-station-attendance-config',
                     component: () => import('@/views/helpcenter/stationview/manage/AttendanceConfigHelp.vue')
                 },
                 {
-                    path: 'manage/attendance-config/edit/:id?',
+                    path: 'attendance/config/edit/:id?',
                     name: 'help-station-attendance-config-edit',
                     component: () => import('@/views/helpcenter/stationview/manage/AttendanceConfigEditHelp.vue')
                 },
                 {
-                    path: 'manage/members-config',
+                    path: 'members/config',
                     name: 'help-station-members-config',
                     component: () => import('@/views/helpcenter/stationview/manage/MembersConfigHelp.vue')
                 },
@@ -952,6 +1050,11 @@ const router = createRouter({
                     path: 'members/groups',
                     name: 'help-members-groups',
                     component: () => import('@/views/helpcenter/stationview/members/GroupsHelp.vue')
+                },
+                {
+                    path: 'members/type-permissions',
+                    name: 'help-members-type-permissions',
+                    component: () => import('@/views/helpcenter/stationview/members/TypePermissionsHelp.vue')
                 },
                 {
                     path: 'members/tags',
@@ -1161,6 +1264,11 @@ const router = createRouter({
                     name: 'help-event-batch',
                     component: () => import('@/views/helpcenter/stationview/events/BatchHelp.vue')
                 },
+                {
+                    path: 'federation/events/:stationUid/:eventId',
+                    name: 'help-federated-event-detail',
+                    redirect: { name: 'help-events-upcoming' },
+                },
                 // Forms
                 {
                     path: 'forms',
@@ -1331,6 +1439,62 @@ const router = createRouter({
                     name: 'help-kb-versions',
                     component: () => import('@/views/helpcenter/stationview/knowledge/VersionsHelp.vue')
                 },
+                // Boards
+                {
+                    path: 'federation/boards',
+                    name: 'help-federated-boards',
+                    component: () => import('@/views/helpcenter/stationview/boards/FederatedBoardsHelp.vue'),
+                },
+                {
+                    path: 'federation/boards/:partnerUid/:boardKey',
+                    name: 'help-federated-board-view',
+                    redirect: { name: 'help-federated-boards' },
+                },
+                {
+                    path: 'federation/boards/:partnerUid/:boardKey/tickets/:ticketNumber',
+                    name: 'help-federated-ticket-detail',
+                    redirect: { name: 'help-federated-boards' },
+                },
+                {
+                    path: 'boards',
+                    name: 'help-board-overview',
+                    component: () => import('@/views/helpcenter/stationview/boards/BoardsHelp.vue')
+                },
+                {
+                    path: 'boards/manage',
+                    name: 'help-board-manage',
+                    component: () => import('@/views/helpcenter/stationview/boards/BoardManageHelp.vue')
+                },
+                {
+                    path: 'boards/:boardKey',
+                    name: 'help-board-view',
+                    component: () => import('@/views/helpcenter/stationview/boards/BoardViewHelp.vue')
+                },
+                {
+                    path: 'boards/:boardKey/archived',
+                    name: 'help-board-archived',
+                    component: () => import('@/views/helpcenter/stationview/boards/ArchivedHelp.vue')
+                },
+                {
+                    path: 'boards/:boardKey/backlog',
+                    name: 'help-board-backlog',
+                    component: () => import('@/views/helpcenter/stationview/boards/BacklogHelp.vue')
+                },
+                {
+                    path: 'boards/:boardKey/settings',
+                    name: 'help-board-settings',
+                    component: () => import('@/views/helpcenter/stationview/boards/BoardSettingsHelp.vue')
+                },
+                {
+                    path: 'boards/:boardKey/tickets/new',
+                    name: 'help-ticket-create',
+                    component: () => import('@/views/helpcenter/stationview/boards/TicketCreateHelp.vue')
+                },
+                {
+                    path: 'boards/:boardKey/tickets/:ticketNumber',
+                    name: 'help-ticket-detail',
+                    component: () => import('@/views/helpcenter/stationview/boards/TicketDetailHelp.vue')
+                },
                 {
                     path: ':pathMatch(.*)*',
                     name: 'helpcenter-station-not-found',
@@ -1462,7 +1626,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-    const publicRoutes = ['home', 'login', 'forgot-password', 'set-password', 'reset-password', 'apply', 'apply-verify', 'waitlist-register', 'waitlist-status', 'style', 'privacy', 'terms', 'imprint', 'patch-notes', 'not-found']
+    const publicRoutes = ['home', 'login', 'requirements', 'forgot-password', 'set-password', 'reset-password', 'apply', 'apply-verify', 'waitlist-register', 'waitlist-status', 'style', 'privacy', 'terms', 'imprint', 'patch-notes', 'not-found']
     if (publicRoutes.includes(to.name as string)) {
         return true
     }
@@ -1484,6 +1648,14 @@ router.beforeEach((to) => {
     const {needsReconsent} = useConsentGuard()
     if (needsReconsent.value && to.name !== 'reconsent') {
         return {name: 'reconsent'}
+    }
+
+    // Redirect to requirements if inactive for more than 1 hour
+    const lastActivity = localStorage.getItem('ember_last_activity')
+    const now = Date.now()
+    localStorage.setItem('ember_last_activity', String(now))
+    if (lastActivity && now - Number(lastActivity) > 3600000 && to.name !== 'requirements') {
+        return {name: 'requirements', query: {redirect: to.fullPath}}
     }
 
     return true

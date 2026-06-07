@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Business logic for cross-station inventory lending.
@@ -81,7 +82,7 @@ public class LendingService {
         return String.join(", ", parts);
     }
 
-    private void publishStatusChange(LendingRequest request, int actingStationId, String status) {
+    private void publishStatusChange(LendingRequest request, int actingStationId, LendingStatus status) {
         int targetStationId = request.requestingStationId() == actingStationId
                 ? request.owningStationId()
                 : request.requestingStationId();
@@ -133,17 +134,45 @@ public class LendingService {
     public boolean approveRequest(int requestId, int stationId) {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.APPROVED);
         if (updated) {
+            autoAssignItems(requestId);
             repository.createMessage(requestId, stationId, null, "Anfrage genehmigt", true);
-            repository.findRequestById(requestId).ifPresent(r -> publishStatusChange(r, stationId, "APPROVED"));
+            repository
+                    .findRequestById(requestId)
+                    .ifPresent(r -> publishStatusChange(r, stationId, LendingStatus.APPROVED));
         }
         return updated;
+    }
+
+    private void autoAssignItems(int requestId) {
+        var request = repository.findRequestById(requestId).orElse(null);
+        if (request == null) return;
+        var requestItems = repository.findItemsByRequest(requestId);
+        for (var ri : requestItems) {
+            if (ri.assignedItemId() != null) continue;
+            // If a specific item was requested, assign that directly
+            if (ri.itemId() != null) {
+                repository.assignItem(ri.id(), ri.itemId());
+                continue;
+            }
+            // Otherwise assign first N free items from the inventory for the requested period
+            if (ri.inventoryId() == null) continue;
+            var dateTo = request.requestedDateTo() != null
+                    ? request.requestedDateTo()
+                    : request.requestedDateFrom().plusDays(1);
+            var freeItems = inventoryRepository.findFreeItems(ri.inventoryId(), request.requestedDateFrom(), dateTo);
+            for (int q = 0; q < ri.quantity() && q < freeItems.size(); q++) {
+                repository.assignItem(ri.id(), freeItems.get(q).id());
+            }
+        }
     }
 
     public boolean declineRequest(int requestId, int stationId, String reason) {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.DECLINED);
         if (updated) {
             String msg = "Anfrage abgelehnt" + (reason != null && !reason.isBlank() ? ": " + reason : "");
-            repository.findRequestById(requestId).ifPresent(r -> publishStatusChange(r, stationId, "DECLINED"));
+            repository
+                    .findRequestById(requestId)
+                    .ifPresent(r -> publishStatusChange(r, stationId, LendingStatus.DECLINED));
             repository.createMessage(requestId, stationId, null, msg, true);
         }
         return updated;
@@ -153,7 +182,7 @@ public class LendingService {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.LENT);
         if (updated) {
             repository.createMessage(requestId, stationId, null, "Ausrüstung ausgeliehen", true);
-            repository.findRequestById(requestId).ifPresent(r -> publishStatusChange(r, stationId, "LENT"));
+            repository.findRequestById(requestId).ifPresent(r -> publishStatusChange(r, stationId, LendingStatus.LENT));
         }
         return updated;
     }
@@ -162,7 +191,9 @@ public class LendingService {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.RETURNED);
         if (updated) {
             repository.createMessage(requestId, stationId, null, "Ausrüstung zurückgegeben", true);
-            repository.findRequestById(requestId).ifPresent(r -> publishStatusChange(r, stationId, "RETURNED"));
+            repository
+                    .findRequestById(requestId)
+                    .ifPresent(r -> publishStatusChange(r, stationId, LendingStatus.RETURNED));
         }
         return updated;
     }
@@ -171,7 +202,9 @@ public class LendingService {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.CLOSED);
         if (updated) {
             repository.createMessage(requestId, stationId, null, "Anfrage geschlossen", true);
-            repository.findRequestById(requestId).ifPresent(r -> publishStatusChange(r, stationId, "CLOSED"));
+            repository
+                    .findRequestById(requestId)
+                    .ifPresent(r -> publishStatusChange(r, stationId, LendingStatus.CLOSED));
         }
         return updated;
     }
@@ -230,14 +263,20 @@ public class LendingService {
             log.warn("No private key found for station {}, cannot fetch remote messages", localStationId);
             return List.of();
         }
-        return httpClient.fetchRemoteMessages(
-                partner.remoteHost(), requestId, localStationId, station.federationPrivateKey());
+        return httpClient.getList(
+                partner.remoteHost(),
+                "/remote/lending/messages/" + requestId,
+                localStationId,
+                station.federationPrivateKey(),
+                LendingMessage.class);
     }
 
     private FederationPartner findPartnerForStation(int localStationId, int partnerStationId) {
         var partners = federationService.findPartners(localStationId);
         for (var p : partners) {
-            int remoteId = p.stationId() == localStationId ? p.partnerStationId() : p.stationId();
+            var partnerStation =
+                    stationRepository.findByUid(p.partnerStationId()).orElse(null);
+            int remoteId = partnerStation != null ? partnerStation.id() : 0;
             if (remoteId == partnerStationId && p.status() == FederationPartner.FederationStatus.ACTIVE) {
                 return p;
             }
@@ -263,4 +302,80 @@ public class LendingService {
     public boolean isBlocked(int stationId, Integer inventoryId, Integer itemId, LocalDate dateFrom, LocalDate dateTo) {
         return repository.isBlocked(stationId, inventoryId, itemId, dateFrom, dateTo);
     }
+
+    // -- Federated available inventory (parallel fetch from all partners) --
+
+    /**
+     * Finds available inventory across all active federation partners, with parallel fetching.
+     */
+    public List<AvailableInventoryEntry> findAvailableInventory(
+            int stationId, String query, LocalDate dateFrom, LocalDate dateTo) {
+        var partners = federationService.findPartners(stationId).stream()
+                .filter(p -> p.status() == FederationPartner.FederationStatus.ACTIVE)
+                .toList();
+
+        var futures = new ArrayList<CompletableFuture<List<AvailableInventoryEntry>>>();
+        for (var partner : partners) {
+            futures.add(CompletableFuture.supplyAsync(() -> findAvailableForPartner(partner, query, dateFrom, dateTo)));
+        }
+
+        var results = new ArrayList<AvailableInventoryEntry>();
+        var allFuture = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
+        try {
+            allFuture.join();
+        } catch (Exception e) {
+            log.error("Error during parallel available inventory fetch", e);
+        }
+        for (var future : futures) {
+            try {
+                results.addAll(future.get());
+            } catch (Exception e) {
+                log.error("Error collecting available inventory results", e);
+            }
+        }
+        return results;
+    }
+
+    private List<AvailableInventoryEntry> findAvailableForPartner(
+            FederationPartner partner, String query, LocalDate dateFrom, LocalDate dateTo) {
+        var partnerStation =
+                stationRepository.findByUid(partner.partnerStationId()).orElse(null);
+        if (partnerStation == null) return List.of();
+        int partnerStationId = partnerStation.id();
+        String name = partnerStation.name();
+
+        if (dateFrom != null && isBlocked(partnerStationId, null, null, dateFrom, dateTo)) {
+            return List.of();
+        }
+
+        var entries = new ArrayList<AvailableInventoryEntry>();
+        var inventories = inventoryRepository.findByStation(partnerStationId);
+        for (var inv : inventories) {
+            if (query != null && !query.isBlank()) {
+                if (!inv.name().toLowerCase().contains(query.toLowerCase())) {
+                    continue;
+                }
+            }
+            if (dateFrom != null && isBlocked(partnerStationId, inv.id(), null, dateFrom, dateTo)) {
+                continue;
+            }
+
+            var unassigned = inventoryRepository.findUnassignedItems(inv.id());
+            int availableCount;
+            if (dateFrom != null) {
+                availableCount = (int) unassigned.stream()
+                        .filter(item -> !isBlocked(partnerStationId, null, item.id(), dateFrom, dateTo))
+                        .count();
+            } else {
+                availableCount = unassigned.size();
+            }
+            if (availableCount > 0) {
+                entries.add(new AvailableInventoryEntry(inv.id(), inv.name(), partnerStationId, name, availableCount));
+            }
+        }
+        return entries;
+    }
+
+    public record AvailableInventoryEntry(
+            int inventoryId, String inventoryName, int stationId, String stationName, int availableCount) {}
 }

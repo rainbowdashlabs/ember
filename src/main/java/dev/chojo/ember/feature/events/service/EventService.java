@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.EventCancelled;
 import dev.chojo.ember.event.events.EventCreated;
 import dev.chojo.ember.event.events.EventDeleted;
 import dev.chojo.ember.event.events.EventRegistrationStatusChanged;
@@ -13,9 +15,12 @@ import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.EventSummary;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
 import dev.chojo.ember.feature.events.entity.RegistrationCount;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
@@ -27,10 +32,14 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Service providing business logic for station events, including CRUD operations for events, breaks, categories,
@@ -73,6 +82,25 @@ public class EventService {
         return eventRepository.findByStationForMember(stationId, memberId);
     }
 
+    public List<StationEvent> findFiltered(
+            int stationId, Integer memberId, Integer categoryId, Boolean requiresRegistration) {
+        return eventRepository.findFiltered(stationId, memberId, categoryId, requiresRegistration);
+    }
+
+    public List<StationEvent> findFilteredForMembers(
+            int stationId, List<Integer> memberIds, Integer categoryId, Boolean requiresRegistration) {
+        if (memberIds == null) {
+            return eventRepository.findFiltered(stationId, null, categoryId, requiresRegistration);
+        }
+        var eventMap = new LinkedHashMap<Integer, StationEvent>();
+        for (int mid : memberIds) {
+            for (var ev : eventRepository.findFiltered(stationId, mid, categoryId, requiresRegistration)) {
+                eventMap.putIfAbsent(ev.id(), ev);
+            }
+        }
+        return new ArrayList<>(eventMap.values());
+    }
+
     /**
      * Finds a station event by its ID.
      *
@@ -113,7 +141,10 @@ public class EventService {
             Instant registrationDeadline,
             boolean requiresConfirmation,
             Integer categoryId,
-            Integer registrationLimit) {
+            Integer registrationLimit,
+            Integer minRegistrations,
+            Instant thresholdDate,
+            Integer registrationCloseDays) {
         var event = eventRepository.create(
                 stationId,
                 name,
@@ -127,7 +158,10 @@ public class EventService {
                 registrationDeadline,
                 requiresConfirmation,
                 categoryId,
-                registrationLimit);
+                registrationLimit,
+                minRegistrations,
+                thresholdDate,
+                registrationCloseDays);
         eventBus.publish(new EventCreated(stationId, event));
         return event;
     }
@@ -163,7 +197,10 @@ public class EventService {
             boolean requiresConfirmation,
             Integer categoryId,
             Boolean isPublic,
-            Integer registrationLimit) {
+            Integer registrationLimit,
+            Integer minRegistrations,
+            Instant thresholdDate,
+            Integer registrationCloseDays) {
         if (eventRepository.update(
                 id,
                 name,
@@ -178,7 +215,10 @@ public class EventService {
                 requiresConfirmation,
                 categoryId,
                 isPublic,
-                registrationLimit)) {
+                registrationLimit,
+                minRegistrations,
+                thresholdDate,
+                registrationCloseDays)) {
             return eventRepository.findById(id);
         }
         return Optional.empty();
@@ -198,6 +238,26 @@ public class EventService {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Cancels an event, notifying all registered members.
+     *
+     * @param stationId the station ID (for ownership check)
+     * @param eventId   the event ID
+     * @param reason    optional cancellation reason
+     * @return true if the event was cancelled
+     */
+    public boolean cancelEvent(int stationId, int eventId, String reason) {
+        var event = eventRepository.findById(eventId).orElse(null);
+        if (event == null || event.stationId() != stationId) return false;
+        if (event.cancelled()) return false;
+
+        boolean cancelled = eventRepository.cancelEvent(eventId, reason);
+        if (cancelled) {
+            eventBus.publish(new EventCancelled(stationId, eventId, event.name(), reason));
+        }
+        return cancelled;
     }
 
     /**
@@ -222,11 +282,15 @@ public class EventService {
                                 e.startTime().atZone(ZoneOffset.UTC).toLocalDate();
                         return today.equals(eventDateUtc);
                     }
-                    if (inBreak || e.dayOfWeek() == null) return false;
+                    if (inBreak) return false;
                     return switch (e.eventType()) {
-                        case RECURRING -> e.dayOfWeek() == dayOfWeek;
-                        case MONTHLY_FIRST -> e.dayOfWeek() == dayOfWeek && dayOfMonth <= 7;
-                        case QUARTERLY -> e.dayOfWeek() == dayOfWeek && dayOfMonth <= 7 && (monthValue - 1) % 3 == 0;
+                        case RECURRING -> e.dayOfWeek() != null && e.dayOfWeek() == dayOfWeek;
+                        case MONTHLY_FIRST -> e.dayOfWeek() != null && e.dayOfWeek() == dayOfWeek && dayOfMonth <= 7;
+                        case QUARTERLY ->
+                            e.dayOfWeek() != null
+                                    && e.dayOfWeek() == dayOfWeek
+                                    && dayOfMonth <= 7
+                                    && (monthValue - 1) % 3 == 0;
                         case YEARLY ->
                             e.startTime() != null
                                     && e.startTime().atZone(ZoneOffset.UTC).getMonthValue() == monthValue
@@ -235,6 +299,74 @@ public class EventService {
                     };
                 })
                 .toList();
+    }
+
+    /**
+     * Expands events into chronologically sorted date occurrences for the next 28 days,
+     * applying optional server-side filters, with pagination on the expanded list.
+     */
+    public List<UpcomingEventOccurrence> findUpcomingOccurrences(
+            int stationId,
+            List<Integer> memberIds,
+            Integer categoryId,
+            Boolean requiresRegistration,
+            int limit,
+            int offset) {
+        var events = findFilteredForMembers(stationId, memberIds, categoryId, requiresRegistration);
+        var breaks = eventRepository.findBreaksByStation(stationId);
+
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        String todayStr = today.toString();
+        int maxDays = 28;
+        var occurrences = new ArrayList<UpcomingEventOccurrence>();
+
+        // One-time events
+        for (var ev : events) {
+            if (ev.eventType() != StationEvent.EventType.ONE_TIME || ev.startTime() == null) continue;
+            LocalDate eventDate = ev.startTime().atZone(ZoneOffset.UTC).toLocalDate();
+            if (!eventDate.isBefore(today)) {
+                occurrences.add(new UpcomingEventOccurrence(EventSummary.of(ev), eventDate));
+            }
+        }
+
+        // Recurring events for the next 28 days
+        for (int d = 0; d <= maxDays; d++) {
+            LocalDate date = today.plusDays(d);
+            String dateStr = date.toString();
+            boolean inBreak = breaks.stream()
+                    .anyMatch(b -> b.startDate() != null
+                            && b.endDate() != null
+                            && dateStr.compareTo(b.startDate().toString()) >= 0
+                            && dateStr.compareTo(b.endDate().toString()) <= 0);
+            if (inBreak) continue;
+
+            int dow = date.getDayOfWeek().getValue();
+            int dayOfMonth = date.getDayOfMonth();
+            int month = date.getMonthValue();
+
+            for (var ev : events) {
+                if (ev.eventType() == StationEvent.EventType.ONE_TIME) continue;
+                if (ev.dayOfWeek() == null || ev.dayOfWeek() != dow) continue;
+
+                boolean matches =
+                        switch (ev.eventType()) {
+                            case RECURRING -> true;
+                            case MONTHLY_FIRST -> dayOfMonth <= 7;
+                            case QUARTERLY -> dayOfMonth <= 7 && (month - 1) % 3 == 0;
+                            case YEARLY ->
+                                ev.startTime() != null
+                                        && ev.startTime().atZone(ZoneOffset.UTC).getMonthValue() == month
+                                        && ev.startTime().atZone(ZoneOffset.UTC).getDayOfMonth() == dayOfMonth;
+                            default -> false;
+                        };
+                if (matches) {
+                    occurrences.add(new UpcomingEventOccurrence(EventSummary.of(ev), date));
+                }
+            }
+        }
+
+        occurrences.sort(Comparator.comparing(UpcomingEventOccurrence::date));
+        return occurrences.stream().skip(offset).limit(limit).toList();
     }
 
     // -- Categories --
@@ -371,18 +503,22 @@ public class EventService {
      * Sets all restrictions for an event, replacing any existing restrictions.
      *
      * @param eventId   the event ID
-     * @param roleIds   the role IDs to restrict to, or null for no role restrictions
+     * @param userTypes the user type names to restrict to, or null for no user type restrictions
      * @param groupIds  the group IDs to restrict to, or null for no group restrictions
      * @param tagIds    the tag IDs to restrict to, or null for no tag restrictions
      * @param memberIds the member IDs to restrict to, or null for no member restrictions
      */
     public void setRestrictions(
-            int eventId, List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {
+            int eventId,
+            List<String> userTypes,
+            List<Integer> groupIds,
+            List<Integer> tagIds,
+            List<Integer> memberIds) {
         restrictionRepository.setRestrictions(
                 RestrictionType.EVENT.table(),
                 RestrictionType.EVENT.fkColumn(),
                 eventId,
-                roleIds != null ? roleIds : List.of(),
+                userTypes != null ? userTypes : List.of(),
                 groupIds != null ? groupIds : List.of(),
                 tagIds != null ? tagIds : List.of(),
                 memberIds != null ? memberIds : List.of());
@@ -405,8 +541,8 @@ public class EventService {
      * @param eventId  the event to check
      * @param memberId the member ID
      */
-    public boolean isMemberEligible(int eventId, int memberId) {
-        return restrictionRepository.checkRestriction(RestrictionType.EVENT, eventId, memberId);
+    public boolean isMemberEligible(int eventId, int memberId, Set<StationPermission> memberPermissions) {
+        return restrictionRepository.checkRestriction(RestrictionType.EVENT, eventId, memberId, memberPermissions);
     }
 
     // -- Field Defaults --
@@ -512,10 +648,10 @@ public class EventService {
      */
     public EventRegistration register(
             int eventId, int memberId, LocalDate eventDate, boolean autoAccept, Integer createdBy) {
-        var registration = eventRepository.createRegistration(
-                eventId, memberId, eventDate, EventRegistration.RegistrationStatus.PENDING, createdBy);
+        var registration =
+                eventRepository.createRegistration(eventId, memberId, eventDate, RegistrationStatus.PENDING, createdBy);
         if (autoAccept) {
-            eventRepository.updateRegistrationStatus(registration.id(), EventRegistration.RegistrationStatus.ACCEPTED);
+            eventRepository.updateRegistrationStatus(registration.id(), RegistrationStatus.ACCEPTED);
             return eventRepository.findRegistrationById(registration.id()).orElse(registration);
         }
         return registration;
@@ -531,26 +667,49 @@ public class EventService {
         return eventRepository.findRegistrationById(id);
     }
 
-    public boolean updateRegistrationStatus(int id, EventRegistration.RegistrationStatus status) {
+    public boolean updateRegistrationStatus(int id, RegistrationStatus status) {
         if (!eventRepository.updateRegistrationStatus(id, status)) return false;
         var registration = eventRepository.findRegistrationById(id).orElse(null);
         if (registration != null) {
-            var event = eventRepository.findById(registration.eventId()).orElse(null);
-            if (event != null) {
-                eventBus.publish(new EventRegistrationStatusChanged(
-                        event.stationId(), event.id(), event.name(), registration.memberId(), status.name()));
-            }
+            eventRepository
+                    .findById(registration.eventId())
+                    .ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
+                            event.stationId(), event.id(), event.name(), registration.memberId(), status)));
         }
         return true;
     }
 
     public boolean withdrawRegistration(int id) {
-        return eventRepository.deleteRegistration(id);
+        var registration = eventRepository.findRegistrationById(id).orElse(null);
+        if (!eventRepository.deleteRegistration(id)) return false;
+        if (registration != null && registration.status() == RegistrationStatus.ACCEPTED) {
+            eventRepository
+                    .findById(registration.eventId())
+                    .ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
+                            event.stationId(),
+                            event.id(),
+                            event.name(),
+                            registration.memberId(),
+                            RegistrationStatus.WITHDRAWN)));
+        }
+        return true;
     }
 
     public EventRegistration decline(int eventId, int memberId, LocalDate eventDate, Integer createdBy) {
-        return eventRepository.createRegistration(
-                eventId, memberId, eventDate, EventRegistration.RegistrationStatus.DECLINED, createdBy);
+        // Check if the member had an accepted registration before declining
+        var existing = eventRepository.findRegistrations(eventId, eventDate).stream()
+                .filter(r -> r.memberId() == memberId)
+                .findFirst()
+                .orElse(null);
+        var result = eventRepository.createRegistration(
+                eventId, memberId, eventDate, RegistrationStatus.DECLINED, createdBy);
+        if (existing != null && existing.status() == RegistrationStatus.ACCEPTED) {
+            eventRepository
+                    .findById(eventId)
+                    .ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
+                            event.stationId(), event.id(), event.name(), memberId, RegistrationStatus.DECLINED)));
+        }
+        return result;
     }
 
     public List<RegistrationCount> findRegistrationCounts(int stationId) {
@@ -563,5 +722,15 @@ public class EventService {
 
     public List<MemberRegistrationStats> findRegistrationStats(int eventId, Integer categoryId, int months) {
         return eventRepository.findRegistrationStatsByEvent(eventId, categoryId, months);
+    }
+
+    // --- Reminders ---
+
+    public List<Integer> findReminderDays(int eventId) {
+        return eventRepository.findReminderDays(eventId);
+    }
+
+    public void setReminders(int eventId, List<Integer> daysBefore) {
+        eventRepository.replaceReminders(eventId, daysBefore);
     }
 }

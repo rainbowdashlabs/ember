@@ -21,6 +21,8 @@ const modules = [
   {key: 'inventory', icon: ['fas', 'boxes-stacked']},
   {key: 'news', icon: ['fas', 'newspaper']},
   {key: 'forms', icon: ['fas', 'square-poll-vertical']},
+  {key: 'lostAndFound', icon: ['fas', 'box-open']},
+  {key: 'quiz', icon: ['fas', 'circle-question']},
 ]
 </script>
 

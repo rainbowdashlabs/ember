@@ -89,14 +89,14 @@ public class DemoInventorySeeder {
 
         // Requirements: Anfänger and Fortgeschritten members each need 1 of each (2 T-shirts)
         for (int groupId : List.of(anfaengerGroupId, fortgeschrittenGroupId)) {
-            inventoryRepository.createRequirement(helm.id(), 0, groupId, 1);
-            inventoryRepository.createRequirement(blouson.id(), 0, groupId, 1);
-            inventoryRepository.createRequirement(parka.id(), 0, groupId, 1);
-            inventoryRepository.createRequirement(latzhose.id(), 0, groupId, 1);
-            inventoryRepository.createRequirement(handschuhe.id(), 0, groupId, 1);
-            inventoryRepository.createRequirement(stiefel.id(), 0, groupId, 1);
-            inventoryRepository.createRequirement(sporttasche.id(), 0, groupId, 1);
-            inventoryRepository.createRequirement(tshirt.id(), 0, groupId, 2);
+            inventoryRepository.createRequirement(helm.id(), null, groupId, 1);
+            inventoryRepository.createRequirement(blouson.id(), null, groupId, 1);
+            inventoryRepository.createRequirement(parka.id(), null, groupId, 1);
+            inventoryRepository.createRequirement(latzhose.id(), null, groupId, 1);
+            inventoryRepository.createRequirement(handschuhe.id(), null, groupId, 1);
+            inventoryRepository.createRequirement(stiefel.id(), null, groupId, 1);
+            inventoryRepository.createRequirement(sporttasche.id(), null, groupId, 1);
+            inventoryRepository.createRequirement(tshirt.id(), null, groupId, 2);
         }
 
         // Create items and assign to members

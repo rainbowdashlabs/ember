@@ -35,7 +35,11 @@ class NewsServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new NewsService(newsRepo, new RestrictionRepository(), new DomainEventBus(Set.of()));
+        service = new NewsService(
+                newsRepo,
+                new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo),
+                new DomainEventBus(Set.of()),
+                stationMemberRepo);
         station = stationRepo.create("NewsStation");
         account = accountRepo.create("news-svc@test.com", "News", "Author");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -50,12 +54,13 @@ class NewsServiceTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void create() {
+        var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
         var news = service.create(
                 station.id(),
                 "Test News",
                 "Content of the news article",
                 "<p>Content of the news article</p>",
-                member.id(),
+                authorIdentity,
                 List.of(),
                 List.of(),
                 List.of(),
@@ -97,7 +102,9 @@ class NewsServiceTest extends RepositoryTestBase {
     @Test
     @Order(20)
     void createComment() {
-        var comment = service.createComment(station.id(), newsId, null, member.id(), "News Author", "Great article!");
+        var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
+        var comment =
+                service.createComment(station.id(), newsId, null, authorIdentity, "News Author", "Great article!");
         assertNotNull(comment);
         commentId = comment.id();
     }
@@ -149,8 +156,9 @@ class NewsServiceTest extends RepositoryTestBase {
     @Test
     @Order(23)
     void createReply() {
-        var reply =
-                service.createComment(station.id(), newsId, commentId, member.id(), "News Author", "This is a reply");
+        var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
+        var reply = service.createComment(
+                station.id(), newsId, commentId, authorIdentity, "News Author", "This is a reply");
         assertNotNull(reply);
         assertEquals(commentId, reply.parentId());
     }

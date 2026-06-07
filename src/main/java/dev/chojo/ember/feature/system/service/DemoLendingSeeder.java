@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.system.service;
 
-import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
@@ -24,16 +23,11 @@ public class DemoLendingSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoLendingSeeder.class);
 
     private final LendingService lendingService;
-    private final LendingRepository lendingRepository;
     private final InventoryRepository inventoryRepository;
 
     @Inject
-    public DemoLendingSeeder(
-            LendingService lendingService,
-            LendingRepository lendingRepository,
-            InventoryRepository inventoryRepository) {
+    public DemoLendingSeeder(LendingService lendingService, InventoryRepository inventoryRepository) {
         this.lendingService = lendingService;
-        this.lendingRepository = lendingRepository;
         this.inventoryRepository = inventoryRepository;
     }
 
@@ -44,7 +38,7 @@ public class DemoLendingSeeder {
      * @param partnerStationId the partner station ID
      * @param createdBy        the member ID who creates the requests
      */
-    public void seed(int stationId, int partnerStationId, int createdBy) {
+    public void seed(int stationId, int partnerStationId, int createdBy, int partnerMemberId) {
         // Create inventory on the partner station for lending purposes
         var partnerFeuerloescher =
                 inventoryRepository.create(partnerStationId, "Feuerlöscher", InventoryType.INTERNAL, false);
@@ -74,18 +68,18 @@ public class DemoLendingSeeder {
         lendingService.approveRequest(approvedRequest.id(), partnerStationId);
 
         // Chat messages
-        lendingRepository.createMessage(
+        lendingService.sendMessage(
                 approvedRequest.id(),
                 stationId,
                 createdBy,
-                "Wir benötigen 2 Feuerlöscher für unsere Übung nächste Woche.",
-                false);
-        lendingRepository.createMessage(
+                "Admin",
+                "Wir benötigen 2 Feuerlöscher für unsere Übung nächste Woche.");
+        lendingService.sendMessage(
                 approvedRequest.id(),
                 partnerStationId,
-                null,
-                "Kein Problem, die stehen bereit. Können ab Montag abgeholt werden.",
-                false);
+                partnerMemberId,
+                "Partner Manager",
+                "Kein Problem, die stehen bereit. Können ab Montag abgeholt werden.");
 
         // -- Request 2: REQUESTED — main station wants Schläuche from partner --
         var requestedRequest = lendingService.createRequest(
@@ -97,12 +91,12 @@ public class DemoLendingSeeder {
         lendingService.addRequestItem(requestedRequest.id(), partnerSchlaeuche.id(), null, 3);
 
         // Chat message
-        lendingRepository.createMessage(
+        lendingService.sendMessage(
                 requestedRequest.id(),
                 stationId,
                 createdBy,
-                "Für den Kreiswettbewerb bräuchten wir 3 zusätzliche Schläuche.",
-                false);
+                "Admin",
+                "Für den Kreiswettbewerb bräuchten wir 3 zusätzliche Schläuche.");
 
         // -- Request 3: RETURNED — completed lending from last month --
         var returnedRequest = lendingService.createRequest(
@@ -117,14 +111,14 @@ public class DemoLendingSeeder {
         lendingService.markReturned(returnedRequest.id(), stationId);
 
         // Chat messages
-        lendingRepository.createMessage(
+        lendingService.sendMessage(
                 returnedRequest.id(),
                 stationId,
                 createdBy,
-                "Danke für das Zelt! War super für unser Zeltlager.",
-                false);
-        lendingRepository.createMessage(
-                returnedRequest.id(), partnerStationId, null, "Gerne, jederzeit wieder!", false);
+                "Admin",
+                "Danke für das Zelt! War super für unser Zeltlager.");
+        lendingService.sendMessage(
+                returnedRequest.id(), partnerStationId, partnerMemberId, "Partner Manager", "Gerne, jederzeit wieder!");
 
         // -- Walky Talkies on the base station (some lent out to partner) --
         var walkieTalkies = inventoryRepository.create(stationId, "Funkgeräte", InventoryType.INTERNAL, false);
@@ -147,14 +141,13 @@ public class DemoLendingSeeder {
         lendingService.approveRequest(lentRequest.id(), stationId);
         lendingService.markLent(lentRequest.id(), stationId);
 
-        lendingRepository.createMessage(
+        lendingService.sendMessage(
                 lentRequest.id(),
                 partnerStationId,
-                null,
-                "Könnten wir uns 2 Funkgeräte für unser Wochenende ausleihen?",
-                false);
-        lendingRepository.createMessage(
-                lentRequest.id(), stationId, createdBy, "Klar, kommt sie einfach abholen.", false);
+                partnerMemberId,
+                "Partner Manager",
+                "Könnten wir uns 2 Funkgeräte für unser Wochenende ausleihen?");
+        lendingService.sendMessage(lentRequest.id(), stationId, createdBy, "Admin", "Klar, kommt sie einfach abholen.");
 
         // -- Request 5 (INCOMING): partner requests Funkgeräte from main station (REQUESTED — pending) --
         var incomingPending = lendingService.createRequest(
@@ -165,12 +158,12 @@ public class DemoLendingSeeder {
                 createdBy);
         lendingService.addRequestItem(incomingPending.id(), walkieTalkies.id(), null, 3);
 
-        lendingRepository.createMessage(
+        lendingService.sendMessage(
                 incomingPending.id(),
                 partnerStationId,
-                null,
-                "Für unsere Übung am übernächsten Wochenende bräuchten wir 3 Funkgeräte.",
-                false);
+                partnerMemberId,
+                "Partner Manager",
+                "Für unsere Übung am übernächsten Wochenende bräuchten wir 3 Funkgeräte.");
 
         // -- Request 6 (INCOMING): partner wants Zelte — APPROVED, about to be picked up --
         var aboutToLend = lendingService.createRequest(
@@ -182,14 +175,14 @@ public class DemoLendingSeeder {
         lendingService.addRequestItem(aboutToLend.id(), walkieTalkies.id(), null, 2);
         lendingService.approveRequest(aboutToLend.id(), stationId);
 
-        lendingRepository.createMessage(
+        lendingService.sendMessage(
                 aboutToLend.id(),
                 partnerStationId,
-                null,
-                "Wir bräuchten 2 Funkgeräte für die Übung am Wochenende.",
-                false);
-        lendingRepository.createMessage(
-                aboutToLend.id(), stationId, createdBy, "Geht klar, könnt ihr morgen abholen.", false);
+                partnerMemberId,
+                "Partner Manager",
+                "Wir bräuchten 2 Funkgeräte für die Übung am Wochenende.");
+        lendingService.sendMessage(
+                aboutToLend.id(), stationId, createdBy, "Admin", "Geht klar, könnt ihr morgen abholen.");
 
         // -- Request 7 (INCOMING): OVERDUE — partner has items past return date --
         var overdueRequest = lendingService.createRequest(
@@ -202,13 +195,13 @@ public class DemoLendingSeeder {
         lendingService.approveRequest(overdueRequest.id(), stationId);
         lendingService.markLent(overdueRequest.id(), stationId);
 
-        lendingRepository.createMessage(
+        lendingService.sendMessage(
                 overdueRequest.id(),
                 partnerStationId,
-                null,
-                "Können wir ein Funkgerät für die Übung letzte Woche ausleihen?",
-                false);
-        lendingRepository.createMessage(overdueRequest.id(), stationId, createdBy, "Klar, nehmt eins mit.", false);
+                partnerMemberId,
+                "Partner Manager",
+                "Können wir ein Funkgerät für die Übung letzte Woche ausleihen?");
+        lendingService.sendMessage(overdueRequest.id(), stationId, createdBy, "Admin", "Klar, nehmt eins mit.");
 
         // -- Inventory block on partner station --
         lendingService.createBlock(

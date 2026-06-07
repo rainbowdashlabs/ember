@@ -4,14 +4,25 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-defineProps<{
+import {ref} from 'vue'
+import BaseBadge from './BaseBadge.vue'
+
+const props = defineProps<{
   stationName: string
+  compact?: boolean
 }>()
+
+const expanded = ref(false)
 </script>
 
 <template>
-  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-secondary/10 text-secondary border border-secondary/30">
-    <font-awesome-icon :icon="['fas', 'arrow-right-arrow-left']" class="w-2.5 h-2.5" />
-    {{ stationName }}
+  <span class="inline-flex items-center transition-all duration-200 overflow-hidden"
+        @mouseenter="compact ? expanded = true : undefined"
+        @mouseleave="compact ? expanded = false : undefined"
+        @touchstart.stop="compact ? expanded = !expanded : undefined">
+    <BaseBadge bg-class="bg-secondary/70 border border-secondary/30" class="gap-1 text-[10px]">
+      <font-awesome-icon :icon="['fas', 'arrow-right-arrow-left']" class="w-2.5 h-2.5 shrink-0" />
+      <span v-if="(!compact || expanded) && stationName" class="whitespace-nowrap">{{ stationName }}</span>
+    </BaseBadge>
   </span>
 </template>

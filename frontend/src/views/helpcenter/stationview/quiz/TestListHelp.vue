@@ -8,16 +8,26 @@ import { useI18n } from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
+import HelpPermissionGuard from '@/components/helpcenter/HelpPermissionGuard.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ErrorButton from '@/components/button/ErrorButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import InfoBadge from '@/components/badge/InfoBadge.vue'
+import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
+import TabBar from '@/components/navigation/TabBar.vue'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
 import BulletList from '@/components/typography/BulletList.vue'
+import {StationPermission} from '@/api/types'
 
 const { t } = useI18n()
+
+const tabs = [
+  { key: 'tests', label: 'Tests' },
+  { key: 'results', label: 'Ergebnisse' },
+]
 </script>
 
 <template>
@@ -30,64 +40,93 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.quiz.testListHowText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Test list -->
-    <div class="space-y-3">
-      <div class="flex items-center justify-between">
-        <SubHeader>{{ t('quiz.tests') }}</SubHeader>
-        <PrimaryButton :icon="['fas', 'plus']" disabled>
-          {{ t('quiz.createTest') }}
-        </PrimaryButton>
+    <!-- Dummy: Test list with TabBar -->
+    <HelpSection :title="t('helpCenter.quiz.testListExampleTitle')">
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <SectionHeader>{{ t('quiz.tests.title') }}</SectionHeader>
+          <HelpPermissionGuard :permissions="[StationPermission.TEST_CONFIGURE]" :label="t('helpCenter.permissionLabel.testConfigure')">
+            <PrimaryButton :icon="['fas', 'plus']" disabled>
+              {{ t('quiz.tests.create') }}
+            </PrimaryButton>
+          </HelpPermissionGuard>
+        </div>
+
+        <TabBar :model-value="'tests'" :tabs="tabs" />
+
+        <!-- Test cards (clickable, no Open button) -->
+        <NeutralContainer class="cursor-pointer">
+          <div class="flex items-center justify-between gap-4">
+            <div class="flex-1 space-y-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-medium">Brandschutz-Pruefung</span>
+                <SuccessBadge>{{ t('quiz.tests.statusActive') }}</SuccessBadge>
+              </div>
+              <p class="text-xs text-(--text-muted) line-clamp-1">Pruefung zum Thema Brandschutz</p>
+            </div>
+            <div class="flex items-center gap-4 text-xs text-(--text-muted) shrink-0">
+              <span>12 {{ t('quiz.attemptCount') }}</span>
+              <div class="flex items-center gap-2" @click.stop>
+                <PrimaryButton disabled>{{ t('quiz.tests.takeTest') }}</PrimaryButton>
+                <HelpPermissionGuard :permissions="[StationPermission.TEST_CONFIGURE]" :label="t('helpCenter.permissionLabel.testConfigure')">
+                  <SecondaryButton disabled>{{ t('common.edit') }}</SecondaryButton>
+                  <ErrorButton disabled>{{ t('common.delete') }}</ErrorButton>
+                </HelpPermissionGuard>
+              </div>
+            </div>
+          </div>
+        </NeutralContainer>
+
+        <NeutralContainer class="cursor-pointer">
+          <div class="flex items-center justify-between gap-4">
+            <div class="flex-1 space-y-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-medium">Erste-Hilfe-Test</span>
+                <SecondaryBadge>{{ t('quiz.tests.statusDraft') }}</SecondaryBadge>
+              </div>
+              <p class="text-xs text-(--text-muted) line-clamp-1">Entwurf fuer den naechsten Uebungsabend</p>
+            </div>
+            <div class="flex items-center gap-4 text-xs text-(--text-muted) shrink-0">
+              <span>0 {{ t('quiz.attemptCount') }}</span>
+              <HelpPermissionGuard :permissions="[StationPermission.TEST_CONFIGURE]" :label="t('helpCenter.permissionLabel.testConfigure')">
+                <div class="flex items-center gap-2" @click.stop>
+                  <SecondaryButton disabled>{{ t('common.edit') }}</SecondaryButton>
+                  <ErrorButton disabled>{{ t('common.delete') }}</ErrorButton>
+                </div>
+              </HelpPermissionGuard>
+            </div>
+          </div>
+        </NeutralContainer>
+
+        <NeutralContainer class="cursor-pointer">
+          <div class="flex items-center justify-between gap-4">
+            <div class="flex-1 space-y-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-medium">Knoten-Quiz</span>
+                <ErrorBadge>{{ t('quiz.tests.statusClosed') }}</ErrorBadge>
+                <InfoBadge>{{ t('quiz.tests.taken') }}</InfoBadge>
+              </div>
+              <p class="text-xs text-(--text-muted) line-clamp-1">Abgeschlossener Test</p>
+            </div>
+            <div class="flex items-center gap-4 text-xs text-(--text-muted) shrink-0">
+              <span>5 {{ t('quiz.attemptCount') }}</span>
+            </div>
+          </div>
+        </NeutralContainer>
       </div>
-
-      <NeutralContainer>
-        <div class="flex items-center justify-between">
-          <div class="space-y-1">
-            <div class="flex items-center gap-2">
-              <span class="font-medium">Brandschutz-Pruefung</span>
-              <SuccessBadge>{{ t('quiz.statusActive') }}</SuccessBadge>
-            </div>
-            <p class="text-xs text-(--text-muted)">Pruefung zum Thema Brandschutz</p>
-          </div>
-          <SecondaryButton disabled>{{ t('common.open') }}</SecondaryButton>
-        </div>
-      </NeutralContainer>
-
-      <NeutralContainer>
-        <div class="flex items-center justify-between">
-          <div class="space-y-1">
-            <div class="flex items-center gap-2">
-              <span class="font-medium">Erste-Hilfe-Test</span>
-              <InfoBadge>{{ t('quiz.statusDraft') }}</InfoBadge>
-            </div>
-            <p class="text-xs text-(--text-muted)">Entwurf fuer den naechsten Uebungsabend</p>
-          </div>
-          <SecondaryButton disabled>{{ t('common.open') }}</SecondaryButton>
-        </div>
-      </NeutralContainer>
-
-      <NeutralContainer>
-        <div class="flex items-center justify-between">
-          <div class="space-y-1">
-            <div class="flex items-center gap-2">
-              <span class="font-medium">Knoten-Quiz</span>
-              <ErrorBadge>{{ t('quiz.statusClosed') }}</ErrorBadge>
-            </div>
-            <p class="text-xs text-(--text-muted)">Abgeschlossener Test</p>
-          </div>
-          <SecondaryButton disabled>{{ t('common.open') }}</SecondaryButton>
-        </div>
-      </NeutralContainer>
-    </div>
-
-    <HelpSection :title="t('helpCenter.quiz.createTestTitle')">
-      <p>{{ t('helpCenter.quiz.createTestText') }}</p>
-      <BulletList class="mt-2">
-        <li>{{ t('helpCenter.quiz.createTestName') }}</li>
-        <li>{{ t('helpCenter.quiz.createTestDesc') }}</li>
-        <li>{{ t('helpCenter.quiz.createTestTime') }}</li>
-        <li>{{ t('helpCenter.quiz.createTestShuffle') }}</li>
-      </BulletList>
     </HelpSection>
+
+    <HelpPermissionGuard :permissions="[StationPermission.TEST_CONFIGURE]" :label="t('helpCenter.permissionLabel.testConfigure')">
+      <HelpSection :title="t('helpCenter.quiz.createTestTitle')">
+        <p>{{ t('helpCenter.quiz.createTestText') }}</p>
+        <BulletList class="mt-2">
+          <li>{{ t('helpCenter.quiz.createTestName') }}</li>
+          <li>{{ t('helpCenter.quiz.createTestDesc') }}</li>
+          <li>{{ t('helpCenter.quiz.createTestTime') }}</li>
+          <li>{{ t('helpCenter.quiz.createTestShuffle') }}</li>
+        </BulletList>
+      </HelpSection>
+    </HelpPermissionGuard>
 
     <HelpTip>{{ t('helpCenter.quiz.testListTip') }}</HelpTip>
   </HelpArticle>

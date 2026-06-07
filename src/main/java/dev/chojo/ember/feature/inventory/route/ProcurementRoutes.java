@@ -6,9 +6,10 @@
 package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
@@ -16,6 +17,7 @@ import dev.chojo.ember.feature.inventory.entity.Procurement;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ProcurementService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
@@ -41,26 +43,37 @@ public class ProcurementRoutes implements Routes {
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
     private final InventoryRepository inventoryRepository;
+    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public ProcurementRoutes(
             ProcurementService procurementService,
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
-            InventoryRepository inventoryRepository) {
+            InventoryRepository inventoryRepository,
+            MemberIdentityFactory memberIdentityFactory) {
         this.procurementService = procurementService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.inventoryRepository = inventoryRepository;
+        this.memberIdentityFactory = memberIdentityFactory;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/procurement", this::list, Roles.INVENTORY_MANAGER);
-        routes.get(prefix + "/procurement/open", this::listOpen, Roles.INVENTORY_MANAGER);
-        routes.post(prefix + "/procurement", this::create, Roles.INVENTORY_MANAGER);
-        routes.put(prefix + "/procurement/{id}/fulfill", this::fulfill, Roles.INVENTORY_MANAGER);
-        routes.delete(prefix + "/procurement/{id}", this::delete, Roles.INVENTORY_MANAGER);
+        routes.get(
+                prefix + "/procurement",
+                this::list,
+                StationPermission.INVENTORY_PROCUREMENT,
+                StationPermission.INVENTORY_READ);
+        routes.get(
+                prefix + "/procurement/open",
+                this::listOpen,
+                StationPermission.INVENTORY_PROCUREMENT,
+                StationPermission.INVENTORY_READ);
+        routes.post(prefix + "/procurement", this::create, StationPermission.INVENTORY_PROCUREMENT);
+        routes.put(prefix + "/procurement/{id}/fulfill", this::fulfill, StationPermission.INVENTORY_PROCUREMENT);
+        routes.delete(prefix + "/procurement/{id}", this::delete, StationPermission.INVENTORY_PROCUREMENT);
     }
 
     @OpenApi(
@@ -143,11 +156,15 @@ public class ProcurementRoutes implements Routes {
     }
 
     private ProcurementResponse toResponse(Procurement procurement) {
-        String memberName = stationMemberRepository
-                .findById(procurement.memberId())
-                .flatMap(m -> accountRepository.findById(m.accountId()))
-                .map(a -> (a.firstName() + " " + a.lastName()).trim())
-                .orElse("");
+        var member = stationMemberRepository.findById(procurement.memberId()).orElse(null);
+        String memberName = member != null
+                ? accountRepository
+                        .findById(member.accountId())
+                        .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                        .orElse("")
+                : "";
+        MemberIdentity memberIdentity =
+                member != null ? memberIdentityFactory.local(member.stationId(), procurement.memberId()) : null;
         Inventory inventory =
                 inventoryRepository.findById(procurement.inventoryId()).orElse(null);
         String inventoryName = inventory != null ? inventory.name() : "";
@@ -165,6 +182,7 @@ public class ProcurementRoutes implements Routes {
                 inventoryName,
                 procurement.memberId(),
                 memberName,
+                memberIdentity,
                 procurement.sizeId(),
                 sizeLabel,
                 procurement.notes(),
@@ -178,6 +196,7 @@ public class ProcurementRoutes implements Routes {
             String inventoryName,
             int memberId,
             String memberName,
+            MemberIdentity memberIdentity,
             Integer sizeId,
             String sizeLabel,
             String notes,

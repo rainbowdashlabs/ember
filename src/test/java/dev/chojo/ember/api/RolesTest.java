@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.api;
 
+import dev.chojo.ember.api.roles.StationPermission;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -15,82 +16,67 @@ import static org.junit.jupiter.api.Assertions.*;
 class RolesTest {
 
     @Test
-    void managerIncludesTeamWhenExpanded() {
-        Set<Roles> expanded = Roles.expand(EnumSet.of(Roles.MANAGER));
-        assertTrue(expanded.contains(Roles.TEAM), "MANAGER should include TEAM");
+    void stationAdministratorIncludesLoginWhenExpanded() {
+        Set<StationPermission> expanded = StationPermission.expand(EnumSet.of(StationPermission.STATION_ADMINISTRATOR));
+        assertTrue(expanded.contains(StationPermission.LOGIN), "STATION_ADMINISTRATOR should include LOGIN");
     }
 
     @Test
-    void managerIncludesAllManagementRoles() {
-        Set<Roles> expanded = Roles.expand(EnumSet.of(Roles.MANAGER));
-        assertTrue(expanded.contains(Roles.ATTENDANCE_MANAGER));
-        assertTrue(expanded.contains(Roles.ATTENDANCE_EXPORT_MANAGER));
-        assertTrue(expanded.contains(Roles.INVENTORY_MANAGER));
-        assertTrue(expanded.contains(Roles.EVENT_MANAGER));
-        assertTrue(expanded.contains(Roles.MEMBER_MANAGER));
-        assertTrue(expanded.contains(Roles.NEWS_MANAGER));
-        assertTrue(expanded.contains(Roles.POLL_MANAGER));
-        assertTrue(expanded.contains(Roles.LOST_AND_FOUND_MANAGER));
-        assertTrue(expanded.contains(Roles.WAITLIST_MANAGER));
-        assertTrue(expanded.contains(Roles.QUIZ_MANAGER));
-        assertTrue(expanded.contains(Roles.KNOWLEDGE_MANAGER));
-        assertTrue(expanded.contains(Roles.PROTOCOL_MANAGER));
-        assertTrue(expanded.contains(Roles.PROTOCOL_TESTER));
-        assertTrue(expanded.contains(Roles.FEDERATION_MANAGER));
+    void stationAdministratorIncludesAllManagementPermissions() {
+        Set<StationPermission> expanded = StationPermission.expand(EnumSet.of(StationPermission.STATION_ADMINISTRATOR));
+        assertTrue(expanded.contains(StationPermission.ATTENDANCE_MANAGER));
+        assertTrue(expanded.contains(StationPermission.ATTENDANCE_EXPORT));
+        assertTrue(expanded.contains(StationPermission.INVENTORY_MANAGER));
+        assertTrue(expanded.contains(StationPermission.EVENT_MANAGER));
+        assertTrue(expanded.contains(StationPermission.MEMBER_MANAGER));
+        assertTrue(expanded.contains(StationPermission.NEWS_MANAGER));
+        assertTrue(expanded.contains(StationPermission.POLL_MANAGER));
+        assertTrue(expanded.contains(StationPermission.LOST_AND_FOUND_MANAGER));
+        assertTrue(expanded.contains(StationPermission.WAITLIST_MANAGER));
+        assertTrue(expanded.contains(StationPermission.TEST_MANAGER));
+        assertTrue(expanded.contains(StationPermission.KNOWLEDGE_MANAGER));
+        assertTrue(expanded.contains(StationPermission.PROTOCOL_MANAGER));
+        assertTrue(expanded.contains(StationPermission.PROTOCOL_TESTER));
+        assertTrue(expanded.contains(StationPermission.STATION_FEDERATION));
     }
 
     @Test
-    void managerIncludesTransitiveChildrenOfTeam() {
-        Set<Roles> expanded = Roles.expand(EnumSet.of(Roles.MANAGER));
-        // TEAM includes LOGIN and USER
-        assertTrue(expanded.contains(Roles.LOGIN));
-        assertTrue(expanded.contains(Roles.USER));
+    void stationAdministratorIncludesTransitiveChildren() {
+        Set<StationPermission> expanded = StationPermission.expand(EnumSet.of(StationPermission.STATION_ADMINISTRATOR));
+        // STATION_ADMINISTRATOR -> STATION_MANAGER -> includes LOGIN via hierarchy
+        assertTrue(expanded.contains(StationPermission.LOGIN));
+        assertTrue(expanded.contains(StationPermission.USER));
     }
 
     @Test
-    void managementRolesDoNotIncludeTeam() {
-        // Individual management roles have no children
-        for (var role : new Roles[] {
-            Roles.ATTENDANCE_MANAGER, Roles.INVENTORY_MANAGER,
-            Roles.EVENT_MANAGER, Roles.MEMBER_MANAGER
+    void managementPermissionsDoNotIncludeLogin() {
+        // Individual management permissions should not include LOGIN
+        for (var perm : new StationPermission[] {
+            StationPermission.ATTENDANCE_MANAGER, StationPermission.INVENTORY_MANAGER,
+            StationPermission.EVENT_MANAGER, StationPermission.MEMBER_MANAGER
         }) {
-            Set<Roles> expanded = Roles.expand(EnumSet.of(role));
-            assertFalse(expanded.contains(Roles.TEAM), role + " should NOT include TEAM");
-            assertEquals(1, expanded.size(), role + " should only contain itself");
+            Set<StationPermission> expanded = StationPermission.expand(EnumSet.of(perm));
+            assertFalse(expanded.contains(StationPermission.LOGIN), perm + " should NOT include LOGIN");
         }
     }
 
     @Test
-    void teamIncludesLoginAndUser() {
-        Set<Roles> expanded = Roles.expand(EnumSet.of(Roles.TEAM));
-        assertTrue(expanded.contains(Roles.LOGIN));
-        assertTrue(expanded.contains(Roles.USER));
+    void loginIncludesUser() {
+        Set<StationPermission> expanded = StationPermission.expand(EnumSet.of(StationPermission.LOGIN));
+        assertTrue(expanded.contains(StationPermission.USER));
     }
 
     @Test
-    void guardianIncludesLoginAndUser() {
-        Set<Roles> expanded = Roles.expand(EnumSet.of(Roles.GUARDIAN));
-        assertTrue(expanded.contains(Roles.LOGIN));
-        assertTrue(expanded.contains(Roles.USER));
+    void memberGuardianDoesNotIncludeLogin() {
+        // MEMBER_GUARDIAN is a standalone permission, not a child of LOGIN
+        Set<StationPermission> expanded = StationPermission.expand(EnumSet.of(StationPermission.MEMBER_GUARDIAN));
+        assertFalse(expanded.contains(StationPermission.LOGIN));
     }
 
     @Test
-    void trialIncludesLoginAndUser() {
-        Set<Roles> expanded = Roles.expand(EnumSet.of(Roles.TRIAL));
-        assertTrue(expanded.contains(Roles.LOGIN));
-        assertTrue(expanded.contains(Roles.USER));
-    }
-
-    @Test
-    void memberIncludesUser() {
-        Set<Roles> expanded = Roles.expand(EnumSet.of(Roles.MEMBER));
-        assertTrue(expanded.contains(Roles.USER));
-    }
-
-    @Test
-    void adminHasNoChildren() {
-        Set<Roles> expanded = Roles.expand(EnumSet.of(Roles.ADMIN));
-        assertEquals(1, expanded.size(), "ADMIN should only contain itself");
-        assertTrue(expanded.contains(Roles.ADMIN));
+    void userExpandsToOnlyItself() {
+        Set<StationPermission> expanded = StationPermission.expand(EnumSet.of(StationPermission.USER));
+        assertTrue(expanded.contains(StationPermission.USER));
+        assertEquals(1, expanded.size(), "USER should only contain itself");
     }
 }

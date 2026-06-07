@@ -44,19 +44,19 @@ const themeEntries = computed(() => {
             <div class="flex gap-1.5">
                 <span
                     class="h-5 w-5 rounded-full border border-black/10"
-                    :style="{ backgroundColor: entry.colors.primary }"
+                    :style="{ backgroundColor: entry.colors.light.primary }"
                 />
                 <span
                     class="h-5 w-5 rounded-full border border-black/10"
-                    :style="{ backgroundColor: entry.colors.secondary }"
+                    :style="{ backgroundColor: entry.colors.light.secondary }"
                 />
                 <span
                     class="h-5 w-5 rounded-full border border-black/10"
-                    :style="{ backgroundColor: entry.colors.success }"
+                    :style="{ backgroundColor: entry.colors.light.success }"
                 />
                 <span
                     class="h-5 w-5 rounded-full border border-black/10"
-                    :style="{ backgroundColor: entry.colors.error }"
+                    :style="{ backgroundColor: entry.colors.light.error }"
                 />
             </div>
             <span class="text-sm font-medium text-[var(--text)]">{{ entry.label }}</span>

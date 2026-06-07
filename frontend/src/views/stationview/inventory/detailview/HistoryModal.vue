@@ -38,11 +38,6 @@ watch(show, async (visible) => {
   }
 })
 
-function ownerName(memberId: number | null | undefined): string {
-  if (!memberId) return '-'
-  const m = props.memberMap.get(memberId)
-  return m ? (m.name || m.email || `#${m.id}`) : `#${memberId}`
-}
 
 function formatDate(dateStr?: string | null): string {
   if (!dateStr) return ''
@@ -60,7 +55,7 @@ function formatDate(dateStr?: string | null): string {
       <div v-if="!loading && entries.length > 0" class="space-y-2 max-h-80 overflow-y-auto">
         <div v-for="entry in entries" :key="entry.id"
              class="flex items-center justify-between rounded-lg px-3 py-2 border border-bg-light-accent dark:border-bg-dark-accent">
-          <span class="text-sm font-medium"><MemberName :name="entry.memberName || ownerName(entry.memberId)"/></span>
+          <span class="text-sm font-medium"><MemberName :identity="entry.memberIdentity ?? null"/></span>
           <div class="text-xs text-(--text-muted) text-right">
             <div>{{ t('inventory.edit.givenOut') }}: {{ formatDate(entry.givenOut) }}</div>
             <div v-if="entry.returned">{{ t('inventory.edit.returned') }}: {{ formatDate(entry.returned) }}</div>

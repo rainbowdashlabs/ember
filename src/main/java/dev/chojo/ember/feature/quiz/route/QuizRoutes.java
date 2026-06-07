@@ -5,18 +5,23 @@
  */
 package dev.chojo.ember.feature.quiz.route;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.FederationSession;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.feature.federation.service.FederatedContentService;
+import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.quiz.entity.AttemptStatus;
-import dev.chojo.ember.feature.quiz.entity.QuestionType;
+import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
+import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.entity.QuizTest;
 import dev.chojo.ember.feature.quiz.entity.QuizTestAnswer;
 import dev.chojo.ember.feature.quiz.entity.QuizTestAttempt;
@@ -50,12 +55,12 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 @Singleton
@@ -66,113 +71,156 @@ public class QuizRoutes implements Routes {
     private final QuizService quizService;
     private final QuizPdfService pdfService;
     private final ImageService imageService;
-    private final FederatedContentService federatedContentService;
+    private final FederationRepository federationRepository;
     private final StationRepository stationRepository;
     private final Api apiConfig;
+    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public QuizRoutes(
             QuizService quizService,
             QuizPdfService pdfService,
             ImageService imageService,
-            FederatedContentService federatedContentService,
+            FederationRepository federationRepository,
             StationRepository stationRepository,
-            Api apiConfig) {
+            Api apiConfig,
+            MemberIdentityFactory memberIdentityFactory) {
         this.quizService = quizService;
         this.pdfService = pdfService;
         this.imageService = imageService;
-        this.federatedContentService = federatedContentService;
+        this.federationRepository = federationRepository;
         this.stationRepository = stationRepository;
         this.apiConfig = apiConfig;
+        this.memberIdentityFactory = memberIdentityFactory;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Catalogs
-        routes.get(prefix + "/quiz/catalogs", this::listCatalogs, Roles.QUIZ_MANAGER);
-        routes.post(prefix + "/quiz/catalogs", this::createCatalog, Roles.QUIZ_MANAGER);
-        routes.get(prefix + "/quiz/catalogs/{id}", this::getCatalog, Roles.QUIZ_MANAGER);
-        routes.put(prefix + "/quiz/catalogs/{id}", this::updateCatalog, Roles.QUIZ_MANAGER);
-        routes.delete(prefix + "/quiz/catalogs/{id}", this::deleteCatalog, Roles.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/catalogs", this::listCatalogs, StationPermission.TEST_CATALOG_VIEW);
+        routes.post(prefix + "/quiz/catalogs", this::createCatalog, StationPermission.TEST_CATALOG_EDIT);
+        routes.get(prefix + "/quiz/catalogs/{id}", this::getCatalog, StationPermission.TEST_CATALOG_VIEW);
+        routes.put(prefix + "/quiz/catalogs/{id}", this::updateCatalog, StationPermission.TEST_CATALOG_EDIT);
+        routes.delete(prefix + "/quiz/catalogs/{id}", this::deleteCatalog, StationPermission.TEST_CATALOG_EDIT);
 
         // Categories (station-scoped, shared across catalogs)
-        routes.get(prefix + "/quiz/categories", this::listCategories, Roles.QUIZ_MANAGER);
-        routes.post(prefix + "/quiz/categories", this::createCategory, Roles.QUIZ_MANAGER);
-        routes.put(prefix + "/quiz/categories/{id}", this::updateCategory, Roles.QUIZ_MANAGER);
-        routes.delete(prefix + "/quiz/categories/{id}", this::deleteCategory, Roles.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/categories", this::listCategories, StationPermission.TEST_CATALOG_VIEW);
+        routes.post(prefix + "/quiz/categories", this::createCategory, StationPermission.TEST_CATALOG_EDIT);
+        routes.put(prefix + "/quiz/categories/{id}", this::updateCategory, StationPermission.TEST_CATALOG_EDIT);
+        routes.delete(prefix + "/quiz/categories/{id}", this::deleteCategory, StationPermission.TEST_CATALOG_EDIT);
 
         // Questions
-        routes.get(prefix + "/quiz/catalogs/{id}/questions", this::listQuestions, Roles.QUIZ_MANAGER);
-        routes.post(prefix + "/quiz/catalogs/{id}/questions", this::createQuestion, Roles.QUIZ_MANAGER);
-        routes.get(prefix + "/quiz/questions/{id}", this::getQuestion, Roles.USER);
-        routes.put(prefix + "/quiz/questions/{id}", this::updateQuestion, Roles.QUIZ_MANAGER);
-        routes.delete(prefix + "/quiz/questions/{id}", this::deleteQuestion, Roles.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/catalogs/{id}/questions", this::listQuestions, StationPermission.TEST_CATALOG_VIEW);
+        routes.post(
+                prefix + "/quiz/catalogs/{id}/questions", this::createQuestion, StationPermission.TEST_CATALOG_EDIT);
+        routes.get(prefix + "/quiz/questions/{id}", this::getQuestion, StationPermission.USER);
+        routes.put(prefix + "/quiz/questions/{id}", this::updateQuestion, StationPermission.TEST_CATALOG_EDIT);
+        routes.delete(prefix + "/quiz/questions/{id}", this::deleteQuestion, StationPermission.TEST_CATALOG_EDIT);
 
         // Tests
-        routes.get(prefix + "/quiz/tests", this::listTests, Roles.QUIZ_MANAGER);
-        routes.get(prefix + "/quiz/tests/available", this::listAvailableTests, Roles.USER);
-        routes.post(prefix + "/quiz/tests", this::createTest, Roles.QUIZ_MANAGER);
-        routes.get(prefix + "/quiz/tests/{id}", this::getTest, Roles.USER);
-        routes.put(prefix + "/quiz/tests/{id}", this::updateTest, Roles.QUIZ_MANAGER);
-        routes.delete(prefix + "/quiz/tests/{id}", this::deleteTest, Roles.QUIZ_MANAGER);
-        routes.post(prefix + "/quiz/tests/{id}/activate", this::activateTest, Roles.QUIZ_MANAGER);
-        routes.post(prefix + "/quiz/tests/{id}/close", this::closeTest, Roles.QUIZ_MANAGER);
-        routes.post(prefix + "/quiz/tests/{id}/generate-questions", this::generateFrozenQuestions, Roles.QUIZ_MANAGER);
-        routes.get(prefix + "/quiz/tests/{id}/frozen-questions", this::listFrozenQuestions, Roles.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/tests", this::listTests, StationPermission.TEST_RESULT_READ);
+        routes.get(prefix + "/quiz/tests/available", this::listAvailableTests, StationPermission.USER);
+        routes.post(prefix + "/quiz/tests", this::createTest, StationPermission.TEST_CONFIGURE);
+        routes.get(prefix + "/quiz/tests/{id}", this::getTest, StationPermission.USER);
+        routes.put(prefix + "/quiz/tests/{id}", this::updateTest, StationPermission.TEST_CONFIGURE);
+        routes.delete(prefix + "/quiz/tests/{id}", this::deleteTest, StationPermission.TEST_CONFIGURE);
+        routes.post(prefix + "/quiz/tests/{id}/activate", this::activateTest, StationPermission.TEST_CONFIGURE);
+        routes.post(prefix + "/quiz/tests/{id}/close", this::closeTest, StationPermission.TEST_CONFIGURE);
+        routes.post(
+                prefix + "/quiz/tests/{id}/generate-questions",
+                this::generateFrozenQuestions,
+                StationPermission.TEST_CONFIGURE);
+        routes.get(
+                prefix + "/quiz/tests/{id}/frozen-questions",
+                this::listFrozenQuestions,
+                StationPermission.TEST_RESULT_READ);
         routes.put(
                 prefix + "/quiz/tests/{id}/frozen-questions/{position}",
                 this::replaceFrozenQuestion,
-                Roles.QUIZ_MANAGER);
+                StationPermission.TEST_CONFIGURE);
         routes.post(
                 prefix + "/quiz/tests/{id}/frozen-questions/{position}/random",
                 this::randomReplaceFrozenQuestion,
-                Roles.QUIZ_MANAGER);
+                StationPermission.TEST_CONFIGURE);
         routes.get(
-                prefix + "/quiz/tests/{id}/available-questions", this::listAvailableReplacements, Roles.QUIZ_MANAGER);
+                prefix + "/quiz/tests/{id}/available-questions",
+                this::listAvailableReplacements,
+                StationPermission.TEST_CONFIGURE);
 
         // Sections
-        routes.get(prefix + "/quiz/tests/{id}/sections", this::listSections, Roles.QUIZ_MANAGER);
-        routes.put(prefix + "/quiz/tests/{id}/sections", this::replaceSections, Roles.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/tests/{id}/sections", this::listSections, StationPermission.TEST_CONFIGURE);
+        routes.put(prefix + "/quiz/tests/{id}/sections", this::replaceSections, StationPermission.TEST_CONFIGURE);
 
         // Test taking
-        routes.post(prefix + "/quiz/tests/{id}/start", this::startAttempt, Roles.USER);
-        routes.get(prefix + "/quiz/tests/{id}/my-attempt", this::getMyAttempt, Roles.USER);
-        routes.post(prefix + "/quiz/attempts/{id}/answer", this::saveAnswer, Roles.USER);
-        routes.post(prefix + "/quiz/attempts/{id}/submit", this::submitAttempt, Roles.USER);
+        routes.post(prefix + "/quiz/tests/{id}/start", this::startAttempt, StationPermission.USER);
+        routes.get(prefix + "/quiz/tests/{id}/my-attempt", this::getMyAttempt, StationPermission.USER);
+        routes.post(prefix + "/quiz/attempts/{id}/answer", this::saveAnswer, StationPermission.USER);
+        routes.post(prefix + "/quiz/attempts/{id}/submit", this::submitAttempt, StationPermission.USER);
 
         // Grading
-        routes.get(prefix + "/quiz/tests/{id}/attempts", this::listAttempts, Roles.QUIZ_MANAGER);
-        routes.get(prefix + "/quiz/attempts/{id}", this::getAttemptDetail, Roles.QUIZ_MANAGER);
-        routes.post(prefix + "/quiz/answers/{id}/grade", this::gradeAnswer, Roles.QUIZ_MANAGER);
-        routes.post(prefix + "/quiz/attempts/{id}/grade", this::gradeAttempt, Roles.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/tests/{id}/attempts", this::listAttempts, StationPermission.TEST_RESULT_READ);
+        routes.get(prefix + "/quiz/attempts/{id}", this::getAttemptDetail, StationPermission.TEST_RESULT_READ);
+        routes.post(prefix + "/quiz/answers/{id}/grade", this::gradeAnswer, StationPermission.TEST_REVIEW);
+        routes.post(prefix + "/quiz/attempts/{id}/grade", this::gradeAttempt, StationPermission.TEST_REVIEW);
 
         // Restrictions
-        routes.get(prefix + "/quiz/tests/{id}/restrictions", this::getRestrictions, Roles.QUIZ_MANAGER);
-        routes.put(prefix + "/quiz/tests/{id}/restrictions", this::setRestrictions, Roles.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/tests/{id}/restrictions", this::getRestrictions, StationPermission.TEST_RESULT_READ);
+        routes.put(prefix + "/quiz/tests/{id}/restrictions", this::setRestrictions, StationPermission.TEST_CONFIGURE);
 
         // Member access
-        routes.post(prefix + "/quiz/tests/{id}/access", this::grantAccess, Roles.QUIZ_MANAGER);
-        routes.delete(prefix + "/quiz/tests/{testId}/access/{memberId}", this::revokeAccess, Roles.QUIZ_MANAGER);
+        routes.post(prefix + "/quiz/tests/{id}/access", this::grantAccess, StationPermission.TEST_CONFIGURE);
+        routes.delete(
+                prefix + "/quiz/tests/{testId}/access/{memberId}",
+                this::revokeAccess,
+                StationPermission.TEST_CONFIGURE);
 
         // Training
-        routes.get(prefix + "/quiz/training/catalogs", this::listTrainingCatalogs, Roles.USER);
-        routes.get(prefix + "/quiz/training/catalogs/{id}/questions", this::getTrainingQuestions, Roles.USER);
+        routes.get(prefix + "/quiz/training/catalogs", this::listTrainingCatalogs, StationPermission.USER);
+        routes.get(
+                prefix + "/quiz/training/catalogs/{id}/questions", this::getTrainingQuestions, StationPermission.USER);
 
         // Question images
-        routes.get(prefix + "/quiz/questions/{id}/image", this::getQuestionImage, Roles.USER);
-        routes.post(prefix + "/quiz/questions/{id}/image", this::uploadQuestionImage, Roles.QUIZ_MANAGER);
-        routes.delete(prefix + "/quiz/questions/{id}/image", this::deleteQuestionImage, Roles.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/questions/{id}/image", this::getQuestionImage, StationPermission.USER);
+        routes.post(
+                prefix + "/quiz/questions/{id}/image", this::uploadQuestionImage, StationPermission.TEST_CATALOG_EDIT);
+        routes.delete(
+                prefix + "/quiz/questions/{id}/image", this::deleteQuestionImage, StationPermission.TEST_CATALOG_EDIT);
 
         // PDF export
-        routes.get(prefix + "/quiz/tests/{id}/export/questions", this::exportQuestionPdf, Roles.QUIZ_MANAGER);
-        routes.get(prefix + "/quiz/tests/{id}/export/solutions", this::exportSolutionPdf, Roles.QUIZ_MANAGER);
+        routes.get(
+                prefix + "/quiz/tests/{id}/export/questions",
+                this::exportQuestionPdf,
+                StationPermission.TEST_CONFIGURE);
+        routes.get(
+                prefix + "/quiz/tests/{id}/export/solutions",
+                this::exportSolutionPdf,
+                StationPermission.TEST_CONFIGURE);
 
         // Import/Export
-        routes.get(prefix + "/quiz/catalogs/{id}/export", this::exportCatalog, Roles.QUIZ_MANAGER);
-        routes.post(prefix + "/quiz/catalogs/import", this::importCatalog, Roles.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/catalogs/{id}/export", this::exportCatalog, StationPermission.TEST_CATALOG_EDIT);
+        routes.post(prefix + "/quiz/catalogs/import", this::importCatalog, StationPermission.TEST_CATALOG_EDIT);
 
         // CSV Import
-        routes.post(prefix + "/quiz/catalogs/{id}/import-csv", this::importCsv, Roles.QUIZ_MANAGER);
+        routes.post(prefix + "/quiz/catalogs/{id}/import-csv", this::importCsv, StationPermission.TEST_CATALOG_EDIT);
+
+        // Federated (user-facing, bearer token auth)
+        routes.get(prefix + "/federated/quiz/catalogs", this::federatedBrowseCatalogs, StationPermission.USER);
+        routes.get(
+                prefix + "/federated/{stationuid}/quiz/catalogs/{id}",
+                this::federatedGetCatalog,
+                StationPermission.TEST_CATALOG_VIEW);
+        routes.post(
+                prefix + "/federated/quiz/catalogs/{id}/copy",
+                this::federatedCopyCatalog,
+                StationPermission.TEST_CATALOG_EDIT);
+        routes.post(
+                prefix + "/federated/{stationuid}/quiz/catalogs/{id}/copy",
+                this::federatedCopyCatalog,
+                StationPermission.TEST_CATALOG_EDIT);
+
+        // Remote (server-to-server, RSA signature auth)
+        routes.get(prefix + "/remote/quiz/catalogs", this::remoteBrowseCatalogs);
+        routes.get(prefix + "/remote/quiz/catalogs/{id}", this::remoteGetCatalog);
     }
 
     // -- Catalogs --
@@ -180,14 +228,14 @@ public class QuizRoutes implements Routes {
     private void listCatalogs(Context ctx) {
         var session = UserSession.from(ctx);
         var catalogs = quizService.findCatalogs(session.stationId());
-        var sharedItems = federatedContentService.browseSharedQuiz(session.stationId());
+        var sharedItems = quizService.browseSharedQuiz(session.stationId());
         var sharedCatalogs = sharedItems.stream()
                 .map(i -> {
                     String name = stationRepository
                             .findById(i.sourceStationId())
                             .map(Station::name)
                             .orElse("Unknown");
-                    return new SharedCatalogItem(i.catalog(), name, i.sourceStationId());
+                    return new SharedCatalogItem(i.id(), i.name(), i.description(), name, i.sourceStationId());
                 })
                 .toList();
         ctx.json(new CatalogListResponse(catalogs, sharedCatalogs));
@@ -203,7 +251,7 @@ public class QuizRoutes implements Routes {
                             var categories = quizService.findCategories(catalog.stationId());
                             var typeCounts = new LinkedHashMap<String, Integer>();
                             for (var q : questions) {
-                                typeCounts.merge(q.questionType().name(), 1, Integer::sum);
+                                typeCounts.merge(q.quizQuestionType().name(), 1, Integer::sum);
                             }
                             ctx.json(new CatalogDetail(
                                     catalog.id(),
@@ -330,7 +378,7 @@ public class QuizRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var session = UserSession.from(ctx);
         var question = quizService.findQuestion(id).orElseThrow(NotFoundResponse::new);
-        if (session.roles().contains(Roles.QUIZ_MANAGER)) {
+        if (session.permissions().contains(StationPermission.TEST_CATALOG_VIEW)) {
             ctx.json(question);
         } else {
             ctx.json(sanitizeQuestion(question));
@@ -342,35 +390,36 @@ public class QuizRoutes implements Routes {
         result.put("id", question.id());
         result.put("catalogId", question.catalogId());
         result.put("categoryId", question.categoryId());
-        result.put("questionType", question.questionType().name());
+        result.put("quizQuestionType", question.quizQuestionType().name());
         result.put("title", question.title());
         result.put("description", question.description());
         result.put("imageUrl", question.imageUrl());
         result.put("points", question.points());
         result.put("position", question.position());
-        result.put("config", sanitizeConfig(question.questionType(), question.configNode()));
+        result.put("config", sanitizeConfig(question.quizQuestionType(), question.configNode()));
         return result;
     }
 
     @SuppressWarnings("unchecked")
-    private String sanitizeConfig(QuestionType type, JsonNode node) {
+    private Map<String, Object> sanitizeConfig(QuizQuestionType type, JsonNode node) {
         try {
-            var mapper = new ObjectMapper();
             return switch (type) {
                 case MULTIPLE_CHOICE -> {
                     var options = node.get("options");
                     var sanitized = new ArrayList<Map<String, Object>>();
+                    long correctCount = 0;
                     if (options != null && options.isArray()) {
                         for (var opt : options) {
                             sanitized.add(Map.of("text", opt.get("text").asString()));
+                            if (opt.has("correct") && opt.get("correct").asBoolean()) correctCount++;
                         }
                     }
-                    yield mapper.writeValueAsString(Map.of("options", sanitized));
+                    yield Map.of("options", sanitized, "multiSelect", correctCount > 1);
                 }
-                case TRUE_FALSE -> "{}";
+                case TRUE_FALSE -> Map.of();
                 case FREE_ANSWER -> {
                     int lines = node.has("lines") ? node.get("lines").asInt() : 3;
-                    yield mapper.writeValueAsString(Map.of("lines", lines));
+                    yield Map.of("lines", lines);
                 }
                 case FILL_IN_THE_BLANK -> {
                     var answers = new ArrayList<String>();
@@ -381,15 +430,14 @@ public class QuizRoutes implements Routes {
                         for (var d : node.get("distractors")) distractors.add(d.asString());
                     var wordBank = new ArrayList<>(answers);
                     wordBank.addAll(distractors);
-                    Collections.shuffle(wordBank);
                     String text = node.has("text") ? node.get("text").asString() : "";
                     boolean useDropdown =
                             node.has("useDropdown") && node.get("useDropdown").asBoolean();
-                    yield mapper.writeValueAsString(Map.of(
+                    yield Map.of(
                             "text", text,
                             "wordBank", wordBank,
                             "gapCount", answers.size(),
-                            "useDropdown", useDropdown));
+                            "useDropdown", useDropdown);
                 }
                 case CONNECT -> {
                     var pairs = node.get("pairs");
@@ -401,26 +449,24 @@ public class QuizRoutes implements Routes {
                             rightItems.add(pair.get("right").asString());
                         }
                     }
-                    Collections.shuffle(rightItems);
-                    yield mapper.writeValueAsString(Map.of("leftItems", leftItems, "rightItems", rightItems));
+                    yield Map.of("leftItems", leftItems, "rightItems", rightItems);
                 }
                 case ORDERING -> {
                     var items = new ArrayList<String>();
                     if (node.has("items") && node.get("items").isArray())
                         for (var item : node.get("items")) items.add(item.asString());
-                    Collections.shuffle(items);
-                    yield mapper.writeValueAsString(Map.of("items", items));
+                    yield Map.of("items", items);
                 }
-                case IMAGE_TEXT -> "{}";
+                case IMAGE_TEXT -> Map.of();
                 case ENUMERATION -> {
                     int requiredCount = node.has("requiredCount")
                             ? node.get("requiredCount").asInt()
                             : 3;
-                    yield mapper.writeValueAsString(Map.of("requiredCount", requiredCount));
+                    yield Map.of("requiredCount", requiredCount);
                 }
             };
         } catch (Exception e) {
-            return "{}";
+            return Map.of();
         }
     }
 
@@ -428,17 +474,17 @@ public class QuizRoutes implements Routes {
         int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
         var req = ctx.bodyAsClass(QuestionRequest.class);
         if (req.title() == null || req.title().isBlank()) throw new BadRequestResponse("title is required");
-        if (req.questionType() == null) throw new BadRequestResponse("questionType is required");
+        if (req.quizQuestionType() == null) throw new BadRequestResponse("questionType is required");
         var question = quizService.createQuestion(
                 catalogId,
                 req.categoryId(),
-                req.questionType(),
+                req.quizQuestionType(),
                 req.title(),
                 req.description() != null ? req.description() : "",
                 req.imageUrl(),
                 req.points() != null ? req.points() : 1.0,
                 req.autoPoints() == null || req.autoPoints(),
-                req.questionType().parseConfig(req.configString()),
+                req.quizQuestionType().parseConfig(req.configString()),
                 req.position() != null ? req.position() : 0);
         ctx.status(HttpStatus.CREATED).json(question);
     }
@@ -488,9 +534,9 @@ public class QuizRoutes implements Routes {
 
     private void listTests(Context ctx) {
         var session = UserSession.from(ctx);
-        // QUIZ_MANAGER sees all tests; regular members see only restriction-permitted tests
+        // TEST_CONFIGURE sees all tests; regular members see only restriction-permitted tests
         List<QuizTest> tests;
-        if (session.member() != null && !session.roles().contains(Roles.QUIZ_MANAGER)) {
+        if (session.member() != null && !session.permissions().contains(StationPermission.TEST_CONFIGURE)) {
             tests = quizService.findTestsForMember(
                     session.stationId(), session.member().id());
         } else {
@@ -513,7 +559,16 @@ public class QuizRoutes implements Routes {
         var tests = quizService.findTestsForMember(session.stationId(), memberId).stream()
                 .filter(t -> t.status() == TestStatus.ACTIVE)
                 .toList();
-        ctx.json(tests);
+        var result = tests.stream()
+                .map(t -> {
+                    var attempt = quizService.findAttempt(t.id(), memberId).orElse(null);
+                    String attemptStatus = attempt != null ? attempt.status().name() : null;
+                    Instant startedAt = attempt != null ? attempt.startedAt() : null;
+                    Instant submittedAt = attempt != null ? attempt.submittedAt() : null;
+                    return new AvailableTest(t, attemptStatus, startedAt, submittedAt);
+                })
+                .toList();
+        ctx.json(result);
     }
 
     private void getTest(Context ctx) {
@@ -716,7 +771,7 @@ public class QuizRoutes implements Routes {
         if (session.member() == null) throw new BadRequestResponse("Not a station member");
         var test = quizService.findTest(testId).orElseThrow(NotFoundResponse::new);
         int memberId = session.member().id();
-        if (!quizService.isTestAccessible(test, memberId)) {
+        if (!quizService.isTestAccessible(test, memberId, session.permissions())) {
             throw new ForbiddenResponse("Test is not currently accessible");
         }
         var existing = quizService.findAttempt(testId, session.member().id());
@@ -724,12 +779,15 @@ public class QuizRoutes implements Routes {
             ctx.json(new AttemptDetail(
                     existing.get(),
                     quizService.findAttemptQuestions(existing.get().id()),
-                    quizService.findAnswers(existing.get().id())));
+                    quizService.findAnswers(existing.get().id()),
+                    null,
+                    null));
             return;
         }
         var attempt = quizService.startAttempt(testId, session.member().id());
         ctx.status(HttpStatus.CREATED)
-                .json(new AttemptDetail(attempt, quizService.findAttemptQuestions(attempt.id()), List.of()));
+                .json(new AttemptDetail(
+                        attempt, quizService.findAttemptQuestions(attempt.id()), List.of(), null, null));
     }
 
     private void getMyAttempt(Context ctx) {
@@ -744,7 +802,9 @@ public class QuizRoutes implements Routes {
         ctx.json(new AttemptDetail(
                 attempt.get(),
                 quizService.findAttemptQuestions(attempt.get().id()),
-                quizService.findAnswers(attempt.get().id())));
+                quizService.findAnswers(attempt.get().id()),
+                null,
+                null));
     }
 
     private void saveAnswer(Context ctx) {
@@ -783,8 +843,19 @@ public class QuizRoutes implements Routes {
     private void getAttemptDetail(Context ctx) {
         int attemptId = ctx.pathParamAsClass("id", Integer.class).get();
         var attempt = quizService.findAttemptById(attemptId).orElseThrow(NotFoundResponse::new);
-        ctx.json(new AttemptDetail(
-                attempt, quizService.findAttemptQuestions(attemptId), quizService.findAnswers(attemptId)));
+        var attemptQuestions = quizService.findAttemptQuestions(attemptId);
+        var answers = quizService.findAnswers(attemptId);
+        var questionIds = attemptQuestions.stream()
+                .map(QuizTestAttemptQuestion::questionId)
+                .distinct()
+                .toList();
+        var questions = quizService.findQuestionsByIds(questionIds);
+        MemberIdentity memberIdentity = null;
+        try {
+            memberIdentity = memberIdentityFactory.fromMemberId(attempt.memberId());
+        } catch (Exception ignored) {
+        }
+        ctx.json(new AttemptDetail(attempt, attemptQuestions, answers, questions, memberIdentity));
     }
 
     private void gradeAnswer(Context ctx) {
@@ -812,7 +883,7 @@ public class QuizRoutes implements Routes {
         quizService.findTest(id).orElseThrow(NotFoundResponse::new);
         var restrictions = quizService.findRestrictions(id);
         ctx.json(new TestRestrictions(
-                restrictions.roleIds(),
+                restrictions.userTypes(),
                 restrictions.groupIds(),
                 restrictions.tagIds(),
                 restrictions.memberIds(),
@@ -828,7 +899,11 @@ public class QuizRoutes implements Routes {
         }
         var req = ctx.bodyAsClass(TestRestrictions.class);
         quizService.setRestrictions(
-                id, req.roleIds(), req.groupIds(), req.tagIds(), req.memberIds() != null ? req.memberIds() : List.of());
+                id,
+                req.userTypes(),
+                req.groupIds(),
+                req.tagIds(),
+                req.memberIds() != null ? req.memberIds() : List.of());
         if (req.mode() != null) {
             quizService.updateRestrictionMode(id, req.mode());
         }
@@ -947,13 +1022,13 @@ public class QuizRoutes implements Routes {
                 quizService.createQuestion(
                         catalog.id(),
                         newCategoryId,
-                        q.questionType(),
+                        q.quizQuestionType(),
                         q.title(),
                         q.description(),
                         q.imageUrl(),
                         q.points(),
                         q.autoPoints(),
-                        q.questionType().parseConfig(q.configString()),
+                        q.config() != null ? q.config() : new QuestionConfig.Unknown(),
                         q.position());
             }
         }
@@ -1038,11 +1113,11 @@ public class QuizRoutes implements Routes {
                     : "";
 
             // Determine question type
-            QuestionType questionType = mappings.defaultType() != null
+            QuizQuestionType quizQuestionType = mappings.defaultType() != null
                     ? parseQuestionType(mappings.defaultType())
-                    : QuestionType.MULTIPLE_CHOICE;
+                    : QuizQuestionType.MULTIPLE_CHOICE;
             if (!typeStr.isEmpty()) {
-                questionType = parseQuestionType(typeStr);
+                quizQuestionType = parseQuestionType(typeStr);
             }
 
             // Determine points
@@ -1069,18 +1144,18 @@ public class QuizRoutes implements Routes {
             }
 
             // Build config JSON
-            String config = buildCsvConfig(questionType, answer, answerSep);
+            String config = buildCsvConfig(quizQuestionType, answer, answerSep);
 
             quizService.createQuestion(
                     catalogId,
                     categoryId2,
-                    questionType,
+                    quizQuestionType,
                     title,
                     "",
                     null,
                     points,
                     true,
-                    questionType.parseConfig(config),
+                    quizQuestionType.parseConfig(config),
                     i);
             imported++;
         }
@@ -1088,21 +1163,21 @@ public class QuizRoutes implements Routes {
         ctx.json(Map.of("imported", imported));
     }
 
-    private QuestionType parseQuestionType(String type) {
+    private QuizQuestionType parseQuestionType(String type) {
         return switch (type.toUpperCase().replace(" ", "_").replace("-", "_")) {
-            case "MULTIPLE_CHOICE", "MC" -> QuestionType.MULTIPLE_CHOICE;
-            case "TRUE_FALSE", "TF", "WAHR_FALSCH" -> QuestionType.TRUE_FALSE;
-            case "FREE_ANSWER", "FREE", "FREITEXT" -> QuestionType.FREE_ANSWER;
-            case "FILL_IN_THE_BLANK", "FILL_BLANK", "LUECKENTEXT", "LÜCKENTEXT" -> QuestionType.FILL_IN_THE_BLANK;
-            case "CONNECT", "ZUORDNUNG" -> QuestionType.CONNECT;
-            case "ORDERING", "REIHENFOLGE" -> QuestionType.ORDERING;
-            case "IMAGE_TEXT" -> QuestionType.IMAGE_TEXT;
-            case "ENUMERATION", "AUFZÄHLUNG", "AUFZAEHLUNG" -> QuestionType.ENUMERATION;
-            default -> QuestionType.MULTIPLE_CHOICE;
+            case "MULTIPLE_CHOICE", "MC" -> QuizQuestionType.MULTIPLE_CHOICE;
+            case "TRUE_FALSE", "TF", "WAHR_FALSCH" -> QuizQuestionType.TRUE_FALSE;
+            case "FREE_ANSWER", "FREE", "FREITEXT" -> QuizQuestionType.FREE_ANSWER;
+            case "FILL_IN_THE_BLANK", "FILL_BLANK", "LUECKENTEXT", "LÜCKENTEXT" -> QuizQuestionType.FILL_IN_THE_BLANK;
+            case "CONNECT", "ZUORDNUNG" -> QuizQuestionType.CONNECT;
+            case "ORDERING", "REIHENFOLGE" -> QuizQuestionType.ORDERING;
+            case "IMAGE_TEXT" -> QuizQuestionType.IMAGE_TEXT;
+            case "ENUMERATION", "AUFZÄHLUNG", "AUFZAEHLUNG" -> QuizQuestionType.ENUMERATION;
+            default -> throw new BadRequestResponse("Invalid question type: " + type);
         };
     }
 
-    private String buildCsvConfig(QuestionType type, String answer, String answerSep) {
+    private String buildCsvConfig(QuizQuestionType type, String answer, String answerSep) {
         var mapper = new ObjectMapper();
         try {
             return switch (type) {
@@ -1232,7 +1307,7 @@ public class QuizRoutes implements Routes {
     public record CategoryRequest(String name, String description, Integer position) {}
 
     public record QuestionRequest(
-            QuestionType questionType,
+            QuizQuestionType quizQuestionType,
             Integer categoryId,
             String title,
             String description,
@@ -1261,7 +1336,7 @@ public class QuizRoutes implements Routes {
     public record AccessRequest(Integer memberId, Instant closesAt) {}
 
     public record TestRestrictions(
-            List<Integer> roleIds,
+            List<String> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds,
@@ -1287,7 +1362,11 @@ public class QuizRoutes implements Routes {
             int id, int testId, String title, String description, int position, List<QuizTestSectionSource> sources) {}
 
     public record AttemptDetail(
-            QuizTestAttempt attempt, List<QuizTestAttemptQuestion> questions, List<QuizTestAnswer> answers) {}
+            QuizTestAttempt attempt,
+            List<QuizTestAttemptQuestion> questions,
+            List<QuizTestAnswer> answers,
+            List<QuizQuestion> questionDetails,
+            MemberIdentity memberIdentity) {}
 
     public record CsvMappings(
             String questionColumn,
@@ -1306,7 +1385,80 @@ public class QuizRoutes implements Routes {
             List<QuizCategory> categories,
             List<QuizQuestion> questions) {}
 
+    public record AvailableTest(QuizTest test, String attemptStatus, Instant startedAt, Instant submittedAt) {}
+
     private record CatalogListResponse(List<QuizCatalog> catalogs, List<SharedCatalogItem> sharedCatalogs) {}
 
-    private record SharedCatalogItem(QuizCatalog catalog, String stationName, int sourceStationId) {}
+    private record SharedCatalogItem(
+            int id, String name, String description, String stationName, int sourceStationId) {}
+
+    // -- Federated endpoints (user-facing, aggregates from partners) --
+
+    private void federatedBrowseCatalogs(Context ctx) {
+        var session = UserSession.from(ctx);
+        var items = quizService.browseSharedQuiz(session.stationId());
+        ctx.json(items.stream()
+                .map(i -> {
+                    String name = stationRepository
+                            .findById(i.sourceStationId())
+                            .map(Station::name)
+                            .orElse("Unknown");
+                    return new SharedCatalogItem(i.id(), i.name(), i.description(), name, i.sourceStationId());
+                })
+                .toList());
+    }
+
+    private void federatedGetCatalog(Context ctx) {
+        var session = UserSession.from(ctx);
+        var stationUid = UUID.fromString(ctx.pathParam("stationuid"));
+        int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
+        ctx.json(quizService.getFederatedQuizCatalog(session.stationId(), stationUid, catalogId));
+    }
+
+    private void federatedCopyCatalog(Context ctx) {
+        var session = UserSession.from(ctx);
+        int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
+        var copied = quizService.copyQuizCatalog(catalogId, session.stationId());
+        ctx.status(HttpStatus.CREATED).json(copied);
+    }
+
+    // -- Remote endpoints (server-to-server, RSA signature auth) --
+
+    private void remoteBrowseCatalogs(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        var shares = federationRepository.findQuizShares(partner.stationId());
+        var result = shares.stream()
+                .filter(s -> s.catalogId() != null)
+                .flatMap(s -> quizService.findCatalog(s.catalogId()).stream())
+                .filter(catalog -> catalog.stationId() == partner.stationId())
+                .map(catalog -> Map.<String, Object>of(
+                        "id", catalog.id(),
+                        "name", catalog.name(),
+                        "description", catalog.description(),
+                        "updatedAt", catalog.updatedAt().toString()))
+                .toList();
+        ctx.json(result);
+    }
+
+    private void remoteGetCatalog(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
+        var catalog = quizService.findCatalog(catalogId).orElseThrow(NotFoundResponse::new);
+        if (catalog.stationId() != partner.stationId()) {
+            throw new ForbiddenResponse("Catalog not shared with this partner");
+        }
+        var categories = quizService.findCategories(catalog.stationId());
+        var questions = quizService.findQuestions(catalog.id());
+        ctx.json(Map.of("catalog", catalog, "categories", categories, "questions", questions));
+    }
+
+    // -- Federation helpers --
+
+    private FederationPartner requireFederationPartner(Context ctx) {
+        var session = FederationSession.from(ctx);
+        if (session == null) {
+            throw new ForbiddenResponse("Missing or invalid federation signature");
+        }
+        return session.partner();
+    }
 }

@@ -79,6 +79,13 @@ class LostAndFoundRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(10)
+    void countClaimedNotProvidedNone() {
+        // Item exists but is not claimed yet
+        assertEquals(0, lostAndFoundRepo.countClaimedNotProvided(station.id()));
+    }
+
+    @Test
     @Order(20)
     void claim() {
         assertTrue(lostAndFoundRepo.claim(itemId, member.id()));
@@ -101,6 +108,13 @@ class LostAndFoundRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(23)
+    void countClaimedNotProvidedAfterClaim() {
+        // Item is now claimed, should count as 1
+        assertEquals(1, lostAndFoundRepo.countClaimedNotProvided(station.id()));
+    }
+
+    @Test
+    @Order(24)
     void findUnclaimedOrClaimedByAfterClaim() {
         // Should still find it since we claimed it ourselves
         assertEquals(

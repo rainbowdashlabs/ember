@@ -7,6 +7,7 @@
 import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
+import {reportCaughtError} from '@/util/devErrorReporter'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -22,6 +23,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EventFieldList from './eventshared/EventFieldList.vue'
+import EventReminderEditor from './eventshared/EventReminderEditor.vue'
 import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry} from '@/api/types'
 import {EventTypes} from '@/api/types'
 import {attendance, events} from '@/api'
@@ -53,6 +55,7 @@ const requiresConfirmation = ref(false)
 const registrationLimit = ref<number | undefined>(undefined)
 const attendanceTemplateId = ref('')
 const fields = ref<EventFieldEntry[]>([])
+const reminderDays = ref<number[]>([])
 
 onMounted(() => { if (loaded.value) loadData() })
 watch(loaded, (v) => { if (v && loading.value) loadData() })
@@ -84,16 +87,18 @@ async function loadData() {
     requiresConfirmation.value = tpl.requiresConfirmation ?? false
     registrationLimit.value = tpl.registrationLimit ?? undefined
     attendanceTemplateId.value = tpl.attendanceTemplateId ? String(tpl.attendanceTemplateId) : ''
+    reminderDays.value = detail.reminderDays ?? []
     fields.value = detail.fields.map(f => ({
       name: f.name,
       fieldType: f.fieldType,
-      config: f.config ?? '{}',
+      config: typeof f.config === 'string' ? (f.config ? JSON.parse(f.config) : {}) : (f.config ?? {}),
       value: '',
       overview: f.overview,
       attendanceFieldId: f.attendanceFieldId ?? null,
       isPublic: f.isPublic,
     }))
-  } catch {
+  } catch (e) {
+    reportCaughtError(e, 'TemplateEditView.loadData')
     error.value = t('common.error')
   } finally {
     loading.value = false
@@ -116,11 +121,12 @@ async function save() {
       registrationLimit: registrationLimit.value ?? null,
       attendanceTemplateId: attendanceTemplateId.value ? Number(attendanceTemplateId.value) : null,
     })
+    await events.setTemplateReminders(templateId.value, reminderDays.value)
     await events.setTemplateFields(templateId.value, {
       fields: fields.value.map((f, i) => ({
         name: f.name,
-        fieldType: f.fieldType ?? 'string',
-        config: f.config ?? '{}',
+        fieldType: f.fieldType ?? 'STRING',
+        config: typeof f.config === 'string' ? JSON.parse(f.config || '{}') : (f.config ?? {}),
         position: i,
         overview: f.overview,
         isPublic: f.isPublic,
@@ -129,7 +135,8 @@ async function save() {
     })
     success.value = t('eventTemplates.saved')
     setTimeout(() => { success.value = '' }, 3000)
-  } catch {
+  } catch (e) {
+    reportCaughtError(e, 'TemplateEditView.save')
     error.value = t('common.error')
   } finally {
     saving.value = false
@@ -167,14 +174,14 @@ async function save() {
             </div>
             <div class="space-y-1">
               <FieldLabel>{{ t('eventTemplates.category') }}</FieldLabel>
-              <SelectInput v-model="categoryId">
+              <SelectInput v-model="categoryId" class="w-full">
                 <option value="">{{ t('eventTemplates.noCategory') }}</option>
                 <option v-for="cat in categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
               </SelectInput>
             </div>
             <div class="space-y-1">
               <FieldLabel>{{ t('eventTemplates.eventType') }}</FieldLabel>
-              <SelectInput v-model="eventType">
+              <SelectInput v-model="eventType" class="w-full">
                 <option value="">{{ t('eventTemplates.noDefault') }}</option>
                 <option :value="EventTypes.ONE_TIME">{{ t('events.typeOneTime') }}</option>
                 <option :value="EventTypes.RECURRING">{{ t('events.typeRecurring') }}</option>
@@ -185,7 +192,7 @@ async function save() {
             </div>
             <div class="space-y-1">
               <FieldLabel>{{ t('eventTemplates.attendanceTemplate') }}</FieldLabel>
-              <SelectInput v-model="attendanceTemplateId">
+              <SelectInput v-model="attendanceTemplateId" class="w-full">
                 <option value="">{{ t('eventTemplates.noDefault') }}</option>
                 <option v-for="tpl in attendanceTemplates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
               </SelectInput>
@@ -209,6 +216,10 @@ async function save() {
             <FieldLabel>{{ t('events.registrationLimit') }}</FieldLabel>
             <NumberInput v-model="registrationLimit" :placeholder="t('events.registrationLimitHint')"/>
           </div>
+        </NeutralContainer>
+
+        <NeutralContainer>
+          <EventReminderEditor v-model="reminderDays" />
         </NeutralContainer>
 
         <!-- Fields -->

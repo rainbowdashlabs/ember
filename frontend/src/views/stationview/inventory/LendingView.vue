@@ -26,11 +26,14 @@ import type {LendingRequestResponse, LendingStatusName, AvailableInventoryEntry}
 import {LendingStatus} from '@/api/lending'
 import * as lending from '@/api/lending'
 import {useSession} from '@/composables/useSession'
+import {StationPermission} from '@/api/types'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const {t} = useI18n()
 const router = useRouter()
-const {loaded} = useSession()
+const {loaded, hasPermission} = useSession()
+
+const isLendingManager = computed(() => hasPermission(StationPermission.INVENTORY_LENDING_MANAGER))
 
 // Tab state
 const activeTab = ref<'offers' | 'requests'>('offers')
@@ -144,7 +147,7 @@ watch(loaded, (v) => {
   <ViewContent>
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4">
       <SectionHeader>{{ t('lending.title') }}</SectionHeader>
-      <PrimaryButton :icon="['fas', 'calendar-xmark']" @click="router.push({name: 'inventory-lending-blocks'})">
+      <PrimaryButton v-if="isLendingManager" :icon="['fas', 'calendar-xmark']" @click="router.push({name: 'inventory-lending-blocks'})">
         {{ t('lending.blocks') }}
       </PrimaryButton>
     </div>
@@ -215,7 +218,8 @@ watch(loaded, (v) => {
       <Alert v-else-if="requestsError" variant="error">{{ requestsError }}</Alert>
 
       <template v-else>
-        <!-- Incoming requests -->
+        <!-- Incoming requests (manager only) -->
+        <template v-if="isLendingManager">
         <SubHeader class="mt-2 mb-2">{{ t('lending.incoming') }}</SubHeader>
         <p v-if="incoming.length === 0" class="text-sm text-[var(--text-muted)]">{{ t('lending.noIncoming') }}</p>
         <div class="flex flex-col gap-2">
@@ -243,6 +247,7 @@ watch(loaded, (v) => {
             </div>
           </NeutralContainer>
         </div>
+        </template>
 
         <!-- Outgoing requests -->
         <SubHeader class="mt-6 mb-2">{{ t('lending.outgoing') }}</SubHeader>

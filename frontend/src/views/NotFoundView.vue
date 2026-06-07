@@ -6,9 +6,11 @@
 <script lang="ts" setup>
 import { useI18n } from 'vue-i18n'
 import NotFoundContent from '@/components/feedback/NotFoundContent.vue'
-import EmberLogo from '@/components/display/EmberLogo.vue'
+import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
+import { emberLogo } from '@/composables/useEmberLogo'
 
 const { t } = useI18n()
+const logo = emberLogo()
 </script>
 
 <template>
@@ -17,7 +19,7 @@ const { t } = useI18n()
     <header class="border-b border-(--border) bg-(--bg)">
       <div class="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between">
         <router-link to="/" class="flex items-center gap-2 no-underline">
-          <EmberLogo base="NoBG_OrangeGlow" blink-base="NoBG_OrangeGlow_Blink" :pixel-size="64" size="h-8 w-8 rounded-lg" />
+          <LayeredEmberLogo :layers="logo.layers" :active-layers="logo.activeLayers" :auto-blink="true" size="h-8 w-8" :pixel-size="64" />
           <span class="text-lg font-bold">Ember</span>
         </router-link>
         <div class="flex items-center gap-4 text-sm">

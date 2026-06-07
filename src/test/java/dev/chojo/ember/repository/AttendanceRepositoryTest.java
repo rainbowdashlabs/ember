@@ -299,12 +299,12 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         memberGroupRepo.delete(group2.id());
     }
 
-    // -- Member IDs by role / group --
+    // -- Member IDs by user type / group --
 
     @Test
     @Order(41)
-    void findMemberIdsByRole() {
-        var ids = attendanceRepo.findMemberIdsByRole(station.id(), "MEMBER");
+    void findMemberIdsByUserType() {
+        var ids = attendanceRepo.findMemberIdsByUserType(station.id(), "MEMBER");
         assertNotNull(ids);
     }
 

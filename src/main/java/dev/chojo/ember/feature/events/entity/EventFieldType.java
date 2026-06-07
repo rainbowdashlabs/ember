@@ -16,5 +16,9 @@ public enum EventFieldType {
     BOOLEAN,
     ENUM,
     URL,
-    TEXTAREA
+    TEXTAREA,
+    MEMBER,
+    MEMBER_LIST,
+    MEMBER_OF_GROUP,
+    MEMBER_LIST_OF_GROUP
 }

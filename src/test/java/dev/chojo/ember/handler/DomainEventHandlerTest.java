@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.handler;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.roles.StationUserType;
+import dev.chojo.ember.event.events.BoardTicketChanged;
 import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.EventCreated;
@@ -25,6 +27,7 @@ import dev.chojo.ember.event.events.NewsDeleted;
 import dev.chojo.ember.event.events.ProcurementCreated;
 import dev.chojo.ember.event.events.ProcurementFulfilled;
 import dev.chojo.ember.event.events.RegistrationDeadlineExpired;
+import dev.chojo.ember.event.handlers.BoardTicketChangedHandler;
 import dev.chojo.ember.event.handlers.CommentCreatedHandler;
 import dev.chojo.ember.event.handlers.CommentDeletedHandler;
 import dev.chojo.ember.event.handlers.EventCreatedHandler;
@@ -45,7 +48,9 @@ import dev.chojo.ember.event.handlers.ProcurementCreatedHandler;
 import dev.chojo.ember.event.handlers.ProcurementFulfilledHandler;
 import dev.chojo.ember.event.handlers.RegistrationDeadlineExpiredHandler;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -58,9 +63,9 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class DomainEventHandlerTest {
@@ -77,7 +82,8 @@ class DomainEventHandlerTest {
     }
 
     private StationMember member(int id) {
-        return new StationMember(id, STATION_ID, id, false, "Member " + id);
+        return new StationMember(
+                id, STATION_ID, UUID.randomUUID(), id, false, null, "Member " + id, StationUserType.MEMBER);
     }
 
     // -- EventCreatedHandler --
@@ -104,6 +110,13 @@ class DomainEventHandlerTest {
                 RestrictionMode.OR,
                 false,
                 null,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                false,
                 null);
         handler.handle(new EventCreated(STATION_ID, stationEvent));
 
@@ -132,6 +145,13 @@ class DomainEventHandlerTest {
                 RestrictionMode.OR,
                 false,
                 null,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                false,
                 null);
         handler.handle(new EventCreated(STATION_ID, stationEvent));
 
@@ -161,6 +181,13 @@ class DomainEventHandlerTest {
                 RestrictionMode.OR,
                 false,
                 null,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                false,
                 null);
         handler.handle(new EventCreated(STATION_ID, stationEvent));
 
@@ -187,10 +214,11 @@ class DomainEventHandlerTest {
         var handler = new EventRegistrationStatusHandler(notificationService, memberRepository);
         assertEquals(EventRegistrationStatusChanged.class, handler.eventType());
 
-        when(memberRepository.findMembersWithRole(STATION_ID, Roles.EVENT_MANAGER))
+        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.EVENT_MANAGER))
                 .thenReturn(List.of(member(20), member(21)));
 
-        handler.handle(new EventRegistrationStatusChanged(STATION_ID, 42, "Übungsabend", MEMBER_ID, "CONFIRMED"));
+        handler.handle(new EventRegistrationStatusChanged(
+                STATION_ID, 42, "Übungsabend", MEMBER_ID, RegistrationStatus.ACCEPTED));
 
         verify(notificationService)
                 .notify(eq(MEMBER_ID), eq(NotificationType.EVENT_REGISTRATION_STATUS), any(NotificationData.class));
@@ -260,7 +288,7 @@ class DomainEventHandlerTest {
         var handler = new CommentCreatedHandler(notificationService, memberRepository);
         assertEquals(CommentCreated.class, handler.eventType());
 
-        when(memberRepository.findMembersWithRole(STATION_ID, Roles.NEWS_MANAGER))
+        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.NEWS_MANAGER))
                 .thenReturn(List.of(member(30)));
 
         handler.handle(new CommentCreated(
@@ -276,7 +304,7 @@ class DomainEventHandlerTest {
     @Test
     void commentCreatedSkipsParentNotificationWhenSameAuthor() {
         var handler = new CommentCreatedHandler(notificationService, memberRepository);
-        when(memberRepository.findMembersWithRole(STATION_ID, Roles.NEWS_MANAGER))
+        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.NEWS_MANAGER))
                 .thenReturn(List.of());
 
         handler.handle(new CommentCreated(
@@ -316,7 +344,7 @@ class DomainEventHandlerTest {
     @Test
     void commentCreatedNoParentAuthorSkipsParentNotification() {
         var handler = new CommentCreatedHandler(notificationService, memberRepository);
-        when(memberRepository.findMembersWithRole(STATION_ID, Roles.NEWS_MANAGER))
+        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.NEWS_MANAGER))
                 .thenReturn(List.of(member(30)));
 
         handler.handle(new CommentCreated(
@@ -370,7 +398,7 @@ class DomainEventHandlerTest {
         var handler = new ExchangeRequestedHandler(notificationService, memberRepository);
         assertEquals(ExchangeRequested.class, handler.eventType());
 
-        when(memberRepository.findMembersWithRole(STATION_ID, Roles.INVENTORY_MANAGER))
+        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.INVENTORY_MANAGER))
                 .thenReturn(List.of(member(30), member(31)));
 
         handler.handle(new ExchangeRequested(STATION_ID, 1, MEMBER_ID, "Max", "Helm", "Kaputt"));
@@ -390,7 +418,7 @@ class DomainEventHandlerTest {
         var handler = new ExchangeStatusChangedHandler(notificationService, memberRepository);
         assertEquals(ExchangeStatusChanged.class, handler.eventType());
 
-        when(memberRepository.findMembersWithRole(STATION_ID, Roles.INVENTORY_MANAGER))
+        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.INVENTORY_MANAGER))
                 .thenReturn(List.of(member(30)));
 
         handler.handle(new ExchangeStatusChanged(STATION_ID, 1, MEMBER_ID, "Max", "Helm", ExchangeStatus.RECEIVED));
@@ -472,7 +500,12 @@ class DomainEventHandlerTest {
 
         int targetStationId = 3;
         handler.handle(new LendingStatusChanged(
-                STATION_ID, targetStationId, 99, NotificationType.LENDING_STATUS_CHANGE, "Feuerwehr West", "APPROVED"));
+                STATION_ID,
+                targetStationId,
+                99,
+                NotificationType.LENDING_STATUS_CHANGE,
+                "Feuerwehr West",
+                LendingStatus.APPROVED));
 
         verify(notificationService)
                 .notifyMembersWithRole(
@@ -507,7 +540,7 @@ class DomainEventHandlerTest {
         var handler = new RegistrationDeadlineExpiredHandler(notificationService, memberRepository);
         assertEquals(RegistrationDeadlineExpired.class, handler.eventType());
 
-        when(memberRepository.findMembersWithRole(STATION_ID, Roles.EVENT_MANAGER))
+        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.EVENT_MANAGER))
                 .thenReturn(List.of(member(20), member(21)));
 
         handler.handle(new RegistrationDeadlineExpired(STATION_ID, 42, "Übungsabend", 5));
@@ -515,7 +548,40 @@ class DomainEventHandlerTest {
         verify(notificationService)
                 .notifyMembers(
                         eq(List.of(20, 21)),
-                        eq(NotificationType.EVENT_REGISTRATION_STATUS),
+                        eq(NotificationType.REGISTRATION_DEADLINE_EXPIRED),
                         any(NotificationData.class));
+    }
+
+    // -- BoardTicketChangedHandler --
+
+    @Test
+    void boardTicketChangedNotifiesWatchers() {
+        var handler = new BoardTicketChangedHandler(notificationService);
+        assertEquals(BoardTicketChanged.class, handler.eventType());
+
+        handler.handle(new BoardTicketChanged(
+                STATION_ID, 1, 42, "Dev Board", "DEV-42", "Neuer Kommentar", MEMBER_ID, List.of(20, 21)));
+
+        verify(notificationService)
+                .notifyMembersIfAbsent(
+                        eq(List.of(20, 21)),
+                        eq(NotificationType.BOARD_TICKET_UPDATE),
+                        any(NotificationData.class),
+                        eq(MEMBER_ID));
+    }
+
+    @Test
+    void boardTicketChangedSkipsEmptyWatchers() {
+        var handler = new BoardTicketChangedHandler(notificationService);
+
+        handler.handle(
+                new BoardTicketChanged(STATION_ID, 1, 42, "Dev Board", "DEV-42", "Update", MEMBER_ID, List.of()));
+
+        verify(notificationService)
+                .notifyMembersIfAbsent(
+                        eq(List.of()),
+                        eq(NotificationType.BOARD_TICKET_UPDATE),
+                        any(NotificationData.class),
+                        eq(MEMBER_ID));
     }
 }

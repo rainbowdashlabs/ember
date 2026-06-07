@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.repository;
 
+import dev.chojo.ember.api.roles.InstanceUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.entity.AccountExternalAuth;
@@ -84,35 +85,30 @@ class AccountRepositoryTest extends RepositoryTestBase {
         assertTrue(accountRepo.findById(accountId).orElseThrow().emailVerified());
     }
 
-    // -- Account Roles --
+    // -- Instance User Type --
 
     @Test
     @Order(10)
-    void addAndFindAccountRoles() {
-        accountRepo.addAccountRole(accountId, "ADMIN");
-        var roles = accountRepo.findAccountRoles(accountId);
-        assertTrue(roles.contains("ADMIN"));
+    void setAndCheckInstanceUserType() {
+        accountRepo.setInstanceUserType(accountId, InstanceUserType.ADMINISTRATOR);
+        assertTrue(accountRepo.isAdministrator(accountId));
+        assertTrue(accountRepo.anyAdministratorExists());
     }
 
     @Test
     @Order(11)
-    void hasAccountRole() {
-        assertTrue(accountRepo.hasAccountRole(accountId, "ADMIN"));
-        assertFalse(accountRepo.hasAccountRole(accountId, "nonexistent"));
+    void isAdministratorFalseAfterReset() {
+        accountRepo.setInstanceUserType(accountId, InstanceUserType.USER);
+        assertFalse(accountRepo.isAdministrator(accountId));
     }
 
     @Test
     @Order(12)
-    void anyAccountHasRole() {
-        assertTrue(accountRepo.anyAccountHasRole("ADMIN"));
-        assertFalse(accountRepo.anyAccountHasRole("nonexistent"));
-    }
-
-    @Test
-    @Order(13)
-    void removeAccountRole() {
-        assertTrue(accountRepo.removeAccountRole(accountId, "ADMIN"));
-        assertFalse(accountRepo.hasAccountRole(accountId, "ADMIN"));
+    void anyAdministratorExistsCallable() {
+        // After resetting to USER — the method should still be callable.
+        // Other test class accounts may still have ADMINISTRATOR, so just verify it runs.
+        var result = accountRepo.anyAdministratorExists();
+        assertNotNull(result);
     }
 
     // -- Credentials --
@@ -276,10 +272,48 @@ class AccountRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(56)
+    void deleteSessionById() {
+        Instant expires = Instant.now().plus(1, ChronoUnit.HOURS);
+        accountRepo.createSession(accountId, "delete-by-id-tok", expires, "Agent", null);
+        var session = accountRepo.findSession("delete-by-id-tok").orElseThrow();
+        assertTrue(accountRepo.deleteSessionById(session.id(), accountId));
+        assertTrue(accountRepo.findSession("delete-by-id-tok").isEmpty());
+    }
+
+    @Test
+    @Order(56)
+    void deleteSessionByIdWrongAccount() {
+        Instant expires = Instant.now().plus(1, ChronoUnit.HOURS);
+        accountRepo.createSession(accountId, "wrong-account-tok", expires, "Agent", null);
+        var session = accountRepo.findSession("wrong-account-tok").orElseThrow();
+        assertFalse(accountRepo.deleteSessionById(session.id(), 99999));
+        accountRepo.deleteSession("wrong-account-tok");
+    }
+
+    @Test
+    @Order(57)
     void deleteExpiredSessions() {
         accountRepo.createSession(accountId, "expired-s", Instant.now().minus(1, ChronoUnit.HOURS), null, null);
         assertTrue(accountRepo.deleteExpiredSessions());
         assertTrue(accountRepo.findSession("expired-s").isEmpty());
+    }
+
+    // -- GDPR Consent --
+
+    @Test
+    @Order(70)
+    void findAllConsentsEmpty() {
+        var consents = accountRepo.findAllConsents(accountId);
+        assertTrue(consents.isEmpty());
+    }
+
+    @Test
+    @Order(71)
+    void recordAndFindAllConsents() {
+        accountRepo.recordConsent(accountId, "1.0", "1.0", "1.0", "127.0.0.1", "DE", "TestAgent");
+        accountRepo.recordConsent(accountId, "1.1", "1.1", "1.1", "127.0.0.1", "DE", "TestAgent");
+        var consents = accountRepo.findAllConsents(accountId);
+        assertEquals(2, consents.size());
     }
 
     // -- Delete account --

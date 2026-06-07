@@ -12,9 +12,11 @@ import com.rometools.rome.feed.synd.SyndEntryImpl;
 import com.rometools.rome.feed.synd.SyndFeed;
 import com.rometools.rome.feed.synd.SyndFeedImpl;
 import com.rometools.rome.io.SyndFeedOutput;
+import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
@@ -27,6 +29,11 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.Context;
 import io.javalin.http.InternalServerErrorResponse;
 import io.javalin.http.NotFoundResponse;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -50,6 +57,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@SuppressWarnings("DefaultAnnotationParam")
 @Singleton
 public class UserFeedRoutes implements Routes {
     private final FeedTokenService tokenService;
@@ -95,6 +103,19 @@ public class UserFeedRoutes implements Routes {
 
     // -- iCal --
 
+    @OpenApi(
+            path = "/api/v1/public/feed/{token}/events.ics",
+            methods = HttpMethod.GET,
+            summary = "Get personal iCal event feed",
+            tags = {"User Feed"},
+            pathParams = @OpenApiParam(name = "token", type = String.class, required = true),
+            responses = {
+                @OpenApiResponse(
+                        status = "200",
+                        description = "iCal calendar. Cache-Control: public, max-age=3600",
+                        content = @OpenApiContent(type = "text/calendar")),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void icalFeed(Context ctx) {
         var member = resolveToken(ctx);
         tokenService.recordIcalPoll(member.id());
@@ -106,13 +127,11 @@ public class UserFeedRoutes implements Routes {
 
         var registrations = eventService.findRegistrationsByMember(member.id());
         var declinedEventIds = registrations.stream()
-                .filter(r -> r.status() == EventRegistration.RegistrationStatus.DECLINED
-                        || r.status() == EventRegistration.RegistrationStatus.DENIED)
+                .filter(r -> r.status() == RegistrationStatus.DECLINED || r.status() == RegistrationStatus.DENIED)
                 .map(EventRegistration::eventId)
                 .collect(Collectors.toSet());
         var registeredEventIds = registrations.stream()
-                .filter(r -> r.status() == EventRegistration.RegistrationStatus.ACCEPTED
-                        || r.status() == EventRegistration.RegistrationStatus.PENDING)
+                .filter(r -> r.status() == RegistrationStatus.ACCEPTED || r.status() == RegistrationStatus.PENDING)
                 .map(EventRegistration::eventId)
                 .collect(Collectors.toSet());
 
@@ -169,6 +188,19 @@ public class UserFeedRoutes implements Routes {
 
     // -- RSS --
 
+    @OpenApi(
+            path = "/api/v1/public/feed/{token}/notifications.rss",
+            methods = HttpMethod.GET,
+            summary = "Get personal RSS notification feed",
+            tags = {"User Feed"},
+            pathParams = @OpenApiParam(name = "token", type = String.class, required = true),
+            responses = {
+                @OpenApiResponse(
+                        status = "200",
+                        description = "RSS feed. Cache-Control: public, max-age=3600",
+                        content = @OpenApiContent(type = "application/rss+xml")),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void rssFeed(Context ctx) {
         var member = resolveToken(ctx);
         tokenService.recordNotificationPoll(member.id());
@@ -188,6 +220,19 @@ public class UserFeedRoutes implements Routes {
 
     // -- Atom --
 
+    @OpenApi(
+            path = "/api/v1/public/feed/{token}/notifications.atom",
+            methods = HttpMethod.GET,
+            summary = "Get personal Atom notification feed",
+            tags = {"User Feed"},
+            pathParams = @OpenApiParam(name = "token", type = String.class, required = true),
+            responses = {
+                @OpenApiResponse(
+                        status = "200",
+                        description = "Atom feed. Cache-Control: public, max-age=3600",
+                        content = @OpenApiContent(type = "application/atom+xml")),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void atomFeed(Context ctx) {
         var member = resolveToken(ctx);
         tokenService.recordNotificationPoll(member.id());

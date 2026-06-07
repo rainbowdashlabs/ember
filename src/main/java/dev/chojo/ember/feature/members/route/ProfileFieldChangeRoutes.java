@@ -5,12 +5,14 @@
  */
 package dev.chojo.ember.feature.members.route;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChange;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChangeAcknowledgement;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository.MemberChangeSummary;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
@@ -32,31 +34,42 @@ import java.util.List;
 @Singleton
 public class ProfileFieldChangeRoutes implements Routes {
     private final ProfileFieldService profileFieldService;
+    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
-    public ProfileFieldChangeRoutes(ProfileFieldService profileFieldService) {
+    public ProfileFieldChangeRoutes(
+            ProfileFieldService profileFieldService, MemberIdentityFactory memberIdentityFactory) {
         this.profileFieldService = profileFieldService;
+        this.memberIdentityFactory = memberIdentityFactory;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/profile-changes/all", this::getAllChanges, Roles.MEMBER_MANAGER, Roles.GUARDIAN);
-        routes.get(prefix + "/profile-changes/pending", this::getPendingSummary, Roles.MEMBER_MANAGER, Roles.GUARDIAN);
+        routes.get(
+                prefix + "/profile-changes/all",
+                this::getAllChanges,
+                StationPermission.MEMBER_CHANGES,
+                StationPermission.MEMBER_GUARDIAN);
+        routes.get(
+                prefix + "/profile-changes/pending",
+                this::getPendingSummary,
+                StationPermission.MEMBER_CHANGES,
+                StationPermission.MEMBER_GUARDIAN);
         routes.get(
                 prefix + "/station-members/{memberId}/profile-changes",
                 this::getChanges,
-                Roles.MEMBER_MANAGER,
-                Roles.GUARDIAN);
+                StationPermission.MEMBER_CHANGES,
+                StationPermission.MEMBER_GUARDIAN);
         routes.post(
                 prefix + "/profile-changes/{changeId}/acknowledge",
                 this::acknowledge,
-                Roles.MEMBER_MANAGER,
-                Roles.GUARDIAN);
+                StationPermission.MEMBER_CHANGES,
+                StationPermission.MEMBER_GUARDIAN);
         routes.post(
                 prefix + "/station-members/{memberId}/profile-changes/acknowledge-all",
                 this::acknowledgeAll,
-                Roles.MEMBER_MANAGER,
-                Roles.GUARDIAN);
+                StationPermission.MEMBER_CHANGES,
+                StationPermission.MEMBER_GUARDIAN);
     }
 
     @OpenApi(
@@ -74,7 +87,11 @@ public class ProfileFieldChangeRoutes implements Routes {
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(20);
         var result = profileFieldService.findChangesByStation(session.stationId(), limit, offset);
-        ctx.json(new PagedChangesResponse(result.changes(), result.total(), offset, limit));
+        var enriched = result.changes().stream()
+                .map(c -> new EnrichedProfileFieldChange(
+                        c, memberIdentityFactory.local(session.stationId(), c.memberId())))
+                .toList();
+        ctx.json(new PagedChangesResponse(enriched, result.total(), offset, limit));
     }
 
     @OpenApi(
@@ -85,9 +102,25 @@ public class ProfileFieldChangeRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberChangeSummary[].class)))
     private void getPendingSummary(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(profileFieldService.findUnacknowledgedSummary(
-                session.stationId(), session.member().id()));
+        var summaries = profileFieldService.findUnacknowledgedSummary(
+                session.stationId(), session.member().id());
+        var enriched = summaries.stream()
+                .map(s -> new EnrichedMemberChangeSummary(
+                        s.memberId(),
+                        s.memberName(),
+                        s.pendingCount(),
+                        s.latestChange(),
+                        memberIdentityFactory.local(session.stationId(), s.memberId())))
+                .toList();
+        ctx.json(enriched);
     }
+
+    public record EnrichedMemberChangeSummary(
+            int memberId,
+            String memberName,
+            int pendingCount,
+            java.time.Instant latestChange,
+            MemberIdentity identity) {}
 
     @OpenApi(
             path = "/api/v1/station-members/{memberId}/profile-changes",
@@ -97,8 +130,12 @@ public class ProfileFieldChangeRoutes implements Routes {
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProfileFieldChange[].class)))
     private void getChanges(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
-        ctx.json(profileFieldService.findChanges(memberId));
+        var identity = memberIdentityFactory.local(session.stationId(), memberId);
+        ctx.json(profileFieldService.findChanges(memberId).stream()
+                .map(c -> new EnrichedProfileFieldChange(c, identity))
+                .toList());
     }
 
     @OpenApi(
@@ -139,5 +176,7 @@ public class ProfileFieldChangeRoutes implements Routes {
 
     public record AcknowledgeRequest(String comment) {}
 
-    public record PagedChangesResponse(List<ProfileFieldChange> changes, int total, int offset, int limit) {}
+    public record EnrichedProfileFieldChange(ProfileFieldChange change, MemberIdentity memberIdentity) {}
+
+    public record PagedChangesResponse(List<EnrichedProfileFieldChange> changes, int total, int offset, int limit) {}
 }

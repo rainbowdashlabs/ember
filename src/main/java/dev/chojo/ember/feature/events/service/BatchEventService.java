@@ -64,14 +64,17 @@ public class BatchEventService {
                     request.registrationDeadline(),
                     request.requiresConfirmation() != null && request.requiresConfirmation(),
                     request.categoryId(),
+                    null,
+                    null,
+                    null,
                     null);
 
-            if (request.restrictedRoleIds() != null
+            if (request.restrictedUserTypes() != null
                     || request.restrictedGroupIds() != null
                     || request.restrictedTagIds() != null) {
                 eventService.setRestrictions(
                         event.id(),
-                        request.restrictedRoleIds() != null ? request.restrictedRoleIds() : List.of(),
+                        request.restrictedUserTypes() != null ? request.restrictedUserTypes() : List.of(),
                         request.restrictedGroupIds() != null ? request.restrictedGroupIds() : List.of(),
                         request.restrictedTagIds() != null ? request.restrictedTagIds() : List.of(),
                         List.of());

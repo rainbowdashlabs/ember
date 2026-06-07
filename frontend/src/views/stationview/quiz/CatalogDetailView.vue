@@ -22,9 +22,11 @@ import { useSession } from '@/composables/useSession'
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { loaded } = useSession()
+import { StationPermission } from '@/api/types'
+const { hasPermission, loaded } = useSession()
 
 const catalogId = computed(() => Number(route.params.id))
+const canEdit = computed(() => hasPermission(StationPermission.TEST_CATALOG_EDIT))
 
 const currentStationId = computed(() => {
   return storage.getItem('station_id') ?? null
@@ -34,6 +36,8 @@ const isFederated = computed(() => {
   if (!catalog.value || currentStationId.value == null) return false
   return catalog.value.stationId !== currentStationId.value
 })
+
+const readonly = computed(() => isFederated.value || !canEdit.value)
 
 const catalog = ref<QuizCatalogDetail | null>(null)
 const questions = ref<QuizQuestion[]>([])
@@ -120,12 +124,13 @@ watch(loaded, (isLoaded) => {
           ref="catalogHeaderRef"
           :catalog="catalog"
           :is-federated="isFederated"
+          :readonly="readonly"
           @save="saveCatalog"
           @copy-to-station="copyToStation"
         />
 
         <CategorySection
-          v-if="!isFederated"
+          v-if="!readonly"
           :categories="catalog.categories"
           @updated="loadData"
         />
@@ -135,6 +140,7 @@ watch(loaded, (isLoaded) => {
           :questions="questions"
           :categories="catalog.categories"
           :is-federated="isFederated"
+          :readonly="readonly"
           @updated="loadData"
           @error="onError"
         />
@@ -142,6 +148,7 @@ watch(loaded, (isLoaded) => {
 
       <!-- CSV Import Dialog -->
       <CsvImportDialog
+        v-if="!readonly"
         :show="showCsvImport"
         :catalog-id="catalogId"
         :categories="catalog?.categories ?? []"

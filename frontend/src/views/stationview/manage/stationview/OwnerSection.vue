@@ -35,13 +35,13 @@ const transferringOwnership = ref(false)
 async function loadManagers() {
   try {
     const members = await stationMembers.listMembers()
-    const allRolesList = await stationMembers.listAllRoles()
-    const managerRoleId = allRolesList.find(r => r.role === 'MANAGER')?.id
+    const allRolesList = await stationMembers.listAllPermissions()
+    const managerRoleId = allRolesList.find(r => r.permission === 'MANAGER')?.id
     if (!managerRoleId) return
     const result: {id: number, name: string}[] = []
     for (const m of members) {
       if (props.ownerMemberId && m.id === props.ownerMemberId) continue
-      const roles = await stationMembers.getRoles(m.id)
+      const roles = await stationMembers.getPermissions(m.id)
       if (roles.some(r => r.id === managerRoleId)) {
         result.push({id: m.id, name: m.name || m.email || `#${m.id}`})
       }
@@ -89,7 +89,7 @@ onMounted(loadManagers)
     <SectionHeader>{{ t('stationManage.ownerHandoverTitle') }}</SectionHeader>
     <p class="text-sm text-(--text-muted)">{{ t('stationManage.ownerHandoverHint') }}</p>
     <div v-if="managerMembers.length > 0" class="space-y-3">
-      <SelectInput v-model="newOwnerId">
+      <SelectInput v-model="newOwnerId" class="w-full">
         <option value="">{{ t('stationManage.ownerHandoverSelect') }}</option>
         <option v-for="m in managerMembers" :key="m.id" :value="m.id">{{ m.name }}</option>
       </SelectInput>

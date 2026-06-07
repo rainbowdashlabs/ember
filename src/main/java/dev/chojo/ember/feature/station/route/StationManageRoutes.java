@@ -7,9 +7,9 @@ package dev.chojo.ember.feature.station.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.mail.service.EmailService;
@@ -27,6 +27,7 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
+import io.javalin.http.NoContentResponse;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.http.UploadedFile;
 import io.javalin.openapi.HttpMethod;
@@ -82,22 +83,36 @@ public class StationManageRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/station/manage", this::getStation, Roles.MANAGER);
-        routes.put(prefix + "/station/manage", this::updateStation, Roles.MANAGER);
-        routes.post(prefix + "/station/manage/logo", this::uploadLogo, Roles.MANAGER);
-        routes.get(prefix + "/station/manage/logo", this::getLogo, Roles.LOGIN);
-        routes.get(prefix + "/stations/{stationId}/logo", this::getLogoByStation, Roles.LOGIN);
+        routes.get(
+                prefix + "/station/manage",
+                this::getStation,
+                StationPermission.STATION_GENERAL,
+                StationPermission.STATION_LOOK_AND_FEEL,
+                StationPermission.STATION_FEDERATION);
+        routes.put(prefix + "/station/manage", this::updateStation, StationPermission.STATION_GENERAL);
+        routes.post(prefix + "/station/manage/logo", this::uploadLogo, StationPermission.STATION_LOOK_AND_FEEL);
+        routes.get(prefix + "/station/manage/logo", this::getLogo, StationPermission.LOGIN);
+        routes.get(prefix + "/stations/{stationId}/logo", this::getLogoByStation, StationPermission.LOGIN);
         routes.get(prefix + "/public/stations/{stationId}/logo", this::getLogoByStation);
-        routes.delete(prefix + "/station/manage/logo", this::deleteLogo, Roles.MANAGER);
-        routes.get(prefix + "/station/manage/mail", this::getMailConfig, Roles.MANAGER);
-        routes.put(prefix + "/station/manage/mail", this::updateMailConfig, Roles.MANAGER);
-        routes.post(prefix + "/station/manage/mail/test", this::testMailConfig, Roles.MANAGER);
-        routes.get(prefix + "/station/manage/modules", this::getDisabledModules, Roles.MANAGER);
-        routes.put(prefix + "/station/manage/modules", this::setDisabledModules, Roles.MANAGER);
-        routes.post(prefix + "/station/manage/import", this::importInto, Roles.MANAGER);
-        routes.get(prefix + "/station/manage/import/progress", this::importProgress, Roles.MANAGER);
-        routes.post(prefix + "/station/manage/request-delete", this::requestDelete, Roles.MANAGER);
-        routes.post(prefix + "/station/manage/transfer-ownership", this::transferOwnership, Roles.MANAGER);
+        routes.delete(prefix + "/station/manage/logo", this::deleteLogo, StationPermission.STATION_LOOK_AND_FEEL);
+        routes.get(prefix + "/station/manage/mail", this::getMailConfig, StationPermission.STATION_MAIL);
+        routes.put(prefix + "/station/manage/mail", this::updateMailConfig, StationPermission.STATION_MAIL);
+        routes.post(prefix + "/station/manage/mail/test", this::testMailConfig, StationPermission.STATION_MAIL);
+        routes.get(prefix + "/station/manage/modules", this::getDisabledModules, StationPermission.STATION_MODULES);
+        routes.put(prefix + "/station/manage/modules", this::setDisabledModules, StationPermission.STATION_MODULES);
+        routes.post(prefix + "/station/manage/import", this::importInto, StationPermission.STATION_IMPORT_EXPORT);
+        routes.get(
+                prefix + "/station/manage/import/progress",
+                this::importProgress,
+                StationPermission.STATION_IMPORT_EXPORT);
+        routes.post(
+                prefix + "/station/manage/request-delete",
+                this::requestDelete,
+                StationPermission.STATION_ADMINISTRATOR);
+        routes.post(
+                prefix + "/station/manage/transfer-ownership",
+                this::transferOwnership,
+                StationPermission.STATION_ADMINISTRATOR);
         routes.get(prefix + "/public/confirm-station-delete", this::confirmDelete);
     }
 
@@ -247,7 +262,7 @@ public class StationManageRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         Optional<StationLogo> logoOpt = stationService.getLogo(session.stationId());
         if (logoOpt.isEmpty()) {
-            throw new NotFoundResponse("No logo set");
+            throw new NoContentResponse("No logo set");
         }
         StationLogo logo = logoOpt.get();
         ctx.contentType(logo.contentType());
@@ -262,14 +277,14 @@ public class StationManageRoutes implements Routes {
             pathParams = @OpenApiParam(name = "stationId", type = Integer.class, required = true),
             responses = {
                 @OpenApiResponse(status = "200"),
-                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+                @OpenApiResponse(status = "204", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getLogoByStation(Context ctx) {
         String uidParam = ctx.pathParam("stationId");
         var station = stationService.findByUid(UUID.fromString(uidParam)).orElseThrow(NotFoundResponse::new);
         Optional<StationLogo> logoOpt = stationService.getLogo(station.id());
         if (logoOpt.isEmpty()) {
-            throw new NotFoundResponse("No logo set");
+            throw new NoContentResponse("No logo set");
         }
         StationLogo logo = logoOpt.get();
         ctx.contentType(logo.contentType());

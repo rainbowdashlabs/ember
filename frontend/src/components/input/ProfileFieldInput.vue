@@ -31,18 +31,18 @@ function setBool(val: boolean) {
 </script>
 
 <template>
-  <template v-if="fieldType === 'boolean'">
+  <template v-if="fieldType === 'BOOLEAN'">
     <ToggleInput :disabled="disabled" :model-value="getBool()" @update:model-value="setBool($event)"/>
   </template>
-  <template v-else-if="fieldType === 'date'">
+  <template v-else-if="fieldType === 'DATE'">
     <DateInput :disabled="disabled" :model-value="modelValue"
                @update:model-value="emit('update:modelValue', $event ?? '')"/>
   </template>
-  <template v-else-if="fieldType === 'number'">
+  <template v-else-if="fieldType === 'NUMBER' || fieldType === 'AGE'">
     <NumberInput :disabled="disabled" :model-value="Number(modelValue) || 0"
                  @update:model-value="emit('update:modelValue', String($event ?? 0))"/>
   </template>
-  <template v-else-if="fieldType === 'enum'">
+  <template v-else-if="fieldType === 'ENUM'">
     <SelectInput :disabled="disabled" :model-value="modelValue"
                  @update:model-value="emit('update:modelValue', $event ?? '')">
       <option value="">—</option>

@@ -18,8 +18,9 @@ import type {
   AttendanceTemplateField,
   MemberGroup,
   StationMember,
-  TemplateGroupEntry
+  TemplateGroupEntry,
 } from '@/api/types'
+import {StationPermission} from '@/api/types'
 import {attendance, memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useSessionMeta} from './sessionview/useSessionMeta'
@@ -35,7 +36,9 @@ import MemberListPanel from './sessionview/MemberListPanel.vue'
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {loaded} = useSession()
+const {loaded, hasPermission} = useSession()
+
+const canEdit = computed(() => hasPermission(StationPermission.ATTENDANCE_EDIT))
 
 const sessionId = computed(() => Number(route.params.id))
 
@@ -94,13 +97,17 @@ function getMemberName(memberId: number): string {
   return m?.name ?? m?.email ?? `#${memberId}`
 }
 
+function getMemberIdentity(memberId: number) {
+  return allMembers.value.find(mm => mm.id === memberId)?.identity ?? null
+}
+
 async function loadData() {
   loading.value = true
   error.value = ''
   try {
     const [detail, members, allGroups] = await Promise.all([
       attendance.getSession(sessionId.value),
-      stationMembers.listMembers(),
+      stationMembers.listMembers(true),
       memberGroups.listGroups(),
     ])
     session.value = detail.session ?? null
@@ -133,16 +140,6 @@ async function loadData() {
       }
       groupMembers.value = gm
 
-      const entryMemberIds = new Set(entries.value.map(e => e.memberId))
-      for (const tg of templateGroups.value) {
-        const members = gm.get(tg.groupId) ?? []
-        for (const m of members) {
-          if (!entryMemberIds.has(m.id)) {
-            entries.value = await attendance.createEntry(sessionId.value, {memberId: m.id, source: 'EXPECTED'})
-            entryMemberIds.add(m.id)
-          }
-        }
-      }
     }
 
     initFieldValues(sessionFields.value)
@@ -261,6 +258,7 @@ watch(loaded, (isLoaded) => {
       <SessionToolbar
           :check-mode="checkMode"
           :unchecked-count="uncheckedEntries.length"
+          :readonly="!canEdit"
           @back="goBack"
           @export="exportPdf"
           @sync="syncFromEvent"
@@ -273,6 +271,7 @@ watch(loaded, (isLoaded) => {
       <template v-if="!loading && session">
         <SessionHeader
             :session="session"
+            :readonly="!canEdit"
             @update-title="setSessionTitle"
             @update-start-time="setSessionStartTime"
             @update-end-time="setSessionEndTime"
@@ -284,6 +283,7 @@ watch(loaded, (isLoaded) => {
             :check-index="checkIndex"
             :total-unchecked="uncheckedEntries.length"
             :member-name="currentCheckEntry ? getMemberName(currentCheckEntry.memberId) : ''"
+            :member-identity="currentCheckEntry ? getMemberIdentity(currentCheckEntry.memberId) : null"
             @set-status="checkSetStatus"
             @skip="skipCheck"
             @end="checkMode = false"
@@ -295,17 +295,19 @@ watch(loaded, (isLoaded) => {
               :field-values="fieldValues"
               :group-members="groupMembers"
               :all-members="allMembers"
+              :readonly="!canEdit"
               @field-update="onFieldUpdate"
               @field-member-ids="setFieldMemberIds"
           />
 
-          <AttendanceSummary :entries="entries"/>
+          <AttendanceSummary :entries="entries" :member-sections="memberSections"/>
 
           <MemberListPanel
               :entries="entries"
               :all-members="allMembers"
               :member-sections="memberSections"
               :selected-member-id="selectedMemberId"
+              :readonly="!canEdit"
               @set-status="setStatus"
               @check-in="setCheckIn"
               @check-out="setCheckOut"

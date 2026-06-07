@@ -8,10 +8,11 @@ import { useI18n } from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
+import HelpPermissionGuard from '@/components/helpcenter/HelpPermissionGuard.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
 import BulletList from '@/components/typography/BulletList.vue'
+import {StationPermission} from '@/api/types'
 
 const { t } = useI18n()
 </script>
@@ -24,6 +25,8 @@ const { t } = useI18n()
 
     <HelpSection :title="t('helpCenter.kb.browsingTitle')">
       <p>{{ t('helpCenter.kb.browsingText') }}</p>
+      <p>{{ t('helpCenter.kb.breadcrumbText') }}</p>
+      <p>{{ t('helpCenter.kb.viewToggleText') }}</p>
     </HelpSection>
 
     <!-- Dummy: Tile browser -->
@@ -57,54 +60,48 @@ const { t } = useI18n()
       </BulletList>
     </HelpSection>
 
-    <HelpSection :title="t('helpCenter.kb.editingTitle')">
-      <p>{{ t('helpCenter.kb.editingText') }}</p>
+    <HelpSection :title="t('helpCenter.kb.favouritesTitle')">
+      <p>{{ t('helpCenter.kb.favouritesText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Markdown editor -->
-    <NeutralContainer>
-      <div class="grid grid-cols-2 gap-3">
-        <div class="space-y-1">
-          <span class="text-xs text-(--text-muted)">Bearbeiten</span>
-          <div class="text-xs font-mono bg-(--bg) p-2 rounded border border-bg-light-accent dark:border-bg-dark-accent whitespace-pre-line"># Überschrift
+    <HelpPermissionGuard :permissions="[StationPermission.KNOWLEDGE_EDIT]" :label="t('helpCenter.permissionLabel.knowledgeEdit')">
+      <HelpSection :title="t('helpCenter.kb.createMenuTitle')">
+        <p>{{ t('helpCenter.kb.createMenuText') }}</p>
+        <BulletList>
+          <li>{{ t('helpCenter.kb.createFolder') }}</li>
+          <li>{{ t('helpCenter.kb.createMarkdown') }}</li>
+          <li>{{ t('helpCenter.kb.createUpload') }}</li>
+          <li>{{ t('helpCenter.kb.createYoutube') }}</li>
+          <li>{{ t('helpCenter.kb.createLink') }}</li>
+        </BulletList>
+      </HelpSection>
 
-Text mit **fett** und *kursiv*.
+      <HelpSection :title="t('helpCenter.kb.editingTitle')">
+        <p>{{ t('helpCenter.kb.editingTextFixed') }}</p>
+      </HelpSection>
 
-- Punkt 1
-- Punkt 2</div>
-        </div>
-        <div class="space-y-1">
-          <span class="text-xs text-(--text-muted)">Vorschau</span>
-          <div class="text-xs p-2 rounded border border-bg-light-accent dark:border-bg-dark-accent">
-            <SubHeader class="font-bold">Überschrift</SubHeader>
-            <p>Text mit <strong>fett</strong> und <em>kursiv</em>.</p>
-            <ul class="list-disc pl-4"><li>Punkt 1</li><li>Punkt 2</li></ul>
+      <HelpSection :title="t('helpCenter.kb.versionsTitle')">
+        <p>{{ t('helpCenter.kb.versionsText') }}</p>
+      </HelpSection>
+
+      <!-- Dummy: Version list -->
+      <NeutralContainer>
+        <div class="space-y-2">
+          <div class="flex items-center justify-between text-sm">
+            <span>Version 3 <SecondaryBadge>aktuell</SecondaryBadge></span>
+            <span class="text-xs text-(--text-muted)">vor 2 Stunden</span>
+          </div>
+          <div class="flex items-center justify-between text-sm">
+            <span>Version 2</span>
+            <span class="text-xs text-(--text-muted)">vor 1 Tag</span>
+          </div>
+          <div class="flex items-center justify-between text-sm">
+            <span>Version 1</span>
+            <span class="text-xs text-(--text-muted)">vor 3 Tagen</span>
           </div>
         </div>
-      </div>
-    </NeutralContainer>
-
-    <HelpSection :title="t('helpCenter.kb.versionsTitle')">
-      <p>{{ t('helpCenter.kb.versionsText') }}</p>
-    </HelpSection>
-
-    <!-- Dummy: Version list -->
-    <NeutralContainer>
-      <div class="space-y-2">
-        <div class="flex items-center justify-between text-sm">
-          <span>Version 3 <SecondaryBadge>aktuell</SecondaryBadge></span>
-          <span class="text-xs text-(--text-muted)">vor 2 Stunden</span>
-        </div>
-        <div class="flex items-center justify-between text-sm">
-          <span>Version 2</span>
-          <span class="text-xs text-(--text-muted)">vor 1 Tag</span>
-        </div>
-        <div class="flex items-center justify-between text-sm">
-          <span>Version 1</span>
-          <span class="text-xs text-(--text-muted)">vor 3 Tagen</span>
-        </div>
-      </div>
-    </NeutralContainer>
+      </NeutralContainer>
+    </HelpPermissionGuard>
 
     <HelpSection :title="t('helpCenter.kb.searchTitle')">
       <p>{{ t('helpCenter.kb.searchText') }}</p>

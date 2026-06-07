@@ -14,19 +14,26 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
-import NumberInput from '@/components/input/number/NumberInput.vue'
+import DecimalInput from '@/components/input/number/DecimalInput.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import type { QuizAttemptDetail, QuizQuestion, QuizTestAnswer, StationMember } from '@/api/types'
+import MemberName from '@/components/avatar/MemberName.vue'
+import type { QuizAttemptDetail, QuizQuestion, QuizTestAnswer } from '@/api/types'
 import { QuizQuestionTypes } from '@/api/types'
-import { quiz, stationMembers } from '@/api'
+import { quiz } from '@/api'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import MutedText from '@/components/typography/MutedText.vue'
+
 import SectionLabel from '@/components/typography/SectionLabel.vue'
+
+import { StationPermission } from '@/api/types'
+import { useSession } from '@/composables/useSession'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const { hasPermission } = useSession()
+const canReview = computed(() => hasPermission(StationPermission.TEST_REVIEW))
 
 const testId = computed(() => Number(route.params.id))
 const attemptId = computed(() => Number(route.params.attemptId))
@@ -39,7 +46,6 @@ const graded = ref(false)
 const attemptDetail = ref<QuizAttemptDetail | null>(null)
 const questionsMap = ref<Map<number, QuizQuestion>>(new Map())
 const pointsOverrides = ref<Map<number, number>>(new Map())
-const member = ref<StationMember | null>(null)
 
 const totalPoints = computed(() => {
   if (!attemptDetail.value) return 0
@@ -62,8 +68,8 @@ const maxPoints = computed(() => {
   return sum
 })
 
-function parseConfig(config: string): Record<string, unknown> {
-  try { return JSON.parse(config || '{}') } catch { return {} }
+function parseConfig(config: Record<string, unknown>): Record<string, unknown> {
+  return config ?? {}
 }
 
 function parseAnswer(answer: string): Record<string, unknown> {
@@ -93,6 +99,36 @@ function setPoints(answerId: number, maxPts: number, value: number | undefined) 
   }, 500)
 }
 
+function markCorrect(answerId: number, maxPts: number) {
+  setPoints(answerId, maxPts, maxPts)
+}
+
+function markWrong(answerId: number, maxPts: number) {
+  setPoints(answerId, maxPts, 0)
+}
+
+const gapCorrectOverrides = ref<Map<number, Set<number>>>(new Map())
+
+function toggleGapCorrect(answerId: number, gapIndex: number, questionId: number) {
+  const current = gapCorrectOverrides.value.get(answerId) ?? new Set()
+  const next = new Set(current)
+  if (next.has(gapIndex)) next.delete(gapIndex)
+  else next.add(gapIndex)
+  gapCorrectOverrides.value.set(answerId, next)
+
+  // Calculate points: correctGaps * pointsPerCorrect
+  const q = questionsMap.value.get(questionId)
+  if (!q) return
+  const cfg = parseConfig(q.config)
+  const ppc = (cfg.pointsPerCorrect as number) || 1
+  const points = next.size * ppc
+  setPoints(answerId, q.points, points)
+}
+
+function isGapCorrect(answerId: number, gapIndex: number): boolean {
+  return (gapCorrectOverrides.value.get(answerId) ?? new Set()).has(gapIndex)
+}
+
 async function finishGrading() {
   grading.value = true
   error.value = ''
@@ -120,22 +156,34 @@ async function loadData() {
     const detail = await quiz.getAttemptDetail(attemptId.value)
     attemptDetail.value = detail
 
-    // Load member info
-    try {
-      member.value = await stationMembers.getMember(detail.attempt.memberId)
-    } catch { /* skip */ }
-
-    // Load questions
-    const questionIds = new Set(detail.questions.map(q => q.questionId))
-    const questions = await Promise.all(Array.from(questionIds).map(qId => quiz.getQuestion(qId)))
-    for (const q of questions) {
-      questionsMap.value.set(q.id, q)
+    // Build questions map from enriched response
+    if (detail.questionDetails) {
+      for (const q of detail.questionDetails) {
+        questionsMap.value.set(q.id, q)
+      }
     }
 
     // Initialize points from existing graded answers
     for (const answer of detail.answers) {
       if (answer.points !== null) {
         pointsOverrides.value.set(answer.id, answer.points)
+      }
+
+      // For fill-in-the-blank, infer which gaps were marked correct based on stored points
+      const q = questionsMap.value.get(answer.questionId)
+      if (q && q.quizQuestionType === QuizQuestionTypes.FILL_IN_THE_BLANK && answer.graded && answer.points !== null) {
+        const cfg = parseConfig(q.config)
+        const answers_list = (cfg.answers as string[]) ?? []
+        const parsed = parseAnswer(answer.answer)
+        const gaps = (parsed.gaps as Record<string, string>) ?? {}
+        const correctGaps = new Set<number>()
+        for (let i = 0; i < answers_list.length; i++) {
+          const given = (gaps[String(i)] ?? '').trim()
+          if (given && given.toLowerCase() === answers_list[i].trim().toLowerCase()) {
+            correctGaps.add(i)
+          }
+        }
+        if (correctGaps.size > 0) gapCorrectOverrides.value.set(answer.id, correctGaps)
       }
     }
   } catch {
@@ -158,9 +206,7 @@ onMounted(loadData)
         <div class="flex items-center justify-between flex-wrap gap-4">
           <div>
             <SectionHeader>{{ t('quiz.evaluate.title') }}</SectionHeader>
-            <MutedText tag="p" size="sm" class="mt-1">
-              {{ member?.name ?? member?.email ?? `#${attemptDetail.attempt.memberId}` }}
-            </MutedText>
+            <MemberName :identity="attemptDetail.memberIdentity" size="md" class="mt-1" />
           </div>
           <div class="flex items-center gap-2">
             <span class="text-sm font-medium">
@@ -188,7 +234,7 @@ onMounted(loadData)
                   <div class="flex items-center gap-2 mb-1">
                     <SectionLabel>
                       {{ index + 1 }}.
-                      {{ t(`quiz.questionTypes.${questionsMap.get(aq.questionId)!.questionType}`) }}
+                      {{ t(`quiz.questionTypes.${questionsMap.get(aq.questionId)!.quizQuestionType}`) }}
                     </SectionLabel>
                     <span class="text-xs text-(--text-muted)">
                       ({{ questionsMap.get(aq.questionId)!.points }} {{ t('quiz.points') }})
@@ -201,7 +247,7 @@ onMounted(loadData)
                 </div>
 
                 <!-- MC: show options with correct/wrong highlighting -->
-                <template v-if="questionsMap.get(aq.questionId)!.questionType === QuizQuestionTypes.MULTIPLE_CHOICE">
+                <template v-if="questionsMap.get(aq.questionId)!.quizQuestionType === QuizQuestionTypes.MULTIPLE_CHOICE">
                   <div class="space-y-1">
                     <div
                       v-for="(opt, oi) in (parseConfig(questionsMap.get(aq.questionId)!.config).options as { text: string; correct: boolean }[] ?? [])"
@@ -225,7 +271,7 @@ onMounted(loadData)
                 </template>
 
                 <!-- TRUE_FALSE -->
-                <template v-else-if="questionsMap.get(aq.questionId)!.questionType === QuizQuestionTypes.TRUE_FALSE">
+                <template v-else-if="questionsMap.get(aq.questionId)!.quizQuestionType === QuizQuestionTypes.TRUE_FALSE">
                   <div class="space-y-2 text-sm">
                     <div class="flex items-center gap-2">
                       <span class="text-(--text-muted)">{{ t('quiz.evaluate.correctAnswer') }}:</span>
@@ -245,7 +291,7 @@ onMounted(loadData)
                 </template>
 
                 <!-- CONNECT -->
-                <template v-else-if="questionsMap.get(aq.questionId)!.questionType === QuizQuestionTypes.CONNECT">
+                <template v-else-if="questionsMap.get(aq.questionId)!.quizQuestionType === QuizQuestionTypes.CONNECT">
                   <div class="space-y-1">
                     <div
                       v-for="(pair, pi) in (parseConfig(questionsMap.get(aq.questionId)!.config).pairs as { left: string; right: string }[] ?? [])"
@@ -273,7 +319,7 @@ onMounted(loadData)
                 </template>
 
                 <!-- ORDERING -->
-                <template v-else-if="questionsMap.get(aq.questionId)!.questionType === QuizQuestionTypes.ORDERING">
+                <template v-else-if="questionsMap.get(aq.questionId)!.quizQuestionType === QuizQuestionTypes.ORDERING">
                   <div class="space-y-1">
                     <div
                       v-for="(itemIdx, pos) in (parseAnswer(getAnswerForQuestion(aq.questionId)?.answer ?? '{}').order as number[] ?? [])"
@@ -293,24 +339,36 @@ onMounted(loadData)
                 </template>
 
                 <!-- FILL_IN_THE_BLANK -->
-                <template v-else-if="questionsMap.get(aq.questionId)!.questionType === QuizQuestionTypes.FILL_IN_THE_BLANK">
+                <template v-else-if="questionsMap.get(aq.questionId)!.quizQuestionType === QuizQuestionTypes.FILL_IN_THE_BLANK">
+                  <div v-if="parseConfig(questionsMap.get(aq.questionId)!.config).text" class="text-sm text-(--text-muted) whitespace-pre-wrap mb-2">
+                    {{ parseConfig(questionsMap.get(aq.questionId)!.config).text }}
+                  </div>
                   <div class="space-y-2">
-                    <div>
-                      <FieldLabel hint class="mb-1">{{ t('quiz.evaluate.studentAnswer') }}</FieldLabel>
-                      <p class="text-sm px-3 py-2 rounded border border-bg-light-accent dark:border-bg-dark-accent">
-                        {{ (parseAnswer(getAnswerForQuestion(aq.questionId)?.answer ?? '{}').text as string) || t('quiz.noAnswer') }}
-                      </p>
-                    </div>
-                    <div>
-                      <label class="text-xs font-semibold text-success block mb-1">{{ t('quiz.evaluate.correctAnswer') }}</label>
-                      <p class="text-sm px-3 py-2 rounded border border-success/30 bg-success/10">
-                        {{ ((parseConfig(questionsMap.get(aq.questionId)!.config).answers as string[]) ?? []).join(', ') }}
-                      </p>
+                    <div
+                      v-for="(correctAns, gapIdx) in ((parseConfig(questionsMap.get(aq.questionId)!.config).answers as string[]) ?? [])"
+                      :key="gapIdx"
+                      class="flex items-center gap-2 px-3 py-2 rounded border text-sm"
+                      :class="getAnswerForQuestion(aq.questionId) && isGapCorrect(getAnswerForQuestion(aq.questionId)!.id, gapIdx)
+                        ? 'border-success/30 bg-success/10'
+                        : 'border-bg-light-accent dark:border-bg-dark-accent'"
+                    >
+                      <span class="text-xs text-(--text-muted) w-5 shrink-0">{{ gapIdx + 1 }}.</span>
+                      <span class="flex-1">
+                        {{ (parseAnswer(getAnswerForQuestion(aq.questionId)?.answer ?? '{}').gaps as Record<string, string> ?? {})[String(gapIdx)] || '—' }}
+                      </span>
+                      <span class="text-xs text-success shrink-0">{{ correctAns }}</span>
+                      <IconButton
+                        v-if="getAnswerForQuestion(aq.questionId)"
+                        :icon="['fas', isGapCorrect(getAnswerForQuestion(aq.questionId)!.id, gapIdx) ? 'check-circle' : 'circle']"
+                        :label="t('quiz.evaluate.correct')"
+                        :class="isGapCorrect(getAnswerForQuestion(aq.questionId)!.id, gapIdx) ? 'text-success' : 'text-(--text-muted) hover:text-success'"
+                        @click="toggleGapCorrect(getAnswerForQuestion(aq.questionId)!.id, gapIdx, aq.questionId)"
+                      />
                     </div>
                   </div>
                 </template>
 
-                <!-- FREE_ANSWER / IMAGE_TEXT -->
+                <!-- FREE_ANSWER / IMAGE_TEXT / ENUMERATION -->
                 <template v-else>
                   <div class="space-y-2">
                     <div>
@@ -319,23 +377,38 @@ onMounted(loadData)
                         {{ (parseAnswer(getAnswerForQuestion(aq.questionId)?.answer ?? '{}').text as string) || t('quiz.noAnswer') }}
                       </p>
                     </div>
-                    <div v-if="questionsMap.get(aq.questionId)!.questionType === QuizQuestionTypes.FREE_ANSWER">
+                    <div v-if="questionsMap.get(aq.questionId)!.quizQuestionType === QuizQuestionTypes.FREE_ANSWER || questionsMap.get(aq.questionId)!.quizQuestionType === QuizQuestionTypes.ENUMERATION">
                       <label class="text-xs font-semibold text-success block mb-1">{{ t('quiz.evaluate.sampleAnswers') }}</label>
                       <p class="text-sm px-3 py-2 rounded border border-success/30 bg-success/10">
                         {{ ((parseConfig(questionsMap.get(aq.questionId)!.config).answers as string[]) ?? []).join(', ') || '—' }}
                       </p>
                     </div>
+                    <div v-if="getAnswerForQuestion(aq.questionId)" class="flex items-center gap-2">
+                      <IconButton
+                        :icon="['fas', 'check']"
+                        :label="t('quiz.evaluate.markCorrect')"
+                        class="text-success hover:bg-success/10 rounded px-2 py-1"
+                        @click="markCorrect(getAnswerForQuestion(aq.questionId)!.id, questionsMap.get(aq.questionId)!.points)"
+                      />
+                      <IconButton
+                        :icon="['fas', 'xmark']"
+                        :label="t('quiz.evaluate.markWrong')"
+                        class="text-error hover:bg-error/10 rounded px-2 py-1"
+                        @click="markWrong(getAnswerForQuestion(aq.questionId)!.id, questionsMap.get(aq.questionId)!.points)"
+                      />
+                    </div>
                   </div>
                 </template>
 
-                <!-- Points input -->
+                <!-- Points -->
                 <div class="flex items-center gap-2 pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent flex-wrap">
                   <label class="text-sm font-medium shrink-0">{{ t('quiz.evaluate.points') }}:</label>
-                  <div class="flex items-center gap-1">
-                    <NumberInput
+                  <div v-if="canReview" class="flex items-center gap-1">
+                    <DecimalInput
                       :model-value="getAnswerForQuestion(aq.questionId)
                         ? getPointsForAnswer(getAnswerForQuestion(aq.questionId)!)
                         : 0"
+                      step="0.5"
                       class="w-20"
                       @update:model-value="(v: number | undefined) => {
                         const answer = getAnswerForQuestion(aq.questionId)
@@ -344,6 +417,7 @@ onMounted(loadData)
                     />
                     <span class="text-sm text-(--text-muted) shrink-0">/ {{ questionsMap.get(aq.questionId)!.points }}</span>
                   </div>
+                  <span v-else class="text-sm font-mono">{{ getAnswerForQuestion(aq.questionId) ? getPointsForAnswer(getAnswerForQuestion(aq.questionId)!) : 0 }} / {{ questionsMap.get(aq.questionId)!.points }}</span>
                 </div>
               </div>
             </template>
@@ -358,7 +432,7 @@ onMounted(loadData)
             </div>
             <div class="flex gap-3">
               <SecondaryButton @click="goBack">{{ t('common.back') }}</SecondaryButton>
-              <SuccessButton :disabled="grading || graded" @click="finishGrading">
+              <SuccessButton v-if="canReview" :disabled="grading || graded" @click="finishGrading">
                 <Spinner v-if="grading" size="sm" />
                 <template v-else>{{ t('quiz.evaluate.finishGrading') }}</template>
               </SuccessButton>

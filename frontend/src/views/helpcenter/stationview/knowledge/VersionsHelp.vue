@@ -10,6 +10,7 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
 
 const {t} = useI18n()
 </script>
@@ -28,12 +29,17 @@ const {t} = useI18n()
     <NeutralContainer class="space-y-2">
       <div class="flex items-center justify-between gap-2 p-2 rounded bg-[var(--bg)] border border-[var(--border)]">
         <div>
-          <div class="text-sm font-medium">Version 4 <span class="text-xs text-(--text-muted)">(aktuell)</span></div>
+          <div class="text-sm font-medium">Version 4 <span class="text-xs text-(--text-muted)">({{ t('helpCenter.kbVersions.current') }})</span></div>
           <div class="text-xs text-(--text-muted)">12. Mai 2026 · Max Mustermann</div>
         </div>
-        <SecondaryButton compact disabled>
-          <font-awesome-icon :icon="['fas', 'eye']" class="mr-1" /> Anzeigen
-        </SecondaryButton>
+        <div class="flex gap-2">
+          <SecondaryButton compact disabled>
+            <font-awesome-icon :icon="['fas', 'eye']" />
+          </SecondaryButton>
+          <PrimaryButton compact disabled>
+            {{ t('kb.revert') }}
+          </PrimaryButton>
+        </div>
       </div>
       <div class="flex items-center justify-between gap-2 p-2 rounded bg-[var(--bg)] border border-[var(--border)]">
         <div>
@@ -42,11 +48,11 @@ const {t} = useI18n()
         </div>
         <div class="flex gap-2">
           <SecondaryButton compact disabled>
-            <font-awesome-icon :icon="['fas', 'eye']" class="mr-1" /> Anzeigen
+            <font-awesome-icon :icon="['fas', 'eye']" />
           </SecondaryButton>
-          <SecondaryButton compact disabled>
-            <font-awesome-icon :icon="['fas', 'code-compare']" class="mr-1" /> Unterschied
-          </SecondaryButton>
+          <PrimaryButton compact disabled>
+            {{ t('kb.revert') }}
+          </PrimaryButton>
         </div>
       </div>
       <div class="flex items-center justify-between gap-2 p-2 rounded bg-[var(--bg)] border border-[var(--border)]">
@@ -56,11 +62,11 @@ const {t} = useI18n()
         </div>
         <div class="flex gap-2">
           <SecondaryButton compact disabled>
-            <font-awesome-icon :icon="['fas', 'eye']" class="mr-1" /> Anzeigen
+            <font-awesome-icon :icon="['fas', 'eye']" />
           </SecondaryButton>
-          <SecondaryButton compact disabled>
-            <font-awesome-icon :icon="['fas', 'code-compare']" class="mr-1" /> Unterschied
-          </SecondaryButton>
+          <PrimaryButton compact disabled>
+            {{ t('kb.revert') }}
+          </PrimaryButton>
         </div>
       </div>
     </NeutralContainer>
@@ -80,6 +86,7 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.kbVersions.restoreTitle')">
       <p>{{ t('helpCenter.kbVersions.restoreText') }}</p>
+      <p>{{ t('helpCenter.kbVersions.revertConfirmText') }}</p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.kbVersions.tip') }}</HelpTip>

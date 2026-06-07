@@ -19,6 +19,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import KbTagsSection from '@/views/stationview/knowledge/kbfileview/KbTagsSection.vue'
 import KbRelatedFilesSection from '@/views/stationview/knowledge/kbfileview/KbRelatedFilesSection.vue'
+import KbCommentSection from '@/components/comment/KbCommentSection.vue'
 import {useSession} from '@/composables/useSession'
 import {knowledgeBase} from '@/api'
 import type {KbFile, KbTag, MarkdownHtmlResponse} from '@/api/knowledgeBase'
@@ -29,7 +30,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 const {t} = useI18n()
 const router = useRouter()
 const route = useRoute()
-const {canManageKnowledge, loaded, isKbPublic} = useSession()
+const {canEditKnowledge, loaded, isKbPublic} = useSession()
 
 const file = ref<KbFile | null>(null)
 const lastEditedByName = ref<string | null>(null)
@@ -286,9 +287,9 @@ onMounted(() => {
                     <font-awesome-icon :icon="['fas', 'copy']"/>
                     {{ t('federation.copyToStation') }}
                 </PrimaryButton>
-                <template v-else-if="canManageKnowledge()">
+                <template v-else>
                     <PrimaryButton
-                        v-if="file.fileType === KbFileType.MARKDOWN || file.fileType === KbFileType.TEXT"
+                        v-if="canEditKnowledge() && (file.fileType === KbFileType.MARKDOWN || file.fileType === KbFileType.TEXT)"
                         @click="toggleEdit"
                     >
                         <font-awesome-icon :icon="['fas', editing ? 'eye' : 'pen']"/>
@@ -314,10 +315,10 @@ onMounted(() => {
                     <font-awesome-icon :icon="['fas', 'xmark']"/>
                 </SecondaryButton>
             </div>
-            <MutedText tag="p" size="sm" v-else-if="file.description || canManageKnowledge()" class="group/desc">
+            <MutedText tag="p" size="sm" v-else-if="file.description || canEditKnowledge()" class="group/desc">
                 {{ file.description || t('kb.description') }}
                 <IconButton
-                    v-if="canManageKnowledge()"
+                    v-if="canEditKnowledge()"
                     :icon="['fas', 'pen']"
                     :label="t('kb.edit')"
                     class="opacity-0 group-hover/desc:opacity-100 ml-1 text-[var(--primary)] !p-0 text-xs"
@@ -336,7 +337,7 @@ onMounted(() => {
                 v-if="!isFederated"
                 :tags="fileTags"
                 :all-tags="allStationTags"
-                :can-manage="canManageKnowledge()"
+                :can-manage="canEditKnowledge()"
                 @add-tag="addTag"
                 @remove-tag="removeTag"
             />
@@ -346,7 +347,7 @@ onMounted(() => {
                 v-if="!isFederated"
                 :related-files="relatedFiles"
                 :file-id="file.id"
-                :can-manage="canManageKnowledge()"
+                :can-manage="canEditKnowledge()"
                 @add-related="addRelatedFile"
                 @remove-related="removeRelatedFile"
             />
@@ -466,6 +467,13 @@ onMounted(() => {
                     </a>
                 </NeutralContainer>
             </template>
+
+            <!-- Comments -->
+            <KbCommentSection
+                :file-id="file.id"
+                :station-uid="isFederated ? file.stationId : undefined"
+                class="mt-6"
+            />
         </template>
     </ViewContent>
 </template>

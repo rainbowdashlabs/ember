@@ -5,9 +5,10 @@
  */
 package dev.chojo.ember.feature.comment.route;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.comment.entity.EntityNote;
 import dev.chojo.ember.feature.comment.entity.NoteEntityType;
 import dev.chojo.ember.feature.comment.entity.NoteVersion;
@@ -15,6 +16,12 @@ import dev.chojo.ember.feature.comment.service.NoteService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.NotFoundResponse;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -25,6 +32,7 @@ import java.time.Instant;
  * HTTP route definitions for entity notes.
  * Provides endpoints for reading and updating notes with version history.
  */
+@SuppressWarnings("DefaultAnnotationParam")
 @Singleton
 public class NoteRoutes implements Routes {
     private final NoteService noteService;
@@ -36,11 +44,22 @@ public class NoteRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/notes/{entityType}/{entityId}", this::getNote, Roles.TEAM);
-        routes.put(prefix + "/notes/{entityType}/{entityId}", this::updateNote, Roles.TEAM);
-        routes.get(prefix + "/notes/{entityType}/{entityId}/versions", this::listVersions, Roles.TEAM);
+        routes.get(prefix + "/notes/{entityType}/{entityId}", this::getNote, StationPermission.MEMBER_NOTES);
+        routes.put(prefix + "/notes/{entityType}/{entityId}", this::updateNote, StationPermission.MEMBER_NOTES);
+        routes.get(
+                prefix + "/notes/{entityType}/{entityId}/versions", this::listVersions, StationPermission.MEMBER_NOTES);
     }
 
+    @OpenApi(
+            path = "/api/v1/notes/{entityType}/{entityId}",
+            methods = HttpMethod.GET,
+            summary = "Get a note for an entity",
+            tags = {"Notes"},
+            pathParams = {
+                @OpenApiParam(name = "entityType", type = String.class, required = true),
+                @OpenApiParam(name = "entityId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = NoteResponse.class)))
     private void getNote(Context ctx) {
         var entityType = NoteEntityType.valueOf(ctx.pathParam("entityType").toUpperCase());
         int entityId = ctx.pathParamAsClass("entityId", Integer.class).get();
@@ -52,6 +71,20 @@ public class NoteRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/notes/{entityType}/{entityId}",
+            methods = HttpMethod.PUT,
+            summary = "Update a note for an entity",
+            tags = {"Notes"},
+            pathParams = {
+                @OpenApiParam(name = "entityType", type = String.class, required = true),
+                @OpenApiParam(name = "entityId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = UpdateNoteRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = NoteResponse.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void updateNote(Context ctx) {
         var entityType = NoteEntityType.valueOf(ctx.pathParam("entityType").toUpperCase());
         int entityId = ctx.pathParamAsClass("entityId", Integer.class).get();
@@ -69,6 +102,19 @@ public class NoteRoutes implements Routes {
         ctx.json(toResponse(note));
     }
 
+    @OpenApi(
+            path = "/api/v1/notes/{entityType}/{entityId}/versions",
+            methods = HttpMethod.GET,
+            summary = "List version history for a note",
+            tags = {"Notes"},
+            pathParams = {
+                @OpenApiParam(name = "entityType", type = String.class, required = true),
+                @OpenApiParam(name = "entityId", type = Integer.class, required = true)
+            },
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = NoteVersionResponse[].class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void listVersions(Context ctx) {
         var entityType = NoteEntityType.valueOf(ctx.pathParam("entityType").toUpperCase());
         int entityId = ctx.pathParamAsClass("entityId", Integer.class).get();

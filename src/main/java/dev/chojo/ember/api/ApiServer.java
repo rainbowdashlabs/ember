@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.api;
 
+import dev.chojo.ember.api.roles.InstancePermission;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
@@ -19,6 +21,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.system.service.ApiRequestLogger;
 import dev.chojo.ember.feature.system.service.DemoService;
+import dev.chojo.ember.util.DevErrorWriter;
 import io.javalin.Javalin;
 import io.javalin.config.RoutesConfig;
 import io.javalin.http.BadRequestResponse;
@@ -40,6 +43,7 @@ import jakarta.inject.Singleton;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -118,6 +122,9 @@ public class ApiServer {
      * Creates the Javalin application, registers all middleware, routes, and plugins, then starts the server.
      */
     public void start() {
+        if (demoConfig.dev()) {
+            DevErrorWriter.clearOnStartup();
+        }
         var app = Javalin.create(config -> {
             config.http.defaultContentType = "application/json";
             config.jsonMapper(jacksonMapper());
@@ -189,6 +196,9 @@ public class ApiServer {
             // Cache-control headers
             config.routes.after(this::applyCacheHeaders);
 
+            // Federation response headers
+            config.routes.after(this::applyFederationHeaders);
+
             // API request timing
             config.routes.before(ctx -> ctx.attribute("_requestStart", System.currentTimeMillis()));
             config.routes.after(ctx -> {
@@ -213,6 +223,8 @@ public class ApiServer {
                     ctx -> ctx.json(Map.of(
                             "demoUrl",
                             apiConfig.demoUrl() != null ? apiConfig.demoUrl() : "",
+                            "demo",
+                            demoConfig.enabled() || demoConfig.dev(),
                             "version",
                             loadAppVersion())));
 
@@ -223,6 +235,10 @@ public class ApiServer {
 
             if (demoConfig.enabled() || demoConfig.dev()) {
                 config.routes.get(API_PREFIX + "/demo/accounts", this::handleDemoAccounts);
+            }
+
+            if (demoConfig.dev()) {
+                config.routes.post(API_PREFIX + "/dev/errors", this::handleDevErrorReport);
             }
 
             for (Routes route : routes) {
@@ -261,6 +277,17 @@ public class ApiServer {
     /**
      * Serves the list of demo accounts with their roles, groups, and tags for the demo login page.
      */
+    private void handleDevErrorReport(@NotNull Context ctx) {
+        record ErrorReport(String source, String message, String stack, String context) {}
+        var report = ctx.bodyAsClass(ErrorReport.class);
+        DevErrorWriter.writeFrontend(
+                report.source() != null ? report.source() : "unknown",
+                report.message() != null ? report.message() : "",
+                report.stack() != null ? report.stack() : "",
+                report.context() != null ? report.context() : "");
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
     private void handleDemoAccounts(@NotNull Context ctx) {
         var allStations = stationRepository.findAll();
         if (allStations.isEmpty()) {
@@ -274,20 +301,23 @@ public class ApiServer {
             for (StationMember member : members) {
                 if (member.accountId() == null) continue;
                 accountRepository.findById(member.accountId()).ifPresent(account -> {
-                    var roles = stationMemberRepository.findRoles(member.id());
-                    var roleNames = roles.stream().map(r -> r.role().name()).toList();
+                    var permissions = stationMemberRepository.findPermissions(member.id());
+                    var permissionNames =
+                            permissions.stream().map(p -> p.permission().name()).toList();
                     var groupNames = memberGroupRepository.findGroupsForMember(member.id()).stream()
                             .map(MemberGroup::name)
                             .toList();
                     var tagNames = userTagRepository.findTagsForMember(member.id()).stream()
                             .map(UserTag::name)
                             .toList();
-                    boolean complete = profileFieldService.isProfileComplete(member.id(), station.id(), roleNames);
+                    boolean complete =
+                            profileFieldService.isProfileComplete(member.id(), station.id(), permissionNames);
                     accounts.add(new DemoAccount(
                             account.email(),
                             account.firstName(),
                             account.lastName(),
-                            roleNames,
+                            member.userType().name(),
+                            permissionNames,
                             groupNames,
                             tagNames,
                             complete));
@@ -317,8 +347,15 @@ public class ApiServer {
     private void handleAccess(@NotNull Context ctx) {
         Set<RouteRole> routeRoles = ctx.routeRoles();
 
-        // Routes with no roles defined are public — still populate session if token is present (best effort)
+        // Routes with no roles defined are public — still populate session if token or federation headers present
         if (routeRoles.isEmpty()) {
+            // Try federation signature auth for /remote/ endpoints
+            if (ctx.header("X-Federation-Station-Id") != null) {
+                accessManager
+                        .resolveFederationSession(ctx)
+                        .ifPresent(s -> ctx.attribute(FederationSession.ATTR_FEDERATION_SESSION, s));
+            }
+            // Try bearer token auth (best effort)
             String publicAuthHeader = ctx.header("Authorization");
             if (publicAuthHeader != null && publicAuthHeader.startsWith("Bearer ")) {
                 String publicToken = publicAuthHeader.substring(7);
@@ -394,23 +431,20 @@ public class ApiServer {
         }
 
         // If route only requires LOGIN, authenticated is enough
-        if (routeRoles.size() == 1 && routeRoles.contains(Roles.LOGIN)) {
+        if (routeRoles.size() == 1 && routeRoles.contains(StationPermission.LOGIN)) {
             return;
         }
 
-        // Station-scoped role check
-        Set<Roles> userRoles = session.roles();
-
-        // Check if user has any of the required roles (roles are already expanded to include children)
+        // Check if user has any of the required permissions (permissions are already expanded)
         for (RouteRole required : routeRoles) {
-            if (userRoles.contains(required)) {
-                return;
-            }
+            if (required instanceof StationPermission sp && session.hasPermission(sp)) return;
+            if (required instanceof InstancePermission ip && session.hasInstancePermission(ip)) return;
         }
 
-        ctx.header("X-Required-Roles", routeRoles.toString());
-        ctx.header("X-User-Roles", userRoles.toString());
-        throw new ForbiddenResponse("Insufficient permissions. Required: " + routeRoles + ", Current: " + userRoles);
+        ctx.header("X-Required-Permissions", routeRoles.toString());
+        ctx.header("X-User-Permissions", session.permissions().toString());
+        throw new ForbiddenResponse(
+                "Insufficient permissions. Required: " + routeRoles + ", Current: " + session.permissions());
     }
 
     /**
@@ -418,7 +452,8 @@ public class ApiServer {
      */
     private Jackson3Mapper jacksonMapper() {
         ObjectMapper mapper = JsonMapper.builder()
-                .addModule(new StationIdModule())
+                .addModule(new StationIdModule(stationRepository))
+                .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
                 .defaultDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX"))
                 .build();
         return new Jackson3Mapper(mapper);
@@ -441,10 +476,16 @@ public class ApiServer {
      * Registers exception handlers that convert exceptions into standardized JSON error responses.
      */
     private void setupExceptionHandlers(RoutesConfig routes) {
+        boolean devErrors = demoConfig.dev();
+
         routes.exception(ApiException.class, (err, ctx) -> {
             int code = err.status().getCode();
             if (code >= 500) {
                 log.error("API error {} on {} {}: {}", code, ctx.method(), ctx.path(), err.getMessage(), err);
+                if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
+            } else if (code == 404) {
+                log.warn("API 404 on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
+                if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
             } else if (code >= 400 && code != 401) {
                 log.warn("API error {} on {} {}: {}", code, ctx.method(), ctx.path(), err.getMessage());
             }
@@ -456,6 +497,10 @@ public class ApiServer {
             int code = err.getStatus();
             if (code >= 500) {
                 log.error("HTTP {} on {} {}: {}", code, ctx.method(), ctx.path(), err.getMessage(), err);
+                if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
+            } else if (code == 404) {
+                log.warn("HTTP 404 on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
+                if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
             } else if (code >= 400 && code != 401) {
                 log.warn("HTTP {} on {} {}: {}", code, ctx.method(), ctx.path(), err.getMessage());
             }
@@ -471,6 +516,7 @@ public class ApiServer {
 
         routes.exception(Exception.class, (err, ctx) -> {
             log.error("Unhandled exception on route {} {}", ctx.method(), ctx.path(), err);
+            if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
             ctx.json(new ErrorResponseWrapper("Internal Server Error")).status(HttpStatus.INTERNAL_SERVER_ERROR);
         });
     }
@@ -510,6 +556,25 @@ public class ApiServer {
     }
 
     /**
+     * After-handler that sets federation station identity headers on responses from
+     * {@code /federated/} and {@code /remote/} endpoints.
+     * For remote endpoints (server-to-server), the headers identify this station.
+     * For federated endpoints, route handlers set these headers themselves per entity.
+     */
+    private void applyFederationHeaders(@NotNull Context ctx) {
+        String path = ctx.path();
+        if (!path.startsWith(API_PREFIX + "/remote/")) return;
+
+        // For /remote/ responses, identify this station (the one serving the data)
+        FederationSession fedSession = ctx.attribute(FederationSession.ATTR_FEDERATION_SESSION);
+        if (fedSession != null) {
+            stationRepository
+                    .findById(fedSession.stationId())
+                    .ifPresent(station -> FederationHeaders.setStationHeaders(ctx, station));
+        }
+    }
+
+    /**
      * Computes an ETag from the response body hash and handles conditional 304 Not Modified responses.
      */
     private void addETag(@NotNull Context ctx) {
@@ -543,7 +608,7 @@ public class ApiServer {
      * @param email           the account email
      * @param firstName       the first name
      * @param lastName        the last name
-     * @param roles           the role names assigned to this member
+     * @param userType        the user type assigned to this member
      * @param groups          the group names the member belongs to
      * @param tags            the tag names assigned to this member
      * @param profileComplete whether the member's profile is fully filled in
@@ -552,7 +617,8 @@ public class ApiServer {
             String email,
             String firstName,
             String lastName,
-            List<String> roles,
+            String userType,
+            List<String> permissions,
             List<String> groups,
             List<String> tags,
             boolean profileComplete) {}

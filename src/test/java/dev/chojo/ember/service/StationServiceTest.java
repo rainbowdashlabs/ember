@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.federation.service.FederationService;
@@ -220,8 +220,10 @@ class StationServiceTest extends RepositoryTestBase {
     void managerInfoWithManager() {
         Account account = accountRepo.create("svc-mgr@test.com", "Manager", "User");
         var member = stationMemberRepo.create(stationId, account.id());
-        var managerRole = stationMemberRepo.findRoleByName(Roles.MANAGER).orElseThrow();
-        stationMemberRepo.addRole(member.id(), managerRole.id());
+        var managerRole = stationMemberRepo
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .orElseThrow();
+        stationMemberRepo.grantPermission(member.id(), managerRole.id());
 
         var info = service.findManagerInfo(stationId);
         assertTrue(info.isPresent());
@@ -237,9 +239,11 @@ class StationServiceTest extends RepositoryTestBase {
         Account newOwnerAcc = accountRepo.create("svc-newowner@test.com", "NewOwner", "Test");
         var owner = stationMemberRepo.create(stationId, ownerAcc.id());
         var newOwner = stationMemberRepo.create(stationId, newOwnerAcc.id());
-        var managerRole = stationMemberRepo.findRoleByName(Roles.MANAGER).orElseThrow();
-        stationMemberRepo.addRole(owner.id(), managerRole.id());
-        stationMemberRepo.addRole(newOwner.id(), managerRole.id());
+        var managerRole = stationMemberRepo
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .orElseThrow();
+        stationMemberRepo.grantPermission(owner.id(), managerRole.id());
+        stationMemberRepo.grantPermission(newOwner.id(), managerRole.id());
         stationRepo.setOwner(stationId, owner.id());
 
         // Current owner transfers to new owner
@@ -268,8 +272,10 @@ class StationServiceTest extends RepositoryTestBase {
         Account nonMgrAcc = accountRepo.create("svc-nonmgr@test.com", "NonMgr", "Test");
         var owner = stationMemberRepo.create(stationId, ownerAcc.id());
         var nonMgr = stationMemberRepo.create(stationId, nonMgrAcc.id());
-        var managerRole = stationMemberRepo.findRoleByName(Roles.MANAGER).orElseThrow();
-        stationMemberRepo.addRole(owner.id(), managerRole.id());
+        var managerRole = stationMemberRepo
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .orElseThrow();
+        stationMemberRepo.grantPermission(owner.id(), managerRole.id());
         stationRepo.setOwner(stationId, owner.id());
 
         // Target doesn't have manager role
@@ -301,8 +307,10 @@ class StationServiceTest extends RepositoryTestBase {
         Account account = accountRepo.create("svc-mgr-cred@test.com", "MgrCred", "User", true);
         accountRepo.createCredential(account.id(), "$2a$10$hash");
         var member = stationMemberRepo.create(stationId, account.id());
-        var managerRole = stationMemberRepo.findRoleByName(Roles.MANAGER).orElseThrow();
-        stationMemberRepo.addRole(member.id(), managerRole.id());
+        var managerRole = stationMemberRepo
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .orElseThrow();
+        stationMemberRepo.grantPermission(member.id(), managerRole.id());
 
         var info = service.findManagerInfo(stationId);
         assertTrue(info.isPresent());

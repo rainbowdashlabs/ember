@@ -1,0 +1,125 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+<script lang="ts" setup>
+import {computed, onMounted, ref} from 'vue'
+import {useI18n} from 'vue-i18n'
+import ViewContent from '@/components/layout/ViewContent.vue'
+import Spinner from '@/components/feedback/Spinner.vue'
+import Alert from '@/components/feedback/Alert.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
+import MutedText from '@/components/typography/MutedText.vue'
+import PermissionPicker from '@/components/input/PermissionPicker.vue'
+import type {PermissionGrant} from '@/api/types'
+import {StationUserType} from '@/api/types'
+import {stationMembers} from '@/api'
+
+const {t} = useI18n()
+
+const allRoles = ref<PermissionGrant[]>([])
+const loading = ref(true)
+const error = ref('')
+
+const selectedType = ref<string | null>(null)
+const typePermissions = ref<PermissionGrant[]>([])
+const typeLoading = ref(false)
+
+const USER_TYPES = [
+  {value: StationUserType.TRIAL, label: 'Probe', desc: 'Probemitglieder ohne Standardberechtigungen.'},
+  {value: StationUserType.MEMBER, label: 'Mitglied', desc: 'Standardmitglieder der Station.'},
+  {value: StationUserType.GUARDIAN, label: 'Erziehungsberechtigter', desc: 'Verwalten zugeordnete Mitglieder.'},
+  {value: StationUserType.TEAM, label: 'Team', desc: 'Betreuer und Teamer der Station.'},
+  {value: StationUserType.MANAGER, label: 'Leitung', desc: 'Leitungsmitglieder mit Verwaltungsrechten.'},
+] as const
+
+const permissionIds = computed({
+  get: () => new Set(typePermissions.value.map(r => r.id)),
+  set: (newIds: Set<number>) => syncPermissions(newIds),
+})
+
+async function loadData() {
+  loading.value = true
+  error.value = ''
+  try {
+    allRoles.value = await stationMembers.listAllPermissions()
+  } catch {
+    error.value = t('common.error')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function selectType(userType: string) {
+  selectedType.value = userType
+  typeLoading.value = true
+  try {
+    typePermissions.value = await stationMembers.getUserTypePermissions(userType)
+  } catch {
+    error.value = t('common.error')
+    typePermissions.value = []
+  } finally {
+    typeLoading.value = false
+  }
+}
+
+async function syncPermissions(newIds: Set<number>) {
+  if (!selectedType.value) return
+  try {
+    typePermissions.value = await stationMembers.setUserTypePermissions(selectedType.value, [...newIds])
+  } catch (e: unknown) {
+    const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
+    error.value = msg || t('common.error')
+  }
+}
+
+onMounted(loadData)
+</script>
+
+<template>
+  <ViewContent>
+    <div class="space-y-6">
+      <Spinner v-if="loading" size="lg"/>
+      <Alert v-if="error" variant="error">{{ error }}</Alert>
+
+      <div v-if="!loading" class="grid gap-6 lg:grid-cols-2">
+        <!-- User type list -->
+        <div class="space-y-4">
+          <SectionHeader>{{ t('userTypePermissions.title') }}</SectionHeader>
+          <MutedText size="sm">{{ t('userTypePermissions.description') }}</MutedText>
+
+          <div class="space-y-2">
+            <NeutralContainer
+                v-for="ut in USER_TYPES"
+                :key="ut.value"
+                :class="selectedType === ut.value ? 'border-primary' : 'hover:border-primary'"
+                class="cursor-pointer transition-colors"
+                @click="selectType(ut.value)"
+            >
+              <div class="font-medium">{{ ut.label }}</div>
+              <MutedText size="sm">{{ ut.desc }}</MutedText>
+            </NeutralContainer>
+          </div>
+        </div>
+
+        <!-- Permission picker -->
+        <div v-if="selectedType" class="space-y-4">
+          <SectionHeader>{{ USER_TYPES.find(ut => ut.value === selectedType)?.label }}</SectionHeader>
+
+          <Spinner v-if="typeLoading" size="md"/>
+
+          <template v-if="!typeLoading">
+            <PermissionPicker v-model="permissionIds" :all-roles="allRoles"/>
+            <MutedText v-if="typePermissions.length === 0" size="sm">{{ t('userTypePermissions.noPermissions') }}</MutedText>
+          </template>
+        </div>
+
+        <div v-else class="flex items-center justify-center text-(--text-muted) py-12">
+          {{ t('userTypePermissions.selectHint') }}
+        </div>
+      </div>
+    </div>
+  </ViewContent>
+</template>

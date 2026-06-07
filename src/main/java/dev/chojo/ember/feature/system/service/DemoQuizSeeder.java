@@ -8,8 +8,8 @@ package dev.chojo.ember.feature.system.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
-import dev.chojo.ember.feature.quiz.entity.QuestionType;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
+import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
 import dev.chojo.ember.feature.quiz.service.QuizService;
@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -565,7 +566,15 @@ public class DemoQuizSeeder {
         var section2 = quizTestRepository.createSection(
                 test.id(), "Fortgeschrittenen-Wissen", "10 Fragen aus dem Fortgeschrittenen-Katalog", 1);
         quizTestRepository.createSource(section2.id(), fortCatalog.id(), null, 10);
-        // Generate frozen questions and activate the test
+        // Set start/end dates and activate the test
+        quizService.updateTest(
+                test.id(),
+                test.title(),
+                test.description(),
+                test.timeLimit(),
+                test.shuffle(),
+                Instant.now().minus(7, java.time.temporal.ChronoUnit.DAYS),
+                Instant.now().plus(30, java.time.temporal.ChronoUnit.DAYS));
         quizService.activateTest(test.id());
 
         // -- Test 2: Draft test (not yet active) --
@@ -622,7 +631,7 @@ public class DemoQuizSeeder {
         var imageTextQuestion = quizCatalogRepository.createQuestion(
                 showcaseCatalog.id(),
                 catShowcase.id(),
-                QuestionType.IMAGE_TEXT,
+                QuizQuestionType.IMAGE_TEXT,
                 "Was siehst du auf dem Bild?",
                 "Beschreibe das abgebildete Logo.",
                 "uploaded",
@@ -665,6 +674,14 @@ public class DemoQuizSeeder {
         var showcaseSection =
                 quizTestRepository.createSection(showcaseTest.id(), "Alle Typen", "Je eine Frage pro Fragetyp", 0);
         quizTestRepository.createSource(showcaseSection.id(), showcaseCatalog.id(), null, 0);
+        quizService.updateTest(
+                showcaseTest.id(),
+                showcaseTest.title(),
+                showcaseTest.description(),
+                showcaseTest.timeLimit(),
+                showcaseTest.shuffle(),
+                Instant.now().minus(3, java.time.temporal.ChronoUnit.DAYS),
+                Instant.now().plus(60, java.time.temporal.ChronoUnit.DAYS));
         quizService.activateTest(showcaseTest.id());
 
         // -- Demo attempts for the main test --
@@ -740,7 +757,7 @@ public class DemoQuizSeeder {
     private String generateShowcaseAnswer(QuizQuestion q) {
         try {
             var cfg = q.configNode();
-            return switch (q.questionType()) {
+            return switch (q.quizQuestionType()) {
                 case MULTIPLE_CHOICE -> {
                     // Select all correct options
                     var options = cfg.get("options");
@@ -828,7 +845,7 @@ public class DemoQuizSeeder {
     private String generateDemoAnswer(QuizQuestion q, boolean correct) {
         try {
             var cfg = q.configNode();
-            return switch (q.questionType()) {
+            return switch (q.quizQuestionType()) {
                 case MULTIPLE_CHOICE -> {
                     var options = cfg.get("options");
                     if (options == null) yield null;
@@ -934,7 +951,7 @@ public class DemoQuizSeeder {
         quizCatalogRepository.createQuestion(
                 catalogId,
                 categoryId,
-                QuestionType.MULTIPLE_CHOICE,
+                QuizQuestionType.MULTIPLE_CHOICE,
                 title,
                 "",
                 null,
@@ -947,7 +964,7 @@ public class DemoQuizSeeder {
     private void createTfQuestion(int catalogId, int categoryId, String title, int position, boolean correctAnswer) {
         var config = "{\"correctAnswer\":" + correctAnswer + "}";
         quizCatalogRepository.createQuestion(
-                catalogId, categoryId, QuestionType.TRUE_FALSE, title, "", null, 1, true, config, position);
+                catalogId, categoryId, QuizQuestionType.TRUE_FALSE, title, "", null, 1, true, config, position);
     }
 
     private void createFreeQuestion(
@@ -965,7 +982,7 @@ public class DemoQuizSeeder {
         quizCatalogRepository.createQuestion(
                 catalogId,
                 categoryId,
-                QuestionType.FREE_ANSWER,
+                QuizQuestionType.FREE_ANSWER,
                 title,
                 "",
                 null,
@@ -990,7 +1007,7 @@ public class DemoQuizSeeder {
         quizCatalogRepository.createQuestion(
                 catalogId,
                 categoryId,
-                QuestionType.CONNECT,
+                QuizQuestionType.CONNECT,
                 title,
                 "",
                 null,
@@ -1010,7 +1027,7 @@ public class DemoQuizSeeder {
         quizCatalogRepository.createQuestion(
                 catalogId,
                 categoryId,
-                QuestionType.ORDERING,
+                QuizQuestionType.ORDERING,
                 title,
                 "",
                 null,
@@ -1038,7 +1055,7 @@ public class DemoQuizSeeder {
         quizCatalogRepository.createQuestion(
                 catalogId,
                 categoryId,
-                QuestionType.FILL_IN_THE_BLANK,
+                QuizQuestionType.FILL_IN_THE_BLANK,
                 title,
                 "",
                 null,
@@ -1072,7 +1089,7 @@ public class DemoQuizSeeder {
         quizCatalogRepository.createQuestion(
                 catalogId,
                 categoryId,
-                QuestionType.FILL_IN_THE_BLANK,
+                QuizQuestionType.FILL_IN_THE_BLANK,
                 title,
                 "",
                 null,

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.notifications.service;
 
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
@@ -149,29 +150,31 @@ public class NotificationService {
     }
 
     /**
-     * Sends a notification to all members with a specific role in a station.
+     * Sends a notification to all members with a specific permission in a station.
      *
-     * @param stationId the station ID
-     * @param roleName  the role name to filter by
-     * @param type      the notification category
-     * @param data      localized message data
+     * @param stationId      the station ID
+     * @param permissionName the permission name to filter by
+     * @param type           the notification category
+     * @param data           localized message data
      */
-    public void notifyMembersWithRole(int stationId, String roleName, NotificationType type, NotificationData data) {
-        notifyMembersWithRole(stationId, roleName, type, data, -1);
+    public void notifyMembersWithRole(
+            int stationId, String permissionName, NotificationType type, NotificationData data) {
+        notifyMembersWithRole(stationId, permissionName, type, data, -1);
     }
 
     /**
-     * Sends a notification to all members with a specific role in a station, excluding a specific member.
+     * Sends a notification to all members with a specific permission in a station, excluding a specific member.
      *
      * @param stationId       the station ID
-     * @param roleName        the role name to filter by
+     * @param permissionName  the permission name to filter by
      * @param type            the notification category
      * @param data            localized message data
      * @param excludeMemberId member ID to exclude
      */
     public void notifyMembersWithRole(
-            int stationId, String roleName, NotificationType type, NotificationData data, int excludeMemberId) {
-        var members = stationMemberRepository.findByStationAndRole(stationId, roleName);
+            int stationId, String permissionName, NotificationType type, NotificationData data, int excludeMemberId) {
+        var permission = StationPermission.valueOf(permissionName);
+        var members = stationMemberRepository.findMembersWithPermission(stationId, permission);
         for (var member : members) {
             if (member.id() == excludeMemberId) continue;
             if (!isAppEnabled(member.id(), type)) continue;

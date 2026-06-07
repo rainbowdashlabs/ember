@@ -31,6 +31,7 @@ const loading = ref(true)
 const error = ref('')
 const success = ref('')
 const registrationEnabled = ref(true)
+const forcePrideFlag = ref(false)
 const instanceDefaultTheme = ref('ember')
 const instanceDefaultFeel = ref('ROUNDED')
 const instanceLockFeel = ref(false)
@@ -52,6 +53,7 @@ async function loadSettings() {
       adminSettings.getAuthConfig(),
     ])
     registrationEnabled.value = settings.stationRegistrationEnabled
+    forcePrideFlag.value = settings.forcePrideFlag ?? false
     instanceDefaultTheme.value = settings.instanceDefaultTheme ?? 'ember'
     instanceDefaultFeel.value = settings.instanceDefaultFeel ?? 'ROUNDED'
     instanceLockFeel.value = settings.instanceLockFeel ?? false
@@ -63,16 +65,21 @@ async function loadSettings() {
   }
 }
 
+function buildSettings() {
+  return {
+    stationRegistrationEnabled: registrationEnabled.value,
+    instanceDefaultTheme: instanceDefaultTheme.value,
+    instanceDefaultFeel: instanceDefaultFeel.value,
+    instanceLockFeel: instanceLockFeel.value,
+    forcePrideFlag: forcePrideFlag.value,
+  }
+}
+
 async function toggleRegistration(value: boolean) {
   error.value = ''
   success.value = ''
   try {
-    const result = await adminSettings.updateSettings({
-      stationRegistrationEnabled: value,
-      instanceDefaultTheme: instanceDefaultTheme.value,
-      instanceDefaultFeel: instanceDefaultFeel.value,
-      instanceLockFeel: instanceLockFeel.value,
-    })
+    const result = await adminSettings.updateSettings({ ...buildSettings(), stationRegistrationEnabled: value })
     registrationEnabled.value = result.stationRegistrationEnabled
     showSuccess()
   } catch {
@@ -92,12 +99,7 @@ async function saveInstanceTheme() {
   error.value = ''
   success.value = ''
   try {
-    const result = await adminSettings.updateSettings({
-      stationRegistrationEnabled: registrationEnabled.value,
-      instanceDefaultTheme: instanceDefaultTheme.value,
-      instanceDefaultFeel: instanceDefaultFeel.value,
-      instanceLockFeel: instanceLockFeel.value,
-    })
+    const result = await adminSettings.updateSettings(buildSettings())
     instanceDefaultTheme.value = result.instanceDefaultTheme ?? 'ember'
     instanceDefaultFeel.value = result.instanceDefaultFeel ?? 'ROUNDED'
     instanceLockFeel.value = result.instanceLockFeel ?? false
@@ -154,6 +156,14 @@ onMounted(async () => {
             </div>
             <ToggleInput :model-value="registrationEnabled" @update:model-value="toggleRegistration" />
           </div>
+
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="font-medium">{{ t('adminSettings.forcePrideFlag') }}</div>
+              <div class="text-sm text-(--text-muted)">{{ t('adminSettings.forcePrideFlagHint') }}</div>
+            </div>
+            <ToggleInput v-model="forcePrideFlag" @update:model-value="saveInstanceTheme" />
+          </div>
         </NeutralContainer>
 
         <!-- Instance Theme -->
@@ -163,14 +173,14 @@ onMounted(async () => {
 
           <div class="space-y-1">
             <FieldLabel>{{ t('adminSettings.theme.defaultTheme') }}</FieldLabel>
-            <SelectInput v-model="instanceDefaultTheme">
+            <SelectInput v-model="instanceDefaultTheme" class="w-full">
               <option v-for="opt in themeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
             </SelectInput>
           </div>
 
           <div class="space-y-1">
             <FieldLabel>{{ t('adminSettings.theme.defaultFeel') }}</FieldLabel>
-            <SelectInput v-model="instanceDefaultFeel">
+            <SelectInput v-model="instanceDefaultFeel" class="w-full">
               <option :value="Feel.ROUNDED">{{ t('theme.feelROUNDED') }}</option>
               <option :value="Feel.CORNERS">{{ t('theme.feelCORNERS') }}</option>
             </SelectInput>

@@ -5,10 +5,12 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
-import dev.chojo.ember.feature.members.entity.Role;
+import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.util.RoleValidation;
@@ -20,11 +22,8 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
-/**
- * Service for station member operations including membership queries, role management
- * with ownership protection, and member-account relationships.
- */
 @Singleton
 public class StationMemberService {
     private final StationMemberRepository memberRepository;
@@ -56,6 +55,18 @@ public class StationMemberService {
         return memberRepository.findById(id);
     }
 
+    public UUID resolveUid(int memberId) {
+        return memberRepository.resolveUid(memberId);
+    }
+
+    public Optional<Integer> resolveId(int stationId, UUID memberUid) {
+        return memberRepository.resolveId(stationId, memberUid);
+    }
+
+    public MemberIdentity resolveIdentity(int memberId) {
+        return memberRepository.resolveIdentity(memberId);
+    }
+
     public List<StationMember> findByAccount(int accountId) {
         return memberRepository.findByAccount(accountId);
     }
@@ -68,46 +79,49 @@ public class StationMemberService {
         return memberRepository.delete(id);
     }
 
-    // -- Roles (batch) --
+    // -- Permissions --
 
-    public List<Role> findRoles(int memberId) {
-        return memberRepository.findRoles(memberId);
+    public List<Permission> findPermissions(int memberId) {
+        return memberRepository.findPermissions(memberId);
     }
 
-    public List<Role> setRoles(int memberId, List<Integer> desiredRoleIds, Set<Roles> callerRoles) {
-        List<Role> allRoles = memberRepository.findAllRoles();
-        List<Role> currentRoles = memberRepository.findRoles(memberId);
-        var currentRoleIds = currentRoles.stream().map(Role::id).toList();
+    public List<Permission> findAllPermissions() {
+        return memberRepository.findAllPermissions();
+    }
+
+    public List<Permission> setPermissions(
+            int memberId, List<Integer> desiredPermissionIds, Set<StationPermission> callerPermissions) {
+        List<Permission> allPermissions = memberRepository.findAllPermissions();
+        List<Permission> currentPermissions = memberRepository.findPermissions(memberId);
+        var currentIds = currentPermissions.stream().map(Permission::id).toList();
+
+        RoleValidation.validatePermissionChanges(
+                currentPermissions, desiredPermissionIds, allPermissions, callerPermissions);
+
+        // Check if LOGIN permission is being added — requires account with email
+        var loginPerm = allPermissions.stream()
+                .filter(p -> p.permission() == StationPermission.LOGIN)
+                .findFirst();
+        boolean addingLogin = loginPerm.isPresent()
+                && desiredPermissionIds.contains(loginPerm.get().id())
+                && !currentIds.contains(loginPerm.get().id());
 
         var member = memberRepository.findById(memberId).orElse(null);
-        boolean isOwner = false;
-        if (member != null) {
-            var station = stationRepository.findById(member.stationId()).orElse(null);
-            isOwner = station != null && station.ownerMemberId() != null && station.ownerMemberId() == memberId;
-        }
-        RoleValidation.validateRoleChanges(currentRoles, desiredRoleIds, allRoles, callerRoles, isOwner);
-
-        // Check if LOGIN role is being added — requires account with email
-        var loginRole = allRoles.stream().filter(r -> r.role() == Roles.LOGIN).findFirst();
-        boolean addingLogin = loginRole.isPresent()
-                && desiredRoleIds.contains(loginRole.get().id())
-                && !currentRoleIds.contains(loginRole.get().id());
-
         if (addingLogin && member != null && member.accountId() != null) {
             var account = accountRepository.findById(member.accountId()).orElse(null);
             if (account == null || account.email() == null) {
-                throw new BadRequestResponse("Cannot grant login role: account has no email address");
+                throw new BadRequestResponse("Cannot grant LOGIN permission: account has no email address");
             }
         }
 
-        for (int roleId : currentRoleIds) {
-            if (!desiredRoleIds.contains(roleId)) {
-                memberRepository.removeRole(memberId, roleId);
+        for (int permId : currentIds) {
+            if (!desiredPermissionIds.contains(permId)) {
+                memberRepository.revokePermission(memberId, permId);
             }
         }
-        for (int roleId : desiredRoleIds) {
-            if (!currentRoleIds.contains(roleId)) {
-                memberRepository.addRole(memberId, roleId);
+        for (int permId : desiredPermissionIds) {
+            if (!currentIds.contains(permId)) {
+                memberRepository.grantPermission(memberId, permId);
             }
         }
 
@@ -120,7 +134,13 @@ public class StationMemberService {
             }
         }
 
-        return memberRepository.findRoles(memberId);
+        return memberRepository.findPermissions(memberId);
+    }
+
+    // -- User Type --
+
+    public boolean setUserType(int memberId, StationUserType userType) {
+        return memberRepository.setUserType(memberId, userType);
     }
 
     // -- Manager relations --
@@ -131,6 +151,24 @@ public class StationMemberService {
 
     public List<StationMember> findManagers(int managedId) {
         return memberRepository.findManagers(managedId);
+    }
+
+    public List<StationMember> setManaged(int managerId, List<Integer> desiredManagedIds) {
+        List<StationMember> currentManaged = memberRepository.findManaged(managerId);
+        var currentManagedIds = currentManaged.stream().map(StationMember::id).toList();
+
+        for (int managedId : currentManagedIds) {
+            if (!desiredManagedIds.contains(managedId)) {
+                memberRepository.removeManager(managerId, managedId);
+            }
+        }
+        for (int managedId : desiredManagedIds) {
+            if (!currentManagedIds.contains(managedId)) {
+                memberRepository.addManager(managerId, managedId);
+            }
+        }
+
+        return memberRepository.findManaged(managerId);
     }
 
     public List<StationMember> setManagers(int managedId, List<Integer> desiredManagerIds) {

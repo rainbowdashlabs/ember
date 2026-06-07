@@ -8,6 +8,8 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
@@ -21,6 +23,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type { WaitingListInviteInfo } from '@/api/types'
+import { parseFieldConfig } from '@/api/types'
 import { waitingList } from '@/api'
 
 const { t } = useI18n()
@@ -37,8 +40,7 @@ const accessToken = ref('')
 // Form fields
 const firstname = ref('')
 const lastname = ref('')
-const parentName = ref('')
-const email = ref('')
+const guardians = ref<{ name: string; email: string; phone: string }[]>([{ name: '', email: '', phone: '' }])
 const notes = ref('')
 const fieldValues = ref<Map<number, string>>(new Map())
 
@@ -69,11 +71,6 @@ function setFieldValueFromBoolean(fieldId: number, value: boolean) {
   setFieldValue(fieldId, String(value))
 }
 
-function parseConfig(configStr: string | undefined | null): Record<string, unknown> {
-  if (!configStr) return {}
-  try { return JSON.parse(configStr) } catch { return {} }
-}
-
 async function loadInviteInfo() {
   code.value = (route.query.code as string) ?? ''
   if (!code.value) {
@@ -90,8 +87,16 @@ async function loadInviteInfo() {
   }
 }
 
+function addGuardian() {
+  guardians.value = [...guardians.value, { name: '', email: '', phone: '' }]
+}
+
+function removeGuardian(index: number) {
+  guardians.value = guardians.value.filter((_, i) => i !== index)
+}
+
 async function submit() {
-  if (!firstname.value.trim() || !email.value.trim()) {
+  if (!firstname.value.trim() || !guardians.value.some(g => g.email.trim())) {
     error.value = t('waitingList.register.requiredFields')
     return
   }
@@ -119,8 +124,7 @@ async function submit() {
       inviteCode: code.value,
       firstname: firstname.value.trim(),
       lastname: lastname.value.trim(),
-      parentName: parentName.value.trim(),
-      email: email.value.trim(),
+      guardians: guardians.value.map(g => ({ name: g.name.trim(), email: g.email.trim(), phone: g.phone.trim() })),
       notes: notes.value.trim(),
       values,
     })
@@ -171,13 +175,18 @@ onMounted(loadInviteInfo)
             <FieldLabel>{{ t('waitingList.lastname') }}</FieldLabel>
             <TextInput v-model="lastname" :placeholder="t('waitingList.register.lastnamePlaceholder')" />
           </div>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('waitingList.parentName') }}</FieldLabel>
-            <TextInput v-model="parentName" :placeholder="t('waitingList.register.parentNamePlaceholder')" />
-          </div>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('waitingList.email') }} <span class="text-error">*</span></FieldLabel>
-            <TextInput v-model="email" :placeholder="t('waitingList.register.emailPlaceholder')" />
+          <div class="space-y-3">
+            <FieldLabel>{{ t('waitingList.guardians') }} <span class="text-error">*</span></FieldLabel>
+            <div v-for="(g, i) in guardians" :key="i" class="space-y-2 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent p-3">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium">{{ t('waitingList.guardian') }} {{ i + 1 }}</span>
+                <DeleteButton v-if="guardians.length > 1" @click="removeGuardian(i)" />
+              </div>
+              <TextInput v-model="g.name" :placeholder="t('waitingList.guardianNamePlaceholder')" />
+              <TextInput v-model="g.email" :placeholder="t('waitingList.guardianEmailPlaceholder')" />
+              <TextInput v-model="g.phone" :placeholder="t('waitingList.guardianPhonePlaceholder')" />
+            </div>
+            <SecondaryButton :icon="['fas', 'plus']" @click="addGuardian">{{ t('waitingList.addGuardian') }}</SecondaryButton>
           </div>
 
           <!-- Dynamic fields -->
@@ -210,12 +219,13 @@ onMounted(loadInviteInfo)
             </div>
             <SelectInput
               v-else-if="field.fieldType === 'ENUM'"
+              class="w-full"
               :model-value="getFieldValue(field.id)"
               @update:model-value="setFieldValue(field.id, $event)"
             >
               <option value="" disabled>{{ t('waitingList.selectOption') }}</option>
               <option
-                v-for="opt in (parseConfig(field.config).options as string[] ?? [])"
+                v-for="opt in (parseFieldConfig(field.config).options as string[] ?? [])"
                 :key="opt"
                 :value="opt"
               >{{ opt }}</option>

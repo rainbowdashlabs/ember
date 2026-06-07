@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.inventory.repository.ExchangeRepository;
@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -31,6 +32,7 @@ public class FormerMemberService {
     private final InventoryRepository inventoryRepository;
     private final ExchangeRepository exchangeRepository;
     private final MemberGroupRepository groupRepository;
+    private final UserTagRepository tagRepository;
     private final AttendanceRepository attendanceRepository;
     private final ProfileFieldRepository profileFieldRepository;
 
@@ -41,6 +43,7 @@ public class FormerMemberService {
             InventoryRepository inventoryRepository,
             ExchangeRepository exchangeRepository,
             MemberGroupRepository groupRepository,
+            UserTagRepository tagRepository,
             AttendanceRepository attendanceRepository,
             ProfileFieldRepository profileFieldRepository) {
         this.memberRepository = memberRepository;
@@ -48,6 +51,7 @@ public class FormerMemberService {
         this.inventoryRepository = inventoryRepository;
         this.exchangeRepository = exchangeRepository;
         this.groupRepository = groupRepository;
+        this.tagRepository = tagRepository;
         this.attendanceRepository = attendanceRepository;
         this.profileFieldRepository = profileFieldRepository;
     }
@@ -69,9 +73,10 @@ public class FormerMemberService {
         }
 
         // Check: only TEAM or MEMBER can become former (not GUARDIAN, MANAGER, ADMIN)
-        var roles = memberRepository.findRoles(memberId);
+        var roles = memberRepository.findPermissions(memberId);
         boolean hasForbiddenRole = roles.stream()
-                .anyMatch(r -> r.role() == Roles.GUARDIAN || r.role() == Roles.MANAGER || r.role() == Roles.ADMIN);
+                .anyMatch(r -> r.permission() == StationPermission.MEMBER_GUARDIAN
+                        || r.permission() == StationPermission.STATION_ADMINISTRATOR);
         if (hasForbiddenRole) {
             return "Member managers, managers, and admins cannot become former members";
         }
@@ -85,6 +90,7 @@ public class FormerMemberService {
      * - Remove manager relations (both directions)
      * - Delete exchange requests
      * - Remove from all groups
+     * - Remove from all tags
      * - Delete absences
      * - Set former flag
      */
@@ -97,7 +103,7 @@ public class FormerMemberService {
         log.info("Marking member {} as former", memberId);
 
         // Remove all roles
-        memberRepository.removeAllRoles(memberId);
+        memberRepository.revokeAllPermissions(memberId);
 
         // Remove all manager relations (both as manager and as managed)
         memberRepository.removeAllManagers(memberId);
@@ -113,6 +119,12 @@ public class FormerMemberService {
         var groups = groupRepository.findGroupsForMember(memberId);
         for (var group : groups) {
             groupRepository.removeMember(group.id(), memberId);
+        }
+
+        // Remove from all tags
+        var tags = tagRepository.findTagsForMember(memberId);
+        for (var tag : tags) {
+            tagRepository.removeMember(tag.id(), memberId);
         }
 
         // Delete absences
@@ -148,8 +160,12 @@ public class FormerMemberService {
         memberRepository.setFormer(memberId, false);
 
         // Assign LOGIN and MEMBER roles
-        memberRepository.findRoleByName(Roles.LOGIN).ifPresent(r -> memberRepository.addRole(memberId, r.id()));
-        memberRepository.findRoleByName(Roles.MEMBER).ifPresent(r -> memberRepository.addRole(memberId, r.id()));
+        memberRepository
+                .findPermissionByName(StationPermission.LOGIN)
+                .ifPresent(r -> memberRepository.grantPermission(memberId, r.id()));
+        memberRepository
+                .findPermissionByName(StationPermission.USER)
+                .ifPresent(r -> memberRepository.grantPermission(memberId, r.id()));
 
         log.info("Former member {} reactivated", memberId);
     }

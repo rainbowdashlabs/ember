@@ -6,6 +6,7 @@
 package dev.chojo.ember.service;
 
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -274,13 +275,7 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Order(70)
     void createItemWithSource() {
         var inv = service.create(station.id(), "Source Inv", InventoryType.INTERNAL, false);
-        var item = service.createItem(
-                inv.id(),
-                "SI-001",
-                "Source Item",
-                null,
-                "{}",
-                dev.chojo.ember.feature.inventory.entity.InventoryItem.ItemSource.EXTERNAL);
+        var item = service.createItem(inv.id(), "SI-001", "Source Item", null, "{}", InventoryItem.ItemSource.EXTERNAL);
         assertNotNull(item);
         service.delete(inv.id());
     }
@@ -289,11 +284,8 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Order(71)
     void requirementCrud() {
         var inv = service.create(station.id(), "Req Inv", InventoryType.INTERNAL, false);
-        // Need a real role ID — use the MEMBER role
-        var memberRole = stationMemberRepo
-                .findRoleByName(dev.chojo.ember.api.Roles.MEMBER)
-                .orElseThrow();
-        var req = service.createRequirement(inv.id(), memberRole.id(), 0, 3);
+        // Use MEMBER user type
+        var req = service.createRequirement(inv.id(), "MEMBER", 0, 3);
         assertNotNull(req);
 
         assertTrue(service.updateRequirement(req.id(), 5));

@@ -21,7 +21,7 @@ export interface ProblemReport {
 }
 
 export async function submitReport(message: string, sessionInfo: any): Promise<ProblemReport> {
-    const roles = sessionInfo?.roles?.map((r: any) => r.name ?? r).join(', ') ?? ''
+    const roles = [sessionInfo?.userType, ...(sessionInfo?.permissions ?? [])].filter(Boolean).join(', ')
     const res = await client.post<ProblemReport>('/problem-reports', {
         message,
         pageUrl: window.location.href,

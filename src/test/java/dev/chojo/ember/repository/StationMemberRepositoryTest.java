@@ -5,9 +5,10 @@
  */
 package dev.chojo.ember.repository;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.members.entity.Role;
+import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import org.junit.jupiter.api.AfterAll;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -84,44 +86,45 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
         assertFalse(stationMemberRepo.findByAccount(account1.id()).isEmpty());
     }
 
-    // -- Roles --
+    // -- Permissions --
 
     @Test
     @Order(9)
-    void findAllRoles() {
-        var roles = stationMemberRepo.findAllRoles();
-        assertFalse(roles.isEmpty());
-        assertTrue(roles.stream().anyMatch(r -> r.role() == Roles.LOGIN));
+    void findAllPermissions() {
+        var permissions = stationMemberRepo.findAllPermissions();
+        assertFalse(permissions.isEmpty());
+        assertTrue(permissions.stream().anyMatch(r -> r.permission() == StationPermission.LOGIN));
     }
 
     @Test
     @Order(9)
-    void findRoleByName() {
-        assertTrue(stationMemberRepo.findRoleByName(Roles.LOGIN).isPresent());
+    void findPermissionByName() {
+        assertTrue(
+                stationMemberRepo.findPermissionByName(StationPermission.LOGIN).isPresent());
     }
 
     @Test
     @Order(10)
-    void addAndFindRoles() {
-        // Role ID 1 = 'login' (seeded)
-        stationMemberRepo.addRole(memberId1, 1);
-        List<Role> roles = stationMemberRepo.findRoles(memberId1);
-        assertEquals(1, roles.size());
-        assertEquals(Roles.LOGIN, roles.getFirst().role());
+    void grantAndFindPermissions() {
+        // Permission ID 1 = 'LOGIN' (seeded)
+        stationMemberRepo.grantPermission(memberId1, 1);
+        List<Permission> permissions = stationMemberRepo.findPermissions(memberId1);
+        assertEquals(1, permissions.size());
+        assertEquals(StationPermission.LOGIN, permissions.getFirst().permission());
     }
 
     @Test
     @Order(11)
-    void hasLoginRole() {
-        assertTrue(stationMemberRepo.hasLoginRole(account1.id()));
-        assertFalse(stationMemberRepo.hasLoginRole(account2.id()));
+    void hasLoginPermission() {
+        assertTrue(stationMemberRepo.hasLoginPermission(account1.id()));
+        assertFalse(stationMemberRepo.hasLoginPermission(account2.id()));
     }
 
     @Test
     @Order(12)
-    void removeRole() {
-        assertTrue(stationMemberRepo.removeRole(memberId1, 1));
-        assertTrue(stationMemberRepo.findRoles(memberId1).isEmpty());
+    void revokePermission() {
+        assertTrue(stationMemberRepo.revokePermission(memberId1, 1));
+        assertTrue(stationMemberRepo.findPermissions(memberId1).isEmpty());
     }
 
     // -- Manager Relations --
@@ -153,6 +156,186 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
         assertNotNull(completions);
         assertTrue(
                 completions.stream().allMatch(c -> c.name() != null && !c.name().isBlank()));
+    }
+
+    // -- Additional coverage --
+
+    @Test
+    @Order(30)
+    void findByUid() {
+        var member = stationMemberRepo.findById(memberId1).orElseThrow();
+        var found = stationMemberRepo.findByUid(station.id(), member.uid());
+        assertTrue(found.isPresent());
+        assertEquals(memberId1, found.get().id());
+
+        // non-existent UID returns empty
+        assertTrue(stationMemberRepo.findByUid(station.id(), UUID.randomUUID()).isEmpty());
+    }
+
+    @Test
+    @Order(31)
+    void findAllByAccountId() {
+        var members = stationMemberRepo.findAllByAccountId(account1.id());
+        assertFalse(members.isEmpty());
+        assertTrue(members.stream().allMatch(m -> m.accountId() == account1.id()));
+    }
+
+    @Test
+    @Order(32)
+    void findByStationIncludingFormer() {
+        stationMemberRepo.setFormer(memberId2, true);
+        var activeOnly = stationMemberRepo.findByStation(station.id(), false);
+        assertEquals(1, activeOnly.size());
+
+        var all = stationMemberRepo.findByStation(station.id(), true);
+        assertEquals(2, all.size());
+
+        stationMemberRepo.setFormer(memberId2, false);
+    }
+
+    @Test
+    @Order(33)
+    void findFormerByStation() {
+        stationMemberRepo.setFormer(memberId2, true);
+        var former = stationMemberRepo.findFormerByStation(station.id());
+        assertEquals(1, former.size());
+        assertEquals(memberId2, former.getFirst().id());
+        stationMemberRepo.setFormer(memberId2, false);
+    }
+
+    @Test
+    @Order(34)
+    void findMembersWithPermission() {
+        stationMemberRepo.grantPermission(memberId1, 1);
+        var members = stationMemberRepo.findMembersWithPermission(station.id(), StationPermission.LOGIN);
+        assertFalse(members.isEmpty());
+        assertTrue(members.stream().anyMatch(m -> m.id() == memberId1));
+        stationMemberRepo.revokePermission(memberId1, 1);
+    }
+
+    @Test
+    @Order(35)
+    void findByStationAndUserType() {
+        stationMemberRepo.setUserType(memberId1, StationUserType.TEAM);
+        var members = stationMemberRepo.findByStationAndUserType(station.id(), StationUserType.TEAM);
+        assertFalse(members.isEmpty());
+        assertTrue(members.stream().anyMatch(m -> m.id() == memberId1));
+        stationMemberRepo.setUserType(memberId1, StationUserType.MEMBER);
+    }
+
+    @Test
+    @Order(36)
+    void findRichMembers() {
+        var rich = stationMemberRepo.findRichMembers(station.id(), false);
+        assertEquals(2, rich.size());
+        for (var rm : rich) {
+            assertNotNull(rm.name());
+            assertNotNull(rm.uid());
+        }
+    }
+
+    @Test
+    @Order(37)
+    void setDisplayNameAndClearAccount() {
+        stationMemberRepo.setDisplayNameAndClearAccount(memberId2, "Custom Name");
+        var member = stationMemberRepo.findById(memberId2).orElseThrow();
+        assertEquals("Custom Name", member.displayName());
+        assertNull(member.accountId());
+    }
+
+    @Test
+    @Order(38)
+    void revokeAllPermissions() {
+        stationMemberRepo.grantPermission(memberId1, 1);
+        assertFalse(stationMemberRepo.findPermissions(memberId1).isEmpty());
+        stationMemberRepo.revokeAllPermissions(memberId1);
+        assertTrue(stationMemberRepo.findPermissions(memberId1).isEmpty());
+    }
+
+    @Test
+    @Order(39)
+    void resolveUidAndIdCaching() {
+        // resolveUid populates the cache
+        var uid = stationMemberRepo.resolveUid(memberId1);
+        assertNotNull(uid);
+        // Call again to hit cache
+        var uid2 = stationMemberRepo.resolveUid(memberId1);
+        assertEquals(uid, uid2);
+
+        // resolveId populates the cache
+        var id = stationMemberRepo.resolveId(station.id(), uid);
+        assertTrue(id.isPresent());
+        assertEquals(memberId1, id.get());
+        // Call again to hit cache
+        var id2 = stationMemberRepo.resolveId(station.id(), uid);
+        assertTrue(id2.isPresent());
+        assertEquals(memberId1, id2.get());
+    }
+
+    @Test
+    @Order(39)
+    void invalidateMemberCache() {
+        // Populate cache
+        var uid = stationMemberRepo.resolveUid(memberId1);
+        assertNotNull(uid);
+        stationMemberRepo.resolveId(station.id(), uid);
+
+        // Invalidate — should not throw
+        stationMemberRepo.invalidateMemberCache(memberId1);
+
+        // After invalidation, a fresh resolve should still work
+        var freshUid = stationMemberRepo.resolveUid(memberId1);
+        assertEquals(uid, freshUid);
+    }
+
+    @Test
+    @Order(39)
+    void resolveIdentity() {
+        var identity = stationMemberRepo.resolveIdentity(memberId1);
+        assertNotNull(identity);
+        assertNotNull(identity.stationUid());
+        assertNotNull(identity.memberUid());
+    }
+
+    @Test
+    @Order(39)
+    void setUserTypePermissions() {
+        var allPerms = stationMemberRepo.findAllPermissions();
+        var loginPerm = allPerms.stream()
+                .filter(p -> p.permission() == StationPermission.LOGIN)
+                .findFirst()
+                .orElseThrow();
+
+        stationMemberRepo.setUserTypePermissions(station.id(), StationUserType.GUARDIAN, List.of(loginPerm.id()));
+        var perms = stationMemberRepo.findUserTypePermissions(station.id(), StationUserType.GUARDIAN);
+        assertFalse(perms.isEmpty());
+        assertTrue(perms.stream().anyMatch(p -> p.permission() == StationPermission.LOGIN));
+
+        // Clear
+        stationMemberRepo.setUserTypePermissions(station.id(), StationUserType.GUARDIAN, List.of());
+        var cleared = stationMemberRepo.findUserTypePermissions(station.id(), StationUserType.GUARDIAN);
+        assertTrue(cleared.isEmpty());
+    }
+
+    @Test
+    @Order(39)
+    void findUserTypePermissionsEmpty() {
+        var perms = stationMemberRepo.findUserTypePermissions(station.id(), StationUserType.TRIAL);
+        assertTrue(perms.isEmpty());
+    }
+
+    @Test
+    @Order(40)
+    void removeAllManagedAndManagers() {
+        stationMemberRepo.addManager(memberId1, memberId2);
+        assertFalse(stationMemberRepo.findManaged(memberId1).isEmpty());
+        stationMemberRepo.removeAllManaged(memberId1);
+        assertTrue(stationMemberRepo.findManaged(memberId1).isEmpty());
+
+        stationMemberRepo.addManager(memberId1, memberId2);
+        assertFalse(stationMemberRepo.findManagers(memberId2).isEmpty());
+        stationMemberRepo.removeAllManagers(memberId2);
+        assertTrue(stationMemberRepo.findManagers(memberId2).isEmpty());
     }
 
     @Test

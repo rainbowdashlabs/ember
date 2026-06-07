@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.knowledgebase.route;
 
+import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
@@ -21,6 +22,11 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -35,6 +41,7 @@ import java.util.UUID;
  * Unauthenticated, read-only routes for the public knowledgebase.
  * Only serves content from the station itself (no federated content).
  */
+@SuppressWarnings("DefaultAnnotationParam")
 @Singleton
 public class PublicKnowledgeBaseRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(PublicKnowledgeBaseRoutes.class);
@@ -96,6 +103,16 @@ public class PublicKnowledgeBaseRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/public/kb/{stationUid}/info",
+            methods = HttpMethod.GET,
+            summary = "Get public knowledge base info for a station",
+            tags = {"Public Knowledge Base"},
+            pathParams = @OpenApiParam(name = "stationUid", type = String.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void getInfo(Context ctx) {
         var station = resolveStation(ctx);
         ctx.json(Map.of(
@@ -103,6 +120,17 @@ public class PublicKnowledgeBaseRoutes implements Routes {
                 "stationUid", station.uid().toString()));
     }
 
+    @OpenApi(
+            path = "/api/v1/public/kb/{stationUid}/browse",
+            methods = HttpMethod.GET,
+            summary = "Browse public knowledge base folders and files",
+            tags = {"Public Knowledge Base"},
+            pathParams = @OpenApiParam(name = "stationUid", type = String.class, required = true),
+            queryParams = @OpenApiParam(name = "folderId", type = Integer.class),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicBrowseResponse.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void browse(Context ctx) {
         var station = resolveStation(ctx);
         Integer folderId = ctx.queryParam("folderId") != null
@@ -126,6 +154,19 @@ public class PublicKnowledgeBaseRoutes implements Routes {
         ctx.json(new PublicBrowseResponse(currentFolder, folders, files));
     }
 
+    @OpenApi(
+            path = "/api/v1/public/kb/{stationUid}/files/{id}",
+            methods = HttpMethod.GET,
+            summary = "Get a public knowledge base file",
+            tags = {"Public Knowledge Base"},
+            pathParams = {
+                @OpenApiParam(name = "stationUid", type = String.class, required = true),
+                @OpenApiParam(name = "id", type = Integer.class, required = true)
+            },
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbFile.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void getFile(Context ctx) {
         var station = resolveStation(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
@@ -135,6 +176,19 @@ public class PublicKnowledgeBaseRoutes implements Routes {
         ctx.json(file);
     }
 
+    @OpenApi(
+            path = "/api/v1/public/kb/{stationUid}/files/{id}/content",
+            methods = HttpMethod.GET,
+            summary = "Get public file content",
+            tags = {"Public Knowledge Base"},
+            pathParams = {
+                @OpenApiParam(name = "stationUid", type = String.class, required = true),
+                @OpenApiParam(name = "id", type = Integer.class, required = true)
+            },
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void getFileContent(Context ctx) {
         var station = resolveStation(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
@@ -163,6 +217,19 @@ public class PublicKnowledgeBaseRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/public/kb/{stationUid}/files/{id}/html",
+            methods = HttpMethod.GET,
+            summary = "Get rendered HTML for a public markdown file",
+            tags = {"Public Knowledge Base"},
+            pathParams = {
+                @OpenApiParam(name = "stationUid", type = String.class, required = true),
+                @OpenApiParam(name = "id", type = Integer.class, required = true)
+            },
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void getMarkdownHtml(Context ctx) {
         var station = resolveStation(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
@@ -176,6 +243,14 @@ public class PublicKnowledgeBaseRoutes implements Routes {
         ctx.json(Map.of("html", html, "markdown", markdown));
     }
 
+    @OpenApi(
+            path = "/api/v1/public/kb/{stationUid}/search",
+            methods = HttpMethod.GET,
+            summary = "Search the public knowledge base",
+            tags = {"Public Knowledge Base"},
+            pathParams = @OpenApiParam(name = "stationUid", type = String.class, required = true),
+            queryParams = @OpenApiParam(name = "q", type = String.class, required = true),
+            responses = @OpenApiResponse(status = "200"))
     private void search(Context ctx) {
         var station = resolveStation(ctx);
         String query = ctx.queryParam("q");
@@ -191,6 +266,17 @@ public class PublicKnowledgeBaseRoutes implements Routes {
                 .toList());
     }
 
+    @OpenApi(
+            path = "/api/v1/public/kb/{stationUid}/folders/{id}/icon",
+            methods = HttpMethod.GET,
+            summary = "Get a public folder icon",
+            tags = {"Public Knowledge Base"},
+            pathParams = {
+                @OpenApiParam(name = "stationUid", type = String.class, required = true),
+                @OpenApiParam(name = "id", type = Integer.class, required = true)
+            },
+            queryParams = @OpenApiParam(name = "size", type = Integer.class),
+            responses = {@OpenApiResponse(status = "200"), @OpenApiResponse(status = "404")})
     private void getFolderIcon(Context ctx) {
         resolveStation(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
@@ -206,6 +292,17 @@ public class PublicKnowledgeBaseRoutes implements Routes {
                         () -> ctx.status(HttpStatus.NOT_FOUND));
     }
 
+    @OpenApi(
+            path = "/api/v1/public/kb/{stationUid}/images/{imageId}",
+            methods = HttpMethod.GET,
+            summary = "Get a public knowledge base image",
+            tags = {"Public Knowledge Base"},
+            pathParams = {
+                @OpenApiParam(name = "stationUid", type = String.class, required = true),
+                @OpenApiParam(name = "imageId", type = String.class, required = true)
+            },
+            queryParams = @OpenApiParam(name = "size", type = Integer.class),
+            responses = {@OpenApiResponse(status = "200"), @OpenApiResponse(status = "404")})
     private void getKbImage(Context ctx) {
         resolveStation(ctx);
         String imageId = ctx.pathParam("imageId");
@@ -221,6 +318,13 @@ public class PublicKnowledgeBaseRoutes implements Routes {
                         () -> ctx.status(HttpStatus.NOT_FOUND));
     }
 
+    @OpenApi(
+            path = "/api/v1/public/kb/{stationUid}/tags",
+            methods = HttpMethod.GET,
+            summary = "List tags in the public knowledge base",
+            tags = {"Public Knowledge Base"},
+            pathParams = @OpenApiParam(name = "stationUid", type = String.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = String[].class)))
     private void listTags(Context ctx) {
         var station = resolveStation(ctx);
         ctx.json(kbService.findTagsByStation(station.id()));

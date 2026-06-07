@@ -20,7 +20,7 @@ defineEmits<{
   <BaseButton
       :disabled="disabled"
       :full-width="fullWidth"
-      class="bg-error text-white hover:brightness-110"
+      class="bg-error text-error-text hover:brightness-110"
       @click="$emit('click', $event)"
   >
     <slot/>

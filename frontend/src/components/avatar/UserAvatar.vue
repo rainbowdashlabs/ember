@@ -6,9 +6,10 @@
 <script lang="ts" setup>
 import {computed, ref, watch} from 'vue'
 import client from '@/api/client'
+import type {MemberIdentity} from '@/api/types'
 
 const props = withDefaults(defineProps<{
-  memberId?: number | null
+  identity?: MemberIdentity | null
   size?: 'sm' | 'md' | 'lg'
   name?: string
 }>(), {
@@ -47,12 +48,12 @@ async function loadAvatar() {
   hasAvatar.value = false
   imgSrc.value = ''
 
-  if (!props.memberId) return
+  if (!props.identity?.memberUid) return
 
   try {
-    const res = await client.get(`/members/${props.memberId}/avatar?size=128`, {
+    const res = await client.get(`/members/${props.identity.stationUid}/${props.identity.memberUid}/avatar?size=128`, {
       responseType: 'blob',
-      validateStatus: (status) => status === 200 || status === 404,
+      validateStatus: (status) => status === 200 || status === 204 || status === 404,
     })
     if (res.status === 200 && res.data) {
       imgSrc.value = URL.createObjectURL(res.data)
@@ -61,15 +62,16 @@ async function loadAvatar() {
   } catch { /* no avatar */ }
 }
 
-watch(() => props.memberId, loadAvatar, {immediate: true})
+watch(() => props.identity, loadAvatar, {immediate: true, deep: true})
 </script>
 
 <template>
   <div
       :class="sizeClasses"
+      :title="name"
       class="shrink-0 rounded-full overflow-hidden bg-primary/15 text-primary font-bold flex items-center justify-center"
   >
-    <img v-if="hasAvatar" :src="imgSrc" alt="" class="h-full w-full object-cover"/>
+    <img v-if="hasAvatar" :src="imgSrc" alt="" loading="lazy" class="h-full w-full object-cover"/>
     <span v-else>{{ initials }}</span>
   </div>
 </template>

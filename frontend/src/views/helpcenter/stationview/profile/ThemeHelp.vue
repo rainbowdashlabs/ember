@@ -10,8 +10,7 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import ThemePicker from '@/components/theme/ThemePicker.vue'
-import ThemeToggle from '@/components/theme/ThemeToggle.vue'
+import ThemeSelector from '@/components/theme/ThemeSelector.vue'
 
 const {t} = useI18n()
 </script>
@@ -27,30 +26,17 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.themeUser.pickText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Theme picker -->
+    <!-- Dummy: Theme selector -->
     <NeutralContainer class="space-y-4">
-      <SubHeader>{{ t('theme.selectTheme') }}</SubHeader>
-      <ThemePicker />
-    </NeutralContainer>
-
-    <HelpSection :title="t('helpCenter.themeUser.darkModeTitle')">
-      <p>{{ t('helpCenter.themeUser.darkModeText') }}</p>
-      <p>{{ t('helpCenter.themeUser.darkModeSystem') }}</p>
-      <p>{{ t('helpCenter.themeUser.darkModeLight') }}</p>
-      <p>{{ t('helpCenter.themeUser.darkModeDark') }}</p>
-    </HelpSection>
-
-    <!-- Dummy: Dark mode toggle -->
-    <NeutralContainer class="space-y-4">
-      <SubHeader>{{ t('theme.darkMode') }}</SubHeader>
-      <div class="flex items-center gap-2">
-        <ThemeToggle />
-        <span class="text-sm text-(--text-muted)">{{ t('helpCenter.themeUser.darkModeClickHint') }}</span>
-      </div>
+      <SubHeader>{{ t('theme.title') }}</SubHeader>
+      <ThemeSelector :show-themes="true" :show-feel="true"/>
+      <p class="text-sm text-(--text-muted)">{{ t('theme.controlledByStation') }}</p>
+      <p class="text-sm text-(--text-muted)">{{ t('theme.feelControlledByStation') }}</p>
     </NeutralContainer>
 
     <HelpSection :title="t('helpCenter.themeUser.restrictedTitle')">
       <p>{{ t('helpCenter.themeUser.restrictedText') }}</p>
+      <p>{{ t('helpCenter.themeUser.restrictedControlled') }}</p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.themeUser.tip') }}</HelpTip>

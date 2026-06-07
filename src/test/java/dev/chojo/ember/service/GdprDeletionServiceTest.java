@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
 import dev.chojo.ember.feature.media.service.ImageService;
@@ -39,8 +39,12 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
         member = stationMemberRepo.create(station.id(), account.id());
 
         // Add roles
-        stationMemberRepo.findRoleByName(Roles.MEMBER).ifPresent(r -> stationMemberRepo.addRole(member.id(), r.id()));
-        stationMemberRepo.findRoleByName(Roles.LOGIN).ifPresent(r -> stationMemberRepo.addRole(member.id(), r.id()));
+        stationMemberRepo
+                .findPermissionByName(StationPermission.USER)
+                .ifPresent(r -> stationMemberRepo.grantPermission(member.id(), r.id()));
+        stationMemberRepo
+                .findPermissionByName(StationPermission.LOGIN)
+                .ifPresent(r -> stationMemberRepo.grantPermission(member.id(), r.id()));
 
         // Add profile field value
         var field = profileFieldRepo.create(
@@ -61,7 +65,7 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
     @Order(1)
     void memberExistsBeforeDeletion() {
         assertTrue(stationMemberRepo.findById(member.id()).isPresent());
-        assertFalse(stationMemberRepo.findRoles(member.id()).isEmpty());
+        assertFalse(stationMemberRepo.findPermissions(member.id()).isEmpty());
     }
 
     @Test

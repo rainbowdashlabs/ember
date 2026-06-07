@@ -10,7 +10,8 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpRoleToggle from '@/components/helpcenter/HelpRoleToggle.vue'
-import type {HelpRole} from '@/components/helpcenter/HelpRoleToggle.vue'
+import type {HelpPerspective} from '@/components/helpcenter/HelpRoleToggle.vue'
+import {StationPermission} from '@/api/types'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -26,11 +27,11 @@ import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 
-const roles: HelpRole[] = [
-  {key: 'member', label: t('helpCenter.roles.member')},
-  {key: 'memberManager', label: t('helpCenter.roles.memberManager')},
+const perspectives: HelpPerspective[] = [
+  {key: 'member', label: t('helpCenter.roles.member'), permissions: [StationPermission.USER]},
+  {key: 'memberManager', label: t('helpCenter.roles.memberManager'), permissions: [StationPermission.MEMBER_GUARDIAN]},
 ]
-const activeRole = ref('')
+const activeView = ref('')
 </script>
 
 <template>
@@ -39,12 +40,12 @@ const activeRole = ref('')
       <p>{{ t('helpCenter.absences.whatIsText') }}</p>
     </HelpSection>
 
-    <HelpRoleToggle v-model="activeRole" :roles="roles"/>
+    <HelpRoleToggle v-model="activeView" :perspectives="perspectives"/>
 
     <HelpSection :title="t('helpCenter.absences.howTo')">
       <p>{{ t('helpCenter.absences.fromTo') }}</p>
       <p>{{ t('helpCenter.absences.reason') }}</p>
-      <template v-if="activeRole === 'memberManager'">
+      <template v-if="activeView === 'memberManager'">
         <p>{{ t('helpCenter.absences.forOthers') }}</p>
       </template>
     </HelpSection>
@@ -67,7 +68,7 @@ const activeRole = ref('')
       </div>
 
       <!-- Dummy: Member selection for managers -->
-      <template v-if="activeRole === 'memberManager'">
+      <template v-if="activeView === 'memberManager'">
         <div class="space-y-2">
           <FieldLabel>{{ t('profile.absenceFor') }}</FieldLabel>
           <div class="flex flex-wrap gap-2">

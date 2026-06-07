@@ -10,8 +10,6 @@ import type {Comment} from '@/api/types'
 import type {MemberCompletion} from '@/api/stationMembers'
 import {comments as commentsApi, stationMembers} from '@/api'
 import CommentThread from './CommentThread.vue'
-import MentionInput from '@/components/comment/MentionInput.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -26,9 +24,6 @@ const commentsList = ref<Comment[]>([])
 const members = ref<MemberCompletion[]>([])
 const loading = ref(true)
 const error = ref('')
-const newComment = ref('')
-const posting = ref(false)
-
 async function loadComments() {
   loading.value = true
   try {
@@ -63,14 +58,6 @@ async function deleteComment(commentId: number) {
   } catch { error.value = t('common.error') }
 }
 
-async function postTopLevel() {
-  if (!newComment.value.trim()) return
-  posting.value = true
-  await createComment(null, newComment.value.trim())
-  newComment.value = ''
-  posting.value = false
-}
-
 onMounted(loadComments)
 </script>
 
@@ -81,15 +68,6 @@ onMounted(loadComments)
     <Spinner v-if="loading" size="sm"/>
 
     <template v-if="!loading">
-      <!-- New comment form -->
-      <div class="space-y-2">
-        <MentionInput v-model="newComment" :members="members" :placeholder="t('comments.placeholder')"/>
-        <PrimaryButton :disabled="posting || !newComment.trim()" compact @click="postTopLevel">
-          {{ t('comments.post') }}
-        </PrimaryButton>
-      </div>
-
-      <!-- Thread -->
       <CommentThread
         :comments="commentsList"
         :members="members"

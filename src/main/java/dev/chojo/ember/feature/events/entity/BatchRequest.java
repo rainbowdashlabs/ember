@@ -19,6 +19,6 @@ public record BatchRequest(
         Boolean requiresRegistration,
         Boolean requiresConfirmation,
         Instant registrationDeadline,
-        List<Integer> restrictedRoleIds,
+        List<String> restrictedUserTypes,
         List<Integer> restrictedGroupIds,
         List<Integer> restrictedTagIds) {}

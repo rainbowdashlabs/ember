@@ -20,7 +20,7 @@ application {
 
 group = "dev.chojo"
 // CalVer as YY.MINOR.MICRO -> https://calver.org/
-version = "26.5.0"
+version = "26.6.0"
 
 repositories {
     mavenCentral()
@@ -45,6 +45,7 @@ dependencies {
     implementation(libs.guice)
     implementation(libs.bcrypt)
     implementation(libs.jspecify)
+    implementation(libs.caffeine)
 
     implementation(libs.angus)
     implementation(libs.bundles.commonmark)
@@ -89,7 +90,7 @@ tasks {
                             System.getenv("GITHUB_SHA").substring(0, 7)
                         } @ $formattedDate"
 
-                        "tag" -> "$version ${System.getenv("GITHUB_REF_NAME").substring(1)} @ $formattedDate"
+                        "tag" -> "$version @ $formattedDate"
                         else -> "$version snapshot"
                     }
                 }
@@ -141,6 +142,20 @@ tasks {
             excludeTestsMatching("dev.chojo.ember.repository.*")
             excludeTestsMatching("dev.chojo.ember.service.*")
         }
+    }
+
+    register<JavaExec>("generateFederationVersion") {
+        group = "build"
+        description = "Generates the federation version hash from the API contract"
+        dependsOn("compileJava")
+        mainClass = "dev.chojo.ember.feature.federation.version.FederationVersionComputer"
+        classpath = sourceSets.main.get().runtimeClasspath
+        args = listOf(
+            file("src/main/resources/federation_version").absolutePath,
+            file("src/main/resources/federation_versions.json").absolutePath,
+            project.version.toString(),
+            file("frontend/src/federation_versions.json").absolutePath
+        )
     }
 
     register("verifyJavadoc") {
@@ -208,6 +223,7 @@ tasks {
                     "*.mail.service.*",
                     "*.FederationHttpClient*",
                     "*.FederationWebhookService*",
+                    "*.FederatedBoardProxyService*",
                     "*.ApiRequestLogger*",
                     "*.DataInitializer",
                     "*.ProblemLogAppender*",
@@ -226,6 +242,7 @@ tasks {
                     "*.LegalDocumentService*",
                     // Daemon/scheduler threads
                     "*.RegistrationDeadlineChecker*",
+                    "*.DueDateReminderChecker*",
                     // Import services (complex CSV parsing with many edge cases)
                     "*.MemberImportService*",
                     "*.StationImportService*",

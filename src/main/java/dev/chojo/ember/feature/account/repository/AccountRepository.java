@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.account.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
+import dev.chojo.ember.api.roles.InstanceUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.entity.AccountExternalAuth;
@@ -30,7 +31,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class AccountRepository {
 
-    private static final String ACCOUNT_COLUMNS = "id, email, first_name, last_name, email_verified";
+    private static final String ACCOUNT_COLUMNS =
+            "id, email, first_name, last_name, email_verified, instance_user_type";
     private static final String CONSENT_COLUMNS =
             "id, account_id, consent_version, privacy_version, tos_version, ip_address, country, user_agent, consented_at";
 
@@ -93,8 +95,6 @@ public class AccountRepository {
                 .orElseThrow();
     }
 
-    // -- Account Roles --
-
     /**
      * Creates a new account with an explicit email verification status.
      *
@@ -118,72 +118,37 @@ public class AccountRepository {
                 .orElseThrow();
     }
 
-    /**
-     * Retrieves all global roles assigned to an account.
-     *
-     * @param accountId the account identifier
-     * @return list of role names
-     */
-    public List<String> findAccountRoles(int accountId) {
-        return query("SELECT role FROM account_role WHERE account_id = :account_id;")
-                .single(Call.of().bind("account_id", accountId))
-                .map(row -> row.getString("role"))
-                .all();
-    }
+    // -- Instance User Type --
 
     /**
-     * Checks whether an account has a specific global role.
-     *
-     * @param accountId the account identifier
-     * @param role      the role name to check
-     * @return {@code true} if the account has the role
+     * Checks whether an account is an instance administrator.
      */
-    public boolean hasAccountRole(int accountId, String role) {
-        return query("SELECT 1 FROM account_role WHERE account_id = :account_id AND role = :role;")
-                .single(Call.of().bind("account_id", accountId).bind("role", role))
+    public boolean isAdministrator(int accountId) {
+        return query("SELECT 1 FROM account WHERE id = :id AND instance_user_type = 'ADMINISTRATOR';")
+                .single(Call.of().bind("id", accountId))
                 .map(row -> true)
                 .first()
                 .isPresent();
     }
 
     /**
-     * Checks whether any account in the system has the specified global role.
-     *
-     * @param role the role name to check
-     * @return {@code true} if at least one account has the role
+     * Checks whether any account in the system is an administrator.
      */
-    public boolean anyAccountHasRole(String role) {
-        return query("SELECT 1 FROM account_role WHERE role = :role LIMIT 1;")
-                .single(Call.of().bind("role", role))
+    public boolean anyAdministratorExists() {
+        return query("SELECT 1 FROM account WHERE instance_user_type = 'ADMINISTRATOR' LIMIT 1;")
+                .single()
                 .map(row -> true)
                 .first()
                 .isPresent();
     }
 
     /**
-     * Assigns a global role to an account.
-     *
-     * @param accountId the account identifier
-     * @param role      the role name to assign
-     * @return the insertion result
+     * Sets the instance user type for an account.
      */
-    public InsertionResult addAccountRole(int accountId, String role) {
-        return query("INSERT INTO account_role(account_id, role) VALUES(:account_id, :role);")
-                .single(Call.of().bind("account_id", accountId).bind("role", role))
-                .insert();
-    }
-
-    /**
-     * Removes a global role from an account.
-     *
-     * @param accountId the account identifier
-     * @param role      the role name to remove
-     * @return {@code true} if a role was removed
-     */
-    public boolean removeAccountRole(int accountId, String role) {
-        return query("DELETE FROM account_role WHERE account_id = :account_id AND role = :role;")
-                .single(Call.of().bind("account_id", accountId).bind("role", role))
-                .delete()
+    public boolean setInstanceUserType(int accountId, InstanceUserType userType) {
+        return query("UPDATE account SET instance_user_type = :user_type WHERE id = :id;")
+                .single(Call.of().bind("user_type", userType).bind("id", accountId))
+                .update()
                 .changed();
     }
 

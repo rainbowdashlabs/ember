@@ -5,9 +5,10 @@
  */
 package dev.chojo.ember.feature.members.route;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.AccessManager;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
@@ -19,7 +20,6 @@ import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
-import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
@@ -50,14 +50,12 @@ import java.util.stream.Collectors;
  */
 @Singleton
 public class ManagedMemberRoutes implements Routes {
-    private static final Set<Roles> TEAM_ROLES = Set.of(
-            Roles.TEAM,
-            Roles.MANAGER,
-            Roles.ADMIN,
-            Roles.ATTENDANCE_MANAGER,
-            Roles.INVENTORY_MANAGER,
-            Roles.EVENT_MANAGER,
-            Roles.MEMBER_MANAGER);
+    private static final Set<StationPermission> TEAM_PERMISSIONS = Set.of(
+            StationPermission.STATION_ADMINISTRATOR,
+            StationPermission.ATTENDANCE_MANAGER,
+            StationPermission.INVENTORY_MANAGER,
+            StationPermission.EVENT_MANAGER,
+            StationPermission.MEMBER_MANAGER);
 
     private final StationMemberService memberService;
     private final StationMemberRepository stationMemberRepository;
@@ -66,6 +64,7 @@ public class ManagedMemberRoutes implements Routes {
     private final InventoryService inventoryService;
     private final InventoryCheckService checkService;
     private final GdprExportService gdprExportService;
+    private final AccessManager accessManager;
 
     @Inject
     public ManagedMemberRoutes(
@@ -75,7 +74,8 @@ public class ManagedMemberRoutes implements Routes {
             ProfileFieldService profileFieldService,
             InventoryService inventoryService,
             InventoryCheckService checkService,
-            GdprExportService gdprExportService) {
+            GdprExportService gdprExportService,
+            AccessManager accessManager) {
         this.memberService = memberService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
@@ -83,19 +83,26 @@ public class ManagedMemberRoutes implements Routes {
         this.inventoryService = inventoryService;
         this.checkService = checkService;
         this.gdprExportService = gdprExportService;
+        this.accessManager = accessManager;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/managed-members", this::listManaged, Roles.GUARDIAN);
-        routes.get(prefix + "/managed-members/{memberId}/profile", this::getProfile, Roles.GUARDIAN);
-        routes.put(prefix + "/managed-members/{memberId}/profile", this::setProfile, Roles.GUARDIAN);
-        routes.get(prefix + "/managed-members/{memberId}/inventory-items", this::getMemberInventory, Roles.GUARDIAN);
+        routes.get(prefix + "/managed-members", this::listManaged, StationPermission.MEMBER_GUARDIAN);
+        routes.get(prefix + "/managed-members/{memberId}/profile", this::getProfile, StationPermission.MEMBER_GUARDIAN);
+        routes.put(prefix + "/managed-members/{memberId}/profile", this::setProfile, StationPermission.MEMBER_GUARDIAN);
+        routes.get(
+                prefix + "/managed-members/{memberId}/inventory-items",
+                this::getMemberInventory,
+                StationPermission.MEMBER_GUARDIAN);
         routes.get(
                 prefix + "/managed-members/{memberId}/inventory-requirements",
                 this::getMemberRequirements,
-                Roles.GUARDIAN);
-        routes.get(prefix + "/managed-members/{memberId}/gdpr-export", this::gdprExport, Roles.GUARDIAN);
+                StationPermission.MEMBER_GUARDIAN);
+        routes.get(
+                prefix + "/managed-members/{memberId}/gdpr-export",
+                this::gdprExport,
+                StationPermission.MEMBER_GUARDIAN);
     }
 
     private void assertManages(UserSession session, int memberId) {
@@ -120,13 +127,12 @@ public class ManagedMemberRoutes implements Routes {
     }
 
     private Set<ProfileFieldScope> applicableScopes(int memberId) {
-        var roles = stationMemberRepository.findRoles(memberId).stream()
-                .map(Role::role)
-                .toList();
+        var permissions = accessManager.resolveExpandedMemberPermissions(memberId);
         var scopes = new HashSet<ProfileFieldScope>();
-        if (roles.contains(Roles.MEMBER)) scopes.add(ProfileFieldScope.MEMBER);
-        if (roles.contains(Roles.GUARDIAN)) scopes.add(ProfileFieldScope.GUARDIAN);
-        if (roles.stream().anyMatch(TEAM_ROLES::contains)) scopes.add(ProfileFieldScope.TEAM);
+        if (permissions.contains(StationPermission.USER)) scopes.add(ProfileFieldScope.MEMBER);
+        if (permissions.contains(StationPermission.MEMBER_GUARDIAN)) scopes.add(ProfileFieldScope.GUARDIAN);
+        if (permissions.stream().anyMatch(TEAM_PERMISSIONS::contains)) scopes.add(ProfileFieldScope.TEAM);
+        if (permissions.contains(StationPermission.STATION_ADMINISTRATOR)) scopes.add(ProfileFieldScope.MANAGER);
         return scopes;
     }
 

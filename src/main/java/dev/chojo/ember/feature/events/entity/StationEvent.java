@@ -46,7 +46,14 @@ public record StationEvent(
         RestrictionMode restrictionMode,
         boolean restricted,
         Boolean isPublic,
-        Integer registrationLimit) {
+        Integer registrationLimit,
+        boolean cancelled,
+        Instant cancelledAt,
+        String cancelReason,
+        Integer minRegistrations,
+        Instant thresholdDate,
+        boolean thresholdNotified,
+        Integer registrationCloseDays) {
 
     /**
      * Creates a row mapping for database result set conversion.
@@ -69,7 +76,14 @@ public record StationEvent(
                 RestrictionMode.valueOf(row.getString("restriction_mode")),
                 row.getBoolean("restricted"),
                 row.getObject("public", Boolean.class),
-                row.getObject("registration_limit", Integer.class));
+                row.getObject("registration_limit", Integer.class),
+                row.getBoolean("cancelled"),
+                row.get("cancelled_at", INSTANT_TIMESTAMP),
+                row.getString("cancel_reason"),
+                row.getObject("min_registrations", Integer.class),
+                row.get("threshold_date", INSTANT_TIMESTAMP),
+                row.getBoolean("threshold_notified"),
+                row.getObject("registration_close_days", Integer.class));
     }
 
     /**

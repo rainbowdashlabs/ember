@@ -9,7 +9,15 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import EditButton from '@/components/button/EditButton.vue'
+import IconButton from '@/components/button/IconButton.vue'
+import DeleteButton from '@/components/button/DeleteButton.vue'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const { t } = useI18n()
 </script>
@@ -24,53 +32,70 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.protocolDetail.structureText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Protocol structure with sections and items -->
-    <NeutralContainer>
-      <div class="space-y-3 text-sm">
-        <div class="font-semibold">Jugendflamme Stufe 1</div>
-        <div class="ml-2 space-y-2">
-          <div>
-            <div class="flex items-center gap-2 font-medium">
-              <font-awesome-icon :icon="['fas', 'folder']" class="w-3 h-3 text-[var(--primary)]" />
-              <span>Notruf</span>
-              <MutedText class="ml-auto">8 Punkte</MutedText>
-            </div>
-            <div class="ml-5 mt-1 space-y-0.5 text-xs text-[var(--text-muted)]">
-              <div class="flex justify-between"><span>5 W-Fragen nennen</span><span>5P</span></div>
-              <div class="flex justify-between"><span>Notrufnummer 112</span><span>2P</span></div>
-              <div class="flex justify-between"><span>Notrufnummer 110</span><span>1P</span></div>
-            </div>
-          </div>
-          <div>
-            <div class="flex items-center gap-2 font-medium">
-              <font-awesome-icon :icon="['fas', 'folder']" class="w-3 h-3 text-[var(--primary)]" />
-              <span>Knoten und Stiche</span>
-              <MutedText class="ml-auto">11 Punkte</MutedText>
-            </div>
-          </div>
-          <div>
-            <div class="flex items-center gap-2 font-medium">
-              <font-awesome-icon :icon="['fas', 'folder']" class="w-3 h-3 text-[var(--primary)]" />
-              <span>Schläuche</span>
-              <MutedText class="ml-auto">15 Punkte</MutedText>
-            </div>
-          </div>
-        </div>
+    <!-- Dummy: Protocol structure with CRUD buttons -->
+    <HelpSection :title="t('helpCenter.protocolDetail.exampleTitle')">
+      <div class="flex items-center gap-2 mb-4">
+        <SecondaryButton disabled>
+          <font-awesome-icon :icon="['fas', 'chevron-left']" />
+        </SecondaryButton>
+        <SectionHeader>Jugendflamme Stufe 1</SectionHeader>
+        <EditButton disabled :label="t('common.edit')" />
+        <span class="text-sm text-[var(--text-muted)] ml-auto">
+          {{ t('protocol.threshold') }}: 25P / 34P {{ t('protocol.total') }}
+        </span>
       </div>
-    </NeutralContainer>
 
+      <div class="space-y-4">
+        <NeutralContainer class="space-y-2">
+          <div class="flex items-center gap-2">
+            <SubHeader>Notruf</SubHeader>
+            <MutedText class="ml-auto">8P</MutedText>
+            <IconButton :icon="['fas', 'plus']" label="" disabled />
+            <IconButton :icon="['fas', 'folder-plus']" label="" disabled />
+            <IconButton :icon="['fas', 'pen']" label="" disabled />
+            <DeleteButton disabled />
+          </div>
+
+          <div class="flex items-center gap-2 pl-4 text-xs">
+            <MutedIcon :icon="['fas', 'square']" />
+            <span class="flex-1">5 W-Fragen nennen</span>
+            <span class="text-xs text-[var(--text-muted)]">5P</span>
+            <IconButton :icon="['fas', 'pen']" label="" disabled />
+            <DeleteButton disabled />
+          </div>
+          <div class="flex items-center gap-2 pl-4 text-xs">
+            <MutedIcon :icon="['fas', 'square']" />
+            <span class="flex-1">Notrufnummer 112</span>
+            <span class="text-xs text-[var(--text-muted)]">2P</span>
+            <IconButton :icon="['fas', 'pen']" label="" disabled />
+            <DeleteButton disabled />
+          </div>
+          <div class="flex items-center gap-2 pl-4 text-xs">
+            <MutedIcon :icon="['fas', 'square']" />
+            <span class="flex-1">Notrufnummer 110</span>
+            <span class="text-xs text-[var(--text-muted)]">1P</span>
+            <IconButton :icon="['fas', 'pen']" label="" disabled />
+            <DeleteButton disabled />
+          </div>
+        </NeutralContainer>
+
+        <NeutralContainer class="space-y-2">
+          <div class="flex items-center gap-2">
+            <SubHeader>Knoten und Stiche</SubHeader>
+            <MutedText class="ml-auto">11P</MutedText>
+          </div>
+        </NeutralContainer>
+
+        <PrimaryButton disabled>
+          <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" /> {{ t('protocol.addSection') }}
+        </PrimaryButton>
+      </div>
+    </HelpSection>
+
+    <!-- Pass threshold -->
     <HelpSection :title="t('helpCenter.protocolDetail.thresholdTitle')">
       <p>{{ t('helpCenter.protocolDetail.thresholdText') }}</p>
     </HelpSection>
-
-    <!-- Dummy: Pass threshold display -->
-    <NeutralContainer>
-      <div class="flex items-center gap-2 text-xs">
-        <font-awesome-icon :icon="['fas', 'trophy']" class="text-[var(--primary)]" />
-        <span>{{ t('helpCenter.protocolDetail.thresholdLabel') }}</span>
-        <span class="font-bold ml-auto">75 %</span>
-      </div>
-    </NeutralContainer>
 
     <HelpSection :title="t('helpCenter.protocolDetail.howTo')">
       <p>{{ t('helpCenter.protocolDetail.step1') }}</p>

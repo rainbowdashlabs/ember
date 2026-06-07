@@ -19,6 +19,7 @@ const props = defineProps<{
   allMembers: StationMember[]
   memberSections: { group: MemberGroup | null; members: StationMember[] }[]
   selectedMemberId: string
+  readonly?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -32,7 +33,7 @@ const emit = defineEmits<{
 
 const membersNotInSession = computed(() => {
   const entryMemberIds = new Set(props.entries.map(e => e.memberId))
-  return props.allMembers.filter(m => !entryMemberIds.has(m.id))
+  return props.allMembers.filter(m => !entryMemberIds.has(m.id) && !m.formerAt)
 })
 
 function getMemberName(memberId: number): string {
@@ -56,6 +57,7 @@ function getEntry(memberId: number): AttendanceEntry | undefined {
           :member="member"
           :entry="getEntry(member.id)"
           :member-name="getMemberName(member.id)"
+          :readonly="readonly"
           @set-status="(entryId, status) => emit('setStatus', entryId, status)"
           @check-in="(entryId, time) => emit('checkIn', entryId, time)"
           @check-out="(entryId, time) => emit('checkOut', entryId, time)"
@@ -65,7 +67,7 @@ function getEntry(memberId: number): AttendanceEntry | undefined {
   </div>
 
   <!-- Add member -->
-  <div v-if="membersNotInSession.length > 0" class="flex items-center gap-2">
+  <div v-if="!readonly && membersNotInSession.length > 0" class="flex items-center gap-2">
     <SelectInput :model-value="selectedMemberId" class="flex-1" @update:model-value="emit('update:selectedMemberId', $event ?? '')">
       <option disabled value="">{{ t('attendanceSession.addMember') }}</option>
       <option v-for="m in membersNotInSession" :key="m.id" :value="String(m.id)">

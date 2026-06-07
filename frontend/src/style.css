@@ -8,8 +8,8 @@
     --color-primary-accent: #C71100;
 
     /* Secondary */
-    --color-secondary: #73CEFF;
-    --color-secondary-accent: #3694FF;
+    --color-secondary: #2a8fd4;
+    --color-secondary-accent: #1a6fb5;
 
     /* Status */
     --color-info: #c8ab03;
@@ -24,6 +24,23 @@
     /* Dark backgrounds */
     --color-bg-dark: #212121;
     --color-bg-dark-accent: #191919;
+
+    /* Contrast text colors for solid backgrounds (computed per-theme in useTheme) */
+    --color-primary-text: #ffffff;
+    --color-primary-accent-text: #ffffff;
+    --color-secondary-text: #ffffff;
+    --color-secondary-accent-text: #ffffff;
+    --color-info-text: #1a1a1a;
+    --color-info-accent-text: #ffffff;
+    --color-success-text: #ffffff;
+    --color-error-text: #ffffff;
+
+    /* Contrast-safe colors for badges/labels on page backgrounds (computed per-theme) */
+    --color-primary-badge: #C71100;
+    --color-secondary-badge: #1a6fb5;
+    --color-info-badge: #af7501;
+    --color-success-badge: #00C507;
+    --color-error-badge: #ec2929;
 
     /* Border radius */
     --radius-theme: 0.5rem;
@@ -67,6 +84,13 @@ body {
     margin: 0;
     color: var(--text);
     background: var(--bg);
+}
+
+input::placeholder,
+textarea::placeholder,
+select::placeholder {
+    color: var(--text-muted) !important;
+    opacity: 1 !important;
 }
 
 a:not(:has(button)) {

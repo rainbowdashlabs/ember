@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
+import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import StatValue from '@/components/typography/StatValue.vue'
@@ -109,5 +110,7 @@ const {t} = useI18n()
         <p class="text-sm text-(--text-muted)">{{ t('adminStats.profileFields') }}</p>
       </NeutralContainer>
     </div>
+
+    <HelpTip>{{ t('helpCenter.adminStatistics.tip') }}</HelpTip>
   </HelpArticle>
 </template>

@@ -39,6 +39,7 @@ bin/
 ### Mac OS ###
 .DS_Store
 .direnv
+.demo-schema-hash
 CLAUDE*.md
 .claude
 .ai
@@ -224,3 +225,5 @@ poetry.toml
 pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python
+.run
+dev-errors

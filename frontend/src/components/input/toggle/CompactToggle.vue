@@ -24,6 +24,6 @@ defineProps<{
       type="button"
       @click="model = !model"
   >
-    <font-awesome-icon v-if="model" :icon="['fas', 'check']" class="h-2.5 w-2.5 text-white"/>
+    <font-awesome-icon v-if="model" :icon="['fas', 'check']" class="h-2.5 w-2.5 text-success-text"/>
   </button>
 </template>

@@ -6,9 +6,11 @@
 package dev.chojo.ember.feature.account.route;
 
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.InstanceUserType;
+import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -21,7 +23,7 @@ import dev.chojo.ember.feature.legal.service.GdprExportService;
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
-import dev.chojo.ember.feature.members.entity.Role;
+import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -112,17 +114,18 @@ public class SessionRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/session", this::getSessionInfo, Roles.LOGIN);
-        routes.get(prefix + "/session/stations", this::getStations, Roles.LOGIN);
-        routes.get(prefix + "/session/active", this::getActiveSessions, Roles.LOGIN);
-        routes.delete(prefix + "/session/active/{id}", this::invalidateSession, Roles.LOGIN);
-        routes.post(prefix + "/session/invalidate-all", this::invalidateAll, Roles.LOGIN);
-        routes.get(prefix + "/session/gdpr-export", this::gdprExport, Roles.LOGIN);
-        routes.get(prefix + "/session/avatar", this::getAvatar, Roles.LOGIN);
-        routes.post(prefix + "/session/avatar", this::uploadAvatar, Roles.LOGIN);
-        routes.delete(prefix + "/session/avatar", this::deleteAvatar, Roles.LOGIN);
-        routes.get(prefix + "/members/{memberId}/avatar", this::getAvatarByMember, Roles.LOGIN);
-        routes.delete(prefix + "/session/account", this::deleteAccount, Roles.LOGIN);
+        routes.get(prefix + "/session", this::getSessionInfo, StationPermission.LOGIN);
+        routes.get(prefix + "/session/stations", this::getStations, StationPermission.LOGIN);
+        routes.get(prefix + "/session/active", this::getActiveSessions, StationPermission.LOGIN);
+        routes.delete(prefix + "/session/active/{id}", this::invalidateSession, StationPermission.LOGIN);
+        routes.post(prefix + "/session/invalidate-all", this::invalidateAll, StationPermission.LOGIN);
+        routes.get(prefix + "/session/gdpr-export", this::gdprExport, StationPermission.LOGIN);
+        routes.get(prefix + "/session/avatar", this::getAvatar, StationPermission.LOGIN);
+        routes.post(prefix + "/session/avatar", this::uploadAvatar, StationPermission.LOGIN);
+        routes.delete(prefix + "/session/avatar", this::deleteAvatar, StationPermission.LOGIN);
+        routes.get(
+                prefix + "/members/{stationUid}/{memberUid}/avatar", this::getAvatarByMember, StationPermission.LOGIN);
+        routes.delete(prefix + "/session/account", this::deleteAccount, StationPermission.LOGIN);
     }
 
     @OpenApi(
@@ -147,18 +150,19 @@ public class SessionRoutes implements Routes {
             managed = memberService.findManaged(session.member().id());
             groups = groupService.findGroupsForMember(session.member().id());
             tags = userTagRepository.findTagsForMember(session.member().id());
-            roleIds = stationMemberRepository.findRoles(session.member().id()).stream()
-                    .map(Role::id)
+            roleIds = stationMemberRepository.findPermissions(session.member().id()).stream()
+                    .map(Permission::id)
                     .toList();
             groupIds = groups.stream().map(MemberGroup::id).toList();
             tagIds = tags.stream().map(UserTag::id).toList();
             memberInfo = new MemberInfo(
                     session.member().id(),
                     session.stationUid() != null ? session.stationUid().toString() : null,
-                    session.member().accountId());
+                    session.member().accountId(),
+                    session.member().uid() != null ? session.member().uid().toString() : null);
         }
 
-        var roleNames = session.roles().stream().map(Enum::name).sorted().toList();
+        var roleNames = session.permissions().stream().map(Enum::name).sorted().toList();
         boolean profileComplete = true;
         if (session.member() != null && session.stationId() != null) {
             profileComplete =
@@ -177,8 +181,14 @@ public class SessionRoutes implements Routes {
                     var managedStation = stationService.findById(m.stationId()).orElse(null);
                     String managedStationUid =
                             managedStation != null ? managedStation.uid().toString() : null;
+                    String memberUid = m.uid() != null ? m.uid().toString() : null;
                     return new ManagedMemberInfo(
-                            m.id(), managedStationUid, m.accountId() != null ? m.accountId() : 0, name, email);
+                            m.id(),
+                            managedStationUid,
+                            memberUid,
+                            m.accountId() != null ? m.accountId() : 0,
+                            name,
+                            email);
                 })
                 .toList();
 
@@ -232,6 +242,8 @@ public class SessionRoutes implements Routes {
                 session.stationUid() != null ? session.stationUid().toString() : null,
                 memberInfo,
                 roleNames,
+                session.userType(),
+                session.instanceUserType(),
                 managedInfos,
                 groups,
                 tags,
@@ -334,8 +346,8 @@ public class SessionRoutes implements Routes {
         // Block deletion if the account is a station manager
         var memberships = stationMemberRepository.findAllByAccountId(session.accountId());
         for (var member : memberships) {
-            var roles = stationMemberRepository.findRoles(member.id());
-            boolean isManager = roles.stream().anyMatch(r -> r.role() == Roles.MANAGER);
+            var roles = stationMemberRepository.findPermissions(member.id());
+            boolean isManager = roles.stream().anyMatch(r -> r.permission() == StationPermission.STATION_ADMINISTRATOR);
             if (isManager) {
                 throw new BadRequestResponse(
                         "Cannot delete account while you are a station manager. Transfer or delete the station first.");
@@ -354,31 +366,36 @@ public class SessionRoutes implements Routes {
             ctx.status(HttpStatus.NOT_FOUND);
             return;
         }
-        serveAvatar(ctx, session.member().id());
+        var memberUid = stationMemberRepository.resolveUid(session.member().id());
+        if (memberUid == null) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            return;
+        }
+        serveAvatar(ctx, memberUid.toString());
     }
 
     /**
-     * Retrieves the avatar for a specific member by their ID path parameter.
+     * Retrieves the avatar for a specific member by their UUID path parameter.
      */
     private void getAvatarByMember(Context ctx) {
-        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
-        serveAvatar(ctx, memberId);
+        String memberUid = ctx.pathParam("memberUid");
+        serveAvatar(ctx, memberUid);
     }
 
     /**
      * Serves a member's avatar from disk with appropriate content type and cache headers.
      */
-    private void serveAvatar(Context ctx, int memberId) {
+    private void serveAvatar(Context ctx, String memberKey) {
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
         imageService
-                .read(ImageCategory.AVATARS, String.valueOf(memberId), size)
+                .read(ImageCategory.AVATARS, memberKey, size)
                 .ifPresentOrElse(
                         img -> {
                             ctx.contentType(img.contentType());
                             ctx.header("Cache-Control", "private, max-age=300");
                             ctx.result(img.data());
                         },
-                        () -> ctx.status(HttpStatus.NOT_FOUND));
+                        () -> ctx.status(HttpStatus.NO_CONTENT));
     }
 
     private void uploadAvatar(Context ctx) {
@@ -393,11 +410,15 @@ public class SessionRoutes implements Routes {
         if (!ALLOWED_AVATAR_TYPES.contains(file.contentType())) {
             throw new BadRequestResponse("Invalid file type. Allowed: PNG, JPEG, WebP");
         }
+        var memberUid = stationMemberRepository.resolveUid(session.member().id());
+        if (memberUid == null) {
+            throw new BadRequestResponse("Member UUID not found");
+        }
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
             imageService.store(
                     ImageCategory.AVATARS,
-                    String.valueOf(session.member().id()),
+                    memberUid.toString(),
                     data,
                     file.contentType(),
                     apiConfig.maxImageSizeBytes());
@@ -415,8 +436,11 @@ public class SessionRoutes implements Routes {
         if (session.member() == null) {
             throw new BadRequestResponse("No station membership");
         }
-        imageService.delete(
-                ImageCategory.AVATARS, String.valueOf(session.member().id()));
+        var memberUid = stationMemberRepository.resolveUid(session.member().id());
+        if (memberUid == null) {
+            throw new BadRequestResponse("Member UUID not found");
+        }
+        imageService.delete(ImageCategory.AVATARS, memberUid.toString());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -443,7 +467,7 @@ public class SessionRoutes implements Routes {
      * @param account         the account details
      * @param stationId       the currently selected station, or {@code null} if none
      * @param member          the station membership info, or {@code null} if not a member
-     * @param roles           sorted list of role names for the current station
+     * @param permissions     sorted list of permission names for the current station
      * @param managedMembers  list of members managed by this account
      * @param groups          groups the current member belongs to
      * @param profileComplete whether all required profile fields are filled
@@ -453,7 +477,9 @@ public class SessionRoutes implements Routes {
             AccountInfo account,
             String stationId,
             MemberInfo member,
-            List<String> roles,
+            List<String> permissions,
+            StationUserType userType,
+            InstanceUserType instanceUserType,
             List<ManagedMemberInfo> managedMembers,
             List<MemberGroup> groups,
             List<UserTag> tags,
@@ -487,7 +513,7 @@ public class SessionRoutes implements Routes {
      * @param name      the member's display name
      * @param email     the member's email, or empty string if unavailable
      */
-    public record ManagedMemberInfo(int id, String stationId, int accountId, String name, String email) {}
+    public record ManagedMemberInfo(int id, String stationId, String uid, int accountId, String name, String email) {}
 
     /**
      * Account information included in the session response.
@@ -506,7 +532,7 @@ public class SessionRoutes implements Routes {
      * @param stationId the station identifier
      * @param accountId the account identifier
      */
-    public record MemberInfo(int id, String stationId, int accountId) {}
+    public record MemberInfo(int id, String stationId, int accountId, String uid) {}
 
     /**
      * A station membership entry listing which stations the user belongs to.

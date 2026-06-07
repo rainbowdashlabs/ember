@@ -16,14 +16,13 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import EventFieldList from './EventFieldList.vue'
-import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, MemberGroup, Role, StationMember, UserTag} from '@/api/types'
+import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, MemberGroup, StationMember, UserTag} from '@/api/types'
 import {EventTypes, needsDayOfWeek} from '@/api/types'
 
 defineProps<{
   categories: EventCategory[]
   templates: AttendanceTemplate[]
   attendanceFields?: AttendanceTemplateField[]
-  roles?: Role[]
   groups?: MemberGroup[]
   tags?: UserTag[]
   showSchedule?: boolean
@@ -48,8 +47,12 @@ const requiresConfirmation = defineModel<boolean>('requiresConfirmation')
 const hasDeadline = defineModel<boolean>('hasDeadline')
 const registrationDeadline = defineModel<string>('registrationDeadline')
 const registrationLimit = defineModel<number>('registrationLimit')
+const minRegistrations = defineModel<number>('minRegistrations')
+const hasThreshold = defineModel<boolean>('hasThreshold')
+const thresholdDate = defineModel<string>('thresholdDate')
+const registrationCloseDays = defineModel<number>('registrationCloseDays')
 
-const selectedRoleIds = defineModel<number[]>('selectedRoleIds')
+const selectedUserTypes = defineModel<string[]>('selectedUserTypes')
 const selectedGroupIds = defineModel<number[]>('selectedGroupIds')
 const selectedTagIds = defineModel<number[]>('selectedTagIds')
 
@@ -73,14 +76,14 @@ const {t} = useI18n()
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div class="space-y-1">
         <FieldLabel>{{ t('events.category') }}</FieldLabel>
-        <SelectInput v-model="categoryId">
+        <SelectInput v-model="categoryId" class="w-full">
           <option value="">—</option>
           <option v-for="cat in categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
         </SelectInput>
       </div>
       <div class="space-y-1">
         <FieldLabel>{{ t('events.template') }}</FieldLabel>
-        <SelectInput v-model="templateId">
+        <SelectInput v-model="templateId" class="w-full">
           <option value="">—</option>
           <option v-for="tpl in templates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
         </SelectInput>
@@ -100,7 +103,7 @@ const {t} = useI18n()
             :label-b="t('events.typeRecurringShort')"
             @update:model-value="eventType = $event === 'onetime' ? EventTypes.ONE_TIME : EventTypes.RECURRING"
         />
-        <SelectInput v-if="eventType !== EventTypes.ONE_TIME" v-model="eventType">
+        <SelectInput v-if="eventType !== EventTypes.ONE_TIME" v-model="eventType" class="w-full">
           <option :value="EventTypes.RECURRING">{{ t('events.typeRecurring') }}</option>
           <option :value="EventTypes.MONTHLY_FIRST">{{ t('events.typeMonthlyFirst') }}</option>
           <option :value="EventTypes.QUARTERLY">{{ t('events.typeQuarterly') }}</option>
@@ -110,7 +113,7 @@ const {t} = useI18n()
 
       <div v-if="needsDayOfWeek(eventType)" class="space-y-1">
         <FieldLabel>{{ t('events.dayOfWeek') }}</FieldLabel>
-        <SelectInput v-model="dayOfWeek">
+        <SelectInput v-model="dayOfWeek" class="w-full">
           <option value="1">Montag</option>
           <option value="2">Dienstag</option>
           <option value="3">Mittwoch</option>
@@ -132,6 +135,8 @@ const {t} = useI18n()
         </div>
       </div>
     </template>
+
+    <slot name="after-schedule" />
 
     <!-- Registration -->
     <template v-if="requiresRegistration !== undefined">
@@ -165,22 +170,44 @@ const {t} = useI18n()
           <NumberInput v-model="registrationLimit" :placeholder="t('events.registrationLimitHint')"/>
           <p class="text-xs text-(--text-muted)">{{ t('events.registrationLimitHint') }}</p>
         </div>
+
+        <div class="space-y-1">
+          <FieldLabel>{{ t('events.minRegistrations') }}</FieldLabel>
+          <NumberInput v-model="minRegistrations" placeholder=""/>
+        </div>
+
+        <template v-if="minRegistrations && minRegistrations > 0">
+          <div class="flex items-center justify-between">
+            <label class="text-sm font-medium">{{ t('events.thresholdDate') }}</label>
+            <ToggleInput v-model="hasThreshold"/>
+          </div>
+          <div v-if="hasThreshold" class="space-y-1">
+            <FieldLabel>{{ t('events.thresholdDate') }}</FieldLabel>
+            <DateTimeInput v-model="thresholdDate"/>
+            <p class="text-xs text-(--text-muted)">{{ t('events.thresholdHint') }}</p>
+          </div>
+        </template>
+
+        <div v-if="eventType !== undefined && eventType !== 'ONE_TIME'" class="space-y-1">
+          <FieldLabel>{{ t('events.registrationCloseDays') }}</FieldLabel>
+          <NumberInput v-model="registrationCloseDays" :placeholder="t('events.registrationCloseDaysHint')"/>
+          <p class="text-xs text-(--text-muted)">{{ t('events.registrationCloseDaysHint') }}</p>
+        </div>
       </template>
     </template>
 
     <!-- Restrictions -->
-    <template v-if="roles && groups && tags && selectedRoleIds !== undefined">
+    <template v-if="groups && tags && selectedUserTypes !== undefined">
       <hr class="border-(--border)"/>
       <SubHeader>{{ t('events.restrictions') }}</SubHeader>
       <p class="text-xs text-(--text-muted)">{{ t('events.restrictToRolesHint') }}</p>
       <RestrictionPicker
-          :roles="roles"
           :groups="groups"
           :tags="tags"
-          :selected-role-ids="selectedRoleIds ?? []"
+          :selected-user-types="selectedUserTypes ?? []"
           :selected-group-ids="selectedGroupIds ?? []"
           :selected-tag-ids="selectedTagIds ?? []"
-          @update:selected-role-ids="selectedRoleIds = $event"
+          @update:selected-user-types="selectedUserTypes = $event"
           @update:selected-group-ids="selectedGroupIds = $event"
           @update:selected-tag-ids="selectedTagIds = $event"
       />
@@ -193,6 +220,7 @@ const {t} = useI18n()
         :attendance-fields="attendanceFields"
         :show-value="showValue"
         :all-members="allMembers"
+        :groups="groups"
         :group-members="groupMembers"
         @update:fields="fields = $event"
     />

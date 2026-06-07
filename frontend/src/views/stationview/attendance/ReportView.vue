@@ -10,6 +10,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
+import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -19,8 +20,9 @@ import THead from '@/components/table/THead.vue'
 import TRow from '@/components/table/TRow.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type {MemberGroup, Role} from '@/api/types'
-import {attendance, memberGroups, stationMembers} from '@/api'
+import type {MemberGroup} from '@/api/types'
+import {StationUserType} from '@/api/types'
+import {attendance, memberGroups} from '@/api'
 import type {ReportData, ReportPreset} from '@/api/attendance'
 import {useSession} from '@/composables/useSession'
 import Td from '@/components/table/Td.vue'
@@ -29,7 +31,6 @@ import Th from '@/components/table/Th.vue'
 const {t} = useI18n()
 const {loaded} = useSession()
 
-const roles = ref<Role[]>([])
 const groups = ref<MemberGroup[]>([])
 const presets = ref<ReportPreset[]>([])
 const report = ref<ReportData | null>(null)
@@ -39,9 +40,24 @@ const exporting = ref(false)
 const error = ref('')
 
 // Filter state
-const filterType = ref<'role' | 'group'>('role')
-const selectedRole = ref('')
-const selectedGroupId = ref('')
+const selectedUserTypes = ref<string[]>([])
+const selectedGroupIds = ref<string[]>([])
+
+const USER_TYPE_LABELS: Record<string, string> = {
+  TRIAL: 'Probe',
+  MEMBER: 'Mitglied',
+  GUARDIAN: 'Erziehungsberechtigter',
+  TEAM: 'Team',
+  MANAGER: 'Manager',
+}
+
+const userTypeOptions = computed(() =>
+    Object.values(StationUserType).map(ut => ({ value: ut, label: USER_TYPE_LABELS[ut] ?? ut }))
+)
+
+const groupOptions = computed(() =>
+    groups.value.map(g => ({ value: String(g.id), label: g.name ?? '' }))
+)
 const selectedPeriod = ref('month')
 const selectedYear = ref(new Date().getFullYear())
 const selectedMonth = ref(new Date().getMonth())
@@ -86,8 +102,7 @@ const showSavePreset = ref(false)
 const presetName = ref('')
 
 const canPreview = computed(() => {
-  if (filterType.value === 'role') return !!selectedRole.value
-  return !!selectedGroupId.value
+  return selectedUserTypes.value.length > 0 || selectedGroupIds.value.length > 0
 })
 
 const timeRange = computed(() => {
@@ -117,16 +132,12 @@ const timeRange = computed(() => {
 })
 
 function buildParams() {
-  const params: Record<string, string | number> = {
-    from: timeRange.value.from,
-    to: timeRange.value.to,
-    rounding: selectedRounding.value,
-  }
-  if (filterType.value === 'role') {
-    params.role = selectedRole.value
-  } else {
-    params.groupId = Number(selectedGroupId.value)
-  }
+  const params = new URLSearchParams()
+  params.set('from', timeRange.value.from)
+  params.set('to', timeRange.value.to)
+  params.set('rounding', selectedRounding.value)
+  for (const ut of selectedUserTypes.value) params.append('userTypes', ut)
+  for (const gid of selectedGroupIds.value) params.append('groupIds', gid)
   return params
 }
 
@@ -134,12 +145,10 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [allRoles, allGroups, allPresets] = await Promise.all([
-      stationMembers.listAllRoles(),
+    const [allGroups, allPresets] = await Promise.all([
       memberGroups.listGroups(),
       attendance.listPresets(),
     ])
-    roles.value = allRoles
     groups.value = allGroups
     presets.value = allPresets
   } catch {
@@ -155,7 +164,7 @@ async function preview() {
   error.value = ''
   report.value = null
   try {
-    report.value = await attendance.reportPreview(buildParams() as any)
+    report.value = await attendance.reportPreview(buildParams())
   } catch {
     error.value = t('common.error')
   } finally {
@@ -168,7 +177,9 @@ async function exportPdf() {
   exporting.value = true
   error.value = ''
   try {
-    const blob = await attendance.reportExport({...buildParams(), period: selectedPeriod.value} as any)
+    const params = buildParams()
+    params.set('period', selectedPeriod.value)
+    const blob = await attendance.reportExport(params)
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -188,8 +199,8 @@ async function savePreset() {
   try {
     await attendance.createPreset({
       name: presetName.value,
-      roleName: filterType.value === 'role' ? selectedRole.value : undefined,
-      groupId: filterType.value === 'group' ? Number(selectedGroupId.value) : null,
+      roleName: selectedUserTypes.value.join(',') || undefined,
+      groupId: selectedGroupIds.value.length > 0 ? Number(selectedGroupIds.value[0]) : null,
       period: selectedPeriod.value,
       rounding: selectedRounding.value,
     })
@@ -202,15 +213,8 @@ async function savePreset() {
 }
 
 function applyPreset(preset: ReportPreset) {
-  if (preset.groupId) {
-    filterType.value = 'group'
-    selectedGroupId.value = String(preset.groupId)
-    selectedRole.value = ''
-  } else {
-    filterType.value = 'role'
-    selectedRole.value = preset.roleName ?? ''
-    selectedGroupId.value = ''
-  }
+  selectedUserTypes.value = preset.roleName ? preset.roleName.split(',').filter(Boolean) : []
+  selectedGroupIds.value = preset.groupId ? [String(preset.groupId)] : []
   selectedPeriod.value = preset.period
   selectedRounding.value = preset.rounding
 }
@@ -225,11 +229,13 @@ async function removePreset(id: number) {
 }
 
 function presetLabel(preset: ReportPreset): string {
+  const parts: string[] = []
+  if (preset.roleName) parts.push(preset.roleName)
   if (preset.groupId) {
     const g = groups.value.find(g => g.id === preset.groupId)
-    return `${preset.name} (${g?.name ?? 'Gruppe'})`
+    parts.push(g?.name ?? 'Gruppe')
   }
-  return `${preset.name} (${preset.roleName})`
+  return parts.length > 0 ? `${preset.name} (${parts.join(', ')})` : preset.name
 }
 
 onMounted(() => {
@@ -270,28 +276,26 @@ watch(loaded, (isLoaded) => {
           <SubHeader>{{ t('attendanceReport.filters') }}</SubHeader>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <div class="space-y-1">
-              <FieldLabel>{{ t('attendanceReport.filterBy') }}</FieldLabel>
-              <SelectInput v-model="filterType">
-                <option value="role">{{ t('attendanceReport.byRole') }}</option>
-                <option value="group">{{ t('attendanceReport.byGroup') }}</option>
-              </SelectInput>
+              <FieldLabel>{{ t('attendanceReport.userTypes') }}</FieldLabel>
+              <MultiSelectDropdown
+                  :options="userTypeOptions"
+                  :model-value="selectedUserTypes"
+                  :placeholder="t('attendanceReport.selectUserTypes')"
+                  @update:model-value="selectedUserTypes = $event"
+              />
             </div>
             <div class="space-y-1">
-              <FieldLabel>{{
-                  filterType === 'role' ? t('attendanceReport.role') : t('attendanceReport.group')
-                }}</FieldLabel>
-              <SelectInput v-if="filterType === 'role'" v-model="selectedRole">
-                <option disabled value="">{{ t('attendanceReport.selectRole') }}</option>
-                <option v-for="role in roles" :key="role.id" :value="role.role">{{ role.role }}</option>
-              </SelectInput>
-              <SelectInput v-else v-model="selectedGroupId">
-                <option disabled value="">{{ t('attendanceReport.selectGroup') }}</option>
-                <option v-for="group in groups" :key="group.id" :value="String(group.id)">{{ group.name }}</option>
-              </SelectInput>
+              <FieldLabel>{{ t('attendanceReport.groups') }}</FieldLabel>
+              <MultiSelectDropdown
+                  :options="groupOptions"
+                  :model-value="selectedGroupIds"
+                  :placeholder="t('attendanceReport.selectGroups')"
+                  @update:model-value="selectedGroupIds = $event"
+              />
             </div>
             <div class="space-y-1">
               <FieldLabel>{{ t('attendanceReport.rounding') }}</FieldLabel>
-              <SelectInput v-model="selectedRounding">
+              <SelectInput v-model="selectedRounding" class="w-full">
                 <option v-for="opt in roundingOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </SelectInput>
             </div>
@@ -300,25 +304,25 @@ watch(loaded, (isLoaded) => {
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div class="space-y-1">
               <FieldLabel>{{ t('attendanceReport.period') }}</FieldLabel>
-              <SelectInput v-model="selectedPeriod">
+              <SelectInput v-model="selectedPeriod" class="w-full">
                 <option v-for="opt in periodOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </SelectInput>
             </div>
             <div class="space-y-1">
               <FieldLabel>{{ t('attendanceReport.year') }}</FieldLabel>
-              <SelectInput :model-value="String(selectedYear)" @update:model-value="selectedYear = Number($event)">
+              <SelectInput :model-value="String(selectedYear)" class="w-full" @update:model-value="selectedYear = Number($event)">
                 <option v-for="y in yearOptions" :key="y" :value="String(y)">{{ y }}</option>
               </SelectInput>
             </div>
             <div v-if="selectedPeriod === 'month'" class="space-y-1">
               <FieldLabel>{{ t('attendanceReport.month') }}</FieldLabel>
-              <SelectInput :model-value="String(selectedMonth)" @update:model-value="selectedMonth = Number($event)">
+              <SelectInput :model-value="String(selectedMonth)" class="w-full" @update:model-value="selectedMonth = Number($event)">
                 <option v-for="m in monthOptions" :key="m.value" :value="String(m.value)">{{ m.label }}</option>
               </SelectInput>
             </div>
             <div v-if="selectedPeriod === 'week'" class="space-y-1">
               <FieldLabel>{{ t('attendanceReport.week') }}</FieldLabel>
-              <SelectInput :model-value="String(selectedWeek)" @update:model-value="selectedWeek = Number($event)">
+              <SelectInput :model-value="String(selectedWeek)" class="w-full" @update:model-value="selectedWeek = Number($event)">
                 <option v-for="w in weekOptions" :key="w" :value="String(w)">KW {{ w }}</option>
               </SelectInput>
             </div>

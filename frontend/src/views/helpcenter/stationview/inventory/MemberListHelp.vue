@@ -32,20 +32,26 @@ const {t} = useI18n()
     </HelpSection>
 
     <!-- Dummy: Filters -->
-    <NeutralContainer class="flex flex-wrap items-center gap-4">
-      <div class="flex items-center gap-2">
-        <label class="text-sm font-medium">{{ t('inventoryMembers.role') }}</label>
-        <SelectInput class="w-40 text-sm">
-          <option value="">{{ t('inventoryMembers.allRoles') }}</option>
-          <option>Mitglied</option>
-          <option>Team</option>
-        </SelectInput>
-      </div>
-      <div class="flex items-center gap-2">
-        <label class="text-sm font-medium">{{ t('inventoryMembers.showEmpty') }}</label>
-        <ToggleInput :model-value="false" />
-      </div>
-    </NeutralContainer>
+    <HelpSection :title="t('helpCenter.inventoryMembers.filterTitle')">
+      <p>{{ t('helpCenter.inventoryMembers.filterText') }}</p>
+
+      <NeutralContainer class="flex flex-wrap items-center gap-4">
+        <div class="flex items-center gap-2">
+          <label class="text-sm font-medium">{{ t('inventoryMembers.role') }}</label>
+          <SelectInput class="w-40 text-sm">
+            <option value="">{{ t('inventoryMembers.allRoles') }}</option>
+            <option>Mitglied</option>
+            <option>Team</option>
+          </SelectInput>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-sm font-medium">{{ t('inventoryMembers.showEmpty') }}</label>
+          <ToggleInput :model-value="false" />
+        </div>
+      </NeutralContainer>
+
+      <p>{{ t('helpCenter.inventoryMembers.restrictionText') }}</p>
+    </HelpSection>
 
     <!-- Dummy: Member inventory table -->
     <div class="space-y-3">
@@ -94,6 +100,7 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.inventoryMembers.exportTitle')">
       <p>{{ t('helpCenter.inventoryMembers.exportText') }}</p>
+      <p>{{ t('helpCenter.inventoryMembers.exportModeText') }}</p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.inventoryMembers.tip') }}</HelpTip>

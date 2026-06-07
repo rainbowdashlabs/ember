@@ -11,12 +11,12 @@ export async function listTags(): Promise<UserTag[]> {
     return res.data
 }
 
-export async function createTag(data: { name: string }): Promise<UserTag> {
+export async function createTag(data: { name: string; color?: string | null; visible?: boolean; position?: number }): Promise<UserTag> {
     const res = await client.post<UserTag>('/tags', data)
     return res.data
 }
 
-export async function updateTag(id: number, data: { name: string }): Promise<void> {
+export async function updateTag(id: number, data: { name: string; color?: string | null; visible?: boolean; position?: number }): Promise<void> {
     await client.put(`/tags/${id}`, data)
 }
 

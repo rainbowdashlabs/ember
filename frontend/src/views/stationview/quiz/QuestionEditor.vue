@@ -131,13 +131,13 @@ function onTypeChange(val: QuizQuestionTypeName | string | undefined) {
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div>
         <FieldLabel hint class="mb-1">{{ t('quiz.questions.type') }}</FieldLabel>
-        <SelectInput :model-value="questionType" :disabled="isEditing" @update:model-value="onTypeChange">
+        <SelectInput :model-value="questionType" :disabled="isEditing" class="w-full" @update:model-value="onTypeChange">
           <option v-for="qt in allQuestionTypes" :key="qt" :value="qt">{{ t(`quiz.questionTypes.${qt}`) }}</option>
         </SelectInput>
       </div>
       <div>
         <FieldLabel hint class="mb-1">{{ t('quiz.questions.category') }}</FieldLabel>
-        <SelectInput v-model="categoryIdStr">
+        <SelectInput v-model="categoryIdStr" class="w-full">
           <option value="">{{ t('quiz.questions.noCategory') }}</option>
           <option v-for="cat in categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
         </SelectInput>
@@ -161,7 +161,7 @@ function onTypeChange(val: QuizQuestionTypeName | string | undefined) {
     <!-- Type-specific config editors -->
     <McConfigEditor v-if="questionType === QuizQuestionTypes.MULTIPLE_CHOICE" :config="config" :question-title="title" @update:config="(v: Record<string, unknown>) => emit('update:config', v)" />
     <FillBlankConfigEditor v-if="questionType === QuizQuestionTypes.FILL_IN_THE_BLANK" :config="config" @update:config="(v: Record<string, unknown>) => emit('update:config', v)" />
-    <FreeAnswerConfigEditor v-if="questionType === QuizQuestionTypes.FREE_ANSWER" :config="config" @update:config="(v: Record<string, unknown>) => emit('update:config', v)" />
+    <FreeAnswerConfigEditor v-if="questionType === QuizQuestionTypes.FREE_ANSWER || questionType === QuizQuestionTypes.ENUMERATION" :config="config" @update:config="(v: Record<string, unknown>) => emit('update:config', v)" />
     <ConnectConfigEditor v-if="questionType === QuizQuestionTypes.CONNECT" :config="config" @update:config="(v: Record<string, unknown>) => emit('update:config', v)" />
     <ImageTextConfigEditor v-if="questionType === QuizQuestionTypes.IMAGE_TEXT" :config="config" @update:config="(v: Record<string, unknown>) => emit('update:config', v)" />
     <TfConfigEditor v-if="questionType === QuizQuestionTypes.TRUE_FALSE" :config="config" @update:config="(v: Record<string, unknown>) => emit('update:config', v)" />

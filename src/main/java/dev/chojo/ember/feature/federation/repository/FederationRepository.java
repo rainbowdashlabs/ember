@@ -22,8 +22,10 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
+import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING;
 
 @Singleton
 public class FederationRepository {
@@ -64,23 +66,23 @@ public class FederationRepository {
                 .changed();
     }
 
-    public List<FederationPartner> findPendingRequestsForStation(int targetStationId) {
+    public List<FederationPartner> findPendingRequestsForStation(UUID targetStationUid) {
         return Query.query(
-                        "SELECT * FROM federation_partner WHERE partner_station_id = :target_id AND status = 'PENDING';")
-                .single(Call.of().bind("target_id", targetStationId))
+                        "SELECT * FROM federation_partner WHERE partner_station_id = :target_id::uuid AND status = 'PENDING';")
+                .single(Call.of().bind("target_id", targetStationUid, UUID_STRING))
                 .map(FederationPartner.map())
                 .all();
     }
 
     public FederationPartner createPartner(
-            int stationId, int partnerStationId, String inviteCode, String publicKey, String remoteHost) {
+            int stationId, UUID partnerStationUid, String inviteCode, String publicKey, String remoteHost) {
         return Query.query("""
                         INSERT INTO federation_partner(station_id, partner_station_id, invite_code, public_key, status, remote_host)
-                        VALUES (:station_id, :partner_station_id, :invite_code, :public_key, 'PENDING', :remote_host)
+                        VALUES (:station_id, :partner_station_id::uuid, :invite_code, :public_key, 'PENDING', :remote_host)
                         RETURNING *;""")
                 .single(Call.of()
                         .bind("station_id", stationId)
-                        .bind("partner_station_id", partnerStationId)
+                        .bind("partner_station_id", partnerStationUid, UUID_STRING)
                         .bind("invite_code", inviteCode)
                         .bind("public_key", publicKey)
                         .bind("remote_host", remoteHost))
@@ -105,7 +107,7 @@ public class FederationRepository {
                 .changed();
     }
 
-    public void updateFederationVersion(int id, int version) {
+    public void updateFederationVersion(int id, String version) {
         Query.query("UPDATE federation_partner SET federation_version = :version, updated_at = now() WHERE id = :id;")
                 .single(Call.of().bind("id", id).bind("version", version))
                 .update();
@@ -128,10 +130,12 @@ public class FederationRepository {
     /**
      * Updates the remote_host on all partner records where the given station is the partner.
      */
-    public void updateRemoteHostForPartnerStation(int partnerStationId, String remoteHost) {
+    public void updateRemoteHostForPartnerStation(UUID partnerStationUid, String remoteHost) {
         Query.query(
-                        "UPDATE federation_partner SET remote_host = :remote_host, updated_at = now() WHERE partner_station_id = :partner_station_id;")
-                .single(Call.of().bind("partner_station_id", partnerStationId).bind("remote_host", remoteHost))
+                        "UPDATE federation_partner SET remote_host = :remote_host, updated_at = now() WHERE partner_station_id = :partner_station_id::uuid;")
+                .single(Call.of()
+                        .bind("partner_station_id", partnerStationUid, UUID_STRING)
+                        .bind("remote_host", remoteHost))
                 .update();
     }
 
@@ -279,10 +283,20 @@ public class FederationRepository {
 
     // -- Partner by remote station ID (for signature verification) --
 
-    public Optional<FederationPartner> findPartnerByRemoteStationId(int remoteStationId) {
+    public Optional<FederationPartner> findPartnerByRemoteStationUid(UUID remoteStationUid) {
         return Query.query(
-                        "SELECT * FROM federation_partner WHERE partner_station_id = :partner_station_id AND status = 'ACTIVE' LIMIT 1;")
-                .single(Call.of().bind("partner_station_id", remoteStationId))
+                        "SELECT * FROM federation_partner WHERE partner_station_id = :partner_station_id::uuid AND status = 'ACTIVE' LIMIT 1;")
+                .single(Call.of().bind("partner_station_id", remoteStationUid, UUID_STRING))
+                .map(FederationPartner.map())
+                .first();
+    }
+
+    public Optional<FederationPartner> findPartnerByStationAndRemoteUid(int stationId, UUID remoteStationUid) {
+        return Query.query(
+                        "SELECT * FROM federation_partner WHERE station_id = :station_id AND partner_station_id = :partner_station_id::uuid LIMIT 1;")
+                .single(Call.of()
+                        .bind("station_id", stationId)
+                        .bind("partner_station_id", remoteStationUid, UUID_STRING))
                 .map(FederationPartner.map())
                 .first();
     }
@@ -331,5 +345,14 @@ public class FederationRepository {
                 .single(Call.of().bind("station_id", stationId).bind("since", since, INSTANT_TIMESTAMP))
                 .map(FederationChangeLog.map())
                 .all();
+    }
+
+    public int countPendingRequests(UUID stationUid) {
+        return Query.query(
+                        "SELECT count(*) AS cnt FROM federation_partner WHERE partner_station_id = :uid::uuid AND status = 'PENDING';")
+                .single(Call.of().bind("uid", stationUid, UUID_STRING))
+                .map(row -> row.getInt("cnt"))
+                .first()
+                .orElse(0);
     }
 }

@@ -76,11 +76,19 @@ public class EventTemplateService {
         repository.replaceFields(templateId, fields);
     }
 
-    public List<Integer> findRestrictions(int templateId) {
+    public List<String> findRestrictions(int templateId) {
         return repository.findRestrictions(templateId);
     }
 
-    public void setRestrictions(int templateId, List<Integer> roleIds) {
-        repository.setRestrictions(templateId, roleIds);
+    public void setRestrictions(int templateId, List<String> userTypes) {
+        repository.setRestrictions(templateId, userTypes);
+    }
+
+    public List<Integer> findReminderDays(int templateId) {
+        return repository.findReminderDays(templateId);
+    }
+
+    public void setReminders(int templateId, List<Integer> daysBefore) {
+        repository.replaceReminders(templateId, daysBefore);
     }
 }

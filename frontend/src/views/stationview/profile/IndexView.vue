@@ -22,27 +22,30 @@ import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import FileUploadButton from '@/components/button/FileUploadButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import type { ProfileField } from '@/api/types'
-import { Roles, hasTeamRole } from '@/api/types'
+import { StationUserType, parseFieldConfig } from '@/api/types'
 import { profileFields, auth, members, session as sessionApi } from '@/api'
 import { useSession } from '@/composables/useSession'
+import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import MutedText from '@/components/typography/MutedText.vue'
 
-function getUserScopes(roles: string[]): string[] {
+function getUserScopes(userType?: string): string[] {
   const scopes: string[] = []
-  if (roles.includes(Roles.MEMBER)) {
-    scopes.push(Roles.MEMBER)
+  if (!userType) return scopes
+  if (userType === StationUserType.MEMBER || userType === StationUserType.TRIAL) {
+    scopes.push(StationUserType.MEMBER)
   }
-  if (hasTeamRole(roles)) {
-    scopes.push(Roles.TEAM)
+  if (userType === StationUserType.TEAM || userType === StationUserType.MANAGER) {
+    scopes.push(StationUserType.TEAM)
   }
-  if (roles.includes(Roles.GUARDIAN)) {
-    scopes.push(Roles.GUARDIAN)
+  if (userType === StationUserType.GUARDIAN) {
+    scopes.push(StationUserType.GUARDIAN)
   }
   return scopes
 }
 
 const { t } = useI18n()
 const { sessionInfo } = useSession()
+const { refresh: refreshSidebarCounts } = useSidebarCounts()
 
 const fields = ref<ProfileField[]>([])
 const values = ref<Map<number, string>>(new Map())
@@ -97,12 +100,12 @@ const savingPassword = ref(false)
 
 const memberId = computed(() => sessionInfo.value?.member?.id ?? null)
 
-const userScopes = computed(() => getUserScopes([...(sessionInfo.value?.roles ?? [])]))
+const userScopes = computed(() => getUserScopes(sessionInfo.value?.userType))
 
 const editableFields = computed(() => {
   return fields.value.filter(f => {
     if (f.scope === 'GROUP') return false
-    return userScopes.value.includes(f.scope ?? Roles.MEMBER)
+    return userScopes.value.includes(f.scope ?? StationUserType.MEMBER)
   })
 })
 
@@ -114,15 +117,6 @@ const incompleteFields = computed(() => {
     return !val || val === '""' || val === ''
   })
 })
-
-function parseFieldConfig(configStr: string | undefined): { required?: boolean; readonly?: boolean; options?: string[]; defaultValue?: unknown } {
-  if (!configStr) return {}
-  try {
-    return JSON.parse(configStr)
-  } catch {
-    return {}
-  }
-}
 
 function getValue(fieldId: number): string {
   return values.value.get(fieldId) ?? ''
@@ -180,6 +174,7 @@ async function saveProfile() {
       .map(f => ({ fieldId: f.id, value: JSON.stringify(getValue(f.id)) }))
     await profileFields.setValues(memberId.value, { values: entries })
     success.value = t('profile.saved')
+    refreshSidebarCounts()
   } catch {
     error.value = t('common.error')
   } finally {
@@ -252,7 +247,7 @@ onMounted(loadProfile)
           <div class="flex items-center gap-4">
             <UserAvatar
                 :key="avatarKey"
-                :member-id="sessionInfo?.member?.id"
+                :identity="sessionInfo?.member?.uid ? { stationUid: sessionInfo.stationId ?? '', memberUid: sessionInfo.member.uid } : undefined"
                 :name="(editFirstName + ' ' + editLastName).trim()"
                 size="lg"
             />
@@ -333,7 +328,7 @@ onMounted(loadProfile)
             </FieldLabel>
 
             <ProfileFieldInput
-              :field-type="field.fieldType ?? 'text'"
+              :field-type="field.fieldType ?? 'TEXT'"
               :model-value="getValue(field.id)"
               :options="(parseFieldConfig(field.config).options as string[]) ?? []"
               :disabled="!!parseFieldConfig(field.config).readonly"

@@ -65,7 +65,7 @@ class UserTagRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(4)
     void update() {
-        assertTrue(userTagRepo.update(tagId, "Fortgeschritten"));
+        assertTrue(userTagRepo.update(tagId, "Fortgeschritten", null, false, 0));
         assertEquals(
                 "Fortgeschritten", userTagRepo.findById(tagId).orElseThrow().name());
     }
@@ -73,7 +73,7 @@ class UserTagRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(5)
     void updateNonExistent() {
-        assertFalse(userTagRepo.update(99999, "Nope"));
+        assertFalse(userTagRepo.update(99999, "Nope", null, false, 0));
     }
 
     // -- Tag entries --

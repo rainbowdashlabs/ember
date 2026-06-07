@@ -106,7 +106,7 @@ watch(loaded, (v) => { if (v) loadSettings() })
       <div class="space-y-4 max-w-xl">
         <NeutralContainer class="space-y-4">
           <SubHeader>{{ t('discovery.settings.visibility') }}</SubHeader>
-          <SelectInput v-model="discoveryVisibility">
+          <SelectInput v-model="discoveryVisibility" class="w-full">
             <option value="NONE">{{ t('discovery.settings.visibilityNone') }}</option>
             <option value="INSTANCE">{{ t('discovery.settings.visibilityInstance') }}</option>
             <option value="PUBLIC">{{ t('discovery.settings.visibilityPublic') }}</option>
@@ -130,7 +130,7 @@ watch(loaded, (v) => { if (v) loadSettings() })
           <div v-if="publicKbEnabled" class="space-y-3">
             <div class="space-y-1">
               <FieldLabel>{{ t('stationManage.publicKb.mode') }}</FieldLabel>
-              <SelectInput v-model="publicKbMode">
+              <SelectInput v-model="publicKbMode" class="w-full">
                 <option value="ALLOW_ALL">{{ t('stationManage.publicKb.modeAllowAll') }}</option>
                 <option value="DENY_ALL">{{ t('stationManage.publicKb.modeDenyAll') }}</option>
               </SelectInput>

@@ -9,11 +9,13 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import StationBadge from '@/components/badge/StationBadge.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
+import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 
 const {t} = useI18n()
 </script>
@@ -31,35 +33,52 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryLendingCreate.step4') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Create request form -->
-    <NeutralContainer class="space-y-4">
-      <SectionHeader>{{ t('helpCenter.inventoryLendingCreate.dummyTitle') }}</SectionHeader>
-      <div class="grid sm:grid-cols-2 gap-4">
-        <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">{{ t('helpCenter.inventoryLendingCreate.fieldItem') }}</label>
-          <TextInput model-value="Rettungsring" disabled />
+    <!-- Dummy: Selected inventory with station badge -->
+    <HelpSection :title="t('helpCenter.inventoryLendingCreate.dummyTitle')">
+      <NeutralContainer class="space-y-4">
+        <!-- Inventory header with station -->
+        <NeutralContainer>
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="font-medium text-lg">Rettungsringe</span>
+            <StationBadge station-name="DLRG Musterstadt" />
+          </div>
+          <span class="text-sm text-(--text-muted)">5 {{ t('helpCenter.inventoryLendingCreate.dummyAvailable') }}</span>
+        </NeutralContainer>
+
+        <!-- Date range -->
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div class="flex flex-col gap-1">
+            <FieldLabel>{{ t('helpCenter.inventoryLendingCreate.fieldFrom') }}</FieldLabel>
+            <DateInput model-value="2026-06-01" disabled />
+          </div>
+          <div class="flex flex-col gap-1">
+            <FieldLabel>{{ t('helpCenter.inventoryLendingCreate.fieldTo') }}</FieldLabel>
+            <DateInput model-value="2026-06-15" disabled />
+          </div>
         </div>
+
+        <!-- Quantity -->
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">{{ t('helpCenter.inventoryLendingCreate.fieldQuantity') }}</label>
+          <FieldLabel>{{ t('helpCenter.inventoryLendingCreate.fieldQuantity') }}</FieldLabel>
           <NumberInput :model-value="3" disabled />
+          <span class="text-xs text-(--text-muted)">{{ t('helpCenter.inventoryLendingCreate.maxQuantityHint') }}</span>
         </div>
+
+        <!-- Note -->
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">{{ t('helpCenter.inventoryLendingCreate.fieldFrom') }}</label>
-          <DateInput model-value="2026-06-01" disabled />
+          <FieldLabel>{{ t('helpCenter.inventoryLendingCreate.fieldNote') }}</FieldLabel>
+          <TextAreaInput model-value="Wird für das Stadtfest benötigt." disabled :rows="3" />
         </div>
-        <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">{{ t('helpCenter.inventoryLendingCreate.fieldTo') }}</label>
-          <DateInput model-value="2026-06-15" disabled />
+
+        <!-- Action buttons -->
+        <div class="flex justify-end gap-2">
+          <SecondaryButton>{{ t('common.cancel') }}</SecondaryButton>
+          <PrimaryButton :icon="['fas', 'paper-plane']">
+            {{ t('helpCenter.inventoryLendingCreate.dummySend') }}
+          </PrimaryButton>
         </div>
-        <div class="flex flex-col gap-1 sm:col-span-2">
-          <label class="text-sm font-medium">{{ t('helpCenter.inventoryLendingCreate.fieldNote') }}</label>
-          <TextInput model-value="Wird für das Stadtfest benötigt." disabled />
-        </div>
-      </div>
-      <PrimaryButton :icon="['fas', 'paper-plane']">
-        {{ t('helpCenter.inventoryLendingCreate.dummySend') }}
-      </PrimaryButton>
-    </NeutralContainer>
+      </NeutralContainer>
+    </HelpSection>
 
     <HelpTip>{{ t('helpCenter.inventoryLendingCreate.tip') }}</HelpTip>
   </HelpArticle>

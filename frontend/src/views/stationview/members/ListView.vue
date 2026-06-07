@@ -15,18 +15,22 @@ import MemberFilterBar from './listview/FilterBar.vue'
 import MemberTable from './listview/Table.vue'
 import ExportModal from './listview/ExportModal.vue'
 import type { StationMember } from '@/api/types'
-import { Roles } from '@/api/types'
-import type { FilterCriteria, FilterOption } from '@/components/input/filter/MemberFilterBar.vue'
-import { useMemberData, parseConfig, memberDisplayName } from './listview/useMemberData'
+import { StationPermission, StationUserType, parseFieldConfig } from '@/api/types'
+import { useMemberData, memberDisplayName } from './listview/useMemberData'
 import { useSavedFilters, emptyTabState, type TabFilterState } from './listview/useSavedFilters'
 import { useExport } from './listview/useExport'
+import { useMemberFilter } from '@/composables/useMemberFilter'
+import { useSession } from '@/composables/useSession'
 
 const { t } = useI18n()
 const router = useRouter()
+const { hasPermission } = useSession()
+const canExport = computed(() => hasPermission(StationPermission.MEMBER_EXPORT))
+const canEdit = computed(() => hasPermission(StationPermission.MEMBER_EDIT))
 
 // --- Member data ---
 const {
-  members, fields, allGroups, allTags, allRoles,
+  members, fields, allGroups, allTags,
   memberRolesMap, memberGroupsMap, memberTagsMap, memberManagers,
   loading, error, expandedId, overviewFields,
   getFieldValue, getFieldValueAsString, getMemberType, getMemberGroups, getColumnValues,
@@ -35,10 +39,10 @@ const {
 
 // --- Tab state ---
 const activeTab = ref('ALL')
-const memberFilterCriteria = ref<FilterCriteria>({ roleIds: [], groupIds: [], tagIds: [], mode: 'AND' })
 
 const tabStates = ref<Record<string, TabFilterState>>({
   ALL: emptyTabState(),
+  TRIAL: emptyTabState(),
   MEMBER: emptyTabState(),
   GUARDIAN: emptyTabState(),
   TEAM: emptyTabState(),
@@ -56,9 +60,11 @@ const sortAsc = computed(() => currentTabState.value.sortAsc)
 
 const tabs = computed(() => [
   { key: 'ALL', label: t('membersList.tabAll') },
+  { key: 'TRIAL', label: t('membersList.tabTrial') },
   { key: 'MEMBER', label: t('membersList.tabMember') },
   { key: 'GUARDIAN', label: t('membersList.tabMemberManager') },
   { key: 'TEAM', label: t('membersList.tabTeam') },
+  { key: 'MANAGER', label: t('membersList.tabManager') },
 ])
 
 // --- Saved filters ---
@@ -70,20 +76,22 @@ const extraColumnIds = ref<Set<number>>(new Set())
 
 const tabScopedFields = computed(() => {
   const scopeForTab: Record<string, string[]> = {
-    ALL: [Roles.MEMBER, Roles.GUARDIAN, Roles.TEAM],
-    [Roles.MEMBER]: [Roles.MEMBER],
-    [Roles.GUARDIAN]: [Roles.GUARDIAN],
-    [Roles.TEAM]: [Roles.TEAM],
+    ALL: [StationUserType.TRIAL, StationUserType.MEMBER, StationUserType.GUARDIAN, StationUserType.TEAM, StationUserType.MANAGER],
+    [StationUserType.TRIAL]: [StationUserType.TRIAL],
+    [StationUserType.MEMBER]: [StationUserType.MEMBER],
+    [StationUserType.GUARDIAN]: [StationUserType.GUARDIAN],
+    [StationUserType.TEAM]: [StationUserType.TEAM],
+    [StationUserType.MANAGER]: [StationUserType.MANAGER],
   }
   const scopes = scopeForTab[activeTab.value] ?? []
   return fields.value.filter(f => {
     if (f.scope === 'GROUP') return false
-    return scopes.includes(f.scope ?? Roles.MEMBER)
+    return scopes.includes(f.scope ?? StationUserType.MEMBER)
   })
 })
 
-const tabOverviewFields = computed(() => tabScopedFields.value.filter(f => parseConfig(f.config).overview))
-const tabNonOverviewFields = computed(() => tabScopedFields.value.filter(f => !parseConfig(f.config).overview))
+const tabOverviewFields = computed(() => tabScopedFields.value.filter(f => parseFieldConfig(f.config).overview))
+const tabNonOverviewFields = computed(() => tabScopedFields.value.filter(f => !parseFieldConfig(f.config).overview))
 
 const visibleColumns = computed(() => {
   const extra = tabNonOverviewFields.value.filter(f => extraColumnIds.value.has(f.id))
@@ -96,38 +104,22 @@ function toggleExtraColumn(fieldId: number) {
   extraColumnIds.value = newSet
 }
 
-// --- Filter bar options ---
-const roleFriendlyNames: Record<string, string> = {
-  MEMBER: 'Mitglied', GUARDIAN: 'Erziehungsberechtigter', TEAM: 'Team', TRIAL: 'Probe',
-}
-const filterRoleOptions = computed<FilterOption[]>(() => {
-  const allowed: string[] = [Roles.MEMBER, Roles.GUARDIAN, Roles.TEAM, Roles.TRIAL]
-  return allRoles.value.filter(r => allowed.includes(r.role)).map(r => ({ id: r.id, name: roleFriendlyNames[r.role] ?? r.role }))
-})
-const filterGroupOptions = computed<FilterOption[]>(() => allGroups.value.map(g => ({ id: g.id, name: g.name ?? '' })))
-const filterTagOptions = computed<FilterOption[]>(() => allTags.value.map(t => ({ id: t.id, name: t.name })))
-
-function onMemberFilter(criteria: FilterCriteria) {
-  memberFilterCriteria.value = criteria
-}
+// --- Member filter ---
+const {
+  onFilter: onMemberFilter,
+  applyFilter: applyMemberFilter,
+} = useMemberFilter(
+    () => members.value,
+    () => memberGroupsMap.value,
+    () => memberTagsMap.value,
+    () => allGroups.value,
+    () => allTags.value,
+)
 
 // --- Filtered and sorted members ---
 const filteredMembers = computed(() => {
   let list = activeTab.value === 'ALL' ? members.value : members.value.filter(m => getMemberType(m.id) === activeTab.value)
-
-  const fc = memberFilterCriteria.value
-  if (fc.roleIds.length > 0 || fc.groupIds.length > 0 || fc.tagIds.length > 0) {
-    const filterRoleNames = new Set<string>(allRoles.value.filter(r => fc.roleIds.includes(r.id)).map(r => r.role))
-    const filterGroupNames = new Set(allGroups.value.filter(g => fc.groupIds.includes(g.id)).map(g => g.name ?? ''))
-    const filterTagNames = new Set(allTags.value.filter(t => fc.tagIds.includes(t.id)).map(t => t.name))
-
-    list = list.filter(m => {
-      const matchesRole = fc.roleIds.length === 0 || (memberRolesMap.value.get(m.id) ?? []).some(r => filterRoleNames.has(r))
-      const matchesGroup = fc.groupIds.length === 0 || (memberGroupsMap.value.get(m.id) ?? []).some(g => filterGroupNames.has(g))
-      const matchesTag = fc.tagIds.length === 0 || (memberTagsMap.value.get(m.id) ?? []).some(t => filterTagNames.has(t))
-      return fc.mode === 'AND' ? (matchesRole && matchesGroup && matchesTag) : (matchesRole || matchesGroup || matchesTag)
-    })
-  }
+  list = applyMemberFilter(list)
 
   const q = filterText.value.toLowerCase().trim()
   if (q) {
@@ -226,9 +218,9 @@ onMounted(() => {
           :extra-column-ids="extraColumnIds"
           :export-mode="exportMode"
           :selected-count="selectedIds.size"
-          :roles="filterRoleOptions"
-          :groups="filterGroupOptions"
-          :tags="filterTagOptions"
+          :can-export="canExport"
+          :groups="allGroups"
+          :tags="allTags"
           @clear-filters="clearFilters"
           @apply-filter="applyFilter"
           @delete-filter="deleteFilter"
@@ -256,6 +248,7 @@ onMounted(() => {
           :get-field-value="getFieldValue"
           :export-mode="exportMode"
           :selected-ids="selectedIds"
+          :can-edit="canEdit"
           @toggle-sort="toggleSort"
           @apply-column-filter="applyColumnFilter"
           @toggle-expand="toggleExpand"

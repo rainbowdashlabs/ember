@@ -5,13 +5,14 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
+import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
-import dev.chojo.ember.feature.form.entity.QuestionType;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
@@ -32,7 +33,9 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -52,7 +55,7 @@ class FormServiceTest extends RepositoryTestBase {
         var memberService = mock(StationMemberService.class);
         var groupService = mock(MemberGroupService.class);
         var tagService = mock(UserTagService.class);
-        var restrictionRepo = new RestrictionRepository();
+        var restrictionRepo = new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo);
 
         service = new FormService(formRepo, memberService, groupService, tagService, restrictionRepo, eventBus);
         station = stationRepo.create("FormSvcStation");
@@ -152,7 +155,7 @@ class FormServiceTest extends RepositoryTestBase {
         var q = service.createQuestion(
                 formId,
                 0,
-                QuestionType.TEXT,
+                FormQuestionType.TEXT,
                 "Your name?",
                 "Enter name",
                 true,
@@ -176,9 +179,14 @@ class FormServiceTest extends RepositoryTestBase {
     void replaceQuestions() {
         var entries = List.of(
                 new QuestionEntry(
-                        QuestionType.TEXT, "Question A", "Desc A", true, false, new FormQuestionConfig.Text(false)),
+                        FormQuestionType.TEXT, "Question A", "Desc A", true, false, new FormQuestionConfig.Text(false)),
                 new QuestionEntry(
-                        QuestionType.TEXT, "Question B", "Desc B", false, false, new FormQuestionConfig.Text(false)));
+                        FormQuestionType.TEXT,
+                        "Question B",
+                        "Desc B",
+                        false,
+                        false,
+                        new FormQuestionConfig.Text(false)));
         service.replaceQuestions(formId, entries);
         var qs = service.findQuestions(formId);
         assertEquals(2, qs.size());
@@ -193,7 +201,7 @@ class FormServiceTest extends RepositoryTestBase {
         var qs = service.findQuestions(formId);
         int qId = qs.getFirst().id();
         var response = service.submitResponse(
-                formId, member.id(), member.id(), Map.of(qId, (FormAnswerValue) new FormAnswerValue.Text("John Doe")));
+                formId, member.id(), member.id(), Map.of(qId, new FormAnswerValue.Text("John Doe")));
         assertNotNull(response);
         assertEquals(formId, response.formId());
     }
@@ -252,7 +260,7 @@ class FormServiceTest extends RepositoryTestBase {
     @Test
     @Order(31)
     void setRestrictions() {
-        service.setRestrictions(formId, List.of(1), List.of(), List.of(), List.of());
+        service.setRestrictions(formId, List.of("MEMBER"), List.of(), List.of(), List.of());
         var rs = service.findRestrictions(formId);
         assertTrue(rs.hasRestrictions());
         // Clear
@@ -295,11 +303,11 @@ class FormServiceTest extends RepositoryTestBase {
         var groupService = mock(MemberGroupService.class);
         var tagService = mock(UserTagService.class);
 
-        when(memberService.findRoles(member.id())).thenReturn(List.of());
+        when(memberService.findById(member.id())).thenReturn(Optional.of(member));
         when(groupService.findGroupsForMember(member.id())).thenReturn(List.of());
         when(tagService.findTagsForMember(member.id())).thenReturn(List.of());
 
-        var restrictionRepo = new RestrictionRepository();
+        var restrictionRepo = new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo);
         var eventBus = new DomainEventBus(Set.of());
         var restrictedService =
                 new FormService(formRepo, memberService, groupService, tagService, restrictionRepo, eventBus);
@@ -308,7 +316,9 @@ class FormServiceTest extends RepositoryTestBase {
         assertTrue(restrictedService.canMemberAccess(form.id(), member.id()));
 
         // A different member ID not in the list — should NOT have access
-        when(memberService.findRoles(99999)).thenReturn(List.of());
+        when(memberService.findById(99999))
+                .thenReturn(Optional.of(new StationMember(
+                        99999, station.id(), UUID.randomUUID(), null, false, null, null, StationUserType.MEMBER)));
         when(groupService.findGroupsForMember(99999)).thenReturn(List.of());
         when(tagService.findTagsForMember(99999)).thenReturn(List.of());
         assertFalse(restrictedService.canMemberAccess(form.id(), 99999));

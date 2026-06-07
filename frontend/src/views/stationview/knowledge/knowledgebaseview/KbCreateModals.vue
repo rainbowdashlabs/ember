@@ -255,7 +255,7 @@ defineExpose({
         <form @submit.prevent="handleUploadFile" class="flex flex-col gap-3">
             <input
                 type="file"
-                class="block w-full text-sm text-[var(--text)] file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-[var(--primary)] file:text-white hover:file:bg-[var(--primary-accent)] cursor-pointer"
+                class="block w-full text-sm text-[var(--text)] file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-[var(--primary)] file:text-[var(--color-primary-text)] hover:file:bg-[var(--primary-accent)] cursor-pointer"
                 @change="onFileSelect"
             />
             <TextInput v-model="uploadFileName" :placeholder="t('kb.fileName')"/>

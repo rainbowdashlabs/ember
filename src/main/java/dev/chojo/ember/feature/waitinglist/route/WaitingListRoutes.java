@@ -5,11 +5,12 @@
  */
 package dev.chojo.ember.feature.waitinglist.route;
 
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryGuardian;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryValue;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListField;
@@ -67,42 +68,57 @@ public class WaitingListRoutes implements Routes {
         routes.post(prefix + "/public/waiting-list/entry/{token}/remove", this::removeByToken);
         routes.post(prefix + "/public/waiting-list/entry/{token}/confirm", this::confirmInterest);
 
+        // Read endpoints
+        routes.get(prefix + "/waiting-lists", this::listAll, StationPermission.WAITLIST_READ);
+        routes.get(prefix + "/waiting-lists/{id}", this::getById, StationPermission.WAITLIST_READ);
+        routes.get(prefix + "/waiting-lists/{id}/fields", this::listFields, StationPermission.WAITLIST_READ);
+        routes.get(prefix + "/waiting-lists/{id}/invites", this::listInvites, StationPermission.WAITLIST_READ);
+        routes.get(prefix + "/waiting-lists/{id}/entries", this::listEntries, StationPermission.WAITLIST_READ);
+
+        // Add endpoints
+        routes.post(prefix + "/waiting-lists/{id}/entries", this::createEntry, StationPermission.WAITLIST_ADD);
+
         // Management endpoints
-        routes.get(prefix + "/waiting-lists", this::listAll, Roles.WAITLIST_MANAGER);
-        routes.post(prefix + "/waiting-lists", this::create, Roles.WAITLIST_MANAGER);
-        routes.get(prefix + "/waiting-lists/{id}", this::getById, Roles.WAITLIST_MANAGER);
-        routes.put(prefix + "/waiting-lists/{id}", this::update, Roles.WAITLIST_MANAGER);
-        routes.delete(prefix + "/waiting-lists/{id}", this::deleteList, Roles.WAITLIST_MANAGER);
-        routes.put(prefix + "/waiting-lists/{id}/visible-fields", this::updateVisibleFields, Roles.WAITLIST_MANAGER);
-
-        // Fields
-        routes.get(prefix + "/waiting-lists/{id}/fields", this::listFields, Roles.WAITLIST_MANAGER);
-        routes.post(prefix + "/waiting-lists/{id}/fields", this::createField, Roles.WAITLIST_MANAGER);
-        routes.put(prefix + "/waiting-lists/{id}/fields/{fieldId}", this::updateField, Roles.WAITLIST_MANAGER);
-        routes.delete(prefix + "/waiting-lists/{id}/fields/{fieldId}", this::deleteField, Roles.WAITLIST_MANAGER);
-
-        // Invites
-        routes.get(prefix + "/waiting-lists/{id}/invites", this::listInvites, Roles.WAITLIST_MANAGER);
-        routes.post(prefix + "/waiting-lists/{id}/invites", this::createInvite, Roles.WAITLIST_MANAGER);
-        routes.delete(prefix + "/waiting-lists/{id}/invites/{inviteId}", this::deleteInvite, Roles.WAITLIST_MANAGER);
-
-        // Entries
-        routes.get(prefix + "/waiting-lists/{id}/entries", this::listEntries, Roles.WAITLIST_MANAGER);
-        routes.post(prefix + "/waiting-lists/{id}/entries", this::createEntry, Roles.WAITLIST_MANAGER);
-        routes.put(prefix + "/waiting-lists/{id}/entries/{entryId}", this::updateEntry, Roles.WAITLIST_MANAGER);
-        routes.delete(prefix + "/waiting-lists/{id}/entries/{entryId}", this::deleteEntry, Roles.WAITLIST_MANAGER);
+        routes.post(prefix + "/waiting-lists", this::create, StationPermission.WAITLIST_EDIT);
+        routes.put(prefix + "/waiting-lists/{id}", this::update, StationPermission.WAITLIST_EDIT);
+        routes.delete(prefix + "/waiting-lists/{id}", this::deleteList, StationPermission.WAITLIST_EDIT);
+        routes.put(
+                prefix + "/waiting-lists/{id}/visible-fields",
+                this::updateVisibleFields,
+                StationPermission.WAITLIST_MANAGER);
+        routes.post(prefix + "/waiting-lists/{id}/fields", this::createField, StationPermission.WAITLIST_EDIT);
+        routes.put(prefix + "/waiting-lists/{id}/fields/{fieldId}", this::updateField, StationPermission.WAITLIST_EDIT);
+        routes.delete(
+                prefix + "/waiting-lists/{id}/fields/{fieldId}", this::deleteField, StationPermission.WAITLIST_EDIT);
+        routes.post(prefix + "/waiting-lists/{id}/invites", this::createInvite, StationPermission.WAITLIST_EDIT);
+        routes.delete(
+                prefix + "/waiting-lists/{id}/invites/{inviteId}", this::deleteInvite, StationPermission.WAITLIST_EDIT);
+        routes.put(
+                prefix + "/waiting-lists/{id}/entries/{entryId}", this::updateEntry, StationPermission.WAITLIST_EDIT);
+        routes.delete(
+                prefix + "/waiting-lists/{id}/entries/{entryId}", this::deleteEntry, StationPermission.WAITLIST_EDIT);
         routes.put(
                 prefix + "/waiting-lists/{id}/entries/{entryId}/created-at",
                 this::updateCreatedAt,
-                Roles.WAITLIST_MANAGER);
+                StationPermission.WAITLIST_EDIT);
 
         // State transitions
-        routes.post(prefix + "/waiting-lists/{id}/entries/{entryId}/invite", this::inviteEntry, Roles.WAITLIST_MANAGER);
         routes.post(
-                prefix + "/waiting-lists/{id}/entries/{entryId}/testing", this::moveToTesting, Roles.WAITLIST_MANAGER);
-        routes.post(prefix + "/waiting-lists/{id}/entries/{entryId}/join", this::moveToJoined, Roles.WAITLIST_MANAGER);
+                prefix + "/waiting-lists/{id}/entries/{entryId}/invite",
+                this::inviteEntry,
+                StationPermission.WAITLIST_EDIT);
         routes.post(
-                prefix + "/waiting-lists/{id}/entries/{entryId}/withdraw", this::withdrawEntry, Roles.WAITLIST_MANAGER);
+                prefix + "/waiting-lists/{id}/entries/{entryId}/testing",
+                this::moveToTesting,
+                StationPermission.WAITLIST_EDIT);
+        routes.post(
+                prefix + "/waiting-lists/{id}/entries/{entryId}/join",
+                this::moveToJoined,
+                StationPermission.WAITLIST_EDIT);
+        routes.post(
+                prefix + "/waiting-lists/{id}/entries/{entryId}/withdraw",
+                this::withdrawEntry,
+                StationPermission.WAITLIST_EDIT);
     }
 
     // --- Public ---
@@ -133,16 +149,16 @@ public class WaitingListRoutes implements Routes {
             responses = {@OpenApiResponse(status = "201"), @OpenApiResponse(status = "400")})
     private void registerViaInvite(Context ctx) {
         var request = ctx.bodyAsClass(RegisterRequest.class);
-        if (request.inviteCode() == null || request.firstname() == null || request.email() == null) {
-            throw new BadRequestResponse("inviteCode, firstname and email are required");
+        if (request.inviteCode() == null || request.firstname() == null) {
+            throw new BadRequestResponse("inviteCode and firstname are required");
         }
+        var guardians = resolveGuardians(request.guardians(), request.parentName(), request.email());
         try {
             var entry = service.registerViaInvite(
                     request.inviteCode(),
                     request.firstname(),
                     request.lastname() != null ? request.lastname() : "",
-                    request.parentName() != null ? request.parentName() : "",
-                    request.email(),
+                    guardians,
                     request.values() != null ? request.values() : Map.of(),
                     request.notes());
             ctx.status(HttpStatus.CREATED).json(new PublicEntryResponse(entry.accessToken()));
@@ -165,6 +181,7 @@ public class WaitingListRoutes implements Routes {
         String token = ctx.pathParam("token");
         var entry = service.findEntryByToken(token).orElseThrow(NotFoundResponse::new);
         var values = service.findEntryValues(entry.id());
+        var guardians = service.findGuardiansByEntry(entry.id());
         var list = service.findById(entry.listId()).orElseThrow(NotFoundResponse::new);
         var fields = service.findFieldsByList(entry.listId());
         int position = service.findEntriesByList(entry.listId()).stream()
@@ -181,7 +198,8 @@ public class WaitingListRoutes implements Routes {
                 position,
                 list.name(),
                 fields,
-                values));
+                values,
+                guardians));
     }
 
     @OpenApi(
@@ -241,7 +259,6 @@ public class WaitingListRoutes implements Routes {
                 request.confirmIntervalDays() != null ? request.confirmIntervalDays() : 180,
                 request.testingGroupId(),
                 request.joinGroupId(),
-                request.joinRoleId(),
                 request.attendanceThreshold() != null ? request.attendanceThreshold() : 5);
         ctx.status(HttpStatus.CREATED).json(list);
     }
@@ -285,7 +302,6 @@ public class WaitingListRoutes implements Routes {
                         request.confirmIntervalDays() != null ? request.confirmIntervalDays() : 180,
                         request.testingGroupId(),
                         request.joinGroupId(),
-                        request.joinRoleId(),
                         request.attendanceThreshold() != null ? request.attendanceThreshold() : 5)
                 .orElseThrow(NotFoundResponse::new);
         ctx.json(updated);
@@ -413,11 +429,19 @@ public class WaitingListRoutes implements Routes {
         var entries = service.findEntriesByList(listId);
         var list = service.findById(listId).orElseThrow(NotFoundResponse::new);
         var fields = service.findFieldsByList(listId);
+        var allGuardians = service.findGuardiansByList(listId);
+        var guardianMap = new java.util.HashMap<Integer, List<WaitingListEntryGuardian>>();
+        for (var g : allGuardians) {
+            guardianMap
+                    .computeIfAbsent(g.entryId(), k -> new java.util.ArrayList<>())
+                    .add(g);
+        }
         var result = entries.stream()
                 .map(entry -> {
                     var values = service.findEntryValues(entry.id());
                     double score = service.evaluateScore(entry, values, fields, list.scoringFormula());
-                    return new EntryWithScore(entry, values, score);
+                    var entryGuardians = guardianMap.getOrDefault(entry.id(), List.of());
+                    return new EntryWithScore(entry, values, score, entryGuardians);
                 })
                 .toList();
         ctx.json(result);
@@ -427,12 +451,12 @@ public class WaitingListRoutes implements Routes {
         int listId = ctx.pathParamAsClass("id", Integer.class).get();
         verifyListOwnership(listId, UserSession.from(ctx));
         var request = ctx.bodyAsClass(EntryRequest.class);
+        var guardians = resolveGuardians(request.guardians(), request.parentName(), request.email());
         var entry = service.createEntry(
                 listId,
                 request.firstname(),
                 request.lastname() != null ? request.lastname() : "",
-                request.parentName() != null ? request.parentName() : "",
-                request.email(),
+                guardians,
                 request.values() != null ? request.values() : Map.of(),
                 request.notes());
         ctx.status(HttpStatus.CREATED).json(entry);
@@ -443,12 +467,12 @@ public class WaitingListRoutes implements Routes {
         verifyListOwnership(listId, UserSession.from(ctx));
         int entryId = ctx.pathParamAsClass("entryId", Integer.class).get();
         var request = ctx.bodyAsClass(EntryRequest.class);
+        var guardians = resolveGuardians(request.guardians(), request.parentName(), request.email());
         service.updateEntry(
                 entryId,
                 request.firstname(),
                 request.lastname() != null ? request.lastname() : "",
-                request.parentName(),
-                request.email(),
+                guardians,
                 request.notes(),
                 request.values());
         var updated = service.findEntryById(entryId).orElseThrow(NotFoundResponse::new);
@@ -528,8 +552,8 @@ public class WaitingListRoutes implements Routes {
         verifyListOwnership(listId, UserSession.from(ctx));
         int entryId = ctx.pathParamAsClass("entryId", Integer.class).get();
         try {
-            var entry = service.withdrawEntry(entryId);
-            ctx.json(entry);
+            service.withdrawEntry(entryId);
+            ctx.status(HttpStatus.NO_CONTENT);
         } catch (IllegalArgumentException e) {
             log.warn("Waiting list entry not found for withdraw, entryId={}", entryId, e);
             throw new NotFoundResponse(e.getMessage());
@@ -558,6 +582,7 @@ public class WaitingListRoutes implements Routes {
             String lastname,
             String parentName,
             String email,
+            List<GuardianRequest> guardians,
             Map<Integer, String> values,
             String notes) {}
 
@@ -573,7 +598,8 @@ public class WaitingListRoutes implements Routes {
             int position,
             String listName,
             List<WaitingListField> fields,
-            List<WaitingListEntryValue> values) {}
+            List<WaitingListEntryValue> values,
+            List<WaitingListEntryGuardian> guardians) {}
 
     public record ListRequest(
             String name,
@@ -582,7 +608,6 @@ public class WaitingListRoutes implements Routes {
             Integer confirmIntervalDays,
             Integer testingGroupId,
             Integer joinGroupId,
-            Integer joinRoleId,
             Integer attendanceThreshold) {}
 
     @OpenApiName("WaitingListListWithCount")
@@ -600,6 +625,7 @@ public class WaitingListRoutes implements Routes {
             String lastname,
             String parentName,
             String email,
+            List<GuardianRequest> guardians,
             Map<Integer, String> values,
             String notes) {}
 
@@ -608,5 +634,28 @@ public class WaitingListRoutes implements Routes {
     public record InviteInfoResponse(String listName, String listDescription, List<WaitingListField> fields) {}
 
     @OpenApiName("WaitingListEntryWithScore")
-    public record EntryWithScore(WaitingListEntry entry, List<WaitingListEntryValue> values, double score) {}
+    public record EntryWithScore(
+            WaitingListEntry entry,
+            List<WaitingListEntryValue> values,
+            double score,
+            List<WaitingListEntryGuardian> guardians) {}
+
+    public record GuardianRequest(String name, String email, String phone) {}
+
+    private static List<WaitingListService.GuardianInput> resolveGuardians(
+            List<GuardianRequest> guardians, String parentName, String email) {
+        if (guardians != null && !guardians.isEmpty()) {
+            return guardians.stream()
+                    .map(g -> new WaitingListService.GuardianInput(
+                            g.name() != null ? g.name() : "",
+                            g.email() != null ? g.email() : "",
+                            g.phone() != null ? g.phone() : ""))
+                    .toList();
+        }
+        if ((parentName != null && !parentName.isBlank()) || (email != null && !email.isBlank())) {
+            return List.of(new WaitingListService.GuardianInput(
+                    parentName != null ? parentName : "", email != null ? email : "", ""));
+        }
+        return List.of();
+    }
 }

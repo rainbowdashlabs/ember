@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.feature.waitinglist.service;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.roles.StationUserType;
+import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
@@ -18,6 +20,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryGuardian;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryValue;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListField;
@@ -29,10 +32,12 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +52,8 @@ import java.util.regex.Pattern;
 public class WaitingListService {
     private static final Logger log = LoggerFactory.getLogger(WaitingListService.class);
 
+    public record GuardianInput(String name, String email, String phone) {}
+
     private final WaitingListRepository repository;
     private final StationRepository stationRepository;
     private final StationMemberRepository stationMemberRepository;
@@ -54,6 +61,7 @@ public class WaitingListService {
     private final AccountRepository accountRepository;
     private final EmailService emailService;
     private final NotificationService notificationService;
+    private final PasswordHasher passwordHasher;
 
     @Inject
     public WaitingListService(
@@ -63,7 +71,8 @@ public class WaitingListService {
             MemberGroupRepository memberGroupRepository,
             AccountRepository accountRepository,
             EmailService emailService,
-            NotificationService notificationService) {
+            NotificationService notificationService,
+            PasswordHasher passwordHasher) {
         this.repository = repository;
         this.stationRepository = stationRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -71,6 +80,7 @@ public class WaitingListService {
         this.accountRepository = accountRepository;
         this.emailService = emailService;
         this.notificationService = notificationService;
+        this.passwordHasher = passwordHasher;
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             var t = new Thread(r, "waitlist-confirmation-checker");
             t.setDaemon(true);
@@ -97,7 +107,6 @@ public class WaitingListService {
             int confirmIntervalDays,
             Integer testingGroupId,
             Integer joinGroupId,
-            Integer joinRoleId,
             int attendanceThreshold) {
         return repository.create(
                 stationId,
@@ -107,7 +116,6 @@ public class WaitingListService {
                 confirmIntervalDays,
                 testingGroupId,
                 joinGroupId,
-                joinRoleId,
                 attendanceThreshold);
     }
 
@@ -119,7 +127,6 @@ public class WaitingListService {
             int confirmIntervalDays,
             Integer testingGroupId,
             Integer joinGroupId,
-            Integer joinRoleId,
             int attendanceThreshold) {
         return repository.update(
                 id,
@@ -129,7 +136,6 @@ public class WaitingListService {
                 confirmIntervalDays,
                 testingGroupId,
                 joinGroupId,
-                joinRoleId,
                 attendanceThreshold);
     }
 
@@ -186,8 +192,7 @@ public class WaitingListService {
             String inviteCode,
             String firstname,
             String lastname,
-            String parentName,
-            String email,
+            List<GuardianInput> guardians,
             Map<Integer, String> fieldValues,
             String notes) {
         var invite = repository
@@ -200,10 +205,19 @@ public class WaitingListService {
             throw new IllegalStateException("Invite code has expired");
         }
 
+        String parentName =
+                guardians != null && !guardians.isEmpty() ? guardians.getFirst().name() : "";
+        String email =
+                guardians != null && !guardians.isEmpty() ? guardians.getFirst().email() : "";
+
         String accessToken = UUID.randomUUID().toString();
         var entry = repository.createEntry(
                 invite.listId(), firstname, lastname, parentName, email, accessToken, notes != null ? notes : "");
         repository.incrementInviteUses(invite.id());
+
+        if (guardians != null) {
+            insertGuardians(entry.id(), guardians);
+        }
 
         for (var e : fieldValues.entrySet()) {
             repository.upsertEntryValue(entry.id(), e.getKey(), e.getValue());
@@ -211,16 +225,23 @@ public class WaitingListService {
 
         String displayName = entry.fullName();
 
-        // Send registration email
+        // Send registration email to all guardians with an email
         var listForEmail = repository.findById(invite.listId()).orElse(null);
         String stationName = listForEmail != null ? resolveStationName(listForEmail.stationId()) : "";
-        emailService.sendWaitlistRegistrationEmail(
-                email,
-                parentName.isBlank() ? displayName : parentName,
-                accessToken,
-                stationName,
-                "de",
-                stationIdForList(invite.listId()));
+        int stationId = stationIdForList(invite.listId());
+        if (guardians != null) {
+            for (var g : guardians) {
+                if (g.email() != null && !g.email().isBlank()) {
+                    emailService.sendWaitlistRegistrationEmail(
+                            g.email(),
+                            g.name().isBlank() ? displayName : g.name(),
+                            accessToken,
+                            stationName,
+                            "de",
+                            stationId);
+                }
+            }
+        }
 
         // Notify managers
         repository
@@ -275,13 +296,19 @@ public class WaitingListService {
             int listId,
             String firstname,
             String lastname,
-            String parentName,
-            String email,
+            List<GuardianInput> guardians,
             Map<Integer, String> fieldValues,
             String notes) {
+        String parentName =
+                guardians != null && !guardians.isEmpty() ? guardians.getFirst().name() : "";
+        String email =
+                guardians != null && !guardians.isEmpty() ? guardians.getFirst().email() : "";
         String accessToken = UUID.randomUUID().toString();
         var entry = repository.createEntry(
                 listId, firstname, lastname, parentName, email, accessToken, notes != null ? notes : "");
+        if (guardians != null) {
+            insertGuardians(entry.id(), guardians);
+        }
         for (var e : fieldValues.entrySet()) {
             repository.upsertEntryValue(entry.id(), e.getKey(), e.getValue());
         }
@@ -292,11 +319,18 @@ public class WaitingListService {
             int entryId,
             String firstname,
             String lastname,
-            String parentName,
-            String email,
+            List<GuardianInput> guardians,
             String notes,
             Map<Integer, String> fieldValues) {
+        String parentName =
+                guardians != null && !guardians.isEmpty() ? guardians.getFirst().name() : "";
+        String email =
+                guardians != null && !guardians.isEmpty() ? guardians.getFirst().email() : "";
         repository.updateEntry(entryId, firstname, lastname, parentName, email, notes != null ? notes : "");
+        if (guardians != null) {
+            repository.deleteGuardiansByEntry(entryId);
+            insertGuardians(entryId, guardians);
+        }
         if (fieldValues != null) {
             for (var e : fieldValues.entrySet()) {
                 repository.upsertEntryValue(entryId, e.getKey(), e.getValue());
@@ -333,12 +367,13 @@ public class WaitingListService {
         }
         var list = repository.findById(entry.listId()).orElseThrow();
 
-        // Create a non-login account (no email, no credentials) and station member with TRIAL role
+        // Create a non-login account (no email, no credentials) and station member with TRIAL type
         var account = accountRepository.create(null, entry.firstname(), entry.lastname());
         var member = stationMemberRepository.create(list.stationId(), account.id());
+        stationMemberRepository.setUserType(member.id(), StationUserType.TRIAL);
         stationMemberRepository
-                .findRoleByName(Roles.TRIAL)
-                .ifPresent(role -> stationMemberRepository.addRole(member.id(), role.id()));
+                .findPermissionByName(StationPermission.USER)
+                .ifPresent(role -> stationMemberRepository.grantPermission(member.id(), role.id()));
 
         // Assign testing group if configured
         if (list.testingGroupId() != null) {
@@ -349,15 +384,30 @@ public class WaitingListService {
         repository.linkMember(entryId, member.id());
         repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.INVITED, "invited_at");
 
-        // Send invite email
+        // Send invite email to all guardians
         String stationName = resolveStationName(list.stationId());
-        emailService.sendWaitlistRegistrationEmail(
-                entry.email(),
-                entry.parentName().isBlank() ? entry.fullName() : entry.parentName(),
-                entry.accessToken(),
-                stationName,
-                "de",
-                list.stationId());
+        var guardians = repository.findGuardiansByEntry(entryId);
+        if (!guardians.isEmpty()) {
+            for (var g : guardians) {
+                if (!g.email().isBlank()) {
+                    emailService.sendWaitlistRegistrationEmail(
+                            g.email(),
+                            g.name().isBlank() ? entry.fullName() : g.name(),
+                            entry.accessToken(),
+                            stationName,
+                            "de",
+                            list.stationId());
+                }
+            }
+        } else if (!entry.email().isBlank()) {
+            emailService.sendWaitlistRegistrationEmail(
+                    entry.email(),
+                    entry.parentName().isBlank() ? entry.fullName() : entry.parentName(),
+                    entry.accessToken(),
+                    stationName,
+                    "de",
+                    list.stationId());
+        }
 
         return repository.findEntryById(entryId).orElseThrow();
     }
@@ -376,7 +426,8 @@ public class WaitingListService {
     }
 
     /**
-     * Move a TESTING entry to JOINED: remove testing group, assign join group and join role.
+     * Move a TESTING entry to JOINED: remove testing group, assign join group, set MEMBER type,
+     * and create guardian accounts for each guardian on the entry.
      */
     public WaitingListEntry moveToJoined(int entryId) {
         var entry =
@@ -393,16 +444,17 @@ public class WaitingListService {
             }
             // Remove TRIAL role
             stationMemberRepository
-                    .findRoleByName(Roles.TRIAL)
-                    .ifPresent(role -> stationMemberRepository.removeRole(entry.memberId(), role.id()));
+                    .findPermissionByName(StationPermission.USER)
+                    .ifPresent(role -> stationMemberRepository.revokePermission(entry.memberId(), role.id()));
             // Assign join group
             if (list.joinGroupId() != null) {
                 memberGroupRepository.addMember(list.joinGroupId(), entry.memberId());
             }
-            // Assign join role (typically MEMBER)
-            if (list.joinRoleId() != null) {
-                stationMemberRepository.addRole(entry.memberId(), list.joinRoleId());
-            }
+            // Set user type to MEMBER
+            stationMemberRepository.setUserType(entry.memberId(), StationUserType.MEMBER);
+
+            // Create guardian accounts and link them to the member
+            createGuardianAccounts(entry, list.stationId());
         }
 
         repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.JOINED, "joined_at");
@@ -411,9 +463,9 @@ public class WaitingListService {
 
     /**
      * Withdraw an entry (from WAITING, INVITED, or TESTING).
-     * Deletes the linked member and orphaned account if present.
+     * Deletes the linked member, orphaned account, and the entry itself.
      */
-    public WaitingListEntry withdrawEntry(int entryId) {
+    public void withdrawEntry(int entryId) {
         var entry =
                 repository.findEntryById(entryId).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
         if (entry.status() == WaitingListEntryStatus.JOINED || entry.status() == WaitingListEntryStatus.WITHDRAWN) {
@@ -425,7 +477,6 @@ public class WaitingListService {
             var member = stationMemberRepository.findById(entry.memberId()).orElse(null);
             if (member != null) {
                 stationMemberRepository.delete(member.id());
-                // Delete account if it has no other members and no email (non-login account)
                 if (member.accountId() != null) {
                     var otherMembers = stationMemberRepository.findAllByAccountId(member.accountId());
                     if (otherMembers.isEmpty()) {
@@ -439,8 +490,7 @@ public class WaitingListService {
             }
         }
 
-        repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.WITHDRAWN, "withdrawn_at");
-        return repository.findEntryById(entryId).orElseThrow();
+        repository.deleteEntry(entryId);
     }
 
     // --- Scoring ---
@@ -538,6 +588,75 @@ public class WaitingListService {
         for (var entry : gracePeriodExpired) {
             repository.updateEntryStatus(entry.id(), WaitingListEntryStatus.WITHDRAWN);
         }
+    }
+
+    // --- Guardians ---
+
+    public List<WaitingListEntryGuardian> findGuardiansByEntry(int entryId) {
+        return repository.findGuardiansByEntry(entryId);
+    }
+
+    public List<WaitingListEntryGuardian> findGuardiansByList(int listId) {
+        return repository.findGuardiansByList(listId);
+    }
+
+    private void insertGuardians(int entryId, List<GuardianInput> guardians) {
+        for (int i = 0; i < guardians.size(); i++) {
+            var g = guardians.get(i);
+            repository.createGuardian(
+                    entryId,
+                    g.name() != null ? g.name() : "",
+                    g.email() != null ? g.email() : "",
+                    g.phone() != null ? g.phone() : "",
+                    i);
+        }
+    }
+
+    private void createGuardianAccounts(WaitingListEntry entry, int stationId) {
+        var guardians = repository.findGuardiansByEntry(entry.id());
+        if (guardians.isEmpty()) return;
+
+        var loginRole = stationMemberRepository.findPermissionByName(StationPermission.LOGIN);
+        var guardianRole = stationMemberRepository.findPermissionByName(StationPermission.MEMBER_GUARDIAN);
+
+        for (var guardian : guardians) {
+            if (guardian.email().isBlank()) continue;
+
+            // Reuse existing account if email already registered
+            var existingAccount = accountRepository.findByEmail(guardian.email());
+            if (existingAccount.isPresent()) {
+                var existingMember = stationMemberRepository.findByStationAndAccount(
+                        stationId, existingAccount.get().id());
+                if (existingMember.isPresent()) {
+                    stationMemberRepository.addManager(existingMember.get().id(), entry.memberId());
+                    continue;
+                }
+            }
+
+            String[] parts = guardian.name().split(" ", 2);
+            String firstName = parts[0];
+            String lastName = parts.length > 1 ? parts[1] : "";
+
+            var account = existingAccount.orElseGet(
+                    () -> accountRepository.create(guardian.email(), firstName, lastName, true));
+            if (existingAccount.isEmpty()) {
+                String password = generatePassword();
+                accountRepository.createCredential(account.id(), passwordHasher.hash(password));
+            }
+
+            var member = stationMemberRepository.create(stationId, account.id());
+            stationMemberRepository.setUserType(member.id(), StationUserType.GUARDIAN);
+            loginRole.ifPresent(role -> stationMemberRepository.grantPermission(member.id(), role.id()));
+            guardianRole.ifPresent(role -> stationMemberRepository.grantPermission(member.id(), role.id()));
+
+            stationMemberRepository.addManager(member.id(), entry.memberId());
+        }
+    }
+
+    private static String generatePassword() {
+        byte[] bytes = new byte[16];
+        new SecureRandom().nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     private Integer stationIdForList(int listId) {

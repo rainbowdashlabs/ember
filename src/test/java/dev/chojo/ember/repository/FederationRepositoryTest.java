@@ -94,11 +94,12 @@ class FederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void createPartner() {
-        var partner = federationRepo.createPartner(stationA.id(), stationB.id(), "EMBER-TEST-CODE", "publicKeyA", null);
+        var partner =
+                federationRepo.createPartner(stationA.id(), stationB.uid(), "EMBER-TEST-CODE", "publicKeyA", null);
         assertNotNull(partner);
         assertTrue(partner.id() > 0);
         assertEquals(stationA.id(), partner.stationId());
-        assertEquals(stationB.id(), partner.partnerStationId());
+        assertEquals(stationB.uid(), partner.partnerStationId());
         assertEquals("EMBER-TEST-CODE", partner.inviteCode());
         assertEquals("publicKeyA", partner.publicKey());
         assertEquals(FederationPartner.FederationStatus.PENDING, partner.status());
@@ -162,8 +163,8 @@ class FederationRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(8)
-    void findPartnerByRemoteStationId() {
-        var found = federationRepo.findPartnerByRemoteStationId(stationB.id());
+    void findPartnerByRemoteStationUid() {
+        var found = federationRepo.findPartnerByRemoteStationUid(stationB.uid());
         assertTrue(found.isPresent());
         assertEquals(partnerId, found.get().id());
     }
@@ -350,7 +351,7 @@ class FederationRepositoryTest extends RepositoryTestBase {
     @Order(71)
     void createPartnerWithRemoteHost() {
         var remote = federationRepo.createPartner(
-                stationA.id(), stationC.id(), "EMBER-REMOTE-CODE", "publicKeyRemote", "https://remote.example.com");
+                stationA.id(), stationC.uid(), "EMBER-REMOTE-CODE", "publicKeyRemote", "https://remote.example.com");
         assertNotNull(remote);
         assertEquals("https://remote.example.com", remote.remoteHost());
         assertTrue(remote.isRemote());
@@ -377,9 +378,10 @@ class FederationRepositoryTest extends RepositoryTestBase {
     @Order(73)
     void updateRemoteHostForPartnerStation() {
         // Create a partner from stationC to stationB, alongside the existing stationA->stationB partner
-        var extra = federationRepo.createPartner(stationC.id(), stationB.id(), "EMBER-EXTRA-CODE", "pubKeyExtra", null);
+        var extra =
+                federationRepo.createPartner(stationC.id(), stationB.uid(), "EMBER-EXTRA-CODE", "pubKeyExtra", null);
 
-        federationRepo.updateRemoteHostForPartnerStation(stationB.id(), "https://moved.example.com");
+        federationRepo.updateRemoteHostForPartnerStation(stationB.uid(), "https://moved.example.com");
 
         var main = federationRepo.findPartnerById(partnerId).orElseThrow();
         assertEquals("https://moved.example.com", main.remoteHost());
@@ -388,8 +390,30 @@ class FederationRepositoryTest extends RepositoryTestBase {
         assertEquals("https://moved.example.com", extraUpdated.remoteHost());
 
         // Reset
-        federationRepo.updateRemoteHostForPartnerStation(stationB.id(), null);
+        federationRepo.updateRemoteHostForPartnerStation(stationB.uid(), null);
         federationRepo.deletePartner(extra.id());
+    }
+
+    // -- Count Pending Requests --
+
+    @Test
+    @Order(80)
+    void countPendingRequestsNone() {
+        // stationA has no pending requests directed at it (partner is stationA -> stationB, status ACTIVE)
+        int count = federationRepo.countPendingRequests(stationA.uid());
+        assertEquals(0, count);
+    }
+
+    @Test
+    @Order(81)
+    void countPendingRequestsWithPending() {
+        // Create a pending partner from stationC to stationA (so stationA's uid is the partner_station_id)
+        var pending =
+                federationRepo.createPartner(stationC.id(), stationA.uid(), "EMBER-PEND-CODE", "pubKeyPending", null);
+        int count = federationRepo.countPendingRequests(stationA.uid());
+        assertEquals(1, count);
+        // Cleanup
+        federationRepo.deletePartner(pending.id());
     }
 
     // -- Delete Partner --

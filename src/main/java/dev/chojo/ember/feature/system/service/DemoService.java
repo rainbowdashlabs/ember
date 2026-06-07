@@ -9,7 +9,9 @@ import de.chojo.sadu.postgresql.databases.PostgreSql;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.updater.QueryReplacement;
 import de.chojo.sadu.updater.SqlUpdater;
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.InstanceUserType;
+import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
@@ -19,8 +21,8 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
-import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
@@ -28,6 +30,7 @@ import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
+import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.repository.ExchangeRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
@@ -52,16 +55,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -104,6 +112,7 @@ public class DemoService {
     private final DemoProtocolSeeder protocolSeeder;
     private final DemoFederationSeeder federationSeeder;
     private final DemoLendingSeeder lendingSeeder;
+    private final DemoBoardSeeder boardSeeder;
     private final ApplicationSettingRepository applicationSettingRepository;
     private final EventService eventService;
     private final NewsService newsService;
@@ -144,6 +153,7 @@ public class DemoService {
             DemoProtocolSeeder protocolSeeder,
             DemoFederationSeeder federationSeeder,
             DemoLendingSeeder lendingSeeder,
+            DemoBoardSeeder boardSeeder,
             ApplicationSettingRepository applicationSettingRepository,
             EventService eventService,
             NewsService newsService,
@@ -178,6 +188,7 @@ public class DemoService {
         this.protocolSeeder = protocolSeeder;
         this.federationSeeder = federationSeeder;
         this.lendingSeeder = lendingSeeder;
+        this.boardSeeder = boardSeeder;
         this.applicationSettingRepository = applicationSettingRepository;
         this.eventService = eventService;
         this.newsService = newsService;
@@ -193,8 +204,13 @@ public class DemoService {
 
     public void initialize() {
         if (demoConfig.dev()) {
-            log.info("Dev mode enabled. Seeding database once...");
+            if (schemaUnchanged()) {
+                log.info("Dev mode: schema unchanged, skipping seed.");
+                return;
+            }
+            log.info("Dev mode: schema changed, re-seeding database...");
             resetAndSeed();
+            writeSchemaHash();
             return;
         }
         if (!demoConfig.enabled()) return;
@@ -220,6 +236,47 @@ public class DemoService {
             log.info("Demo: {} minutes idle, resetting data...", idleMinutes);
             needsReset = false;
             resetAndSeed();
+        }
+    }
+
+    private static final Path SCHEMA_HASH_FILE = Path.of(".demo-schema-hash");
+
+    private boolean schemaUnchanged() {
+        try {
+            if (!Files.exists(SCHEMA_HASH_FILE)) return false;
+            var stored = Files.readString(SCHEMA_HASH_FILE).strip();
+            return stored.equals(computeSchemaHash());
+        } catch (Exception e) {
+            log.warn("Could not read schema hash, will re-seed", e);
+            return false;
+        }
+    }
+
+    private void writeSchemaHash() {
+        try {
+            Files.writeString(SCHEMA_HASH_FILE, computeSchemaHash());
+        } catch (Exception e) {
+            log.warn("Could not write schema hash file", e);
+        }
+    }
+
+    private String computeSchemaHash() {
+        try {
+            var digest = MessageDigest.getInstance("SHA-256");
+            // Hash the version file
+            try (InputStream is = getClass().getResourceAsStream("/database/version")) {
+                if (is != null) digest.update(is.readAllBytes());
+            }
+            // Hash all patch files in order
+            for (int i = 1; ; i++) {
+                try (InputStream is = getClass().getResourceAsStream("/database/postgresql/1/patch_" + i + ".sql")) {
+                    if (is == null) break;
+                    digest.update(is.readAllBytes());
+                }
+            }
+            return HexFormat.of().formatHex(digest.digest());
+        } catch (NoSuchAlgorithmException | IOException e) {
+            throw new RuntimeException("Failed to compute schema hash", e);
         }
     }
 
@@ -255,7 +312,7 @@ public class DemoService {
         // -- Admin --
         var admin = accountRepository.create("admin@ember.local", "Admin", "Demo", true);
         accountRepository.createCredential(admin.id(), hash);
-        accountRepository.addAccountRole(admin.id(), "ADMIN");
+        accountRepository.setInstanceUserType(admin.id(), InstanceUserType.ADMINISTRATOR);
 
         // -- Station --
         var station = stationRepository.create(
@@ -277,21 +334,31 @@ public class DemoService {
         }
 
         var adminMember = stationMemberRepository.create(station.id(), admin.id());
-        var managerRole = stationMemberRepository.findRoleByName(Roles.MANAGER).orElseThrow();
-        var loginRole = stationMemberRepository.findRoleByName(Roles.LOGIN).orElseThrow();
-        var memberRole = stationMemberRepository.findRoleByName(Roles.MEMBER).orElseThrow();
-        var teamRole = stationMemberRepository.findRoleByName(Roles.TEAM).orElseThrow();
-        var memberManagerRole =
-                stationMemberRepository.findRoleByName(Roles.GUARDIAN).orElseThrow();
-        var attendanceMgmt =
-                stationMemberRepository.findRoleByName(Roles.ATTENDANCE_MANAGER).orElseThrow();
-        var eventMgmt =
-                stationMemberRepository.findRoleByName(Roles.EVENT_MANAGER).orElseThrow();
-        var memberMgmt =
-                stationMemberRepository.findRoleByName(Roles.MEMBER_MANAGER).orElseThrow();
+        var managerRole = stationMemberRepository
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .orElseThrow();
+        var loginRole = stationMemberRepository
+                .findPermissionByName(StationPermission.LOGIN)
+                .orElseThrow();
+        var memberRole = stationMemberRepository
+                .findPermissionByName(StationPermission.USER)
+                .orElseThrow();
+        var memberManagerRole = stationMemberRepository
+                .findPermissionByName(StationPermission.MEMBER_GUARDIAN)
+                .orElseThrow();
+        var attendanceMgmt = stationMemberRepository
+                .findPermissionByName(StationPermission.ATTENDANCE_MANAGER)
+                .orElseThrow();
+        var eventMgmt = stationMemberRepository
+                .findPermissionByName(StationPermission.EVENT_MANAGER)
+                .orElseThrow();
+        var memberMgmt = stationMemberRepository
+                .findPermissionByName(StationPermission.MEMBER_MANAGER)
+                .orElseThrow();
 
-        stationMemberRepository.addRole(adminMember.id(), managerRole.id());
-        stationMemberRepository.addRole(adminMember.id(), loginRole.id());
+        stationMemberRepository.setUserType(adminMember.id(), StationUserType.MANAGER);
+        stationMemberRepository.grantPermission(adminMember.id(), managerRole.id());
+        stationMemberRepository.grantPermission(adminMember.id(), loginRole.id());
         stationRepository.setOwner(station.id(), adminMember.id());
 
         // -- Groups --
@@ -500,10 +567,13 @@ public class DemoService {
 
         // Create Betreuer (TEAM — not MEMBER)
         for (var u : betreuer) {
-            var m = createUser(u.firstName(), u.lastName(), hash, station.id(), loginRole.id(), teamRole.id());
-            stationMemberRepository.addRole(m.id(), attendanceMgmt.id());
-            stationMemberRepository.addRole(m.id(), eventMgmt.id());
-            stationMemberRepository.addRole(m.id(), memberMgmt.id());
+            var m = createTeamMember(u.firstName(), u.lastName(), hash, station.id(), loginRole.id());
+            // Max Mustermann gets no additional permissions (plain user for testing)
+            if (!u.lastName().equals("Mustermann")) {
+                stationMemberRepository.grantPermission(m.id(), attendanceMgmt.id());
+                stationMemberRepository.grantPermission(m.id(), eventMgmt.id());
+                stationMemberRepository.grantPermission(m.id(), memberMgmt.id());
+            }
             memberGroupRepository.addMember(groupBetreuer.id(), m.id());
             betreuerMembers.add(m);
 
@@ -643,8 +713,7 @@ public class DemoService {
         memberGroupRepository.addMember(groupFortgeschritten.id(), formerMember2.id());
         stationMemberRepository.setFormer(formerMember2.id(), true);
 
-        var formerMember3 = createUser("Tom", "Richter", hash, station.id(), loginRole.id(), memberRole.id());
-        stationMemberRepository.addRole(formerMember3.id(), teamRole.id());
+        var formerMember3 = createTeamMember("Tom", "Richter", hash, station.id(), loginRole.id());
         stationMemberRepository.setFormer(formerMember3.id(), true);
 
         // -- Profile field changes (unacknowledged) --
@@ -743,21 +812,18 @@ public class DemoService {
         }
 
         // -- Attendance templates --
-        var templateAnfaenger = attendanceRepository.createTemplate(station.id(), "Übung Anfänger");
+        var templateUebung = attendanceRepository.createTemplate(station.id(), "Übung");
         attendanceRepository.setTemplateGroups(
-                templateAnfaenger.id(), List.of(new AttendanceRepository.TemplateGroup(groupAnfaenger.id(), 0)));
+                templateUebung.id(),
+                List.of(
+                        new AttendanceRepository.TemplateGroup(groupAnfaenger.id(), 0),
+                        new AttendanceRepository.TemplateGroup(groupFortgeschritten.id(), 1)));
         attendanceRepository.createTemplateField(
-                templateAnfaenger.id(),
+                templateUebung.id(),
                 "Thema",
                 AttendanceFieldType.STRING,
                 AttendanceFieldConfig.parse("{\"defaultValue\":\"Grundausbildung\"}"),
                 0);
-
-        var templateFort = attendanceRepository.createTemplate(station.id(), "Übung Fortgeschritten");
-        attendanceRepository.setTemplateGroups(
-                templateFort.id(), List.of(new AttendanceRepository.TemplateGroup(groupFortgeschritten.id(), 0)));
-        attendanceRepository.createTemplateField(
-                templateFort.id(), "Thema", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
 
         var templateGesamt = attendanceRepository.createTemplate(station.id(), "Gesamtübung");
         attendanceRepository.setTemplateGroups(
@@ -777,38 +843,25 @@ public class DemoService {
         // -- Events --
         Instant monStart = LocalDate.now().atTime(17, 30).toInstant(ZoneOffset.UTC);
         Instant monEnd = LocalDate.now().atTime(19, 0).toInstant(ZoneOffset.UTC);
-        Instant wedStart = LocalDate.now().atTime(18, 0).toInstant(ZoneOffset.UTC);
-        Instant wedEnd = LocalDate.now().atTime(19, 30).toInstant(ZoneOffset.UTC);
         Instant satStart = LocalDate.now().atTime(10, 0).toInstant(ZoneOffset.UTC);
         Instant satEnd = LocalDate.now().atTime(13, 0).toInstant(ZoneOffset.UTC);
 
-        var evAnfaenger = eventService.create(
+        var evUebung = eventService.create(
                 station.id(),
-                "Übung Anfänger",
-                "Grundausbildung für Anfänger",
+                "Übung",
+                "Wöchentliche Übung für alle Gruppen",
                 StationEvent.EventType.RECURRING,
                 1,
                 monStart,
                 monEnd,
-                templateAnfaenger.id(),
+                templateUebung.id(),
                 false,
                 null,
                 false,
                 catUebung.id(),
-                null);
-        var evFort = eventService.create(
-                station.id(),
-                "Übung Fortgeschritten",
-                "Training für Fortgeschrittene",
-                StationEvent.EventType.RECURRING,
-                3,
-                wedStart,
-                wedEnd,
-                templateFort.id(),
-                false,
                 null,
-                false,
-                catUebung.id(),
+                null,
+                null,
                 null);
         var evGesamt = eventService.create(
                 station.id(),
@@ -823,6 +876,9 @@ public class DemoService {
                 null,
                 false,
                 catUebung.id(),
+                null,
+                null,
+                null,
                 null);
 
         // Monthly: first Saturday = Elternabend
@@ -839,6 +895,9 @@ public class DemoService {
                 null,
                 false,
                 catVeranstaltung.id(),
+                null,
+                null,
+                null,
                 null);
 
         // Quarterly: first Saturday = Dienstbesprechung
@@ -855,6 +914,9 @@ public class DemoService {
                 null,
                 false,
                 catVeranstaltung.id(),
+                null,
+                null,
+                null,
                 null);
 
         // -- Past attendance sessions (full year + current year so far) --
@@ -876,32 +938,10 @@ public class DemoService {
                 null,
                 false,
                 catVeranstaltung.id(),
+                null,
+                null,
+                null,
                 null);
-
-        attendanceSeeder.seedAttendanceSessions(
-                rng,
-                templateAnfaenger,
-                templateFort,
-                templateGesamt,
-                evAnfaenger,
-                evFort,
-                evGesamt,
-                anfaengerMembers,
-                fortgeschrittenMembers,
-                betreuerMembers);
-
-        // -- Inventory --
-        inventorySeeder.seedInventory(
-                station.id(),
-                rng,
-                anfaengerMembers,
-                fortgeschrittenMembers,
-                groupAnfaenger.id(),
-                groupFortgeschritten.id());
-
-        // -- Inventory checks (done by Betreuer) --
-        inventorySeeder.seedInventoryChecks(
-                station.id(), rng, betreuerMembers, anfaengerMembers, fortgeschrittenMembers);
 
         // One-time event for today (ensures there's always an event today)
         Instant todayEventStart = LocalDate.now().atTime(16, 0).toInstant(ZoneOffset.UTC);
@@ -925,15 +965,14 @@ public class DemoService {
                 null,
                 false,
                 catUebung.id(),
+                null,
+                null,
+                null,
                 null);
         LocalDate todayDate = LocalDate.now();
         for (int i = 0; i < 5 && i < anfaengerMembers.size(); i++) {
             eventRepository.createRegistration(
-                    theorieabend.id(),
-                    anfaengerMembers.get(i).id(),
-                    todayDate,
-                    EventRegistration.RegistrationStatus.DECLINED,
-                    null);
+                    theorieabend.id(), anfaengerMembers.get(i).id(), todayDate, RegistrationStatus.DECLINED, null);
         }
 
         // -- Registration-required events --
@@ -957,6 +996,9 @@ public class DemoService {
                 deadline,
                 true,
                 catVeranstaltung.id(),
+                null,
+                null,
+                null,
                 null);
 
         Instant oeffentlichkeit = LocalDate.now().plusWeeks(3).atTime(14, 0).toInstant(ZoneOffset.UTC);
@@ -977,6 +1019,9 @@ public class DemoService {
                 oeffentlichkeitDeadline,
                 false,
                 catVeranstaltung.id(),
+                null,
+                null,
+                null,
                 null);
 
         Instant wettbewerb =
@@ -999,6 +1044,9 @@ public class DemoService {
                 wettbewerbDeadline,
                 true,
                 catWettbewerb.id(),
+                null,
+                null,
+                null,
                 null);
 
         // Add some registrations
@@ -1009,44 +1057,32 @@ public class DemoService {
                     tagDerOffenenTuer.id(),
                     fortgeschrittenMembers.get(i).id(),
                     tagDate,
-                    EventRegistration.RegistrationStatus.ACCEPTED,
+                    RegistrationStatus.ACCEPTED,
                     null);
         }
         for (int i = 0; i < 5 && i < anfaengerMembers.size(); i++) {
             eventRepository.createRegistration(
-                    stadtfest.id(),
-                    anfaengerMembers.get(i).id(),
-                    stadtfestDate,
-                    EventRegistration.RegistrationStatus.ACCEPTED,
-                    null);
+                    stadtfest.id(), anfaengerMembers.get(i).id(), stadtfestDate, RegistrationStatus.ACCEPTED, null);
         }
         for (int i = 0; i < 3 && i < fortgeschrittenMembers.size(); i++) {
             eventRepository.createRegistration(
                     stadtfest.id(),
                     fortgeschrittenMembers.get(i).id(),
                     stadtfestDate,
-                    EventRegistration.RegistrationStatus.ACCEPTED,
+                    RegistrationStatus.ACCEPTED,
                     null);
         }
         // Some pending registrations for Kreiswettbewerb
         LocalDate kwDate = LocalDate.now().plusMonths(2).withDayOfMonth(20);
         for (int i = 0; i < 6 && i < fortgeschrittenMembers.size(); i++) {
             eventRepository.createRegistration(
-                    kreisWettbewerb.id(),
-                    fortgeschrittenMembers.get(i).id(),
-                    kwDate,
-                    EventRegistration.RegistrationStatus.PENDING,
-                    null);
+                    kreisWettbewerb.id(), fortgeschrittenMembers.get(i).id(), kwDate, RegistrationStatus.PENDING, null);
         }
 
         // Declined registrations for Stadtfest
         for (int i = 5; i < 8 && i < anfaengerMembers.size(); i++) {
             eventRepository.createRegistration(
-                    stadtfest.id(),
-                    anfaengerMembers.get(i).id(),
-                    stadtfestDate,
-                    EventRegistration.RegistrationStatus.DECLINED,
-                    null);
+                    stadtfest.id(), anfaengerMembers.get(i).id(), stadtfestDate, RegistrationStatus.DECLINED, null);
         }
         // Declined registrations for Kreiswettbewerb
         for (int i = 6; i < 9 && i < fortgeschrittenMembers.size(); i++) {
@@ -1054,17 +1090,13 @@ public class DemoService {
                     kreisWettbewerb.id(),
                     fortgeschrittenMembers.get(i).id(),
                     kwDate,
-                    EventRegistration.RegistrationStatus.DECLINED,
+                    RegistrationStatus.DECLINED,
                     null);
         }
         // Denied registration for Tag der offenen Tür
         if (anfaengerMembers.size() > 9) {
             eventRepository.createRegistration(
-                    tagDerOffenenTuer.id(),
-                    anfaengerMembers.get(9).id(),
-                    tagDate,
-                    EventRegistration.RegistrationStatus.DENIED,
-                    null);
+                    tagDerOffenenTuer.id(), anfaengerMembers.get(9).id(), tagDate, RegistrationStatus.DENIED, null);
         }
 
         // -- Öffentlichkeitsarbeit events --
@@ -1109,6 +1141,9 @@ public class DemoService {
                     null,
                     true,
                     catOeffentlichkeit.id(),
+                    null,
+                    null,
+                    null,
                     null);
             eventFieldRepository.create(
                     oeEvent.id(),
@@ -1135,9 +1170,7 @@ public class DemoService {
             int acceptOffset = e * 3; // shift which members get accepted each event
             for (int i = 0; i < count; i++) {
                 int rotatedIdx = (i + acceptOffset) % allMembers.size();
-                var status = i < 6
-                        ? EventRegistration.RegistrationStatus.ACCEPTED
-                        : EventRegistration.RegistrationStatus.DENIED;
+                var status = i < 6 ? RegistrationStatus.ACCEPTED : RegistrationStatus.DENIED;
                 eventRepository.createRegistration(
                         oeEvent.id(), allMembers.get(rotatedIdx).id(), eventDate, status, null);
             }
@@ -1161,6 +1194,9 @@ public class DemoService {
                 openDeadline,
                 true,
                 catOeffentlichkeit.id(),
+                null,
+                null,
+                null,
                 null);
         eventFieldRepository.create(
                 oeOpen.id(),
@@ -1195,9 +1231,7 @@ public class DemoService {
         // 14 registrations: 6 accepted, 8 pending (not yet confirmed)
         int openCount = Math.min(14, allMembers.size());
         for (int i = 0; i < openCount; i++) {
-            var status = i < 6
-                    ? EventRegistration.RegistrationStatus.ACCEPTED
-                    : EventRegistration.RegistrationStatus.PENDING;
+            var status = i < 6 ? RegistrationStatus.ACCEPTED : RegistrationStatus.PENDING;
             eventRepository.createRegistration(oeOpen.id(), allMembers.get(i).id(), openDate, status, null);
         }
 
@@ -1275,7 +1309,7 @@ public class DemoService {
                 false);
         // Recurring event fields
         eventFieldRepository.create(
-                evAnfaenger.id(),
+                evUebung.id(),
                 "Ort",
                 EventFieldType.STRING,
                 EventFieldConfig.parse("{}"),
@@ -1285,31 +1319,11 @@ public class DemoService {
                 null,
                 true);
         eventFieldRepository.create(
-                evAnfaenger.id(),
+                evUebung.id(),
                 "Hinweis",
                 EventFieldType.STRING,
                 EventFieldConfig.parse("{}"),
                 "Sportkleidung mitbringen",
-                1,
-                false,
-                null,
-                false);
-        eventFieldRepository.create(
-                evFort.id(),
-                "Ort",
-                EventFieldType.STRING,
-                EventFieldConfig.parse("{}"),
-                "Feuerwehrhaus Musterstadt",
-                0,
-                true,
-                null,
-                true);
-        eventFieldRepository.create(
-                evFort.id(),
-                "Hinweis",
-                EventFieldType.STRING,
-                EventFieldConfig.parse("{}"),
-                "Schutzausrüstung wird gestellt",
                 1,
                 false,
                 null,
@@ -1382,7 +1396,7 @@ public class DemoService {
                 Wir freuen uns auf eine tolle Zeit! 🚒
                 """,
                 "<p>Herzlich willkommen auf unserer neuen Plattform! Hier findet ihr alle wichtigen Informationen rund um unsere <strong>Jugendfeuerwehr</strong>.</p><h2>Was ist neu?</h2><p>Wir haben viele neue Funktionen für euch:</p><ul><li><strong>Terminübersicht</strong> — Alle Übungen, Veranstaltungen und Wettbewerbe auf einen Blick</li><li><strong>Anwesenheitsverwaltung</strong> — Schnelles Ein- und Auschecken bei Übungen</li><li><strong>Inventarverwaltung</strong> — Eure Ausrüstung immer im Blick</li><li><strong>Wissensdatenbank</strong> — Lernmaterial und Protokolle</li></ul><h2>Erste Schritte</h2><ol><li>Prüft euer <strong>Profil</strong> und ergänzt fehlende Daten</li><li>Schaut euch die <strong>kommenden Termine</strong> an</li><li>Meldet euch für den nächsten <strong>Wettbewerb</strong> an</ol><blockquote><p><strong>Tipp:</strong> Bei Fragen könnt ihr jederzeit die Betreuer ansprechen oder die Hilfe-Seite nutzen.</p></blockquote><p>Wir freuen uns auf eine tolle Zeit! 🚒</p>",
-                adminMember.id(),
+                stationMemberRepository.resolveIdentity(adminMember.id()),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -1413,7 +1427,8 @@ public class DemoService {
                 > *Teilnehmen dürfen alle Fortgeschrittenen.*
                 """,
                 "<p>Die Anmeldung zum <strong>Kreiswettbewerb</strong> am 20. des übernächsten Monats ist jetzt geöffnet!</p><h2>Wichtige Infos</h2><table><tr><td></td><td>Details</td></tr><tr><td><strong>Datum</strong></td><td>20. des übernächsten Monats</td></tr><tr><td><strong>Ort</strong></td><td>Sportplatz Nachbarstadt</td></tr><tr><td><strong>Treffpunkt</strong></td><td>Feuerwehrgerätehaus, 07:30 Uhr</td></tr></table><h3>Was wird bewertet?</h3><ul><li>Löschangriff</li><li>Staffellauf</li><li>Knotenkunde</li><li>Erste Hilfe</li></ul><p>Bitte meldet euch <strong>bis spätestens nächste Woche</strong> über die Terminseite an. Die Plätze sind begrenzt.</p><blockquote><p><em>Teilnehmen dürfen alle Fortgeschrittenen.</em></p></blockquote>",
-                betreuerMembers.getFirst().id(),
+                stationMemberRepository.resolveIdentity(
+                        betreuerMembers.getFirst().id()),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -1424,42 +1439,45 @@ public class DemoService {
                 station.id(),
                 news1.id(),
                 null,
-                elternMembers.get(0).id(),
+                stationMemberRepository.resolveIdentity(elternMembers.get(0).id()),
                 "Demo User",
                 "Super, endlich eine moderne Plattform!");
         newsService.createComment(
                 station.id(),
                 news1.id(),
                 comment1.id(),
-                betreuerMembers.getFirst().id(),
+                stationMemberRepository.resolveIdentity(
+                        betreuerMembers.getFirst().id()),
                 "Demo User",
                 "Danke! Bei Fragen einfach melden.");
         newsService.createComment(
                 station.id(),
                 news1.id(),
                 null,
-                elternMembers.get(1).id(),
+                stationMemberRepository.resolveIdentity(elternMembers.get(1).id()),
                 "Demo User",
                 "Kann man hier auch Abwesenheiten eintragen?");
         newsService.createComment(
                 station.id(),
                 news2.id(),
                 null,
-                fortgeschrittenMembers.get(0).id(),
+                stationMemberRepository.resolveIdentity(
+                        fortgeschrittenMembers.get(0).id()),
                 "Demo User",
                 "Ich bin dabei! \uD83D\uDCAA");
         var comment2 = newsService.createComment(
                 station.id(),
                 news2.id(),
                 null,
-                fortgeschrittenMembers.get(1).id(),
+                stationMemberRepository.resolveIdentity(
+                        fortgeschrittenMembers.get(1).id()),
                 "Demo User",
                 "Wie viele Plätze gibt es?");
         newsService.createComment(
                 station.id(),
                 news2.id(),
                 comment2.id(),
-                betreuerMembers.get(0).id(),
+                stationMemberRepository.resolveIdentity(betreuerMembers.get(0).id()),
                 "Demo User",
                 "Wir haben 8 Plätze. Bitte schnell anmelden!");
 
@@ -1480,7 +1498,7 @@ public class DemoService {
                 > Die neuen Helme entsprechen der aktuellen **DIN EN 443** Norm und bieten verbesserten Schutz.
                 """,
                 "<p>Die bestellten <strong>Helme und Handschuhe</strong> sind eingetroffen! 🎉</p><h2>Verteilung</h2><p>Die Verteilung findet bei der <strong>nächsten Übung</strong> statt. Bitte beachtet:</p><ol><li>Prüft eure <strong>Größen im Inventar</strong> vorab</li><li>Meldet euch bei Unstimmigkeiten bei den Betreuern</li><li>Bringt eure <strong>alten Helme</strong> zur Rückgabe mit</li></ol><blockquote><p>Die neuen Helme entsprechen der aktuellen <strong>DIN EN 443</strong> Norm und bieten verbesserten Schutz.</p></blockquote>",
-                betreuerMembers.get(1).id(),
+                stationMemberRepository.resolveIdentity(betreuerMembers.get(1).id()),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -1505,7 +1523,7 @@ public class DemoService {
                 Wir wünschen allen **schöne und erholsame Ferien**! ☀️
                 """,
                 "<p>Während der <strong>Sommerferien</strong> finden keine regulären Übungen statt.</p><h2>Zeitraum</h2><p>Der Übungsbetrieb <strong>pausiert</strong> während der gesamten Schulferien. Wir starten wieder am <strong>ersten Montag nach den Ferien</strong>.</p><h3>Trotzdem aktiv bleiben?</h3><ul><li>Das <strong>Wissenscenter</strong> bleibt verfügbar — nutzt die Zeit zum Lernen</li><li>Prüft eure <strong>Ausrüstung</strong> und meldet Mängel vorab</li><li>Die <strong>Anmeldung</strong> für den Herbst-Wettbewerb öffnet in den Ferien</li></ul><p>Wir wünschen allen <strong>schöne und erholsame Ferien</strong>! ☀️</p>",
-                adminMember.id(),
+                stationMemberRepository.resolveIdentity(adminMember.id()),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -1515,14 +1533,14 @@ public class DemoService {
                 station.id(),
                 news3.id(),
                 null,
-                elternMembers.get(2).id(),
+                stationMemberRepository.resolveIdentity(elternMembers.get(2).id()),
                 "Demo User",
                 "Werden die alten Helme eingesammelt?");
         newsService.createComment(
                 station.id(),
                 news3.id(),
                 null,
-                betreuerMembers.get(1).id(),
+                stationMemberRepository.resolveIdentity(betreuerMembers.get(1).id()),
                 "Demo User",
                 "Ja, bitte zur nächsten Übung mitbringen.");
 
@@ -1540,224 +1558,274 @@ public class DemoService {
                     tagErsthelfer.id(), betreuerMembers.get(i).id());
         }
 
-        // -- Equipment Exchange Requests (~80% of members) --
-        var allKidsForExchange = new ArrayList<>(anfaengerMembers);
-        allKidsForExchange.addAll(fortgeschrittenMembers);
-        var exchangeReasons = List.of(
-                "Zu klein geworden",
-                "Beschädigt",
-                "Verschlissen",
-                "Falsche Größe erhalten",
-                "Verloren und brauche Ersatz",
-                "Riss im Material",
-                "Reißverschluss defekt");
-        var exchangeStatuses = List.of(
-                ExchangeStatus.ANNOUNCED,
-                ExchangeStatus.ANNOUNCED,
-                ExchangeStatus.RECEIVED,
-                ExchangeStatus.ANNOUNCED,
-                ExchangeStatus.RECEIVED);
-        int exchangeCount = 0;
-        for (var kid : allKidsForExchange) {
-            if (rng.nextInt(5) == 0) continue; // ~80% get an exchange
-            var memberItems = inventoryRepository.findItemsByMember(kid.id());
-            if (memberItems.isEmpty()) continue;
-            var item = memberItems.get(rng.nextInt(memberItems.size()));
-            var reason = exchangeReasons.get(rng.nextInt(exchangeReasons.size()));
-            // Determine new size (sometimes same, sometimes different)
-            Integer newSizeId = item.sizeId();
-            if (item.sizeId() != null && rng.nextBoolean()) {
-                var sizes = inventoryRepository.findSizes(item.inventoryId());
-                if (!sizes.isEmpty()) {
-                    newSizeId = sizes.get(rng.nextInt(sizes.size())).id();
-                }
-            }
-            var exchange = exchangeService.create(
-                    station.id(),
-                    kid.id(),
-                    "Demo User",
-                    item.id(),
-                    item.inventoryId(),
-                    item.sizeId(),
-                    newSizeId,
-                    reason,
-                    null);
-            // Progress some exchanges
-            var targetStatus = exchangeStatuses.get(rng.nextInt(exchangeStatuses.size()));
-            if (targetStatus != ExchangeStatus.ANNOUNCED) {
-                exchangeRepository.updateStatus(exchange.id(), ExchangeStatus.RECEIVED);
-                exchangeRepository.createLog(
-                        exchange.id(),
-                        ExchangeStatus.ANNOUNCED,
-                        ExchangeStatus.RECEIVED,
-                        betreuerMembers.get(rng.nextInt(betreuerMembers.size())).id(),
-                        "In Bearbeitung");
-            }
-            exchangeCount++;
+        // JFW tag — visible badge for all Betreuer (managers)
+        var tagJfw = userTagRepository.create(station.id(), "JFW");
+        userTagRepository.update(tagJfw.id(), "JFW", "#FF6421", true, 10);
+        for (var m : betreuerMembers) {
+            userTagRepository.addMember(tagJfw.id(), m.id());
         }
-        log.info("Demo: Created {} exchange requests", exchangeCount);
+        // Also add admin
+        userTagRepository.addMember(tagJfw.id(), adminMember.id());
 
-        // -- Equipment Procurement --
-        var inventories = inventoryRepository.findByStation(station.id());
-        if (!inventories.isEmpty()) {
-            // Need a new pair of gloves for a kid
-            var handschuheInv = inventories.stream()
-                    .filter(i -> "Handschuhe".equals(i.name()))
-                    .findFirst();
-            if (handschuheInv.isPresent()) {
-                var sizes = inventoryRepository.findSizes(handschuheInv.get().id());
-                procurementService.create(
-                        station.id(),
-                        handschuheInv.get().id(),
-                        anfaengerMembers.get(2).id(),
-                        sizes.isEmpty() ? null : sizes.get(2 % sizes.size()).id(),
-                        "Handschuhe verloren");
-            }
-        }
+        // -- Parallel module seeding --
+        log.info("Demo: Starting parallel module seeding...");
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var tasks = new ArrayList<CompletableFuture<?>>();
 
-        // Procurement for members missing Sporttasche
-        var sporttascheInv =
-                inventories.stream().filter(i -> "Sporttasche".equals(i.name())).findFirst();
-        if (sporttascheInv.isPresent()) {
-            var allKidsForProcurement = new ArrayList<>(anfaengerMembers);
-            allKidsForProcurement.addAll(fortgeschrittenMembers);
-            for (var kid : allKidsForProcurement) {
-                var items = inventoryRepository.findItemsByMember(kid.id());
-                boolean hasSporttasche = items.stream()
-                        .anyMatch(i -> i.inventoryId() == sporttascheInv.get().id());
-                if (!hasSporttasche) {
-                    procurementService.create(
-                            station.id(), sporttascheInv.get().id(), kid.id(), null, "Sporttasche fehlt");
-                }
-            }
-        }
-        log.info("Demo: Created procurements");
+            // Attendance sessions
+            tasks.add(CompletableFuture.runAsync(
+                    () -> {
+                        attendanceSeeder.seedAttendanceSessions(
+                                new Random(42_001),
+                                templateUebung,
+                                templateGesamt,
+                                evUebung,
+                                evGesamt,
+                                anfaengerMembers,
+                                fortgeschrittenMembers,
+                                betreuerMembers);
+                        log.info("Demo: Created attendance sessions");
+                    },
+                    executor));
 
-        // -- Forms --
-        formSeeder.seedForms(
-                station.id(),
-                adminMember,
-                anfaengerMembers,
-                fortgeschrittenMembers,
-                memberRole.id(),
-                memberManagerRole.id(),
-                groupAnfaenger.id(),
-                tagWettkampf.id(),
-                rng);
+            // Inventory → Checks → Exchanges → Procurement
+            tasks.add(CompletableFuture.runAsync(
+                    () -> {
+                        var rngInv = new Random(42_002);
+                        inventorySeeder.seedInventory(
+                                station.id(),
+                                rngInv,
+                                anfaengerMembers,
+                                fortgeschrittenMembers,
+                                groupAnfaenger.id(),
+                                groupFortgeschritten.id());
+                        inventorySeeder.seedInventoryChecks(
+                                station.id(), rngInv, betreuerMembers, anfaengerMembers, fortgeschrittenMembers);
+                        seedExchanges(station.id(), rngInv, anfaengerMembers, fortgeschrittenMembers, betreuerMembers);
+                        seedProcurements(station.id(), anfaengerMembers, fortgeschrittenMembers);
+                    },
+                    executor));
 
-        // -- Demo sessions (fake past sessions to show in settings) --
-        var demoUserAgents = List.of(
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125.0.0.0 Safari/537.36",
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Safari/605.1.15",
-                "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125.0.0.0 Mobile Safari/537.36",
-                "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148",
-                "Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0");
-        var sessionExpiry = Instant.now().plus(Duration.ofHours(24));
-        for (String demoUserAgent : demoUserAgents) {
-            var accountId = admin.id();
-            var token = UUID.randomUUID().toString();
-            accountRepository.createSession(accountId, token, sessionExpiry, demoUserAgent, null);
-        }
-        log.info("Demo: Created previous sessions");
+            // Forms
+            tasks.add(CompletableFuture.runAsync(
+                    () -> {
+                        formSeeder.seedForms(
+                                station.id(),
+                                adminMember,
+                                anfaengerMembers,
+                                fortgeschrittenMembers,
+                                StationUserType.MEMBER.name(),
+                                StationUserType.GUARDIAN.name(),
+                                groupAnfaenger.id(),
+                                tagWettkampf.id(),
+                                new Random(42_003));
+                        log.info("Demo: Created forms");
+                    },
+                    executor));
 
-        // -- Notifications (demo data so users see them on the dashboard) --
-        notificationSeeder.seedNotifications(
-                station.id(),
-                adminMember,
-                betreuerMembers,
-                elternMembers,
-                anfaengerMembers,
-                fortgeschrittenMembers,
-                tagDerOffenenTuer.id(),
-                stadtfest.id(),
-                news1.id());
-        log.info("Demo: Created Notifications");
+            // Demo sessions
+            tasks.add(CompletableFuture.runAsync(
+                    () -> {
+                        var demoUserAgents = List.of(
+                                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125.0.0.0 Safari/537.36",
+                                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Safari/605.1.15",
+                                "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125.0.0.0 Mobile Safari/537.36",
+                                "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148",
+                                "Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0");
+                        var sessionExpiry = Instant.now().plus(Duration.ofHours(24));
+                        for (String demoUserAgent : demoUserAgents) {
+                            var token = UUID.randomUUID().toString();
+                            accountRepository.createSession(admin.id(), token, sessionExpiry, demoUserAgent, null);
+                        }
+                        log.info("Demo: Created previous sessions");
+                    },
+                    executor));
 
-        // -- Waiting List --
-        waitingListSeeder.seedWaitingList(station.id(), groupAnfaenger.id(), memberRole.id());
-        log.info("Demo: Created Waiting list");
+            // Notifications
+            tasks.add(CompletableFuture.runAsync(
+                    () -> {
+                        notificationSeeder.seedNotifications(
+                                station.id(),
+                                adminMember,
+                                betreuerMembers,
+                                elternMembers,
+                                anfaengerMembers,
+                                fortgeschrittenMembers,
+                                tagDerOffenenTuer.id(),
+                                stadtfest.id(),
+                                news1.id());
+                        log.info("Demo: Created Notifications");
+                    },
+                    executor));
 
-        // -- Quiz --
-        var quizTestTakers = new ArrayList<Integer>();
-        for (var m : anfaengerMembers) quizTestTakers.add(m.id());
-        for (var m : fortgeschrittenMembers) quizTestTakers.add(m.id());
-        quizSeeder.seedQuiz(station.id(), adminMember.id(), quizTestTakers);
-        log.info("Demo: Created Quiz entries");
+            // Waiting List
+            tasks.add(CompletableFuture.runAsync(
+                    () -> {
+                        waitingListSeeder.seedWaitingList(station.id(), groupAnfaenger.id());
+                        log.info("Demo: Created Waiting list");
+                    },
+                    executor));
 
-        // -- Knowledge Base --
-        kbSeeder.seed(station.id(), adminMember.id());
-        log.info("Demo: Created Knowledge Base content");
+            // Quiz
+            tasks.add(CompletableFuture.runAsync(
+                    () -> {
+                        var quizTestTakers = new ArrayList<Integer>();
+                        for (var m : anfaengerMembers) quizTestTakers.add(m.id());
+                        for (var m : fortgeschrittenMembers) quizTestTakers.add(m.id());
+                        quizSeeder.seedQuiz(station.id(), adminMember.id(), quizTestTakers);
+                        log.info("Demo: Created Quiz entries");
+                    },
+                    executor));
 
-        // -- Test Protocols --
-        var protocolTestees = new ArrayList<Integer>();
-        for (var m : anfaengerMembers) protocolTestees.add(m.id());
-        protocolSeeder.seed(station.id(), adminMember.id(), protocolTestees);
-        log.info("Demo: Created Test Protocol data");
+            // Knowledge Base
+            tasks.add(CompletableFuture.runAsync(
+                    () -> {
+                        kbSeeder.seed(station.id(), adminMember.id());
+                        log.info("Demo: Created Knowledge Base content");
+                    },
+                    executor));
 
-        // -- Profile Pictures & Station Logo --
-        mediaSeeder.seedProfilePictures(
-                station.id(), adminMember, betreuerMembers, elternMembers, anfaengerMembers, fortgeschrittenMembers);
-        log.info("Demo: Created profile pictures");
+            // Protocols
+            tasks.add(CompletableFuture.runAsync(
+                    () -> {
+                        var protocolTestees = new ArrayList<Integer>();
+                        for (var m : anfaengerMembers) protocolTestees.add(m.id());
+                        protocolSeeder.seed(station.id(), adminMember.id(), protocolTestees);
+                        log.info("Demo: Created Test Protocol data");
+                    },
+                    executor));
 
-        // -- Federation --
-        int partnerStationId = federationSeeder.seed(station.id(), adminMember.id());
-        log.info("Demo: Created federation data");
+            // Media / Profile Pictures
+            tasks.add(CompletableFuture.runAsync(
+                    () -> {
+                        mediaSeeder.seedProfilePictures(
+                                station.id(),
+                                adminMember,
+                                betreuerMembers,
+                                elternMembers,
+                                anfaengerMembers,
+                                fortgeschrittenMembers);
+                        log.info("Demo: Created profile pictures");
+                    },
+                    executor));
 
-        // -- Lending --
-        lendingSeeder.seed(station.id(), partnerStationId, adminMember.id());
-        log.info("Demo: Created lending data");
+            // Federation → Lending → Boards (shared)
+            var federationFuture = CompletableFuture.supplyAsync(
+                    () -> federationSeeder.seed(station.id(), adminMember.id()), executor);
+            tasks.add(federationFuture.thenAcceptAsync(
+                    federationResult -> {
+                        log.info("Demo: Created federation data");
+                        lendingSeeder.seed(
+                                station.id(),
+                                federationResult.partnerStationId(),
+                                adminMember.id(),
+                                federationResult.partnerMemberId());
+                        log.info("Demo: Created lending data");
+                        boardSeeder.seedSharedBoard(
+                                station.id(),
+                                federationResult.partnerStationId(),
+                                adminMember,
+                                betreuerMembers,
+                                "TEAM",
+                                "MEMBER",
+                                new Random(42_005));
+                        log.info("Demo: Created shared board data");
+                    },
+                    executor));
 
-        // -- Public Knowledge Base --
-        stationRepository.updatePublicKbMode(station.id(), PublicKbMode.ALLOW_ALL);
-        log.info("Demo: Enabled public knowledge base");
+            // Boards (regular — no federation dependency)
+            tasks.add(CompletableFuture.runAsync(
+                    () -> {
+                        boardSeeder.seed(
+                                station.id(), adminMember, betreuerMembers, "TEAM", "MEMBER", new Random(42_004));
+                        log.info("Demo: Created board data");
+                    },
+                    executor));
 
-        // -- Event Templates --
-        var tplStandard = eventTemplateService.create(station.id(), "Standard-Übung");
-        eventTemplateService.update(
-                tplStandard.id(),
-                "Standard-Übung",
-                "Übungsabend",
-                null,
-                null,
-                "RECURRING",
-                false,
-                null,
-                false,
-                null,
-                null,
-                null);
-        eventTemplateService.replaceFields(
-                tplStandard.id(),
-                List.of(
-                        new EventTemplateFieldData(
-                                "Ort", EventFieldType.STRING, EventFieldConfig.parse("{}"), 0, true, true, null),
-                        new EventTemplateFieldData(
-                                "Treffpunkt",
-                                EventFieldType.STRING,
-                                EventFieldConfig.parse("{}"),
-                                1,
+            // Event Templates
+            tasks.add(CompletableFuture.runAsync(
+                    () -> {
+                        var tplStandard = eventTemplateService.create(station.id(), "Standard-Übung");
+                        eventTemplateService.update(
+                                tplStandard.id(),
+                                "Standard-Übung",
+                                "Übungsabend",
+                                null,
+                                null,
+                                "RECURRING",
+                                false,
+                                null,
+                                false,
+                                null,
+                                null,
+                                null);
+                        eventTemplateService.replaceFields(
+                                tplStandard.id(),
+                                List.of(
+                                        new EventTemplateFieldData(
+                                                "Ort",
+                                                EventFieldType.STRING,
+                                                EventFieldConfig.parse("{}"),
+                                                0,
+                                                true,
+                                                true,
+                                                null),
+                                        new EventTemplateFieldData(
+                                                "Treffpunkt",
+                                                EventFieldType.STRING,
+                                                EventFieldConfig.parse("{}"),
+                                                1,
+                                                true,
+                                                true,
+                                                null)));
+                        var tplWettbewerb = eventTemplateService.create(station.id(), "Wettbewerb");
+                        eventTemplateService.update(
+                                tplWettbewerb.id(),
+                                "Wettbewerb",
+                                null,
+                                null,
+                                null,
+                                "ONE_TIME",
                                 true,
+                                null,
                                 true,
-                                null)));
-        var tplWettbewerb = eventTemplateService.create(station.id(), "Wettbewerb");
-        eventTemplateService.update(
-                tplWettbewerb.id(), "Wettbewerb", null, null, null, "ONE_TIME", true, null, true, null, null, null);
-        eventTemplateService.replaceFields(
-                tplWettbewerb.id(),
-                List.of(
-                        new EventTemplateFieldData(
-                                "Ort", EventFieldType.STRING, EventFieldConfig.parse("{}"), 0, true, true, null),
-                        new EventTemplateFieldData(
-                                "Thema", EventFieldType.STRING, EventFieldConfig.parse("{}"), 1, true, false, null)));
-        log.info("Demo: Created event templates");
+                                null,
+                                null,
+                                null);
+                        eventTemplateService.replaceFields(
+                                tplWettbewerb.id(),
+                                List.of(
+                                        new EventTemplateFieldData(
+                                                "Ort",
+                                                EventFieldType.STRING,
+                                                EventFieldConfig.parse("{}"),
+                                                0,
+                                                true,
+                                                true,
+                                                null),
+                                        new EventTemplateFieldData(
+                                                "Thema",
+                                                EventFieldType.STRING,
+                                                EventFieldConfig.parse("{}"),
+                                                1,
+                                                true,
+                                                false,
+                                                null)));
+                        log.info("Demo: Created event templates");
+                    },
+                    executor));
 
-        // -- Feed Tokens --
-        feedTokenService.getOrCreate(adminMember.id());
-        log.info("Demo: Created feed token for admin");
+            // Feed Token + Settings + Public KB
+            tasks.add(CompletableFuture.runAsync(
+                    () -> {
+                        feedTokenService.getOrCreate(adminMember.id());
+                        stationRepository.updatePublicKbMode(station.id(), PublicKbMode.ALLOW_ALL);
+                        applicationSettingRepository.setBoolean("station_registration_enabled", false);
+                    },
+                    executor));
 
-        // -- Settings --
-        applicationSettingRepository.setBoolean("station_registration_enabled", false);
-        log.info("Demo: Disabled station registration");
+            CompletableFuture.allOf(tasks.toArray(CompletableFuture[]::new)).join();
+        }
 
         int totalUsers = 1 + betreuer.size() + eltern.size() + anfaenger.size() + fortgeschritten.size();
         log.info("Demo: Created {} user accounts (password: '{}')", totalUsers, PASSWORD);
@@ -1770,8 +1838,20 @@ public class DemoService {
         var account = accountRepository.create(email, firstName, lastName, true);
         accountRepository.createCredential(account.id(), hash);
         var member = stationMemberRepository.create(stationId, account.id());
-        stationMemberRepository.addRole(member.id(), loginRoleId);
-        stationMemberRepository.addRole(member.id(), memberRoleId);
+        stationMemberRepository.setUserType(member.id(), StationUserType.MEMBER);
+        stationMemberRepository.grantPermission(member.id(), loginRoleId);
+        stationMemberRepository.grantPermission(member.id(), memberRoleId);
+        return member;
+    }
+
+    private StationMember createTeamMember(
+            String firstName, String lastName, String hash, int stationId, int loginRoleId) {
+        String email = firstName.toLowerCase() + "@" + lastName.toLowerCase() + ".local";
+        var account = accountRepository.create(email, firstName, lastName, true);
+        accountRepository.createCredential(account.id(), hash);
+        var member = stationMemberRepository.create(stationId, account.id());
+        stationMemberRepository.setUserType(member.id(), StationUserType.TEAM);
+        stationMemberRepository.grantPermission(member.id(), loginRoleId);
         return member;
     }
 
@@ -1781,8 +1861,9 @@ public class DemoService {
         var account = accountRepository.create(email, firstName, lastName, true);
         accountRepository.createCredential(account.id(), hash);
         var member = stationMemberRepository.create(stationId, account.id());
-        stationMemberRepository.addRole(member.id(), loginRoleId);
-        stationMemberRepository.addRole(member.id(), guardianRoleId);
+        stationMemberRepository.setUserType(member.id(), StationUserType.GUARDIAN);
+        stationMemberRepository.grantPermission(member.id(), loginRoleId);
+        stationMemberRepository.grantPermission(member.id(), guardianRoleId);
         return member;
     }
 
@@ -1799,5 +1880,130 @@ public class DemoService {
                 "Tierhaarallergie",
                 "Keine");
         return allergies.get(rng.nextInt(allergies.size()));
+    }
+
+    private void seedExchanges(
+            int stationId,
+            Random rng,
+            List<StationMember> anfaengerMembers,
+            List<StationMember> fortgeschrittenMembers,
+            List<StationMember> betreuerMembers) {
+        var allKids = new ArrayList<>(anfaengerMembers);
+        allKids.addAll(fortgeschrittenMembers);
+        var exchangeReasons = List.of(
+                "Zu klein geworden",
+                "Beschädigt",
+                "Verschlissen",
+                "Falsche Größe erhalten",
+                "Verloren und brauche Ersatz",
+                "Riss im Material",
+                "Reißverschluss defekt");
+        var exchangeStatuses = List.of(
+                ExchangeStatus.ANNOUNCED,
+                ExchangeStatus.ANNOUNCED,
+                ExchangeStatus.RECEIVED,
+                ExchangeStatus.ANNOUNCED,
+                ExchangeStatus.RECEIVED);
+        int exchangeCount = 0;
+        for (var kid : allKids) {
+            if (rng.nextInt(5) == 0) continue;
+            var memberItems = inventoryRepository.findItemsByMember(kid.id());
+            if (memberItems.isEmpty()) continue;
+            var item = memberItems.get(rng.nextInt(memberItems.size()));
+            var reason = exchangeReasons.get(rng.nextInt(exchangeReasons.size()));
+            Integer newSizeId = item.sizeId();
+            var sizes = item.sizeId() != null
+                    ? inventoryRepository.findSizes(item.inventoryId())
+                    : List.<InventorySize>of();
+            int currentIdx = -1;
+            for (int si = 0; si < sizes.size(); si++) {
+                if (sizes.get(si).id() == item.sizeId()) {
+                    currentIdx = si;
+                    break;
+                }
+            }
+            switch (reason) {
+                case "Zu klein geworden" -> {
+                    if (currentIdx >= 0 && currentIdx < sizes.size() - 1) {
+                        newSizeId = sizes.get(currentIdx + 1).id();
+                    } else {
+                        reason = "Beschädigt";
+                    }
+                }
+                case "Beschädigt",
+                        "Verschlissen",
+                        "Riss im Material",
+                        "Reißverschluss defekt",
+                        "Verloren und brauche Ersatz" -> {}
+                case "Falsche Größe erhalten" -> {
+                    if (sizes.size() > 1 && currentIdx >= 0) {
+                        int offset = rng.nextBoolean() && currentIdx > 0 ? -1 : 1;
+                        int newIdx = Math.clamp(currentIdx + offset, 0, sizes.size() - 1);
+                        if (newIdx == currentIdx) {
+                            newIdx = currentIdx > 0 ? currentIdx - 1 : currentIdx + 1;
+                        }
+                        newSizeId = sizes.get(newIdx).id();
+                    }
+                }
+                default -> {}
+            }
+            var exchange = exchangeService.create(
+                    stationId,
+                    kid.id(),
+                    "Demo User",
+                    item.id(),
+                    item.inventoryId(),
+                    item.sizeId(),
+                    newSizeId,
+                    reason,
+                    null);
+            var targetStatus = exchangeStatuses.get(rng.nextInt(exchangeStatuses.size()));
+            if (targetStatus != ExchangeStatus.ANNOUNCED) {
+                exchangeRepository.updateStatus(exchange.id(), ExchangeStatus.RECEIVED);
+                exchangeRepository.createLog(
+                        exchange.id(),
+                        ExchangeStatus.ANNOUNCED,
+                        ExchangeStatus.RECEIVED,
+                        betreuerMembers.get(rng.nextInt(betreuerMembers.size())).id(),
+                        "In Bearbeitung");
+            }
+            exchangeCount++;
+        }
+        log.info("Demo: Created {} exchange requests", exchangeCount);
+    }
+
+    private void seedProcurements(
+            int stationId, List<StationMember> anfaengerMembers, List<StationMember> fortgeschrittenMembers) {
+        var inventories = inventoryRepository.findByStation(stationId);
+        if (!inventories.isEmpty()) {
+            var handschuheInv = inventories.stream()
+                    .filter(i -> "Handschuhe".equals(i.name()))
+                    .findFirst();
+            if (handschuheInv.isPresent()) {
+                var sizes = inventoryRepository.findSizes(handschuheInv.get().id());
+                procurementService.create(
+                        stationId,
+                        handschuheInv.get().id(),
+                        anfaengerMembers.get(2).id(),
+                        sizes.isEmpty() ? null : sizes.get(2 % sizes.size()).id(),
+                        "Handschuhe verloren");
+            }
+        }
+        var sporttascheInv =
+                inventories.stream().filter(i -> "Sporttasche".equals(i.name())).findFirst();
+        if (sporttascheInv.isPresent()) {
+            var allKids = new ArrayList<>(anfaengerMembers);
+            allKids.addAll(fortgeschrittenMembers);
+            for (var kid : allKids) {
+                var items = inventoryRepository.findItemsByMember(kid.id());
+                boolean hasSporttasche = items.stream()
+                        .anyMatch(i -> i.inventoryId() == sporttascheInv.get().id());
+                if (!hasSporttasche) {
+                    procurementService.create(
+                            stationId, sporttascheInv.get().id(), kid.id(), null, "Sporttasche fehlt");
+                }
+            }
+        }
+        log.info("Demo: Created procurements");
     }
 }

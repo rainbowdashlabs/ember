@@ -238,11 +238,12 @@ public class GdprExportService {
             data.put("stationName", stationName.getFirst().get("name"));
         }
 
-        // Roles
+        // User type and permissions
+        data.put("userType", queryRows("SELECT user_type FROM station_member WHERE id = :id", mid));
         data.put(
-                "roles",
+                "permissions",
                 queryRows(
-                        "SELECT r.name AS role FROM station_member_role smr JOIN role r ON r.id = smr.role_id WHERE smr.member_id = :id",
+                        "SELECT sp.name AS permission FROM station_member_permission smp JOIN station_permission sp ON sp.id = smp.permission_id WHERE smp.member_id = :id",
                         mid));
 
         // Profile field values
@@ -361,20 +362,58 @@ public class GdprExportService {
                 WHERE member_id = :id
                 ORDER BY created_at DESC""", mid));
 
-        // News authored
-        data.put("newsAuthored", queryRows("""
-                SELECT title, published_at, created_at
-                FROM news
-                WHERE author_id = :id
-                ORDER BY created_at DESC""", mid));
+        // News authored — match by member UUID
+        var memberUid = stationMemberRepository.resolveUid(mid);
+        if (memberUid != null) {
+            data.put(
+                    "newsAuthored",
+                    Query.query("""
+                    SELECT title, published_at, created_at
+                    FROM news
+                    WHERE author_member_uid = :uid::uuid
+                    ORDER BY created_at DESC""")
+                            .single(Call.of()
+                                    .bind(
+                                            "uid",
+                                            memberUid,
+                                            de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING))
+                            .map(row -> {
+                                var meta = row.getMetaData();
+                                var map = new LinkedHashMap<String, Object>();
+                                for (int i = 1; i <= meta.getColumnCount(); i++) {
+                                    map.put(meta.getColumnLabel(i), row.getObject(i));
+                                }
+                                return (Map<String, Object>) map;
+                            })
+                            .all());
 
-        // News comments
-        data.put("newsComments", queryRows("""
-                SELECT n.title AS news_title, nc.content, nc.created_at
-                FROM news_comment nc
-                JOIN news n ON n.id = nc.news_id
-                WHERE nc.author_id = :id
-                ORDER BY nc.created_at DESC""", mid));
+            // News comments
+            data.put(
+                    "newsComments",
+                    Query.query("""
+                    SELECT n.title AS news_title, nc.content, nc.created_at
+                    FROM news_comment nc
+                    JOIN news n ON n.id = nc.news_id
+                    WHERE nc.author_member_uid = :uid::uuid
+                    ORDER BY nc.created_at DESC""")
+                            .single(Call.of()
+                                    .bind(
+                                            "uid",
+                                            memberUid,
+                                            de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING))
+                            .map(row -> {
+                                var meta = row.getMetaData();
+                                var map = new LinkedHashMap<String, Object>();
+                                for (int i = 1; i <= meta.getColumnCount(); i++) {
+                                    map.put(meta.getColumnLabel(i), row.getObject(i));
+                                }
+                                return (Map<String, Object>) map;
+                            })
+                            .all());
+        } else {
+            data.put("newsAuthored", List.of());
+            data.put("newsComments", List.of());
+        }
 
         // Profile field changes (as subject)
         data.put("profileFieldChanges", queryRows("""

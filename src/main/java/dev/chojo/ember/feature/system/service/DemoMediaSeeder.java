@@ -70,14 +70,14 @@ public class DemoMediaSeeder {
 
         try (var httpClient = HttpClient.newHttpClient()) {
             for (var member : allMembers) {
-                String memberId = String.valueOf(member.id());
-                if (imageService.exists(ImageCategory.AVATARS, memberId)) continue;
+                String memberKey = member.uid().toString();
+                if (imageService.exists(ImageCategory.AVATARS, memberKey)) continue;
                 try {
                     String seed = buildSeed(member);
                     byte[] data = fetchAvatar(httpClient, seed);
-                    imageService.store(ImageCategory.AVATARS, memberId, data, "image/png");
+                    imageService.store(ImageCategory.AVATARS, memberKey, data, "image/png");
                 } catch (Exception e) {
-                    log.warn("Failed to set demo avatar for member {}: {}", memberId, e.getMessage());
+                    log.warn("Failed to set demo avatar for member {}: {}", memberKey, e.getMessage());
                 }
             }
         }

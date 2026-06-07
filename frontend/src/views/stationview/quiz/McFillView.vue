@@ -91,14 +91,14 @@ async function generate() {
 
   try {
     const questions = await quiz.listQuestions(catalogId.value)
-    const mcQuestions = questions.filter(q => q.questionType === QuizQuestionTypes.MULTIPLE_CHOICE)
+    const mcQuestions = questions.filter(q => q.quizQuestionType === QuizQuestionTypes.MULTIPLE_CHOICE)
     let done = 0
 
     for (const q of mcQuestions) {
       done++
       generatingProgress.value = `${done}/${mcQuestions.length}`
-      const config = typeof q.config === 'string' ? JSON.parse(q.config) : JSON.parse(JSON.stringify(q.config))
-      const options: { text: string; correct: boolean }[] = config.options || []
+      const config = q.config ?? {}
+      const options: { text: string; correct: boolean }[] = (config.options as { text: string; correct: boolean }[]) || []
       const correctAnswers = options.filter(o => o.correct).map(o => o.text)
       if (correctAnswers.length === 0) continue
 
@@ -173,7 +173,7 @@ async function saveAll() {
         title: item.title,
         description: item.description,
         categoryId: item.categoryId,
-        questionType: 'MULTIPLE_CHOICE',
+        quizQuestionType: 'MULTIPLE_CHOICE',
         points,
         autoPoints: item.autoPoints,
         config: updatedConfig,

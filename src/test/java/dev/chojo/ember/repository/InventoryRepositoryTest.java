@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.repository;
 
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -13,7 +12,6 @@ import dev.chojo.ember.feature.inventory.entity.InventoryItemHistory;
 import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
-import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import org.junit.jupiter.api.AfterAll;
@@ -209,12 +207,10 @@ class InventoryRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(40)
-    void createRequirementByRole() {
-        Role loginRole = stationMemberRepo.findRoleByName(Roles.LOGIN).orElseThrow();
-        InventoryRequirement req = inventoryRepo.createRequirement(inventoryId, loginRole.id(), 0, 2);
+    void createRequirementByUserType() {
+        InventoryRequirement req = inventoryRepo.createRequirement(inventoryId, "MEMBER", 0, 2);
         assertNotNull(req);
         assertEquals(inventoryId, req.inventoryId());
-        assertEquals(loginRole.id(), req.roleId());
         assertEquals(2, req.quantity());
         requirementId = req.id();
     }
@@ -246,7 +242,7 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Order(44)
     void createRequirementByGroup() {
         group = memberGroupRepo.create(station.id(), "Req Group");
-        InventoryRequirement req = inventoryRepo.createRequirement(inventoryId, 0, group.id(), 3);
+        InventoryRequirement req = inventoryRepo.createRequirement(inventoryId, null, group.id(), 3);
         assertNotNull(req);
         assertEquals(group.id(), req.groupId());
         assertEquals(3, req.quantity());
@@ -333,8 +329,7 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(43)
     void updateRequirementPosition() {
-        Role loginRole = stationMemberRepo.findRoleByName(Roles.LOGIN).orElseThrow();
-        var req = inventoryRepo.createRequirement(inventoryId, loginRole.id(), 0, 1);
+        var req = inventoryRepo.createRequirement(inventoryId, "TEAM", 0, 1);
         assertTrue(inventoryRepo.updateRequirementPosition(req.id(), 5));
         inventoryRepo.deleteRequirement(req.id());
     }

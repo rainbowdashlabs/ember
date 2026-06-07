@@ -5,7 +5,8 @@
  */
 package dev.chojo.ember.feature.system.service;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
@@ -46,7 +47,7 @@ public class DemoWaitingListSeeder {
         this.accountRepository = accountRepository;
     }
 
-    public void seedWaitingList(int stationId, int joinGroupId, int joinRoleId) {
+    public void seedWaitingList(int stationId, int joinGroupId) {
         // Create the "Gäste" group for testing-phase members
         var gaesteGroup = memberGroupRepository.create(stationId, "Gäste");
 
@@ -58,7 +59,6 @@ public class DemoWaitingListSeeder {
                 180,
                 gaesteGroup.id(),
                 joinGroupId,
-                joinRoleId,
                 5);
 
         var nameField = waitingListRepository.createField(
@@ -160,13 +160,24 @@ public class DemoWaitingListSeeder {
             waitingListRepository.upsertEntryValue(entry.id(), ageField.id(), kid.alter);
             waitingListRepository.upsertEntryValue(entry.id(), expField.id(), "\"" + kid.erfahrung + "\"");
 
+            waitingListRepository.createGuardian(
+                    entry.id(), kid.parentName, kid.email, "+49 170 " + (1000000 + entry.id()), 0);
+            if (entry.id() % 2 == 0) {
+                waitingListRepository.createGuardian(
+                        entry.id(),
+                        "Zweit-EB " + kid.lastname,
+                        "zweit-" + kid.email,
+                        "+49 171 " + (2000000 + entry.id()),
+                        1);
+            }
+
             // For entries that progressed beyond WAITING, create a linked member
             if (kid.status != WaitingListEntryStatus.WAITING) {
                 var account = accountRepository.create(null, kid.firstname, kid.lastname);
                 var member = stationMemberRepository.create(stationId, account.id());
                 stationMemberRepository
-                        .findRoleByName(Roles.TRIAL)
-                        .ifPresent(role -> stationMemberRepository.addRole(member.id(), role.id()));
+                        .findPermissionByName(StationPermission.USER)
+                        .ifPresent(role -> stationMemberRepository.grantPermission(member.id(), role.id()));
                 waitingListRepository.linkMember(entry.id(), member.id());
                 waitingListRepository.updateEntryStatusWithTimestamp(
                         entry.id(), WaitingListEntryStatus.INVITED, "invited_at");
@@ -181,11 +192,11 @@ public class DemoWaitingListSeeder {
                     case JOINED -> {
                         waitingListRepository.updateEntryStatusWithTimestamp(
                                 entry.id(), WaitingListEntryStatus.TESTING, "testing_at");
-                        // Remove TRIAL, assign MEMBER, move to join group
+                        // Remove TRIAL, assign MEMBER user type, move to join group
                         stationMemberRepository
-                                .findRoleByName(Roles.TRIAL)
-                                .ifPresent(role -> stationMemberRepository.removeRole(member.id(), role.id()));
-                        stationMemberRepository.addRole(member.id(), joinRoleId);
+                                .findPermissionByName(StationPermission.USER)
+                                .ifPresent(role -> stationMemberRepository.revokePermission(member.id(), role.id()));
+                        stationMemberRepository.setUserType(member.id(), StationUserType.MEMBER);
                         memberGroupRepository.addMember(joinGroupId, member.id());
                         waitingListRepository.updateEntryStatusWithTimestamp(
                                 entry.id(), WaitingListEntryStatus.JOINED, "joined_at");

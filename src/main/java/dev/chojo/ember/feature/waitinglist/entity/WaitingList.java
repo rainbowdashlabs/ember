@@ -25,7 +25,7 @@ public record WaitingList(
         List<Integer> visibleFields,
         Integer testingGroupId,
         Integer joinGroupId,
-        Integer joinRoleId,
+        String joinUserType,
         int attendanceThreshold) {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -42,7 +42,7 @@ public record WaitingList(
                 parseVisibleFields(row.getString("visible_fields")),
                 row.getObject("testing_group_id", Integer.class),
                 row.getObject("join_group_id", Integer.class),
-                row.getObject("join_role_id", Integer.class),
+                row.getString("join_user_type"),
                 row.getInt("attendance_threshold"));
     }
 

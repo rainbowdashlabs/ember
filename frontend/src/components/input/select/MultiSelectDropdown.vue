@@ -18,6 +18,7 @@ const props = defineProps<{
   modelValue: string[]
   placeholder?: string
   disabled?: boolean
+  searchable?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -26,8 +27,15 @@ const emit = defineEmits<{
 
 const open = ref(false)
 const containerRef = ref<HTMLElement | null>(null)
+const searchQuery = ref('')
 
 const selectedSet = computed(() => new Set(props.modelValue))
+
+const filteredOptions = computed(() => {
+  if (!props.searchable || !searchQuery.value.trim()) return props.options
+  const q = searchQuery.value.toLowerCase()
+  return props.options.filter(o => o.label.toLowerCase().includes(q))
+})
 
 const triggerLabel = computed(() => {
   if (props.modelValue.length === 0) return props.placeholder ?? 'Auswahl'
@@ -39,11 +47,12 @@ const triggerLabel = computed(() => {
 })
 
 const groupedOptions = computed(() => {
-  const hasGroups = props.options.some(o => o.group)
-  if (!hasGroups) return [{group: undefined as string | undefined, options: props.options}]
+  const opts = filteredOptions.value
+  const hasGroups = opts.some(o => o.group)
+  if (!hasGroups) return [{group: undefined as string | undefined, options: opts}]
 
   const map = new Map<string | undefined, SelectOption[]>()
-  for (const opt of props.options) {
+  for (const opt of opts) {
     const key = opt.group
     if (!map.has(key)) map.set(key, [])
     map.get(key)!.push(opt)
@@ -72,6 +81,7 @@ function selectNone() {
 function onClickOutside(e: MouseEvent) {
   if (containerRef.value && !containerRef.value.contains(e.target as Node)) {
     open.value = false
+    searchQuery.value = ''
   }
 }
 
@@ -114,6 +124,17 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
         >
           Keine
         </button>
+      </div>
+
+      <!-- Search -->
+      <div v-if="searchable" class="px-2 py-1.5 border-b border-bg-light-accent dark:border-bg-dark-accent">
+        <input
+            v-model="searchQuery"
+            type="text"
+            class="w-full px-2 py-1 text-sm rounded border border-bg-light-accent dark:border-bg-dark-accent bg-transparent focus:outline-none focus:border-primary"
+            placeholder="Suche…"
+            @click.stop
+        />
       </div>
 
       <!-- Options -->

@@ -27,11 +27,14 @@ import {lostAndFound} from '@/api'
 import client from '@/api/client'
 import type {LostAndFoundItem} from '@/api/types'
 import {useSession} from '@/composables/useSession'
-import {Roles} from '@/api/types'
+import {useSidebarCounts} from '@/composables/useSidebarCounts'
+import {StationPermission} from '@/api/types'
 
 const {t} = useI18n()
-const {hasRole, sessionInfo} = useSession()
-const isManager = () => hasRole(Roles.LOST_AND_FOUND_MANAGER)
+const {hasPermission, sessionInfo} = useSession()
+const {refresh: refreshSidebarCounts} = useSidebarCounts()
+const canCreate = () => hasPermission(StationPermission.LOST_AND_FOUND_CREATE)
+const canManage = () => hasPermission(StationPermission.LOST_AND_FOUND_MANAGE)
 const myMemberId = () => sessionInfo.value?.member?.id
 
 const items = ref<LostAndFoundItem[]>([])
@@ -140,6 +143,7 @@ async function confirmClaim() {
     await lostAndFound.claimItem(confirmItemId.value)
     showClaimConfirm.value = false
     await loadItems()
+    refreshSidebarCounts()
   } catch {
     error.value = t('common.error')
   }
@@ -159,6 +163,7 @@ async function confirmProvided() {
     await lostAndFound.markProvided(confirmItemId.value)
     showProvidedConfirm.value = false
     await loadItems()
+    refreshSidebarCounts()
   } catch {
     error.value = t('common.error')
   }
@@ -188,7 +193,7 @@ onMounted(loadItems)
     <div class="space-y-6">
       <div class="flex items-center justify-between">
         <SectionHeader>{{ t('lostAndFound.title') }}</SectionHeader>
-        <PrimaryButton :icon="['fas', 'plus']" v-if="isManager()" @click="showCreate = true">
+        <PrimaryButton :icon="['fas', 'plus']" v-if="canCreate()" @click="showCreate = true">
           {{ t('lostAndFound.create') }}
         </PrimaryButton>
       </div>
@@ -200,7 +205,7 @@ onMounted(loadItems)
 
       <div v-if="!loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <NeutralContainer v-for="item in items" :key="item.id" class="space-y-3"
-                          :class="{'opacity-60': item.claimedBy && !isManager()}">
+                          :class="{'opacity-60': item.claimedBy && !canManage()}">
           <img v-if="imageSrcs[item.id]"
                :src="imageSrcs[item.id]"
                :alt="item.description ?? t('lostAndFound.noDescription')"
@@ -225,7 +230,7 @@ onMounted(loadItems)
               {{ t('lostAndFound.claimedBy', {name: item.claimedByName ?? '?'}) }}
             </SuccessBadge>
 
-            <div v-if="isManager()" class="flex items-center gap-2">
+            <div v-if="canManage()" class="flex items-center gap-2">
               <SuccessButton :icon="['fas', 'circle-check']" class="flex-1 text-sm" @click="askProvided(item.id)">
                 {{ t('lostAndFound.provided') }}
               </SuccessButton>
@@ -238,7 +243,7 @@ onMounted(loadItems)
             <SuccessButton class="flex-1 text-sm" @click="askClaim(item.id)">
               {{ t('lostAndFound.claim') }}
             </SuccessButton>
-            <DeleteButton v-if="isManager()" @click="handleDelete(item.id)"/>
+            <DeleteButton v-if="canManage()" @click="handleDelete(item.id)"/>
           </div>
         </NeutralContainer>
       </div>
@@ -283,7 +288,7 @@ onMounted(loadItems)
               <IconButton
                 :icon="['fas', 'xmark']"
                 label="Remove image"
-                class="absolute top-2 right-2 bg-error text-white rounded-full h-6 w-6 hover:bg-error/80"
+                class="absolute top-2 right-2 bg-error text-error-text rounded-full h-6 w-6 hover:bg-error/80"
                 @click="clearNewImage"
               />
             </div>

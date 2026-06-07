@@ -63,12 +63,6 @@ function formatDate(dateStr?: string): string {
   return d.toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric'})
 }
 
-function getMemberName(memberId: number): string {
-  if (memberId === currentMemberId.value) return t('profile.absenceMyself')
-  const m = managedMembers.value.find(mm => mm.id === memberId)
-  return m?.name ?? m?.email ?? `#${memberId}`
-}
-
 function toggleMember(memberId: number) {
   const s = new Set(selectedMemberIds.value)
   if (s.has(memberId)) s.delete(memberId); else s.add(memberId)
@@ -227,8 +221,8 @@ watch(loaded, (isLoaded) => {
           >
             <div class="flex items-center justify-between flex-wrap gap-2">
               <div>
-                <span v-if="managedMembers.length > 0"
-                      class="text-sm font-semibold mr-2"><MemberName :name="getMemberName(absence.memberId)" :member-id="absence.memberId"/></span>
+                <span v-if="absence.memberIdentity"
+                      class="text-sm font-semibold mr-2"><MemberName :identity="absence.memberIdentity"/></span>
                 <span class="text-sm">{{ formatDate(absence.absentFrom) }} – {{
                     formatDate(absence.absentUntil)
                   }}</span>

@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -87,6 +86,8 @@ class LendingServiceTest extends RepositoryTestBase {
 
     @AfterAll
     static void cleanup() {
+        for (var p : federationService.findPartners(stationA.id())) federationRepo.deletePartner(p.id());
+        for (var p : federationService.findPartners(stationB.id())) federationRepo.deletePartner(p.id());
         stationRepo.delete(stationA.id());
         stationRepo.delete(stationB.id());
         accountRepo.delete(account.id());
@@ -202,7 +203,7 @@ class LendingServiceTest extends RepositoryTestBase {
         assertTrue(messages.stream().anyMatch(m -> m.senderStationId() == stationB.id()));
 
         // Verify HTTP client was never called (local partner)
-        verify(httpClient, never()).fetchRemoteMessages(anyString(), anyInt(), anyInt(), anyString());
+        verify(httpClient, never()).getList(anyString(), anyString(), anyInt(), anyString(), any());
     }
 
     @Test
@@ -228,7 +229,12 @@ class LendingServiceTest extends RepositoryTestBase {
         // Mock remote messages from C
         var remoteMsg = new LendingMessage(
                 9999, req.id(), stationC.id(), memberC.id(), "Remote msg from C", false, Instant.now());
-        when(httpClient.fetchRemoteMessages(eq("https://remote.example.com"), eq(req.id()), eq(stationA.id()), any()))
+        when(httpClient.getList(
+                        eq("https://remote.example.com"),
+                        eq("/remote/lending/messages/" + req.id()),
+                        eq(stationA.id()),
+                        any(),
+                        eq(LendingMessage.class)))
                 .thenReturn(List.of(remoteMsg));
 
         // Set federation private key on station A so the service can call HTTP
@@ -242,7 +248,12 @@ class LendingServiceTest extends RepositoryTestBase {
 
         // Verify HTTP client was called for the remote partner
         verify(httpClient)
-                .fetchRemoteMessages(eq("https://remote.example.com"), eq(req.id()), eq(stationA.id()), any());
+                .getList(
+                        eq("https://remote.example.com"),
+                        eq("/remote/lending/messages/" + req.id()),
+                        eq(stationA.id()),
+                        any(),
+                        eq(LendingMessage.class));
 
         // Cleanup
         federationService.endFederation(partner.id());
@@ -332,7 +343,7 @@ class LendingServiceTest extends RepositoryTestBase {
                 stationB.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(2), memberB.id());
         assertTrue(service.declineRequest(req.id(), stationA.id(), null));
         var found = service.findRequest(req.id()).orElseThrow();
-        assertEquals(dev.chojo.ember.feature.federation.entity.LendingStatus.DECLINED, found.status());
+        assertEquals(LendingStatus.DECLINED, found.status());
     }
 
     @Test
@@ -342,7 +353,7 @@ class LendingServiceTest extends RepositoryTestBase {
                 stationB.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(2), memberB.id());
         assertTrue(service.declineRequest(req.id(), stationA.id(), ""));
         var found = service.findRequest(req.id()).orElseThrow();
-        assertEquals(dev.chojo.ember.feature.federation.entity.LendingStatus.DECLINED, found.status());
+        assertEquals(LendingStatus.DECLINED, found.status());
     }
 
     @Test
@@ -426,6 +437,210 @@ class LendingServiceTest extends RepositoryTestBase {
 
         stationRepo.delete(stationC.id());
         stationRepo.delete(stationD.id());
+    }
+
+    // -- Federation: Available Inventory --
+
+    @Test
+    @Order(200)
+    void findAvailableInventoryFromPartner() {
+        // stationA has inventory with an unassigned item (created in setup).
+        // stationB has an active partnership with stationA.
+        // Querying from stationB should see stationA's inventory.
+        var results = service.findAvailableInventory(stationB.id(), null, null, null);
+        assertFalse(results.isEmpty());
+        assertTrue(results.stream().anyMatch(e -> e.inventoryId() == inventoryIdA && e.stationId() == stationA.id()));
+    }
+
+    @Test
+    @Order(201)
+    void findAvailableInventoryWithQuery() {
+        // Query matching the inventory name
+        var results = service.findAvailableInventory(stationB.id(), "LendSvc", null, null);
+        assertFalse(results.isEmpty());
+        assertTrue(results.stream().anyMatch(e -> e.inventoryId() == inventoryIdA));
+
+        // Non-matching query
+        var empty = service.findAvailableInventory(stationB.id(), "NonExistentXYZ", null, null);
+        assertTrue(empty.stream().noneMatch(e -> e.inventoryId() == inventoryIdA));
+    }
+
+    @Test
+    @Order(202)
+    void findAvailableInventoryNoItems() {
+        // Create an inventory on stationA with no items
+        var emptyInv = inventoryRepo.create(stationA.id(), "EmptyInvForLending", InventoryType.INTERNAL, false);
+        var results = service.findAvailableInventory(stationB.id(), "EmptyInvForLending", null, null);
+        // Should NOT appear — no unassigned items means availableCount == 0
+        assertTrue(results.stream().noneMatch(e -> e.inventoryId() == emptyInv.id()));
+        // Cleanup
+        inventoryRepo.delete(emptyInv.id());
+    }
+
+    @Test
+    @Order(203)
+    void getMessagesLocalPartner() {
+        // Create a fresh lending request between stationB (requesting) and stationA (owning)
+        var req = service.createRequest(
+                stationB.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(5), memberB.id());
+
+        // Add messages from both sides using the repo directly
+        lendingRepo.createMessage(req.id(), stationA.id(), memberA.id(), "Msg from A side", false);
+        lendingRepo.createMessage(req.id(), stationB.id(), memberB.id(), "Msg from B side", false);
+
+        // getMessages from stationA's perspective should return both local and partner messages
+        var messages = service.getMessages(req.id(), stationA.id());
+        assertFalse(messages.isEmpty());
+        assertTrue(messages.stream().anyMatch(m -> m.message().equals("Msg from A side")));
+        assertTrue(messages.stream().anyMatch(m -> m.message().equals("Msg from B side")));
+        // Messages should be sorted by createdAt
+        for (int i = 1; i < messages.size(); i++) {
+            assertTrue(
+                    !messages.get(i).createdAt().isBefore(messages.get(i - 1).createdAt()),
+                    "Messages should be sorted by createdAt");
+        }
+    }
+
+    @Test
+    @Order(204)
+    void availableInventoryEntryRecord() {
+        var entry = new LendingService.AvailableInventoryEntry(42, "Test Inv", 7, "Station X", 5);
+        assertEquals(42, entry.inventoryId());
+        assertEquals("Test Inv", entry.inventoryName());
+        assertEquals(7, entry.stationId());
+        assertEquals("Station X", entry.stationName());
+        assertEquals(5, entry.availableCount());
+    }
+
+    @Test
+    @Order(205)
+    void getMessagesRemotePartnerSortsCorrectly() {
+        // Create a remote federation
+        var stationR = stationRepo.create("LendRemoteSortR");
+        var memberR = stationMemberRepo.create(stationR.id(), account.id());
+
+        var keyPairR = federationService.generateKeyPair();
+        var partnerR = federationService.acceptInvite(
+                stationR.id(),
+                stationA.id(),
+                federationService.encodePublicKey(keyPairR),
+                null,
+                "https://remote-sort.example.com");
+
+        // stationR sees stationA as remote
+        // Create request: stationR requesting from stationA
+        var req = service.createRequest(
+                stationR.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(3), memberR.id());
+        service.sendMessage(req.id(), stationA.id(), memberA.id(), "A", "Local msg 1");
+
+        // Mock remote messages with specific timestamps
+        var now = Instant.now();
+        var earlyMsg = new LendingMessage(
+                8001, req.id(), stationR.id(), memberR.id(), "Remote early", false, now.minusSeconds(60));
+        var lateMsg = new LendingMessage(
+                8002, req.id(), stationR.id(), memberR.id(), "Remote late", false, now.plusSeconds(60));
+        when(httpClient.getList(
+                        eq("https://remote-sort.example.com"),
+                        eq("/remote/lending/messages/" + req.id()),
+                        eq(stationA.id()),
+                        any(),
+                        eq(LendingMessage.class)))
+                .thenReturn(List.of(lateMsg, earlyMsg));
+
+        // Set federation private key so HTTP call proceeds
+        stationRepo.updateFederationPrivateKey(stationA.id(), "dummyKey");
+
+        var messages = service.getMessages(req.id(), stationA.id());
+        assertFalse(messages.isEmpty());
+        // Verify sorted by createdAt
+        for (int i = 1; i < messages.size(); i++) {
+            assertTrue(
+                    !messages.get(i).createdAt().isBefore(messages.get(i - 1).createdAt()),
+                    "Messages should be sorted by createdAt");
+        }
+        // Verify both local and remote messages present
+        assertTrue(messages.stream().anyMatch(m -> m.message().equals("Local msg 1")));
+        assertTrue(messages.stream().anyMatch(m -> m.message().equals("Remote early")));
+        assertTrue(messages.stream().anyMatch(m -> m.message().equals("Remote late")));
+
+        // Cleanup
+        federationService.endFederation(partnerR.id());
+        stationRepo.delete(stationR.id());
+    }
+
+    @Test
+    @Order(206)
+    void findAvailableInventoryWithDateRange() {
+        // Exercise the date-range path in findAvailableForPartner (lines 329-332)
+        var results = service.findAvailableInventory(
+                stationB.id(), null, LocalDate.now(), LocalDate.now().plusDays(7));
+        // Should still return inventory from stationA (no blocks exist)
+        assertTrue(results.stream().anyMatch(e -> e.inventoryId() == inventoryIdA));
+    }
+
+    @Test
+    @Order(207)
+    void findAvailableInventoryBlockedStation() {
+        // Create a station-level block on stationA
+        var block = service.createBlock(
+                stationA.id(), null, null, LocalDate.now(), LocalDate.now().plusDays(7), "Test");
+        var results = service.findAvailableInventory(
+                stationB.id(), null, LocalDate.now(), LocalDate.now().plusDays(7));
+        // stationA should be blocked entirely — its inventory should not appear
+        assertTrue(results.stream().noneMatch(e -> e.stationId() == stationA.id()));
+        service.deleteBlock(block.id());
+    }
+
+    @Test
+    @Order(208)
+    void findAvailableInventoryBlockedInventory() {
+        // Block specific inventory
+        var block = service.createBlock(
+                stationA.id(),
+                inventoryIdA,
+                null,
+                LocalDate.now(),
+                LocalDate.now().plusDays(7),
+                "Inv block");
+        var results = service.findAvailableInventory(
+                stationB.id(), null, LocalDate.now(), LocalDate.now().plusDays(7));
+        assertTrue(results.stream().noneMatch(e -> e.inventoryId() == inventoryIdA));
+        service.deleteBlock(block.id());
+    }
+
+    @Test
+    @Order(209)
+    void fetchRemoteMessagesNoPrivateKey() {
+        // Create a remote partnership where the local station has no private key
+        var stationNoPk = stationRepo.create("LendNoPK");
+        var memberNoPk = stationMemberRepo.create(stationNoPk.id(), account.id());
+        var keyPair = federationService.generateKeyPair();
+        var partner = federationService.acceptInvite(
+                stationNoPk.id(),
+                stationA.id(),
+                federationService.encodePublicKey(keyPair),
+                null,
+                "https://remote-nopk.example.com");
+
+        // Clear the private key
+        stationRepo.updateFederationPrivateKey(stationNoPk.id(), null);
+
+        // Create a request where stationNoPk needs to fetch remote messages
+        var req = lendingRepo.createRequest(
+                stationNoPk.id(),
+                stationA.id(),
+                LocalDate.now(),
+                LocalDate.now().plusDays(1),
+                memberNoPk.id());
+        lendingRepo.createMessage(req.id(), stationNoPk.id(), memberNoPk.id(), "local only", false);
+
+        // getMessages should still work — remote messages skipped due to no private key
+        var messages = service.getMessages(req.id(), stationNoPk.id());
+        assertNotNull(messages);
+        assertTrue(messages.stream().anyMatch(m -> m.message().equals("local only")));
+
+        federationService.endFederation(partner.id());
+        stationRepo.delete(stationNoPk.id());
     }
 
     @Test

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.station.service;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -44,23 +45,82 @@ public class StationImportService {
     private static final List<String> IMPORT_TABLES = List.of(
             "disabledModules",
             "members",
-            "memberRoles",
+            "memberUserTypes",
+            "memberPermissions",
             "groups",
             "groupMembers",
             "tags",
             "tagMembers",
             "managerRelations",
+            "memberAbsences",
             "profileFields",
             "profileFieldValues",
             "eventCategories",
             "attendanceTemplates",
             "attendanceTemplateFields",
+            "attendanceTemplateGroups",
+            "attendanceSessions",
+            "attendanceSessionFields",
+            "attendanceEntries",
+            "attendanceReportPresets",
             "events",
+            "eventRegistrations",
+            "eventComments",
+            "eventFields",
+            "eventTemplates",
+            "eventBreaks",
             "inventories",
             "inventorySizes",
             "inventoryItems",
             "forms",
-            "formQuestions");
+            "formQuestions",
+            "kbFolders",
+            "kbFiles",
+            "kbFileContent",
+            "kbFileVersions",
+            "news",
+            "newsComments",
+            "boards",
+            "boardLanes",
+            "boardFields",
+            "boardLabels",
+            "boardTickets",
+            "boardTicketComments",
+            "boardTicketLabels",
+            "boardTicketChecklist",
+            "boardTicketLinks",
+            "boardTicketWeblinks",
+            "boardViewAccess",
+            "boardEditAccess",
+            "lostAndFound",
+            "waitingLists",
+            "waitingListFields",
+            "waitingListEntries",
+            "entityNotes",
+            "entityNoteVersions",
+            "equipmentExchangeRequests",
+            "equipmentExchangeLogs",
+            "equipmentProcurements",
+            "formResponses",
+            "formAnswers",
+            "formRestrictions",
+            "eventRestrictions",
+            "eventLayouts",
+            "eventLayoutFields",
+            "eventTemplateFields",
+            "eventTemplateRestrictions",
+            "kbTags",
+            "kbFileTags",
+            "kbFolderTags",
+            "kbAccessRestrictions",
+            "kbComments",
+            "inventoryChecks",
+            "inventoryCheckItems",
+            "inventoryItemHistory",
+            "inventoryRequirements",
+            "newsRestrictions",
+            "userSettings",
+            "userNotificationSettings");
 
     private static final int PAGE_SIZE = 500;
     private final StationRepository stationRepository;
@@ -326,7 +386,8 @@ public class StationImportService {
                 yield modules.size();
             }
             case "members" -> importMembers(stationId, data, idMap);
-            case "memberRoles" -> importMemberRoles(stationId, data, idMap);
+            case "memberUserTypes" -> importMemberUserTypes(stationId, data, idMap);
+            case "memberPermissions" -> importMemberPermissions(stationId, data, idMap);
             case "groups" -> importGroups(stationId, data, idMap);
             case "groupMembers" -> importGroupMembers(data, idMap);
             case "tags" -> importTags(stationId, data, idMap);
@@ -337,6 +398,11 @@ public class StationImportService {
             case "eventCategories" -> importEventCategories(stationId, data, idMap);
             case "attendanceTemplates" -> importAttendanceTemplates(stationId, data, idMap);
             case "attendanceTemplateFields" -> importAttendanceTemplateFields(data, idMap);
+            case "attendanceTemplateGroups" -> importAttendanceTemplateGroups(data, idMap);
+            case "attendanceSessions" -> importAttendanceSessions(data, idMap);
+            case "attendanceSessionFields" -> importAttendanceSessionFields(data, idMap);
+            case "attendanceEntries" -> importAttendanceEntries(data, idMap);
+            case "attendanceReportPresets" -> importAttendanceReportPresets(stationId, data, idMap);
             case "events" -> importEvents(stationId, data, idMap);
             case "inventories" -> importInventories(stationId, data, idMap);
             case "inventorySizes" -> importInventorySizes(data, idMap);
@@ -348,6 +414,55 @@ public class StationImportService {
             case "kbFiles" -> importKbFiles(stationId, data, idMap);
             case "kbFileContent" -> importKbFileContent(data, idMap);
             case "kbFileVersions" -> importKbFileVersions(data, idMap);
+            case "memberAbsences" -> importMemberAbsences(data, idMap);
+            case "eventRegistrations" -> importEventRegistrations(data, idMap);
+            case "eventComments" -> importEventComments(data, idMap);
+            case "eventFields" -> importEventFields(data, idMap);
+            case "eventTemplates" -> importEventTemplates(stationId, data, idMap);
+            case "eventBreaks" -> importEventBreaks(stationId, data);
+            case "news" -> importNews(stationId, data, idMap);
+            case "newsComments" -> importNewsComments(data, idMap);
+            case "boards" -> importBoards(stationId, data, idMap);
+            case "boardLanes" -> importBoardLanes(data, idMap);
+            case "boardFields" -> importBoardFields(data, idMap);
+            case "boardLabels" -> importBoardLabels(data, idMap);
+            case "boardTickets" -> importBoardTickets(data, idMap);
+            case "boardTicketComments" -> importBoardTicketComments(data, idMap);
+            case "boardTicketLabels" -> importBoardTicketLabels(data, idMap);
+            case "boardTicketChecklist" -> importBoardTicketChecklist(data, idMap);
+            case "boardTicketLinks" -> importBoardTicketLinks(data, idMap);
+            case "boardTicketWeblinks" -> importBoardTicketWeblinks(data, idMap);
+            case "boardViewAccess" -> importBoardViewAccess(data, idMap);
+            case "boardEditAccess" -> importBoardEditAccess(data, idMap);
+            case "lostAndFound" -> importLostAndFound(stationId, data, idMap);
+            case "waitingLists" -> importWaitingLists(stationId, data, idMap);
+            case "waitingListFields" -> importWaitingListFields(data, idMap);
+            case "waitingListEntries" -> importWaitingListEntries(data, idMap);
+            case "entityNotes" -> importEntityNotes(stationId, data, idMap);
+            case "entityNoteVersions" -> importEntityNoteVersions(data, idMap);
+            case "equipmentExchangeRequests" -> importEquipmentExchangeRequests(stationId, data, idMap);
+            case "equipmentExchangeLogs" -> importEquipmentExchangeLogs(data, idMap);
+            case "equipmentProcurements" -> importEquipmentProcurements(stationId, data, idMap);
+            case "formResponses" -> importFormResponses(data, idMap);
+            case "formAnswers" -> importFormAnswers(data, idMap);
+            case "formRestrictions" -> importFormRestrictions(data, idMap);
+            case "eventRestrictions" -> importEventRestrictions(data, idMap);
+            case "eventLayouts" -> importEventLayouts(stationId, data, idMap);
+            case "eventLayoutFields" -> importEventLayoutFields(data, idMap);
+            case "eventTemplateFields" -> importEventTemplateFields(data, idMap);
+            case "eventTemplateRestrictions" -> importEventTemplateRestrictions(data, idMap);
+            case "kbTags" -> importKbTags(stationId, data, idMap);
+            case "kbFileTags" -> importKbFileTags(data, idMap);
+            case "kbFolderTags" -> importKbFolderTags(data, idMap);
+            case "kbAccessRestrictions" -> importKbAccessRestrictions(data, idMap);
+            case "kbComments" -> importKbComments(data, idMap);
+            case "inventoryChecks" -> importInventoryChecks(stationId, data, idMap);
+            case "inventoryCheckItems" -> importInventoryCheckItems(data, idMap);
+            case "inventoryItemHistory" -> importInventoryItemHistory(data, idMap);
+            case "inventoryRequirements" -> importInventoryRequirements(data, idMap);
+            case "newsRestrictions" -> importNewsRestrictions(data, idMap);
+            case "userSettings" -> importUserSettings(data, idMap);
+            case "userNotificationSettings" -> importUserNotificationSettings(data, idMap);
             default -> {
                 log.warn("Unknown table for import: {}", tableName);
                 yield 0;
@@ -417,24 +532,24 @@ public class StationImportService {
     }
 
     @SuppressWarnings("unchecked")
-    private int importMemberRoles(int stationId, Map<String, Object> data, IdRemapper idMap) {
-        var roleNameToId = new HashMap<String, Integer>();
-        for (var role : stationMemberRepository.findAllRoles())
-            roleNameToId.put(role.role().name(), role.id());
-
-        var memberRoles = (List<Map<String, Object>>) data.getOrDefault("memberRoles", List.of());
+    private int importMemberUserTypes(int stationId, Map<String, Object> data, IdRemapper idMap) {
+        var entries = (List<Map<String, Object>>) data.getOrDefault("memberUserTypes", List.of());
         int count = 0;
         Integer firstManagerMemberId = null;
-        for (var mr : memberRoles) {
-            int memberId = idMap.get("member", intVal(mr, "member_id"));
-            String roleName = str(mr, "role_name", "");
-            Integer roleId = roleNameToId.get(roleName);
-            if (memberId > 0 && roleId != null) {
-                stationMemberRepository.addRole(memberId, roleId);
-                if ("MANAGER".equals(roleName) && firstManagerMemberId == null) {
-                    firstManagerMemberId = memberId;
+        for (var entry : entries) {
+            int memberId = idMap.get("member", intVal(entry, "member_id"));
+            String userTypeName = str(entry, "user_type", "MEMBER");
+            if (memberId > 0) {
+                try {
+                    var userType = StationUserType.valueOf(userTypeName);
+                    stationMemberRepository.setUserType(memberId, userType);
+                    if (userType == StationUserType.MANAGER && firstManagerMemberId == null) {
+                        firstManagerMemberId = memberId;
+                    }
+                    count++;
+                } catch (IllegalArgumentException e) {
+                    log.warn("Unknown user type '{}' for member {}, skipping", userTypeName, memberId);
                 }
-                count++;
             }
         }
         // Set station owner to the first imported manager if no owner exists
@@ -448,13 +563,37 @@ public class StationImportService {
     }
 
     @SuppressWarnings("unchecked")
+    private int importMemberPermissions(int stationId, Map<String, Object> data, IdRemapper idMap) {
+        var permNameToId = new HashMap<String, Integer>();
+        for (var perm : stationMemberRepository.findAllPermissions())
+            permNameToId.put(perm.permission().name(), perm.id());
+
+        var entries = (List<Map<String, Object>>) data.getOrDefault("memberPermissions", List.of());
+        int count = 0;
+        for (var entry : entries) {
+            int memberId = idMap.get("member", intVal(entry, "member_id"));
+            String permName = str(entry, "permission_name", "");
+            Integer permId = permNameToId.get(permName);
+            if (memberId > 0 && permId != null) {
+                stationMemberRepository.grantPermission(memberId, permId);
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
     private int importGroups(int stationId, Map<String, Object> data, IdRemapper idMap) {
         var groups = (List<Map<String, Object>>) data.getOrDefault("groups", List.of());
         for (var group : groups) {
             int oldId = intVal(group, "id");
             int newId = insertReturningId(
-                    "INSERT INTO member_group(station_id, name) VALUES(:station_id, :name) RETURNING id;",
-                    Call.of().bind("station_id", stationId).bind("name", str(group, "name", "")));
+                    "INSERT INTO member_group(station_id, name, color, position) VALUES(:station_id, :name, :color, :position) RETURNING id;",
+                    Call.of()
+                            .bind("station_id", stationId)
+                            .bind("name", str(group, "name", ""))
+                            .bind("color", str(group, "color", null))
+                            .bind("position", intVal(group, "position")));
             idMap.put("group", oldId, newId);
         }
         return groups.size();
@@ -484,8 +623,13 @@ public class StationImportService {
         for (var tag : tags) {
             int oldId = intVal(tag, "id");
             int newId = insertReturningId(
-                    "INSERT INTO user_tag(station_id, name) VALUES(:station_id, :name) RETURNING id;",
-                    Call.of().bind("station_id", stationId).bind("name", str(tag, "name", "")));
+                    "INSERT INTO user_tag(station_id, name, color, visible, position) VALUES(:station_id, :name, :color, :visible, :position) RETURNING id;",
+                    Call.of()
+                            .bind("station_id", stationId)
+                            .bind("name", str(tag, "name", ""))
+                            .bind("color", str(tag, "color", null))
+                            .bind("visible", boolVal(tag, "visible"))
+                            .bind("position", intVal(tag, "position")));
             idMap.put("tag", oldId, newId);
         }
         return tags.size();
@@ -571,11 +715,15 @@ public class StationImportService {
         for (var cat : categories) {
             int oldId = intVal(cat, "id");
             int newId = insertReturningId(
-                    "INSERT INTO event_category(station_id, name, position) VALUES(:station_id, :name, :position) RETURNING id;",
+                    "INSERT INTO event_category(station_id, name, position, public, max_shown_events) VALUES(:station_id, :name, :position, :public, :max_shown) RETURNING id;",
                     Call.of()
                             .bind("station_id", stationId)
                             .bind("name", str(cat, "name", ""))
-                            .bind("position", intVal(cat, "position")));
+                            .bind("position", intVal(cat, "position"))
+                            .bind("public", boolVal(cat, "public"))
+                            .bind(
+                                    "max_shown",
+                                    cat.get("max_shown_events") != null ? intVal(cat, "max_shown_events") : null));
             idMap.put("eventCategory", oldId, newId);
         }
         return categories.size();
@@ -618,6 +766,116 @@ public class StationImportService {
     }
 
     @SuppressWarnings("unchecked")
+    private int importAttendanceTemplateGroups(Map<String, Object> data, IdRemapper idMap) {
+        var items = (List<Map<String, Object>>) data.getOrDefault("attendanceTemplateGroups", List.of());
+        int count = 0;
+        for (var item : items) {
+            int templateId = idMap.get("attendanceTemplate", intVal(item, "template_id"));
+            int groupId = idMap.get("group", intVal(item, "group_id"));
+            if (templateId > 0 && groupId > 0) {
+                Query.query(
+                                "INSERT INTO attendance_template_group(template_id, group_id) VALUES(:tid, :gid) ON CONFLICT DO NOTHING;")
+                        .single(Call.of().bind("tid", templateId).bind("gid", groupId))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importAttendanceSessions(Map<String, Object> data, IdRemapper idMap) {
+        var items = (List<Map<String, Object>>) data.getOrDefault("attendanceSessions", List.of());
+        int count = 0;
+        for (var item : items) {
+            int oldId = intVal(item, "id");
+            int templateId = idMap.get("attendanceTemplate", intVal(item, "template_id"));
+            Integer eventId = item.get("event_id") != null ? idMap.get("event", intVal(item, "event_id")) : null;
+            if (templateId > 0) {
+                int newId = insertReturningId(
+                        "INSERT INTO attendance_session(template_id, start_time, end_time, created_at, event_id, title) VALUES(:tid, :start::timestamp, :end::timestamp, :created::timestamp, :eid, :title) RETURNING id;",
+                        Call.of()
+                                .bind("tid", templateId)
+                                .bind("start", str(item, "start_time", ""))
+                                .bind("end", str(item, "end_time", ""))
+                                .bind("created", str(item, "created_at", ""))
+                                .bind("eid", eventId)
+                                .bind("title", str(item, "title", null)));
+                idMap.put("attendanceSession", oldId, newId);
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importAttendanceSessionFields(Map<String, Object> data, IdRemapper idMap) {
+        var items = (List<Map<String, Object>>) data.getOrDefault("attendanceSessionFields", List.of());
+        int count = 0;
+        for (var item : items) {
+            int sessionId = idMap.get("attendanceSession", intVal(item, "session_id"));
+            int fieldId = idMap.get("attendanceTemplateField", intVal(item, "field_id"));
+            if (sessionId > 0 && fieldId > 0) {
+                Query.query(
+                                "INSERT INTO attendance_session_field(session_id, field_id, value) VALUES(:sid, :fid, :value::jsonb) ON CONFLICT DO NOTHING;")
+                        .single(Call.of()
+                                .bind("sid", sessionId)
+                                .bind("fid", fieldId)
+                                .bind("value", str(item, "value", "{}")))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importAttendanceEntries(Map<String, Object> data, IdRemapper idMap) {
+        var items = (List<Map<String, Object>>) data.getOrDefault("attendanceEntries", List.of());
+        int count = 0;
+        for (var item : items) {
+            int sessionId = idMap.get("attendanceSession", intVal(item, "session_id"));
+            int memberId = idMap.get("member", intVal(item, "member_id"));
+            if (sessionId > 0 && memberId > 0) {
+                Query.query(
+                                "INSERT INTO attendance_entry(session_id, member_id, check_in, check_out, status, source) VALUES(:sid, :mid, :cin::timestamp, :cout::timestamp, :status, :source) ON CONFLICT DO NOTHING;")
+                        .single(Call.of()
+                                .bind("sid", sessionId)
+                                .bind("mid", memberId)
+                                .bind("cin", str(item, "check_in", null))
+                                .bind("cout", str(item, "check_out", null))
+                                .bind("status", str(item, "status", "PRESENT"))
+                                .bind("source", str(item, "source", "EXPECTED")))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importAttendanceReportPresets(int stationId, Map<String, Object> data, IdRemapper idMap) {
+        var items = (List<Map<String, Object>>) data.getOrDefault("attendanceReportPresets", List.of());
+        int count = 0;
+        for (var item : items) {
+            int oldId = intVal(item, "id");
+            Integer groupId = item.get("group_id") != null ? idMap.get("group", intVal(item, "group_id")) : null;
+            int newId = insertReturningId(
+                    "INSERT INTO attendance_report_preset(station_id, name, role_name, group_id, period, rounding) VALUES(:sid, :name, :role_name, :group_id, :period, :rounding) RETURNING id;",
+                    Call.of()
+                            .bind("sid", stationId)
+                            .bind("name", str(item, "name", ""))
+                            .bind("role_name", str(item, "role_name", null))
+                            .bind("group_id", groupId)
+                            .bind("period", str(item, "period", "month"))
+                            .bind("rounding", str(item, "rounding", "exact")));
+            idMap.put("attendanceReportPreset", oldId, newId);
+            count++;
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
     private int importEvents(int stationId, Map<String, Object> data, IdRemapper idMap) {
         var events = (List<Map<String, Object>>) data.getOrDefault("events", List.of());
         for (var event : events) {
@@ -628,7 +886,7 @@ public class StationImportService {
             Integer categoryId =
                     event.get("category_id") != null ? idMap.get("eventCategory", intVal(event, "category_id")) : null;
             int newId = insertReturningId(
-                    "INSERT INTO station_event(station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id) VALUES(:station_id, :name, :desc, :event_type, :dow, :start::timestamptz, :end::timestamptz, :tmpl, :reg, :deadline::timestamp, :confirm, :cat) RETURNING id;",
+                    "INSERT INTO station_event(station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, restriction_mode, public, registration_limit, cancelled, cancelled_at, cancel_reason, min_registrations, threshold_date) VALUES(:station_id, :name, :desc, :event_type, :dow, :start::timestamptz, :end::timestamptz, :tmpl, :reg, :deadline::timestamp, :confirm, :cat, :restriction_mode, :public, :reg_limit, :cancelled, :cancelled_at::timestamptz, :cancel_reason, :min_reg, :threshold_date::timestamptz) RETURNING id;",
                     Call.of()
                             .bind("station_id", stationId)
                             .bind("name", str(event, "name", ""))
@@ -641,7 +899,21 @@ public class StationImportService {
                             .bind("reg", boolVal(event, "requires_registration"))
                             .bind("deadline", str(event, "registration_deadline", null))
                             .bind("confirm", boolVal(event, "requires_confirmation"))
-                            .bind("cat", categoryId != null && categoryId > 0 ? categoryId : null));
+                            .bind("cat", categoryId != null && categoryId > 0 ? categoryId : null)
+                            .bind("restriction_mode", str(event, "restriction_mode", "AND"))
+                            .bind("public", event.get("public") != null ? boolVal(event, "public") : null)
+                            .bind(
+                                    "reg_limit",
+                                    event.get("registration_limit") != null
+                                            ? intVal(event, "registration_limit")
+                                            : null)
+                            .bind("cancelled", boolVal(event, "cancelled"))
+                            .bind("cancelled_at", str(event, "cancelled_at", null))
+                            .bind("cancel_reason", str(event, "cancel_reason", null))
+                            .bind(
+                                    "min_reg",
+                                    event.get("min_registrations") != null ? intVal(event, "min_registrations") : null)
+                            .bind("threshold_date", str(event, "threshold_date", null)));
             idMap.put("event", oldId, newId);
         }
         return events.size();
@@ -691,22 +963,24 @@ public class StationImportService {
         var items = (List<Map<String, Object>>) data.getOrDefault("inventoryItems", List.of());
         int count = 0;
         for (var item : items) {
+            int oldId = intVal(item, "id");
             int inventoryId = idMap.get("inventory", intVal(item, "inventory_id"));
             Integer sizeId = item.get("size_id") != null ? idMap.get("inventorySize", intVal(item, "size_id")) : null;
             Integer assignedTo =
                     item.get("assigned_to") != null ? idMap.get("member", intVal(item, "assigned_to")) : null;
             if (inventoryId > 0) {
-                Query.query(
-                                "INSERT INTO inventory_item(inventory_id, internal_id, name, size_id, metadata, assigned_to, item_source) VALUES(:inv, :iid, :name, :sid, :meta::JSONB, :at, :src);")
-                        .single(Call.of()
+                int newId = insertReturningId(
+                        "INSERT INTO inventory_item(inventory_id, internal_id, name, size_id, metadata, assigned_to, lost_at, item_source) VALUES(:inv, :iid, :name, :sid, :meta::JSONB, :at, :lost_at::timestamp, :src) RETURNING id;",
+                        Call.of()
                                 .bind("inv", inventoryId)
                                 .bind("iid", str(item, "internal_id", null))
                                 .bind("name", str(item, "name", ""))
                                 .bind("sid", sizeId != null && sizeId > 0 ? sizeId : null)
                                 .bind("meta", str(item, "metadata", "{}"))
                                 .bind("at", assignedTo != null && assignedTo > 0 ? assignedTo : null)
-                                .bind("src", str(item, "item_source", null)))
-                        .insert();
+                                .bind("lost_at", str(item, "lost_at", null))
+                                .bind("src", str(item, "item_source", null)));
+                idMap.put("inventoryItem", oldId, newId);
                 count++;
             }
         }
@@ -723,7 +997,7 @@ public class StationImportService {
                 createdBy = idMap.maps.get("member").values().iterator().next();
             }
             int newId = insertReturningId(
-                    "INSERT INTO form(station_id, title, description, status, shuffle_questions, allow_edit, created_by) VALUES(:sid, :title, :desc, :status, :shuffle, :edit, :by) RETURNING id;",
+                    "INSERT INTO form(station_id, title, description, status, shuffle_questions, allow_edit, start_at, end_at, closed_at, created_by, created_at, updated_at, restriction_mode, forced) VALUES(:sid, :title, :desc, :status, :shuffle, :edit, :start_at::timestamp, :end_at::timestamp, :closed_at::timestamp, :by, :created_at::timestamp, :updated_at::timestamp, :restriction_mode, :forced) RETURNING id;",
                     Call.of()
                             .bind("sid", stationId)
                             .bind("title", str(form, "title", ""))
@@ -731,7 +1005,14 @@ public class StationImportService {
                             .bind("status", str(form, "status", "DRAFT"))
                             .bind("shuffle", boolVal(form, "shuffle_questions"))
                             .bind("edit", boolVal(form, "allow_edit"))
-                            .bind("by", createdBy));
+                            .bind("start_at", str(form, "start_at", null))
+                            .bind("end_at", str(form, "end_at", null))
+                            .bind("closed_at", str(form, "closed_at", null))
+                            .bind("by", createdBy)
+                            .bind("created_at", str(form, "created_at", null))
+                            .bind("updated_at", str(form, "updated_at", null))
+                            .bind("restriction_mode", str(form, "restriction_mode", "AND"))
+                            .bind("forced", boolVal(form, "forced")));
             idMap.put("form", oldId, newId);
         }
         return forms.size();
@@ -742,11 +1023,12 @@ public class StationImportService {
         var questions = (List<Map<String, Object>>) data.getOrDefault("formQuestions", List.of());
         int count = 0;
         for (var q : questions) {
+            int oldId = intVal(q, "id");
             int formId = idMap.get("form", intVal(q, "form_id"));
             if (formId > 0) {
-                Query.query(
-                                "INSERT INTO form_question(form_id, position, question_type, title, description, required, shuffle, config) VALUES(:fid, :pos, :qt, :title, :desc, :req, :shuf, :cfg::JSONB);")
-                        .single(Call.of()
+                int newId = insertReturningId(
+                        "INSERT INTO form_question(form_id, position, question_type, title, description, required, shuffle, config) VALUES(:fid, :pos, :qt, :title, :desc, :req, :shuf, :cfg::JSONB) RETURNING id;",
+                        Call.of()
                                 .bind("fid", formId)
                                 .bind("pos", intVal(q, "position"))
                                 .bind("qt", str(q, "question_type", "TEXT"))
@@ -754,7 +1036,1237 @@ public class StationImportService {
                                 .bind("desc", str(q, "description", ""))
                                 .bind("req", boolVal(q, "required"))
                                 .bind("shuf", boolVal(q, "shuffle"))
-                                .bind("cfg", str(q, "config", "{}")))
+                                .bind("cfg", str(q, "config", "{}")));
+                idMap.put("formQuestion", oldId, newId);
+                count++;
+            }
+        }
+        return count;
+    }
+
+    // -- Member absences --
+
+    @SuppressWarnings("unchecked")
+    private int importMemberAbsences(Map<String, Object> data, IdRemapper idMap) {
+        var absences = (List<Map<String, Object>>) data.getOrDefault("memberAbsences", List.of());
+        int count = 0;
+        for (var ab : absences) {
+            int memberId = idMap.get("member", intVal(ab, "member_id"));
+            Integer createdBy = ab.get("created_by") != null ? idMap.get("member", intVal(ab, "created_by")) : null;
+            if (memberId > 0) {
+                Query.query(
+                                "INSERT INTO member_absence(member_id, absent_from, absent_until, reason, created_at, created_by) VALUES(:member_id, :absent_from::date, :absent_until::date, :reason, :created_at::timestamptz, :created_by) ON CONFLICT DO NOTHING;")
+                        .single(Call.of()
+                                .bind("member_id", memberId)
+                                .bind("absent_from", str(ab, "absent_from", null))
+                                .bind("absent_until", str(ab, "absent_until", null))
+                                .bind("reason", str(ab, "reason", null))
+                                .bind("created_at", str(ab, "created_at", null))
+                                .bind("created_by", createdBy != null && createdBy > 0 ? createdBy : null))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    // -- Event extras --
+
+    @SuppressWarnings("unchecked")
+    private int importEventRegistrations(Map<String, Object> data, IdRemapper idMap) {
+        var registrations = (List<Map<String, Object>>) data.getOrDefault("eventRegistrations", List.of());
+        int count = 0;
+        for (var reg : registrations) {
+            int eventId = idMap.get("event", intVal(reg, "event_id"));
+            int memberId = idMap.get("member", intVal(reg, "member_id"));
+            Integer createdBy = reg.get("created_by") != null ? idMap.get("member", intVal(reg, "created_by")) : null;
+            if (eventId > 0 && memberId > 0) {
+                Query.query(
+                                "INSERT INTO event_registration(event_id, member_id, event_date, status, created_by, created_at) VALUES(:event_id, :member_id, :event_date::date, :status, :created_by, :created_at::timestamptz) ON CONFLICT DO NOTHING;")
+                        .single(Call.of()
+                                .bind("event_id", eventId)
+                                .bind("member_id", memberId)
+                                .bind("event_date", str(reg, "event_date", null))
+                                .bind("status", str(reg, "status", "REGISTERED"))
+                                .bind("created_by", createdBy != null && createdBy > 0 ? createdBy : null)
+                                .bind("created_at", str(reg, "created_at", null)))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importEventComments(Map<String, Object> data, IdRemapper idMap) {
+        var comments = (List<Map<String, Object>>) data.getOrDefault("eventComments", List.of());
+        for (var c : comments) {
+            int oldId = intVal(c, "id");
+            int eventId = idMap.get("event", intVal(c, "event_id"));
+            Integer oldParentId = c.get("parent_id") != null ? intVal(c, "parent_id") : null;
+            Integer parentId = oldParentId != null ? idMap.get("eventComment", oldParentId) : null;
+            if (eventId > 0) {
+                int newId = insertReturningId(
+                        "INSERT INTO event_comment(event_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at) VALUES(:event_id, :parent_id, :author_station_uid::uuid, :author_member_uid::uuid, :content, :deleted, :created_at::timestamptz, :updated_at::timestamptz) RETURNING id;",
+                        Call.of()
+                                .bind("event_id", eventId)
+                                .bind("parent_id", parentId != null && parentId > 0 ? parentId : null)
+                                .bind("author_station_uid", str(c, "author_station_uid", null))
+                                .bind("author_member_uid", str(c, "author_member_uid", null))
+                                .bind("content", str(c, "content", ""))
+                                .bind("deleted", boolVal(c, "deleted"))
+                                .bind("created_at", str(c, "created_at", null))
+                                .bind("updated_at", str(c, "updated_at", null)));
+                idMap.put("eventComment", oldId, newId);
+            }
+        }
+        return comments.size();
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importEventFields(Map<String, Object> data, IdRemapper idMap) {
+        var fields = (List<Map<String, Object>>) data.getOrDefault("eventFields", List.of());
+        int count = 0;
+        for (var f : fields) {
+            int eventId = idMap.get("event", intVal(f, "event_id"));
+            if (eventId > 0) {
+                int oldId = intVal(f, "id");
+                Integer attendanceFieldId = f.get("attendance_field_id") != null
+                        ? idMap.get("attendanceTemplateField", intVal(f, "attendance_field_id"))
+                        : null;
+                int newId = insertReturningId(
+                        "INSERT INTO event_field(event_id, name, value, position, field_type, config, overview, attendance_field_id, public) VALUES(:event_id, :name, :value, :position, :field_type, :config::jsonb, :overview, :attendance_field_id, :public) RETURNING id;",
+                        Call.of()
+                                .bind("event_id", eventId)
+                                .bind("name", str(f, "name", ""))
+                                .bind("value", str(f, "value", ""))
+                                .bind("position", intVal(f, "position"))
+                                .bind("field_type", str(f, "field_type", "string"))
+                                .bind("config", str(f, "config", "{}"))
+                                .bind("overview", boolVal(f, "overview"))
+                                .bind(
+                                        "attendance_field_id",
+                                        attendanceFieldId != null && attendanceFieldId > 0 ? attendanceFieldId : null)
+                                .bind("public", boolVal(f, "public")));
+                idMap.put("eventField", oldId, newId);
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importEventTemplates(int stationId, Map<String, Object> data, IdRemapper idMap) {
+        var templates = (List<Map<String, Object>>) data.getOrDefault("eventTemplates", List.of());
+        for (var tmpl : templates) {
+            int oldId = intVal(tmpl, "id");
+            Integer categoryId =
+                    tmpl.get("category_id") != null ? idMap.get("eventCategory", intVal(tmpl, "category_id")) : null;
+            Integer attendanceTemplateId = tmpl.get("attendance_template_id") != null
+                    ? idMap.get("attendanceTemplate", intVal(tmpl, "attendance_template_id"))
+                    : null;
+            int newId = insertReturningId(
+                    "INSERT INTO event_template(station_id, name, title, description, category_id, event_type, requires_registration, registration_deadline_offset, requires_confirmation, restriction_mode, attendance_template_id, registration_limit) VALUES(:station_id, :name, :title, :desc, :cat, :event_type, :reg, :deadline_offset::interval, :confirm, :restriction_mode, :att_tmpl, :reg_limit) RETURNING id;",
+                    Call.of()
+                            .bind("station_id", stationId)
+                            .bind("name", str(tmpl, "name", ""))
+                            .bind("title", str(tmpl, "title", null))
+                            .bind("desc", str(tmpl, "description", null))
+                            .bind("cat", categoryId != null && categoryId > 0 ? categoryId : null)
+                            .bind("event_type", str(tmpl, "event_type", null))
+                            .bind(
+                                    "reg",
+                                    tmpl.get("requires_registration") != null
+                                            ? boolVal(tmpl, "requires_registration")
+                                            : null)
+                            .bind("deadline_offset", str(tmpl, "registration_deadline_offset", null))
+                            .bind(
+                                    "confirm",
+                                    tmpl.get("requires_confirmation") != null
+                                            ? boolVal(tmpl, "requires_confirmation")
+                                            : null)
+                            .bind("restriction_mode", str(tmpl, "restriction_mode", null))
+                            .bind(
+                                    "att_tmpl",
+                                    attendanceTemplateId != null && attendanceTemplateId > 0
+                                            ? attendanceTemplateId
+                                            : null)
+                            .bind(
+                                    "reg_limit",
+                                    tmpl.get("registration_limit") != null
+                                            ? intVal(tmpl, "registration_limit")
+                                            : null));
+            idMap.put("eventTemplate", oldId, newId);
+        }
+        return templates.size();
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importEventBreaks(int stationId, Map<String, Object> data) {
+        var breaks = (List<Map<String, Object>>) data.getOrDefault("eventBreaks", List.of());
+        for (var br : breaks) {
+            Query.query(
+                            "INSERT INTO station_event_break(station_id, name, start_date, end_date) VALUES(:station_id, :name, :start_date::date, :end_date::date);")
+                    .single(Call.of()
+                            .bind("station_id", stationId)
+                            .bind("name", str(br, "name", ""))
+                            .bind("start_date", str(br, "start_date", null))
+                            .bind("end_date", str(br, "end_date", null)))
+                    .insert();
+        }
+        return breaks.size();
+    }
+
+    // -- News --
+
+    @SuppressWarnings("unchecked")
+    private int importNews(int stationId, Map<String, Object> data, IdRemapper idMap) {
+        var newsList = (List<Map<String, Object>>) data.getOrDefault("news", List.of());
+        for (var n : newsList) {
+            int oldId = intVal(n, "id");
+            int newId = insertReturningId(
+                    "INSERT INTO news(station_id, title, content_markdown, content_html, author_station_uid, author_member_uid, published_at, created_at, restriction_mode) VALUES(:station_id, :title, :content_markdown, :content_html, :author_station_uid::uuid, :author_member_uid::uuid, :published_at::timestamptz, :created_at::timestamptz, :restriction_mode) RETURNING id;",
+                    Call.of()
+                            .bind("station_id", stationId)
+                            .bind("title", str(n, "title", ""))
+                            .bind("content_markdown", str(n, "content_markdown", ""))
+                            .bind("content_html", str(n, "content_html", ""))
+                            .bind("author_station_uid", str(n, "author_station_uid", null))
+                            .bind("author_member_uid", str(n, "author_member_uid", null))
+                            .bind("published_at", str(n, "published_at", null))
+                            .bind("created_at", str(n, "created_at", null))
+                            .bind("restriction_mode", str(n, "restriction_mode", "AND")));
+            idMap.put("news", oldId, newId);
+        }
+        return newsList.size();
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importNewsComments(Map<String, Object> data, IdRemapper idMap) {
+        var comments = (List<Map<String, Object>>) data.getOrDefault("newsComments", List.of());
+        for (var c : comments) {
+            int oldId = intVal(c, "id");
+            int newsId = idMap.get("news", intVal(c, "news_id"));
+            Integer oldParentId = c.get("parent_id") != null ? intVal(c, "parent_id") : null;
+            Integer parentId = oldParentId != null ? idMap.get("newsComment", oldParentId) : null;
+            if (newsId > 0) {
+                int newId = insertReturningId(
+                        "INSERT INTO news_comment(news_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at) VALUES(:news_id, :parent_id, :author_station_uid::uuid, :author_member_uid::uuid, :content, :deleted, :created_at::timestamptz) RETURNING id;",
+                        Call.of()
+                                .bind("news_id", newsId)
+                                .bind("parent_id", parentId != null && parentId > 0 ? parentId : null)
+                                .bind("author_station_uid", str(c, "author_station_uid", null))
+                                .bind("author_member_uid", str(c, "author_member_uid", null))
+                                .bind("content", str(c, "content", ""))
+                                .bind("deleted", boolVal(c, "deleted"))
+                                .bind("created_at", str(c, "created_at", null)));
+                idMap.put("newsComment", oldId, newId);
+            }
+        }
+        return comments.size();
+    }
+
+    // -- Boards --
+
+    @SuppressWarnings("unchecked")
+    private int importBoards(int stationId, Map<String, Object> data, IdRemapper idMap) {
+        var boards = (List<Map<String, Object>>) data.getOrDefault("boards", List.of());
+        for (var b : boards) {
+            int oldId = intVal(b, "id");
+            int newId = insertReturningId(
+                    "INSERT INTO board(station_id, uid, name, description, short_key, hide_done_after_days, ticket_counter, created_at) VALUES(:station_id, :uid::uuid, :name, :description, :short_key, :hide_done_after_days, :ticket_counter, :created_at::timestamptz) RETURNING id;",
+                    Call.of()
+                            .bind("station_id", stationId)
+                            .bind(
+                                    "uid",
+                                    str(b, "uid", java.util.UUID.randomUUID().toString()))
+                            .bind("name", str(b, "name", ""))
+                            .bind("description", str(b, "description", ""))
+                            .bind("short_key", str(b, "short_key", ""))
+                            .bind("hide_done_after_days", intVal(b, "hide_done_after_days"))
+                            .bind("ticket_counter", intVal(b, "ticket_counter"))
+                            .bind("created_at", str(b, "created_at", null)));
+            idMap.put("board", oldId, newId);
+        }
+        return boards.size();
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importBoardLanes(Map<String, Object> data, IdRemapper idMap) {
+        var lanes = (List<Map<String, Object>>) data.getOrDefault("boardLanes", List.of());
+        for (var lane : lanes) {
+            int oldId = intVal(lane, "id");
+            int boardId = idMap.get("board", intVal(lane, "board_id"));
+            if (boardId > 0) {
+                int newId = insertReturningId(
+                        "INSERT INTO board_lane(board_id, name, color, position) VALUES(:board_id, :name, :color, :position) RETURNING id;",
+                        Call.of()
+                                .bind("board_id", boardId)
+                                .bind("name", str(lane, "name", ""))
+                                .bind("color", str(lane, "color", null))
+                                .bind("position", intVal(lane, "position")));
+                idMap.put("boardLane", oldId, newId);
+
+                // Update backlog_lane_id reference on board if this lane was the backlog
+                // We check the original export data for backlog_lane_id matching
+            }
+        }
+        // After all lanes are imported, update backlog_lane_id on boards
+        var boards = (List<Map<String, Object>>) data.getOrDefault("boards", List.of());
+        if (boards == null) {
+            boards = List.of();
+        }
+        for (var b : boards) {
+            if (b.get("backlog_lane_id") != null) {
+                int boardId = idMap.get("board", intVal(b, "id"));
+                int backlogLaneId = idMap.get("boardLane", intVal(b, "backlog_lane_id"));
+                if (boardId > 0 && backlogLaneId > 0) {
+                    Query.query("UPDATE board SET backlog_lane_id = :lane_id WHERE id = :board_id;")
+                            .single(Call.of().bind("lane_id", backlogLaneId).bind("board_id", boardId))
+                            .update();
+                }
+            }
+        }
+        return lanes.size();
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importBoardFields(Map<String, Object> data, IdRemapper idMap) {
+        var fields = (List<Map<String, Object>>) data.getOrDefault("boardFields", List.of());
+        int count = 0;
+        for (var f : fields) {
+            int boardId = idMap.get("board", intVal(f, "board_id"));
+            if (boardId > 0) {
+                int oldId = intVal(f, "id");
+                int newId = insertReturningId(
+                        "INSERT INTO board_field(board_id, name, field_type, config, position) VALUES(:board_id, :name, :field_type, :config::jsonb, :position) RETURNING id;",
+                        Call.of()
+                                .bind("board_id", boardId)
+                                .bind("name", str(f, "name", ""))
+                                .bind("field_type", str(f, "field_type", "text"))
+                                .bind("config", str(f, "config", "{}"))
+                                .bind("position", intVal(f, "position")));
+                idMap.put("boardField", oldId, newId);
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importBoardLabels(Map<String, Object> data, IdRemapper idMap) {
+        var labels = (List<Map<String, Object>>) data.getOrDefault("boardLabels", List.of());
+        for (var l : labels) {
+            int oldId = intVal(l, "id");
+            int boardId = idMap.get("board", intVal(l, "board_id"));
+            if (boardId > 0) {
+                int newId = insertReturningId(
+                        "INSERT INTO board_label(board_id, name, color) VALUES(:board_id, :name, :color) RETURNING id;",
+                        Call.of()
+                                .bind("board_id", boardId)
+                                .bind("name", str(l, "name", ""))
+                                .bind("color", str(l, "color", null)));
+                idMap.put("boardLabel", oldId, newId);
+            }
+        }
+        return labels.size();
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importBoardTickets(Map<String, Object> data, IdRemapper idMap) {
+        var tickets = (List<Map<String, Object>>) data.getOrDefault("boardTickets", List.of());
+        for (var t : tickets) {
+            int oldId = intVal(t, "id");
+            int boardId = idMap.get("board", intVal(t, "board_id"));
+            int laneId = idMap.get("boardLane", intVal(t, "lane_id"));
+            if (boardId > 0 && laneId > 0) {
+                int newId = insertReturningId(
+                        "INSERT INTO board_ticket(board_id, lane_id, ticket_number, title, description, assignee_station_uid, assignee_member_uid, priority, due_date, position, creator_station_uid, creator_member_uid, created_at, updated_at, lane_entered_at) VALUES(:board_id, :lane_id, :ticket_number, :title, :description, :assignee_station_uid::uuid, :assignee_member_uid::uuid, :priority, :due_date::date, :position, :creator_station_uid::uuid, :creator_member_uid::uuid, :created_at::timestamptz, :updated_at::timestamptz, :lane_entered_at::timestamptz) RETURNING id;",
+                        Call.of()
+                                .bind("board_id", boardId)
+                                .bind("lane_id", laneId)
+                                .bind("ticket_number", intVal(t, "ticket_number"))
+                                .bind("title", str(t, "title", ""))
+                                .bind("description", str(t, "description", null))
+                                .bind("assignee_station_uid", str(t, "assignee_station_uid", null))
+                                .bind("assignee_member_uid", str(t, "assignee_member_uid", null))
+                                .bind("priority", str(t, "priority", null))
+                                .bind("due_date", str(t, "due_date", null))
+                                .bind("position", intVal(t, "position"))
+                                .bind("creator_station_uid", str(t, "creator_station_uid", null))
+                                .bind("creator_member_uid", str(t, "creator_member_uid", null))
+                                .bind("created_at", str(t, "created_at", null))
+                                .bind("updated_at", str(t, "updated_at", null))
+                                .bind("lane_entered_at", str(t, "lane_entered_at", null)));
+                idMap.put("boardTicket", oldId, newId);
+            }
+        }
+        return tickets.size();
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importBoardTicketComments(Map<String, Object> data, IdRemapper idMap) {
+        var comments = (List<Map<String, Object>>) data.getOrDefault("boardTicketComments", List.of());
+        for (var c : comments) {
+            int oldId = intVal(c, "id");
+            int ticketId = idMap.get("boardTicket", intVal(c, "ticket_id"));
+            Integer oldParentId = c.get("parent_id") != null ? intVal(c, "parent_id") : null;
+            Integer parentId = oldParentId != null ? idMap.get("boardTicketComment", oldParentId) : null;
+            if (ticketId > 0) {
+                int newId = insertReturningId(
+                        "INSERT INTO board_ticket_comment(ticket_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at) VALUES(:ticket_id, :parent_id, :author_station_uid::uuid, :author_member_uid::uuid, :content, :deleted, :created_at::timestamptz, :updated_at::timestamptz) RETURNING id;",
+                        Call.of()
+                                .bind("ticket_id", ticketId)
+                                .bind("parent_id", parentId != null && parentId > 0 ? parentId : null)
+                                .bind("author_station_uid", str(c, "author_station_uid", null))
+                                .bind("author_member_uid", str(c, "author_member_uid", null))
+                                .bind("content", str(c, "content", ""))
+                                .bind("deleted", boolVal(c, "deleted"))
+                                .bind("created_at", str(c, "created_at", null))
+                                .bind("updated_at", str(c, "updated_at", null)));
+                idMap.put("boardTicketComment", oldId, newId);
+            }
+        }
+        return comments.size();
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importBoardTicketLabels(Map<String, Object> data, IdRemapper idMap) {
+        var labels = (List<Map<String, Object>>) data.getOrDefault("boardTicketLabels", List.of());
+        int count = 0;
+        for (var l : labels) {
+            int ticketId = idMap.get("boardTicket", intVal(l, "ticket_id"));
+            int labelId = idMap.get("boardLabel", intVal(l, "label_id"));
+            if (ticketId > 0 && labelId > 0) {
+                Query.query(
+                                "INSERT INTO board_ticket_label(ticket_id, label_id) VALUES(:ticket_id, :label_id) ON CONFLICT DO NOTHING;")
+                        .single(Call.of().bind("ticket_id", ticketId).bind("label_id", labelId))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importBoardTicketChecklist(Map<String, Object> data, IdRemapper idMap) {
+        var items = (List<Map<String, Object>>) data.getOrDefault("boardTicketChecklist", List.of());
+        int count = 0;
+        for (var item : items) {
+            int ticketId = idMap.get("boardTicket", intVal(item, "ticket_id"));
+            if (ticketId > 0) {
+                Query.query(
+                                "INSERT INTO board_ticket_checklist_item(ticket_id, title, checked, position) VALUES(:ticket_id, :title, :checked, :position);")
+                        .single(Call.of()
+                                .bind("ticket_id", ticketId)
+                                .bind("title", str(item, "title", ""))
+                                .bind("checked", boolVal(item, "checked"))
+                                .bind("position", intVal(item, "position")))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importBoardTicketLinks(Map<String, Object> data, IdRemapper idMap) {
+        var links = (List<Map<String, Object>>) data.getOrDefault("boardTicketLinks", List.of());
+        int count = 0;
+        for (var l : links) {
+            int ticketId = idMap.get("boardTicket", intVal(l, "ticket_id"));
+            int linkedTicketId = idMap.get("boardTicket", intVal(l, "linked_ticket_id"));
+            if (ticketId > 0 && linkedTicketId > 0) {
+                Query.query(
+                                "INSERT INTO board_ticket_link(ticket_id, linked_ticket_id, link_type) VALUES(:ticket_id, :linked_ticket_id, :link_type) ON CONFLICT DO NOTHING;")
+                        .single(Call.of()
+                                .bind("ticket_id", ticketId)
+                                .bind("linked_ticket_id", linkedTicketId)
+                                .bind("link_type", str(l, "link_type", "RELATED")))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importBoardTicketWeblinks(Map<String, Object> data, IdRemapper idMap) {
+        var weblinks = (List<Map<String, Object>>) data.getOrDefault("boardTicketWeblinks", List.of());
+        int count = 0;
+        for (var w : weblinks) {
+            int ticketId = idMap.get("boardTicket", intVal(w, "ticket_id"));
+            if (ticketId > 0) {
+                Query.query(
+                                "INSERT INTO board_ticket_weblink(ticket_id, url, title, position) VALUES(:ticket_id, :url, :title, :position);")
+                        .single(Call.of()
+                                .bind("ticket_id", ticketId)
+                                .bind("url", str(w, "url", ""))
+                                .bind("title", str(w, "title", ""))
+                                .bind("position", intVal(w, "position")))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importBoardViewAccess(Map<String, Object> data, IdRemapper idMap) {
+        var access = (List<Map<String, Object>>) data.getOrDefault("boardViewAccess", List.of());
+        int count = 0;
+        for (var a : access) {
+            int boardId = idMap.get("board", intVal(a, "board_id"));
+            if (boardId > 0) {
+                Integer groupId = a.get("group_id") != null ? idMap.get("group", intVal(a, "group_id")) : null;
+                Integer tagId = a.get("tag_id") != null ? idMap.get("tag", intVal(a, "tag_id")) : null;
+                Query.query(
+                                "INSERT INTO board_view_access(board_id, user_type, group_id, tag_id) VALUES(:board_id, :user_type, :group_id, :tag_id) ON CONFLICT DO NOTHING;")
+                        .single(Call.of()
+                                .bind("board_id", boardId)
+                                .bind("user_type", str(a, "user_type", null))
+                                .bind("group_id", groupId != null && groupId > 0 ? groupId : null)
+                                .bind("tag_id", tagId != null && tagId > 0 ? tagId : null))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importBoardEditAccess(Map<String, Object> data, IdRemapper idMap) {
+        var access = (List<Map<String, Object>>) data.getOrDefault("boardEditAccess", List.of());
+        int count = 0;
+        for (var a : access) {
+            int boardId = idMap.get("board", intVal(a, "board_id"));
+            if (boardId > 0) {
+                Integer groupId = a.get("group_id") != null ? idMap.get("group", intVal(a, "group_id")) : null;
+                Integer tagId = a.get("tag_id") != null ? idMap.get("tag", intVal(a, "tag_id")) : null;
+                Query.query(
+                                "INSERT INTO board_edit_access(board_id, user_type, group_id, tag_id) VALUES(:board_id, :user_type, :group_id, :tag_id) ON CONFLICT DO NOTHING;")
+                        .single(Call.of()
+                                .bind("board_id", boardId)
+                                .bind("user_type", str(a, "user_type", null))
+                                .bind("group_id", groupId != null && groupId > 0 ? groupId : null)
+                                .bind("tag_id", tagId != null && tagId > 0 ? tagId : null))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    // -- Lost & Found --
+
+    @SuppressWarnings("unchecked")
+    private int importLostAndFound(int stationId, Map<String, Object> data, IdRemapper idMap) {
+        var items = (List<Map<String, Object>>) data.getOrDefault("lostAndFound", List.of());
+        for (var item : items) {
+            int oldId = intVal(item, "id");
+            Integer claimedBy = item.get("claimed_by") != null ? idMap.get("member", intVal(item, "claimed_by")) : null;
+            Integer createdBy = item.get("created_by") != null ? idMap.get("member", intVal(item, "created_by")) : null;
+            int newId = insertReturningId(
+                    "INSERT INTO lost_and_found_item(station_id, description, found_at, claimed_by, claimed_at, created_by, created_at) VALUES(:station_id, :description, :found_at::date, :claimed_by, :claimed_at::timestamptz, :created_by, :created_at::timestamptz) RETURNING id;",
+                    Call.of()
+                            .bind("station_id", stationId)
+                            .bind("description", str(item, "description", ""))
+                            .bind("found_at", str(item, "found_at", null))
+                            .bind("claimed_by", claimedBy != null && claimedBy > 0 ? claimedBy : null)
+                            .bind("claimed_at", str(item, "claimed_at", null))
+                            .bind("created_by", createdBy != null && createdBy > 0 ? createdBy : null)
+                            .bind("created_at", str(item, "created_at", null)));
+            idMap.put("lostAndFound", oldId, newId);
+        }
+        return items.size();
+    }
+
+    // -- Waiting Lists --
+
+    @SuppressWarnings("unchecked")
+    private int importWaitingLists(int stationId, Map<String, Object> data, IdRemapper idMap) {
+        var lists = (List<Map<String, Object>>) data.getOrDefault("waitingLists", List.of());
+        for (var wl : lists) {
+            int oldId = intVal(wl, "id");
+            Integer testingGroupId =
+                    wl.get("testing_group_id") != null ? idMap.get("group", intVal(wl, "testing_group_id")) : null;
+            Integer joinGroupId =
+                    wl.get("join_group_id") != null ? idMap.get("group", intVal(wl, "join_group_id")) : null;
+            int newId = insertReturningId(
+                    "INSERT INTO waiting_list(station_id, name, description, scoring_formula, confirm_interval_days, visible_fields, testing_group_id, join_group_id, join_user_type, attendance_threshold, created_at) VALUES(:station_id, :name, :description, :scoring_formula, :confirm_interval_days, :visible_fields::jsonb, :testing_group_id, :join_group_id, :join_user_type, :attendance_threshold, :created_at::timestamp) RETURNING id;",
+                    Call.of()
+                            .bind("station_id", stationId)
+                            .bind("name", str(wl, "name", ""))
+                            .bind("description", str(wl, "description", ""))
+                            .bind("scoring_formula", str(wl, "scoring_formula", null))
+                            .bind("confirm_interval_days", intVal(wl, "confirm_interval_days"))
+                            .bind("visible_fields", str(wl, "visible_fields", "[]"))
+                            .bind(
+                                    "testing_group_id",
+                                    testingGroupId != null && testingGroupId > 0 ? testingGroupId : null)
+                            .bind("join_group_id", joinGroupId != null && joinGroupId > 0 ? joinGroupId : null)
+                            .bind("join_user_type", str(wl, "join_user_type", "MEMBER"))
+                            .bind("attendance_threshold", intVal(wl, "attendance_threshold"))
+                            .bind("created_at", str(wl, "created_at", null)));
+            idMap.put("waitingList", oldId, newId);
+        }
+        return lists.size();
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importWaitingListFields(Map<String, Object> data, IdRemapper idMap) {
+        var fields = (List<Map<String, Object>>) data.getOrDefault("waitingListFields", List.of());
+        int count = 0;
+        for (var f : fields) {
+            int listId = idMap.get("waitingList", intVal(f, "list_id"));
+            if (listId > 0) {
+                int oldId = intVal(f, "id");
+                int newId = insertReturningId(
+                        "INSERT INTO waiting_list_field(list_id, name, field_type, config, required, position) VALUES(:list_id, :name, :field_type, :config::jsonb, :required, :position) RETURNING id;",
+                        Call.of()
+                                .bind("list_id", listId)
+                                .bind("name", str(f, "name", ""))
+                                .bind("field_type", str(f, "field_type", "text"))
+                                .bind("config", str(f, "config", "{}"))
+                                .bind("required", boolVal(f, "required"))
+                                .bind("position", intVal(f, "position")));
+                idMap.put("waitingListField", oldId, newId);
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importWaitingListEntries(Map<String, Object> data, IdRemapper idMap) {
+        var entries = (List<Map<String, Object>>) data.getOrDefault("waitingListEntries", List.of());
+        int count = 0;
+        for (var e : entries) {
+            int listId = idMap.get("waitingList", intVal(e, "list_id"));
+            if (listId > 0) {
+                int oldId = intVal(e, "id");
+                Integer memberId = e.get("member_id") != null ? idMap.get("member", intVal(e, "member_id")) : null;
+                int newId = insertReturningId(
+                        "INSERT INTO waiting_list_entry(list_id, firstname, lastname, parent_name, email, access_token, status, confirmed_at, reminder_sent_at, created_at, notes, member_id, invited_at, testing_at, joined_at, withdrawn_at, attendance_count) VALUES(:list_id, :firstname, :lastname, :parent_name, :email, :access_token, :status, :confirmed_at::timestamp, :reminder_sent_at::timestamp, :created_at::timestamp, :notes, :member_id, :invited_at::timestamp, :testing_at::timestamp, :joined_at::timestamp, :withdrawn_at::timestamp, :attendance_count) RETURNING id;",
+                        Call.of()
+                                .bind("list_id", listId)
+                                .bind("firstname", str(e, "firstname", ""))
+                                .bind("lastname", str(e, "lastname", ""))
+                                .bind("parent_name", str(e, "parent_name", ""))
+                                .bind("email", str(e, "email", ""))
+                                .bind(
+                                        "access_token",
+                                        str(
+                                                e,
+                                                "access_token",
+                                                java.util.UUID.randomUUID().toString()))
+                                .bind("status", str(e, "status", "WAITING"))
+                                .bind("confirmed_at", str(e, "confirmed_at", null))
+                                .bind("reminder_sent_at", str(e, "reminder_sent_at", null))
+                                .bind("created_at", str(e, "created_at", null))
+                                .bind("notes", str(e, "notes", ""))
+                                .bind("member_id", memberId != null && memberId > 0 ? memberId : null)
+                                .bind("invited_at", str(e, "invited_at", null))
+                                .bind("testing_at", str(e, "testing_at", null))
+                                .bind("joined_at", str(e, "joined_at", null))
+                                .bind("withdrawn_at", str(e, "withdrawn_at", null))
+                                .bind("attendance_count", intVal(e, "attendance_count")));
+                idMap.put("waitingListEntry", oldId, newId);
+                count++;
+            }
+        }
+        return count;
+    }
+
+    // -- Entity Notes --
+
+    @SuppressWarnings("unchecked")
+    private int importEntityNotes(int stationId, Map<String, Object> data, IdRemapper idMap) {
+        var notes = (List<Map<String, Object>>) data.getOrDefault("entityNotes", List.of());
+        for (var n : notes) {
+            int oldId = intVal(n, "id");
+            Integer updatedBy = n.get("updated_by") != null ? idMap.get("member", intVal(n, "updated_by")) : null;
+            int newId = insertReturningId(
+                    "INSERT INTO entity_note(entity_type, entity_id, station_id, content, updated_by, updated_at) VALUES(:entity_type, :entity_id, :station_id, :content, :updated_by, :updated_at::timestamptz) RETURNING id;",
+                    Call.of()
+                            .bind("entity_type", str(n, "entity_type", ""))
+                            .bind("entity_id", intVal(n, "entity_id"))
+                            .bind("station_id", stationId)
+                            .bind("content", str(n, "content", ""))
+                            .bind("updated_by", updatedBy != null && updatedBy > 0 ? updatedBy : null)
+                            .bind("updated_at", str(n, "updated_at", null)));
+            idMap.put("entityNote", oldId, newId);
+        }
+        return notes.size();
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importEntityNoteVersions(Map<String, Object> data, IdRemapper idMap) {
+        var versions = (List<Map<String, Object>>) data.getOrDefault("entityNoteVersions", List.of());
+        int count = 0;
+        for (var v : versions) {
+            int noteId = idMap.get("entityNote", intVal(v, "note_id"));
+            int authorId = idMap.get("member", intVal(v, "author_id"));
+            if (noteId > 0 && authorId > 0) {
+                Query.query(
+                                "INSERT INTO entity_note_version(note_id, diff_patch, author_id, created_at) VALUES(:note_id, :diff_patch, :author_id, :created_at::timestamptz);")
+                        .single(Call.of()
+                                .bind("note_id", noteId)
+                                .bind("diff_patch", str(v, "diff_patch", ""))
+                                .bind("author_id", authorId)
+                                .bind("created_at", str(v, "created_at", null)))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    // -- Equipment --
+
+    @SuppressWarnings("unchecked")
+    private int importEquipmentExchangeRequests(int stationId, Map<String, Object> data, IdRemapper idMap) {
+        var requests = (List<Map<String, Object>>) data.getOrDefault("equipmentExchangeRequests", List.of());
+        for (var r : requests) {
+            int oldId = intVal(r, "id");
+            int memberId = idMap.get("member", intVal(r, "member_id"));
+            int inventoryId = idMap.get("inventory", intVal(r, "inventory_id"));
+            Integer itemId = r.get("item_id") != null ? idMap.get("inventoryItem", intVal(r, "item_id")) : null;
+            Integer oldSizeId =
+                    r.get("old_size_id") != null ? idMap.get("inventorySize", intVal(r, "old_size_id")) : null;
+            Integer newSizeId =
+                    r.get("new_size_id") != null ? idMap.get("inventorySize", intVal(r, "new_size_id")) : null;
+            Integer exchangedItemId = r.get("exchanged_item_id") != null
+                    ? idMap.get("inventoryItem", intVal(r, "exchanged_item_id"))
+                    : null;
+            Integer createdBy = r.get("created_by") != null ? idMap.get("member", intVal(r, "created_by")) : null;
+            if (memberId > 0 && inventoryId > 0) {
+                int newId = insertReturningId(
+                        "INSERT INTO equipment_exchange_request(station_id, member_id, item_id, inventory_id, old_size_id, new_size_id, exchanged_item_id, status, reason, created_by, created_at, updated_at) VALUES(:station_id, :member_id, :item_id, :inventory_id, :old_size_id, :new_size_id, :exchanged_item_id, :status, :reason, :created_by, :created_at::timestamp, :updated_at::timestamp) RETURNING id;",
+                        Call.of()
+                                .bind("station_id", stationId)
+                                .bind("member_id", memberId)
+                                .bind("item_id", itemId != null && itemId > 0 ? itemId : null)
+                                .bind("inventory_id", inventoryId)
+                                .bind("old_size_id", oldSizeId != null && oldSizeId > 0 ? oldSizeId : null)
+                                .bind("new_size_id", newSizeId != null && newSizeId > 0 ? newSizeId : null)
+                                .bind(
+                                        "exchanged_item_id",
+                                        exchangedItemId != null && exchangedItemId > 0 ? exchangedItemId : null)
+                                .bind("status", str(r, "status", "ANNOUNCED"))
+                                .bind("reason", str(r, "reason", ""))
+                                .bind("created_by", createdBy != null && createdBy > 0 ? createdBy : null)
+                                .bind("created_at", str(r, "created_at", null))
+                                .bind("updated_at", str(r, "updated_at", null)));
+                idMap.put("equipmentExchangeRequest", oldId, newId);
+            }
+        }
+        return requests.size();
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importEquipmentExchangeLogs(Map<String, Object> data, IdRemapper idMap) {
+        var logs = (List<Map<String, Object>>) data.getOrDefault("equipmentExchangeLogs", List.of());
+        int count = 0;
+        for (var l : logs) {
+            int requestId = idMap.get("equipmentExchangeRequest", intVal(l, "request_id"));
+            int changedBy = idMap.get("member", intVal(l, "changed_by"));
+            if (requestId > 0 && changedBy > 0) {
+                Query.query(
+                                "INSERT INTO equipment_exchange_log(request_id, old_status, new_status, changed_by, changed_at, note) VALUES(:request_id, :old_status, :new_status, :changed_by, :changed_at::timestamp, :note);")
+                        .single(Call.of()
+                                .bind("request_id", requestId)
+                                .bind("old_status", str(l, "old_status", ""))
+                                .bind("new_status", str(l, "new_status", ""))
+                                .bind("changed_by", changedBy)
+                                .bind("changed_at", str(l, "changed_at", null))
+                                .bind("note", str(l, "note", "")))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importEquipmentProcurements(int stationId, Map<String, Object> data, IdRemapper idMap) {
+        var items = (List<Map<String, Object>>) data.getOrDefault("equipmentProcurements", List.of());
+        int count = 0;
+        for (var p : items) {
+            int inventoryId = idMap.get("inventory", intVal(p, "inventory_id"));
+            int memberId = idMap.get("member", intVal(p, "member_id"));
+            Integer sizeId = p.get("size_id") != null ? idMap.get("inventorySize", intVal(p, "size_id")) : null;
+            if (inventoryId > 0 && memberId > 0) {
+                Query.query(
+                                "INSERT INTO equipment_procurement(station_id, inventory_id, member_id, size_id, notes, requested_at, fulfilled_at) VALUES(:station_id, :inventory_id, :member_id, :size_id, :notes, :requested_at::timestamp, :fulfilled_at::timestamp);")
+                        .single(Call.of()
+                                .bind("station_id", stationId)
+                                .bind("inventory_id", inventoryId)
+                                .bind("member_id", memberId)
+                                .bind("size_id", sizeId != null && sizeId > 0 ? sizeId : null)
+                                .bind("notes", str(p, "notes", ""))
+                                .bind("requested_at", str(p, "requested_at", null))
+                                .bind("fulfilled_at", str(p, "fulfilled_at", null)))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    // -- Form responses & restrictions --
+
+    @SuppressWarnings("unchecked")
+    private int importFormResponses(Map<String, Object> data, IdRemapper idMap) {
+        var responses = (List<Map<String, Object>>) data.getOrDefault("formResponses", List.of());
+        for (var r : responses) {
+            int oldId = intVal(r, "id");
+            int formId = idMap.get("form", intVal(r, "form_id"));
+            int memberId = idMap.get("member", intVal(r, "member_id"));
+            int submittedBy = idMap.get("member", intVal(r, "submitted_by"));
+            if (formId > 0 && memberId > 0 && submittedBy > 0) {
+                int newId = insertReturningId(
+                        "INSERT INTO form_response(form_id, member_id, submitted_by, submitted_at, updated_at) VALUES(:form_id, :member_id, :submitted_by, :submitted_at::timestamp, :updated_at::timestamp) RETURNING id;",
+                        Call.of()
+                                .bind("form_id", formId)
+                                .bind("member_id", memberId)
+                                .bind("submitted_by", submittedBy)
+                                .bind("submitted_at", str(r, "submitted_at", null))
+                                .bind("updated_at", str(r, "updated_at", null)));
+                idMap.put("formResponse", oldId, newId);
+            }
+        }
+        return responses.size();
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importFormAnswers(Map<String, Object> data, IdRemapper idMap) {
+        var answers = (List<Map<String, Object>>) data.getOrDefault("formAnswers", List.of());
+        int count = 0;
+        for (var a : answers) {
+            int responseId = idMap.get("formResponse", intVal(a, "response_id"));
+            int questionId = idMap.get("formQuestion", intVal(a, "question_id"));
+            if (responseId > 0 && questionId > 0) {
+                Query.query(
+                                "INSERT INTO form_answer(response_id, question_id, value) VALUES(:response_id, :question_id, :value::jsonb) ON CONFLICT DO NOTHING;")
+                        .single(Call.of()
+                                .bind("response_id", responseId)
+                                .bind("question_id", questionId)
+                                .bind("value", str(a, "value", "{}")))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importFormRestrictions(Map<String, Object> data, IdRemapper idMap) {
+        var restrictions = (List<Map<String, Object>>) data.getOrDefault("formRestrictions", List.of());
+        int count = 0;
+        for (var r : restrictions) {
+            int formId = idMap.get("form", intVal(r, "form_id"));
+            if (formId > 0) {
+                Integer groupId = r.get("group_id") != null ? idMap.get("group", intVal(r, "group_id")) : null;
+                Integer tagId = r.get("tag_id") != null ? idMap.get("tag", intVal(r, "tag_id")) : null;
+                Integer memberId = r.get("member_id") != null ? idMap.get("member", intVal(r, "member_id")) : null;
+                Query.query(
+                                "INSERT INTO form_restriction(form_id, user_type, group_id, tag_id, member_id) VALUES(:form_id, :user_type, :group_id, :tag_id, :member_id) ON CONFLICT DO NOTHING;")
+                        .single(Call.of()
+                                .bind("form_id", formId)
+                                .bind("user_type", str(r, "user_type", null))
+                                .bind("group_id", groupId != null && groupId > 0 ? groupId : null)
+                                .bind("tag_id", tagId != null && tagId > 0 ? tagId : null)
+                                .bind("member_id", memberId != null && memberId > 0 ? memberId : null))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    // -- Event restrictions & layouts --
+
+    @SuppressWarnings("unchecked")
+    private int importEventRestrictions(Map<String, Object> data, IdRemapper idMap) {
+        var restrictions = (List<Map<String, Object>>) data.getOrDefault("eventRestrictions", List.of());
+        int count = 0;
+        for (var r : restrictions) {
+            int eventId = idMap.get("event", intVal(r, "event_id"));
+            if (eventId > 0) {
+                Integer groupId = r.get("group_id") != null ? idMap.get("group", intVal(r, "group_id")) : null;
+                Integer tagId = r.get("tag_id") != null ? idMap.get("tag", intVal(r, "tag_id")) : null;
+                Integer memberId = r.get("member_id") != null ? idMap.get("member", intVal(r, "member_id")) : null;
+                Query.query(
+                                "INSERT INTO event_restriction(event_id, user_type, group_id, tag_id, member_id) VALUES(:event_id, :user_type, :group_id, :tag_id, :member_id) ON CONFLICT DO NOTHING;")
+                        .single(Call.of()
+                                .bind("event_id", eventId)
+                                .bind("user_type", str(r, "user_type", null))
+                                .bind("group_id", groupId != null && groupId > 0 ? groupId : null)
+                                .bind("tag_id", tagId != null && tagId > 0 ? tagId : null)
+                                .bind("member_id", memberId != null && memberId > 0 ? memberId : null))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importEventLayouts(int stationId, Map<String, Object> data, IdRemapper idMap) {
+        var layouts = (List<Map<String, Object>>) data.getOrDefault("eventLayouts", List.of());
+        for (var l : layouts) {
+            int oldId = intVal(l, "id");
+            int newId = insertReturningId(
+                    "INSERT INTO event_layout(station_id, name) VALUES(:station_id, :name) RETURNING id;",
+                    Call.of().bind("station_id", stationId).bind("name", str(l, "name", "")));
+            idMap.put("eventLayout", oldId, newId);
+        }
+        return layouts.size();
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importEventLayoutFields(Map<String, Object> data, IdRemapper idMap) {
+        var fields = (List<Map<String, Object>>) data.getOrDefault("eventLayoutFields", List.of());
+        int count = 0;
+        for (var f : fields) {
+            int layoutId = idMap.get("eventLayout", intVal(f, "layout_id"));
+            Integer attendanceFieldId = f.get("attendance_field_id") != null
+                    ? idMap.get("attendanceTemplateField", intVal(f, "attendance_field_id"))
+                    : null;
+            if (layoutId > 0) {
+                int oldId = intVal(f, "id");
+                int newId = insertReturningId(
+                        "INSERT INTO event_layout_field(layout_id, name, field_type, config, position, overview, attendance_field_id) VALUES(:layout_id, :name, :field_type, :config::jsonb, :position, :overview, :attendance_field_id) RETURNING id;",
+                        Call.of()
+                                .bind("layout_id", layoutId)
+                                .bind("name", str(f, "name", ""))
+                                .bind("field_type", str(f, "field_type", "string"))
+                                .bind("config", str(f, "config", "{}"))
+                                .bind("position", intVal(f, "position"))
+                                .bind("overview", boolVal(f, "overview"))
+                                .bind(
+                                        "attendance_field_id",
+                                        attendanceFieldId != null && attendanceFieldId > 0 ? attendanceFieldId : null));
+                idMap.put("eventLayoutField", oldId, newId);
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importEventTemplateFields(Map<String, Object> data, IdRemapper idMap) {
+        var fields = (List<Map<String, Object>>) data.getOrDefault("eventTemplateFields", List.of());
+        int count = 0;
+        for (var f : fields) {
+            int templateId = idMap.get("eventTemplate", intVal(f, "template_id"));
+            Integer attendanceFieldId = f.get("attendance_field_id") != null
+                    ? idMap.get("attendanceTemplateField", intVal(f, "attendance_field_id"))
+                    : null;
+            if (templateId > 0) {
+                int oldId = intVal(f, "id");
+                int newId = insertReturningId(
+                        "INSERT INTO event_template_field(template_id, name, field_type, config, position, overview, public, attendance_field_id) VALUES(:template_id, :name, :field_type, :config::jsonb, :position, :overview, :public, :attendance_field_id) RETURNING id;",
+                        Call.of()
+                                .bind("template_id", templateId)
+                                .bind("name", str(f, "name", ""))
+                                .bind("field_type", str(f, "field_type", "string"))
+                                .bind("config", str(f, "config", "{}"))
+                                .bind("position", intVal(f, "position"))
+                                .bind("overview", boolVal(f, "overview"))
+                                .bind("public", boolVal(f, "public"))
+                                .bind(
+                                        "attendance_field_id",
+                                        attendanceFieldId != null && attendanceFieldId > 0 ? attendanceFieldId : null));
+                idMap.put("eventTemplateField", oldId, newId);
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importEventTemplateRestrictions(Map<String, Object> data, IdRemapper idMap) {
+        var restrictions = (List<Map<String, Object>>) data.getOrDefault("eventTemplateRestrictions", List.of());
+        int count = 0;
+        for (var r : restrictions) {
+            int templateId = idMap.get("eventTemplate", intVal(r, "template_id"));
+            if (templateId > 0) {
+                Query.query(
+                                "INSERT INTO event_template_restriction(template_id, user_type) VALUES(:template_id, :user_type) ON CONFLICT DO NOTHING;")
+                        .single(Call.of().bind("template_id", templateId).bind("user_type", str(r, "user_type", "")))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    // -- KB tags, restrictions & comments --
+
+    @SuppressWarnings("unchecked")
+    private int importKbTags(int stationId, Map<String, Object> data, IdRemapper idMap) {
+        var tags = (List<Map<String, Object>>) data.getOrDefault("kbTags", List.of());
+        for (var t : tags) {
+            int oldId = intVal(t, "id");
+            int newId = insertReturningId(
+                    "INSERT INTO kb_tag(station_id, name) VALUES(:station_id, :name) RETURNING id;",
+                    Call.of().bind("station_id", stationId).bind("name", str(t, "name", "")));
+            idMap.put("kbTag", oldId, newId);
+        }
+        return tags.size();
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importKbFileTags(Map<String, Object> data, IdRemapper idMap) {
+        var fileTags = (List<Map<String, Object>>) data.getOrDefault("kbFileTags", List.of());
+        int count = 0;
+        for (var ft : fileTags) {
+            int fileId = idMap.get("kbFile", intVal(ft, "file_id"));
+            int tagId = idMap.get("kbTag", intVal(ft, "tag_id"));
+            if (fileId > 0 && tagId > 0) {
+                Query.query(
+                                "INSERT INTO kb_file_tag(file_id, tag_id) VALUES(:file_id, :tag_id) ON CONFLICT DO NOTHING;")
+                        .single(Call.of().bind("file_id", fileId).bind("tag_id", tagId))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importKbFolderTags(Map<String, Object> data, IdRemapper idMap) {
+        var folderTags = (List<Map<String, Object>>) data.getOrDefault("kbFolderTags", List.of());
+        int count = 0;
+        for (var ft : folderTags) {
+            int folderId = idMap.get("kbFolder", intVal(ft, "folder_id"));
+            int tagId = idMap.get("kbTag", intVal(ft, "tag_id"));
+            if (folderId > 0 && tagId > 0) {
+                Query.query(
+                                "INSERT INTO kb_folder_tag(folder_id, tag_id) VALUES(:folder_id, :tag_id) ON CONFLICT DO NOTHING;")
+                        .single(Call.of().bind("folder_id", folderId).bind("tag_id", tagId))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importKbAccessRestrictions(Map<String, Object> data, IdRemapper idMap) {
+        var restrictions = (List<Map<String, Object>>) data.getOrDefault("kbAccessRestrictions", List.of());
+        int count = 0;
+        for (var r : restrictions) {
+            Integer folderId = r.get("folder_id") != null ? idMap.get("kbFolder", intVal(r, "folder_id")) : null;
+            Integer fileId = r.get("file_id") != null ? idMap.get("kbFile", intVal(r, "file_id")) : null;
+            Integer groupId = r.get("group_id") != null ? idMap.get("group", intVal(r, "group_id")) : null;
+            Integer tagId = r.get("tag_id") != null ? idMap.get("tag", intVal(r, "tag_id")) : null;
+            Integer memberId = r.get("member_id") != null ? idMap.get("member", intVal(r, "member_id")) : null;
+            if ((folderId != null && folderId > 0) || (fileId != null && fileId > 0)) {
+                Query.query(
+                                "INSERT INTO kb_access_restriction(folder_id, file_id, user_type, group_id, tag_id, member_id) VALUES(:folder_id, :file_id, :user_type, :group_id, :tag_id, :member_id) ON CONFLICT DO NOTHING;")
+                        .single(Call.of()
+                                .bind("folder_id", folderId != null && folderId > 0 ? folderId : null)
+                                .bind("file_id", fileId != null && fileId > 0 ? fileId : null)
+                                .bind("user_type", str(r, "user_type", null))
+                                .bind("group_id", groupId != null && groupId > 0 ? groupId : null)
+                                .bind("tag_id", tagId != null && tagId > 0 ? tagId : null)
+                                .bind("member_id", memberId != null && memberId > 0 ? memberId : null))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importKbComments(Map<String, Object> data, IdRemapper idMap) {
+        var comments = (List<Map<String, Object>>) data.getOrDefault("kbComments", List.of());
+        for (var c : comments) {
+            int oldId = intVal(c, "id");
+            int fileId = idMap.get("kbFile", intVal(c, "file_id"));
+            Integer oldParentId = c.get("parent_id") != null ? intVal(c, "parent_id") : null;
+            Integer parentId = oldParentId != null ? idMap.get("kbComment", oldParentId) : null;
+            if (fileId > 0) {
+                int newId = insertReturningId(
+                        "INSERT INTO kb_comment(file_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at) VALUES(:file_id, :parent_id, :author_station_uid::uuid, :author_member_uid::uuid, :content, :deleted, :created_at::timestamptz, :updated_at::timestamptz) RETURNING id;",
+                        Call.of()
+                                .bind("file_id", fileId)
+                                .bind("parent_id", parentId != null && parentId > 0 ? parentId : null)
+                                .bind("author_station_uid", str(c, "author_station_uid", null))
+                                .bind("author_member_uid", str(c, "author_member_uid", null))
+                                .bind("content", str(c, "content", ""))
+                                .bind("deleted", boolVal(c, "deleted"))
+                                .bind("created_at", str(c, "created_at", null))
+                                .bind("updated_at", str(c, "updated_at", null)));
+                idMap.put("kbComment", oldId, newId);
+            }
+        }
+        return comments.size();
+    }
+
+    // -- Inventory extras --
+
+    @SuppressWarnings("unchecked")
+    private int importInventoryChecks(int stationId, Map<String, Object> data, IdRemapper idMap) {
+        var checks = (List<Map<String, Object>>) data.getOrDefault("inventoryChecks", List.of());
+        for (var c : checks) {
+            int oldId = intVal(c, "id");
+            int memberId = idMap.get("member", intVal(c, "member_id"));
+            int checkedBy = idMap.get("member", intVal(c, "checked_by"));
+            if (memberId > 0 && checkedBy > 0) {
+                int newId = insertReturningId(
+                        "INSERT INTO inventory_check(station_id, member_id, checked_by, checked_at) VALUES(:station_id, :member_id, :checked_by, :checked_at::timestamptz) RETURNING id;",
+                        Call.of()
+                                .bind("station_id", stationId)
+                                .bind("member_id", memberId)
+                                .bind("checked_by", checkedBy)
+                                .bind("checked_at", str(c, "checked_at", null)));
+                idMap.put("inventoryCheck", oldId, newId);
+            }
+        }
+        return checks.size();
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importInventoryCheckItems(Map<String, Object> data, IdRemapper idMap) {
+        var items = (List<Map<String, Object>>) data.getOrDefault("inventoryCheckItems", List.of());
+        int count = 0;
+        for (var i : items) {
+            int checkId = idMap.get("inventoryCheck", intVal(i, "check_id"));
+            Integer itemId = i.get("item_id") != null ? idMap.get("inventoryItem", intVal(i, "item_id")) : null;
+            Integer inventoryId =
+                    i.get("inventory_id") != null ? idMap.get("inventory", intVal(i, "inventory_id")) : null;
+            if (checkId > 0) {
+                Query.query(
+                                "INSERT INTO inventory_check_item(check_id, item_id, inventory_id, result, note) VALUES(:check_id, :item_id, :inventory_id, :result, :note) ON CONFLICT DO NOTHING;")
+                        .single(Call.of()
+                                .bind("check_id", checkId)
+                                .bind("item_id", itemId != null && itemId > 0 ? itemId : null)
+                                .bind("inventory_id", inventoryId != null && inventoryId > 0 ? inventoryId : null)
+                                .bind("result", str(i, "result", ""))
+                                .bind("note", str(i, "note", "")))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importInventoryItemHistory(Map<String, Object> data, IdRemapper idMap) {
+        var history = (List<Map<String, Object>>) data.getOrDefault("inventoryItemHistory", List.of());
+        int count = 0;
+        for (var h : history) {
+            int itemId = idMap.get("inventoryItem", intVal(h, "item_id"));
+            Integer memberId = h.get("member_id") != null ? idMap.get("member", intVal(h, "member_id")) : null;
+            if (itemId > 0) {
+                Query.query(
+                                "INSERT INTO inventory_item_history(item_id, member_id, member_name, given_out, returned) VALUES(:item_id, :member_id, :member_name, :given_out::timestamp, :returned::timestamp);")
+                        .single(Call.of()
+                                .bind("item_id", itemId)
+                                .bind("member_id", memberId != null && memberId > 0 ? memberId : null)
+                                .bind("member_name", str(h, "member_name", ""))
+                                .bind("given_out", str(h, "given_out", null))
+                                .bind("returned", str(h, "returned", null)))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importInventoryRequirements(Map<String, Object> data, IdRemapper idMap) {
+        var requirements = (List<Map<String, Object>>) data.getOrDefault("inventoryRequirements", List.of());
+        int count = 0;
+        for (var r : requirements) {
+            int inventoryId = idMap.get("inventory", intVal(r, "inventory_id"));
+            Integer groupId = r.get("group_id") != null ? idMap.get("group", intVal(r, "group_id")) : null;
+            if (inventoryId > 0) {
+                Query.query(
+                                "INSERT INTO inventory_requirement(inventory_id, user_type, group_id, quantity, position) VALUES(:inventory_id, :user_type, :group_id, :quantity, :position) ON CONFLICT DO NOTHING;")
+                        .single(Call.of()
+                                .bind("inventory_id", inventoryId)
+                                .bind("user_type", str(r, "user_type", null))
+                                .bind("group_id", groupId != null && groupId > 0 ? groupId : null)
+                                .bind("quantity", intVal(r, "quantity"))
+                                .bind("position", intVal(r, "position")))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    // -- News restrictions --
+
+    @SuppressWarnings("unchecked")
+    private int importNewsRestrictions(Map<String, Object> data, IdRemapper idMap) {
+        var restrictions = (List<Map<String, Object>>) data.getOrDefault("newsRestrictions", List.of());
+        int count = 0;
+        for (var r : restrictions) {
+            int newsId = idMap.get("news", intVal(r, "news_id"));
+            if (newsId > 0) {
+                Integer groupId = r.get("group_id") != null ? idMap.get("group", intVal(r, "group_id")) : null;
+                Integer tagId = r.get("tag_id") != null ? idMap.get("tag", intVal(r, "tag_id")) : null;
+                Integer memberId = r.get("member_id") != null ? idMap.get("member", intVal(r, "member_id")) : null;
+                Query.query(
+                                "INSERT INTO news_restriction(news_id, user_type, group_id, tag_id, member_id) VALUES(:news_id, :user_type, :group_id, :tag_id, :member_id) ON CONFLICT DO NOTHING;")
+                        .single(Call.of()
+                                .bind("news_id", newsId)
+                                .bind("user_type", str(r, "user_type", null))
+                                .bind("group_id", groupId != null && groupId > 0 ? groupId : null)
+                                .bind("tag_id", tagId != null && tagId > 0 ? tagId : null)
+                                .bind("member_id", memberId != null && memberId > 0 ? memberId : null))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    // -- User settings --
+
+    @SuppressWarnings("unchecked")
+    private int importUserSettings(Map<String, Object> data, IdRemapper idMap) {
+        var settings = (List<Map<String, Object>>) data.getOrDefault("userSettings", List.of());
+        int count = 0;
+        for (var s : settings) {
+            int memberId = idMap.get("member", intVal(s, "member_id"));
+            if (memberId > 0) {
+                Query.query(
+                                "INSERT INTO user_settings(member_id, email_enabled, theme, dark_mode, feel) VALUES(:member_id, :email_enabled, :theme, :dark_mode, :feel) ON CONFLICT DO NOTHING;")
+                        .single(Call.of()
+                                .bind("member_id", memberId)
+                                .bind("email_enabled", boolVal(s, "email_enabled"))
+                                .bind("theme", str(s, "theme", "ember"))
+                                .bind("dark_mode", str(s, "dark_mode", "system"))
+                                .bind("feel", str(s, "feel", "ROUNDED")))
+                        .insert();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importUserNotificationSettings(Map<String, Object> data, IdRemapper idMap) {
+        var settings = (List<Map<String, Object>>) data.getOrDefault("userNotificationSettings", List.of());
+        int count = 0;
+        for (var s : settings) {
+            int memberId = idMap.get("member", intVal(s, "member_id"));
+            if (memberId > 0) {
+                Query.query(
+                                "INSERT INTO user_notification_settings(member_id, notification_type, app_enabled, email_enabled, feed_enabled) VALUES(:member_id, :notification_type, :app_enabled, :email_enabled, :feed_enabled) ON CONFLICT DO NOTHING;")
+                        .single(Call.of()
+                                .bind("member_id", memberId)
+                                .bind("notification_type", str(s, "notification_type", ""))
+                                .bind("app_enabled", boolVal(s, "app_enabled"))
+                                .bind("email_enabled", boolVal(s, "email_enabled"))
+                                .bind("feed_enabled", boolVal(s, "feed_enabled")))
                         .insert();
                 count++;
             }

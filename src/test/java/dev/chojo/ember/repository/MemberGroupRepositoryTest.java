@@ -6,10 +6,10 @@
 package dev.chojo.ember.repository;
 
 import dev.chojo.ember.api.AccessManager;
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
-import dev.chojo.ember.feature.members.entity.Role;
+import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import org.junit.jupiter.api.AfterAll;
@@ -67,7 +67,7 @@ class MemberGroupRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(4)
     void update() {
-        assertTrue(memberGroupRepo.update(groupId, "Beta Team"));
+        assertTrue(memberGroupRepo.update(groupId, "Beta Team", null, 0));
         assertEquals(
                 "Beta Team", memberGroupRepo.findById(groupId).orElseThrow().name());
     }
@@ -98,28 +98,30 @@ class MemberGroupRepositoryTest extends RepositoryTestBase {
         assertTrue(memberGroupRepo.findMembers(groupId).isEmpty());
     }
 
-    // -- Group Roles --
+    // -- Group Permissions --
 
     @Test
     @Order(20)
-    void memberInGroupWithTeamRoleHasTeamRole() {
+    void memberInGroupWithLoginPermissionHasLoginPermission() {
         // Add member to the group
         memberGroupRepo.addMember(groupId, member.id());
 
-        // Assign TEAM role to the group
-        Role teamRole = stationMemberRepo.findRoleByName(Roles.TEAM).orElseThrow();
-        memberGroupRepo.addGroupRole(groupId, teamRole.id());
+        // Assign LOGIN permission to the group
+        Permission loginPerm =
+                stationMemberRepo.findPermissionByName(StationPermission.LOGIN).orElseThrow();
+        memberGroupRepo.addGroupPermission(groupId, loginPerm.id());
 
-        // Resolve effective roles through AccessManager (the same path used for session resolution)
-        var accessManager = new AccessManager(accountRepo, stationMemberRepo, memberGroupRepo);
-        Set<Roles> resolved = accessManager.resolveExpandedMemberRoles(member.id());
+        // Resolve effective permissions through AccessManager (the same path used for session resolution)
+        var accessManager = new AccessManager(accountRepo, stationMemberRepo, memberGroupRepo, null, null);
+        Set<StationPermission> resolved = accessManager.resolveExpandedMemberPermissions(member.id());
 
-        assertTrue(resolved.contains(Roles.TEAM), "Member in a group with TEAM role should have TEAM");
-        assertTrue(resolved.contains(Roles.LOGIN), "TEAM expands to include LOGIN");
-        assertTrue(resolved.contains(Roles.USER), "TEAM expands to include USER");
+        assertTrue(
+                resolved.contains(StationPermission.LOGIN),
+                "Member in a group with LOGIN permission should have LOGIN");
+        assertTrue(resolved.contains(StationPermission.USER), "LOGIN expands to include USER");
 
         // Cleanup
-        memberGroupRepo.removeGroupRole(groupId, teamRole.id());
+        memberGroupRepo.removeGroupPermission(groupId, loginPerm.id());
         memberGroupRepo.removeMember(groupId, member.id());
     }
 

@@ -25,6 +25,7 @@ import type { PartnerResponse, FederationCapability } from '@/api/federation'
 import Td from '@/components/table/Td.vue'
 import Th from '@/components/table/Th.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import { resolveFederationVersion } from '@/util/federationVersion'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -45,11 +46,14 @@ interface CapRow {
 }
 
 const capRows = computed<CapRow[]>(() => {
-  const types = ['KB_SHARE', 'QUIZ_SHARE', 'PROTOCOL_SHARE', 'INVENTORY_LEND']
+  const types = ['KB_SHARE', 'QUIZ_SHARE', 'PROTOCOL_SHARE', 'EVENT_SHARE', 'BOARD_SHARE', 'NEWS_SHARE', 'INVENTORY_LEND']
   const labels: Record<string, string> = {
     KB_SHARE: t('federation.cap.kb'),
     QUIZ_SHARE: t('federation.cap.quiz'),
     PROTOCOL_SHARE: t('federation.cap.protocol'),
+    EVENT_SHARE: t('federation.cap.event'),
+    BOARD_SHARE: t('federation.cap.board'),
+    NEWS_SHARE: t('federation.cap.news'),
     INVENTORY_LEND: t('federation.cap.inventory'),
   }
   return types.map(cap => ({
@@ -126,7 +130,7 @@ onMounted(() => { if (loaded.value) loadData() })
 
     <template v-if="!loading && partner">
       <MutedText tag="p" size="sm">
-        {{ t('federation.version') }}: v{{ partner.partner.federationVersion }}
+        {{ t('federation.version') }}: v{{ resolveFederationVersion(partner.partner.federationVersion) }}
         &mdash; {{ t('federation.since') }}: {{ new Date(partner.partner.createdAt).toLocaleDateString('de-DE') }}
       </MutedText>
 

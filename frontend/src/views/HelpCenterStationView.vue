@@ -115,6 +115,9 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
         </SidebarLink>
       </SidebarGroup>
 
+      <SidebarGroup :icon="['fas', 'clipboard-check']" :label="t('sidebar.requirements')" prefix="/helpcenter/station/requirements"
+                    to="/helpcenter/station/requirements" name="help-station-requirements" @navigate="close"/>
+
       <SidebarGroup :icon="['fas', 'newspaper']" :label="t('sidebar.news')" prefix="/helpcenter/station/news"
                     to="/helpcenter/station/news" name="help-news-module-overview" @navigate="close">
         <SidebarLink :icon="['fas', 'pen']" name="help-news-create" to="/helpcenter/station/news/create" @navigate="close">
@@ -160,18 +163,6 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
 
       <SidebarGroup :icon="['fas', 'gears']" :label="t('sidebar.station')" prefix="/helpcenter/station/manage"
                     to="/helpcenter/station/manage" name="help-manage-module-overview" @navigate="close">
-        <SidebarExpandableLink :icon="['fas', 'clipboard-check']" name="help-station-attendance-config"
-                               to="/helpcenter/station/manage/attendance-config" @navigate="close">
-          <template #label>{{ t('sidebar.attendanceConfig') }}</template>
-          <SidebarLink :icon="['fas', 'pen']" name="help-station-attendance-config-edit"
-                       to="/helpcenter/station/manage/attendance-config/edit" @navigate="close">
-            {{ t('sidebar.attendanceConfigEdit') }}
-          </SidebarLink>
-        </SidebarExpandableLink>
-        <SidebarLink :icon="['fas', 'users-gear']" name="help-station-members-config"
-                     to="/helpcenter/station/manage/members-config" @navigate="close">
-          {{ t('sidebar.membersConfig') }}
-        </SidebarLink>
         <SidebarLink :icon="['fas', 'palette']" name="help-station-theme-manage"
                      to="/helpcenter/station/manage/theme" @navigate="close">
           {{ t('helpCenter.themeManage.sidebarLabel') }}
@@ -216,6 +207,10 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
                      to="/helpcenter/station/members/groups" @navigate="close">
           {{ t('sidebar.groups') }}
         </SidebarLink>
+        <SidebarLink :icon="['fas', 'shield']" name="help-members-type-permissions"
+                     to="/helpcenter/station/members/type-permissions" @navigate="close">
+          {{ t('sidebar.typePermissions') }}
+        </SidebarLink>
         <SidebarLink :icon="['fas', 'hashtag']" name="help-members-tags" to="/helpcenter/station/members/tags"
                      @navigate="close">
           {{ t('sidebar.tags') }}
@@ -231,6 +226,10 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
         <SidebarLink :icon="['fas', 'clipboard-list']" name="help-waiting-lists"
                      to="/helpcenter/station/members/waiting-lists" @navigate="close">
           {{ t('sidebar.waitingLists') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'users-gear']" name="help-station-members-config"
+                     to="/helpcenter/station/members/config" @navigate="close">
+          {{ t('sidebar.membersConfig') }}
         </SidebarLink>
       </SidebarGroup>
 
@@ -330,6 +329,14 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
                      to="/helpcenter/station/attendance/report" @navigate="close">
           {{ t('sidebar.attendanceReport') }}
         </SidebarLink>
+        <SidebarExpandableLink :icon="['fas', 'gear']" name="help-station-attendance-config"
+                               to="/helpcenter/station/attendance/config" @navigate="close">
+          <template #label>{{ t('sidebar.attendanceConfig') }}</template>
+          <SidebarLink :icon="['fas', 'pen']" name="help-station-attendance-config-edit"
+                       to="/helpcenter/station/attendance/config/edit" @navigate="close">
+            {{ t('sidebar.attendanceConfigEdit') }}
+          </SidebarLink>
+        </SidebarExpandableLink>
       </SidebarGroup>
 
       <SidebarGroup :icon="['fas', 'calendar-days']" :label="t('sidebar.events')"
@@ -440,6 +447,18 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
             </SidebarLink>
           </SidebarExpandableLink>
         </SidebarExpandableLink>
+      </SidebarGroup>
+
+      <SidebarGroup :icon="['fas', 'table-columns']" :label="t('sidebar.boards')" prefix="/helpcenter/station/boards"
+                    :prefix2="['/helpcenter/station/federation/boards']" to="/helpcenter/station/boards" name="help-board-overview" @navigate="close">
+        <SidebarLink :icon="['fas', 'gears']" name="help-board-manage" to="/helpcenter/station/boards/manage" @navigate="close">{{ t('helpCenter.boardManage.sidebarLabel') }}</SidebarLink>
+        <SidebarLink :icon="['fas', 'table-columns']" name="help-board-view" to="/helpcenter/station/boards/BOARD" @navigate="close">{{ t('helpCenter.boardView.sidebarLabel') }}</SidebarLink>
+        <SidebarLink :icon="['fas', 'plus']" name="help-ticket-create" to="/helpcenter/station/boards/BOARD/tickets/new" @navigate="close">{{ t('helpCenter.ticketCreate.sidebarLabel') }}</SidebarLink>
+        <SidebarLink :icon="['fas', 'eye']" name="help-ticket-detail" to="/helpcenter/station/boards/BOARD/tickets/1" @navigate="close">{{ t('helpCenter.ticketDetail.sidebarLabel') }}</SidebarLink>
+        <SidebarLink :icon="['fas', 'inbox']" name="help-board-backlog" to="/helpcenter/station/boards/BOARD/backlog" @navigate="close">{{ t('helpCenter.backlog.sidebarLabel') }}</SidebarLink>
+        <SidebarLink :icon="['fas', 'folder']" name="help-board-archived" to="/helpcenter/station/boards/BOARD/archived" @navigate="close">{{ t('helpCenter.archived.sidebarLabel') }}</SidebarLink>
+        <SidebarLink :icon="['fas', 'gear']" name="help-board-settings" to="/helpcenter/station/boards/BOARD/settings" @navigate="close">{{ t('helpCenter.boardSettings.sidebarLabel') }}</SidebarLink>
+        <SidebarLink :icon="['fas', 'arrow-right-arrow-left']" name="help-federated-boards" to="/helpcenter/station/federation/boards" @navigate="close">{{ t('helpCenter.federatedBoards.sidebarLabel') }}</SidebarLink>
       </SidebarGroup>
 
       <SidebarGroup :icon="['fas', 'book-open']" :label="t('sidebar.knowledgeBase')" prefix="/helpcenter/station/knowledge"

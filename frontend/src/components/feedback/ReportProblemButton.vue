@@ -52,7 +52,7 @@ function open() {
 <template>
   <button
       type="button"
-      class="fixed bottom-4 right-4 z-40 h-10 w-10 rounded-full bg-error text-white shadow-lg hover:bg-error/80 transition-colors flex items-center justify-center"
+      class="fixed bottom-4 right-4 z-40 h-10 w-10 rounded-full bg-error text-error-text shadow-lg hover:bg-error/80 transition-colors flex items-center justify-center"
       :title="t('problemReport.button')"
       @click="open"
   >

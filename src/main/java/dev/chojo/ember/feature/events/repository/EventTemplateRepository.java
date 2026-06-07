@@ -129,20 +129,43 @@ public class EventTemplateRepository {
         }
     }
 
-    public List<Integer> findRestrictions(int templateId) {
-        return Query.query("SELECT role_id FROM event_template_restriction WHERE template_id = :template_id;")
+    public List<String> findRestrictions(int templateId) {
+        return Query.query("SELECT user_type FROM event_template_restriction WHERE template_id = :template_id;")
                 .single(Call.of().bind("template_id", templateId))
-                .map(row -> row.getInt("role_id"))
+                .map(row -> row.getString("user_type"))
                 .all();
     }
 
-    public void setRestrictions(int templateId, List<Integer> roleIds) {
+    public void setRestrictions(int templateId, List<String> userTypes) {
         Query.query("DELETE FROM event_template_restriction WHERE template_id = :template_id;")
                 .single(Call.of().bind("template_id", templateId))
                 .delete();
-        for (int roleId : roleIds) {
-            Query.query("INSERT INTO event_template_restriction(template_id, role_id) VALUES (:template_id, :role_id);")
-                    .single(Call.of().bind("template_id", templateId).bind("role_id", roleId))
+        for (String userType : userTypes) {
+            Query.query(
+                            "INSERT INTO event_template_restriction(template_id, user_type) VALUES (:template_id, :user_type);")
+                    .single(Call.of().bind("template_id", templateId).bind("user_type", userType))
+                    .insert();
+        }
+    }
+
+    // --- Reminders ---
+
+    public List<Integer> findReminderDays(int templateId) {
+        return Query.query(
+                        "SELECT days_before FROM event_template_reminder WHERE template_id = :template_id ORDER BY days_before;")
+                .single(Call.of().bind("template_id", templateId))
+                .map(row -> row.getInt("days_before"))
+                .all();
+    }
+
+    public void replaceReminders(int templateId, List<Integer> daysBefore) {
+        Query.query("DELETE FROM event_template_reminder WHERE template_id = :template_id;")
+                .single(Call.of().bind("template_id", templateId))
+                .delete();
+        for (int days : daysBefore) {
+            Query.query(
+                            "INSERT INTO event_template_reminder(template_id, days_before) VALUES(:template_id, :days_before) ON CONFLICT DO NOTHING;")
+                    .single(Call.of().bind("template_id", templateId).bind("days_before", days))
                     .insert();
         }
     }

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
@@ -82,7 +83,8 @@ public class DemoNotificationSeeder {
                     fortgeschritten.get(i).id(),
                     NotificationType.EVENT_REGISTRATION_STATUS,
                     NotificationData.of(
-                            new NotificationParams.EventRegistrationStatus("Tag der offenen Tür", "ACCEPTED", null),
+                            new NotificationParams.EventRegistrationStatus(
+                                    "Tag der offenen Tür", RegistrationStatus.ACCEPTED, null),
                             new NotificationData.NotificationLink(
                                     "event-detail", Map.of("id", tagDerOffenenTuerEventId))));
         }

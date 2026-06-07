@@ -20,14 +20,14 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class EventEligibilityTest {
 
-    private static final int ROLE_MEMBER = 1;
-    private static final int ROLE_TEAM = 2;
+    private static final String USER_TYPE_MEMBER = "MEMBER";
+    private static final String USER_TYPE_TEAM = "TEAM";
     private static final int GROUP_A = 10;
     private static final int TAG_X = 20;
     private static final int MEMBER_42 = 42;
 
-    private Restriction roleRestriction(int roleId) {
-        return new Restriction(0, roleId, null, null, null);
+    private Restriction userTypeRestriction(String userType) {
+        return new Restriction(0, userType, null, null, null);
     }
 
     private Restriction groupRestriction(int groupId) {
@@ -47,21 +47,21 @@ class EventEligibilityTest {
     @Test
     void noRestrictionsAllowsAll() {
         var set = new RestrictionSet(List.of(), RestrictionMode.AND);
-        assertTrue(set.matches(List.of(ROLE_MEMBER), List.of(), List.of(), 1));
+        assertTrue(set.matches(USER_TYPE_MEMBER, List.of(), List.of(), 1));
     }
 
-    // -- Role restrictions (AND mode) --
+    // -- User type restrictions (AND mode) --
 
     @Test
-    void roleRestrictionMatchesWhenMemberHasRole() {
-        var set = new RestrictionSet(List.of(roleRestriction(ROLE_MEMBER)), RestrictionMode.AND);
-        assertTrue(set.matches(List.of(ROLE_MEMBER), List.of(), List.of(), 1));
+    void userTypeRestrictionMatchesWhenMemberHasUserType() {
+        var set = new RestrictionSet(List.of(userTypeRestriction(USER_TYPE_MEMBER)), RestrictionMode.AND);
+        assertTrue(set.matches(USER_TYPE_MEMBER, List.of(), List.of(), 1));
     }
 
     @Test
-    void roleRestrictionRejectsWhenMemberLacksRole() {
-        var set = new RestrictionSet(List.of(roleRestriction(ROLE_TEAM)), RestrictionMode.AND);
-        assertFalse(set.matches(List.of(ROLE_MEMBER), List.of(), List.of(), 1));
+    void userTypeRestrictionRejectsWhenMemberLacksUserType() {
+        var set = new RestrictionSet(List.of(userTypeRestriction(USER_TYPE_TEAM)), RestrictionMode.AND);
+        assertFalse(set.matches(USER_TYPE_MEMBER, List.of(), List.of(), 1));
     }
 
     // -- Group restrictions (AND mode) --
@@ -69,13 +69,13 @@ class EventEligibilityTest {
     @Test
     void groupRestrictionMatchesWhenMemberInGroup() {
         var set = new RestrictionSet(List.of(groupRestriction(GROUP_A)), RestrictionMode.AND);
-        assertTrue(set.matches(List.of(), List.of(GROUP_A), List.of(), 1));
+        assertTrue(set.matches(null, List.of(GROUP_A), List.of(), 1));
     }
 
     @Test
     void groupRestrictionRejectsWhenMemberNotInGroup() {
         var set = new RestrictionSet(List.of(groupRestriction(GROUP_A)), RestrictionMode.AND);
-        assertFalse(set.matches(List.of(), List.of(), List.of(), 1));
+        assertFalse(set.matches(null, List.of(), List.of(), 1));
     }
 
     // -- Tag restrictions (AND mode) --
@@ -83,13 +83,13 @@ class EventEligibilityTest {
     @Test
     void tagRestrictionMatchesWhenMemberHasTag() {
         var set = new RestrictionSet(List.of(tagRestriction(TAG_X)), RestrictionMode.AND);
-        assertTrue(set.matches(List.of(), List.of(), List.of(TAG_X), 1));
+        assertTrue(set.matches(null, List.of(), List.of(TAG_X), 1));
     }
 
     @Test
     void tagRestrictionRejectsWhenMemberLacksTag() {
         var set = new RestrictionSet(List.of(tagRestriction(TAG_X)), RestrictionMode.AND);
-        assertFalse(set.matches(List.of(), List.of(), List.of(), 1));
+        assertFalse(set.matches(null, List.of(), List.of(), 1));
     }
 
     // -- Combined AND logic --
@@ -97,28 +97,29 @@ class EventEligibilityTest {
     @Test
     void combinedAndRestrictionsRequireAllToMatch() {
         var set = new RestrictionSet(
-                List.of(roleRestriction(ROLE_MEMBER), groupRestriction(GROUP_A), tagRestriction(TAG_X)),
+                List.of(userTypeRestriction(USER_TYPE_MEMBER), groupRestriction(GROUP_A), tagRestriction(TAG_X)),
                 RestrictionMode.AND);
 
         // All match
-        assertTrue(set.matches(List.of(ROLE_MEMBER), List.of(GROUP_A), List.of(TAG_X), 1));
+        assertTrue(set.matches(USER_TYPE_MEMBER, List.of(GROUP_A), List.of(TAG_X), 1));
         // Missing tag
-        assertFalse(set.matches(List.of(ROLE_MEMBER), List.of(GROUP_A), List.of(), 1));
+        assertFalse(set.matches(USER_TYPE_MEMBER, List.of(GROUP_A), List.of(), 1));
         // Missing group
-        assertFalse(set.matches(List.of(ROLE_MEMBER), List.of(), List.of(TAG_X), 1));
-        // Missing role
-        assertFalse(set.matches(List.of(), List.of(GROUP_A), List.of(TAG_X), 1));
+        assertFalse(set.matches(USER_TYPE_MEMBER, List.of(), List.of(TAG_X), 1));
+        // Missing user type
+        assertFalse(set.matches(null, List.of(GROUP_A), List.of(TAG_X), 1));
     }
 
     @Test
     void partialAndRestrictionsIgnoreUnsetTypes() {
-        // Only role + tag (no group restriction)
-        var set = new RestrictionSet(List.of(roleRestriction(ROLE_MEMBER), tagRestriction(TAG_X)), RestrictionMode.AND);
+        // Only user type + tag (no group restriction)
+        var set = new RestrictionSet(
+                List.of(userTypeRestriction(USER_TYPE_MEMBER), tagRestriction(TAG_X)), RestrictionMode.AND);
 
-        // Has role + tag => eligible (group not restricted)
-        assertTrue(set.matches(List.of(ROLE_MEMBER), List.of(), List.of(TAG_X), 1));
-        // Has role but NOT tag
-        assertFalse(set.matches(List.of(ROLE_MEMBER), List.of(), List.of(), 1));
+        // Has user type + tag => eligible (group not restricted)
+        assertTrue(set.matches(USER_TYPE_MEMBER, List.of(), List.of(TAG_X), 1));
+        // Has user type but NOT tag
+        assertFalse(set.matches(USER_TYPE_MEMBER, List.of(), List.of(), 1));
     }
 
     // -- OR mode --
@@ -126,17 +127,17 @@ class EventEligibilityTest {
     @Test
     void orModeAllowsAnyMatch() {
         var set = new RestrictionSet(
-                List.of(roleRestriction(ROLE_TEAM), groupRestriction(GROUP_A), tagRestriction(TAG_X)),
+                List.of(userTypeRestriction(USER_TYPE_TEAM), groupRestriction(GROUP_A), tagRestriction(TAG_X)),
                 RestrictionMode.OR);
 
-        // Only role matches
-        assertTrue(set.matches(List.of(ROLE_TEAM), List.of(), List.of(), 1));
+        // Only user type matches
+        assertTrue(set.matches(USER_TYPE_TEAM, List.of(), List.of(), 1));
         // Only group matches
-        assertTrue(set.matches(List.of(), List.of(GROUP_A), List.of(), 1));
+        assertTrue(set.matches(null, List.of(GROUP_A), List.of(), 1));
         // Only tag matches
-        assertTrue(set.matches(List.of(), List.of(), List.of(TAG_X), 1));
+        assertTrue(set.matches(null, List.of(), List.of(TAG_X), 1));
         // Nothing matches
-        assertFalse(set.matches(List.of(ROLE_MEMBER), List.of(), List.of(), 1));
+        assertFalse(set.matches(USER_TYPE_MEMBER, List.of(), List.of(), 1));
     }
 
     // -- Member restrictions (always OR) --
@@ -144,21 +145,21 @@ class EventEligibilityTest {
     @Test
     void memberRestrictionGrantsAccessRegardlessOfMode() {
         var set = new RestrictionSet(
-                List.of(roleRestriction(ROLE_TEAM), memberRestriction(MEMBER_42)), RestrictionMode.AND);
+                List.of(userTypeRestriction(USER_TYPE_TEAM), memberRestriction(MEMBER_42)), RestrictionMode.AND);
 
-        // Member 42 passes even without the required role
-        assertTrue(set.matches(List.of(), List.of(), List.of(), MEMBER_42));
-        // Other member must satisfy role restriction
-        assertFalse(set.matches(List.of(), List.of(), List.of(), 99));
-        assertTrue(set.matches(List.of(ROLE_TEAM), List.of(), List.of(), 99));
+        // Member 42 passes even without the required user type
+        assertTrue(set.matches(null, List.of(), List.of(), MEMBER_42));
+        // Other member must satisfy user type restriction
+        assertFalse(set.matches(null, List.of(), List.of(), 99));
+        assertTrue(set.matches(USER_TYPE_TEAM, List.of(), List.of(), 99));
     }
 
     @Test
     void memberOnlyRestrictionDeniesOtherMembers() {
         var set = new RestrictionSet(List.of(memberRestriction(MEMBER_42)), RestrictionMode.AND);
 
-        assertTrue(set.matches(List.of(), List.of(), List.of(), MEMBER_42));
-        assertFalse(set.matches(List.of(), List.of(), List.of(), 99));
+        assertTrue(set.matches(null, List.of(), List.of(), MEMBER_42));
+        assertFalse(set.matches(null, List.of(), List.of(), 99));
     }
 
     // -- hasRestrictions --
@@ -171,7 +172,7 @@ class EventEligibilityTest {
 
     @Test
     void hasRestrictionsReturnsTrueWhenNotEmpty() {
-        var set = new RestrictionSet(List.of(roleRestriction(ROLE_MEMBER)), RestrictionMode.AND);
+        var set = new RestrictionSet(List.of(userTypeRestriction(USER_TYPE_MEMBER)), RestrictionMode.AND);
         assertTrue(set.hasRestrictions());
     }
 }

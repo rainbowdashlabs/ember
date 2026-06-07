@@ -7,9 +7,9 @@ package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import io.javalin.http.BadRequestResponse;
@@ -48,9 +48,9 @@ public class MemberRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.post(prefix + "/members/invite", this::invite, Roles.MEMBER_MANAGER);
-        routes.put(prefix + "/members/{accountId}", this::updateAccount, Roles.MEMBER_MANAGER);
-        routes.post(prefix + "/members/reset-password", this::resetPassword, Roles.MEMBER_MANAGER);
+        routes.post(prefix + "/members/invite", this::invite, StationPermission.MEMBER_EDIT);
+        routes.put(prefix + "/members/{accountId}", this::updateAccount, StationPermission.MEMBER_EDIT);
+        routes.post(prefix + "/members/reset-password", this::resetPassword, StationPermission.MEMBER_EDIT);
     }
 
     @OpenApi(

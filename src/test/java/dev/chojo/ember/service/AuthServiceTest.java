@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
@@ -91,8 +91,7 @@ class AuthServiceTest extends RepositoryTestBase {
     @Order(5)
     void loginWrongPassword() {
         // Verify email first so we can test wrong password
-        var tokens = accountRepo.findToken(
-                accountRepo.findSessionsByAccount(accountId).isEmpty() ? "nonexistent" : "nonexistent");
+        var tokens = accountRepo.findToken("nonexistent");
         // Manually set email as verified for this test
         accountRepo.setEmailVerified(accountId);
 
@@ -114,12 +113,12 @@ class AuthServiceTest extends RepositoryTestBase {
     @Order(7)
     void loginWithLoginRole() {
         // Grant LOGIN role and try again
-        var loginRole = stationMemberRepo.findRoleByName(Roles.LOGIN);
+        var loginRole = stationMemberRepo.findPermissionByName(StationPermission.LOGIN);
         if (loginRole.isPresent()) {
             // Create a station and membership
             var station = stationRepo.create("AuthSvc Station");
             var member = stationMemberRepo.create(station.id(), accountId);
-            stationMemberRepo.addRole(member.id(), loginRole.get().id());
+            stationMemberRepo.grantPermission(member.id(), loginRole.get().id());
 
             var result = service.login(EMAIL, PASSWORD, "agent", "DE");
             assertTrue(result.success());
@@ -418,7 +417,9 @@ class AuthServiceTest extends RepositoryTestBase {
         // Grant LOGIN role so the refreshed session works
         var station2 = stationRepo.create("Refresh Station");
         var member2 = stationMemberRepo.create(station2.id(), account2.id());
-        stationMemberRepo.findRoleByName(Roles.LOGIN).ifPresent(r -> stationMemberRepo.addRole(member2.id(), r.id()));
+        stationMemberRepo
+                .findPermissionByName(StationPermission.LOGIN)
+                .ifPresent(r -> stationMemberRepo.grantPermission(member2.id(), r.id()));
 
         var result = service.refreshSession("valid-session-for-refresh", "agent", "DE");
         assertTrue(result.success());
@@ -499,14 +500,16 @@ class AuthServiceTest extends RepositoryTestBase {
         // Create account with credentials and force_password_change flag
         var account2 = accountRepo.create("force-pw@test.com", "Force", "Pw");
         accountRepo.setEmailVerified(account2.id());
-        var hasher = new dev.chojo.ember.auth.PasswordHasher();
+        var hasher = new PasswordHasher();
         accountRepo.createCredential(account2.id(), hasher.hash("TestPass123!"));
         accountRepo.setForcePasswordChange(account2.id(), true);
 
         // Grant LOGIN role
         var station2 = stationRepo.create("Force PW Station");
         var member2 = stationMemberRepo.create(station2.id(), account2.id());
-        stationMemberRepo.findRoleByName(Roles.LOGIN).ifPresent(r -> stationMemberRepo.addRole(member2.id(), r.id()));
+        stationMemberRepo
+                .findPermissionByName(StationPermission.LOGIN)
+                .ifPresent(r -> stationMemberRepo.grantPermission(member2.id(), r.id()));
 
         var result = service.login("force-pw@test.com", "TestPass123!", "agent", "DE");
         assertTrue(result.passwordChangeRequired());

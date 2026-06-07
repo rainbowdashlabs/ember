@@ -14,7 +14,8 @@ public enum ImageCategory {
     APP_LOGOS("app-logos"),
     QUIZ_QUESTIONS("quiz-questions"),
     KB_ICONS("kb-icons"),
-    KB_IMAGES("kb-images");
+    KB_IMAGES("kb-images"),
+    LOGO_FRAGMENTS("logo-fragments");
 
     private final String directory;
 

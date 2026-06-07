@@ -291,7 +291,7 @@ async function doImport() {
       const config = buildConfig(q)
       const autoPoints = q.type !== QuizQuestionTypes.FREE_ANSWER && q.type !== QuizQuestionTypes.IMAGE_TEXT
       const created = await quiz.createQuestion(catalogId.value, {
-        categoryId, questionType: q.type, title: q.title,
+        categoryId, quizQuestionType: q.type, title: q.title,
         description: '', points: q.points, autoPoints, config, position: i,
       })
       if (q.type === QuizQuestionTypes.MULTIPLE_CHOICE && generateWrongAnswers.value) {

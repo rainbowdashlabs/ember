@@ -22,6 +22,7 @@ import java.util.stream.Stream;
  * Javalin {@link JsonMapper} implementation backed by Jackson 3.
  * Handles serialization and deserialization of JSON for all API request and response bodies.
  */
+@SuppressWarnings("NullableProblems")
 public class Jackson3Mapper implements JsonMapper {
     private final ObjectMapper mapper;
 

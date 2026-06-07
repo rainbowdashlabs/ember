@@ -147,7 +147,7 @@ export async function listAvailable(options?: { q?: string; from?: string; to?: 
     if (options?.q) params.q = options.q
     if (options?.from) params.from = options.from
     if (options?.to) params.to = options.to
-    const res = await client.get<AvailableInventoryEntry[]>('/lending/available', {params})
+    const res = await client.get<AvailableInventoryEntry[]>('/federated/lending/available', {params})
     return res.data
 }
 

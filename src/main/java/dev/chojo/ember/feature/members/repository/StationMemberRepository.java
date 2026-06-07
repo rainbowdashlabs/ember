@@ -5,23 +5,106 @@
  */
 package dev.chojo.ember.feature.members.repository;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
-import dev.chojo.ember.api.Roles;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.feature.members.entity.MemberCompletion;
-import dev.chojo.ember.feature.members.entity.Role;
+import dev.chojo.ember.feature.members.entity.Permission;
+import dev.chojo.ember.feature.members.entity.RichMember;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.station.repository.StationRepository;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Repository for station members, their roles, manager relations, and avatars.
  */
 @Singleton
 public class StationMemberRepository {
+
+    private final Cache<Integer, UUID> memberUidCache = Caffeine.newBuilder()
+            .expireAfterAccess(5, TimeUnit.MINUTES)
+            .maximumSize(10_000)
+            .build();
+    private final Cache<MemberKey, Integer> memberIdCache = Caffeine.newBuilder()
+            .expireAfterAccess(5, TimeUnit.MINUTES)
+            .maximumSize(10_000)
+            .build();
+    private final StationRepository stationRepository;
+
+    @Inject
+    public StationMemberRepository(StationRepository stationRepository) {
+        this.stationRepository = stationRepository;
+    }
+
+    /**
+     * Resolves an internal member ID to its UUID. Cached.
+     */
+    public UUID resolveUid(int memberId) {
+        return memberUidCache.get(memberId, id -> Query.query("SELECT uid FROM station_member WHERE id = :id;")
+                .single(Call.of().bind("id", id))
+                .map(row -> row.get("uid", StandardValueConverter.UUID_STRING))
+                .first()
+                .orElse(null));
+    }
+
+    /**
+     * Resolves a member UUID within a station to its internal ID. Cached.
+     */
+    public Optional<Integer> resolveId(int stationId, UUID memberUid) {
+        var key = new MemberKey(stationId, memberUid);
+        var cached = memberIdCache.getIfPresent(key);
+        if (cached != null) return Optional.of(cached);
+        return Query.query("SELECT id FROM station_member WHERE station_id = :station_id AND uid = :uid::uuid;")
+                .single(Call.of()
+                        .bind("station_id", stationId)
+                        .bind("uid", memberUid, StandardValueConverter.UUID_STRING))
+                .map(row -> row.getInt("id"))
+                .first()
+                .map(id -> {
+                    memberIdCache.put(key, id);
+                    memberUidCache.put(id, memberUid);
+                    return id;
+                });
+    }
+
+    /**
+     * Resolves a member ID to a full MemberIdentity (station UID + member UID).
+     */
+    public MemberIdentity resolveIdentity(int memberId) {
+        return Query.query(
+                        "SELECT sm.uid AS member_uid, s.uid AS station_uid FROM station_member sm JOIN station s ON s.id = sm.station_id WHERE sm.id = :id;")
+                .single(Call.of().bind("id", memberId))
+                .map(row -> new MemberIdentity(
+                        row.get("station_uid", StandardValueConverter.UUID_STRING),
+                        row.get("member_uid", StandardValueConverter.UUID_STRING)))
+                .first()
+                .orElse(null);
+    }
+
+    /**
+     * Invalidates caches for a member (on create/delete).
+     */
+    public void invalidateMemberCache(int memberId) {
+        var uid = memberUidCache.getIfPresent(memberId);
+        memberUidCache.invalidate(memberId);
+        if (uid != null) {
+            memberIdCache.asMap().values().remove(memberId);
+        }
+    }
+
+    private record MemberKey(int stationId, UUID memberUid) {}
 
     // -- Members --
 
@@ -31,6 +114,16 @@ public class StationMemberRepository {
     public Optional<StationMember> findById(int id) {
         return Query.query("SELECT * FROM station_member WHERE id = :id;")
                 .single(Call.of().bind("id", id))
+                .map(StationMember.map())
+                .first();
+    }
+
+    /**
+     * Finds a station member by its UUID within a station.
+     */
+    public Optional<StationMember> findByUid(int stationId, UUID uid) {
+        return Query.query("SELECT * FROM station_member WHERE station_id = :station_id AND uid = :uid::uuid;")
+                .single(Call.of().bind("station_id", stationId).bind("uid", uid, StandardValueConverter.UUID_STRING))
                 .map(StationMember.map())
                 .first();
     }
@@ -78,16 +171,50 @@ public class StationMemberRepository {
     }
 
     /**
+     * Finds members of a station with all associated data (roles, groups, tags, profile values)
+     * aggregated in a single query. Avoids N+1 queries when loading the member list.
+     *
+     * @param stationId     the station identifier
+     * @param includeFormer whether to include former members
+     * @return the list of rich members
+     */
+    public List<RichMember> findRichMembers(int stationId, boolean includeFormer) {
+        return Query.query("""
+                        SELECT sm.id, sm.station_id, sm.uid, sm.account_id, sm.former, sm.user_type,
+                               COALESCE(NULLIF(sm.display_name, ''), TRIM(CONCAT(a.first_name, ' ', a.last_name)), '') AS name,
+                               COALESCE(a.email, '') AS email,
+                               COALESCE((SELECT json_agg(sp.name) FROM station_member_permission smp JOIN station_permission sp ON sp.id = smp.permission_id WHERE smp.member_id = sm.id), '[]'::json)::text AS roles,
+                               COALESCE((SELECT json_agg(json_build_object('id', mg.id, 'name', mg.name)) FROM member_group_entry mge JOIN member_group mg ON mg.id = mge.group_id WHERE mge.member_id = sm.id), '[]'::json)::text AS groups,
+                               COALESCE((SELECT json_agg(json_build_object('id', ut.id, 'name', ut.name)) FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id WHERE ute.member_id = sm.id), '[]'::json)::text AS tags,
+                               COALESCE((SELECT json_object_agg(pfv.field_id, pfv.value) FROM profile_field_value pfv WHERE pfv.member_id = sm.id), '{}'::json)::text AS profile_values
+                        FROM station_member sm
+                        LEFT JOIN account a ON a.id = sm.account_id
+                        WHERE sm.station_id = :station_id AND (sm.former = FALSE OR :include_former)
+                        ORDER BY a.last_name, a.first_name, sm.display_name;""")
+                .single(Call.of().bind("station_id", stationId).bind("include_former", includeFormer))
+                .map(RichMember.map())
+                .all();
+    }
+
+    /**
      * Finds active members of a station for autocomplete, returning only id and display name.
      *
      * @param stationId the station identifier
      * @return list of member completion entries
      */
     public List<MemberCompletion> findCompletions(int stationId) {
+        UUID stationUid = stationRepository.resolveUid(stationId);
         return Query.query(
-                        "SELECT id, display_name FROM station_member WHERE station_id = :station_id AND former = FALSE AND display_name != '' ORDER BY display_name;")
+                        "SELECT sm.id, sm.uid, COALESCE(NULLIF(sm.display_name, ''), TRIM(CONCAT(a.first_name, ' ', a.last_name)), 'Mitglied ' || sm.id) AS display_name FROM station_member sm LEFT JOIN account a ON sm.account_id = a.id WHERE sm.station_id = :station_id AND sm.former = FALSE ORDER BY display_name;")
                 .single(Call.of().bind("station_id", stationId))
-                .map(row -> new MemberCompletion(row.getInt("id"), row.getString("display_name")))
+                .map(row -> new MemberCompletion(
+                        row.getInt("id"),
+                        row.getString("display_name"),
+                        stationUid,
+                        row.get("uid", StandardValueConverter.UUID_STRING),
+                        null,
+                        null,
+                        null))
                 .all();
     }
 
@@ -102,12 +229,12 @@ public class StationMemberRepository {
     }
 
     /**
-     * Finds active members of a station that have a specific role.
+     * Finds active members of a station that have a specific user type.
      */
-    public List<StationMember> findByStationAndRole(int stationId, String roleName) {
+    public List<StationMember> findByStationAndUserType(int stationId, StationUserType userType) {
         return Query.query(
-                        "SELECT sm.* FROM station_member sm JOIN station_member_role smr ON smr.member_id = sm.id JOIN role r ON r.id = smr.role_id WHERE sm.station_id = :station_id AND r.name = :role AND sm.former = FALSE;")
-                .single(Call.of().bind("station_id", stationId).bind("role", roleName))
+                        "SELECT * FROM station_member WHERE station_id = :station_id AND user_type = :user_type AND former = FALSE;")
+                .single(Call.of().bind("station_id", stationId).bind("user_type", userType))
                 .map(StationMember.map())
                 .all();
     }
@@ -139,7 +266,8 @@ public class StationMemberRepository {
     }
 
     public boolean setFormer(int id, boolean former) {
-        return Query.query("UPDATE station_member SET former = :former WHERE id = :id;")
+        return Query.query(
+                        "UPDATE station_member SET former = :former, former_at = CASE WHEN :former THEN NOW() ELSE NULL END WHERE id = :id;")
                 .single(Call.of().bind("id", id).bind("former", former))
                 .update()
                 .changed();
@@ -151,24 +279,29 @@ public class StationMemberRepository {
                 .update();
     }
 
-    // -- Roles --
+    // -- Permissions --
 
-    public List<Role> findAllRoles() {
-        return Query.query("SELECT id, name FROM role ORDER BY id;")
+    public List<Permission> findAllPermissions() {
+        return Query.query("SELECT id, name FROM station_permission ORDER BY id;")
                 .single()
-                .map(Role.map())
+                .map(Permission.map())
                 .all();
     }
 
-    public boolean hasLoginRole(int accountId) {
+    public boolean hasLoginPermission(int accountId) {
         return Query.query("""
                             SELECT 1
                             FROM station_member sm
-                                JOIN station_member_role smr ON sm.id = smr.member_id
-                                JOIN role r ON r.id = smr.role_id
                             WHERE sm.account_id = :account_id
                               AND sm.former = FALSE
-                              AND r.name IN ('LOGIN', 'MANAGER')
+                              AND (
+                                sm.user_type IN ('GUARDIAN', 'TEAM', 'MANAGER')
+                                OR EXISTS (
+                                    SELECT 1 FROM station_member_permission smp
+                                    JOIN station_permission sp ON sp.id = smp.permission_id
+                                    WHERE smp.member_id = sm.id AND sp.name = 'LOGIN'
+                                )
+                              )
                             LIMIT 1;""")
                 .single(Call.of().bind("account_id", accountId))
                 .map(row -> true)
@@ -176,66 +309,105 @@ public class StationMemberRepository {
                 .isPresent();
     }
 
-    public List<Role> findRoles(int memberId) {
+    public List<Permission> findPermissions(int memberId) {
         return Query.query("""
-                            SELECT r.id, r.name
-                            FROM role r JOIN station_member_role smr ON r.id = smr.role_id
-                            WHERE smr.member_id = :member_id;""")
+                            SELECT sp.id, sp.name
+                            FROM station_permission sp JOIN station_member_permission smp ON sp.id = smp.permission_id
+                            WHERE smp.member_id = :member_id;""")
                 .single(Call.of().bind("member_id", memberId))
-                .map(Role.map())
+                .map(Permission.map())
                 .all();
     }
 
-    public Optional<Role> findRoleByName(Roles role) {
-        return Query.query("SELECT id, name FROM role WHERE name = :name;")
-                .single(Call.of().bind("name", role))
-                .map(Role.map())
+    public Optional<Permission> findPermissionByName(StationPermission permission) {
+        return Query.query("SELECT id, name FROM station_permission WHERE name = :name;")
+                .single(Call.of().bind("name", permission))
+                .map(Permission.map())
                 .first();
     }
 
-    public InsertionResult addRole(int memberId, int roleId) {
+    public InsertionResult grantPermission(int memberId, int permissionId) {
         return Query.query(
-                        "INSERT INTO station_member_role(member_id, role_id) VALUES(:member_id, :role_id) ON CONFLICT DO NOTHING;")
-                .single(Call.of().bind("member_id", memberId).bind("role_id", roleId))
+                        "INSERT INTO station_member_permission(member_id, permission_id) VALUES(:member_id, :permission_id) ON CONFLICT DO NOTHING;")
+                .single(Call.of().bind("member_id", memberId).bind("permission_id", permissionId))
                 .insert();
     }
 
-    public boolean removeRole(int memberId, int roleId) {
-        return Query.query("DELETE FROM station_member_role WHERE member_id = :member_id AND role_id = :role_id;")
-                .single(Call.of().bind("member_id", memberId).bind("role_id", roleId))
+    public boolean revokePermission(int memberId, int permissionId) {
+        return Query.query(
+                        "DELETE FROM station_member_permission WHERE member_id = :member_id AND permission_id = :permission_id;")
+                .single(Call.of().bind("member_id", memberId).bind("permission_id", permissionId))
                 .delete()
                 .changed();
     }
 
-    public void removeAllRoles(int memberId) {
-        Query.query("DELETE FROM station_member_role WHERE member_id = :member_id;")
+    public void revokeAllPermissions(int memberId) {
+        Query.query("DELETE FROM station_member_permission WHERE member_id = :member_id;")
                 .single(Call.of().bind("member_id", memberId))
                 .delete();
     }
 
     /**
-     * Find all active members of a station who have the given role (directly or via group).
+     * Find all active members of a station who have the given permission (directly or via group).
      */
-    public List<StationMember> findMembersWithRole(int stationId, Roles role) {
+    public List<StationMember> findMembersWithPermission(int stationId, StationPermission permission) {
         return Query.query("""
                             SELECT DISTINCT sm.* FROM station_member sm
                             WHERE sm.station_id = :station_id AND sm.former = FALSE
                               AND (
-                                exists (
-                                    SELECT 1 FROM station_member_role smr
-                                    JOIN role r ON r.id = smr.role_id
-                                    WHERE smr.member_id = sm.id AND r.name = :role_name
+                                EXISTS (
+                                    SELECT 1 FROM station_member_permission smp
+                                    JOIN station_permission sp ON sp.id = smp.permission_id
+                                    WHERE smp.member_id = sm.id AND sp.name = :permission_name
                                 )
-                                OR exists (
+                                OR EXISTS (
                                     SELECT 1 FROM member_group_entry mge
-                                    JOIN member_group_role mgr ON mgr.group_id = mge.group_id
-                                    JOIN role r ON r.id = mgr.role_id
-                                    WHERE mge.member_id = sm.id AND r.name = :role_name
+                                    JOIN member_group_permission mgp ON mgp.group_id = mge.group_id
+                                    JOIN station_permission sp ON sp.id = mgp.permission_id
+                                    WHERE mge.member_id = sm.id AND sp.name = :permission_name
                                 )
                               );""")
-                .single(Call.of().bind("station_id", stationId).bind("role_name", role))
+                .single(Call.of().bind("station_id", stationId).bind("permission_name", permission))
                 .map(StationMember.map())
                 .all();
+    }
+
+    // -- User Type --
+
+    public boolean setUserType(int memberId, StationUserType userType) {
+        return Query.query("UPDATE station_member SET user_type = :user_type WHERE id = :id;")
+                .single(Call.of().bind("user_type", userType).bind("id", memberId))
+                .update()
+                .changed();
+    }
+
+    // -- Station User Type Permissions --
+
+    public List<Permission> findUserTypePermissions(int stationId, StationUserType userType) {
+        return Query.query("""
+                SELECT sp.id, sp.name
+                FROM station_permission sp
+                JOIN station_user_type_permission sutp ON sp.id = sutp.permission_id
+                WHERE sutp.station_id = :station_id AND sutp.user_type = :user_type;""")
+                .single(Call.of().bind("station_id", stationId).bind("user_type", userType))
+                .map(Permission.map())
+                .all();
+    }
+
+    public void setUserTypePermissions(int stationId, StationUserType userType, List<Integer> permissionIds) {
+        Query.query(
+                        "DELETE FROM station_user_type_permission WHERE station_id = :station_id AND user_type = :user_type;")
+                .single(Call.of().bind("station_id", stationId).bind("user_type", userType))
+                .delete();
+        for (int permissionId : permissionIds) {
+            Query.query(
+                            "INSERT INTO station_user_type_permission(station_id, user_type, permission_id) VALUES(:station_id, :user_type, :permission_id) ON CONFLICT DO NOTHING;")
+                    .single(Call.of()
+                            .bind("station_id", stationId)
+                            .bind("user_type", userType)
+                            .bind("permission_id", permissionId))
+                    .insert();
+        }
     }
 
     // -- Manager Relations --

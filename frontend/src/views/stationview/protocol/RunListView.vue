@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -19,23 +19,27 @@ import Alert from '@/components/feedback/Alert.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
+import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import { useSession } from '@/composables/useSession'
-import { protocol, stationMembers } from '@/api'
+import { protocol, stationMembers, memberGroups, userTags } from '@/api'
 import type { TestProtocol, TestProtocolRun } from '@/api/protocol'
-import type { StationMember } from '@/api/types'
+import type { StationMember, MemberGroup, UserTag } from '@/api/types'
+import { StationPermission } from '@/api/types'
 
 const { t } = useI18n()
 const router = useRouter()
-const { canManageProtocol, loaded } = useSession()
-
+const { hasPermission, loaded } = useSession()
+const canCreateRun = computed(() => hasPermission(StationPermission.PROTOCOL_CREATE))
 
 const runs = ref<TestProtocolRun[]>([])
 const protocols = ref<TestProtocol[]>([])
 const members = ref<StationMember[]>([])
+const allGroups = ref<MemberGroup[]>([])
+const allTags = ref<UserTag[]>([])
 const loading = ref(true)
 const error = ref('')
 
@@ -44,19 +48,35 @@ const showCreateModal = ref(false)
 const newProtocolId = ref<string>('')
 const newName = ref('')
 const newDate = ref(new Date().toISOString().split('T')[0])
+const selectedUserTypes = ref<string[]>([])
+const selectedGroupIds = ref<number[]>([])
+const selectedTagIds = ref<number[]>([])
 const selectedMemberIds = ref<number[]>([])
+
+const memberOptions = computed(() =>
+  members.value.map(m => ({ value: String(m.id), label: m.name || m.email || `#${m.id}` }))
+)
+const selectedMemberValues = computed(() => selectedMemberIds.value.map(String))
+
+function onMembersChange(values: string[]) {
+  selectedMemberIds.value = values.map(Number)
+}
 
 async function loadData() {
   loading.value = true
   try {
-    const [r, p, m] = await Promise.all([
+    const [r, p, m, groups, tags] = await Promise.all([
       protocol.listRuns(),
       protocol.listProtocols(),
       stationMembers.listMembers(),
+      memberGroups.listGroups(),
+      userTags.listTags(),
     ])
     runs.value = r
     protocols.value = Array.isArray(p) ? p : (p.protocols ?? [])
     members.value = m
+    allGroups.value = groups
+    allTags.value = tags
   } catch { error.value = t('common.error') }
   finally { loading.value = false }
 }
@@ -69,17 +89,24 @@ async function handleCreate() {
     const run = await protocol.createRun(Number(newProtocolId.value), {
       name: newName.value.trim(),
       testDate: newDate.value,
-      memberIds: selectedMemberIds.value,
+      memberIds: selectedMemberIds.value.length > 0 ? selectedMemberIds.value : undefined,
+      userTypes: selectedUserTypes.value.length > 0 ? selectedUserTypes.value : undefined,
+      groupIds: selectedGroupIds.value.length > 0 ? selectedGroupIds.value : undefined,
+      tagIds: selectedTagIds.value.length > 0 ? selectedTagIds.value : undefined,
     })
     showCreateModal.value = false
     router.push({ name: 'protocol-run-detail', params: { id: run.id } })
   } catch { error.value = t('common.error') }
 }
 
-function toggleMember(id: number) {
-  const idx = selectedMemberIds.value.indexOf(id)
-  if (idx >= 0) selectedMemberIds.value.splice(idx, 1)
-  else selectedMemberIds.value.push(id)
+function resetCreateModal() {
+  newProtocolId.value = ''
+  newName.value = ''
+  newDate.value = new Date().toISOString().split('T')[0]
+  selectedUserTypes.value = []
+  selectedGroupIds.value = []
+  selectedTagIds.value = []
+  selectedMemberIds.value = []
 }
 
 watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
@@ -90,7 +117,7 @@ onMounted(() => { if (loaded.value) loadData() })
   <ViewContent>
     <div class="flex items-center justify-between mb-4">
       <SectionHeader>{{ t('protocol.runs') }}</SectionHeader>
-      <PrimaryButton v-if="canManageProtocol()" @click="showCreateModal = true">
+      <PrimaryButton v-if="canCreateRun" @click="showCreateModal = true">
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" /> {{ t('protocol.createRun') }}
       </PrimaryButton>
     </div>
@@ -119,12 +146,12 @@ onMounted(() => { if (loaded.value) loadData() })
     </div>
 
     <!-- Create Run Modal -->
-    <Modal v-model="showCreateModal">
+    <Modal v-model="showCreateModal" @update:model-value="v => { if (!v) resetCreateModal() }">
       <SubHeader class="mb-3">{{ t('protocol.createRun') }}</SubHeader>
       <form @submit.prevent="handleCreate" class="space-y-3">
         <div>
           <FieldLabel class="mb-1">{{ t('protocol.selectProtocol') }}</FieldLabel>
-          <SelectInput v-model="newProtocolId">
+          <SelectInput v-model="newProtocolId" class="w-full">
             <option value="" disabled>{{ t('protocol.selectProtocol') }}</option>
             <option v-for="p in protocols" :key="p.id" :value="p.id">{{ p.name }}</option>
           </SelectInput>
@@ -133,13 +160,28 @@ onMounted(() => { if (loaded.value) loadData() })
         <DateInput v-model="newDate" />
 
         <div>
+          <FieldLabel class="mb-1">{{ t('protocol.selectByRestriction') }}</FieldLabel>
+          <RestrictionPicker
+            :groups="allGroups"
+            :tags="allTags"
+            :selected-user-types="selectedUserTypes"
+            :selected-group-ids="selectedGroupIds"
+            :selected-tag-ids="selectedTagIds"
+            :show-mode="false"
+            @update:selected-user-types="selectedUserTypes = $event"
+            @update:selected-group-ids="selectedGroupIds = $event"
+            @update:selected-tag-ids="selectedTagIds = $event"
+          />
+        </div>
+
+        <div>
           <FieldLabel class="mb-1">{{ t('protocol.selectMembers') }}</FieldLabel>
-          <div class="max-h-40 overflow-y-auto border border-[var(--border)] rounded p-2 space-y-1">
-            <FieldLabel inline v-for="m in members" :key="m.id" class="cursor-pointer">
-              <ToggleInput :model-value="selectedMemberIds.includes(m.id)" @update:model-value="toggleMember(m.id)" />
-              {{ m.name || m.email || `#${m.id}` }}
-            </FieldLabel>
-          </div>
+          <MultiSelectDropdown
+            :options="memberOptions"
+            :model-value="selectedMemberValues"
+            :placeholder="t('protocol.selectMembers')"
+            @update:model-value="onMembersChange"
+          />
         </div>
 
         <div class="flex gap-2 justify-end">

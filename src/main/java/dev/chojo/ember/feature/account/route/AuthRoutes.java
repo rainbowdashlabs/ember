@@ -7,9 +7,9 @@ package dev.chojo.ember.feature.account.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.service.AuthService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ConflictResponse;
@@ -54,7 +54,7 @@ public class AuthRoutes implements Routes {
         routes.post(prefix + "/auth/login", this::login);
         routes.post(prefix + "/auth/refresh", this::refresh);
         routes.post(prefix + "/auth/logout", this::logout);
-        routes.post(prefix + "/auth/change-password", this::changePassword, Roles.LOGIN);
+        routes.post(prefix + "/auth/change-password", this::changePassword, StationPermission.LOGIN);
         routes.post(prefix + "/auth/confirm-email-change", this::confirmEmailChange);
     }
 

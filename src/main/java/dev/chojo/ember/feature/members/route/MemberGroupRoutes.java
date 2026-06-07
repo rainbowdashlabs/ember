@@ -6,15 +6,16 @@
 package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
-import dev.chojo.ember.feature.members.entity.Role;
+import dev.chojo.ember.feature.members.entity.MemberWithName;
+import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -40,11 +41,16 @@ import java.util.List;
 public class MemberGroupRoutes implements Routes {
     private final MemberGroupService groupService;
     private final AccountRepository accountRepository;
+    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
-    public MemberGroupRoutes(MemberGroupService groupService, AccountRepository accountRepository) {
+    public MemberGroupRoutes(
+            MemberGroupService groupService,
+            AccountRepository accountRepository,
+            MemberIdentityFactory memberIdentityFactory) {
         this.groupService = groupService;
         this.accountRepository = accountRepository;
+        this.memberIdentityFactory = memberIdentityFactory;
     }
 
     private static boolean isBlank(String s) {
@@ -53,28 +59,33 @@ public class MemberGroupRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/groups", this::list, Roles.MEMBER_MANAGER);
-        routes.post(prefix + "/groups", this::create, Roles.MEMBER_MANAGER);
-        routes.get(prefix + "/groups/{id}", this::get, Roles.MEMBER_MANAGER);
-        routes.put(prefix + "/groups/{id}", this::update, Roles.MEMBER_MANAGER);
-        routes.delete(prefix + "/groups/{id}", this::delete, Roles.MEMBER_MANAGER);
+        routes.get(prefix + "/groups", this::list, StationPermission.LOGIN);
+        routes.get(prefix + "/groups/{id}", this::get, StationPermission.MEMBER_MANAGE_GROUP);
+        routes.post(prefix + "/groups", this::create, StationPermission.MEMBER_MANAGE_GROUP);
+        routes.put(prefix + "/groups/{id}", this::update, StationPermission.MEMBER_MANAGE_GROUP);
+        routes.delete(prefix + "/groups/{id}", this::delete, StationPermission.MEMBER_MANAGE_GROUP);
 
-        routes.get(prefix + "/groups/{id}/members", this::getMembers, Roles.MEMBER_MANAGER);
-        routes.put(prefix + "/groups/{id}/members", this::setMembers, Roles.MEMBER_MANAGER);
+        routes.get(
+                prefix + "/groups/{id}/members",
+                this::getMembers,
+                StationPermission.MEMBER_MANAGE_GROUP,
+                StationPermission.ATTENDANCE_READ,
+                StationPermission.EVENT_EDIT,
+                StationPermission.INVENTORY_READ);
+        routes.put(prefix + "/groups/{id}/members", this::setMembers, StationPermission.MEMBER_MANAGE_GROUP);
 
-        routes.get(prefix + "/groups/{id}/roles", this::getGroupRoles, Roles.MEMBER_MANAGER);
-        routes.put(prefix + "/groups/{id}/roles", this::setGroupRoles, Roles.MEMBER_MANAGER);
+        routes.get(
+                prefix + "/groups/{id}/permissions", this::getGroupPermissions, StationPermission.MEMBER_MANAGE_GROUP);
+        routes.put(
+                prefix + "/groups/{id}/permissions", this::setGroupPermissions, StationPermission.MEMBER_MANAGE_GROUP);
 
-        routes.post(prefix + "/groups/{id}/convert-to-tag", this::convertToTag, Roles.MEMBER_MANAGER);
+        routes.post(prefix + "/groups/{id}/convert-to-tag", this::convertToTag, StationPermission.MEMBER_MANAGE_GROUP);
 
-        routes.get(prefix + "/station-members/{memberId}/groups", this::getMemberGroups, Roles.MEMBER_MANAGER);
+        routes.get(prefix + "/station-members/{memberId}/groups", this::getMemberGroups, StationPermission.MEMBER_READ);
     }
 
     private MemberWithName toMemberWithName(StationMember m) {
-        Account account = accountRepository.findById(m.accountId()).orElse(null);
-        String name = account != null ? (account.firstName() + " " + account.lastName()).trim() : "";
-        String email = account != null ? account.email() : "";
-        return new MemberWithName(m.id(), m.stationId(), m.accountId(), name, email);
+        return MemberWithName.from(m, accountRepository, memberIdentityFactory);
     }
 
     // -- Groups --
@@ -155,9 +166,11 @@ public class MemberGroupRoutes implements Routes {
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
         }
-        groupService.update(id, request.name()).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
-        });
+        groupService
+                .update(id, request.name(), request.color(), request.position())
+                .ifPresentOrElse(ctx::json, () -> {
+                    throw new NotFoundResponse();
+                });
     }
 
     @OpenApi(
@@ -237,45 +250,44 @@ public class MemberGroupRoutes implements Routes {
         ctx.json(groupService.findGroupsForMember(memberId));
     }
 
-    // -- Group Roles --
+    // -- Group Permissions --
 
     @OpenApi(
-            path = "/api/v1/groups/{id}/roles",
+            path = "/api/v1/groups/{id}/permissions",
             methods = HttpMethod.GET,
-            summary = "Get roles assigned to a group",
+            summary = "Get permissions assigned to a group",
             tags = {"Member Groups"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Role[].class)))
-    private void getGroupRoles(Context ctx) {
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Permission[].class)))
+    private void getGroupPermissions(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        ctx.json(groupService.findGroupRoles(id));
+        ctx.json(groupService.findGroupPermissions(id));
     }
 
     @OpenApi(
-            path = "/api/v1/groups/{id}/roles",
+            path = "/api/v1/groups/{id}/permissions",
             methods = HttpMethod.PUT,
-            summary = "Set roles of a group (replaces all existing roles)",
+            summary = "Set permissions of a group (replaces all existing permissions)",
             description =
-                    "Provide the full list of role IDs. Existing roles not in the list are removed, new ones are added. "
-                            + "Protected roles (MEMBER_MANAGER, MANAGER) cannot be removed. "
-                            + "You can only grant roles that you yourself have.",
+                    "Provide the full list of permission IDs. Existing permissions not in the list are removed, new ones are added. "
+                            + "You can only grant permissions that you yourself have.",
             tags = {"Member Groups"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetGroupRolesRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetGroupPermissionsRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = Role[].class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = Permission[].class)),
                 @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
-    private void setGroupRoles(Context ctx) {
+    private void setGroupPermissions(Context ctx) {
         int groupId = ctx.pathParamAsClass("id", Integer.class).get();
         UserSession session = UserSession.from(ctx);
         var group = groupService.findById(groupId).orElseThrow(NotFoundResponse::new);
         if (group.stationId() != session.stationId()) {
             throw new ForbiddenResponse("Cannot access resources from another station");
         }
-        var request = ctx.bodyAsClass(SetGroupRolesRequest.class);
-        List<Integer> roleIds = request.roleIds() != null ? request.roleIds() : List.of();
-        ctx.json(groupService.setGroupRoles(groupId, roleIds, session.roles()));
+        var request = ctx.bodyAsClass(SetGroupPermissionsRequest.class);
+        List<Integer> permissionIds = request.permissionIds() != null ? request.permissionIds() : List.of();
+        ctx.json(groupService.setGroupPermissions(groupId, permissionIds, session.permissions()));
     }
 
     @OpenApi(
@@ -308,13 +320,11 @@ public class MemberGroupRoutes implements Routes {
 
     // -- Request/Response records --
 
-    public record MemberWithName(int id, int stationId, int accountId, String name, String email) {}
-
-    public record GroupRequest(String name) {}
+    public record GroupRequest(String name, String color, int position) {}
 
     public record GroupDetail(int id, int stationId, String name, List<StationMember> members) {}
 
     public record SetMembersRequest(List<Integer> memberIds) {}
 
-    public record SetGroupRolesRequest(List<Integer> roleIds) {}
+    public record SetGroupPermissionsRequest(List<Integer> permissionIds) {}
 }

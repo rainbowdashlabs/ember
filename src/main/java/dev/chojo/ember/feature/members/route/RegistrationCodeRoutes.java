@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.InstancePermission;
 import dev.chojo.ember.feature.members.entity.RegistrationCode;
 import dev.chojo.ember.feature.members.service.RegistrationCodeService;
 import io.javalin.http.BadRequestResponse;
@@ -46,13 +46,13 @@ public class RegistrationCodeRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/registration-codes", this::list, Roles.ADMIN);
-        routes.post(prefix + "/registration-codes", this::create, Roles.ADMIN);
-        routes.get(prefix + "/registration-codes/{id}", this::get, Roles.ADMIN);
-        routes.delete(prefix + "/registration-codes/{id}", this::delete, Roles.ADMIN);
+        routes.get(prefix + "/registration-codes", this::list, InstancePermission.ADMINISTRATOR);
+        routes.post(prefix + "/registration-codes", this::create, InstancePermission.ADMINISTRATOR);
+        routes.get(prefix + "/registration-codes/{id}", this::get, InstancePermission.ADMINISTRATOR);
+        routes.delete(prefix + "/registration-codes/{id}", this::delete, InstancePermission.ADMINISTRATOR);
 
-        routes.get(prefix + "/registration-codes/{id}/groups", this::getGroups, Roles.ADMIN);
-        routes.put(prefix + "/registration-codes/{id}/groups", this::setGroups, Roles.ADMIN);
+        routes.get(prefix + "/registration-codes/{id}/groups", this::getGroups, InstancePermission.ADMINISTRATOR);
+        routes.put(prefix + "/registration-codes/{id}/groups", this::setGroups, InstancePermission.ADMINISTRATOR);
     }
 
     @OpenApi(

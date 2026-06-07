@@ -12,8 +12,8 @@ import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
+import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
-import dev.chojo.ember.feature.form.entity.QuestionType;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import jakarta.inject.Singleton;
 
@@ -30,9 +30,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class FormRepository {
 
     private static final String FORM_COLUMNS =
-            "f.id, f.station_id, f.title, f.description, f.status, f.shuffle_questions, f.allow_edit, f.start_at, f.end_at, f.closed_at, f.created_by, f.created_at, f.updated_at, f.restriction_mode, EXISTS(SELECT 1 FROM form_restriction r WHERE r.form_id = f.id) AS restricted";
+            "f.id, f.station_id, f.title, f.description, f.status, f.shuffle_questions, f.allow_edit, f.forced, f.start_at, f.end_at, f.closed_at, f.created_by, f.created_at, f.updated_at, f.restriction_mode, EXISTS(SELECT 1 FROM form_restriction r WHERE r.form_id = f.id) AS restricted";
     private static final String FORM_COLUMNS_BARE =
-            "id, station_id, title, description, status, shuffle_questions, allow_edit, start_at, end_at, closed_at, created_by, created_at, updated_at, restriction_mode, EXISTS(SELECT 1 FROM form_restriction r WHERE r.form_id = id) AS restricted";
+            "id, station_id, title, description, status, shuffle_questions, allow_edit, forced, start_at, end_at, closed_at, created_by, created_at, updated_at, restriction_mode, EXISTS(SELECT 1 FROM form_restriction r WHERE r.form_id = id) AS restricted";
 
     // -- Forms --
 
@@ -79,6 +79,17 @@ public class FormRepository {
                 .single(Call.of().bind("id", id))
                 .map(Form.map())
                 .first();
+    }
+
+    public List<Form> findForcedPending(int stationId, int memberId) {
+        return Query.query("SELECT " + FORM_COLUMNS
+                        + " FROM form f WHERE f.station_id = :station_id AND f.forced = true AND f.status = 'OPEN'"
+                        + " AND (f.start_at IS NULL OR f.start_at <= now()) AND (f.end_at IS NULL OR f.end_at >= now())"
+                        + " AND NOT EXISTS (SELECT 1 FROM form_response fr WHERE fr.form_id = f.id AND fr.member_id = :member_id)"
+                        + " ORDER BY f.title;")
+                .single(Call.of().bind("station_id", stationId).bind("member_id", memberId))
+                .map(Form.map())
+                .all();
     }
 
     /**
@@ -207,7 +218,7 @@ public class FormRepository {
      *
      * @param formId       the form to add the question to
      * @param position     display order position
-     * @param questionType the type of question
+     * @param formQuestionType the type of question
      * @param title        the question text
      * @param description  optional description
      * @param required     whether an answer is mandatory
@@ -218,7 +229,7 @@ public class FormRepository {
     public FormQuestion createQuestion(
             int formId,
             int position,
-            QuestionType questionType,
+            FormQuestionType formQuestionType,
             String title,
             String description,
             boolean required,
@@ -231,7 +242,7 @@ public class FormRepository {
                 .single(Call.of()
                         .bind("form_id", formId)
                         .bind("position", position)
-                        .bind("question_type", questionType.name())
+                        .bind("question_type", formQuestionType.name())
                         .bind("title", title)
                         .bind("description", description)
                         .bind("required", required)

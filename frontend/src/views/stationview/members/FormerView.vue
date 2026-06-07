@@ -37,6 +37,11 @@ function memberDisplayName(m: StationMember): string {
   return m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`
 }
 
+function formatDate(dateStr?: string | null): string {
+  if (!dateStr) return '–'
+  return new Date(dateStr).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
 async function loadData() {
   loading.value = true
   error.value = ''
@@ -91,6 +96,7 @@ onMounted(loadData)
               <THead>
                 <Th>{{ t('membersList.colName') }}</Th>
                 <Th>{{ t('membersList.colEmail') }}</Th>
+                <Th>{{ t('formerMembers.colFormerAt') }}</Th>
                 <th class="px-3 py-2"></th>
               </THead>
             </thead>
@@ -98,6 +104,7 @@ onMounted(loadData)
               <TRow v-for="member in members" :key="member.id">
                 <Td class="font-medium text-(--text-muted)">{{ memberDisplayName(member) }}</Td>
                 <Td muted>{{ member.email ?? '' }}</Td>
+                <Td muted>{{ formatDate(member.formerAt) }}</Td>
                 <Td align="right">
                   <PrimaryButton :icon="['fas', 'user-check']" @click="openReactivate(member)">
                     {{ t('formerMembers.reactivate') }}

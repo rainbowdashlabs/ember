@@ -18,5 +18,6 @@ public enum StationModule {
     WAITING_LIST,
     QUIZ,
     KNOWLEDGE_BASE,
-    TEST_PROTOCOL
+    TEST_PROTOCOL,
+    BOARDS
 }

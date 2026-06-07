@@ -5,6 +5,7 @@
  */
 <script lang="ts" setup>
 import {computed, onMounted, ref} from 'vue'
+import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
@@ -14,6 +15,8 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import ColorInput from '@/components/input/ColorInput.vue'
+import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -24,6 +27,12 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {UserTag, StationMember} from '@/api/types'
 import {userTags, stationMembers} from '@/api'
 import MutedText from '@/components/typography/MutedText.vue'
+import {StationPermission} from '@/api/types'
+import {useSession} from '@/composables/useSession'
+
+const {t} = useI18n()
+const {hasPermission} = useSession()
+const canConvertToGroup = computed(() => hasPermission(StationPermission.MEMBER_MANAGE_GROUP))
 
 
 const tags = ref<UserTag[]>([])
@@ -40,6 +49,9 @@ const tagLoading = ref(false)
 const showTagModal = ref(false)
 const editingTag = ref<UserTag | null>(null)
 const tagName = ref('')
+const tagColor = ref('')
+const tagVisible = ref(false)
+const tagPosition = ref(0)
 const tagSaving = ref(false)
 
 // Delete modal
@@ -55,11 +67,6 @@ const availableMembers = computed(() => {
   return allMembers.value.filter(m => !memberIds.has(m.id))
 })
 
-function memberDisplayName(member: StationMember): string {
-  if (member.name && member.name.trim()) return member.name
-  return member.email ?? `#${member.id}`
-}
-
 async function loadData() {
   loading.value = true
   error.value = ''
@@ -71,7 +78,7 @@ async function loadData() {
     tags.value = t
     allMembers.value = m
   } catch {
-    error.value = 'Fehler beim Laden der Daten.'
+    error.value = t('common.error')
   } finally {
     loading.value = false
   }
@@ -83,7 +90,7 @@ async function selectTag(tag: UserTag) {
   try {
     tagMembers.value = await userTags.getTagMembers(tag.id)
   } catch {
-    error.value = 'Fehler beim Laden der Tag-Mitglieder.'
+    error.value = t('common.error')
     tagMembers.value = []
   } finally {
     tagLoading.value = false
@@ -93,12 +100,18 @@ async function selectTag(tag: UserTag) {
 function openCreateTag() {
   editingTag.value = null
   tagName.value = ''
+  tagColor.value = ''
+  tagVisible.value = false
+  tagPosition.value = 0
   showTagModal.value = true
 }
 
 function openEditTag(tag: UserTag) {
   editingTag.value = tag
   tagName.value = tag.name ?? ''
+  tagColor.value = tag.color ?? ''
+  tagVisible.value = tag.visible ?? false
+  tagPosition.value = tag.position ?? 0
   showTagModal.value = true
 }
 
@@ -107,9 +120,9 @@ async function saveTag() {
   error.value = ''
   try {
     if (editingTag.value) {
-      await userTags.updateTag(editingTag.value.id, {name: tagName.value})
+      await userTags.updateTag(editingTag.value.id, {name: tagName.value, color: tagColor.value || null, visible: tagVisible.value, position: tagPosition.value})
     } else {
-      await userTags.createTag({name: tagName.value})
+      await userTags.createTag({name: tagName.value, color: tagColor.value || null, visible: tagVisible.value, position: tagPosition.value})
     }
     showTagModal.value = false
     tags.value = await userTags.listTags()
@@ -117,7 +130,7 @@ async function saveTag() {
       selectedTag.value = tags.value.find(t => t.id === selectedTag.value!.id) ?? null
     }
   } catch {
-    error.value = 'Fehler beim Speichern des Tags.'
+    error.value = t('common.error')
   } finally {
     tagSaving.value = false
   }
@@ -140,7 +153,7 @@ async function confirmDelete() {
     deleteTarget.value = null
     tags.value = await userTags.listTags()
   } catch {
-    error.value = 'Fehler beim Löschen des Tags.'
+    error.value = t('common.error')
   }
 }
 
@@ -161,7 +174,7 @@ async function confirmConvert() {
     convertTarget.value = null
     tags.value = await userTags.listTags()
   } catch {
-    error.value = 'Fehler beim Konvertieren des Tags zur Gruppe.'
+    error.value = t('common.error')
   }
 }
 
@@ -172,7 +185,7 @@ async function addMemberToTag(member: StationMember) {
     await userTags.setTagMembers(selectedTag.value.id, newIds)
     tagMembers.value = await userTags.getTagMembers(selectedTag.value.id)
   } catch {
-    error.value = 'Fehler beim Hinzufügen des Mitglieds.'
+    error.value = t('common.error')
   }
 }
 
@@ -183,7 +196,7 @@ async function removeMemberFromTag(member: StationMember) {
     await userTags.setTagMembers(selectedTag.value.id, newIds)
     tagMembers.value = await userTags.getTagMembers(selectedTag.value.id)
   } catch {
-    error.value = 'Fehler beim Entfernen des Mitglieds.'
+    error.value = t('common.error')
   }
 }
 
@@ -200,13 +213,13 @@ onMounted(loadData)
         <!-- Tags list -->
         <div class="space-y-4">
           <div class="flex items-center justify-between">
-            <SectionHeader>Tags</SectionHeader>
+            <SectionHeader>{{ t('userTags.title') }}</SectionHeader>
             <PrimaryButton :icon="['fas', 'plus']" @click="openCreateTag">
-              Tag erstellen
+              {{ t('userTags.create') }}
             </PrimaryButton>
           </div>
 
-          <EmptyState v-if="tags.length === 0">Keine Tags vorhanden.</EmptyState>
+          <EmptyState v-if="tags.length === 0">{{ t('userTags.empty') }}</EmptyState>
 
           <div class="space-y-2">
             <NeutralContainer
@@ -216,11 +229,13 @@ onMounted(loadData)
                 class="flex items-center justify-between gap-2 flex-wrap cursor-pointer transition-colors"
                 @click="selectTag(tag)"
             >
-              <span class="font-medium">{{ tag.name }}</span>
+              <span class="flex items-center gap-2">
+                <span v-if="tag.color" class="inline-block h-3 w-3 rounded-full" :style="{ backgroundColor: tag.color }"></span>
+                <span class="font-medium">{{ tag.name }}</span>
+                <font-awesome-icon v-if="tag.visible" :icon="['fas', 'eye']" class="text-xs text-(--text-muted)" />
+              </span>
               <div class="flex items-center gap-2">
-                <SecondaryButton :icon="['fas', 'people-group']" @click.stop="requestConvert(tag)">
-                  Zu Gruppe
-                </SecondaryButton>
+                <IconButton v-if="canConvertToGroup" :icon="['fas', 'people-group']" :label="t('userTags.convertToGroup')" class="text-(--text-muted) hover:text-primary" @click.stop="requestConvert(tag)"/>
                 <EditButton @click.stop="openEditTag(tag)"/>
                 <DeleteButton @click.stop="requestDelete(tag)"/>
               </div>
@@ -237,27 +252,27 @@ onMounted(loadData)
           <template v-if="!tagLoading">
             <!-- Current members -->
             <div class="space-y-1">
-              <FieldLabel class="text-(--text-muted)">Mitglieder</FieldLabel>
+              <FieldLabel class="text-(--text-muted)">{{ t('userTags.currentMembers') }}</FieldLabel>
               <MutedText tag="div" size="sm" class="py-2" v-if="tagMembers.length === 0">
-                Keine Mitglieder in diesem Tag.
+                {{ t('userTags.noMembers') }}
               </MutedText>
               <div class="space-y-1">
                 <div v-for="member in tagMembers" :key="member.id"
                      class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
                   <div>
-                    <MemberName :name="memberDisplayName(member)" :member-id="member.id" class="text-sm font-medium"/>
+                    <MemberName :identity="member.identity" class="text-sm font-medium"/>
                     <div v-if="member.name && member.email" class="text-xs text-(--text-muted) ml-7">{{ member.email }}</div>
                   </div>
-                  <IconButton :icon="['fas', 'xmark']" label="Entfernen" class="text-error hover:text-error/80 text-sm" @click="removeMemberFromTag(member)"/>
+                  <IconButton :icon="['fas', 'xmark']" :label="t('userTags.removeMember')" class="text-error hover:text-error/80 text-sm" @click="removeMemberFromTag(member)"/>
                 </div>
               </div>
             </div>
 
             <!-- Available members to add -->
             <div class="space-y-1">
-              <FieldLabel class="text-(--text-muted)">Mitglied hinzufügen</FieldLabel>
+              <FieldLabel class="text-(--text-muted)">{{ t('userTags.addMembers') }}</FieldLabel>
               <MutedText tag="div" size="sm" class="py-2" v-if="availableMembers.length === 0">
-                Alle Mitglieder sind bereits zugewiesen.
+                {{ t('userTags.allAdded') }}
               </MutedText>
               <div class="space-y-1">
                 <div
@@ -267,7 +282,7 @@ onMounted(loadData)
                     @click="addMemberToTag(member)"
                 >
                   <div>
-                    <MemberName :name="memberDisplayName(member)" :member-id="member.id" class="text-sm font-medium"/>
+                    <MemberName :identity="member.identity" class="text-sm font-medium"/>
                     <div v-if="member.name && member.email" class="text-xs text-(--text-muted) ml-7">{{ member.email }}</div>
                   </div>
                   <font-awesome-icon :icon="['fas', 'plus']" class="text-primary text-sm"/>
@@ -278,7 +293,7 @@ onMounted(loadData)
         </div>
 
         <div v-else class="flex items-center justify-center text-(--text-muted) py-12">
-          Wähle einen Tag aus, um die Mitglieder zu verwalten.
+          {{ t('userTags.selectHint') }}
         </div>
       </div>
 
@@ -286,17 +301,31 @@ onMounted(loadData)
       <Modal v-model="showTagModal">
         <div class="space-y-4">
           <SectionHeader>{{
-              editingTag ? 'Tag bearbeiten' : 'Tag erstellen'
+              editingTag ? t('userTags.editTitle') : t('userTags.createTitle')
             }}
           </SectionHeader>
           <div class="space-y-1">
-            <FieldLabel>Name</FieldLabel>
-            <TextInput v-model="tagName" placeholder="Tag-Name"/>
+            <FieldLabel>{{ t('userTags.name') }}</FieldLabel>
+            <TextInput v-model="tagName" :placeholder="t('userTags.namePlaceholder')"/>
           </div>
+          <div class="space-y-1">
+            <FieldLabel>{{ t('userTags.color') }}</FieldLabel>
+            <div class="flex items-center gap-2">
+              <ColorInput v-model="tagColor" />
+              <SecondaryButton v-if="tagColor" compact @click="tagColor = ''">
+                <font-awesome-icon :icon="['fas', 'xmark']" />
+              </SecondaryButton>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <FieldLabel>{{ t('userTags.visible') }}</FieldLabel>
+            <ToggleInput v-model="tagVisible" />
+          </div>
+          <MutedText size="sm">{{ t('userTags.visibleHint') }}</MutedText>
           <div class="flex justify-end gap-3">
-            <SecondaryButton @click="showTagModal = false">Abbrechen</SecondaryButton>
+            <SecondaryButton @click="showTagModal = false">{{ t('userTags.cancel') }}</SecondaryButton>
             <PrimaryButton :disabled="tagSaving || !tagName" @click="saveTag">
-              {{ tagSaving ? 'Speichern...' : 'Speichern' }}
+              {{ tagSaving ? t('common.loading') : t('userTags.save') }}
             </PrimaryButton>
           </div>
         </div>
@@ -305,10 +334,10 @@ onMounted(loadData)
       <!-- Delete modal -->
       <Modal v-model="showDeleteModal">
         <div class="space-y-4">
-          <p>Soll der Tag <strong>{{ deleteTarget?.name }}</strong> wirklich gelöscht werden?</p>
+          <p>{{ t('userTags.deleteConfirmDetail', {name: deleteTarget?.name}) }}</p>
           <div class="flex justify-end gap-3">
-            <SecondaryButton @click="showDeleteModal = false">Abbrechen</SecondaryButton>
-            <ErrorButton @click="confirmDelete">Löschen</ErrorButton>
+            <SecondaryButton @click="showDeleteModal = false">{{ t('userTags.cancel') }}</SecondaryButton>
+            <ErrorButton @click="confirmDelete">{{ t('userTags.delete') }}</ErrorButton>
           </div>
         </div>
       </Modal>
@@ -316,10 +345,10 @@ onMounted(loadData)
       <!-- Convert to group modal -->
       <Modal v-model="showConvertModal">
         <div class="space-y-4">
-          <p>Soll der Tag <strong>{{ convertTarget?.name }}</strong> in eine Gruppe konvertiert werden? Der Tag wird dabei gelöscht.</p>
+          <p>{{ t('userTags.convertConfirmDetail', {name: convertTarget?.name}) }}</p>
           <div class="flex justify-end gap-3">
-            <SecondaryButton @click="showConvertModal = false">Abbrechen</SecondaryButton>
-            <PrimaryButton @click="confirmConvert">In Gruppe konvertieren</PrimaryButton>
+            <SecondaryButton @click="showConvertModal = false">{{ t('userTags.cancel') }}</SecondaryButton>
+            <PrimaryButton @click="confirmConvert">{{ t('userTags.convertToGroup') }}</PrimaryButton>
           </div>
         </div>
       </Modal>

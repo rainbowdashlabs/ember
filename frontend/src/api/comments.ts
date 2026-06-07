@@ -26,6 +26,26 @@ export async function deleteComment(commentId: number): Promise<void> {
     await client.delete(`/events/comments/${commentId}`)
 }
 
+// -- Federated Event Comments --
+
+export async function listFederatedEventComments(stationUid: string, eventId: number): Promise<Comment[]> {
+    const res = await client.get<Comment[]>(`/federated/${stationUid}/events/${eventId}/comments`)
+    return res.data
+}
+
+export async function createFederatedEventComment(stationUid: string, eventId: number, data: { parentId?: number | null; content: string }): Promise<Comment> {
+    const res = await client.post<Comment>(`/federated/${stationUid}/events/${eventId}/comments`, data)
+    return res.data
+}
+
+export async function updateFederatedEventComment(stationUid: string, commentId: number, data: { content: string }): Promise<void> {
+    await client.put(`/federated/${stationUid}/events/comments/${commentId}`, data)
+}
+
+export async function deleteFederatedEventComment(stationUid: string, commentId: number): Promise<void> {
+    await client.delete(`/federated/${stationUid}/events/comments/${commentId}`)
+}
+
 // -- Notes --
 
 export async function getNote(entityType: string, entityId: number): Promise<EntityNote | null> {

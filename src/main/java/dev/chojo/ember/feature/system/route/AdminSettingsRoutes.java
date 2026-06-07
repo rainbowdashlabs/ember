@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.system.route;
 
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.roles.InstancePermission;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.MailSettings;
@@ -38,11 +38,15 @@ import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.Map;
 
 @Singleton
 public class AdminSettingsRoutes implements Routes {
     private static final String STATION_REGISTRATION_ENABLED = "station_registration_enabled";
+    private static final String FORCE_PRIDE_FLAG = "force_pride_flag";
 
     private static final Logger log = LoggerFactory.getLogger(AdminSettingsRoutes.class);
 
@@ -62,6 +66,7 @@ public class AdminSettingsRoutes implements Routes {
         this.conf = conf;
         this.documentService = new LegalDocumentService();
         initializeAppLogos();
+        initializeLogoFragments();
     }
 
     @Override
@@ -69,14 +74,15 @@ public class AdminSettingsRoutes implements Routes {
         routes.get(prefix + "/public/settings/station-registration", this::isRegistrationEnabled);
         routes.get(prefix + "/public/settings/theme", this::getPublicTheme);
         routes.get(prefix + "/public/logo/{name}", this::serveAppLogo);
-        routes.get(prefix + "/admin/settings", this::getSettings, Roles.ADMIN);
-        routes.put(prefix + "/admin/settings", this::updateSettings, Roles.ADMIN);
-        routes.get(prefix + "/admin/config/auth", this::getAuthConfig, Roles.ADMIN);
-        routes.put(prefix + "/admin/config/auth", this::updateAuthConfig, Roles.ADMIN);
-        routes.get(prefix + "/admin/config/mailing", this::getMailingConfig, Roles.ADMIN);
-        routes.put(prefix + "/admin/config/mailing", this::updateMailingConfig, Roles.ADMIN);
-        routes.get(prefix + "/admin/legal/{type}", this::getLegalDocument, Roles.ADMIN);
-        routes.put(prefix + "/admin/legal/{type}", this::updateLegalDocument, Roles.ADMIN);
+        routes.get(prefix + "/public/logo-fragment/{name}", this::serveLogoFragment);
+        routes.get(prefix + "/admin/settings", this::getSettings, InstancePermission.ADMINISTRATOR);
+        routes.put(prefix + "/admin/settings", this::updateSettings, InstancePermission.ADMINISTRATOR);
+        routes.get(prefix + "/admin/config/auth", this::getAuthConfig, InstancePermission.ADMINISTRATOR);
+        routes.put(prefix + "/admin/config/auth", this::updateAuthConfig, InstancePermission.ADMINISTRATOR);
+        routes.get(prefix + "/admin/config/mailing", this::getMailingConfig, InstancePermission.ADMINISTRATOR);
+        routes.put(prefix + "/admin/config/mailing", this::updateMailingConfig, InstancePermission.ADMINISTRATOR);
+        routes.get(prefix + "/admin/legal/{type}", this::getLegalDocument, InstancePermission.ADMINISTRATOR);
+        routes.put(prefix + "/admin/legal/{type}", this::updateLegalDocument, InstancePermission.ADMINISTRATOR);
     }
 
     private void initializeAppLogos() {
@@ -97,14 +103,68 @@ public class AdminSettingsRoutes implements Routes {
             "NoBG_NoGlow_FAQ_Blink"
         };
         for (String logo : logos) {
-            if (imageService.exists(ImageCategory.APP_LOGOS, logo)) continue;
-            try (var is = getClass().getClassLoader().getResourceAsStream("logo/" + logo + ".png")) {
-                if (is == null) continue;
-                imageService.store(ImageCategory.APP_LOGOS, logo, is.readAllBytes(), "image/png");
-            } catch (Exception e) {
-                log.warn("Failed to initialize app logo {}: {}", logo, e.getMessage());
-            }
+            storeIfChanged(ImageCategory.APP_LOGOS, logo, "logo/" + logo + ".png");
         }
+    }
+
+    private void initializeLogoFragments() {
+        String[] fragments = {
+            "fire_blank",
+            "fire_blink",
+            "fire_blink_left",
+            "fire_blink_right",
+            "fire_blush",
+            "fire_eyes_blink",
+            "fire_eyes_left",
+            "fire_eyes_left_half",
+            "fire_eyes_mid",
+            "fire_eyes_mid_half",
+            "fire_eyes_right",
+            "fire_eyes_right_half",
+            "fire_faq",
+            "fire_glow"
+        };
+        for (String fragment : fragments) {
+            storeIfChanged(ImageCategory.LOGO_FRAGMENTS, fragment, "logo_fragments/" + fragment + ".png");
+        }
+    }
+
+    private void storeIfChanged(ImageCategory category, String id, String resourcePath) {
+        try (var is = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
+            if (is == null) return;
+            byte[] data = is.readAllBytes();
+            String hash = sha256(data);
+            Path hashFile = Path.of("data", "images", category.directory(), id, ".hash");
+            if (Files.exists(hashFile) && Files.readString(hashFile).trim().equals(hash)) return;
+            imageService.store(category, id, data, "image/png");
+            Files.createDirectories(hashFile.getParent());
+            Files.writeString(hashFile, hash);
+        } catch (Exception e) {
+            log.warn("Failed to initialize image {}/{}: {}", category, id, e.getMessage());
+        }
+    }
+
+    private static String sha256(byte[] data) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(data));
+        } catch (NoSuchAlgorithmException e) {
+            throw new AssertionError("SHA-256 not available", e);
+        }
+    }
+
+    private void serveLogoFragment(Context ctx) {
+        String name = ctx.pathParam("name");
+        if (name.endsWith(".png")) name = name.substring(0, name.length() - 4);
+        int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
+        imageService
+                .read(ImageCategory.LOGO_FRAGMENTS, name, size)
+                .ifPresentOrElse(
+                        img -> {
+                            ctx.contentType(img.contentType());
+                            ctx.header("Cache-Control", "public, max-age=86400");
+                            ctx.result(img.data());
+                        },
+                        () -> ctx.status(HttpStatus.NOT_FOUND));
     }
 
     private void serveAppLogo(Context ctx) {
@@ -120,7 +180,7 @@ public class AdminSettingsRoutes implements Routes {
                             ctx.header("Cache-Control", "public, max-age=86400");
                             ctx.result(img.data());
                         },
-                        () -> ctx.status(HttpStatus.NOT_FOUND));
+                        () -> ctx.status(HttpStatus.NO_CONTENT));
     }
 
     @OpenApi(
@@ -142,18 +202,21 @@ public class AdminSettingsRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ApplicationSettings.class)))
     private void getPublicTheme(Context ctx) {
         var theming = conf.main().theming();
+        boolean forcePride = settingRepository.getBoolean(FORCE_PRIDE_FLAG, false);
         ctx.json(new PublicThemeResponse(
-                theming.defaultTheme(), theming.defaultFeel().name(), theming.lockFeel()));
+                theming.defaultTheme(), theming.defaultFeel().name(), theming.lockFeel(), forcePride));
     }
 
     private void getSettings(Context ctx) {
         boolean registrationEnabled = settingRepository.getBoolean(STATION_REGISTRATION_ENABLED, true);
+        boolean forcePride = settingRepository.getBoolean(FORCE_PRIDE_FLAG, false);
         var theming = conf.main().theming();
         ctx.json(new ApplicationSettings(
                 registrationEnabled,
                 theming.defaultTheme(),
                 theming.defaultFeel().name(),
-                theming.lockFeel()));
+                theming.lockFeel(),
+                forcePride));
     }
 
     @OpenApi(
@@ -166,6 +229,7 @@ public class AdminSettingsRoutes implements Routes {
     private void updateSettings(Context ctx) {
         var request = ctx.bodyAsClass(ApplicationSettings.class);
         settingRepository.setBoolean(STATION_REGISTRATION_ENABLED, request.stationRegistrationEnabled());
+        settingRepository.setBoolean(FORCE_PRIDE_FLAG, request.forcePrideFlag());
         try {
             var theming = conf.main().theming();
             if (request.instanceDefaultTheme() != null) {
@@ -184,7 +248,8 @@ public class AdminSettingsRoutes implements Routes {
                 request.stationRegistrationEnabled(),
                 theming.defaultTheme(),
                 theming.defaultFeel().name(),
-                theming.lockFeel()));
+                theming.lockFeel(),
+                request.forcePrideFlag()));
     }
 
     // -- Auth config --
@@ -336,7 +401,8 @@ public class AdminSettingsRoutes implements Routes {
             boolean stationRegistrationEnabled,
             String instanceDefaultTheme,
             String instanceDefaultFeel,
-            boolean instanceLockFeel) {}
+            boolean instanceLockFeel,
+            boolean forcePrideFlag) {}
 
     public record AuthConfigResponse(
             int tokenBytes, int verifyTokenHours, int passwordTokenHours, int sessionMinutes) {}
@@ -373,5 +439,6 @@ public class AdminSettingsRoutes implements Routes {
 
     public record LegalDocumentRequest(String content) {}
 
-    public record PublicThemeResponse(String defaultTheme, String defaultFeel, boolean lockFeel) {}
+    public record PublicThemeResponse(
+            String defaultTheme, String defaultFeel, boolean lockFeel, boolean forcePrideFlag) {}
 }

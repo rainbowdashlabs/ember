@@ -6,20 +6,22 @@
 package dev.chojo.ember.feature.federation.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 public record FederationPartner(
         int id,
         int stationId,
-        int partnerStationId,
+        UUID partnerStationId,
         String inviteCode,
         String publicKey,
         String partnerPublicKey,
         FederationStatus status,
-        int federationVersion,
+        String federationVersion,
         Instant createdAt,
         Instant updatedAt,
         String remoteHost) {
@@ -42,12 +44,12 @@ public record FederationPartner(
         return row -> new FederationPartner(
                 row.getInt("id"),
                 row.getInt("station_id"),
-                row.getInt("partner_station_id"),
+                row.get("partner_station_id", StandardValueConverter.UUID_STRING),
                 row.getString("invite_code"),
                 row.getString("public_key"),
                 row.getString("partner_public_key"),
                 FederationStatus.valueOf(row.getString("status")),
-                row.getInt("federation_version"),
+                row.getString("federation_version"),
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.get("updated_at", INSTANT_TIMESTAMP),
                 row.getString("remote_host"));

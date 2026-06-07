@@ -28,20 +28,31 @@ import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 
 import { QuizTestStatus } from '@/api/types'
-import type { QuizTestDetail, QuizTestAttempt, QuizCatalog, Role, MemberGroup, UserTag, QuizQuestion } from '@/api/types'
+import type { QuizTestDetail, QuizTestAttempt, QuizCatalog, MemberGroup, UserTag, QuizQuestion } from '@/api/types'
 import type { FrozenQuestionDetail } from '@/api/quiz'
 import { quiz, stationMembers, memberGroups, userTags } from '@/api'
 import type { StationMember } from '@/api/types'
 import { useSession } from '@/composables/useSession'
 import TestRestrictions from './testdetailview/TestRestrictions.vue'
 import TestAccessGrant from './testdetailview/TestAccessGrant.vue'
+import TabBar from '@/components/navigation/TabBar.vue'
 import TestAttemptList from './testdetailview/TestAttemptList.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { canManageQuiz, loaded } = useSession()
+import { StationPermission } from '@/api/types'
+const { hasPermission, loaded } = useSession()
+const canConfigure = () => hasPermission(StationPermission.TEST_CONFIGURE)
+const canReadResults = () => hasPermission(StationPermission.TEST_RESULT_READ)
+
+const activeTab = ref('test')
+const detailTabs = computed(() => {
+  const t_ = [{ key: 'test', label: t('quiz.tests.tabTest') }]
+  if (canReadResults()) t_.push({ key: 'results', label: t('quiz.tests.tabResults') })
+  return t_
+})
 
 
 const testId = computed(() => Number(route.params.id))
@@ -62,10 +73,9 @@ const availableQuestions = ref<QuizQuestion[]>([])
 const pickSearch = ref('')
 
 // Restrictions
-const allRoles = ref<Role[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
-const selectedRoleIds = ref<number[]>([])
+const selectedUserTypes = ref<string[]>([])
 const selectedGroupIds = ref<number[]>([])
 const selectedTagIds = ref<number[]>([])
 const restrictionsDirty = ref(false)
@@ -138,22 +148,20 @@ async function loadData() {
     editEndAt.value = toLocalInput(d.test.endAt)
     timesDirty.value = false
 
-    if (canManageQuiz()) {
+    if (canReadResults()) {
       loadFrozenQuestions()
-      const [attemptList, memberList, roleList, groupList, tagList, restrictions] = await Promise.all([
+      const [attemptList, memberList, groupList, tagList, restrictions] = await Promise.all([
         quiz.listAttempts(testId.value),
         stationMembers.listMembers(),
-        stationMembers.listAllRoles(),
         memberGroups.listGroups(),
         userTags.listTags(),
         quiz.getRestrictions(testId.value),
       ])
       attempts.value = attemptList
       members.value = memberList
-      allRoles.value = roleList
       allGroups.value = groupList
       allTags.value = tagList
-      selectedRoleIds.value = restrictions.roleIds ?? []
+      selectedUserTypes.value = restrictions.userTypes ?? []
       selectedGroupIds.value = restrictions.groupIds ?? []
       selectedTagIds.value = restrictions.tagIds ?? []
       restrictionsDirty.value = false
@@ -176,7 +184,7 @@ async function generateQuestions() {
 }
 
 function questionTypeName(q: QuizQuestion): string {
-  return t(`quiz.questionTypes.${q.questionType}`)
+  return t(`quiz.questionTypes.${q.quizQuestionType}`)
 }
 
 async function randomReplace(position: number) {
@@ -221,8 +229,8 @@ function closeTest() {
   showConfirm(t('quiz.tests.confirmClose'), async () => { await quiz.closeTest(testId.value); await loadData() })
 }
 
-function onRoleIdsUpdate(ids: number[]) {
-  selectedRoleIds.value = ids
+function onUserTypesUpdate(types: string[]) {
+  selectedUserTypes.value = types
   restrictionsDirty.value = true
 }
 
@@ -240,7 +248,7 @@ async function saveRestrictions() {
   error.value = ''
   try {
     await quiz.setRestrictions(testId.value, {
-      roleIds: selectedRoleIds.value,
+      userTypes: selectedUserTypes.value,
       groupIds: selectedGroupIds.value,
       tagIds: selectedTagIds.value,
     })
@@ -275,13 +283,13 @@ watch(loaded, (isLoaded) => { if (isLoaded && loading.value) loadData() })
               <SecondaryBadge v-else>{{ t('quiz.tests.statusDraft') }}</SecondaryBadge>
             </div>
             <p v-if="test.description" class="text-sm text-(--text-muted)">{{ test.description }}</p>
-            <p v-if="canManageQuiz() && detail" class="text-sm text-(--text-muted)">{{ detail.attemptCount }} {{ t('quiz.attemptCount') }}</p>
+            <p v-if="canReadResults() && detail" class="text-sm text-(--text-muted)">{{ detail.attemptCount }} {{ t('quiz.attemptCount') }}</p>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
             <PrimaryButton :icon="['fas', 'play']" v-if="test.status === QuizTestStatus.ACTIVE" @click="router.push({ name: 'quiz-test-take', params: { id: test.id } })">
               {{ t('quiz.tests.takeTest') }}
             </PrimaryButton>
-            <template v-if="canManageQuiz()">
+            <template v-if="canConfigure()">
               <SuccessButton v-if="test.status === QuizTestStatus.DRAFT" @click="activateTest">
                 {{ t('quiz.tests.activate') }}
               </SuccessButton>
@@ -302,6 +310,11 @@ watch(loaded, (isLoaded) => { if (isLoaded && loading.value) loadData() })
           </div>
         </div>
 
+        <TabBar v-if="detailTabs.length > 1" v-model="activeTab" :tabs="detailTabs" />
+
+        <!-- Test tab -->
+        <template v-if="activeTab === 'test'">
+
         <!-- Test info -->
         <NeutralContainer>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -313,7 +326,7 @@ watch(loaded, (isLoaded) => { if (isLoaded && loading.value) loadData() })
               <span class="text-xs text-(--text-muted) block">{{ t('quiz.tests.shuffle') }}</span>
               <span>{{ test.shuffle ? t('common.yes') : t('common.no') }}</span>
             </div>
-            <div v-if="canManageQuiz() && test.status !== QuizTestStatus.CLOSED">
+            <div v-if="canConfigure() && test.status !== QuizTestStatus.CLOSED">
               <FieldLabel hint class="mb-1">{{ t('quiz.tests.startAt') }}</FieldLabel>
               <DateTimeInput v-model="editStartAt" @update:model-value="markTimesDirty" />
             </div>
@@ -321,7 +334,7 @@ watch(loaded, (isLoaded) => { if (isLoaded && loading.value) loadData() })
               <span class="text-xs text-(--text-muted) block">{{ t('quiz.tests.startAt') }}</span>
               <span>{{ formatDateTime(test.startAt) }}</span>
             </div>
-            <div v-if="canManageQuiz() && test.status !== QuizTestStatus.CLOSED">
+            <div v-if="canConfigure() && test.status !== QuizTestStatus.CLOSED">
               <FieldLabel hint class="mb-1">{{ t('quiz.tests.endAt') }}</FieldLabel>
               <DateTimeInput v-model="editEndAt" @update:model-value="markTimesDirty" />
             </div>
@@ -357,11 +370,11 @@ watch(loaded, (isLoaded) => { if (isLoaded && loading.value) loadData() })
         </div>
 
         <!-- Frozen Questions -->
-        <template v-if="canManageQuiz()">
+        <template v-if="canConfigure()">
           <div class="space-y-3">
             <div class="flex items-center justify-between flex-wrap gap-2">
               <SectionHeader>{{ t('quiz.frozenQuestions.title') }} ({{ frozenQuestions.length }})</SectionHeader>
-              <SecondaryButton :disabled="frozenLoading" @click="generateQuestions">
+              <SecondaryButton v-if="test.status !== QuizTestStatus.ACTIVE" :disabled="frozenLoading" @click="generateQuestions">
                 <Spinner v-if="frozenLoading" size="sm" />
                 <font-awesome-icon v-else :icon="['fas', 'rotate']" class="mr-1" />
                 {{ frozenQuestions.length > 0 ? t('quiz.frozenQuestions.regenerate') : t('quiz.frozenQuestions.generate') }}
@@ -421,25 +434,29 @@ watch(loaded, (isLoaded) => { if (isLoaded && loading.value) loadData() })
           </div>
         </Modal>
 
-        <!-- Management sections -->
-        <template v-if="canManageQuiz()">
-          <TestAttemptList :test-id="test.id" :attempts="attempts" :members="members" />
-
+        <!-- Restrictions (readonly for result readers, editable for configurers) -->
+        <template v-if="canReadResults()">
           <TestRestrictions
-            :all-roles="allRoles"
             :all-groups="allGroups"
             :all-tags="allTags"
-            :selected-role-ids="selectedRoleIds"
+            :selected-user-types="selectedUserTypes"
             :selected-group-ids="selectedGroupIds"
             :selected-tag-ids="selectedTagIds"
-            :restrictions-dirty="restrictionsDirty"
-            @update:selected-role-ids="onRoleIdsUpdate"
-            @update:selected-group-ids="onGroupIdsUpdate"
-            @update:selected-tag-ids="onTagIdsUpdate"
+            :restrictions-dirty="canConfigure() && restrictionsDirty"
+            @update:selected-user-types="canConfigure() && onUserTypesUpdate($event)"
+            @update:selected-group-ids="canConfigure() && onGroupIdsUpdate($event)"
+            @update:selected-tag-ids="canConfigure() && onTagIdsUpdate($event)"
             @save="saveRestrictions"
           />
+        </template>
 
-          <TestAccessGrant :members="members" @grant="grantAccess" />
+        <TestAccessGrant v-if="canConfigure()" :members="members" @grant="grantAccess" />
+
+        </template>
+
+        <!-- Results tab -->
+        <template v-if="activeTab === 'results'">
+          <TestAttemptList :test-id="test.id" :attempts="attempts" :members="members" />
         </template>
 
         <div class="flex justify-start">

@@ -5,9 +5,20 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.federation.entity.CapabilityType;
+import dev.chojo.ember.feature.federation.entity.Direction;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationHttpClient;
+import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -20,10 +31,12 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class KnowledgeBaseServiceTest extends RepositoryTestBase {
@@ -33,19 +46,68 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     private static StationMember member;
     private static int folderId;
     private static int fileId;
+    private static FederationRepository federationRepo;
+    private static FederationService federationService;
+    private static Station stationB;
+    private static int partnerIdAtoB;
+    private static FederationHttpClient httpClient;
+    private static Station stationC;
+    private static int remotePartnerId;
 
     @BeforeAll
     static void setup() {
         var fileStorage = mock(KbFileStorageService.class);
-        service = new KnowledgeBaseService(knowledgeBaseRepo, stationRepo, fileStorage);
+        federationRepo = new FederationRepository();
+        federationService = new FederationService(federationRepo, stationRepo, new Api());
+        httpClient = mock(FederationHttpClient.class);
+        var kbCommentRepo = mock(KbCommentRepository.class);
+        var eventFedRepo = mock(EventFederationRepository.class);
+        service = new KnowledgeBaseService(
+                knowledgeBaseRepo,
+                stationRepo,
+                fileStorage,
+                federationService,
+                federationRepo,
+                httpClient,
+                kbCommentRepo,
+                eventFedRepo,
+                memberIdentityFactory);
         station = stationRepo.create("KbSvcStation");
+        stationB = stationRepo.create("KbSvcStationB");
         account = accountRepo.create("kb-svc@test.com", "Kb", "SvcTester");
         member = stationMemberRepo.create(station.id(), account.id());
+
+        // Create bidirectional federation partnership
+        var keyPair = federationService.generateKeyPair();
+        var partner = federationService.acceptInvite(
+                station.id(), stationB.id(), federationService.encodePublicKey(keyPair), null, null);
+        partnerIdAtoB = partner.id();
+
+        // Enable KB_SHARE capability
+        federationService.setCapability(partnerIdAtoB, CapabilityType.KB_SHARE, Direction.IMPORT, true);
+
+        // Create remote partner station
+        stationC = stationRepo.create("KbSvcStationC");
+        var keyPairRemote = federationService.generateKeyPair();
+        var remotePartner = federationService.acceptInvite(
+                station.id(),
+                stationC.id(),
+                federationService.encodePublicKey(keyPairRemote),
+                "https://remote-kb.example.com",
+                null);
+        remotePartnerId = remotePartner.id();
+        federationService.setCapability(remotePartnerId, CapabilityType.KB_SHARE, Direction.IMPORT, true);
     }
 
     @AfterAll
     static void cleanup() {
+        // Delete federation partners before stations (FK constraint)
+        for (var p : federationService.findPartners(station.id())) federationRepo.deletePartner(p.id());
+        for (var p : federationService.findPartners(stationB.id())) federationRepo.deletePartner(p.id());
+        for (var p : federationService.findPartners(stationC.id())) federationRepo.deletePartner(p.id());
         stationRepo.delete(station.id());
+        stationRepo.delete(stationB.id());
+        stationRepo.delete(stationC.id());
         accountRepo.delete(account.id());
     }
 
@@ -293,7 +355,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     @Test
     @Order(85)
     void setRestrictions() {
-        service.setRestrictions(folderId, null, List.of(1), List.of(), List.of(), List.of());
+        service.setRestrictions(folderId, null, List.of("MEMBER"), List.of(), List.of(), List.of());
         var restrictions = service.findRestrictions(folderId, null);
         assertFalse(restrictions.isEmpty());
         // Public visibility should now be false because of restrictions
@@ -319,18 +381,18 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     @Order(89)
     void canAccessNoRestrictions() {
         // No restrictions on file or folder — anyone can access
-        assertTrue(service.canAccess(member.id(), null, fileId, List.of(), List.of(), List.of()));
+        assertTrue(service.canAccess(member.id(), null, fileId, null, List.of(), List.of()));
     }
 
     @Test
     @Order(90)
     void canAccessWithFolderRestriction() {
         // Set a restriction that requires role 1
-        service.setRestrictions(folderId, null, List.of(1), List.of(), List.of(), List.of());
+        service.setRestrictions(folderId, null, List.of("MEMBER"), List.of(), List.of(), List.of());
         // Member without role 1 should be denied
-        assertFalse(service.canAccess(member.id(), folderId, null, List.of(), List.of(), List.of()));
+        assertFalse(service.canAccess(member.id(), folderId, null, null, List.of(), List.of()));
         // Member with role 1 should be allowed
-        assertTrue(service.canAccess(member.id(), folderId, null, List.of(1), List.of(), List.of()));
+        assertTrue(service.canAccess(member.id(), folderId, null, "MEMBER", List.of(), List.of()));
         // Clear
         service.setRestrictions(folderId, null, List.of(), List.of(), List.of(), List.of());
     }
@@ -339,10 +401,10 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     @Order(91)
     void canAccessFileInheritsFolder() {
         // Set restriction on folder
-        service.setRestrictions(folderId, null, List.of(1), List.of(), List.of(), List.of());
+        service.setRestrictions(folderId, null, List.of("MEMBER"), List.of(), List.of(), List.of());
         // Access to file in that folder checks parent folder restriction
-        assertFalse(service.canAccess(member.id(), null, fileId, List.of(), List.of(), List.of()));
-        assertTrue(service.canAccess(member.id(), null, fileId, List.of(1), List.of(), List.of()));
+        assertFalse(service.canAccess(member.id(), null, fileId, null, List.of(), List.of()));
+        assertTrue(service.canAccess(member.id(), null, fileId, "MEMBER", List.of(), List.of()));
         // Clear
         service.setRestrictions(folderId, null, List.of(), List.of(), List.of(), List.of());
     }
@@ -355,18 +417,18 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         var file = service.createLinkFile(
                 station.id(), null, "Google", "Search engine", "https://google.com", member.id());
         assertNotNull(file);
-        assertEquals(dev.chojo.ember.feature.knowledgebase.entity.KbFileType.LINK, file.fileType());
+        assertEquals(KbFileType.LINK, file.fileType());
         service.deleteFile(file.id());
     }
 
     @Test
     @Order(93)
     void createUploadedTextFile() {
-        byte[] data = "plain text content".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] data = "plain text content".getBytes(StandardCharsets.UTF_8);
         var file = service.createUploadedFile(
                 station.id(), null, "notes.txt", "Some notes", data, "text/plain", member.id());
         assertNotNull(file);
-        assertEquals(dev.chojo.ember.feature.knowledgebase.entity.KbFileType.TEXT, file.fileType());
+        assertEquals(KbFileType.TEXT, file.fileType());
         var content = service.getMarkdownContent(file.id());
         assertTrue(content.isPresent());
         assertEquals("plain text content", content.get());
@@ -380,7 +442,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         var file =
                 service.createUploadedFile(station.id(), null, "photo.png", "A photo", data, "image/png", member.id());
         assertNotNull(file);
-        assertEquals(dev.chojo.ember.feature.knowledgebase.entity.KbFileType.IMAGE, file.fileType());
+        assertEquals(KbFileType.IMAGE, file.fileType());
         service.deleteFile(file.id());
     }
 
@@ -449,11 +511,11 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     @Test
     @Order(89)
     void createUploadedMarkdownFile() {
-        byte[] data = "# Markdown Content".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] data = "# Markdown Content".getBytes(StandardCharsets.UTF_8);
         var file = service.createUploadedFile(
                 station.id(), null, "doc.md", "Markdown upload", data, "text/markdown", member.id());
         assertNotNull(file);
-        assertEquals(dev.chojo.ember.feature.knowledgebase.entity.KbFileType.MARKDOWN, file.fileType());
+        assertEquals(KbFileType.MARKDOWN, file.fileType());
         service.deleteFile(file.id());
     }
 
@@ -466,7 +528,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         var file = service.createUploadedFile(
                 station.id(), null, "file.dat", "Binary data", data, "application/octet-stream", member.id());
         assertNotNull(file);
-        assertEquals(dev.chojo.ember.feature.knowledgebase.entity.KbFileType.OTHER, file.fileType());
+        assertEquals(KbFileType.OTHER, file.fileType());
         service.deleteFile(file.id());
     }
 
@@ -475,15 +537,14 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     @Test
     @Order(91)
     void canAccessRootFolderNoRestrictions() {
-        assertTrue(service.canAccess(member.id(), null, null, List.of(), List.of(), List.of()));
+        assertTrue(service.canAccess(member.id(), null, null, null, List.of(), List.of()));
     }
 
     @Test
     @Order(93)
     void isPubliclyVisibleDenyAllWithOverride() {
         service.setPublicVisibility(folderId, null, true);
-        assertTrue(service.isPubliclyVisible(
-                dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode.DENY_ALL, folderId, null));
+        assertTrue(service.isPubliclyVisible(PublicKbMode.DENY_ALL, folderId, null));
         service.removePublicVisibility(folderId, null);
     }
 
@@ -491,8 +552,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     @Order(94)
     void isPubliclyVisibleAllowAllWithOptOut() {
         service.setPublicVisibility(folderId, null, false);
-        assertFalse(service.isPubliclyVisible(
-                dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode.ALLOW_ALL, folderId, null));
+        assertFalse(service.isPubliclyVisible(PublicKbMode.ALLOW_ALL, folderId, null));
         service.removePublicVisibility(folderId, null);
     }
 
@@ -510,7 +570,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
                 member.id());
         assertNotNull(file);
-        assertEquals(dev.chojo.ember.feature.knowledgebase.entity.KbFileType.YOUTUBE, file.fileType());
+        assertEquals(KbFileType.YOUTUBE, file.fileType());
         service.deleteFile(file.id());
     }
 
@@ -536,11 +596,11 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     @Order(103)
     void createUploadedPdfFile() {
         // Minimal valid-looking PDF (won't actually parse) — should create PDF type entry
-        byte[] pdfHeader = "%PDF-1.4\n%%EOF\n".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] pdfHeader = "%PDF-1.4\n%%EOF\n".getBytes(StandardCharsets.UTF_8);
         var file = service.createUploadedFile(
                 station.id(), null, "document.pdf", "A PDF", pdfHeader, "application/pdf", member.id());
         assertNotNull(file);
-        assertEquals(dev.chojo.ember.feature.knowledgebase.entity.KbFileType.PDF, file.fileType());
+        assertEquals(KbFileType.PDF, file.fileType());
         service.deleteFile(file.id());
     }
 
@@ -551,28 +611,28 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         byte[] data = new byte[] {0x01, 0x02, 0x03};
         var file = service.createUploadedFile(station.id(), null, "report.pdf", "PDF by ext", data, null, member.id());
         assertNotNull(file);
-        assertEquals(dev.chojo.ember.feature.knowledgebase.entity.KbFileType.PDF, file.fileType());
+        assertEquals(KbFileType.PDF, file.fileType());
         service.deleteFile(file.id());
     }
 
     @Test
     @Order(105)
     void createUploadedFileByExtensionMarkdown() {
-        byte[] data = "# MD".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] data = "# MD".getBytes(StandardCharsets.UTF_8);
         var file = service.createUploadedFile(
                 station.id(), null, "readme.markdown", "Markdown by ext", data, null, member.id());
         assertNotNull(file);
-        assertEquals(dev.chojo.ember.feature.knowledgebase.entity.KbFileType.MARKDOWN, file.fileType());
+        assertEquals(KbFileType.MARKDOWN, file.fileType());
         service.deleteFile(file.id());
     }
 
     @Test
     @Order(106)
     void createUploadedFileByExtensionTxt() {
-        byte[] data = "plain".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] data = "plain".getBytes(StandardCharsets.UTF_8);
         var file = service.createUploadedFile(station.id(), null, "notes.txt", "Text by ext", data, null, member.id());
         assertNotNull(file);
-        assertEquals(dev.chojo.ember.feature.knowledgebase.entity.KbFileType.TEXT, file.fileType());
+        assertEquals(KbFileType.TEXT, file.fileType());
         service.deleteFile(file.id());
     }
 
@@ -583,7 +643,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         for (String ext : new String[] {"jpg", "jpeg", "gif", "webp", "svg"}) {
             var file = service.createUploadedFile(station.id(), null, "img." + ext, "Img", data, null, member.id());
             assertNotNull(file);
-            assertEquals(dev.chojo.ember.feature.knowledgebase.entity.KbFileType.IMAGE, file.fileType());
+            assertEquals(KbFileType.IMAGE, file.fileType());
             service.deleteFile(file.id());
         }
     }
@@ -600,9 +660,9 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         service.setRestrictions(null, restrictedFile.id(), List.of(), List.of(), List.of(), List.of(member.id()));
 
         // member (the restricted one) can access — member ID matches
-        assertTrue(service.canAccess(member.id(), null, restrictedFile.id(), List.of(), List.of(), List.of()));
+        assertTrue(service.canAccess(member.id(), null, restrictedFile.id(), null, List.of(), List.of()));
         // another member ID should be denied
-        assertFalse(service.canAccess(member.id() + 9999, null, restrictedFile.id(), List.of(), List.of(), List.of()));
+        assertFalse(service.canAccess(member.id() + 9999, null, restrictedFile.id(), null, List.of(), List.of()));
 
         service.setRestrictions(null, restrictedFile.id(), List.of(), List.of(), List.of(), List.of());
         service.deleteFile(restrictedFile.id());
@@ -618,10 +678,9 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         service.setRestrictions(null, tagRestrictedFile.id(), List.of(), List.of(), List.of(tag.id()), List.of());
 
         // Without the tag, access denied
-        assertFalse(service.canAccess(member.id(), null, tagRestrictedFile.id(), List.of(), List.of(), List.of()));
+        assertFalse(service.canAccess(member.id(), null, tagRestrictedFile.id(), null, List.of(), List.of()));
         // With the tag, access granted
-        assertTrue(
-                service.canAccess(member.id(), null, tagRestrictedFile.id(), List.of(), List.of(), List.of(tag.id())));
+        assertTrue(service.canAccess(member.id(), null, tagRestrictedFile.id(), null, List.of(), List.of(tag.id())));
 
         service.setRestrictions(null, tagRestrictedFile.id(), List.of(), List.of(), List.of(), List.of());
         service.deleteFile(tagRestrictedFile.id());
@@ -636,9 +695,9 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
 
         service.setRestrictions(null, groupRestrictedFile.id(), List.of(), List.of(group.id()), List.of(), List.of());
 
-        assertFalse(service.canAccess(member.id(), null, groupRestrictedFile.id(), List.of(), List.of(), List.of()));
-        assertTrue(service.canAccess(
-                member.id(), null, groupRestrictedFile.id(), List.of(), List.of(group.id()), List.of()));
+        assertFalse(service.canAccess(member.id(), null, groupRestrictedFile.id(), null, List.of(), List.of()));
+        assertTrue(
+                service.canAccess(member.id(), null, groupRestrictedFile.id(), null, List.of(group.id()), List.of()));
 
         service.setRestrictions(null, groupRestrictedFile.id(), List.of(), List.of(), List.of(), List.of());
         service.deleteFile(groupRestrictedFile.id());
@@ -668,7 +727,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     void isPubliclyVisibleFileRestrictedParentFolder() {
         // Parent folder has restrictions — file in it should not be publicly visible
         var restrictedParent = service.createFolder(station.id(), null, "RestParent", "Restricted parent", member.id());
-        service.setRestrictions(restrictedParent.id(), null, List.of(1), List.of(), List.of(), List.of());
+        service.setRestrictions(restrictedParent.id(), null, List.of("MEMBER"), List.of(), List.of(), List.of());
 
         var fileInFolder = service.createMarkdownFile(
                 station.id(), restrictedParent.id(), "FileInRestricted", "", "# Content", member.id());
@@ -734,5 +793,195 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     void deleteFileAndFolder() {
         assertTrue(service.deleteFile(fileId));
         assertTrue(service.deleteFolder(folderId));
+    }
+
+    // -- Federation Tests --
+
+    @Test
+    @Order(200)
+    void browseSharedKbWithShare() {
+        var file = knowledgeBaseRepo.createFile(
+                stationB.id(), null, "FedFile", "desc", KbFileType.MARKDOWN, "text/markdown", 0, null, member.id());
+        var share = federationRepo.createKbShare(stationB.id(), file.id(), null, ShareScope.ALL_PARTNERS);
+        var items = service.browseSharedKb(station.id());
+        assertTrue(items.stream().anyMatch(i -> i.file().id() == file.id()));
+        federationRepo.deleteKbShare(share.id());
+        knowledgeBaseRepo.deleteFile(file.id());
+    }
+
+    @Test
+    @Order(201)
+    void browseSharedKbEmptyNoShares() {
+        var items = service.browseSharedKb(station.id());
+        assertTrue(items.isEmpty());
+    }
+
+    @Test
+    @Order(202)
+    void getFederatedKbFileLocal() {
+        var file = knowledgeBaseRepo.createFile(
+                stationB.id(), null, "FedFile2", "desc2", KbFileType.MARKDOWN, "text/markdown", 0, null, member.id());
+        var result = service.getFederatedKbFile(station.id(), stationB.uid(), file.id());
+        assertNotNull(result);
+        assertEquals(file.id(), result.id());
+        knowledgeBaseRepo.deleteFile(file.id());
+    }
+
+    @Test
+    @Order(202)
+    void getFederatedKbFileContentLocal() {
+        var file = knowledgeBaseRepo.createFile(
+                stationB.id(), null, "FedMdFile", "desc", KbFileType.MARKDOWN, "text/markdown", 0, null, member.id());
+        knowledgeBaseRepo.storeTextContent(file.id(), "# Content");
+        var content = service.getFederatedKbFileContent(station.id(), stationB.uid(), file.id());
+        assertNotNull(content);
+        assertTrue(content.contains("Content"));
+        knowledgeBaseRepo.deleteFile(file.id());
+    }
+
+    @Test
+    @Order(203)
+    void getFederatedKbFileWrongStation() {
+        var file = knowledgeBaseRepo.createFile(
+                station.id(), null, "LocalFile", "local", KbFileType.MARKDOWN, "text/markdown", 0, null, member.id());
+
+        // Partner may or may not exist due to cross-test interference;
+        // either way the call must reject access (wrong ownership or unknown partner).
+        assertThrows(Exception.class, () -> service.getFederatedKbFile(station.id(), stationB.uid(), file.id()));
+
+        knowledgeBaseRepo.deleteFile(file.id());
+    }
+
+    @Test
+    @Order(205)
+    void copyKbFile() {
+        var file = knowledgeBaseRepo.createFile(
+                stationB.id(),
+                null,
+                "CopySource",
+                "copy desc",
+                KbFileType.MARKDOWN,
+                "text/markdown",
+                0,
+                null,
+                member.id());
+        knowledgeBaseRepo.storeTextContent(file.id(), "# Copy Me");
+
+        var copied = service.copyKbFile(file.id(), station.id(), member.id());
+        assertNotNull(copied);
+        assertEquals("CopySource", copied.name());
+        assertEquals(station.id(), copied.stationId());
+        assertNotEquals(file.id(), copied.id());
+
+        var content = service.getMarkdownContent(copied.id());
+        assertTrue(content.isPresent());
+        assertTrue(content.get().contains("Copy Me"));
+
+        knowledgeBaseRepo.deleteFile(copied.id());
+        knowledgeBaseRepo.deleteFile(file.id());
+    }
+
+    @Test
+    @Order(206)
+    void sharedKbItemRecord() {
+        var summary = new KbFileSummary(1, 2, null, "Test", "Desc", KbFileType.MARKDOWN, Instant.now(), false);
+        var item = new KnowledgeBaseService.SharedKbItem(summary, 2, 3);
+        assertEquals(1, item.file().id());
+        assertEquals(2, item.sourceStationId());
+        assertEquals(3, item.partnerId());
+        assertEquals("Test", item.file().name());
+    }
+
+    @Test
+    @Order(207)
+    void federatedSearchResultRecord() {
+        var summary = new KbFileSummary(10, 20, null, "Search", "Desc", KbFileType.MARKDOWN, Instant.now(), false);
+        var result = new KnowledgeBaseService.FederatedSearchResult(summary, "snippet text", "StationName", "uid-123");
+        assertEquals(10, result.file().id());
+        assertEquals("snippet text", result.snippet());
+        assertEquals("StationName", result.stationName());
+        assertEquals("uid-123", result.stationUid());
+    }
+
+    // -- Remote HTTP Federation Tests --
+
+    @Test
+    @Order(210)
+    void browseSharedKbViaHttp() {
+        when(httpClient.getList(
+                        eq("https://remote-kb.example.com"),
+                        eq("/remote/kb/browse"),
+                        eq(station.id()),
+                        any(),
+                        eq(KnowledgeBaseService.RemoteKbFile.class)))
+                .thenReturn(
+                        List.of(new KnowledgeBaseService.RemoteKbFile(99, "RemoteFile", "remote desc", "MARKDOWN")));
+
+        var items = service.browseSharedKb(station.id());
+        assertTrue(items.stream().anyMatch(i -> i.file().name().equals("RemoteFile")));
+    }
+
+    @Test
+    @Order(211)
+    void searchFederatedKbViaHttp() {
+        when(httpClient.getList(
+                        eq("https://remote-kb.example.com"),
+                        contains("/remote/kb/search"),
+                        eq(station.id()),
+                        any(),
+                        eq(KnowledgeBaseService.RemoteKbSearchResult.class)))
+                .thenReturn(List.of(new KnowledgeBaseService.RemoteKbSearchResult(
+                        88, "SearchResult", "found desc", "matched snippet")));
+
+        var results = service.searchFederatedKb(station.id(), "test");
+        assertTrue(results.stream().anyMatch(r -> r.file().name().equals("SearchResult")));
+        assertTrue(results.stream().anyMatch(r -> r.snippet().equals("matched snippet")));
+    }
+
+    @Test
+    @Order(212)
+    void getFederatedKbFileRemote() {
+        var remoteFile = new KbFile(
+                77,
+                1,
+                null,
+                "RemoteDetail",
+                "desc",
+                KbFileType.MARKDOWN,
+                "text/markdown",
+                0,
+                null,
+                null,
+                null,
+                0,
+                1,
+                Instant.parse("2026-01-01T00:00:00Z"),
+                Instant.parse("2026-01-01T00:00:00Z"),
+                null,
+                null,
+                null,
+                false);
+        when(httpClient.get(
+                        eq("https://remote-kb.example.com"), eq("/remote/kb/files/77"), eq(station.id()), any(), any()))
+                .thenReturn(remoteFile);
+
+        var file = service.getFederatedKbFile(station.id(), stationC.uid(), 77);
+        assertNotNull(file);
+        assertEquals("RemoteDetail", file.name());
+    }
+
+    @Test
+    @Order(213)
+    void getFederatedKbFileContentRemote() {
+        when(httpClient.get(
+                        eq("https://remote-kb.example.com"),
+                        eq("/remote/kb/file/55/content"),
+                        eq(station.id()),
+                        any(),
+                        eq(KnowledgeBaseService.RemoteKbContent.class)))
+                .thenReturn(new KnowledgeBaseService.RemoteKbContent(55, "# Remote Content"));
+
+        var content = service.getFederatedKbFileContent(station.id(), stationC.uid(), 55);
+        assertEquals("# Remote Content", content);
     }
 }

@@ -16,6 +16,7 @@ import type {
     QuizTestSection,
     QuizTestAttempt,
     QuizAttemptDetail,
+    QuizAvailableTest,
 } from './types'
 
 // -- Shared catalog entry from federation --
@@ -117,8 +118,8 @@ export async function listTests(): Promise<QuizTestSummary[]> {
     return res.data
 }
 
-export async function listAvailableTests(): Promise<QuizTest[]> {
-    const res = await client.get<QuizTest[]>('/quiz/tests/available')
+export async function listAvailableTests(): Promise<QuizAvailableTest[]> {
+    const res = await client.get<QuizAvailableTest[]>('/quiz/tests/available')
     return res.data
 }
 
@@ -235,12 +236,19 @@ export async function gradeAttempt(attemptId: number): Promise<QuizTestAttempt> 
 
 // -- Restrictions --
 
-export async function getRestrictions(testId: number): Promise<{ roleIds: number[]; groupIds: number[]; tagIds: number[]; mode?: string }> {
-    const res = await client.get<{ roleIds: number[]; groupIds: number[]; tagIds: number[]; mode?: string }>(`/quiz/tests/${testId}/restrictions`)
+export interface QuizTestRestrictions {
+    userTypes?: string[]
+    groupIds: number[]
+    tagIds: number[]
+    mode?: string
+}
+
+export async function getRestrictions(testId: number): Promise<QuizTestRestrictions> {
+    const res = await client.get<QuizTestRestrictions>(`/quiz/tests/${testId}/restrictions`)
     return res.data
 }
 
-export async function setRestrictions(testId: number, data: { roleIds: number[]; groupIds: number[]; tagIds: number[]; mode?: string }): Promise<void> {
+export async function setRestrictions(testId: number, data: QuizTestRestrictions): Promise<void> {
     await client.put(`/quiz/tests/${testId}/restrictions`, data)
 }
 

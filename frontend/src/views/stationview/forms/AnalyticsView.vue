@@ -58,9 +58,6 @@ const currentAnswers = ref<FormAnswer[]>([])
 const loadingResponse = ref(false)
 
 const currentResponse = computed(() => responses.value[currentResponseIndex.value] ?? null)
-const currentMemberName = computed(() =>
-    currentResponse.value ? (memberNames.value.get(currentResponse.value.memberId) ?? `#${currentResponse.value.memberId}`) : ''
-)
 
 async function loadResponseAnswers() {
   if (!currentResponse.value) return
@@ -91,7 +88,7 @@ function getAnswerForQuestion(questionId: number): string {
   return answer?.value ?? ''
 }
 
-function formatAnswerDisplay(questionType: string, config: string, value: string): string {
+function formatAnswerDisplay(questionType: string, config: string | Record<string, unknown>, value: string): string {
   if (!value) return '–'
   const parsed = parseValue(value)
   const cfg = parseConfig(config)
@@ -234,7 +231,8 @@ async function performExport() {
 }
 
 // Charts
-function parseConfig(config: string): Record<string, unknown> {
+function parseConfig(config: Record<string, unknown> | string): Record<string, unknown> {
+  if (typeof config === 'object' && config !== null) return config
   try { return JSON.parse(config || '{}') } catch { return {} }
 }
 
@@ -403,7 +401,7 @@ onMounted(loadData)
 
             <NeutralContainer v-if="currentResponse">
               <div class="space-y-1 mb-4">
-                <p class="font-medium"><MemberName :name="currentMemberName" :member-id="currentResponse?.memberId"/></p>
+                <p class="font-medium"><MemberName :identity="currentResponse?.memberIdentity ?? null"/></p>
                 <p class="text-xs text-(--text-muted)">{{ new Date(currentResponse.submittedAt).toLocaleString('de-DE') }}</p>
                 <p v-if="currentResponse.submittedByName" class="text-xs text-(--text-muted) italic">{{ t('common.submittedBy', { name: currentResponse.submittedByName }) }}</p>
               </div>

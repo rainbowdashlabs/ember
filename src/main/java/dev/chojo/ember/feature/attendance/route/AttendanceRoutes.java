@@ -6,9 +6,10 @@
 package dev.chojo.ember.feature.attendance.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
@@ -26,6 +27,7 @@ import dev.chojo.ember.feature.attendance.service.AttendanceReportService.Report
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.members.entity.MemberAbsence;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -64,6 +66,7 @@ public class AttendanceRoutes implements Routes {
     private final AttendanceReportService reportService;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
+    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public AttendanceRoutes(
@@ -71,12 +74,14 @@ public class AttendanceRoutes implements Routes {
             AttendanceExportService exportService,
             AttendanceReportService reportService,
             StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository) {
+            AccountRepository accountRepository,
+            MemberIdentityFactory memberIdentityFactory) {
         this.attendanceService = attendanceService;
         this.exportService = exportService;
         this.reportService = reportService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
+        this.memberIdentityFactory = memberIdentityFactory;
     }
 
     private static boolean isBlank(String s) {
@@ -94,78 +99,127 @@ public class AttendanceRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/attendance/templates", this::listTemplates, Roles.ATTENDANCE_MANAGER);
-        routes.post(prefix + "/attendance/templates", this::createTemplate, Roles.ATTENDANCE_MANAGER);
-        routes.get(prefix + "/attendance/templates/{id}", this::getTemplate, Roles.ATTENDANCE_MANAGER);
-        routes.put(prefix + "/attendance/templates/{id}", this::updateTemplate, Roles.ATTENDANCE_MANAGER);
-        routes.delete(prefix + "/attendance/templates/{id}", this::deleteTemplate, Roles.ATTENDANCE_MANAGER);
+        routes.get(
+                prefix + "/attendance/templates",
+                this::listTemplates,
+                StationPermission.ATTENDANCE_READ,
+                StationPermission.ATTENDANCE_CONFIGURE,
+                StationPermission.EVENT_EDIT);
+        routes.post(prefix + "/attendance/templates", this::createTemplate, StationPermission.ATTENDANCE_CONFIGURE);
+        routes.get(
+                prefix + "/attendance/templates/{id}",
+                this::getTemplate,
+                StationPermission.ATTENDANCE_READ,
+                StationPermission.ATTENDANCE_CONFIGURE);
+        routes.put(prefix + "/attendance/templates/{id}", this::updateTemplate, StationPermission.ATTENDANCE_CONFIGURE);
+        routes.delete(
+                prefix + "/attendance/templates/{id}", this::deleteTemplate, StationPermission.ATTENDANCE_CONFIGURE);
 
         routes.put(
                 prefix + "/attendance/templates/{templateId}/groups",
                 this::setTemplateGroups,
-                Roles.ATTENDANCE_MANAGER);
+                StationPermission.ATTENDANCE_CONFIGURE);
 
         routes.get(
                 prefix + "/attendance/templates/{templateId}/fields",
                 this::listTemplateFields,
-                Roles.ATTENDANCE_MANAGER);
+                StationPermission.ATTENDANCE_READ,
+                StationPermission.ATTENDANCE_CONFIGURE,
+                StationPermission.EVENT_EDIT);
         routes.post(
                 prefix + "/attendance/templates/{templateId}/fields",
                 this::createTemplateField,
-                Roles.ATTENDANCE_MANAGER);
+                StationPermission.ATTENDANCE_CONFIGURE);
         routes.put(
                 prefix + "/attendance/templates/{templateId}/fields/{fieldId}",
                 this::updateTemplateField,
-                Roles.ATTENDANCE_MANAGER);
+                StationPermission.ATTENDANCE_CONFIGURE);
         routes.delete(
                 prefix + "/attendance/templates/{templateId}/fields/{fieldId}",
                 this::deleteTemplateField,
-                Roles.ATTENDANCE_MANAGER);
+                StationPermission.ATTENDANCE_CONFIGURE);
 
-        routes.get(prefix + "/attendance/sessions", this::listSessionSummaries, Roles.ATTENDANCE_MANAGER);
+        routes.get(prefix + "/attendance/sessions", this::listSessionSummaries, StationPermission.ATTENDANCE_READ);
         routes.get(
-                prefix + "/attendance/templates/{templateId}/sessions", this::listSessions, Roles.ATTENDANCE_MANAGER);
+                prefix + "/attendance/templates/{templateId}/sessions",
+                this::listSessions,
+                StationPermission.ATTENDANCE_READ);
         routes.post(
-                prefix + "/attendance/templates/{templateId}/sessions", this::createSession, Roles.ATTENDANCE_MANAGER);
-        routes.get(prefix + "/attendance/sessions/{id}", this::getSession, Roles.ATTENDANCE_MANAGER);
-        routes.put(prefix + "/attendance/sessions/{id}", this::updateSession, Roles.ATTENDANCE_MANAGER);
-        routes.delete(prefix + "/attendance/sessions/{id}", this::deleteSession, Roles.ATTENDANCE_MANAGER);
+                prefix + "/attendance/templates/{templateId}/sessions",
+                this::createSession,
+                StationPermission.ATTENDANCE_EDIT);
+        routes.get(prefix + "/attendance/sessions/{id}", this::getSession, StationPermission.ATTENDANCE_READ);
+        routes.put(prefix + "/attendance/sessions/{id}", this::updateSession, StationPermission.ATTENDANCE_EDIT);
+        routes.delete(prefix + "/attendance/sessions/{id}", this::deleteSession, StationPermission.ATTENDANCE_MANAGER);
 
         routes.get(
-                prefix + "/attendance/sessions/{sessionId}/fields", this::listSessionFields, Roles.ATTENDANCE_MANAGER);
+                prefix + "/attendance/sessions/{sessionId}/fields",
+                this::listSessionFields,
+                StationPermission.ATTENDANCE_READ);
         routes.put(
-                prefix + "/attendance/sessions/{sessionId}/fields", this::setSessionFields, Roles.ATTENDANCE_MANAGER);
+                prefix + "/attendance/sessions/{sessionId}/fields",
+                this::setSessionFields,
+                StationPermission.ATTENDANCE_MANAGER);
 
-        routes.get(prefix + "/attendance/sessions/{sessionId}/entries", this::listEntries, Roles.ATTENDANCE_MANAGER);
-        routes.post(prefix + "/attendance/sessions/{sessionId}/entries", this::createEntry, Roles.ATTENDANCE_MANAGER);
-        routes.post(prefix + "/attendance/entries/{id}/check-in", this::checkIn, Roles.ATTENDANCE_MANAGER);
-        routes.post(prefix + "/attendance/entries/{id}/check-out", this::checkOut, Roles.ATTENDANCE_MANAGER);
-        routes.put(prefix + "/attendance/entries/{id}/status", this::updateEntryStatus, Roles.ATTENDANCE_MANAGER);
-        routes.post(prefix + "/attendance/entries/{id}/reset-times", this::resetTimes, Roles.ATTENDANCE_MANAGER);
-        routes.delete(prefix + "/attendance/entries/{id}", this::deleteEntry, Roles.ATTENDANCE_MANAGER);
+        routes.get(
+                prefix + "/attendance/sessions/{sessionId}/entries",
+                this::listEntries,
+                StationPermission.ATTENDANCE_READ);
         routes.post(
-                prefix + "/attendance/sessions/{sessionId}/sync-event", this::syncFromEvent, Roles.ATTENDANCE_MANAGER);
-        routes.get(prefix + "/attendance/sessions/{sessionId}/export", this::exportPdf, Roles.ATTENDANCE_MANAGER);
+                prefix + "/attendance/sessions/{sessionId}/entries",
+                this::createEntry,
+                StationPermission.ATTENDANCE_EDIT);
+        routes.post(prefix + "/attendance/entries/{id}/check-in", this::checkIn, StationPermission.ATTENDANCE_EDIT);
+        routes.post(prefix + "/attendance/entries/{id}/check-out", this::checkOut, StationPermission.ATTENDANCE_EDIT);
+        routes.put(
+                prefix + "/attendance/entries/{id}/status", this::updateEntryStatus, StationPermission.ATTENDANCE_EDIT);
+        routes.post(
+                prefix + "/attendance/entries/{id}/reset-times", this::resetTimes, StationPermission.ATTENDANCE_EDIT);
+        routes.delete(prefix + "/attendance/entries/{id}", this::deleteEntry, StationPermission.ATTENDANCE_EDIT);
+        routes.post(
+                prefix + "/attendance/sessions/{sessionId}/sync-event",
+                this::syncFromEvent,
+                StationPermission.ATTENDANCE_MANAGER);
+        routes.get(
+                prefix + "/attendance/sessions/{sessionId}/export",
+                this::exportPdf,
+                StationPermission.ATTENDANCE_MANAGER);
 
         // Report export
-        routes.get(prefix + "/attendance/report/preview", this::reportPreview, Roles.ATTENDANCE_EXPORT_MANAGER);
-        routes.get(prefix + "/attendance/report/export", this::reportExport, Roles.ATTENDANCE_EXPORT_MANAGER);
+        routes.get(prefix + "/attendance/report/preview", this::reportPreview, StationPermission.ATTENDANCE_EXPORT);
+        routes.get(prefix + "/attendance/report/export", this::reportExport, StationPermission.ATTENDANCE_EXPORT);
 
         // Saved report presets
-        routes.get(prefix + "/attendance/report/presets", this::listPresets, Roles.ATTENDANCE_EXPORT_MANAGER);
-        routes.post(prefix + "/attendance/report/presets", this::createPreset, Roles.ATTENDANCE_EXPORT_MANAGER);
-        routes.delete(prefix + "/attendance/report/presets/{id}", this::deletePreset, Roles.ATTENDANCE_EXPORT_MANAGER);
+        routes.get(prefix + "/attendance/report/presets", this::listPresets, StationPermission.ATTENDANCE_EXPORT);
+        routes.post(prefix + "/attendance/report/presets", this::createPreset, StationPermission.ATTENDANCE_EXPORT);
+        routes.delete(
+                prefix + "/attendance/report/presets/{id}", this::deletePreset, StationPermission.ATTENDANCE_EXPORT);
 
-        routes.get(prefix + "/attendance/absences", this::listActiveAbsences, Roles.ATTENDANCE_MANAGER);
         routes.get(
-                prefix + "/attendance/absences/member/{memberId}", this::listMemberAbsences, Roles.ATTENDANCE_MANAGER);
-        routes.post(prefix + "/attendance/absences", this::createAbsence, Roles.ATTENDANCE_MANAGER);
-        routes.delete(prefix + "/attendance/absences/{id}", this::deleteAbsence, Roles.ATTENDANCE_MANAGER);
+                prefix + "/attendance/absences",
+                this::listActiveAbsences,
+                StationPermission.ATTENDANCE_EDIT,
+                StationPermission.MEMBER_EDIT);
+        routes.get(
+                prefix + "/attendance/absences/member/{memberId}",
+                this::listMemberAbsences,
+                StationPermission.ATTENDANCE_EDIT,
+                StationPermission.MEMBER_EDIT);
+        routes.post(
+                prefix + "/attendance/absences",
+                this::createAbsence,
+                StationPermission.ATTENDANCE_MANAGER,
+                StationPermission.MEMBER_EDIT);
+        routes.delete(
+                prefix + "/attendance/absences/{id}",
+                this::deleteAbsence,
+                StationPermission.ATTENDANCE_MANAGER,
+                StationPermission.MEMBER_EDIT);
 
         // Self-service absence management
-        routes.get(prefix + "/profile/absences", this::listMyAbsences, Roles.USER);
-        routes.post(prefix + "/profile/absences", this::createMyAbsence, Roles.USER);
-        routes.delete(prefix + "/profile/absences/{id}", this::deleteMyAbsence, Roles.USER);
+        routes.get(prefix + "/profile/absences", this::listMyAbsences, StationPermission.USER);
+        routes.post(prefix + "/profile/absences", this::createMyAbsence, StationPermission.USER);
+        routes.delete(prefix + "/profile/absences/{id}", this::deleteMyAbsence, StationPermission.USER);
     }
 
     /**
@@ -196,7 +250,8 @@ public class AttendanceRoutes implements Routes {
                 a.absentUntil(),
                 a.reason(),
                 a.createdAt(),
-                resolveCreatedByName(a.createdBy()));
+                resolveCreatedByName(a.createdBy()),
+                memberIdentityFactory.fromMemberId(a.memberId()));
     }
 
     @OpenApi(
@@ -798,21 +853,35 @@ public class AttendanceRoutes implements Routes {
             })
     private void reportPreview(Context ctx) {
         UserSession session = UserSession.from(ctx);
+        // Support both legacy "role" and new "userTypes" parameter
         String role = ctx.queryParam("role");
+        List<String> userTypes = ctx.queryParams("userTypes");
         String groupIdStr = ctx.queryParam("groupId");
+        List<String> groupIds = ctx.queryParams("groupIds");
         Integer groupId = groupIdStr != null && !groupIdStr.isBlank() ? Integer.parseInt(groupIdStr) : null;
+        List<Integer> groupIdList = groupIds.stream()
+                .filter(s -> !s.isBlank())
+                .map(Integer::parseInt)
+                .toList();
         String fromStr = ctx.queryParam("from");
         String toStr = ctx.queryParam("to");
         String rounding = ctx.queryParamAsClass("rounding", String.class).getOrDefault("exact");
         if (fromStr == null || toStr == null) {
             throw new BadRequestResponse("from and to are required");
         }
-        if ((role == null || role.isBlank()) && groupId == null) {
-            throw new BadRequestResponse("role or groupId is required");
+        if ((role == null || role.isBlank()) && userTypes.isEmpty() && groupId == null && groupIdList.isEmpty()) {
+            throw new BadRequestResponse("userTypes or groupIds is required");
+        }
+        // Legacy single role → treat as userType
+        if (role != null && !role.isBlank() && userTypes.isEmpty()) {
+            userTypes = List.of(role);
+        }
+        if (groupId != null && groupIdList.isEmpty()) {
+            groupIdList = List.of(groupId);
         }
         Instant from = Instant.parse(fromStr);
         Instant to = Instant.parse(toStr);
-        ctx.json(reportService.buildReport(session.stationId(), role, groupId, from, to, rounding));
+        ctx.json(reportService.buildReport(session.stationId(), userTypes, groupIdList, from, to, rounding));
     }
 
     @OpenApi(
@@ -835,17 +904,26 @@ public class AttendanceRoutes implements Routes {
             })
     private void reportExport(Context ctx) {
         UserSession session = UserSession.from(ctx);
+        List<String> userTypes = ctx.queryParams("userTypes");
+        List<Integer> groupIds = ctx.queryParams("groupIds").stream()
+                .filter(s -> !s.isBlank())
+                .map(Integer::parseInt)
+                .toList();
+        // Legacy fallback
         String role = ctx.queryParam("role");
+        if (role != null && !role.isBlank() && userTypes.isEmpty()) userTypes = List.of(role);
         String groupIdStr = ctx.queryParam("groupId");
-        Integer groupId = groupIdStr != null && !groupIdStr.isBlank() ? Integer.parseInt(groupIdStr) : null;
+        if (groupIdStr != null && !groupIdStr.isBlank() && groupIds.isEmpty())
+            groupIds = List.of(Integer.parseInt(groupIdStr));
+
         String fromStr = ctx.queryParam("from");
         String toStr = ctx.queryParam("to");
         String rounding = ctx.queryParamAsClass("rounding", String.class).getOrDefault("exact");
         if (fromStr == null || toStr == null) {
             throw new BadRequestResponse("from and to are required");
         }
-        if ((role == null || role.isBlank()) && groupId == null) {
-            throw new BadRequestResponse("role or groupId is required");
+        if (userTypes.isEmpty() && groupIds.isEmpty()) {
+            throw new BadRequestResponse("userTypes or groupIds is required");
         }
         Instant from = Instant.parse(fromStr);
         Instant to = Instant.parse(toStr);
@@ -853,7 +931,7 @@ public class AttendanceRoutes implements Routes {
                 (session.account().firstName() + " " + session.account().lastName()).trim();
         String period = ctx.queryParamAsClass("period", String.class).getOrDefault("month");
         var pdf = reportService.exportReportPdf(
-                session.stationId(), role, groupId, from, to, rounding, generatedBy, "year".equals(period));
+                session.stationId(), userTypes, groupIds, from, to, rounding, generatedBy, "year".equals(period));
         if (pdf.isEmpty()) {
             throw new NotFoundResponse();
         }
@@ -1012,7 +1090,7 @@ public class AttendanceRoutes implements Routes {
         var absences = new ArrayList<>(
                 attendanceService.findAbsencesByMember(session.member().id()));
         // Include managed members' absences
-        if (session.hasRole(Roles.GUARDIAN)) {
+        if (session.hasPermission(StationPermission.MEMBER_GUARDIAN)) {
             for (int mid :
                     attendanceService.findManagedMemberIds(session.member().id())) {
                 absences.addAll(attendanceService.findAbsencesByMember(mid));
@@ -1052,7 +1130,7 @@ public class AttendanceRoutes implements Routes {
         // Determine which members to create absences for
         var memberIds = new ArrayList<Integer>();
         if (req.memberIds() != null && !req.memberIds().isEmpty()) {
-            var managed = session.hasRole(Roles.GUARDIAN)
+            var managed = session.hasPermission(StationPermission.MEMBER_GUARDIAN)
                     ? attendanceService.findManagedMemberIds(session.member().id())
                     : Set.<Integer>of();
             for (int mid : req.memberIds()) {
@@ -1095,7 +1173,7 @@ public class AttendanceRoutes implements Routes {
         int absMemberId = absence.get().memberId();
         boolean isOwn = session.member() != null && session.member().id() == absMemberId;
         boolean manages = session.member() != null
-                && session.hasRole(Roles.GUARDIAN)
+                && session.hasPermission(StationPermission.MEMBER_GUARDIAN)
                 && attendanceService.findManagedMemberIds(session.member().id()).contains(absMemberId);
         if (!isOwn && !manages) {
             throw new ForbiddenResponse("Cannot delete this absence");
@@ -1212,5 +1290,6 @@ public class AttendanceRoutes implements Routes {
             LocalDate absentUntil,
             String reason,
             Instant createdAt,
-            String createdByName) {}
+            String createdByName,
+            MemberIdentity memberIdentity) {}
 }

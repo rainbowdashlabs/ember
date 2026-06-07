@@ -23,8 +23,8 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import type { QuizCatalog, QuizCategory, QuizSectionDetail, Role, MemberGroup, UserTag } from '@/api/types'
-import { quiz, stationMembers, memberGroups, userTags } from '@/api'
+import type { QuizCatalog, QuizCategory, QuizSectionDetail, MemberGroup, UserTag } from '@/api/types'
+import { quiz, memberGroups, userTags } from '@/api'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -50,10 +50,9 @@ const startAt = ref('')
 const endAt = ref('')
 
 // Restrictions
-const allRoles = ref<Role[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
-const selectedRoleIds = ref<number[]>([])
+const selectedUserTypes = ref<string[]>([])
 const selectedGroupIds = ref<number[]>([])
 const selectedTagIds = ref<number[]>([])
 
@@ -143,14 +142,12 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [catalogRes, roles, groups, tags] = await Promise.all([
+    const [catalogRes, groups, tags] = await Promise.all([
       quiz.listCatalogs(),
-      stationMembers.listAllRoles(),
       memberGroups.listGroups(),
       userTags.listTags(),
     ])
     catalogs.value = Array.isArray(catalogRes) ? catalogRes as unknown as QuizCatalog[] : (catalogRes.catalogs ?? [])
-    allRoles.value = roles
     allGroups.value = groups
     allTags.value = tags
 
@@ -177,7 +174,7 @@ async function loadData() {
       // Load restrictions
       try {
         const restrictions = await quiz.getRestrictions(testId.value)
-        selectedRoleIds.value = restrictions.roleIds ?? []
+        selectedUserTypes.value = restrictions.userTypes ?? []
         selectedGroupIds.value = restrictions.groupIds ?? []
         selectedTagIds.value = restrictions.tagIds ?? []
       } catch { /* no restrictions */ }
@@ -237,7 +234,7 @@ async function save() {
 
     // Save restrictions
     await quiz.setRestrictions(id!, {
-      roleIds: selectedRoleIds.value,
+      userTypes: selectedUserTypes.value,
       groupIds: selectedGroupIds.value,
       tagIds: selectedTagIds.value,
     })
@@ -299,13 +296,12 @@ onMounted(loadData)
         <NeutralContainer class="space-y-3">
           <SubHeader>{{ t('quiz.tests.restrictions') }}</SubHeader>
           <RestrictionPicker
-              :roles="allRoles"
               :groups="allGroups"
               :tags="allTags"
-              :selected-role-ids="selectedRoleIds"
+              :selected-user-types="selectedUserTypes"
               :selected-group-ids="selectedGroupIds"
               :selected-tag-ids="selectedTagIds"
-              @update:selected-role-ids="v => selectedRoleIds = v"
+              @update:selected-user-types="v => selectedUserTypes = v"
               @update:selected-group-ids="v => selectedGroupIds = v"
               @update:selected-tag-ids="v => selectedTagIds = v"
           />

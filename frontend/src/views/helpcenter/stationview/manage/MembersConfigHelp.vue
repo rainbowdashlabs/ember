@@ -15,7 +15,9 @@ import TabBar from '@/components/navigation/TabBar.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import THead from '@/components/table/THead.vue'
 import TRow from '@/components/table/TRow.vue'
 import Td from '@/components/table/Td.vue'
@@ -26,8 +28,9 @@ const {t} = useI18n()
 const activeTab = ref('MEMBER')
 const tabs = [
   {key: 'MEMBER', label: t('membersConfig.tabMember')},
-  {key: 'GUARDIAN', label: t('membersConfig.tabManager')},
+  {key: 'GUARDIAN', label: t('membersConfig.tabGuardian')},
   {key: 'TEAM', label: t('membersConfig.tabTeam')},
+  {key: 'MANAGER', label: t('membersConfig.tabStationManager')},
   {key: 'GROUP', label: t('membersConfig.tabGroup')},
 ]
 </script>
@@ -42,8 +45,9 @@ const tabs = [
     <HelpSection :title="t('helpCenter.membersConfig.byRoleTitle')">
       <p>{{ t('helpCenter.membersConfig.byRoleText') }}</p>
       <p>{{ t('helpCenter.membersConfig.roleMember') }}</p>
-      <p>{{ t('helpCenter.membersConfig.roleManager') }}</p>
+      <p>{{ t('helpCenter.membersConfig.roleGuardian') }}</p>
       <p>{{ t('helpCenter.membersConfig.roleTeam') }}</p>
+      <p>{{ t('helpCenter.membersConfig.roleStationManager') }}</p>
       <p>{{ t('helpCenter.membersConfig.roleGroup') }}</p>
     </HelpSection>
 
@@ -114,6 +118,28 @@ const tabs = [
           </TRow>
         </tbody>
       </table>
+    </NeutralContainer>
+
+    <!-- Dummy: Field templates -->
+    <HelpSection :title="t('helpCenter.membersConfig.templatesTitle')">
+      <p>{{ t('helpCenter.membersConfig.templatesText') }}</p>
+    </HelpSection>
+
+    <NeutralContainer class="space-y-3">
+      <FieldLabel hint>{{ t('membersConfig.templates') }}</FieldLabel>
+      <div class="flex flex-wrap gap-2">
+        <SecondaryButton :icon="['fas', 'house']" disabled>Adresse</SecondaryButton>
+        <SecondaryButton :icon="['fas', 'calendar-plus']" disabled>Geburtsdatum</SecondaryButton>
+        <SecondaryButton :icon="['fas', 'phone']" disabled>Festnetz</SecondaryButton>
+        <SecondaryButton :icon="['fas', 'mobile-screen']" disabled>Mobilnummer</SecondaryButton>
+        <SecondaryButton :icon="['fas', 'triangle-exclamation']" disabled>Notfallkontakt</SecondaryButton>
+        <SecondaryButton :icon="['fas', 'id-card']" disabled>Führerschein</SecondaryButton>
+        <SecondaryButton :icon="['fas', 'calendar-plus']" disabled>Beitrittsdatum</SecondaryButton>
+        <SecondaryButton :icon="['fas', 'hashtag']" disabled>Personalnummer</SecondaryButton>
+        <SecondaryButton :icon="['fas', 'rainbow']" disabled>Geschlecht</SecondaryButton>
+        <SecondaryButton :icon="['fas', 'fire']" disabled>Jugendflamme</SecondaryButton>
+        <SecondaryButton :icon="['fas', 'medal']" disabled>Leistungsspange</SecondaryButton>
+      </div>
     </NeutralContainer>
 
     <HelpSection :title="t('helpCenter.membersConfig.optionsTitle')">

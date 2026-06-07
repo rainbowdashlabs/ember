@@ -174,41 +174,41 @@ const previewRows = computed(() => rows.value.slice(0, 5))
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <FieldLabel hint class="mb-1">{{ t('quiz.csv.questionColumn') }}</FieldLabel>
-            <SelectInput v-model="questionColumn">
+            <SelectInput v-model="questionColumn" class="w-full">
               <option v-for="h in headers" :key="h" :value="h">{{ h }}</option>
             </SelectInput>
           </div>
           <div>
             <FieldLabel hint class="mb-1">{{ t('quiz.csv.answerColumn') }}</FieldLabel>
-            <SelectInput v-model="answerColumn">
+            <SelectInput v-model="answerColumn" class="w-full">
               <option value="">–</option>
               <option v-for="h in headers" :key="h" :value="h">{{ h }}</option>
             </SelectInput>
           </div>
           <div>
             <FieldLabel hint class="mb-1">{{ t('quiz.csv.categoryColumn') }}</FieldLabel>
-            <SelectInput v-model="categoryColumn">
+            <SelectInput v-model="categoryColumn" class="w-full">
               <option value="">–</option>
               <option v-for="h in headers" :key="h" :value="h">{{ h }}</option>
             </SelectInput>
           </div>
           <div>
             <FieldLabel hint class="mb-1">{{ t('quiz.csv.typeColumn') }}</FieldLabel>
-            <SelectInput v-model="typeColumn">
+            <SelectInput v-model="typeColumn" class="w-full">
               <option value="">–</option>
               <option v-for="h in headers" :key="h" :value="h">{{ h }}</option>
             </SelectInput>
           </div>
           <div>
             <FieldLabel hint class="mb-1">{{ t('quiz.csv.pointsColumn') }}</FieldLabel>
-            <SelectInput v-model="pointsColumn">
+            <SelectInput v-model="pointsColumn" class="w-full">
               <option value="">–</option>
               <option v-for="h in headers" :key="h" :value="h">{{ h }}</option>
             </SelectInput>
           </div>
           <div>
             <FieldLabel hint class="mb-1">{{ t('quiz.questions.type') }} ({{ t('quiz.csv.defaultType') }})</FieldLabel>
-            <SelectInput v-model="defaultType">
+            <SelectInput v-model="defaultType" class="w-full">
               <option :value="QuizQuestionTypes.MULTIPLE_CHOICE">{{ t('quiz.questionTypes.MULTIPLE_CHOICE') }}</option>
               <option :value="QuizQuestionTypes.FREE_ANSWER">{{ t('quiz.questionTypes.FREE_ANSWER') }}</option>
               <option :value="QuizQuestionTypes.TRUE_FALSE">{{ t('quiz.questionTypes.TRUE_FALSE') }}</option>

@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
 import dev.chojo.ember.feature.events.entity.RegistrationCount;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import jakarta.inject.Singleton;
@@ -31,9 +32,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class EventRepository {
 
     private static final String EVENT_COLUMNS =
-            "e.id, e.station_id, e.name, e.description, e.event_type, e.day_of_week, e.start_time, e.end_time, e.template_id, e.requires_registration, e.registration_deadline, e.requires_confirmation, e.category_id, e.restriction_mode, EXISTS(SELECT 1 FROM event_restriction r WHERE r.event_id = e.id) AS restricted, e.\"public\", e.registration_limit";
+            "e.id, e.station_id, e.name, e.description, e.event_type, e.day_of_week, e.start_time, e.end_time, e.template_id, e.requires_registration, e.registration_deadline, e.requires_confirmation, e.category_id, e.restriction_mode, EXISTS(SELECT 1 FROM event_restriction r WHERE r.event_id = e.id) AS restricted, e.\"public\", e.registration_limit, e.cancelled, e.cancelled_at, e.cancel_reason, e.min_registrations, e.threshold_date, e.threshold_notified, e.registration_close_days";
     private static final String EVENT_COLUMNS_BARE =
-            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, restriction_mode, EXISTS(SELECT 1 FROM event_restriction r WHERE r.event_id = id) AS restricted, \"public\", registration_limit";
+            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, restriction_mode, EXISTS(SELECT 1 FROM event_restriction r WHERE r.event_id = id) AS restricted, \"public\", registration_limit, cancelled, cancelled_at, cancel_reason, min_registrations, threshold_date, threshold_notified, registration_close_days";
 
     // -- Events --
 
@@ -68,6 +69,28 @@ public class EventRepository {
                 .single(Call.of().bind("station_id", stationId).bind("member_id", memberId))
                 .map(StationEvent.map())
                 .all();
+    }
+
+    public List<StationEvent> findFiltered(
+            int stationId, Integer memberId, Integer categoryId, Boolean requiresRegistration) {
+        var sql =
+                new StringBuilder("SELECT " + EVENT_COLUMNS + " FROM station_event e WHERE e.station_id = :station_id");
+        if (memberId != null) {
+            sql.append(
+                    " AND check_restriction('event_restriction', 'event_id', 'station_event', 'id', e.id, :member_id, 'EVENT_MANAGER')");
+        }
+        if (categoryId != null) {
+            sql.append(" AND e.category_id = :category_id");
+        }
+        if (requiresRegistration != null) {
+            sql.append(" AND e.requires_registration = :requires_registration");
+        }
+        sql.append(" ORDER BY e.event_type, e.name;");
+        var call = Call.of().bind("station_id", stationId);
+        if (memberId != null) call = call.bind("member_id", memberId);
+        if (categoryId != null) call = call.bind("category_id", categoryId);
+        if (requiresRegistration != null) call = call.bind("requires_registration", requiresRegistration);
+        return Query.query(sql.toString()).single(call).map(StationEvent.map()).all();
     }
 
     /**
@@ -113,10 +136,13 @@ public class EventRepository {
             Instant registrationDeadline,
             boolean requiresConfirmation,
             Integer categoryId,
-            Integer registrationLimit) {
+            Integer registrationLimit,
+            Integer minRegistrations,
+            Instant thresholdDate,
+            Integer registrationCloseDays) {
         return Query.query("""
-                            INSERT INTO station_event(station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, registration_limit)
-                            VALUES (:station_id, :name, :description, :event_type, :day_of_week, :start_time, :end_time, :template_id, :requires_registration, :registration_deadline, :requires_confirmation, :category_id, :registration_limit)
+                            INSERT INTO station_event(station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, registration_limit, min_registrations, threshold_date, registration_close_days)
+                            VALUES (:station_id, :name, :description, :event_type, :day_of_week, :start_time, :end_time, :template_id, :requires_registration, :registration_deadline, :requires_confirmation, :category_id, :registration_limit, :min_registrations, :threshold_date, :registration_close_days)
                             RETURNING\s""" + EVENT_COLUMNS_BARE + ";")
                 .single(Call.of()
                         .bind("station_id", stationId)
@@ -131,7 +157,10 @@ public class EventRepository {
                         .bind("registration_deadline", registrationDeadline, INSTANT_TIMESTAMP)
                         .bind("requires_confirmation", requiresConfirmation)
                         .bind("category_id", categoryId)
-                        .bind("registration_limit", registrationLimit))
+                        .bind("registration_limit", registrationLimit)
+                        .bind("min_registrations", minRegistrations)
+                        .bind("threshold_date", thresholdDate, INSTANT_TIMESTAMP)
+                        .bind("registration_close_days", registrationCloseDays))
                 .map(StationEvent.map())
                 .first()
                 .orElseThrow();
@@ -168,7 +197,10 @@ public class EventRepository {
             boolean requiresConfirmation,
             Integer categoryId,
             Boolean isPublic,
-            Integer registrationLimit) {
+            Integer registrationLimit,
+            Integer minRegistrations,
+            Instant thresholdDate,
+            Integer registrationCloseDays) {
         return Query.query("""
                             UPDATE station_event SET
                                 name = :name, description = :description, event_type = :event_type,
@@ -176,7 +208,9 @@ public class EventRepository {
                                 start_time = :start_time, end_time = :end_time, template_id = :template_id,
                                 requires_registration = :requires_registration, registration_deadline = :registration_deadline,
                                 requires_confirmation = :requires_confirmation, category_id = :category_id,
-                                "public" = :public, registration_limit = :registration_limit
+                                "public" = :public, registration_limit = :registration_limit,
+                                min_registrations = :min_registrations, threshold_date = :threshold_date,
+                                registration_close_days = :registration_close_days
                             WHERE id = :id;""")
                 .single(Call.of()
                         .bind("name", name)
@@ -192,6 +226,9 @@ public class EventRepository {
                         .bind("category_id", categoryId)
                         .bind("public", isPublic)
                         .bind("registration_limit", registrationLimit)
+                        .bind("min_registrations", minRegistrations)
+                        .bind("threshold_date", thresholdDate, INSTANT_TIMESTAMP)
+                        .bind("registration_close_days", registrationCloseDays)
                         .bind("id", id))
                 .update()
                 .changed();
@@ -484,6 +521,52 @@ public class EventRepository {
                 .all();
     }
 
+    public record ExpiredDeadlineEvent(int eventId, int stationId, String name, int pendingCount) {}
+
+    public List<ExpiredDeadlineEvent> findOneTimeEventsWithExpiredDeadline() {
+        return Query.query("""
+                        SELECT e.id AS event_id, e.station_id, e.name, COUNT(er.id) AS pending_count
+                        FROM station_event e
+                        JOIN event_registration er ON er.event_id = e.id AND er.status = 'PENDING'
+                        WHERE e.requires_registration = TRUE
+                          AND e.event_type = 'ONE_TIME'
+                          AND e.registration_deadline IS NOT NULL
+                          AND e.registration_deadline < NOW()
+                          AND e.deadline_notified = FALSE
+                          AND e.cancelled = FALSE
+                        GROUP BY e.id, e.station_id, e.name;""")
+                .single(Call.of())
+                .map(row -> new ExpiredDeadlineEvent(
+                        row.getInt("event_id"),
+                        row.getInt("station_id"),
+                        row.getString("name"),
+                        row.getInt("pending_count")))
+                .all();
+    }
+
+    public List<StationEvent> findRecurringEventsWithCloseDays() {
+        return Query.query("SELECT " + EVENT_COLUMNS
+                        + " FROM station_event e"
+                        + " WHERE e.requires_registration = TRUE"
+                        + " AND e.registration_close_days IS NOT NULL"
+                        + " AND e.event_type != 'ONE_TIME'"
+                        + " AND e.cancelled = FALSE;")
+                .single(Call.of())
+                .map(StationEvent.map())
+                .all();
+    }
+
+    public List<EventRegistration> findPendingRegistrationsForDate(int eventId, LocalDate eventDate) {
+        return Query.query("""
+                        SELECT id, event_id, member_id, event_date, status, created_at, created_by
+                        FROM event_registration
+                        WHERE event_id = :event_id AND event_date = :event_date AND status = 'PENDING'
+                        ORDER BY created_at;""")
+                .single(Call.of().bind("event_id", eventId).bind("event_date", eventDate))
+                .map(EventRegistration.map())
+                .all();
+    }
+
     public void markDeadlineNotified(int eventId) {
         Query.query("UPDATE station_event SET deadline_notified = TRUE WHERE id = :id;")
                 .single(Call.of().bind("id", eventId))
@@ -541,7 +624,7 @@ public class EventRepository {
      * @return the created registration
      */
     public EventRegistration createRegistration(int eventId, int memberId, LocalDate eventDate) {
-        return createRegistration(eventId, memberId, eventDate, EventRegistration.RegistrationStatus.PENDING, null);
+        return createRegistration(eventId, memberId, eventDate, RegistrationStatus.PENDING, null);
     }
 
     /**
@@ -556,11 +639,7 @@ public class EventRepository {
      * @return the created or updated registration
      */
     public EventRegistration createRegistration(
-            int eventId,
-            int memberId,
-            LocalDate eventDate,
-            EventRegistration.RegistrationStatus status,
-            Integer createdBy) {
+            int eventId, int memberId, LocalDate eventDate, RegistrationStatus status, Integer createdBy) {
         return Query.query("""
                             INSERT INTO event_registration(event_id, member_id, event_date, status, created_by)
                             VALUES (:event_id, :member_id, :event_date, :status, :created_by)
@@ -639,7 +718,7 @@ public class EventRepository {
      * @param status the new status
      * @return true if a row was updated
      */
-    public boolean updateRegistrationStatus(int id, EventRegistration.RegistrationStatus status) {
+    public boolean updateRegistrationStatus(int id, RegistrationStatus status) {
         return Query.query("UPDATE event_registration SET status = :status WHERE id = :id;")
                 .single(Call.of().bind("status", status.name()).bind("id", id))
                 .update()
@@ -671,5 +750,147 @@ public class EventRepository {
                 .single(Call.of().bind("id", id))
                 .map(EventRegistration.map())
                 .first();
+    }
+
+    // -- Cancellation & Threshold --
+
+    /**
+     * Cancels an event, recording the current timestamp and an optional reason.
+     *
+     * @param id     the event ID
+     * @param reason optional cancellation reason
+     * @return true if a row was updated
+     */
+    public boolean cancelEvent(int id, String reason) {
+        return Query.query(
+                        "UPDATE station_event SET cancelled = TRUE, cancelled_at = NOW(), cancel_reason = :reason WHERE id = :id;")
+                .single(Call.of().bind("id", id).bind("reason", reason))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Finds events that should be auto-cancelled because their threshold date has passed
+     * and they have not reached the minimum number of accepted registrations.
+     *
+     * @return the list of events to auto-cancel
+     */
+    public List<StationEvent> findAutoCancel() {
+        return Query.query("SELECT " + EVENT_COLUMNS + """
+                         FROM station_event e
+                        WHERE e.cancelled = FALSE
+                          AND e.min_registrations IS NOT NULL
+                          AND e.threshold_date IS NOT NULL
+                          AND e.threshold_date <= NOW()
+                          AND (SELECT COUNT(*) FROM event_registration er
+                               WHERE er.event_id = e.id AND er.status = 'ACCEPTED') < e.min_registrations;""")
+                .single(Call.of())
+                .map(StationEvent.map())
+                .all();
+    }
+
+    /**
+     * Marks an event's threshold as notified, preventing duplicate warnings.
+     *
+     * @param eventId the event ID
+     * @return true if a row was updated
+     */
+    public boolean setThresholdNotified(int eventId) {
+        return Query.query("UPDATE station_event SET threshold_notified = TRUE WHERE id = :id;")
+                .single(Call.of().bind("id", eventId))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Counts accepted registrations for an event.
+     *
+     * @param eventId the event ID
+     * @return the count of accepted registrations
+     */
+    public int countAcceptedRegistrations(int eventId) {
+        return Query.query(
+                        "SELECT COUNT(*) AS cnt FROM event_registration WHERE event_id = :id AND status = 'ACCEPTED';")
+                .single(Call.of().bind("id", eventId))
+                .map(row -> row.getInt("cnt"))
+                .first()
+                .orElse(0);
+    }
+
+    /**
+     * Finds member IDs with pending or accepted registrations for an event.
+     *
+     * @param eventId the event ID
+     * @return the list of member IDs
+     */
+    public List<Integer> findRegisteredMemberIds(int eventId) {
+        return Query.query(
+                        "SELECT member_id FROM event_registration WHERE event_id = :id AND status IN ('PENDING', 'ACCEPTED');")
+                .single(Call.of().bind("id", eventId))
+                .map(row -> row.getInt("member_id"))
+                .all();
+    }
+
+    // --- Reminders ---
+
+    public List<Integer> findReminderDays(int eventId) {
+        return Query.query("SELECT days_before FROM event_reminder WHERE event_id = :event_id ORDER BY days_before;")
+                .single(Call.of().bind("event_id", eventId))
+                .map(row -> row.getInt("days_before"))
+                .all();
+    }
+
+    public void replaceReminders(int eventId, List<Integer> daysBefore) {
+        Query.query("DELETE FROM event_reminder WHERE event_id = :event_id;")
+                .single(Call.of().bind("event_id", eventId))
+                .delete();
+        for (int days : daysBefore) {
+            Query.query(
+                            "INSERT INTO event_reminder(event_id, days_before) VALUES(:event_id, :days_before) ON CONFLICT DO NOTHING;")
+                    .single(Call.of().bind("event_id", eventId).bind("days_before", days))
+                    .insert();
+        }
+    }
+
+    public List<StationEvent> findEventsWithReminders() {
+        return Query.query("""
+                        SELECT DISTINCT se.* FROM station_event se
+                        JOIN event_reminder er ON er.event_id = se.id
+                        WHERE se.cancelled = FALSE;""").single(Call.of()).map(StationEvent.map()).all();
+    }
+
+    public boolean isReminderSent(int eventId, LocalDate eventDate, int daysBefore) {
+        return Query.query("""
+                        SELECT 1 FROM event_reminder_sent
+                        WHERE event_id = :event_id AND event_date = :event_date AND days_before = :days_before;""")
+                .single(Call.of()
+                        .bind("event_id", eventId)
+                        .bind("event_date", eventDate)
+                        .bind("days_before", daysBefore))
+                .map(row -> true)
+                .first()
+                .orElse(false);
+    }
+
+    public void markReminderSent(int eventId, LocalDate eventDate, int daysBefore) {
+        Query.query("""
+                        INSERT INTO event_reminder_sent(event_id, event_date, days_before)
+                        VALUES(:event_id, :event_date, :days_before) ON CONFLICT DO NOTHING;""")
+                .single(Call.of()
+                        .bind("event_id", eventId)
+                        .bind("event_date", eventDate)
+                        .bind("days_before", daysBefore))
+                .insert();
+    }
+
+    public int countPendingRegistrations(int stationId) {
+        return Query.query("""
+                        SELECT count(*) AS cnt FROM event_registration er
+                        JOIN station_event se ON er.event_id = se.id
+                        WHERE se.station_id = :station_id AND er.status = 'PENDING';""")
+                .single(Call.of().bind("station_id", stationId))
+                .map(row -> row.getInt("cnt"))
+                .first()
+                .orElse(0);
     }
 }

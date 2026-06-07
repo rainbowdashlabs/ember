@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.station.repository;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
@@ -19,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Repository for station CRUD operations, logo management, and module settings.
@@ -28,6 +31,52 @@ public class StationRepository {
 
     private static final String STATION_COLUMNS =
             "id, uid, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors, default_feel, allow_user_feel, public_kb_mode, federation_private_key, discovery_visibility, discovery_description, discovery_show_kb, public_calendar_enabled";
+
+    private final Cache<Integer, UUID> uidCache = Caffeine.newBuilder()
+            .expireAfterAccess(5, TimeUnit.MINUTES)
+            .maximumSize(1_000)
+            .build();
+    private final Cache<UUID, Integer> idCache = Caffeine.newBuilder()
+            .expireAfterAccess(5, TimeUnit.MINUTES)
+            .maximumSize(1_000)
+            .build();
+
+    /**
+     * Resolves an internal station ID to its external UUID. Cached.
+     */
+    public UUID resolveUid(int stationId) {
+        return uidCache.get(stationId, id -> Query.query("SELECT uid FROM station WHERE id = :id;")
+                .single(Call.of().bind("id", id))
+                .map(row -> row.get("uid", StandardValueConverter.UUID_STRING))
+                .first()
+                .orElse(null));
+    }
+
+    /**
+     * Resolves an external UUID to its internal station ID. Cached.
+     */
+    public Optional<Integer> resolveId(UUID uid) {
+        var cached = idCache.getIfPresent(uid);
+        if (cached != null) return Optional.of(cached);
+        return Query.query("SELECT id FROM station WHERE uid = :uid::uuid;")
+                .single(Call.of().bind("uid", uid, StandardValueConverter.UUID_STRING))
+                .map(row -> row.getInt("id"))
+                .first()
+                .map(id -> {
+                    idCache.put(uid, id);
+                    uidCache.put(id, uid);
+                    return id;
+                });
+    }
+
+    /**
+     * Invalidates the UID cache for a station (on create/delete).
+     */
+    public void invalidateUidCache(int stationId) {
+        var uid = uidCache.getIfPresent(stationId);
+        uidCache.invalidate(stationId);
+        if (uid != null) idCache.invalidate(uid);
+    }
 
     /**
      * Finds a station by its ID.

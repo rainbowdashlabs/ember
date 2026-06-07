@@ -9,12 +9,12 @@ import {useI18n} from 'vue-i18n'
 import EditButton from '@/components/button/EditButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import UserAvatar from '@/components/avatar/UserAvatar.vue'
+import MemberName from '@/components/avatar/MemberName.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import ColumnFilterModal from './ColumnFilterModal.vue'
 import type {ProfileField, StationMember} from '@/api/types'
-import {Roles, hasTeamRole} from '@/api/types'
+import {StationUserType} from '@/api/types'
 import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
 import {useBreakpoint} from '@/composables/useBreakpoint'
 import EmptyState from '@/components/feedback/EmptyState.vue'
@@ -45,6 +45,7 @@ const props = defineProps<{
   getFieldValue: (memberId: number, fieldId: number) => unknown
   exportMode?: boolean
   selectedIds?: Set<number>
+  canEdit?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -124,26 +125,22 @@ function getMemberTags(memberId: number): string[] {
   return props.memberTagsMap.get(memberId) ?? []
 }
 
-function getScopesForRoles(roles: string[]): string[] {
-  const scopes: string[] = []
-  if (roles.includes(Roles.MEMBER)) scopes.push(Roles.MEMBER)
-  if (hasTeamRole(roles)) scopes.push(Roles.TEAM)
-  if (roles.includes(Roles.GUARDIAN)) scopes.push(Roles.GUARDIAN)
-  return scopes
+function getScopeForUserType(roles: string[]): string {
+  if (roles.includes(StationUserType.MANAGER)) return 'MANAGER'
+  if (roles.includes(StationUserType.TEAM)) return 'TEAM'
+  if (roles.includes(StationUserType.GUARDIAN)) return 'GUARDIAN'
+  return 'MEMBER'
 }
 
 function isFieldApplicable(memberId: number, field: ProfileField): boolean {
   const roles = props.memberRolesMap.get(memberId) ?? []
-  return getScopesForRoles(roles).includes(field.scope ?? Roles.MEMBER)
+  return getScopeForUserType(roles) === field.scope
 }
 
 function getApplicableOverviewFields(memberId: number): ProfileField[] {
   const roles = props.memberRolesMap.get(memberId) ?? []
-  const scopes = getScopesForRoles(roles)
-  return props.overviewFields.filter(f => {
-    if (f.scope === 'GROUP') return false
-    return scopes.includes(f.scope ?? Roles.MEMBER)
-  })
+  const scope = getScopeForUserType(roles)
+  return props.overviewFields.filter(f => f.scope === scope)
 }
 
 function getManagers(memberId: number): StationMember[] {
@@ -155,18 +152,12 @@ function managerName(mgr: StationMember): string {
   return m ? memberDisplayName(m) : `#${mgr.id}`
 }
 
-const primaryRoleLabels: Record<string, string> = {
-  [Roles.TEAM]: 'Team',
-  [Roles.GUARDIAN]: 'Erziehungsberechtigter',
-  [Roles.MEMBER]: 'Mitglied',
-}
-
-function getPrimaryRole(memberId: number): string {
-  const roles = props.memberRolesMap.get(memberId) ?? []
-  if (hasTeamRole(roles)) return Roles.TEAM
-  if (roles.includes(Roles.GUARDIAN)) return Roles.GUARDIAN
-  if (roles.includes(Roles.MEMBER)) return Roles.MEMBER
-  return ''
+const userTypeLabels: Record<string, string> = {
+  [StationUserType.TEAM]: 'Team',
+  [StationUserType.MANAGER]: 'Manager',
+  [StationUserType.GUARDIAN]: 'Erziehungsberechtigter',
+  [StationUserType.MEMBER]: 'Mitglied',
+  [StationUserType.TRIAL]: 'Probe',
 }
 
 function onRowClick(member: StationMember) {
@@ -185,25 +176,24 @@ function onRowClick(member: StationMember) {
     <NeutralContainer v-for="member in members" :key="member.id" class="space-y-2" @click="onRowClick(member)">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <UserAvatar :member-id="member.id" :name="memberDisplayName(member)" size="sm"/>
           <div>
-            <span class="font-medium">{{ memberDisplayName(member) }}</span>
+            <MemberName :identity="member.identity" size="sm" class="font-medium"/>
             <ErrorBadge v-if="member.profileComplete === false" class="ml-1.5 text-[10px]">{{ t('membersList.incomplete') }}</ErrorBadge>
-            <div v-if="getPrimaryRole(member.id)" class="mt-0.5">
+            <div v-if="member.userType" class="mt-0.5">
               <span
                   class="inline-block rounded-full px-2 py-0.5 text-[10px] font-medium"
                   :class="{
-                    'bg-primary/10 text-primary': getPrimaryRole(member.id) === 'TEAM',
-                    'bg-info/10 text-info-accent': getPrimaryRole(member.id) === 'GUARDIAN',
-                    'bg-bg-light-accent dark:bg-bg-dark-accent text-(--text-muted)': getPrimaryRole(member.id) === 'MEMBER',
+                    'bg-primary/10 text-primary': member.userType === 'TEAM' || member.userType === 'MANAGER',
+                    'bg-info/10 text-info-accent': member.userType === 'GUARDIAN',
+                    'bg-bg-light-accent dark:bg-bg-dark-accent text-(--text-muted)': member.userType === 'MEMBER' || member.userType === 'TRIAL',
                   }"
-              >{{ primaryRoleLabels[getPrimaryRole(member.id)] }}</span>
+              >{{ userTypeLabels[member.userType] ?? member.userType }}</span>
             </div>
           </div>
         </div>
         <div v-if="!exportMode" class="flex gap-1" @click.stop>
           <IconButton :icon="['fas', 'eye']" :label="t('membersList.detail')" class="text-primary hover:bg-primary/15" @click="emit('navigateDetail', member, $event)"/>
-          <EditButton @click="emit('navigateEdit', member, $event)"/>
+          <EditButton v-if="canEdit" @click="emit('navigateEdit', member, $event)"/>
         </div>
         <div v-else @click.stop>
           <CheckboxInput :model-value="selectedIds?.has(member.id) ?? false" @update:model-value="emit('toggleSelect', member.id)"/>
@@ -256,7 +246,7 @@ function onRowClick(member: StationMember) {
             />
           </span>
         </Th>
-        <!-- Role column -->
+        <!-- Type column -->
         <Th>{{ t('membersList.colRole') }}</Th>
         <!-- Email column -->
         <Th>{{ t('membersList.colEmail') }}</Th>
@@ -320,12 +310,11 @@ function onRowClick(member: StationMember) {
             <IconButton :icon="['fas', 'eye']" :label="t('membersList.detail')"
                         class="text-primary hover:bg-primary/15"
                         @click="emit('navigateDetail', member, $event)"/>
-            <EditButton @click="emit('navigateEdit', member, $event)"/>
+            <EditButton v-if="canEdit" @click="emit('navigateEdit', member, $event)"/>
           </Td>
           <Td>
             <div class="flex items-center gap-2">
-              <UserAvatar :member-id="member.id" :name="memberDisplayName(member)" size="sm"/>
-              <span class="font-medium">{{ memberDisplayName(member) }}</span>
+              <MemberName :identity="member.identity" size="sm" class="font-medium"/>
               <ErrorBadge v-if="member.profileComplete === false" class="ml-1.5 text-[10px]">{{
                   t('membersList.incomplete')
                 }}</ErrorBadge>
@@ -333,14 +322,14 @@ function onRowClick(member: StationMember) {
           </Td>
           <Td>
             <span
-                v-if="getPrimaryRole(member.id)"
+                v-if="member.userType"
                 class="inline-block rounded-full px-2 py-0.5 text-[10px] font-medium"
                 :class="{
-                  'bg-primary/10 text-primary': getPrimaryRole(member.id) === 'TEAM',
-                  'bg-info/10 text-info-accent': getPrimaryRole(member.id) === 'GUARDIAN',
-                  'bg-bg-light-accent dark:bg-bg-dark-accent text-(--text-muted)': getPrimaryRole(member.id) === 'MEMBER',
+                  'bg-primary/10 text-primary': member.userType === 'TEAM' || member.userType === 'MANAGER',
+                  'bg-info/10 text-info-accent': member.userType === 'GUARDIAN',
+                  'bg-bg-light-accent dark:bg-bg-dark-accent text-(--text-muted)': member.userType === 'MEMBER' || member.userType === 'TRIAL',
                 }"
-            >{{ primaryRoleLabels[getPrimaryRole(member.id)] }}</span>
+            >{{ userTypeLabels[member.userType] ?? member.userType }}</span>
           </Td>
           <Td class="text-(--text-muted) text-xs">
             {{ member.email || '–' }}

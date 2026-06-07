@@ -21,7 +21,7 @@ const panels = [
         label: 'Station',
         appFilter: (r) => !['help-', 'admin-', 'login', 'forgot', 'set-password', 'station-select',
             'apply', 'waitlist-', 'waiting-list', 'home', 'privacy', 'terms', 'reconsent', 'imprint',
-            'patch-notes', 'reset-password', 'public-', 'not-found', 'style', 'helpcenter-']
+            'patch-notes', 'reset-password', 'public-', 'not-found', 'style', 'helpcenter-', 'requirements']
             .some(p => r.name.startsWith(p)),
         helpFilter: (r) => r.name.startsWith('help-') && !r.name.startsWith('help-admin') && !r.name.startsWith('help-cluster'),
         supplementaryHelp: (r) => r.name.startsWith('help-basics') || r.name === 'help-welcome'

@@ -11,7 +11,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import type { ExchangeRequestEntry, ExchangeStatusName, InventoryItem } from '@/api/types'
-import { ExchangeStatus } from '@/api/types'
+import { ExchangeStatus, InventoryTypes, ItemSource } from '@/api/types'
 import { exchanges, inventory, procurement } from '@/api'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 
@@ -51,6 +51,7 @@ async function submitStatusUpdate() {
         name: newItemName.value.trim(),
         internalId: '',
         sizeId: props.request.newSizeId ?? props.request.oldSizeId ?? undefined,
+        itemSource: ItemSource.EXTERNAL,
       })
       exchangedItemId = newItem.id
     }
@@ -105,10 +106,10 @@ async function createProcurementFromExchange() {
             </option>
           </SelectInput>
           <div class="flex gap-2 mt-1">
-            <SecondaryButton :icon="['fas', 'plus']" v-if="request.inventoryType !== 'internal'" @click="createNewItemForExchange = true">
+            <SecondaryButton :icon="['fas', 'plus']" v-if="request.inventoryType !== InventoryTypes.INTERNAL" @click="createNewItemForExchange = true">
               {{ t('exchanges.createNewItem') }}
             </SecondaryButton>
-            <template v-if="availableItems.length === 0">
+            <template v-if="request.inventoryType !== InventoryTypes.EXTERNAL && availableItems.length === 0">
               <span v-if="procurementCreatedForExchange" class="text-xs text-success">
                 <font-awesome-icon :icon="['fas', 'check']" class="mr-1" />
                 {{ t('exchanges.procurementCreated') }}

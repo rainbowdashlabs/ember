@@ -9,12 +9,16 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import TabBar from '@/components/navigation/TabBar.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+import TextInput from '@/components/input/text/TextInput.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
 import THead from '@/components/table/THead.vue'
@@ -38,64 +42,93 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.adminApplications.tabsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Tabs -->
-    <SectionHeader>{{ t('adminApplications.title') }}</SectionHeader>
-    <div class="flex gap-2 border-b border-bg-light-accent dark:border-bg-dark-accent">
-      <SelectionToggleButton :selected="true">
-        {{ t('adminApplications.pending') }}
-      </SelectionToggleButton>
-      <SelectionToggleButton :selected="false">
-        {{ t('adminApplications.all') }}
-      </SelectionToggleButton>
-    </div>
+    <HelpSection :title="t('helpCenter.adminApplications.denyModalTitle')">
+      <p>{{ t('helpCenter.adminApplications.denyModalText') }}</p>
+    </HelpSection>
 
-    <!-- Dummy: Applications table -->
-    <NeutralContainer class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead>
-        <THead>
-          <Th>{{ t('adminApplications.name') }}</Th>
-          <Th>{{ t('adminApplications.email') }}</Th>
-          <Th>{{ t('adminApplications.station') }}</Th>
-          <Th>{{ t('adminApplications.date') }}</Th>
-          <Th>{{ t('adminApplications.status') }}</Th>
-          <th class="px-3 py-2"></th>
-        </THead>
-        </thead>
-        <tbody>
-        <TRow>
-          <Td>
-            <div class="font-medium">Lisa Beispiel</div>
-            <div class="text-xs text-(--text-muted) mt-0.5">Wir möchten unsere Wache digital verwalten.</div>
-          </Td>
-          <Td muted>lisa@beispiel.de</Td>
-          <Td>DLRG Neustadt</Td>
-          <Td muted>12.05.2026</Td>
-          <Td>
-            <SecondaryBadge>{{ t('adminApplications.pendingBadge') }}</SecondaryBadge>
-          </Td>
-          <Td align="right">
-            <div class="flex items-center justify-end gap-1">
-              <PrimaryButton>{{ t('adminApplications.accept') }}</PrimaryButton>
-              <ErrorButton>{{ t('adminApplications.deny') }}</ErrorButton>
-            </div>
-          </Td>
-        </TRow>
-        <TRow>
-          <Td>
-            <div class="font-medium">Tom Muster</div>
-          </Td>
-          <Td muted>tom@muster.de</Td>
-          <Td>DLRG Altstadt</Td>
-          <Td muted>10.05.2026</Td>
-          <Td>
-            <SuccessBadge>{{ t('adminApplications.accepted') }}</SuccessBadge>
-          </Td>
-          <Td></Td>
-        </TRow>
-        </tbody>
-      </table>
-    </NeutralContainer>
+    <!-- Dummy: Applications page -->
+    <HelpSection :title="t('helpCenter.adminApplications.exampleTitle')">
+      <SectionHeader>{{ t('adminApplications.title') }}</SectionHeader>
+
+      <!-- Tabs -->
+      <TabBar model-value="pending" :tabs="[{key: 'pending', label: t('adminApplications.pending')}, {key: 'all', label: t('adminApplications.all')}]" class="mb-4" />
+
+      <!-- Applications table -->
+      <NeutralContainer class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+          <THead>
+            <Th>{{ t('adminApplications.name') }}</Th>
+            <Th>{{ t('adminApplications.email') }}</Th>
+            <Th>{{ t('adminApplications.station') }}</Th>
+            <Th>{{ t('adminApplications.date') }}</Th>
+            <Th>{{ t('adminApplications.status') }}</Th>
+            <th class="px-3 py-2"></th>
+          </THead>
+          </thead>
+          <tbody>
+          <TRow>
+            <Td>
+              <div class="font-medium">Lisa Beispiel</div>
+              <div class="text-xs text-(--text-muted) mt-0.5">Wir moechten unsere Wache digital verwalten.</div>
+            </Td>
+            <Td muted>lisa@beispiel.de</Td>
+            <Td>DLRG Neustadt</Td>
+            <Td muted>12.05.2026</Td>
+            <Td>
+              <SecondaryBadge>{{ t('adminApplications.pendingBadge') }}</SecondaryBadge>
+            </Td>
+            <Td align="right">
+              <div class="flex items-center justify-end gap-1">
+                <PrimaryButton>{{ t('adminApplications.accept') }}</PrimaryButton>
+                <ErrorButton>{{ t('adminApplications.deny') }}</ErrorButton>
+              </div>
+            </Td>
+          </TRow>
+          <TRow>
+            <Td>
+              <div class="font-medium">Tom Muster</div>
+            </Td>
+            <Td muted>tom@muster.de</Td>
+            <Td>DLRG Altstadt</Td>
+            <Td muted>10.05.2026</Td>
+            <Td>
+              <SuccessBadge>{{ t('adminApplications.accepted') }}</SuccessBadge>
+            </Td>
+            <Td></Td>
+          </TRow>
+          <TRow>
+            <Td>
+              <div class="font-medium">Anna Schmidt</div>
+            </Td>
+            <Td muted>anna@schmidt.de</Td>
+            <Td>DLRG Westhafen</Td>
+            <Td muted>08.05.2026</Td>
+            <Td>
+              <ErrorBadge>{{ t('adminApplications.denied') }}</ErrorBadge>
+            </Td>
+            <Td>
+              <div class="text-xs text-(--text-muted)">Doppelter Antrag</div>
+            </Td>
+          </TRow>
+          </tbody>
+        </table>
+      </NeutralContainer>
+
+      <!-- Deny modal snapshot -->
+      <NeutralContainer class="mt-4 space-y-4">
+        <SectionHeader>{{ t('adminApplications.denyTitle') }}</SectionHeader>
+        <p class="text-sm text-(--text-muted)">Lisa Beispiel — DLRG Neustadt</p>
+        <div class="space-y-1">
+          <FieldLabel>{{ t('adminApplications.denyReasonLabel') }}</FieldLabel>
+          <TextInput :model-value="''" :placeholder="t('adminApplications.denyReasonPlaceholder')" />
+        </div>
+        <div class="flex justify-end gap-3">
+          <SecondaryButton>{{ t('common.cancel') }}</SecondaryButton>
+          <ErrorButton>{{ t('adminApplications.deny') }}</ErrorButton>
+        </div>
+      </NeutralContainer>
+    </HelpSection>
 
     <HelpTip>{{ t('helpCenter.adminApplications.tip') }}</HelpTip>
   </HelpArticle>

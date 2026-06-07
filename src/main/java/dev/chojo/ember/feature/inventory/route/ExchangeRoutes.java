@@ -6,9 +6,10 @@
 package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.ExchangeLog;
 import dev.chojo.ember.feature.inventory.entity.ExchangeRequest;
@@ -19,6 +20,7 @@ import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ExchangeExportService;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -53,6 +55,7 @@ public class ExchangeRoutes implements Routes {
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
     private final InventoryRepository inventoryRepository;
+    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public ExchangeRoutes(
@@ -60,23 +63,25 @@ public class ExchangeRoutes implements Routes {
             ExchangeExportService exchangeExportService,
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
-            InventoryRepository inventoryRepository) {
+            InventoryRepository inventoryRepository,
+            MemberIdentityFactory memberIdentityFactory) {
         this.exchangeService = exchangeService;
         this.exchangeExportService = exchangeExportService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.inventoryRepository = inventoryRepository;
+        this.memberIdentityFactory = memberIdentityFactory;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/exchanges", this::list, Roles.LOGIN);
-        routes.get(prefix + "/exchanges/{id}", this::get, Roles.LOGIN);
-        routes.get(prefix + "/exchanges/{id}/logs", this::logs, Roles.LOGIN);
-        routes.post(prefix + "/exchanges", this::create, Roles.LOGIN);
-        routes.put(prefix + "/exchanges/{id}/status", this::updateStatus, Roles.INVENTORY_MANAGER);
-        routes.delete(prefix + "/exchanges/{id}", this::delete, Roles.INVENTORY_MANAGER);
-        routes.post(prefix + "/exchanges/export", this::exportPdf, Roles.INVENTORY_MANAGER);
+        routes.get(prefix + "/exchanges", this::list, StationPermission.LOGIN);
+        routes.get(prefix + "/exchanges/{id}", this::get, StationPermission.LOGIN);
+        routes.get(prefix + "/exchanges/{id}/logs", this::logs, StationPermission.LOGIN);
+        routes.post(prefix + "/exchanges", this::create, StationPermission.LOGIN);
+        routes.put(prefix + "/exchanges/{id}/status", this::updateStatus, StationPermission.INVENTORY_EXCHANGE);
+        routes.delete(prefix + "/exchanges/{id}", this::delete, StationPermission.INVENTORY_EXCHANGE);
+        routes.post(prefix + "/exchanges/export", this::exportPdf, StationPermission.INVENTORY_EXCHANGE);
     }
 
     @OpenApi(
@@ -88,11 +93,11 @@ public class ExchangeRoutes implements Routes {
     private void list(Context ctx) {
         UserSession session = UserSession.from(ctx);
         List<ExchangeRequest> requests;
-        if (session.hasRole(Roles.INVENTORY_MANAGER)) {
+        if (session.hasPermission(StationPermission.INVENTORY_EXCHANGE)) {
             requests = exchangeService.findByStation(session.stationId());
         } else {
             var own = exchangeService.findByMember(session.member().id());
-            if (session.hasRole(Roles.GUARDIAN)) {
+            if (session.hasPermission(StationPermission.MEMBER_GUARDIAN)) {
                 var managed =
                         stationMemberRepository.findManaged(session.member().id());
                 var allIds = new HashSet<Integer>();
@@ -157,7 +162,7 @@ public class ExchangeRoutes implements Routes {
         int targetMemberId = callerMemberId;
         if (request.memberId() != null && request.memberId() != callerMemberId) {
             // Verify caller manages the target member or has inventory management
-            if (!session.hasRole(Roles.INVENTORY_MANAGER)) {
+            if (!session.hasPermission(StationPermission.INVENTORY_EXCHANGE)) {
                 boolean manages = stationMemberRepository.findManagers(request.memberId()).stream()
                         .anyMatch(m -> m.id() == callerMemberId);
                 if (!manages) {
@@ -286,6 +291,7 @@ public class ExchangeRoutes implements Routes {
                 .flatMap(m -> accountRepository.findById(m.accountId()))
                 .map(a -> (a.firstName() + " " + a.lastName()).trim())
                 .orElse("");
+        MemberIdentity memberIdentity = memberIdentityFactory.local(exchange.stationId(), exchange.memberId());
         Inventory inventory =
                 inventoryRepository.findById(exchange.inventoryId()).orElse(null);
         String inventoryName = inventory != null ? inventory.name() : "";
@@ -294,6 +300,7 @@ public class ExchangeRoutes implements Routes {
                 exchange.id(),
                 exchange.memberId(),
                 memberName,
+                memberIdentity,
                 exchange.itemId(),
                 exchange.inventoryId(),
                 inventoryName,
@@ -331,6 +338,7 @@ public class ExchangeRoutes implements Routes {
             int id,
             int memberId,
             String memberName,
+            MemberIdentity memberIdentity,
             Integer itemId,
             int inventoryId,
             String inventoryName,

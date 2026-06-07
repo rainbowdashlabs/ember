@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemHistory;
 import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
+import dev.chojo.ember.feature.inventory.entity.InventorySummary;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import jakarta.inject.Inject;
@@ -41,6 +42,10 @@ public class InventoryService {
      */
     public List<Inventory> findByStation(int stationId) {
         return inventoryRepository.findByStation(stationId);
+    }
+
+    public List<InventorySummary> findSummaries(int stationId) {
+        return inventoryRepository.findSummariesByStation(stationId);
     }
 
     public List<InventoryItem> findAllItemsByStation(int stationId) {
@@ -190,6 +195,10 @@ public class InventoryService {
         return inventoryRepository.findItemById(id);
     }
 
+    public Optional<InventoryItem> findByInternalId(int stationId, String internalId) {
+        return inventoryRepository.findByInternalId(stationId, internalId);
+    }
+
     /**
      * Creates a new inventory item with the default item source.
      *
@@ -337,13 +346,13 @@ public class InventoryService {
      * Creates a new inventory requirement.
      *
      * @param inventoryId the inventory ID
-     * @param roleId      the role ID (0 if not role-based)
+     * @param userType    the user type name, or {@code null} if not user-type-based
      * @param groupId     the group ID (0 if not group-based)
      * @param quantity    the required quantity
      * @return the created requirement
      */
-    public InventoryRequirement createRequirement(int inventoryId, int roleId, int groupId, int quantity) {
-        return inventoryRepository.createRequirement(inventoryId, roleId, groupId, quantity);
+    public InventoryRequirement createRequirement(int inventoryId, String userType, int groupId, int quantity) {
+        return inventoryRepository.createRequirement(inventoryId, userType, groupId, quantity);
     }
 
     /**

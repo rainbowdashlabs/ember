@@ -7,7 +7,6 @@ package dev.chojo.ember.event.handlers;
 
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.MentionedInComment;
-import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -36,9 +35,14 @@ public class MentionedInCommentHandler implements DomainEventHandler<MentionedIn
 
     @Override
     public void handle(MentionedInComment event) {
-        var link = CommentEntityType.NEWS.equals(event.entityType())
-                ? new NotificationData.NotificationLink("news-detail", Map.of("id", event.entityId()))
-                : new NotificationData.NotificationLink("events");
+        var link =
+                switch (event.entityType()) {
+                    case NEWS -> new NotificationData.NotificationLink("news-detail", Map.of("id", event.entityId()));
+                    case BOARD_TICKET ->
+                        new NotificationData.NotificationLink("ticket-detail", Map.of("ticketId", event.entityId()));
+                    case KB -> new NotificationData.NotificationLink("kb-file", Map.of("id", event.entityId()));
+                    case EVENT -> new NotificationData.NotificationLink("events");
+                };
         var data = NotificationData.of(
                 new NotificationParams.NewsComment("", event.authorName(), "mentioned you in a comment"), link);
         notificationService.notifyIfAbsent(event.mentionedMemberId(), NotificationType.NEWS_COMMENT, data);

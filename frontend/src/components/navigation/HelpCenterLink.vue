@@ -7,11 +7,13 @@
 import {useRoute, useRouter} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import {computed} from 'vue'
-import EmberLogo from '@/components/display/EmberLogo.vue'
+import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
+import { emberLogoFaq } from '@/composables/useEmberLogo'
 
 const route = useRoute()
 const router = useRouter()
 const {t} = useI18n()
+const faqLogo = emberLogoFaq()
 
 /**
  * Explicit overrides for routes where the help page name differs from
@@ -75,7 +77,7 @@ const helpRoute = computed(() => {
       class="shrink-0 inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-primary transition-colors"
       target="_blank"
   >
-    <EmberLogo base="NoBG_NoGlow_FAQ" blink-base="NoBG_NoGlow_FAQ_Blink" :pixel-size="128" size="w-6 h-6 shrink-0" :blink="true" />
+    <LayeredEmberLogo :layers="faqLogo.layers" :active-layers="faqLogo.activeLayers" :auto-blink="true" size="w-6 h-6 shrink-0" :pixel-size="64" />
     <span class="hidden sm:inline">{{ t('helpCenter.link') }}</span>
   </router-link>
 </template>

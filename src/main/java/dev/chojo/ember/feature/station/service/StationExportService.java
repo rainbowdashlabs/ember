@@ -38,18 +38,30 @@ public class StationExportService {
             "logo",
             "disabledModules",
             "members",
-            "memberRoles",
+            "memberUserTypes",
+            "memberPermissions",
             "groups",
             "groupMembers",
             "tags",
             "tagMembers",
             "managerRelations",
+            "memberAbsences",
             "profileFields",
             "profileFieldValues",
             "eventCategories",
             "attendanceTemplates",
             "attendanceTemplateFields",
+            "attendanceTemplateGroups",
+            "attendanceSessions",
+            "attendanceSessionFields",
+            "attendanceEntries",
+            "attendanceReportPresets",
             "events",
+            "eventRegistrations",
+            "eventComments",
+            "eventFields",
+            "eventTemplates",
+            "eventBreaks",
             "inventories",
             "inventorySizes",
             "inventoryItems",
@@ -58,7 +70,50 @@ public class StationExportService {
             "kbFolders",
             "kbFiles",
             "kbFileContent",
-            "kbFileVersions");
+            "kbFileVersions",
+            "news",
+            "newsComments",
+            "boards",
+            "boardLanes",
+            "boardFields",
+            "boardLabels",
+            "boardTickets",
+            "boardTicketComments",
+            "boardTicketLabels",
+            "boardTicketChecklist",
+            "boardTicketLinks",
+            "boardTicketWeblinks",
+            "boardViewAccess",
+            "boardEditAccess",
+            "lostAndFound",
+            "waitingLists",
+            "waitingListFields",
+            "waitingListEntries",
+            "entityNotes",
+            "entityNoteVersions",
+            "equipmentExchangeRequests",
+            "equipmentExchangeLogs",
+            "equipmentProcurements",
+            "formResponses",
+            "formAnswers",
+            "formRestrictions",
+            "eventRestrictions",
+            "eventLayouts",
+            "eventLayoutFields",
+            "eventTemplateFields",
+            "eventTemplateRestrictions",
+            "kbTags",
+            "kbFileTags",
+            "kbFolderTags",
+            "kbAccessRestrictions",
+            "kbComments",
+            "inventoryChecks",
+            "inventoryCheckItems",
+            "inventoryItemHistory",
+            "inventoryRequirements",
+            "newsRestrictions",
+            "userSettings",
+            "userNotificationSettings");
 
     private static final SecureRandom RANDOM = new SecureRandom();
     private final StationRepository stationRepository;
@@ -160,11 +215,19 @@ public class StationExportService {
                                 stationId,
                                 offset,
                                 limit));
-            case "memberRoles" ->
+            case "memberUserTypes" ->
                 data.put(
-                        "memberRoles",
+                        "memberUserTypes",
                         queryRows(
-                                "SELECT smr.member_id, r.name AS role_name FROM station_member_role smr JOIN role r ON r.id = smr.role_id JOIN station_member sm ON sm.id = smr.member_id WHERE sm.station_id = :id",
+                                "SELECT sm.id AS member_id, sm.user_type FROM station_member sm WHERE sm.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "memberPermissions" ->
+                data.put(
+                        "memberPermissions",
+                        queryRows(
+                                "SELECT smp.member_id, sp.name AS permission_name FROM station_member_permission smp JOIN station_permission sp ON sp.id = smp.permission_id JOIN station_member sm ON sm.id = smp.member_id WHERE sm.station_id = :id",
                                 stationId,
                                 offset,
                                 limit));
@@ -172,7 +235,10 @@ public class StationExportService {
                 data.put(
                         "groups",
                         queryRows(
-                                "SELECT id, name FROM member_group WHERE station_id = :id", stationId, offset, limit));
+                                "SELECT id, name, color, position FROM member_group WHERE station_id = :id ORDER BY position DESC, name",
+                                stationId,
+                                offset,
+                                limit));
             case "groupMembers" ->
                 data.put(
                         "groupMembers",
@@ -184,7 +250,11 @@ public class StationExportService {
             case "tags" ->
                 data.put(
                         "tags",
-                        queryRows("SELECT id, name FROM user_tag WHERE station_id = :id", stationId, offset, limit));
+                        queryRows(
+                                "SELECT id, name, color, visible, position FROM user_tag WHERE station_id = :id ORDER BY position DESC, name",
+                                stationId,
+                                offset,
+                                limit));
             case "tagMembers" ->
                 data.put(
                         "tagMembers",
@@ -221,7 +291,7 @@ public class StationExportService {
                 data.put(
                         "eventCategories",
                         queryRows(
-                                "SELECT id, name, position FROM event_category WHERE station_id = :id ORDER BY position",
+                                "SELECT id, name, position, public, max_shown_events FROM event_category WHERE station_id = :id ORDER BY position",
                                 stationId,
                                 offset,
                                 limit));
@@ -241,11 +311,51 @@ public class StationExportService {
                                 stationId,
                                 offset,
                                 limit));
+            case "attendanceTemplateGroups" ->
+                data.put(
+                        "attendanceTemplateGroups",
+                        queryRows(
+                                "SELECT atg.template_id, atg.group_id FROM attendance_template_group atg JOIN attendance_template at2 ON at2.id = atg.template_id WHERE at2.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "attendanceSessions" ->
+                data.put(
+                        "attendanceSessions",
+                        queryRows(
+                                "SELECT s.id, s.template_id, s.start_time, s.end_time, s.created_at, s.event_id, s.title FROM attendance_session s JOIN attendance_template t ON t.id = s.template_id WHERE t.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "attendanceSessionFields" ->
+                data.put(
+                        "attendanceSessionFields",
+                        queryRows(
+                                "SELECT sf.session_id, sf.field_id, sf.value FROM attendance_session_field sf JOIN attendance_session s ON s.id = sf.session_id JOIN attendance_template t ON t.id = s.template_id WHERE t.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "attendanceEntries" ->
+                data.put(
+                        "attendanceEntries",
+                        queryRows(
+                                "SELECT ae.id, ae.session_id, ae.member_id, ae.check_in, ae.check_out, ae.status, ae.source FROM attendance_entry ae JOIN attendance_session s ON s.id = ae.session_id JOIN attendance_template t ON t.id = s.template_id WHERE t.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "attendanceReportPresets" ->
+                data.put(
+                        "attendanceReportPresets",
+                        queryRows(
+                                "SELECT id, name, role_name, group_id, period, rounding FROM attendance_report_preset WHERE station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
             case "events" ->
                 data.put(
                         "events",
                         queryRows(
-                                "SELECT id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id FROM station_event WHERE station_id = :id",
+                                "SELECT id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, restriction_mode, public, registration_limit, cancelled, cancelled_at, cancel_reason, min_registrations, threshold_date FROM station_event WHERE station_id = :id",
                                 stationId,
                                 offset,
                                 limit));
@@ -277,7 +387,7 @@ public class StationExportService {
                 data.put(
                         "forms",
                         queryRows(
-                                "SELECT id, title, description, status, shuffle_questions, allow_edit, start_at, end_at, closed_at, created_by, created_at, updated_at FROM form WHERE station_id = :id",
+                                "SELECT id, title, description, status, shuffle_questions, allow_edit, start_at, end_at, closed_at, created_by, created_at, updated_at, restriction_mode, forced FROM form WHERE station_id = :id",
                                 stationId,
                                 offset,
                                 limit));
@@ -325,6 +435,391 @@ public class StationExportService {
                         "kbFileVersions",
                         queryRows(
                                 "SELECT kfv.file_id, kfv.patch, kfv.is_full, kfv.version, kfv.created_at FROM kb_file_version kfv JOIN kb_file kf ON kf.id = kfv.file_id WHERE kf.station_id = :id ORDER BY kfv.file_id, kfv.version",
+                                stationId,
+                                offset,
+                                limit));
+            case "memberAbsences" ->
+                data.put(
+                        "memberAbsences",
+                        queryRows(
+                                "SELECT ma.member_id, ma.absent_from, ma.absent_until, ma.reason, ma.created_at, ma.created_by FROM member_absence ma JOIN station_member sm ON sm.id = ma.member_id WHERE sm.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "eventRegistrations" ->
+                data.put(
+                        "eventRegistrations",
+                        queryRows(
+                                "SELECT er.event_id, er.member_id, er.event_date, er.status, er.created_by, er.created_at FROM event_registration er JOIN station_event se ON se.id = er.event_id WHERE se.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "eventComments" ->
+                data.put(
+                        "eventComments",
+                        queryRows(
+                                "SELECT ec.id, ec.event_id, ec.parent_id, ec.author_station_uid, ec.author_member_uid, ec.content, ec.deleted, ec.created_at, ec.updated_at FROM event_comment ec JOIN station_event se ON se.id = ec.event_id WHERE se.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "eventFields" ->
+                data.put(
+                        "eventFields",
+                        queryRows(
+                                "SELECT ef.id, ef.event_id, ef.name, ef.value, ef.position, ef.field_type, ef.config, ef.overview, ef.attendance_field_id, ef.public FROM event_field ef JOIN station_event se ON se.id = ef.event_id WHERE se.station_id = :id ORDER BY ef.position",
+                                stationId,
+                                offset,
+                                limit));
+            case "eventTemplates" ->
+                data.put(
+                        "eventTemplates",
+                        queryRows(
+                                "SELECT id, name, title, description, category_id, event_type, requires_registration, registration_deadline_offset, requires_confirmation, restriction_mode, attendance_template_id, registration_limit FROM event_template WHERE station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "eventBreaks" ->
+                data.put(
+                        "eventBreaks",
+                        queryRows(
+                                "SELECT id, name, start_date, end_date FROM station_event_break WHERE station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "news" ->
+                data.put(
+                        "news",
+                        queryRows(
+                                "SELECT id, title, content_markdown, content_html, author_station_uid, author_member_uid, published_at, created_at, restriction_mode FROM news WHERE station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "newsComments" ->
+                data.put(
+                        "newsComments",
+                        queryRows(
+                                "SELECT nc.id, nc.news_id, nc.parent_id, nc.author_station_uid, nc.author_member_uid, nc.content, nc.deleted, nc.created_at FROM news_comment nc JOIN news n ON n.id = nc.news_id WHERE n.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "boards" ->
+                data.put(
+                        "boards",
+                        queryRows(
+                                "SELECT id, uid, name, description, short_key, hide_done_after_days, ticket_counter, backlog_lane_id, created_at FROM board WHERE station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "boardLanes" ->
+                data.put(
+                        "boardLanes",
+                        queryRows(
+                                "SELECT bl.id, bl.board_id, bl.name, bl.color, bl.position FROM board_lane bl JOIN board b ON b.id = bl.board_id WHERE b.station_id = :id ORDER BY bl.position",
+                                stationId,
+                                offset,
+                                limit));
+            case "boardFields" ->
+                data.put(
+                        "boardFields",
+                        queryRows(
+                                "SELECT bf.id, bf.board_id, bf.name, bf.field_type, bf.config, bf.position FROM board_field bf JOIN board b ON b.id = bf.board_id WHERE b.station_id = :id ORDER BY bf.position",
+                                stationId,
+                                offset,
+                                limit));
+            case "boardLabels" ->
+                data.put(
+                        "boardLabels",
+                        queryRows(
+                                "SELECT bl.id, bl.board_id, bl.name, bl.color FROM board_label bl JOIN board b ON b.id = bl.board_id WHERE b.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "boardTickets" ->
+                data.put(
+                        "boardTickets",
+                        queryRows(
+                                "SELECT bt.id, bt.board_id, bt.lane_id, bt.ticket_number, bt.title, bt.description, bt.assignee_station_uid, bt.assignee_member_uid, bt.priority, bt.due_date, bt.position, bt.creator_station_uid, bt.creator_member_uid, bt.created_at, bt.updated_at, bt.lane_entered_at FROM board_ticket bt JOIN board b ON b.id = bt.board_id WHERE b.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "boardTicketComments" ->
+                data.put(
+                        "boardTicketComments",
+                        queryRows(
+                                "SELECT btc.id, btc.ticket_id, btc.parent_id, btc.author_station_uid, btc.author_member_uid, btc.content, btc.deleted, btc.created_at, btc.updated_at FROM board_ticket_comment btc JOIN board_ticket bt ON bt.id = btc.ticket_id JOIN board b ON b.id = bt.board_id WHERE b.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "boardTicketLabels" ->
+                data.put(
+                        "boardTicketLabels",
+                        queryRows(
+                                "SELECT btl.ticket_id, btl.label_id FROM board_ticket_label btl JOIN board_ticket bt ON bt.id = btl.ticket_id JOIN board b ON b.id = bt.board_id WHERE b.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "boardTicketChecklist" ->
+                data.put(
+                        "boardTicketChecklist",
+                        queryRows(
+                                "SELECT bci.id, bci.ticket_id, bci.title, bci.checked, bci.position FROM board_ticket_checklist_item bci JOIN board_ticket bt ON bt.id = bci.ticket_id JOIN board b ON b.id = bt.board_id WHERE b.station_id = :id ORDER BY bci.position",
+                                stationId,
+                                offset,
+                                limit));
+            case "boardTicketLinks" ->
+                data.put(
+                        "boardTicketLinks",
+                        queryRows(
+                                "SELECT btl.ticket_id, btl.linked_ticket_id, btl.link_type FROM board_ticket_link btl JOIN board_ticket bt ON bt.id = btl.ticket_id JOIN board b ON b.id = bt.board_id WHERE b.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "boardTicketWeblinks" ->
+                data.put(
+                        "boardTicketWeblinks",
+                        queryRows(
+                                "SELECT btw.id, btw.ticket_id, btw.url, btw.title, btw.position FROM board_ticket_weblink btw JOIN board_ticket bt ON bt.id = btw.ticket_id JOIN board b ON b.id = bt.board_id WHERE b.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "boardViewAccess" ->
+                data.put(
+                        "boardViewAccess",
+                        queryRows(
+                                "SELECT bva.board_id, bva.user_type, bva.group_id, bva.tag_id FROM board_view_access bva JOIN board b ON b.id = bva.board_id WHERE b.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "boardEditAccess" ->
+                data.put(
+                        "boardEditAccess",
+                        queryRows(
+                                "SELECT bea.board_id, bea.user_type, bea.group_id, bea.tag_id FROM board_edit_access bea JOIN board b ON b.id = bea.board_id WHERE b.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "lostAndFound" ->
+                data.put(
+                        "lostAndFound",
+                        queryRows(
+                                "SELECT id, description, found_at, claimed_by, claimed_at, created_by, created_at FROM lost_and_found_item WHERE station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "waitingLists" ->
+                data.put(
+                        "waitingLists",
+                        queryRows(
+                                "SELECT id, name, description, scoring_formula, confirm_interval_days, visible_fields, testing_group_id, join_group_id, join_user_type, attendance_threshold, created_at FROM waiting_list WHERE station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "waitingListFields" ->
+                data.put(
+                        "waitingListFields",
+                        queryRows(
+                                "SELECT wlf.id, wlf.list_id, wlf.name, wlf.field_type, wlf.config, wlf.position, wlf.required FROM waiting_list_field wlf JOIN waiting_list wl ON wl.id = wlf.list_id WHERE wl.station_id = :id ORDER BY wlf.position",
+                                stationId,
+                                offset,
+                                limit));
+            case "waitingListEntries" ->
+                data.put(
+                        "waitingListEntries",
+                        queryRows(
+                                "SELECT wle.id, wle.list_id, wle.firstname, wle.lastname, wle.parent_name, wle.email, wle.access_token, wle.status, wle.confirmed_at, wle.reminder_sent_at, wle.created_at, wle.notes, wle.member_id, wle.invited_at, wle.testing_at, wle.joined_at, wle.withdrawn_at, wle.attendance_count FROM waiting_list_entry wle JOIN waiting_list wl ON wl.id = wle.list_id WHERE wl.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "entityNotes" ->
+                data.put(
+                        "entityNotes",
+                        queryRows(
+                                "SELECT id, entity_type, entity_id, content, updated_by, updated_at FROM entity_note WHERE station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "entityNoteVersions" ->
+                data.put(
+                        "entityNoteVersions",
+                        queryRows(
+                                "SELECT env.id, env.note_id, env.diff_patch, env.author_id, env.created_at FROM entity_note_version env JOIN entity_note en ON en.id = env.note_id WHERE en.station_id = :id ORDER BY env.note_id, env.id",
+                                stationId,
+                                offset,
+                                limit));
+            case "equipmentExchangeRequests" ->
+                data.put(
+                        "equipmentExchangeRequests",
+                        queryRows(
+                                "SELECT id, member_id, item_id, inventory_id, old_size_id, new_size_id, exchanged_item_id, status, reason, created_by, created_at, updated_at FROM equipment_exchange_request WHERE station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "equipmentExchangeLogs" ->
+                data.put(
+                        "equipmentExchangeLogs",
+                        queryRows(
+                                "SELECT eel.id, eel.request_id, eel.old_status, eel.new_status, eel.changed_by, eel.changed_at, eel.note FROM equipment_exchange_log eel JOIN equipment_exchange_request eer ON eer.id = eel.request_id WHERE eer.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "equipmentProcurements" ->
+                data.put(
+                        "equipmentProcurements",
+                        queryRows(
+                                "SELECT id, inventory_id, member_id, size_id, notes, requested_at, fulfilled_at FROM equipment_procurement WHERE station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "formResponses" ->
+                data.put(
+                        "formResponses",
+                        queryRows(
+                                "SELECT fr.id, fr.form_id, fr.member_id, fr.submitted_by, fr.submitted_at, fr.updated_at FROM form_response fr JOIN form f ON f.id = fr.form_id WHERE f.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "formAnswers" ->
+                data.put(
+                        "formAnswers",
+                        queryRows(
+                                "SELECT fa.id, fa.response_id, fa.question_id, fa.value FROM form_answer fa JOIN form_response fr ON fr.id = fa.response_id JOIN form f ON f.id = fr.form_id WHERE f.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "formRestrictions" ->
+                data.put(
+                        "formRestrictions",
+                        queryRows(
+                                "SELECT frs.id, frs.form_id, frs.user_type, frs.group_id, frs.tag_id, frs.member_id FROM form_restriction frs JOIN form f ON f.id = frs.form_id WHERE f.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "eventRestrictions" ->
+                data.put(
+                        "eventRestrictions",
+                        queryRows(
+                                "SELECT er.id, er.event_id, er.user_type, er.group_id, er.tag_id, er.member_id FROM event_restriction er JOIN station_event se ON se.id = er.event_id WHERE se.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "eventLayouts" ->
+                data.put(
+                        "eventLayouts",
+                        queryRows(
+                                "SELECT id, name FROM event_layout WHERE station_id = :id", stationId, offset, limit));
+            case "eventLayoutFields" ->
+                data.put(
+                        "eventLayoutFields",
+                        queryRows(
+                                "SELECT elf.id, elf.layout_id, elf.name, elf.field_type, elf.config, elf.position, elf.overview, elf.attendance_field_id FROM event_layout_field elf JOIN event_layout el ON el.id = elf.layout_id WHERE el.station_id = :id ORDER BY elf.position",
+                                stationId,
+                                offset,
+                                limit));
+            case "eventTemplateFields" ->
+                data.put(
+                        "eventTemplateFields",
+                        queryRows(
+                                "SELECT etf.id, etf.template_id, etf.name, etf.field_type, etf.config, etf.position, etf.overview, etf.public, etf.attendance_field_id FROM event_template_field etf JOIN event_template et ON et.id = etf.template_id WHERE et.station_id = :id ORDER BY etf.position",
+                                stationId,
+                                offset,
+                                limit));
+            case "eventTemplateRestrictions" ->
+                data.put(
+                        "eventTemplateRestrictions",
+                        queryRows(
+                                "SELECT etr.template_id, etr.user_type FROM event_template_restriction etr JOIN event_template et ON et.id = etr.template_id WHERE et.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "kbTags" ->
+                data.put(
+                        "kbTags",
+                        queryRows("SELECT id, name FROM kb_tag WHERE station_id = :id", stationId, offset, limit));
+            case "kbFileTags" ->
+                data.put(
+                        "kbFileTags",
+                        queryRows(
+                                "SELECT kft.file_id, kft.tag_id FROM kb_file_tag kft JOIN kb_file kf ON kf.id = kft.file_id WHERE kf.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "kbFolderTags" ->
+                data.put(
+                        "kbFolderTags",
+                        queryRows(
+                                "SELECT kfot.folder_id, kfot.tag_id FROM kb_folder_tag kfot JOIN kb_folder kfo ON kfo.id = kfot.folder_id WHERE kfo.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "kbAccessRestrictions" ->
+                data.put(
+                        "kbAccessRestrictions",
+                        queryRows(
+                                "SELECT kar.id, kar.folder_id, kar.file_id, kar.user_type, kar.group_id, kar.tag_id, kar.member_id FROM kb_access_restriction kar LEFT JOIN kb_folder kfo ON kfo.id = kar.folder_id LEFT JOIN kb_file kf ON kf.id = kar.file_id WHERE kfo.station_id = :id OR kf.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "kbComments" ->
+                data.put(
+                        "kbComments",
+                        queryRows(
+                                "SELECT kc.id, kc.file_id, kc.parent_id, kc.author_station_uid, kc.author_member_uid, kc.content, kc.deleted, kc.created_at, kc.updated_at FROM kb_comment kc JOIN kb_file kf ON kf.id = kc.file_id WHERE kf.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "inventoryChecks" ->
+                data.put(
+                        "inventoryChecks",
+                        queryRows(
+                                "SELECT id, member_id, checked_by, checked_at FROM inventory_check WHERE station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "inventoryCheckItems" ->
+                data.put(
+                        "inventoryCheckItems",
+                        queryRows(
+                                "SELECT ici.id, ici.check_id, ici.item_id, ici.inventory_id, ici.result, ici.note FROM inventory_check_item ici JOIN inventory_check ic ON ic.id = ici.check_id WHERE ic.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "inventoryItemHistory" ->
+                data.put(
+                        "inventoryItemHistory",
+                        queryRows(
+                                "SELECT iih.id, iih.item_id, iih.member_id, iih.member_name, iih.given_out, iih.returned FROM inventory_item_history iih JOIN inventory_item ii ON ii.id = iih.item_id JOIN inventory i ON i.id = ii.inventory_id WHERE i.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "inventoryRequirements" ->
+                data.put(
+                        "inventoryRequirements",
+                        queryRows(
+                                "SELECT ir.id, ir.inventory_id, ir.user_type, ir.group_id, ir.quantity, ir.position FROM inventory_requirement ir JOIN inventory i ON i.id = ir.inventory_id WHERE i.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "newsRestrictions" ->
+                data.put(
+                        "newsRestrictions",
+                        queryRows(
+                                "SELECT nr.id, nr.news_id, nr.user_type, nr.group_id, nr.tag_id, nr.member_id FROM news_restriction nr JOIN news n ON n.id = nr.news_id WHERE n.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "userSettings" ->
+                data.put(
+                        "userSettings",
+                        queryRows(
+                                "SELECT us.member_id, us.email_enabled, us.theme, us.dark_mode, us.feel FROM user_settings us JOIN station_member sm ON sm.id = us.member_id WHERE sm.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "userNotificationSettings" ->
+                data.put(
+                        "userNotificationSettings",
+                        queryRows(
+                                "SELECT uns.member_id, uns.notification_type, uns.app_enabled, uns.email_enabled, uns.feed_enabled FROM user_notification_settings uns JOIN station_member sm ON sm.id = uns.member_id WHERE sm.station_id = :id",
                                 stationId,
                                 offset,
                                 limit));

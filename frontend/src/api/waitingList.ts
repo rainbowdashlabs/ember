@@ -29,7 +29,7 @@ export async function create(data: {
     confirmIntervalDays?: number
     testingGroupId?: number | null
     joinGroupId?: number | null
-    joinRoleId?: number | null
+
     attendanceThreshold?: number
 }): Promise<WaitingList> {
     const res = await client.post<WaitingList>('/waiting-lists', data)
@@ -48,7 +48,7 @@ export async function update(id: number, data: {
     confirmIntervalDays?: number
     testingGroupId?: number | null
     joinGroupId?: number | null
-    joinRoleId?: number | null
+
     attendanceThreshold?: number
 }): Promise<WaitingList> {
     const res = await client.put<WaitingList>(`/waiting-lists/${id}`, data)
@@ -108,12 +108,12 @@ export async function listEntries(listId: number): Promise<WaitingListEntryWithS
     return res.data
 }
 
-export async function createEntry(listId: number, data: { firstname: string; lastname?: string; parentName?: string; email: string; values?: Record<number, string>; notes?: string }): Promise<WaitingListEntry> {
+export async function createEntry(listId: number, data: { firstname: string; lastname?: string; guardians?: { name: string; email: string; phone: string }[]; values?: Record<number, string>; notes?: string }): Promise<WaitingListEntry> {
     const res = await client.post<WaitingListEntry>(`/waiting-lists/${listId}/entries`, data)
     return res.data
 }
 
-export async function updateEntry(listId: number, entryId: number, data: { firstname: string; lastname?: string; parentName?: string; email: string; values?: Record<number, string>; notes?: string }): Promise<WaitingListEntry> {
+export async function updateEntry(listId: number, entryId: number, data: { firstname: string; lastname?: string; guardians?: { name: string; email: string; phone: string }[]; values?: Record<number, string>; notes?: string }): Promise<WaitingListEntry> {
     const res = await client.put<WaitingListEntry>(`/waiting-lists/${listId}/entries/${entryId}`, data)
     return res.data
 }
@@ -144,9 +144,8 @@ export async function moveToJoined(listId: number, entryId: number): Promise<Wai
     return res.data
 }
 
-export async function withdrawEntry(listId: number, entryId: number): Promise<WaitingListEntry> {
-    const res = await client.post<WaitingListEntry>(`/waiting-lists/${listId}/entries/${entryId}/withdraw`)
-    return res.data
+export async function withdrawEntry(listId: number, entryId: number): Promise<void> {
+    await client.post(`/waiting-lists/${listId}/entries/${entryId}/withdraw`)
 }
 
 // --- Public ---
@@ -156,7 +155,7 @@ export async function getInviteInfo(code: string): Promise<WaitingListInviteInfo
     return res.data
 }
 
-export async function register(data: { inviteCode: string; firstname: string; lastname?: string; parentName?: string; email: string; values?: Record<number, string>; notes?: string }): Promise<{ accessToken: string }> {
+export async function register(data: { inviteCode: string; firstname: string; lastname?: string; guardians?: { name: string; email: string; phone: string }[]; values?: Record<number, string>; notes?: string }): Promise<{ accessToken: string }> {
     const res = await client.post<{ accessToken: string }>('/public/waiting-list/register', data)
     return res.data
 }

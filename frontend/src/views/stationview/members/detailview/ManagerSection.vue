@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -12,7 +12,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
+import SingleSelectDropdown from '@/components/input/select/SingleSelectDropdown.vue'
 import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -21,16 +21,19 @@ import MutedText from '@/components/typography/MutedText.vue'
 
 const { t } = useI18n()
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   managers: StationMember[]
   availableManagers: StationMember[]
   managerValues: Map<number, Map<number, string>>
   managerRoles: Map<number, string[]>
   fields: ProfileField[]
+  readonly?: boolean
   memberDisplayNameFn: (m: StationMember) => string
   getManagerFieldsFn: (mgrId: number) => ProfileField[]
   getManagerFieldValueFn: (mgrId: number, fieldId: number) => unknown
-}>()
+}>(), {
+  readonly: false,
+})
 
 const emit = defineEmits<{
   linkManager: [managerId: number]
@@ -41,6 +44,13 @@ const emit = defineEmits<{
 
 const showLinkManager = ref(false)
 const selectedManagerId = ref('')
+
+const managerOptions = computed(() =>
+    props.availableManagers.map(m => ({
+      value: String(m.id),
+      label: props.memberDisplayNameFn(m),
+    }))
+)
 
 const showCreateManager = ref(false)
 const newMgrFirstName = ref('')
@@ -75,7 +85,7 @@ async function doCreateManager() {
   <NeutralContainer class="space-y-4">
     <div class="flex items-center justify-between">
       <SubHeader class="text-sm">{{ t('memberDetail.managers') }}</SubHeader>
-      <div class="flex items-center gap-2">
+      <div v-if="!readonly" class="flex items-center gap-2">
         <SecondaryButton :icon="['fas', 'link']" @click="showLinkManager = !showLinkManager">
           {{ t('memberDetail.linkManager') }}
         </SecondaryButton>
@@ -96,7 +106,7 @@ async function doCreateManager() {
             <span class="font-semibold">{{ memberDisplayNameFn(mgr) }}</span>
             <MutedText class="ml-2" v-if="mgr.email">{{ mgr.email }}</MutedText>
           </div>
-          <div class="flex items-center gap-2">
+          <div v-if="!readonly" class="flex items-center gap-2">
             <EditButton @click="emit('editManager', mgr.id)" />
             <DeleteButton @click="emit('removeManager', mgr.id)" />
           </div>
@@ -111,13 +121,17 @@ async function doCreateManager() {
     </div>
 
     <!-- Link existing manager -->
-    <div v-if="showLinkManager" class="space-y-2 pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
+    <div v-if="!readonly && showLinkManager" class="space-y-2 pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
       <FieldLabel>{{ t('memberDetail.selectManager') }}</FieldLabel>
       <div class="flex gap-2">
-        <SelectInput v-model="selectedManagerId" class="flex-1">
-          <option value="" disabled>{{ t('memberDetail.selectManagerPlaceholder') }}</option>
-          <option v-for="m in availableManagers" :key="m.id" :value="String(m.id)">{{ memberDisplayNameFn(m) }}</option>
-        </SelectInput>
+        <SingleSelectDropdown
+            :options="managerOptions"
+            :model-value="selectedManagerId"
+            :placeholder="t('memberDetail.selectManagerPlaceholder')"
+            searchable
+            clearable
+            @update:model-value="selectedManagerId = $event"
+        />
         <PrimaryButton :disabled="!selectedManagerId" @click="doLinkManager">
           {{ t('memberDetail.assign') }}
         </PrimaryButton>
@@ -125,7 +139,7 @@ async function doCreateManager() {
     </div>
 
     <!-- Create new manager -->
-    <div v-if="showCreateManager" class="space-y-3 pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
+    <div v-if="!readonly && showCreateManager" class="space-y-3 pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
       <FieldLabel>{{ t('memberDetail.createManagerTitle') }}</FieldLabel>
       <div class="grid gap-3 sm:grid-cols-3">
         <TextInput v-model="newMgrFirstName" :placeholder="t('memberDetail.firstName')" />

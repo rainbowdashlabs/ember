@@ -14,6 +14,7 @@ const props = defineProps<{
   placeholder?: string
   disabled?: boolean
   clearable?: boolean
+  searchable?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -22,6 +23,13 @@ const emit = defineEmits<{
 
 const open = ref(false)
 const containerRef = ref<HTMLElement | null>(null)
+const searchQuery = ref('')
+
+const filteredOptions = computed(() => {
+  if (!props.searchable || !searchQuery.value.trim()) return props.options
+  const q = searchQuery.value.toLowerCase()
+  return props.options.filter(o => o.label.toLowerCase().includes(q))
+})
 
 const selectedLabel = computed(() => {
   const opt = props.options.find(o => o.value === props.modelValue)
@@ -31,11 +39,12 @@ const selectedLabel = computed(() => {
 const hasSelection = computed(() => props.modelValue !== '' && props.options.some(o => o.value === props.modelValue))
 
 const groupedOptions = computed(() => {
-  const hasGroups = props.options.some(o => o.group)
-  if (!hasGroups) return [{group: undefined as string | undefined, options: props.options}]
+  const opts = filteredOptions.value
+  const hasGroups = opts.some(o => o.group)
+  if (!hasGroups) return [{group: undefined as string | undefined, options: opts}]
 
   const map = new Map<string | undefined, SelectOption[]>()
-  for (const opt of props.options) {
+  for (const opt of opts) {
     const key = opt.group
     if (!map.has(key)) map.set(key, [])
     map.get(key)!.push(opt)
@@ -56,6 +65,7 @@ function clear() {
 function onClickOutside(e: MouseEvent) {
   if (containerRef.value && !containerRef.value.contains(e.target as Node)) {
     open.value = false
+    searchQuery.value = ''
   }
 }
 
@@ -87,6 +97,17 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
         <font-awesome-icon :icon="['fas', 'xmark']" class="h-4 w-4" />
         <span>Auswahl aufheben</span>
       </button>
+
+      <!-- Search -->
+      <div v-if="searchable" class="px-2 py-1.5 border-b border-bg-light-accent dark:border-bg-dark-accent">
+        <input
+            v-model="searchQuery"
+            type="text"
+            class="w-full px-2 py-1 text-sm rounded border border-bg-light-accent dark:border-bg-dark-accent bg-transparent focus:outline-none focus:border-primary"
+            placeholder="Suche…"
+            @click.stop
+        />
+      </div>
 
       <!-- Options -->
       <div class="overflow-y-auto">

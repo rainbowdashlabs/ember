@@ -21,14 +21,14 @@ import TabBar from '@/components/navigation/TabBar.vue'
 import type {MemberChangeSummary, ProfileFieldChange} from '@/api/types'
 import {profileFieldChanges} from '@/api'
 import {useSession} from '@/composables/useSession'
-import {usePendingChanges} from '@/composables/usePendingChanges'
+import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import MemberName from '@/components/avatar/MemberName.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const {t} = useI18n()
 const router = useRouter()
 const {sessionInfo} = useSession()
-const {refresh: refreshBadge} = usePendingChanges()
+const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
 const activeTab = ref('pending')
 const tabs = [
@@ -141,7 +141,7 @@ async function acknowledgeAllForMember(memberId: number) {
 
 async function reloadExpanded() {
   summaries.value = await profileFieldChanges.getPendingSummary()
-  refreshBadge()
+  refreshSidebarCounts()
   if (expandedMemberId.value != null) {
     const stillInList = summaries.value.some(s => s.memberId === expandedMemberId.value)
     if (stillInList) {
@@ -243,7 +243,7 @@ onMounted(loadPending)
                       class="h-3 w-3 text-(--text-muted)"
                   />
                   <div>
-                    <span class="font-semibold text-sm"><MemberName :name="summary.memberName ?? ''" :member-id="summary.memberId"/></span>
+                    <span class="font-semibold text-sm"><MemberName :identity="summary.identity"/></span>
                     <p class="text-xs text-(--text-muted)">
                       {{ t('memberChanges.lastChange') }}: {{ formatDate(summary.latestChange) }}
                     </p>
@@ -359,7 +359,7 @@ onMounted(loadPending)
             >
               <div class="flex items-center justify-between flex-wrap gap-2">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <span v-if="change.memberName" class="font-semibold text-sm text-primary"><MemberName :name="change.memberName!" :member-id="change.memberId"/></span>
+                  <span v-if="change.memberName" class="font-semibold text-sm text-primary"><MemberName :identity="change.memberIdentity ?? null"/></span>
                   <span class="font-medium text-sm">{{ change.fieldName }}</span>
                   <span class="text-xs text-(--text-muted)">{{ formatDate(change.changedAt) }}</span>
                   <span class="text-xs text-(--text-muted)">

@@ -13,7 +13,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import EventFieldValueInput from '@/components/input/EventFieldValueInput.vue'
-import type {AttendanceTemplateField, EventFieldEntry, StationMember} from '@/api/types'
+import type {AttendanceTemplateField, EventFieldEntry, MemberGroup, StationMember} from '@/api/types'
 import {EventFieldTypes} from '@/api/types'
 
 const props = defineProps<{
@@ -21,6 +21,7 @@ const props = defineProps<{
   attendanceFields?: AttendanceTemplateField[]
   showValue?: boolean
   allMembers?: StationMember[]
+  groups?: MemberGroup[]
   groupMembers?: Map<number, StationMember[]>
 }>()
 
@@ -33,10 +34,13 @@ const {t} = useI18n()
 
 const fieldTypeOptions = [
   {value: EventFieldTypes.STRING, label: t('eventFields.typeString')},
+  {value: EventFieldTypes.NUMBER, label: t('eventFields.typeNumber')},
   {value: EventFieldTypes.TIME, label: t('eventFields.typeTime')},
   {value: EventFieldTypes.DATE, label: t('eventFields.typeDate')},
   {value: EventFieldTypes.BOOLEAN, label: t('eventFields.typeBoolean')},
   {value: EventFieldTypes.ENUM, label: t('eventFields.typeEnum')},
+  {value: EventFieldTypes.URL, label: t('eventFields.typeUrl')},
+  {value: EventFieldTypes.TEXTAREA, label: t('eventFields.typeTextarea')},
   {value: EventFieldTypes.MEMBER, label: t('eventFields.typeMember')},
   {value: EventFieldTypes.MEMBER_LIST, label: t('eventFields.typeMemberList')},
   {value: EventFieldTypes.MEMBER_OF_GROUP, label: t('eventFields.typeMemberOfGroup')},
@@ -44,37 +48,47 @@ const fieldTypeOptions = [
 ]
 
 const name = ref(props.modelValue.name ?? '')
-const fieldType = ref(props.modelValue.fieldType ?? 'string')
+const fieldType = ref(props.modelValue.fieldType ?? 'STRING')
 const fieldValue = ref(props.modelValue.value ?? '')
 const overview = ref(props.modelValue.overview ?? false)
 const isPublic = ref(props.modelValue.isPublic ?? false)
 const attendanceFieldId = ref<number | null>(props.modelValue.attendanceFieldId ?? null)
 const enumOptions = ref('')
+const groupId = ref<string>('')
 
 function parseConfig(): Record<string, unknown> {
-  if (!props.modelValue.config) return {}
-  try {
-    return JSON.parse(props.modelValue.config)
-  } catch {
-    return {}
-  }
+  return props.modelValue.config ?? {}
 }
 
-// Initialize enum options from config
+// Initialize from config
 const cfg = parseConfig()
 if (cfg.options && Array.isArray(cfg.options)) {
   enumOptions.value = (cfg.options as string[]).join('\n')
 }
+if (cfg.groupId) {
+  groupId.value = String(cfg.groupId)
+}
 
-function buildConfig(): string {
+function isGroupField(): boolean {
+  return fieldType.value === 'MEMBER_OF_GROUP' || fieldType.value === 'MEMBER_LIST_OF_GROUP'
+}
+
+function buildConfig(): Record<string, unknown> {
   const c: Record<string, unknown> = {}
-  if (fieldType.value === 'enum' && enumOptions.value.trim()) {
+  if (fieldType.value === 'ENUM' && enumOptions.value.trim()) {
     c.options = enumOptions.value.split('\n').map(o => o.trim()).filter(o => o)
   }
-  return Object.keys(c).length > 0 ? JSON.stringify(c) : '{}'
+  if (isGroupField() && groupId.value) {
+    c.groupId = Number(groupId.value)
+  }
+  return c
 }
 
 const configString = computed(() => buildConfig())
+
+const matchingAttendanceFields = computed(() =>
+    (props.attendanceFields ?? []).filter(af => af.fieldType === fieldType.value)
+)
 
 const entry = computed<EventFieldEntry>(() => ({
   name: name.value,
@@ -91,44 +105,49 @@ watch(entry, val => emit('update:modelValue', val), {deep: true})
 
 <template>
   <div class="rounded border border-(--border) p-3 space-y-2">
-    <div class="flex flex-wrap items-end gap-2">
-      <div class="flex-1 min-w-40 space-y-1">
+    <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
+      <div class="space-y-1">
         <FieldLabel>{{ t('eventFields.name') }}</FieldLabel>
         <TextInput v-model="name" :placeholder="t('eventFields.namePlaceholder')"/>
       </div>
 
-      <div class="w-40 space-y-1">
+      <div class="space-y-1">
         <FieldLabel>{{ t('eventFields.type') }}</FieldLabel>
-        <SelectInput v-model="fieldType">
+        <SelectInput v-model="fieldType" class="w-full sm:w-auto">
           <option v-for="ft in fieldTypeOptions" :key="ft.value" :value="ft.value">{{ ft.label }}</option>
         </SelectInput>
       </div>
+    </div>
 
-      <div v-if="fieldType === 'enum'" class="w-48 space-y-1">
-        <FieldLabel>{{ t('eventFields.enumOptions') }}</FieldLabel>
-        <TextAreaInput v-model="enumOptions" :placeholder="t('eventFields.enumOptionsPlaceholder')" :rows="3"/>
-      </div>
+    <div v-if="fieldType === 'ENUM'" class="space-y-1">
+      <FieldLabel>{{ t('eventFields.enumOptions') }}</FieldLabel>
+      <TextAreaInput v-model="enumOptions" :placeholder="t('eventFields.enumOptionsPlaceholder')" :rows="3"/>
+    </div>
 
-      <div class="space-y-1">
-        <FieldLabel>{{ t('eventFields.overview') }}</FieldLabel>
-        <div class="flex items-center px-3 py-2">
-          <ToggleInput v-model="overview"/>
-        </div>
-      </div>
+    <div v-if="isGroupField() && groups && groups.length > 0" class="space-y-1">
+      <FieldLabel>{{ t('eventFields.group') }}</FieldLabel>
+      <SelectInput v-model="groupId" class="w-full sm:w-auto">
+        <option value="">{{ t('eventFields.selectGroup') }}</option>
+        <option v-for="g in groups" :key="g.id" :value="String(g.id)">{{ g.name }}</option>
+      </SelectInput>
+    </div>
 
-      <div class="space-y-1">
-        <FieldLabel>{{ t('eventFields.public') }}</FieldLabel>
-        <div class="flex items-center px-3 py-2">
-          <ToggleInput v-model="isPublic"/>
-        </div>
-      </div>
+    <div class="flex items-center gap-4">
+      <label class="flex items-center gap-2 text-sm">
+        <ToggleInput v-model="overview"/>
+        {{ t('eventFields.overview') }}
+      </label>
+      <label class="flex items-center gap-2 text-sm">
+        <ToggleInput v-model="isPublic"/>
+        {{ t('eventFields.public') }}
+      </label>
 
-      <div v-if="attendanceFields && attendanceFields.length > 0" class="w-48 space-y-1">
+      <div v-if="attendanceFields && matchingAttendanceFields.length > 0" class="w-48 space-y-1">
         <FieldLabel>{{ t('eventFields.attendanceLink') }}</FieldLabel>
         <SelectInput :model-value="String(attendanceFieldId ?? '')"
                      @update:model-value="attendanceFieldId = $event ? Number($event) : null">
           <option value="">—</option>
-          <option v-for="af in attendanceFields" :key="af.id" :value="String(af.id)">{{ af.name }}</option>
+          <option v-for="af in matchingAttendanceFields" :key="af.id" :value="String(af.id)">{{ af.name }}</option>
         </SelectInput>
       </div>
 

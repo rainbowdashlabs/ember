@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -21,10 +21,14 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import type { WaitingListWithCount } from '@/api/types'
+import { StationPermission } from '@/api/types'
 import { waitingList } from '@/api'
+import { useSession } from '@/composables/useSession'
 
 const { t } = useI18n()
 const router = useRouter()
+const { hasPermission } = useSession()
+const canEdit = computed(() => hasPermission(StationPermission.WAITLIST_EDIT))
 
 const lists = ref<WaitingListWithCount[]>([])
 const loading = ref(true)
@@ -87,7 +91,7 @@ onMounted(loadData)
     <div class="space-y-6">
       <div class="flex items-center justify-between">
         <SectionHeader>{{ t('waitingList.title') }}</SectionHeader>
-        <PrimaryButton :icon="['fas', 'plus']" @click="openCreate">
+        <PrimaryButton v-if="canEdit" :icon="['fas', 'plus']" @click="openCreate">
           {{ t('waitingList.create') }}
         </PrimaryButton>
       </div>

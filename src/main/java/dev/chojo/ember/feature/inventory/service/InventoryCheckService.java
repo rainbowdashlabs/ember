@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.CheckItemRequest;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
@@ -21,9 +22,9 @@ import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository.MemberCheckSummary;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
-import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.ConflictResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -51,6 +52,7 @@ public class InventoryCheckService {
     private final StationMemberRepository stationMemberRepository;
     private final MemberGroupRepository memberGroupRepository;
     private final AccountRepository accountRepository;
+    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public InventoryCheckService(
@@ -58,12 +60,14 @@ public class InventoryCheckService {
             InventoryRepository inventoryRepository,
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
-            AccountRepository accountRepository) {
+            AccountRepository accountRepository,
+            MemberIdentityFactory memberIdentityFactory) {
         this.checkRepository = checkRepository;
         this.inventoryRepository = inventoryRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.accountRepository = accountRepository;
+        this.memberIdentityFactory = memberIdentityFactory;
     }
 
     /**
@@ -75,27 +79,7 @@ public class InventoryCheckService {
      */
     public List<MemberCheckSummary> getCheckOverview(int stationId) {
         checkRepository.releaseExpiredLocks(LOCK_TIMEOUT_MINUTES);
-        var summaries = checkRepository.checkOverview(stationId);
-        // Enrich with roles
-        return summaries.stream()
-                .map(s -> {
-                    var roles = stationMemberRepository.findRoles(s.memberId()).stream()
-                            .map(Role::role)
-                            .toList();
-                    return new MemberCheckSummary(
-                            s.memberId(),
-                            s.firstName(),
-                            s.lastName(),
-                            s.lastCheckedAt(),
-                            s.checkerFirstName(),
-                            s.checkerLastName(),
-                            s.locked(),
-                            s.lockedBy(),
-                            s.lockerFirstName(),
-                            s.lockerLastName(),
-                            roles);
-                })
-                .toList();
+        return checkRepository.checkOverview(stationId);
     }
 
     /**
@@ -143,7 +127,8 @@ public class InventoryCheckService {
             unassigned.put(req.inventoryId(), inventoryRepository.findUnassignedItems(req.inventoryId()));
         }
 
-        return new MemberCheckState(memberName, required, assigned, lastCheck, unassigned);
+        MemberIdentity identity = memberIdentityFactory.local(stationId, memberId);
+        return new MemberCheckState(memberName, identity, required, assigned, lastCheck, unassigned);
     }
 
     /**
@@ -261,16 +246,16 @@ public class InventoryCheckService {
      * @return list of required inventory items with quantities and assignment counts
      */
     public List<RequiredInventoryItem> getRequiredItems(int stationId, int memberId) {
-        List<Role> memberRoles = stationMemberRepository.findRoles(memberId);
+        var member = stationMemberRepository.findById(memberId).orElse(null);
+        String memberUserType = member != null ? member.userType().name() : null;
         List<MemberGroup> memberGroups = memberGroupRepository.findGroupsForMember(memberId);
         List<InventoryRequirement> allRequirements = inventoryRepository.findAllRequirementsByStation(stationId);
 
-        var memberRoleIds = memberRoles.stream().map(Role::id).toList();
         var memberGroupIds = memberGroups.stream().map(MemberGroup::id).toList();
 
         // Filter requirements applicable to this member
         List<InventoryRequirement> applicable = allRequirements.stream()
-                .filter(req -> (req.roleId() != 0 && memberRoleIds.contains(req.roleId()))
+                .filter(req -> (req.userType() != null && req.userType().equals(memberUserType))
                         || (req.groupId() != 0 && memberGroupIds.contains(req.groupId())))
                 .toList();
 
@@ -315,6 +300,7 @@ public class InventoryCheckService {
      */
     public record MemberCheckState(
             String memberName,
+            MemberIdentity memberIdentity,
             List<RequiredInventoryItem> required,
             List<InventoryItem> assigned,
             InventoryCheck lastCheck,

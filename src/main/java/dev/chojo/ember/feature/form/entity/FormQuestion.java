@@ -13,7 +13,7 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param id           unique question identifier
  * @param formId       the form this question belongs to
  * @param position     display order position (0-based)
- * @param questionType the type of question (CHOICE, TEXT, RATING, DATE, RANKING, LIKERT)
+ * @param formQuestionType the type of question (CHOICE, TEXT, RATING, DATE, RANKING, LIKERT)
  * @param title        the question text shown to respondents
  * @param description  optional additional description or instructions
  * @param required     whether an answer is mandatory
@@ -24,7 +24,7 @@ public record FormQuestion(
         int id,
         int formId,
         int position,
-        QuestionType questionType,
+        FormQuestionType formQuestionType,
         String title,
         String description,
         boolean required,
@@ -36,7 +36,7 @@ public record FormQuestion(
      */
     public static RowMapping<FormQuestion> map() {
         return row -> {
-            var type = row.getEnum("question_type", QuestionType.class);
+            var type = row.getEnum("question_type", FormQuestionType.class);
             return new FormQuestion(
                     row.getInt("id"),
                     row.getInt("form_id"),

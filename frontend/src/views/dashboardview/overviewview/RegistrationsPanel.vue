@@ -74,7 +74,7 @@ onMounted(loadData)
                           class="flex items-center justify-between gap-2 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
                           @click="router.push({ name: 'event-detail', params: { id: reg.eventId } })">
           <div>
-            <MemberName v-if="isOtherMember(reg.memberId)" :name="reg.memberName"
+            <MemberName v-if="isOtherMember(reg.memberId)" :identity="reg.memberIdentity ?? null"
                         class="text-xs font-semibold text-primary"/>
             <p class="text-sm font-medium">{{ eventName(reg.eventId) }}</p>
             <p class="text-xs text-(--text-muted)">{{ reg.eventDate }}</p>

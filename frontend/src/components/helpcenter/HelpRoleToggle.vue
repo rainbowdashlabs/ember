@@ -7,38 +7,34 @@
 import {onMounted, computed, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useSession} from '@/composables/useSession'
-import {Roles} from '@/api/types'
+import type {StationPermissionName} from '@/api/types'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 
-export interface HelpRole {
+export interface HelpPerspective {
   key: string
   label: string
+  permissions: StationPermissionName[]
 }
 
 const props = defineProps<{
-  roles: HelpRole[]
+  perspectives: HelpPerspective[]
 }>()
 
-const activeRole = defineModel<string>({default: ''})
+const activeView = defineModel<string>({default: ''})
 
 const {t} = useI18n()
 const {sessionInfo, loaded, load} = useSession()
 
-function pickRole() {
-  if (activeRole.value) return
-  if (loaded.value && sessionInfo.value?.roles) {
-    const userRoles = sessionInfo.value.roles
-    if (userRoles.includes(Roles.MANAGER) && props.roles.some(r => r.key === 'manager')) {
-      activeRole.value = 'manager'
-    } else if (userRoles.includes(Roles.TEAM) && props.roles.some(r => r.key === 'team')) {
-      activeRole.value = 'team'
-    } else if (userRoles.includes(Roles.GUARDIAN) && props.roles.some(r => r.key === 'guardian')) {
-      activeRole.value = 'guardian'
-    } else if (props.roles.length > 0) {
-      activeRole.value = props.roles[0].key
-    }
-  } else if (loaded.value && props.roles.length > 0) {
-    activeRole.value = props.roles[0].key
+function pickPerspective() {
+  if (activeView.value) return
+  if (loaded.value && sessionInfo.value?.permissions) {
+    const perms = sessionInfo.value.permissions
+    const match = props.perspectives.find(p =>
+        p.permissions.some(perm => perms.includes(perm))
+    )
+    activeView.value = match?.key ?? props.perspectives[0]?.key ?? ''
+  } else if (loaded.value && props.perspectives.length > 0) {
+    activeView.value = props.perspectives[0].key
   }
 }
 
@@ -46,13 +42,15 @@ onMounted(() => {
   if (!loaded.value) {
     load()
   }
-  pickRole()
+  pickPerspective()
 })
 
-watch(loaded, pickRole)
+watch(loaded, pickPerspective)
+
+const isAuthenticated = computed(() => loaded.value && !!sessionInfo.value?.permissions)
 
 const hint = computed(() => {
-  if (loaded.value && sessionInfo.value?.roles) return ''
+  if (isAuthenticated.value) return ''
   return t('helpCenter.notLoggedIn')
 })
 </script>
@@ -61,17 +59,17 @@ const hint = computed(() => {
   <InfoContainer v-if="hint" class="text-sm">
     {{ hint }}
   </InfoContainer>
-  <div class="flex flex-wrap gap-2">
+  <div v-if="!isAuthenticated" class="flex flex-wrap gap-2">
     <button
-        v-for="role in roles"
-        :key="role.key"
-        :class="activeRole === role.key
-          ? 'bg-primary text-white'
-          : 'bg-[var(--bg-accent)] text-[var(--text)] hover:bg-primary/20'"
+        v-for="p in perspectives"
+        :key="p.key"
+        :class="activeView === p.key
+          ? 'bg-primary text-primary-text'
+          : 'bg-(--bg-accent) text-(--text) hover:bg-primary/20'"
         class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-        @click="activeRole = role.key"
+        @click="activeView = p.key"
     >
-      {{ role.label }}
+      {{ p.label }}
     </button>
   </div>
 </template>

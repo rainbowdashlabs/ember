@@ -4,15 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import MemberFilterBar from '@/components/input/filter/MemberFilterBar.vue'
-import type { FilterOption, FilterCriteria } from '@/components/input/filter/MemberFilterBar.vue'
-import type { ProfileField } from '@/api/types'
+import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
+import type { FilterCriteria } from '@/composables/useMemberFilter'
+import type { ProfileField, MemberGroup, UserTag } from '@/api/types'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 
@@ -27,16 +27,16 @@ interface SavedFilter {
   multiFilters: Record<string, string[]>
 }
 
-defineProps<{
+const props = defineProps<{
   filterText: string
   savedFilters: SavedFilter[]
   nonOverviewFields: ProfileField[]
   extraColumnIds: Set<number>
   exportMode: boolean
   selectedCount: number
-  roles: FilterOption[]
-  groups: FilterOption[]
-  tags: FilterOption[]
+  canExport: boolean
+  groups: MemberGroup[]
+  tags: UserTag[]
 }>()
 
 const emit = defineEmits<{
@@ -51,9 +51,51 @@ const emit = defineEmits<{
   filter: [criteria: FilterCriteria]
 }>()
 
+const searchInput = ref<{ $el: HTMLInputElement } | null>(null)
 const showColumnPicker = ref(false)
 const showSaveFilter = ref(false)
 const filterPresetName = ref('')
+
+const selectedUserTypes = ref<string[]>([])
+const selectedGroupIds = ref<number[]>([])
+const selectedTagIds = ref<number[]>([])
+const filterMode = ref<'AND' | 'OR'>('AND')
+
+function emitFilter() {
+  emit('filter', {
+    userTypes: selectedUserTypes.value,
+    groupIds: selectedGroupIds.value,
+    tagIds: selectedTagIds.value,
+    mode: filterMode.value,
+  })
+}
+
+function onUserTypesChange(types: string[]) {
+  selectedUserTypes.value = types
+  emitFilter()
+}
+
+function onGroupIdsChange(ids: number[]) {
+  selectedGroupIds.value = ids
+  emitFilter()
+}
+
+function onTagIdsChange(ids: number[]) {
+  selectedTagIds.value = ids
+  emitFilter()
+}
+
+function onModeChange(mode: 'AND' | 'OR') {
+  filterMode.value = mode
+  emitFilter()
+}
+
+onMounted(() => {
+  nextTick(() => {
+    const el = searchInput.value?.$el
+    if (el instanceof HTMLInputElement) el.focus()
+  })
+})
 
 function submitSaveFilter() {
   if (!filterPresetName.value.trim()) return
@@ -77,16 +119,22 @@ function submitSaveFilter() {
     </SecondaryButton>
   </div>
 
-  <!-- Role / Group / Tag filter -->
-  <MemberFilterBar
-      :roles="roles"
+  <!-- Restriction-based filter -->
+  <RestrictionPicker
       :groups="groups"
       :tags="tags"
-      @filter="criteria => emit('filter', criteria)"
+      :selected-user-types="selectedUserTypes"
+      :selected-group-ids="selectedGroupIds"
+      :selected-tag-ids="selectedTagIds"
+      :mode="filterMode"
+      @update:selected-user-types="onUserTypesChange"
+      @update:selected-group-ids="onGroupIdsChange"
+      @update:selected-tag-ids="onTagIdsChange"
+      @update:mode="onModeChange"
   />
 
   <div class="space-y-2">
-    <TextInput :model-value="filterText" :placeholder="t('membersList.filter')" class="w-full" @update:model-value="(v: string | undefined) => emit('update:filterText', v ?? '')" />
+    <TextInput ref="searchInput" :model-value="filterText" :placeholder="t('membersList.filter')" class="w-full" @update:model-value="(v: string | undefined) => emit('update:filterText', v ?? '')" />
     <div class="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-2">
       <div class="relative">
         <SecondaryButton :icon="['fas', 'table-columns']" :full-width="isMobile" @click="showColumnPicker = !showColumnPicker">
@@ -107,7 +155,7 @@ function submitSaveFilter() {
       <SecondaryButton :icon="['fas', 'star']" :full-width="isMobile" @click="showSaveFilter = !showSaveFilter">
         {{ t('membersList.saveFilter') }}
       </SecondaryButton>
-      <SecondaryButton :icon="['fas', 'file-export']" :full-width="isMobile" @click="emit('toggleExport')">
+      <SecondaryButton v-if="canExport" :icon="['fas', 'file-export']" :full-width="isMobile" @click="emit('toggleExport')">
         {{ exportMode ? t('membersList.export.cancel') : t('membersList.export.button') }}
       </SecondaryButton>
       <template v-if="exportMode">

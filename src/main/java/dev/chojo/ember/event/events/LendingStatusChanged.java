@@ -6,8 +6,14 @@
 package dev.chojo.ember.event.events;
 
 import dev.chojo.ember.event.DomainEvent;
+import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 
 public record LendingStatusChanged(
-        int stationId, int targetStationId, int requestId, NotificationType type, String stationName, String status)
+        int stationId,
+        int targetStationId,
+        int requestId,
+        NotificationType type,
+        String stationName,
+        LendingStatus status)
         implements DomainEvent {}

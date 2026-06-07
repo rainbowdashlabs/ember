@@ -10,7 +10,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import DragList from '@/components/input/DragList.vue'
 import CompactToggle from '@/components/input/toggle/CompactToggle.vue'
-import type {ProfileField} from '@/api/types'
+import {type ProfileField, parseFieldConfig} from '@/api/types'
 import {useBreakpoint} from '@/composables/useBreakpoint'
 
 const {isMobile} = useBreakpoint()
@@ -30,26 +30,18 @@ const emit = defineEmits<{
 }>()
 
 const fieldTypeOptions = [
-  {value: 'text', label: 'Text'},
-  {value: 'number', label: 'Zahl'},
-  {value: 'date', label: 'Datum'},
-  {value: 'boolean', label: 'Ja/Nein'},
-  {value: 'enum', label: 'Auswahl'},
-  {value: 'age', label: 'Alter (berechnet)'},
+  {value: 'TEXT', label: 'Text'},
+  {value: 'NUMBER', label: 'Zahl'},
+  {value: 'DATE', label: 'Datum'},
+  {value: 'BOOLEAN', label: 'Ja/Nein'},
+  {value: 'ENUM', label: 'Auswahl'},
+  {value: 'AGE', label: 'Alter (berechnet)'},
 ]
 
 function fieldTypeLabel(value: string): string {
   return fieldTypeOptions.find(o => o.value === value)?.label ?? value
 }
 
-function parseConfig(configStr: string | undefined): Record<string, unknown> {
-  if (!configStr) return {}
-  try {
-    return JSON.parse(configStr)
-  } catch {
-    return {}
-  }
-}
 </script>
 
 <template>
@@ -71,22 +63,22 @@ function parseConfig(configStr: string | undefined): Record<string, unknown> {
           </div>
           <div class="flex flex-wrap gap-3 text-xs">
             <label class="flex items-center gap-1">
-              <CompactToggle :model-value="!!parseConfig(field.config).required" :disabled="!!parseConfig(field.config).readonly"
+              <CompactToggle :model-value="!!parseFieldConfig(field.config).required" :disabled="!!parseFieldConfig(field.config).readonly"
                            @update:model-value="v => emit('toggleConfig', field, 'required', v)"/>
               {{ t('membersConfig.fieldRequired') }}
             </label>
             <label class="flex items-center gap-1">
-              <CompactToggle :model-value="!!parseConfig(field.config).readonly"
+              <CompactToggle :model-value="!!parseFieldConfig(field.config).readonly"
                            @update:model-value="v => { emit('toggleConfig', field, 'readonly', v); if (v) emit('toggleConfig', field, 'required', false) }"/>
               {{ t('membersConfig.fieldReadonly') }}
             </label>
             <label class="flex items-center gap-1">
-              <CompactToggle :model-value="!!parseConfig(field.config).notifyOnChange"
+              <CompactToggle :model-value="!!parseFieldConfig(field.config).notifyOnChange"
                            @update:model-value="v => emit('toggleConfig', field, 'notifyOnChange', v)"/>
               {{ t('membersConfig.fieldNotifyOnChange') }}
             </label>
             <label class="flex items-center gap-1">
-              <CompactToggle :model-value="!!parseConfig(field.config).overview"
+              <CompactToggle :model-value="!!parseFieldConfig(field.config).overview"
                            @update:model-value="v => emit('toggleConfig', field, 'overview', v)"/>
               {{ t('membersConfig.fieldOverview') }}
             </label>
@@ -138,19 +130,19 @@ function parseConfig(configStr: string | undefined): Record<string, unknown> {
           <div class="font-medium px-2 truncate">{{ field.name }}</div>
           <div class="text-(--text-muted) px-2 truncate text-xs">{{ fieldTypeLabel(field.fieldType ?? '') }}</div>
           <div class="flex justify-center">
-            <CompactToggle :model-value="!!parseConfig(field.config).required" :disabled="!!parseConfig(field.config).readonly"
+            <CompactToggle :model-value="!!parseFieldConfig(field.config).required" :disabled="!!parseFieldConfig(field.config).readonly"
                          @update:model-value="v => emit('toggleConfig', field, 'required', v)"/>
           </div>
           <div class="flex justify-center">
-            <CompactToggle :model-value="!!parseConfig(field.config).readonly"
+            <CompactToggle :model-value="!!parseFieldConfig(field.config).readonly"
                          @update:model-value="v => { emit('toggleConfig', field, 'readonly', v); if (v) emit('toggleConfig', field, 'required', false) }"/>
           </div>
           <div class="flex justify-center">
-            <CompactToggle :model-value="!!parseConfig(field.config).notifyOnChange"
+            <CompactToggle :model-value="!!parseFieldConfig(field.config).notifyOnChange"
                          @update:model-value="v => emit('toggleConfig', field, 'notifyOnChange', v)"/>
           </div>
           <div class="flex justify-center">
-            <CompactToggle :model-value="!!parseConfig(field.config).overview"
+            <CompactToggle :model-value="!!parseFieldConfig(field.config).overview"
                          @update:model-value="v => emit('toggleConfig', field, 'overview', v)"/>
           </div>
           <div class="flex justify-center">

@@ -5,9 +5,12 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.federation.entity.LendingStatus;
+import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
@@ -23,12 +26,12 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -59,13 +62,13 @@ class NotificationServiceTest extends RepositoryTestBase {
         account2 = accountRepo.create("notif2@test.com", "Notif", "Two");
         member1 = stationMemberRepo.create(station.id(), account1.id());
         member2 = stationMemberRepo.create(station.id(), account2.id());
-        stationMemberRepo.findRoleByName(Roles.MEMBER).ifPresent(r -> {
-            stationMemberRepo.addRole(member1.id(), r.id());
-            stationMemberRepo.addRole(member2.id(), r.id());
+        stationMemberRepo.findPermissionByName(StationPermission.USER).ifPresent(r -> {
+            stationMemberRepo.grantPermission(member1.id(), r.id());
+            stationMemberRepo.grantPermission(member2.id(), r.id());
         });
-        stationMemberRepo.findRoleByName(Roles.LOGIN).ifPresent(r -> {
-            stationMemberRepo.addRole(member1.id(), r.id());
-            stationMemberRepo.addRole(member2.id(), r.id());
+        stationMemberRepo.findPermissionByName(StationPermission.LOGIN).ifPresent(r -> {
+            stationMemberRepo.grantPermission(member1.id(), r.id());
+            stationMemberRepo.grantPermission(member2.id(), r.id());
         });
     }
 
@@ -201,7 +204,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         service.acknowledgeAll(member2.id());
 
         var data = NotificationData.of(new NotificationParams.NewNews("Role Notify", "Author", "Preview"));
-        service.notifyMembersWithRole(station.id(), "MEMBER", NotificationType.NEW_NEWS, data);
+        service.notifyMembersWithRole(station.id(), "USER", NotificationType.NEW_NEWS, data);
 
         // Both members have MEMBER role — both should receive
         assertTrue(
@@ -217,7 +220,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         service.acknowledgeAll(member2.id());
 
         var data = NotificationData.of(new NotificationParams.NewNews("Role Exclude", "Author", "Preview"));
-        service.notifyMembersWithRole(station.id(), "MEMBER", NotificationType.NEW_NEWS, data, member2.id());
+        service.notifyMembersWithRole(station.id(), "USER", NotificationType.NEW_NEWS, data, member2.id());
 
         // member1 should receive
         assertTrue(
@@ -379,7 +382,7 @@ class NotificationServiceTest extends RepositoryTestBase {
     void notifyMembersSkipsWhenAppDisabled() {
         notificationSettingsRepo.upsert(member1.id(), NotificationType.LENDING_STATUS_CHANGE, false, false, false);
         service.acknowledgeAll(member1.id());
-        var data = NotificationData.of(new NotificationParams.LendingStatusChange("Station Y", "approved"));
+        var data = NotificationData.of(new NotificationParams.LendingStatusChange("Station Y", LendingStatus.APPROVED));
         service.notifyMembers(List.of(member1.id()), NotificationType.LENDING_STATUS_CHANGE, data);
         // member1 has app disabled — no new notification
         assertFalse(service.findUnacknowledged(member1.id()).stream()
@@ -405,7 +408,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         service.acknowledgeAll(member1.id());
         // Exchange types
         var exchStatus = NotificationData.of(
-                new NotificationParams.ExchangeStatusChange("approved", "Helmet", "all good"),
+                new NotificationParams.ExchangeStatusChange(ExchangeStatus.RECEIVED, "Helmet", "all good"),
                 new NotificationData.NotificationLink("inventory-exchanges"));
         service.notify(member1.id(), NotificationType.EXCHANGE_STATUS_CHANGE, exchStatus);
 
@@ -435,7 +438,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         service.notify(member1.id(), NotificationType.PROCUREMENT_FULFILLED, procFulfilled);
 
         var evtReg = NotificationData.of(
-                new NotificationParams.EventRegistrationStatus("Marathon", "ACCEPTED", "Run 10km"),
+                new NotificationParams.EventRegistrationStatus("Marathon", RegistrationStatus.ACCEPTED, "Run 10km"),
                 new NotificationData.NotificationLink("events-registrations"));
         service.notify(member1.id(), NotificationType.EVENT_REGISTRATION_STATUS, evtReg);
 
@@ -449,7 +452,8 @@ class NotificationServiceTest extends RepositoryTestBase {
                 new NotificationData.NotificationLink("lending-request", Map.of("id", 7)));
         service.notify(member1.id(), NotificationType.LENDING_NEW_REQUEST, lendReq);
 
-        var lendStatus = NotificationData.of(new NotificationParams.LendingStatusChange("Partner", "denied"));
+        var lendStatus =
+                NotificationData.of(new NotificationParams.LendingStatusChange("Partner", LendingStatus.DECLINED));
         service.notify(member1.id(), NotificationType.LENDING_STATUS_CHANGE, lendStatus);
 
         var lendMsg = NotificationData.of(new NotificationParams.LendingNewMessage("Partner", "Alice"));
@@ -533,7 +537,7 @@ class NotificationServiceTest extends RepositoryTestBase {
             Method m = NotificationService.class.getDeclaredMethod("processDigest");
             m.setAccessible(true);
             m.invoke(svc);
-        } catch (java.lang.reflect.InvocationTargetException e) {
+        } catch (InvocationTargetException e) {
             if (e.getCause() instanceof RuntimeException re) throw re;
             throw new RuntimeException(e.getCause());
         } catch (Exception e) {

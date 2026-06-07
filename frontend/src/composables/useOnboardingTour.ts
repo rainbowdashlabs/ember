@@ -6,7 +6,7 @@
 import {computed, readonly, ref} from 'vue'
 import {useRouter} from 'vue-router'
 import {useSession} from './useSession'
-import {Roles} from '@/api/types'
+import {StationPermission} from '@/api/types'
 
 const STORAGE_KEY = 'onboarding_tour_completed'
 
@@ -29,28 +29,28 @@ const ALL_STEPS: TourStep[] = [
     {id: 'events', icon: ['fas', 'calendar-days'], route: 'events-upcoming'},
     {id: 'inventory', icon: ['fas', 'boxes-stacked'], route: 'inventory-my'},
     {id: 'forms', icon: ['fas', 'square-poll-vertical'], route: 'forms-list'},
-    {id: 'knowledgeBase', icon: ['fas', 'book'], route: 'knowledge-base'},
-    {id: 'lending', icon: ['fas', 'hand-holding'], route: 'inventory-lending', roles: [Roles.INVENTORY_MANAGER]},
-    {id: 'managedProfiles', icon: ['fas', 'users'], route: 'profile-managed', roles: [Roles.GUARDIAN]},
-    {id: 'members', icon: ['fas', 'users'], route: 'members-list', roles: [Roles.MEMBER_MANAGER]},
-    {id: 'attendance', icon: ['fas', 'clipboard-user'], route: 'attendance-new', roles: [Roles.ATTENDANCE_MANAGER]},
-    {id: 'eventManagement', icon: ['fas', 'calendar-days'], route: 'events', roles: [Roles.EVENT_MANAGER]},
-    {id: 'federation', icon: ['fas', 'arrow-right-arrow-left'], route: 'station-federation', roles: [Roles.FEDERATION_MANAGER]},
-    {id: 'discovery', icon: ['fas', 'compass'], route: 'station-discovery'},
-    {id: 'station', icon: ['fas', 'gears'], route: 'station-manage', roles: [Roles.MANAGER]},
+    {id: 'knowledgeBase', icon: ['fas', 'book'], route: 'kb-browse'},
+    {id: 'lending', icon: ['fas', 'hand-holding'], route: 'inventory-lending', roles: [StationPermission.INVENTORY_MANAGER]},
+    {id: 'managedProfiles', icon: ['fas', 'users'], route: 'profile-managed', roles: [StationPermission.MEMBER_GUARDIAN]},
+    {id: 'members', icon: ['fas', 'users'], route: 'members-list', roles: [StationPermission.MEMBER_MANAGER]},
+    {id: 'attendance', icon: ['fas', 'clipboard-user'], route: 'attendance-new', roles: [StationPermission.ATTENDANCE_MANAGER]},
+    {id: 'eventManagement', icon: ['fas', 'calendar-days'], route: 'events', roles: [StationPermission.EVENT_MANAGER]},
+    {id: 'federation', icon: ['fas', 'arrow-right-arrow-left'], route: 'station-federation', roles: [StationPermission.STATION_FEDERATION]},
+    {id: 'discovery', icon: ['fas', 'compass'], route: 'station-discovery', roles: [StationPermission.STATION_ADMINISTRATOR, StationPermission.STATION_FEDERATION]},
+    {id: 'station', icon: ['fas', 'gears'], route: 'station-manage', roles: [StationPermission.STATION_ADMINISTRATOR]},
     {id: 'settings', icon: ['fas', 'gear'], route: 'profile-settings'},
     {id: 'helpCenter', icon: ['fas', 'circle-question'], route: 'dashboard-overview'},
     {id: 'done', icon: ['fas', 'check'], route: 'dashboard-overview'},
 ]
 
 export function useOnboardingTour() {
-    const {hasRole} = useSession()
+    const {hasPermission} = useSession()
     const router = useRouter()
 
     const filteredSteps = computed(() =>
         ALL_STEPS.filter(step => {
             if (!step.roles) return true
-            return step.roles.some(role => hasRole(role))
+            return step.roles.some(role => hasPermission(role))
         })
     )
 

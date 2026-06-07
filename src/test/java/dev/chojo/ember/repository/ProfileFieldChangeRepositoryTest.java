@@ -111,6 +111,13 @@ class ProfileFieldChangeRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(8)
+    void countPendingChangesBeforeAck() {
+        // One unacknowledged change requiring acknowledgement exists
+        assertEquals(1, profileFieldChangeRepo.countPendingChanges(station.id(), member.id()));
+    }
+
+    @Test
     @Order(10)
     void findUnacknowledgedChangeIds() {
         var ids = profileFieldChangeRepo.findUnacknowledgedChangeIds(member.id(), member.id());
@@ -148,6 +155,13 @@ class ProfileFieldChangeRepositoryTest extends RepositoryTestBase {
     void findAcknowledgementsForMember() {
         var acks = profileFieldChangeRepo.findAcknowledgementsForMember(member.id());
         assertEquals(1, acks.size());
+    }
+
+    @Test
+    @Order(22)
+    void countPendingChangesAfterAck() {
+        // The change has been acknowledged, so count should be 0
+        assertEquals(0, profileFieldChangeRepo.countPendingChanges(station.id(), member.id()));
     }
 
     @Test

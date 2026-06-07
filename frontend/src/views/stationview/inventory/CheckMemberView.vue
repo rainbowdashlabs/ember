@@ -357,7 +357,7 @@ onMounted(loadData)
         <!-- Header -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
-            <SectionHeader><MemberName :name="state.memberName" size="md"/></SectionHeader>
+            <SectionHeader><MemberName :identity="state.memberIdentity ?? null"/></SectionHeader>
             <p class="text-sm text-(--text-muted)">{{ t('inventory.check.title') }}</p>
           </div>
           <div class="flex gap-2">

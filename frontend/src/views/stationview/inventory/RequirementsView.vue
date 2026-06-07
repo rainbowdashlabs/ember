@@ -21,45 +21,38 @@ import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type { Inventory, InventoryRequirement, MemberGroup, Role } from '@/api/types'
-import { inventory, memberGroups, stationMembers } from '@/api'
+import type { Inventory, InventoryRequirement, MemberGroup } from '@/api/types'
+import { StationUserType } from '@/api/types'
+import { inventory, memberGroups } from '@/api'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const { t } = useI18n()
 
 const inventories = ref<Inventory[]>([])
 const requirements = ref<InventoryRequirement[]>([])
-const allRoles = ref<Role[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const loading = ref(true)
 const error = ref('')
 
 // Add modal
 const showAddModal = ref(false)
-const addTargetType = ref<'role' | 'group'>('role')
-const addRoleId = ref('')
+const addTargetType = ref<'userType' | 'group'>('userType')
+const addUserType = ref('')
 const addGroupId = ref('')
 const addInventoryId = ref('')
 const addQuantity = ref(1)
 const saving = ref(false)
 
-const roleFriendlyNames: Record<string, string> = {
-  LOGIN: 'Login',
+const userTypeFriendlyNames: Record<string, string> = {
+  TRIAL: 'Probe',
   MEMBER: 'Mitglied',
   TEAM: 'Team',
   GUARDIAN: 'Erziehungsberechtigter',
-  ATTENDANCE_MANAGER: 'Anwesenheitsverwaltung',
-  INVENTORY_MANAGER: 'Inventarverwaltung',
-  EVENT_MANAGER: 'Terminverwaltung',
-  MEMBER_MANAGER: 'Mitgliederverwaltung',
   MANAGER: 'Manager',
-  NEWS_MANAGER: 'Neuigkeiten',
 }
 
-function roleName(roleId: number): string {
-  const role = allRoles.value.find(r => r.id === roleId)
-  if (!role) return `#${roleId}`
-  return roleFriendlyNames[role.role] ?? role.role
+function userTypeName(userType: string): string {
+  return userTypeFriendlyNames[userType] ?? userType
 }
 
 function groupName(groupId: number): string {
@@ -71,21 +64,21 @@ function inventoryName(invId: number): string {
 }
 
 interface RequirementGroup {
-  type: 'role' | 'group'
-  id: number
+  type: 'userType' | 'group'
+  key: string
   label: string
   items: InventoryRequirement[]
 }
 
 const grouped = computed((): RequirementGroup[] => {
-  const roleMap = new Map<number, InventoryRequirement[]>()
+  const userTypeMap = new Map<string, InventoryRequirement[]>()
   const groupMap = new Map<number, InventoryRequirement[]>()
 
   for (const req of requirements.value) {
-    if (req.roleId) {
-      const list = roleMap.get(req.roleId) ?? []
+    if (req.userType) {
+      const list = userTypeMap.get(req.userType) ?? []
       list.push(req)
-      roleMap.set(req.roleId, list)
+      userTypeMap.set(req.userType, list)
     } else if (req.groupId) {
       const list = groupMap.get(req.groupId) ?? []
       list.push(req)
@@ -93,30 +86,28 @@ const grouped = computed((): RequirementGroup[] => {
     }
   }
 
-  const roleGroups: RequirementGroup[] = [...roleMap.entries()]
-    .map(([id, items]) => ({ type: 'role' as const, id, label: roleName(id), items: items.sort((a, b) => a.position - b.position) }))
+  const userTypeGroups: RequirementGroup[] = [...userTypeMap.entries()]
+    .map(([key, items]) => ({ type: 'userType' as const, key, label: userTypeName(key), items: items.sort((a, b) => a.position - b.position) }))
     .sort((a, b) => a.label.localeCompare(b.label))
 
   const memberGroupGroups: RequirementGroup[] = [...groupMap.entries()]
-    .map(([id, items]) => ({ type: 'group' as const, id, label: groupName(id), items: items.sort((a, b) => a.position - b.position) }))
+    .map(([id, items]) => ({ type: 'group' as const, key: String(id), label: groupName(id), items: items.sort((a, b) => a.position - b.position) }))
     .sort((a, b) => a.label.localeCompare(b.label))
 
-  return [...roleGroups, ...memberGroupGroups]
+  return [...userTypeGroups, ...memberGroupGroups]
 })
 
 async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [invs, reqs, roles, groups] = await Promise.all([
+    const [invs, reqs, groups] = await Promise.all([
       inventory.listInventories(),
       inventory.listAllRequirements(),
-      stationMembers.listAllRoles(),
       memberGroups.listGroups(),
     ])
     inventories.value = invs
     requirements.value = reqs
-    allRoles.value = roles
     allGroups.value = groups
   } catch {
     error.value = t('common.error')
@@ -125,10 +116,10 @@ async function loadData() {
   }
 }
 
-function openAdd(preselect?: { type: 'role' | 'group'; id: number }) {
-  addTargetType.value = preselect?.type ?? 'role'
-  addRoleId.value = preselect?.type === 'role' ? String(preselect.id) : ''
-  addGroupId.value = preselect?.type === 'group' ? String(preselect.id) : ''
+function openAdd(preselect?: { type: 'userType' | 'group'; key: string }) {
+  addTargetType.value = preselect?.type ?? 'userType'
+  addUserType.value = preselect?.type === 'userType' ? preselect.key : ''
+  addGroupId.value = preselect?.type === 'group' ? preselect.key : ''
   addInventoryId.value = ''
   addQuantity.value = 1
   showAddModal.value = true
@@ -136,7 +127,7 @@ function openAdd(preselect?: { type: 'role' | 'group'; id: number }) {
 
 async function submitAdd() {
   if (!addInventoryId.value) return
-  if (addTargetType.value === 'role' && !addRoleId.value) return
+  if (addTargetType.value === 'userType' && !addUserType.value) return
   if (addTargetType.value === 'group' && !addGroupId.value) return
 
   saving.value = true
@@ -144,7 +135,7 @@ async function submitAdd() {
   try {
     await inventory.createRequirement({
       inventoryId: Number(addInventoryId.value),
-      roleId: addTargetType.value === 'role' ? Number(addRoleId.value) : undefined,
+      userType: addTargetType.value === 'userType' ? addUserType.value : undefined,
       groupId: addTargetType.value === 'group' ? Number(addGroupId.value) : undefined,
       quantity: addQuantity.value,
     })
@@ -212,15 +203,15 @@ onMounted(loadData)
         <EmptyState v-if="grouped.length === 0">{{ t('inventory.requirements.empty') }}</EmptyState>
 
         <div class="space-y-4">
-          <NeutralContainer v-for="group in grouped" :key="`${group.type}-${group.id}`" class="space-y-3">
+          <NeutralContainer v-for="group in grouped" :key="`${group.type}-${group.key}`" class="space-y-3">
             <div class="flex items-center justify-between">
               <SubHeader>
                 <span class="text-xs uppercase tracking-wide text-(--text-muted) mr-2">
-                  {{ group.type === 'role' ? t('inventory.requirements.role') : t('inventory.requirements.group') }}
+                  {{ group.type === 'userType' ? t('inventory.requirements.userType') : t('inventory.requirements.group') }}
                 </span>
                 {{ group.label }}
               </SubHeader>
-              <SecondaryButton :icon="['fas', 'plus']" @click="openAdd({ type: group.type, id: group.id })">
+              <SecondaryButton :icon="['fas', 'plus']" @click="openAdd({ type: group.type, key: group.key })">
                 {{ t('inventory.requirements.addItem') }}
               </SecondaryButton>
             </div>
@@ -247,16 +238,16 @@ onMounted(loadData)
           <div class="space-y-1">
             <FieldLabel>{{ t('inventory.requirements.targetType') }}</FieldLabel>
             <SelectInput v-model="addTargetType">
-              <option value="role">{{ t('inventory.requirements.byRole') }}</option>
+              <option value="userType">{{ t('inventory.requirements.byUserType') }}</option>
               <option value="group">{{ t('inventory.requirements.byGroup') }}</option>
             </SelectInput>
           </div>
 
-          <div v-if="addTargetType === 'role'" class="space-y-1">
-            <FieldLabel>{{ t('inventory.requirements.role') }}</FieldLabel>
-            <SelectInput v-model="addRoleId">
-              <option value="" disabled>{{ t('inventory.requirements.selectRole') }}</option>
-              <option v-for="role in allRoles" :key="role.id" :value="String(role.id)">{{ roleFriendlyNames[role.role] ?? role.role }}</option>
+          <div v-if="addTargetType === 'userType'" class="space-y-1">
+            <FieldLabel>{{ t('inventory.requirements.userType') }}</FieldLabel>
+            <SelectInput v-model="addUserType">
+              <option value="" disabled>{{ t('inventory.requirements.selectUserType') }}</option>
+              <option v-for="(value, key) in StationUserType" :key="key" :value="value">{{ userTypeFriendlyNames[value] ?? value }}</option>
             </SelectInput>
           </div>
 
@@ -284,7 +275,7 @@ onMounted(loadData)
           <div class="flex justify-end gap-3">
             <SecondaryButton @click="showAddModal = false">{{ t('common.cancel') }}</SecondaryButton>
             <PrimaryButton
-              :disabled="saving || !addInventoryId || (addTargetType === 'role' && !addRoleId) || (addTargetType === 'group' && !addGroupId)"
+              :disabled="saving || !addInventoryId || (addTargetType === 'userType' && !addUserType) || (addTargetType === 'group' && !addGroupId)"
               @click="submitAdd"
             >
               {{ saving ? t('common.loading') : t('common.save') }}

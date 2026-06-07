@@ -6,7 +6,16 @@
 <script lang="ts" setup>
 import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
+import {StationPermission} from '@/api/types'
+import {useSession} from '@/composables/useSession'
+
+const {hasPermission} = useSession()
+const router = useRouter()
+if (!hasPermission(StationPermission.STATION_GENERAL)) {
+  router.replace({name: 'dashboard-overview'})
+}
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import FileUploadButton from '@/components/button/FileUploadButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'

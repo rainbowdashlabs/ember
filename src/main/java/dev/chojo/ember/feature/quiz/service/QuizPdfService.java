@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
-import dev.chojo.ember.feature.quiz.entity.QuestionType;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
+import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.entity.QuizTestSection;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
@@ -170,7 +170,7 @@ public class QuizPdfService {
 
                 try {
                     var cfg = q.configNode();
-                    renderQuestion(sb, q.questionType(), cfg, showAnswers);
+                    renderQuestion(sb, q.quizQuestionType(), cfg, showAnswers);
                 } catch (Exception e) {
                     log.warn("Failed to parse question config for question {}", q.id(), e);
                 }
@@ -189,7 +189,7 @@ public class QuizPdfService {
         return sb.toString();
     }
 
-    private void renderQuestion(StringBuilder sb, QuestionType type, JsonNode cfg, boolean showAnswers) {
+    private void renderQuestion(StringBuilder sb, QuizQuestionType type, JsonNode cfg, boolean showAnswers) {
         switch (type) {
             case MULTIPLE_CHOICE -> renderMultipleChoice(sb, cfg, showAnswers);
             case TRUE_FALSE -> renderTrueFalse(sb, cfg, showAnswers);

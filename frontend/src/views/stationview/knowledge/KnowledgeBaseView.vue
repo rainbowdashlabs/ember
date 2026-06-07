@@ -34,7 +34,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 const {t} = useI18n()
 const router = useRouter()
 const route = useRoute()
-const {canManageKnowledge, loaded, isKbPublic} = useSession()
+const {canEditKnowledge, loaded, isKbPublic} = useSession()
 
 // View mode
 const viewMode = ref<'grid' | 'list'>('grid')
@@ -386,7 +386,7 @@ function navigateToFavourites() {
 
                 <!-- Manager actions -->
                 <KbCreateMenu
-                    v-if="canManageKnowledge()"
+                    v-if="canEditKnowledge()"
                     @create-folder="createModalsRef?.openCreateFolder()"
                     @create-markdown="createModalsRef?.openCreateFile()"
                     @upload="createModalsRef?.openUpload()"
@@ -404,7 +404,7 @@ function navigateToFavourites() {
                         :shared-files="filteredSharedFiles"
                         :favourites="favourites"
                         :favourite-ids="favouriteIds"
-                        :can-manage="canManageKnowledge()"
+                        :can-manage="canEditKnowledge()"
                         :is-favourites-view="isFavouritesView"
                         :current-folder="currentFolder"
                         @navigate-folder="navigateToFolder"
@@ -424,7 +424,7 @@ function navigateToFavourites() {
                         :shared-files="filteredSharedFiles"
                         :favourites="favourites"
                         :favourite-ids="favouriteIds"
-                        :can-manage="canManageKnowledge()"
+                        :can-manage="canEditKnowledge()"
                         :is-favourites-view="isFavouritesView"
                         :current-folder="currentFolder"
                         @navigate-folder="navigateToFolder"

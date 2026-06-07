@@ -63,7 +63,7 @@ const buttons: ToolbarButton[] = [
         :key="btn.label"
         type="button"
         :title="btn.label"
-        :class="['p-1.5 rounded text-sm transition-colors', btn.active() ? 'bg-[var(--primary)] text-white' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']"
+        :class="['p-1.5 rounded text-sm transition-colors', btn.active() ? 'bg-[var(--primary)] text-[var(--color-primary-text)]' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']"
         @mousedown.prevent
         @click="btn.action()"
       >

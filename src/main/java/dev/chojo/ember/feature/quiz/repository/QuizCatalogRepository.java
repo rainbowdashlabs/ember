@@ -5,12 +5,13 @@
  */
 package dev.chojo.ember.feature.quiz.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
-import dev.chojo.ember.feature.quiz.entity.QuestionType;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
+import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -145,10 +146,18 @@ public class QuizCatalogRepository {
                 .first();
     }
 
+    public List<QuizQuestion> findQuestionsByIds(List<Integer> ids) {
+        if (ids.isEmpty()) return List.of();
+        return Query.query("SELECT * FROM quiz_question WHERE id = ANY(:ids);")
+                .single(Call.of().bind("ids", ids, PostgreSqlTypes.INTEGER))
+                .map(QuizQuestion.map())
+                .all();
+    }
+
     public QuizQuestion createQuestion(
             int catalogId,
             Integer categoryId,
-            QuestionType questionType,
+            QuizQuestionType quizQuestionType,
             String title,
             String description,
             String imageUrl,
@@ -163,7 +172,7 @@ public class QuizCatalogRepository {
                 .single(Call.of()
                         .bind("catalog_id", catalogId)
                         .bind("category_id", categoryId)
-                        .bind("question_type", questionType.name())
+                        .bind("question_type", quizQuestionType.name())
                         .bind("title", title)
                         .bind("description", description)
                         .bind("image_url", imageUrl)

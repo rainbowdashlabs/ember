@@ -13,12 +13,18 @@ import de.chojo.sadu.postgresql.mapper.PostgresqlMapper;
 import de.chojo.sadu.queries.api.configuration.QueryConfiguration;
 import de.chojo.sadu.updater.QueryReplacement;
 import de.chojo.sadu.updater.SqlUpdater;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
+import dev.chojo.ember.feature.board.repository.BoardRepository;
+import dev.chojo.ember.feature.board.repository.BoardTicketRepository;
+import dev.chojo.ember.feature.board.repository.FederatedBoardRepository;
 import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
 import dev.chojo.ember.feature.comment.repository.NoteRepository;
+import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.feed.repository.FeedTokenRepository;
 import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.inventory.repository.ExchangeRepository;
@@ -36,6 +42,11 @@ import dev.chojo.ember.feature.members.repository.SavedFilterRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserSettingsRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.members.service.MemberGroupService;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.news.repository.NewsRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationSettingsRepository;
@@ -52,19 +63,22 @@ import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
-import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.sql.DataSource;
 
 @Tag("database")
 @Testcontainers
 public abstract class RepositoryTestBase {
-    private static final String SCHEMA = "ember";
+    private static final AtomicInteger SCHEMA_COUNTER = new AtomicInteger(0);
 
     @Container
-    static final PostgreSQLContainer<?> PG = new PostgreSQLContainer<>("postgres:17")
+    static final PostgreSQLContainer PG = new PostgreSQLContainer("postgres:17")
             .withDatabaseName("ember_test")
             .withUsername("test")
             .withPassword("test");
@@ -106,9 +120,18 @@ public abstract class RepositoryTestBase {
     protected static RestrictionRepository restrictionRepo;
     protected static ApplicationSettingRepository applicationSettingRepo;
     protected static ProblemReportRepository problemReportRepo;
+    protected static BoardRepository boardRepo;
+    protected static BoardTicketRepository boardTicketRepo;
+    protected static FederatedBoardRepository federatedBoardRepo;
+    protected static MemberIdentityFactory memberIdentityFactory;
+    protected static MemberNameResolver memberNameResolver;
+    protected static DataSource dataSource;
+    protected static String schemaName;
 
     @BeforeAll
     static void setupDatabase() throws Exception {
+        // Each test class gets its own schema to prevent cross-class interference
+        String SCHEMA = "ember_t" + SCHEMA_COUNTER.incrementAndGet();
         DatabaseConfig dbConfig = new DatabaseConfig() {
             @Override
             public String host() {
@@ -136,12 +159,13 @@ public abstract class RepositoryTestBase {
             }
         };
 
-        DataSource dataSource = DataSourceCreator.create(PostgreSql.get())
+        dataSource = DataSourceCreator.create(PostgreSql.get())
                 .configure(config ->
                         config.withConfig(dbConfig).currentSchema(SCHEMA).applicationName("EmberTest"))
                 .create()
-                .withMaximumPoolSize(2)
+                .withMaximumPoolSize(5)
                 .build();
+        schemaName = SCHEMA;
 
         SqlUpdater.builder(dataSource, PostgreSql.get())
                 .setReplacements(new QueryReplacement("ember_schema", SCHEMA))
@@ -153,10 +177,9 @@ public abstract class RepositoryTestBase {
                 .setRowMapperRegistry(new RowMapperRegistry().register(PostgresqlMapper.getDefaultMapper()))
                 .build();
         QueryConfiguration.setDefault(config);
-
         accountRepo = new AccountRepository();
         stationRepo = new StationRepository();
-        stationMemberRepo = new StationMemberRepository();
+        stationMemberRepo = new StationMemberRepository(stationRepo);
         attendanceRepo = new AttendanceRepository();
         inventoryRepo = new InventoryRepository();
         memberGroupRepo = new MemberGroupRepository();
@@ -188,8 +211,20 @@ public abstract class RepositoryTestBase {
         aiProviderRepo = new AiProviderRepository();
         testProtocolRepo = new TestProtocolRepository();
         knowledgeBaseRepo = new KnowledgeBaseRepository();
-        restrictionRepo = new RestrictionRepository();
+        restrictionRepo = new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo);
         applicationSettingRepo = new ApplicationSettingRepository();
         problemReportRepo = new ProblemReportRepository();
+        boardRepo = new BoardRepository();
+        boardTicketRepo = new BoardTicketRepository(stationMemberRepo, stationRepo);
+        federatedBoardRepo = new FederatedBoardRepository();
+        var eventFedRepo = new EventFederationRepository();
+        var fedRepo = new FederationRepository();
+        var memberSvc = new StationMemberService(stationMemberRepo, stationRepo, accountRepo, null);
+        var groupSvc =
+                new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, new DomainEventBus(Set.of()));
+        var tagSvc = new UserTagService(userTagRepo, memberGroupRepo);
+        memberNameResolver =
+                new MemberNameResolver(memberSvc, accountRepo, eventFedRepo, fedRepo, stationRepo, groupSvc, tagSvc);
+        memberIdentityFactory = new MemberIdentityFactory(stationRepo, stationMemberRepo, memberNameResolver);
     }
 }

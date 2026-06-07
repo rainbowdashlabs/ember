@@ -12,6 +12,10 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryContainer from '@/components/container/PrimaryContainer.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import TextInput from '@/components/input/text/TextInput.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const {t} = useI18n()
 </script>
@@ -30,30 +34,59 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.adminStations.editText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Station list -->
-    <div class="grid gap-4 sm:grid-cols-2">
-      <PrimaryContainer
-          class="flex flex-col items-center justify-center gap-2 cursor-pointer py-6 border-dashed hover:opacity-80 transition-opacity">
-        <font-awesome-icon :icon="['fas', 'plus']" class="text-2xl"/>
-        <span class="font-medium">{{ t('adminStations.create') }}</span>
-      </PrimaryContainer>
+    <HelpSection :title="t('helpCenter.adminStations.importTitle')">
+      <p>{{ t('helpCenter.adminStations.importText') }}</p>
+    </HelpSection>
 
-      <NeutralContainer class="flex items-center justify-between py-6">
-        <span class="font-medium text-lg">DLRG Musterstadt</span>
-        <div class="flex items-center gap-2">
-          <EditButton/>
-          <DeleteButton/>
+    <!-- Dummy: Station list with import tile -->
+    <HelpSection :title="t('helpCenter.adminStations.createTitle')">
+      <div class="grid gap-4 sm:grid-cols-2">
+        <PrimaryContainer
+            class="flex flex-col items-center justify-center gap-2 cursor-pointer py-6 border-dashed hover:opacity-80 transition-opacity">
+          <font-awesome-icon :icon="['fas', 'plus']" class="text-2xl" />
+          <span class="font-medium">{{ t('adminStations.create') }}</span>
+        </PrimaryContainer>
+
+        <NeutralContainer
+            class="flex flex-col items-center justify-center gap-2 cursor-pointer py-6 hover:opacity-80 transition-opacity">
+          <font-awesome-icon :icon="['fas', 'upload']" class="text-2xl text-(--text-muted)" />
+          <span class="font-medium">{{ t('adminStations.importStation') }}</span>
+        </NeutralContainer>
+
+        <NeutralContainer class="flex items-center justify-between py-6">
+          <span class="font-medium text-lg">DLRG Musterstadt</span>
+          <div class="flex items-center gap-2">
+            <EditButton />
+            <DeleteButton />
+          </div>
+        </NeutralContainer>
+
+        <NeutralContainer class="flex items-center justify-between py-6">
+          <span class="font-medium text-lg">DLRG Beispielburg</span>
+          <div class="flex items-center gap-2">
+            <EditButton />
+            <DeleteButton />
+          </div>
+        </NeutralContainer>
+      </div>
+
+      <!-- Import modal snapshot -->
+      <NeutralContainer class="mt-4 space-y-4">
+        <p class="text-sm text-(--text-muted)">{{ t('adminStations.importHint') }}</p>
+        <div class="space-y-1">
+          <FieldLabel>{{ t('adminStations.importSourceUrl') }}</FieldLabel>
+          <TextInput :model-value="''" :placeholder="t('adminStations.importSourceUrlPlaceholder')" />
+        </div>
+        <div class="space-y-1">
+          <FieldLabel>{{ t('adminStations.importToken') }}</FieldLabel>
+          <TextInput :model-value="''" :placeholder="t('adminStations.importTokenPlaceholder')" />
+        </div>
+        <div class="flex justify-end gap-3">
+          <SecondaryButton>{{ t('adminStations.cancel') }}</SecondaryButton>
+          <PrimaryButton>{{ t('adminStations.importStart') }}</PrimaryButton>
         </div>
       </NeutralContainer>
-
-      <NeutralContainer class="flex items-center justify-between py-6">
-        <span class="font-medium text-lg">DLRG Beispielburg</span>
-        <div class="flex items-center gap-2">
-          <EditButton/>
-          <DeleteButton/>
-        </div>
-      </NeutralContainer>
-    </div>
+    </HelpSection>
 
     <HelpSection :title="t('helpCenter.adminStations.deleteTitle')">
       <p>{{ t('helpCenter.adminStations.deleteText') }}</p>

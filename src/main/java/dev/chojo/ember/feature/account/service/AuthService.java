@@ -355,8 +355,8 @@ public class AuthService {
             return LoginResult.failure("Invalid email or password");
         }
 
-        if (!accountRepository.hasAccountRole(account.id(), "ADMIN")
-                && !stationMemberRepository.hasLoginRole(account.id())) {
+        if (!accountRepository.isAdministrator(account.id())
+                && !stationMemberRepository.hasLoginPermission(account.id())) {
             return LoginResult.failure("Account is not authorized to log in");
         }
 

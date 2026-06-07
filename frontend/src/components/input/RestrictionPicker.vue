@@ -9,51 +9,54 @@ import {useI18n} from 'vue-i18n'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
-import type {Role, MemberGroup, UserTag} from '@/api/types'
-import {Roles} from '@/api/types'
+import type {MemberGroup, StationMember, UserTag} from '@/api/types'
+import {StationUserType} from '@/api/types'
 
 const {t} = useI18n()
 
 const props = withDefaults(defineProps<{
-  roles?: Role[]
   groups?: MemberGroup[]
   tags?: UserTag[]
-  selectedRoleIds: number[]
+  members?: StationMember[]
+  selectedUserTypes?: string[]
   selectedGroupIds: number[]
   selectedTagIds: number[]
+  selectedMemberIds?: number[]
   mode?: 'AND' | 'OR'
-  showRoles?: boolean
+  showUserTypes?: boolean
   showGroups?: boolean
   showTags?: boolean
+  showMembers?: boolean
   showMode?: boolean
 }>(), {
-  showRoles: true,
+  selectedUserTypes: () => [],
+  selectedMemberIds: () => [],
+  showUserTypes: true,
   showGroups: true,
   showTags: true,
+  showMembers: false,
   showMode: true,
   mode: 'AND',
 })
 
 const emit = defineEmits<{
-  'update:selectedRoleIds': [ids: number[]]
+  'update:selectedUserTypes': [types: string[]]
   'update:selectedGroupIds': [ids: number[]]
   'update:selectedTagIds': [ids: number[]]
+  'update:selectedMemberIds': [ids: number[]]
   'update:mode': [mode: 'AND' | 'OR']
 }>()
 
-const USER_ROLES = [Roles.MEMBER, Roles.GUARDIAN, Roles.TEAM, Roles.TRIAL] as readonly string[]
+const USER_TYPE_OPTIONS = [
+  {value: StationUserType.TRIAL, label: 'Probe'},
+  {value: StationUserType.MEMBER, label: 'Mitglied'},
+  {value: StationUserType.GUARDIAN, label: 'Erziehungsberechtigter'},
+  {value: StationUserType.TEAM, label: 'Team'},
+  {value: StationUserType.MANAGER, label: 'Manager'},
+]
 
-const roleFriendlyNames: Record<string, string> = {
-  MEMBER: 'Mitglied',
-  GUARDIAN: 'Erziehungsberechtigter',
-  TEAM: 'Team',
-  TRIAL: 'Probe',
-}
-
-const roleOptions = computed(() =>
-    (props.roles ?? [])
-        .filter(r => USER_ROLES.includes(r.role))
-        .map(r => ({value: String(r.id), label: roleFriendlyNames[r.role] ?? r.role}))
+const userTypeOptions = computed(() =>
+    USER_TYPE_OPTIONS.map(o => ({value: o.value, label: o.label}))
 )
 
 const groupOptions = computed(() =>
@@ -64,12 +67,17 @@ const tagOptions = computed(() =>
     (props.tags ?? []).map(t => ({value: String(t.id), label: t.name}))
 )
 
-const selectedRoleValues = computed(() => props.selectedRoleIds.map(String))
+const memberOptions = computed(() =>
+    (props.members ?? []).map(m => ({value: String(m.id), label: m.name ?? m.email ?? `#${m.id}`}))
+)
+
+const selectedUserTypeValues = computed(() => props.selectedUserTypes)
 const selectedGroupValues = computed(() => props.selectedGroupIds.map(String))
 const selectedTagValues = computed(() => props.selectedTagIds.map(String))
+const selectedMemberValues = computed(() => props.selectedMemberIds.map(String))
 
-function onRolesChange(values: string[]) {
-  emit('update:selectedRoleIds', values.map(Number))
+function onUserTypesChange(values: string[]) {
+  emit('update:selectedUserTypes', values)
 }
 
 function onGroupsChange(values: string[]) {
@@ -80,6 +88,10 @@ function onTagsChange(values: string[]) {
   emit('update:selectedTagIds', values.map(Number))
 }
 
+function onMembersChange(values: string[]) {
+  emit('update:selectedMemberIds', values.map(Number))
+}
+
 const internalMode = ref<'AND' | 'OR'>(props.mode ?? 'AND')
 
 function toggleMode() {
@@ -88,21 +100,22 @@ function toggleMode() {
 }
 
 const hasActiveSelection = computed(() =>
-    props.selectedRoleIds.length > 0 || props.selectedGroupIds.length > 0 || props.selectedTagIds.length > 0
+    props.selectedUserTypes.length > 0 || props.selectedGroupIds.length > 0 || props.selectedTagIds.length > 0 || props.selectedMemberIds.length > 0
 )
 
 function reset() {
-  emit('update:selectedRoleIds', [])
+  emit('update:selectedUserTypes', [])
   emit('update:selectedGroupIds', [])
   emit('update:selectedTagIds', [])
+  emit('update:selectedMemberIds', [])
 }
 </script>
 
 <template>
   <div class="flex flex-wrap items-center gap-3">
-    <!-- AND/OR toggle -->
+    <!-- AND/OR toggle (only between groups and tags — user types are always OR) -->
     <SelectionToggleButton
-        v-if="showMode"
+        v-if="showMode && (showGroups || showTags)"
         :selected="internalMode === 'AND'"
         size="sm"
         @toggle="toggleMode"
@@ -110,13 +123,13 @@ function reset() {
       {{ internalMode === 'AND' ? t('restriction.and') : t('restriction.or') }}
     </SelectionToggleButton>
 
-    <!-- Roles dropdown -->
+    <!-- User types dropdown (always OR-connected) -->
     <MultiSelectDropdown
-        v-if="showRoles && roleOptions.length > 0"
-        :options="roleOptions"
-        :model-value="selectedRoleValues"
-        :placeholder="t('restriction.roles')"
-        @update:model-value="onRolesChange"
+        v-if="showUserTypes"
+        :options="userTypeOptions"
+        :model-value="selectedUserTypeValues"
+        :placeholder="t('restriction.userTypes')"
+        @update:model-value="onUserTypesChange"
     />
 
     <!-- Groups dropdown -->
@@ -135,6 +148,15 @@ function reset() {
         :model-value="selectedTagValues"
         :placeholder="t('restriction.tags')"
         @update:model-value="onTagsChange"
+    />
+
+    <!-- Members dropdown -->
+    <MultiSelectDropdown
+        v-if="showMembers && memberOptions.length > 0"
+        :options="memberOptions"
+        :model-value="selectedMemberValues"
+        :placeholder="t('restriction.members')"
+        @update:model-value="onMembersChange"
     />
 
     <!-- Reset button -->

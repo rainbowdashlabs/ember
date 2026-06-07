@@ -79,9 +79,12 @@ public record AttendanceFieldConfig(
             if ("__TODAY__".equals(s)) {
                 return "\"" + LocalDate.now() + "\"";
             }
-            return "\"" + s + "\"";
         }
-        // Booleans and numbers are already valid JSON
-        return String.valueOf(defaultValue);
+        // Use Jackson to ensure valid JSON output for any type
+        try {
+            return MAPPER.writeValueAsString(defaultValue);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

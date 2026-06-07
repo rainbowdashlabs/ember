@@ -25,8 +25,10 @@ import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.event.DomainEventHandler;
+import dev.chojo.ember.event.handlers.BoardTicketChangedHandler;
 import dev.chojo.ember.event.handlers.CommentCreatedHandler;
 import dev.chojo.ember.event.handlers.CommentDeletedHandler;
+import dev.chojo.ember.event.handlers.EventCancelledHandler;
 import dev.chojo.ember.event.handlers.EventCreatedHandler;
 import dev.chojo.ember.event.handlers.EventDeletedHandler;
 import dev.chojo.ember.event.handlers.EventRegistrationStatusHandler;
@@ -47,12 +49,15 @@ import dev.chojo.ember.event.handlers.RegistrationDeadlineExpiredHandler;
 import dev.chojo.ember.feature.account.route.AuthRoutes;
 import dev.chojo.ember.feature.account.route.SessionRoutes;
 import dev.chojo.ember.feature.attendance.route.AttendanceRoutes;
+import dev.chojo.ember.feature.board.route.BoardRoutes;
+import dev.chojo.ember.feature.board.route.BoardTicketRoutes;
 import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
 import dev.chojo.ember.feature.comment.route.NoteRoutes;
 import dev.chojo.ember.feature.events.route.EventRoutes;
 import dev.chojo.ember.feature.events.route.EventTemplateRoutes;
-import dev.chojo.ember.feature.events.route.FederatedEventRoutes;
 import dev.chojo.ember.feature.events.route.PublicEventRoutes;
+import dev.chojo.ember.feature.events.service.EventReminderChecker;
+import dev.chojo.ember.feature.events.service.EventThresholdChecker;
 import dev.chojo.ember.feature.federation.route.FederationRemoteRoutes;
 import dev.chojo.ember.feature.federation.route.FederationRoutes;
 import dev.chojo.ember.feature.federation.route.LendingRoutes;
@@ -92,8 +97,11 @@ import dev.chojo.ember.feature.station.route.StationRoutes;
 import dev.chojo.ember.feature.statistics.route.StatisticsRoutes;
 import dev.chojo.ember.feature.system.route.AdminSettingsRoutes;
 import dev.chojo.ember.feature.system.route.ApiStatusRoutes;
+import dev.chojo.ember.feature.system.route.DataRoutes;
 import dev.chojo.ember.feature.system.route.ProblemReportRoutes;
 import dev.chojo.ember.feature.system.route.ProblemRoutes;
+import dev.chojo.ember.feature.system.route.RequirementsRoutes;
+import dev.chojo.ember.feature.system.route.SidebarCountRoutes;
 import dev.chojo.ember.feature.system.route.UtilRoutes;
 import dev.chojo.ember.feature.waitinglist.route.WaitingListRoutes;
 import jakarta.inject.Singleton;
@@ -140,7 +148,6 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(StationManageRoutes.class);
         routesBinder.addBinding().to(EventRoutes.class);
         routesBinder.addBinding().to(EventTemplateRoutes.class);
-        routesBinder.addBinding().to(FederatedEventRoutes.class);
         routesBinder.addBinding().to(SavedFilterRoutes.class);
         routesBinder.addBinding().to(InventoryCheckRoutes.class);
         routesBinder.addBinding().to(ManagedMemberRoutes.class);
@@ -178,6 +185,11 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(UserFeedRoutes.class);
         routesBinder.addBinding().to(EventCommentRoutes.class);
         routesBinder.addBinding().to(NoteRoutes.class);
+        routesBinder.addBinding().to(BoardRoutes.class);
+        routesBinder.addBinding().to(BoardTicketRoutes.class);
+        routesBinder.addBinding().to(RequirementsRoutes.class);
+        routesBinder.addBinding().to(SidebarCountRoutes.class);
+        routesBinder.addBinding().to(DataRoutes.class);
 
         // Domain event handlers
         Multibinder<DomainEventHandler<?>> eventBinder = Multibinder.newSetBinder(binder(), new TypeLiteral<>() {});
@@ -200,6 +212,12 @@ public class EmberModule extends AbstractModule {
         eventBinder.addBinding().to(LendingStatusChangedHandler.class);
         eventBinder.addBinding().to(LendingMessageSentHandler.class);
         eventBinder.addBinding().to(MentionedInCommentHandler.class);
+        eventBinder.addBinding().to(BoardTicketChangedHandler.class);
+        eventBinder.addBinding().to(EventCancelledHandler.class);
+
+        // Eager singletons — started on boot
+        bind(EventThresholdChecker.class).asEagerSingleton();
+        bind(EventReminderChecker.class).asEagerSingleton();
     }
 
     @Provides

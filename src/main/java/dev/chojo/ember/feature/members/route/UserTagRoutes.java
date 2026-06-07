@@ -6,14 +6,15 @@
 package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.members.entity.MemberWithName;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -41,14 +42,17 @@ import java.util.List;
 public class UserTagRoutes implements Routes {
     private final UserTagService tagService;
     private final AccountRepository accountRepository;
+    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public UserTagRoutes(
             UserTagService tagService,
             AccountRepository accountRepository,
-            StationMemberRepository stationMemberRepository) {
+            StationMemberRepository stationMemberRepository,
+            MemberIdentityFactory memberIdentityFactory) {
         this.tagService = tagService;
         this.accountRepository = accountRepository;
+        this.memberIdentityFactory = memberIdentityFactory;
     }
 
     private static boolean isBlank(String s) {
@@ -57,26 +61,27 @@ public class UserTagRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/tags", this::list, Roles.MEMBER_MANAGER);
-        routes.post(prefix + "/tags", this::create, Roles.MEMBER_MANAGER);
-        routes.put(prefix + "/tags/{id}", this::update, Roles.MEMBER_MANAGER);
-        routes.delete(prefix + "/tags/{id}", this::delete, Roles.MEMBER_MANAGER);
+        routes.get(prefix + "/tags", this::list, StationPermission.USER);
+        routes.post(prefix + "/tags", this::create, StationPermission.MEMBER_MANAGE_TAGS);
+        routes.put(prefix + "/tags/{id}", this::update, StationPermission.MEMBER_MANAGE_TAGS);
+        routes.delete(prefix + "/tags/{id}", this::delete, StationPermission.MEMBER_MANAGE_TAGS);
 
-        routes.get(prefix + "/tags/{id}/members", this::getMembers, Roles.MEMBER_MANAGER);
-        routes.put(prefix + "/tags/{id}/members", this::setMembers, Roles.MEMBER_MANAGER);
+        routes.get(
+                prefix + "/tags/{id}/members",
+                this::getMembers,
+                StationPermission.MEMBER_MANAGE_TAGS,
+                StationPermission.INVENTORY_READ);
+        routes.put(prefix + "/tags/{id}/members", this::setMembers, StationPermission.MEMBER_MANAGE_TAGS);
 
-        routes.get(prefix + "/station-members/{memberId}/tags", this::getMemberTags, Roles.MEMBER_MANAGER);
+        routes.get(prefix + "/station-members/{memberId}/tags", this::getMemberTags, StationPermission.MEMBER_READ);
 
-        routes.post(prefix + "/tags/{id}/convert-to-group", this::convertToGroup, Roles.MEMBER_MANAGER);
+        routes.post(prefix + "/tags/{id}/convert-to-group", this::convertToGroup, StationPermission.MEMBER_MANAGE_TAGS);
     }
 
     // -- Tags --
 
     private MemberWithName toMemberWithName(StationMember m) {
-        Account account = accountRepository.findById(m.accountId()).orElse(null);
-        String name = account != null ? (account.firstName() + " " + account.lastName()).trim() : "";
-        String email = account != null ? account.email() : "";
-        return new MemberWithName(m.id(), m.stationId(), m.accountId(), name, email);
+        return MemberWithName.from(m, accountRepository, memberIdentityFactory);
     }
 
     @OpenApi(
@@ -132,7 +137,7 @@ public class UserTagRoutes implements Routes {
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
         }
-        if (!tagService.update(id, request.name())) {
+        if (!tagService.update(id, request.name(), request.color(), request.visible(), request.position())) {
             throw new NotFoundResponse();
         }
     }
@@ -245,11 +250,8 @@ public class UserTagRoutes implements Routes {
 
     // -- Request/Response records --
 
-    public record TagRequest(String name) {}
+    public record TagRequest(String name, String color, boolean visible, int position) {}
 
     @OpenApiName("TagSetMembersRequest")
     public record SetMembersRequest(List<Integer> memberIds) {}
-
-    @OpenApiName("TagMemberWithName")
-    public record MemberWithName(int id, int stationId, int accountId, String name, String email) {}
 }

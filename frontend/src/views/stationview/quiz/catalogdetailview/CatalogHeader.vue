@@ -21,6 +21,7 @@ import type { QuizCatalogDetail } from '@/api/types'
 const props = defineProps<{
   catalog: QuizCatalogDetail
   isFederated: boolean
+  readonly?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -82,7 +83,7 @@ defineExpose({ resetForm })
     </div>
   </NeutralContainer>
 
-  <!-- Catalog Metadata (editable, local only) -->
+  <!-- Catalog Metadata -->
   <NeutralContainer v-else>
     <div class="space-y-4">
       <PageHeader>{{ catalog.name }}</PageHeader>
@@ -92,15 +93,18 @@ defineExpose({ resetForm })
         </InfoBadge>
         <SecondaryBadge>{{ t('quiz.catalogs.questionCount', { count: catalog.questionCount }) }}</SecondaryBadge>
       </div>
-      <TextInput v-model="editName" :placeholder="t('quiz.catalogs.name')" @update:model-value="markCatalogDirty" />
-      <TextAreaInput v-model="editDescription" :placeholder="t('quiz.catalogs.description')" @update:model-value="markCatalogDirty" />
-      <FieldLabel inline>
-        <ToggleInput v-model="editTrainingEnabled" @update:model-value="markCatalogDirty" />
-        {{ t('quiz.catalogs.trainingEnabled') }}
-      </FieldLabel>
-      <div v-if="catalogDirty" class="flex justify-end">
-        <PrimaryButton @click="saveCatalog">{{ t('common.save') }}</PrimaryButton>
-      </div>
+      <p v-if="readonly && catalog.description" class="text-sm text-(--text-muted)">{{ catalog.description }}</p>
+      <template v-if="!readonly">
+        <TextInput v-model="editName" :placeholder="t('quiz.catalogs.name')" @update:model-value="markCatalogDirty" />
+        <TextAreaInput v-model="editDescription" :placeholder="t('quiz.catalogs.description')" @update:model-value="markCatalogDirty" />
+        <FieldLabel inline>
+          <ToggleInput v-model="editTrainingEnabled" @update:model-value="markCatalogDirty" />
+          {{ t('quiz.catalogs.trainingEnabled') }}
+        </FieldLabel>
+        <div v-if="catalogDirty" class="flex justify-end">
+          <PrimaryButton @click="saveCatalog">{{ t('common.save') }}</PrimaryButton>
+        </div>
+      </template>
     </div>
   </NeutralContainer>
 </template>

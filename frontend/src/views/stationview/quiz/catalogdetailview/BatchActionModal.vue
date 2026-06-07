@@ -54,10 +54,10 @@ const batchAiOrderMax = ref(6)
 const batchAiFillGaps = ref(2)
 const batchAiFillSentences = ref(3)
 
-const selectedTypesSet = computed(() => new Set(props.questions.map(q => q.questionType)))
+const selectedTypesSet = computed(() => new Set(props.questions.map(q => q.quizQuestionType)))
 
 function parseConfig(q: QuizQuestion): Record<string, unknown> {
-  return typeof q.config === 'string' ? JSON.parse(q.config) : JSON.parse(JSON.stringify(q.config))
+  return { ...(q.config ?? {}) }
 }
 
 async function execute() {
@@ -72,7 +72,7 @@ async function execute() {
         done++; progress.value = `${done}/${targets.length}`
         await quiz.updateQuestion(q.id, {
           title: q.title, description: q.description, categoryId: q.categoryId,
-          questionType: q.questionType, points: q.points,
+          quizQuestionType: q.quizQuestionType, points: q.points,
           autoPoints: batchAutoPoints.value, config: parseConfig(q),
         })
       }
@@ -81,20 +81,20 @@ async function execute() {
         done++; progress.value = `${done}/${targets.length}`
         await quiz.updateQuestion(q.id, {
           title: q.title, description: q.description, categoryId: q.categoryId,
-          questionType: q.questionType, points: batchPoints.value,
+          quizQuestionType: q.quizQuestionType, points: batchPoints.value,
           autoPoints: false, config: parseConfig(q),
         })
       }
     } else if (props.action === 'pointsPerCorrect') {
       for (const q of targets) {
-        if (q.questionType !== QuizQuestionTypes.MULTIPLE_CHOICE) continue
+        if (q.quizQuestionType !== QuizQuestionTypes.MULTIPLE_CHOICE) continue
         done++; progress.value = `${done}/${targets.length}`
         const config = parseConfig(q)
         config.pointsPerCorrect = batchPointsPerCorrect.value
         const correctCount = ((config.options as {correct: boolean}[]) || []).filter(o => o.correct).length
         await quiz.updateQuestion(q.id, {
           title: q.title, description: q.description, categoryId: q.categoryId,
-          questionType: q.questionType, points: correctCount * batchPointsPerCorrect.value,
+          quizQuestionType: q.quizQuestionType, points: correctCount * batchPointsPerCorrect.value,
           autoPoints: true, config,
         })
       }
@@ -104,7 +104,7 @@ async function execute() {
         done++; progress.value = `${done}/${targets.length}`
         await quiz.updateQuestion(q.id, {
           title: q.title, description: q.description, categoryId: catId,
-          questionType: q.questionType, points: q.points,
+          quizQuestionType: q.quizQuestionType, points: q.points,
           autoPoints: q.autoPoints, config: parseConfig(q),
         })
       }
@@ -131,7 +131,7 @@ async function batchGenerate(targets: QuizQuestion[]) {
   let done = 0
   for (const q of targets) {
     done++; progress.value = `${done}/${targets.length}`
-    const type = q.questionType
+    const type = q.quizQuestionType
     let prompt = ''
     if (type === QuizQuestionTypes.MULTIPLE_CHOICE) {
       prompt = `Generate a multiple choice question with exactly ${batchAiMcCorrect.value} correct and ${batchAiMcWrong.value} wrong answers.`
@@ -156,8 +156,8 @@ async function batchGenerate(targets: QuizQuestion[]) {
           const gen = poll.questions[0]
           await quiz.updateQuestion(q.id, {
             title: gen.title, description: q.description, categoryId: q.categoryId,
-            questionType: type, points: q.points, autoPoints: q.autoPoints,
-            config: typeof gen.config === 'string' ? JSON.parse(gen.config) : gen.config,
+            quizQuestionType: type, points: q.points, autoPoints: q.autoPoints,
+            config: gen.config,
           })
         }
         if (poll.done) break

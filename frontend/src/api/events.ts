@@ -19,14 +19,37 @@ import type {
     EventTemplateDetail,
     EventTemplateFieldEntry,
     LayoutFieldEntry,
+    MemberIdentity,
     SetEventFieldsRequest,
     StationEvent
 } from './types'
 
 // -- Events --
 
-export async function listEvents(): Promise<StationEvent[]> {
-    const res = await client.get<StationEvent[]>('/events')
+export interface EventListParams {
+    categoryId?: number
+    requiresRegistration?: boolean
+}
+
+export interface UpcomingParams {
+    categoryId?: number
+    requiresRegistration?: boolean
+    limit?: number
+    offset?: number
+}
+
+export interface UpcomingEventOccurrence {
+    event: StationEvent
+    date: string
+}
+
+export async function listUpcomingOccurrences(params?: UpcomingParams): Promise<UpcomingEventOccurrence[]> {
+    const res = await client.get<UpcomingEventOccurrence[]>('/events/upcoming', { params })
+    return res.data
+}
+
+export async function listEvents(params?: EventListParams): Promise<StationEvent[]> {
+    const res = await client.get<StationEvent[]>('/events', { params })
     return res.data
 }
 
@@ -52,6 +75,10 @@ export async function updateEvent(id: number, data: EventRequest): Promise<Stati
 
 export async function deleteEvent(id: number): Promise<void> {
     await client.delete(`/events/${id}`)
+}
+
+export async function cancelEvent(eventId: number, reason?: string): Promise<void> {
+    await client.post(`/events/${eventId}/cancel`, { reason: reason ?? null })
 }
 
 // -- Categories --
@@ -91,6 +118,7 @@ export interface EventRegistrationEntry {
     status: string  // RegistrationStatusName
     createdAt: string
     createdByName?: string | null
+    memberIdentity?: MemberIdentity | null
 }
 
 export async function listMyRegistrations(): Promise<EventRegistrationEntry[]> {
@@ -115,6 +143,7 @@ export interface AbsentMember {
     absentFrom: string
     absentUntil: string
     reason?: string | null
+    memberIdentity?: MemberIdentity | null
 }
 
 export async function listAbsencesForDate(eventId: number, date: string): Promise<AbsentMember[]> {
@@ -334,8 +363,23 @@ export async function setTemplateFields(id: number, data: { fields: EventTemplat
     await client.put(`/event-templates/${id}/fields`, data)
 }
 
-export async function setTemplateRestrictions(id: number, data: { roleIds: number[] }): Promise<void> {
+export async function setTemplateRestrictions(id: number, data: { userTypes: string[] }): Promise<void> {
     await client.put(`/event-templates/${id}/restrictions`, data)
+}
+
+// -- Reminders --
+
+export async function getEventReminders(eventId: number): Promise<number[]> {
+    const res = await client.get<number[]>(`/events/${eventId}/reminders`)
+    return res.data
+}
+
+export async function setEventReminders(eventId: number, daysBefore: number[]): Promise<void> {
+    await client.put(`/events/${eventId}/reminders`, { daysBefore })
+}
+
+export async function setTemplateReminders(templateId: number, daysBefore: number[]): Promise<void> {
+    await client.put(`/event-templates/${templateId}/reminders`, { daysBefore })
 }
 
 // -- Batch Creation --
@@ -358,7 +402,7 @@ export interface BatchCreateRequest {
     requiresRegistration?: boolean
     requiresConfirmation?: boolean
     registrationDeadline?: string | null
-    restrictedRoleIds?: number[]
+    restrictedUserTypes?: string[]
     restrictedGroupIds?: number[]
     restrictedTagIds?: number[]
 }
@@ -411,6 +455,7 @@ export async function getRegistrationStats(eventId: number, categoryId?: number,
 export interface FederatedEvent {
     partnerId: number
     partnerStationName: string
+    partnerStationUid: string
     event: {
         id: number
         name: string
@@ -425,8 +470,62 @@ export interface FederatedEvent {
 }
 
 export async function listFederatedEvents(): Promise<FederatedEvent[]> {
-    const res = await client.get<FederatedEvent[]>('/federation/events')
+    const res = await client.get<FederatedEvent[]>('/federated/events')
     return res.data
+}
+
+export interface FederatedEventDetail {
+    event: Record<string, unknown>
+    publicFields: { id: number; name: string; value: string; fieldType: string; isPublic: boolean }[]
+}
+
+export async function getFederatedEvent(stationUid: string, eventId: number): Promise<FederatedEventDetail> {
+    const res = await client.get<FederatedEventDetail>(`/federated/${stationUid}/events/${eventId}`)
+    return res.data
+}
+
+export interface FederatedRegistration {
+    eventId: number
+    remoteMemberId: string
+    eventDate: string
+    status: string
+    partnerId: number
+}
+
+export async function listMyFederatedRegistrations(): Promise<FederatedRegistration[]> {
+    const res = await client.get<FederatedRegistration[]>('/federated/my-registrations')
+    return res.data
+}
+
+export async function registerForFederatedEvent(stationUid: string, eventId: number, eventDate: string, memberId?: string): Promise<void> {
+    await client.post(`/federated/${stationUid}/events/${eventId}/register`, { eventDate, memberId: memberId ?? null })
+}
+
+export async function withdrawFederatedRegistration(stationUid: string, eventId: number, eventDate: string, memberId?: string): Promise<void> {
+    await client.delete(`/federated/${stationUid}/events/${eventId}/register`, { data: { eventDate, memberId: memberId ?? null } })
+}
+
+export interface FederatedEventRegistration {
+    registration: {
+        id: number
+        eventId: number
+        partnerId: number
+        remoteMemberId: string
+        eventDate: string
+        status: string
+        createdAt: string
+    }
+    memberIdentity: MemberIdentity | null
+}
+
+export async function listFederationRegistrations(eventId: number, date?: string): Promise<FederatedEventRegistration[]> {
+    const params = date ? { date } : {}
+    const res = await client.get<FederatedEventRegistration[]>(`/events/${eventId}/federation-registrations`, { params })
+    return res.data
+}
+
+export async function updateFederationRegistrationStatus(registrationId: number, status: string): Promise<void> {
+    await client.put(`/events/federation-registrations/${registrationId}/status`, { status })
 }
 
 export interface EventFederationShareInfo {

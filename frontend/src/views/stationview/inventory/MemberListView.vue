@@ -20,9 +20,8 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MemberListFilters from './memberlistview/MemberListFilters.vue'
 import MemberListTable from './memberlistview/MemberListTable.vue'
 import { inventory, stationMembers, memberGroups, profileFields, userTags } from '@/api'
-import type { Inventory, InventoryItem, MemberGroup, ProfileField, Role, StationMember, UserTag } from '@/api/types'
-import { Roles } from '@/api/types'
-import type { FilterCriteria, FilterOption } from '@/components/input/filter/MemberFilterBar.vue'
+import type { Inventory, InventoryItem, MemberGroup, ProfileField, StationMember, UserTag } from '@/api/types'
+import { useMemberFilter } from '@/composables/useMemberFilter'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import client from '@/api/client'
 import { getItem, setItem } from '@/api/storage'
@@ -37,15 +36,10 @@ const allItems = ref<InventoryItem[]>([])
 const sizeMap = ref<Map<number, string>>(new Map())
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
-const groupMemberMap = ref<Map<number, Set<number>>>(new Map())
-const tagMemberMap = ref<Map<number, Set<number>>>(new Map())
-const allRoles = ref<Role[]>([])
-const memberRoleMap = ref<Map<number, Set<string>>>(new Map())
+const memberGroupNames = ref<Map<number, string[]>>(new Map())
+const memberTagNames = ref<Map<number, string[]>>(new Map())
 const loading = ref(true)
 const error = ref('')
-
-// Filters
-const filterCriteria = ref<FilterCriteria>({ roleIds: [], groupIds: [], tagIds: [], mode: 'AND' })
 const showEmpty = ref(false)
 const visibleInventoryIds = ref<Set<number>>(new Set())
 
@@ -73,64 +67,23 @@ const memberItemMap = computed(() => {
   return map
 })
 
-const roleFriendlyNames: Record<string, string> = {
-  MEMBER: 'Mitglied', GUARDIAN: 'Erziehungsberechtigter', TEAM: 'Team', TRIAL: 'Probe',
-}
-
-const filterRoleOptions = computed<FilterOption[]>(() => {
-  const allowedRoles: string[] = [Roles.MEMBER, Roles.GUARDIAN, Roles.TEAM, Roles.TRIAL]
-  return allRoles.value
-      .filter(r => allowedRoles.includes(r.role))
-      .map(r => ({ id: r.id, name: roleFriendlyNames[r.role] ?? r.role }))
-})
-
-const filterGroupOptions = computed<FilterOption[]>(() =>
-    groups.value.map(g => ({ id: g.id, name: g.name ?? '' }))
-)
-
-const filterTagOptions = computed<FilterOption[]>(() =>
-    tags.value.map(t => ({ id: t.id, name: t.name }))
+const {
+  onFilter,
+  applyFilter: applyMemberFilter,
+} = useMemberFilter(
+    () => members.value,
+    () => memberGroupNames.value,
+    () => memberTagNames.value,
+    () => groups.value,
+    () => tags.value,
 )
 
 function memberDisplayName(m: StationMember): string {
   return m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`
 }
 
-function onFilter(criteria: FilterCriteria) {
-  filterCriteria.value = criteria
-}
-
 const filteredMembers = computed(() => {
-  let result = members.value
-  const c = filterCriteria.value
-  const hasRoles = c.roleIds.length > 0
-  const hasGroups = c.groupIds.length > 0
-  const hasTags = c.tagIds.length > 0
-
-  if (hasRoles || hasGroups || hasTags) {
-    const roleIdSet = new Set(c.roleIds)
-    // Map role IDs to role names for matching
-    const filterRoleNames = new Set(
-        allRoles.value.filter(r => roleIdSet.has(r.id)).map(r => r.role)
-    )
-
-    result = result.filter(m => {
-      const matchesRole = !hasRoles || (() => {
-        const memberRoles = memberRoleMap.value.get(m.id)
-        return memberRoles ? [...filterRoleNames].some(r => memberRoles.has(r)) : false
-      })()
-      const matchesGroup = !hasGroups || (() => {
-        return c.groupIds.some(gid => (groupMemberMap.value.get(gid) ?? new Set()).has(m.id))
-      })()
-      const matchesTag = !hasTags || (() => {
-        return c.tagIds.some(tid => (tagMemberMap.value.get(tid) ?? new Set()).has(m.id))
-      })()
-
-      if (c.mode === 'AND') return matchesRole && matchesGroup && matchesTag
-      return matchesRole || matchesGroup || matchesTag
-    })
-  }
-
+  let result = applyMemberFilter(members.value)
   if (!showEmpty.value) {
     result = result.filter(m => memberItemMap.value.has(m.id))
   }
@@ -149,18 +102,16 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [mems, invs, grps, tgs, roles] = await Promise.all([
+    const [mems, invs, grps, tgs] = await Promise.all([
       stationMembers.listMembers(),
       inventory.listInventories(),
       memberGroups.listGroups(),
       userTags.listTags(),
-      stationMembers.listAllRoles(),
     ])
     members.value = mems
     inventories.value = invs
     groups.value = grps
     tags.value = tgs
-    allRoles.value = roles
 
     const storedIds = getItem('inv-members-visible-ids')
     if (storedIds) {
@@ -173,12 +124,11 @@ async function loadData() {
       visibleInventoryIds.value = new Set(invs.map(i => i.id))
     }
 
-    const [allItemsRes, allSizesRes, groupDetails, tagDetails, allMemberRoles] = await Promise.all([
+    const [allItemsRes, allSizesRes, groupDetails, tagDetails] = await Promise.all([
       inventory.listAllItems(),
       inventory.listAllSizes(),
       Promise.all(grps.map(g => memberGroups.getGroupMembers(g.id))),
       Promise.all(tgs.map(tg => userTags.getTagMembers(tg.id))),
-      stationMembers.getAllMemberRoles(),
     ])
     allItems.value = allItemsRes
 
@@ -186,19 +136,25 @@ async function loadData() {
     for (const s of allSizesRes) sm.set(s.id, s.label ?? '')
     sizeMap.value = sm
 
-    const gMap = new Map<number, Set<number>>()
-    grps.forEach((g, i) => { gMap.set(g.id, new Set(groupDetails[i].map(m => m.id))) })
-    groupMemberMap.value = gMap
+    // Build member → group names map
+    const gNames = new Map<number, string[]>()
+    grps.forEach((g, i) => {
+      for (const m of groupDetails[i]) {
+        if (!gNames.has(m.id)) gNames.set(m.id, [])
+        gNames.get(m.id)!.push(g.name ?? '')
+      }
+    })
+    memberGroupNames.value = gNames
 
-    const tMap = new Map<number, Set<number>>()
-    tgs.forEach((tg, i) => { tMap.set(tg.id, new Set(tagDetails[i].map(m => m.id))) })
-    tagMemberMap.value = tMap
-
-    const roleMap = new Map<number, Set<string>>()
-    for (const [memberId, memberRoles] of Object.entries(allMemberRoles)) {
-      roleMap.set(Number(memberId), new Set(memberRoles.map(r => r.role)))
-    }
-    memberRoleMap.value = roleMap
+    // Build member → tag names map
+    const tNames = new Map<number, string[]>()
+    tgs.forEach((tg, i) => {
+      for (const m of tagDetails[i]) {
+        if (!tNames.has(m.id)) tNames.set(m.id, [])
+        tNames.get(m.id)!.push(tg.name)
+      }
+    })
+    memberTagNames.value = tNames
   } catch { error.value = t('common.error') }
   finally { loading.value = false }
 }
@@ -343,9 +299,8 @@ onMounted(loadData)
       <template v-if="!loading">
         <MemberListFilters
           v-model:show-empty="showEmpty"
-          :roles="filterRoleOptions"
-          :groups="filterGroupOptions"
-          :tags="filterTagOptions"
+          :groups="groups"
+          :tags="tags"
           :inventories="inventories"
           :visible-inventory-ids="visibleInventoryIds"
           :show-name="showName"

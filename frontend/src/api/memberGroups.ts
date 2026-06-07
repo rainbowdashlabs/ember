@@ -8,9 +8,8 @@ import type {
     GroupDetail,
     GroupRequest,
     MemberGroup,
-    Role,
+    PermissionGrant,
     SetMembersRequest,
-    SetRolesRequest,
     StationMember,
 } from './types'
 
@@ -48,13 +47,13 @@ export async function setGroupMembers(groupId: number, data: SetMembersRequest):
     return res.data
 }
 
-export async function getGroupRoles(groupId: number): Promise<Role[]> {
-    const res = await client.get<Role[]>(`/groups/${groupId}/roles`)
+export async function getGroupPermissions(groupId: number): Promise<PermissionGrant[]> {
+    const res = await client.get<PermissionGrant[]>(`/groups/${groupId}/permissions`)
     return res.data
 }
 
-export async function setGroupRoles(groupId: number, data: SetRolesRequest): Promise<Role[]> {
-    const res = await client.put<Role[]>(`/groups/${groupId}/roles`, data)
+export async function setGroupPermissions(groupId: number, data: { permissionIds: number[] }): Promise<PermissionGrant[]> {
+    const res = await client.put<PermissionGrant[]>(`/groups/${groupId}/permissions`, data)
     return res.data
 }
 

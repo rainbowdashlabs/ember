@@ -5,19 +5,19 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
-import dev.chojo.ember.feature.federation.entity.LendingMessage;
+import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.net.URI;
-import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 
@@ -25,6 +25,9 @@ import java.util.List;
  * HTTP client for cross-instance federation communication.
  * Calls remote federation endpoints and signs requests using {@link FederationSigningService}.
  * The remote host is determined per-partner from the {@code remote_host} field.
+ * <p>
+ * All public methods accept and return typed objects. JSON serialization/deserialization
+ * is handled internally — callers never deal with raw JSON strings.
  */
 @Singleton
 public class FederationHttpClient {
@@ -32,134 +35,206 @@ public class FederationHttpClient {
 
     private final HttpClient httpClient;
     private final FederationSigningService signingService;
+    private final StationRepository stationRepository;
     private final JsonMapper mapper;
 
     @Inject
-    public FederationHttpClient(FederationSigningService signingService) {
+    public FederationHttpClient(FederationSigningService signingService, StationRepository stationRepository) {
         this.signingService = signingService;
+        this.stationRepository = stationRepository;
         this.httpClient = HttpClient.newHttpClient();
-        this.mapper = JsonMapper.builder().build();
+        this.mapper = JsonMapper.builder()
+                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+                .build();
     }
 
-    public List<LendingMessage> fetchRemoteMessages(
-            String remoteHost, int requestId, int localStationId, String localPrivateKeyBase64) {
+    private String resolveStationName(int stationId) {
+        return stationRepository.findById(stationId).map(Station::name).orElse("");
+    }
+
+    // -- Generic typed methods --
+
+    /**
+     * Performs a signed GET and deserializes the response as a single typed object.
+     * Returns null on error or non-2xx status.
+     */
+    public <T> T get(
+            String remoteHost, String path, int localStationId, String localPrivateKeyBase64, Class<T> responseType) {
         try {
-            String url = apiUrl(remoteHost) + "/federation/remote/lending/messages/" + requestId;
-            var response = signedGet(url, localStationId, localPrivateKeyBase64);
+            var response = signedGet(apiUrl(remoteHost) + path, localStationId, localPrivateKeyBase64);
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                return mapper.readValue(response.body(), responseType);
+            }
+            log.warn("Signed GET {} failed: HTTP {}", path, response.statusCode());
+            return null;
+        } catch (Exception e) {
+            log.error("Failed signed GET {} on {}", path, remoteHost, e);
+            return null;
+        }
+    }
+
+    /**
+     * Performs a signed GET and deserializes the response as a list of typed objects.
+     * Returns an empty list on error or non-200 status.
+     */
+    public <T> List<T> getList(
+            String remoteHost, String path, int localStationId, String localPrivateKeyBase64, Class<T> elementType) {
+        try {
+            var response = signedGet(apiUrl(remoteHost) + path, localStationId, localPrivateKeyBase64);
             if (response.statusCode() != 200) {
-                log.warn(
-                        "Failed to fetch remote lending messages from {}: HTTP {} - {}",
-                        remoteHost,
-                        response.statusCode(),
-                        response.body());
+                log.warn("Signed GET list {} failed: HTTP {}", path, response.statusCode());
                 return List.of();
             }
-            var type = mapper.getTypeFactory().constructCollectionType(List.class, LendingMessage.class);
+            var type = mapper.getTypeFactory().constructCollectionType(List.class, elementType);
             return mapper.readValue(response.body(), type);
         } catch (Exception e) {
-            log.error("Failed to fetch remote lending messages from {} for request {}", remoteHost, requestId, e);
+            log.error("Failed to fetch list from {} {}", remoteHost, path, e);
             return List.of();
         }
     }
 
-    public List<RemoteKbSearchResult> searchKb(
-            String remoteHost, int localStationId, String localPrivateKeyBase64, String query) {
+    /**
+     * Performs a signed POST with a request body and deserializes the response as a typed object.
+     * The request body is serialized to JSON internally.
+     * Returns null on error or non-2xx status.
+     */
+    public <T> T post(
+            String remoteHost,
+            String path,
+            Object requestBody,
+            int localStationId,
+            String localPrivateKeyBase64,
+            Class<T> responseType) {
         try {
-            String url = apiUrl(remoteHost) + "/federation/remote/kb/search?q="
-                    + URLEncoder.encode(query, StandardCharsets.UTF_8);
-            var response = signedGet(url, localStationId, localPrivateKeyBase64);
-            if (response.statusCode() != 200) return List.of();
-            var type = mapper.getTypeFactory().constructCollectionType(List.class, RemoteKbSearchResult.class);
-            return mapper.readValue(response.body(), type);
-        } catch (Exception e) {
-            log.error("Failed to search KB on {}", remoteHost, e);
-            return List.of();
-        }
-    }
-
-    public record RemoteKbSearchResult(int id, String name, String description, String snippet) {}
-
-    public List<RemoteKbFile> fetchSharedKbFiles(String remoteHost, int localStationId, String localPrivateKeyBase64) {
-        try {
-            String url = apiUrl(remoteHost) + "/federation/remote/kb/browse";
-            var response = signedGet(url, localStationId, localPrivateKeyBase64);
-            if (response.statusCode() != 200) {
-                log.warn(
-                        "Failed to fetch shared KB files from {}: HTTP {} - {}",
-                        remoteHost,
-                        response.statusCode(),
-                        response.body());
-                return List.of();
+            String jsonBody = mapper.writeValueAsString(requestBody);
+            var response = signedPost(apiUrl(remoteHost) + path, jsonBody, localStationId, localPrivateKeyBase64);
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                return mapper.readValue(response.body(), responseType);
             }
-            var type = mapper.getTypeFactory().constructCollectionType(List.class, RemoteKbFile.class);
-            return mapper.readValue(response.body(), type);
+            log.warn("Signed POST {} failed: HTTP {}", path, response.statusCode());
+            return null;
         } catch (Exception e) {
-            log.error("Failed to fetch shared KB files from {}", remoteHost, e);
+            log.error("Failed signed POST {} on {}", path, remoteHost, e);
+            return null;
+        }
+    }
+
+    /**
+     * Performs a signed POST with a request body and deserializes the response as a list of typed objects.
+     * The request body is serialized to JSON internally.
+     * Returns an empty list on error or non-2xx status.
+     */
+    public <T> List<T> postList(
+            String remoteHost,
+            String path,
+            Object requestBody,
+            int localStationId,
+            String localPrivateKeyBase64,
+            Class<T> elementType) {
+        try {
+            String jsonBody = mapper.writeValueAsString(requestBody);
+            var response = signedPost(apiUrl(remoteHost) + path, jsonBody, localStationId, localPrivateKeyBase64);
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                var type = mapper.getTypeFactory().constructCollectionType(List.class, elementType);
+                return mapper.readValue(response.body(), type);
+            }
+            log.warn("Signed POST list {} failed: HTTP {}", path, response.statusCode());
+            return List.of();
+        } catch (Exception e) {
+            log.error("Failed signed POST list {} on {}", path, remoteHost, e);
             return List.of();
         }
     }
 
-    public String fetchKbFileContent(String remoteHost, int fileId, int localStationId, String localPrivateKeyBase64) {
+    /**
+     * Performs a signed POST with a request body, returning true on 2xx success.
+     * The request body is serialized to JSON internally.
+     */
+    public boolean post(
+            String remoteHost, String path, Object requestBody, int localStationId, String localPrivateKeyBase64) {
         try {
-            String url = apiUrl(remoteHost) + "/federation/remote/kb/file/" + fileId + "/content";
-            var response = signedGet(url, localStationId, localPrivateKeyBase64);
-            if (response.statusCode() != 200) {
-                log.warn(
-                        "Failed to fetch KB file content from {}: HTTP {} - {}",
-                        remoteHost,
-                        response.statusCode(),
-                        response.body());
-                return "";
-            }
-            var remoteContent = mapper.readValue(response.body(), RemoteKbContent.class);
-            return remoteContent.content() != null ? remoteContent.content() : "";
+            String jsonBody = mapper.writeValueAsString(requestBody);
+            var response = signedPost(apiUrl(remoteHost) + path, jsonBody, localStationId, localPrivateKeyBase64);
+            return response.statusCode() >= 200 && response.statusCode() < 300;
         } catch (Exception e) {
-            log.error("Failed to fetch KB file content from {} for file {}", remoteHost, fileId, e);
-            return "";
+            log.error("Failed signed POST {} on {}", path, remoteHost, e);
+            return false;
         }
     }
 
-    public List<RemoteQuizCatalog> fetchSharedQuizCatalogs(
-            String remoteHost, int localStationId, String localPrivateKeyBase64) {
+    /**
+     * Performs a signed PUT with a request body and deserializes the response as a typed object.
+     * The request body is serialized to JSON internally.
+     * Returns null on error or non-2xx status.
+     */
+    public <T> T put(
+            String remoteHost,
+            String path,
+            Object requestBody,
+            int localStationId,
+            String localPrivateKeyBase64,
+            Class<T> responseType) {
         try {
-            String url = apiUrl(remoteHost) + "/federation/remote/quiz/catalogs";
-            var response = signedGet(url, localStationId, localPrivateKeyBase64);
-            if (response.statusCode() != 200) {
-                log.warn(
-                        "Failed to fetch shared quiz catalogs from {}: HTTP {} - {}",
-                        remoteHost,
-                        response.statusCode(),
-                        response.body());
-                return List.of();
+            String jsonBody = mapper.writeValueAsString(requestBody);
+            var response = signedPut(apiUrl(remoteHost) + path, jsonBody, localStationId, localPrivateKeyBase64);
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                return mapper.readValue(response.body(), responseType);
             }
-            var type = mapper.getTypeFactory().constructCollectionType(List.class, RemoteQuizCatalog.class);
-            return mapper.readValue(response.body(), type);
+            log.warn("Signed PUT {} failed: HTTP {}", path, response.statusCode());
+            return null;
         } catch (Exception e) {
-            log.error("Failed to fetch shared quiz catalogs from {}", remoteHost, e);
-            return List.of();
+            log.error("Failed signed PUT {} on {}", path, remoteHost, e);
+            return null;
         }
     }
 
-    public List<RemoteProtocol> fetchSharedProtocols(
-            String remoteHost, int localStationId, String localPrivateKeyBase64) {
+    /**
+     * Performs a signed PUT with a request body, returning true on 2xx success.
+     * The request body is serialized to JSON internally.
+     */
+    public boolean put(
+            String remoteHost, String path, Object requestBody, int localStationId, String localPrivateKeyBase64) {
         try {
-            String url = apiUrl(remoteHost) + "/federation/remote/protocols";
-            var response = signedGet(url, localStationId, localPrivateKeyBase64);
-            if (response.statusCode() != 200) {
-                log.warn(
-                        "Failed to fetch shared protocols from {}: HTTP {} - {}",
-                        remoteHost,
-                        response.statusCode(),
-                        response.body());
-                return List.of();
-            }
-            var type = mapper.getTypeFactory().constructCollectionType(List.class, RemoteProtocol.class);
-            return mapper.readValue(response.body(), type);
+            String jsonBody = mapper.writeValueAsString(requestBody);
+            var response = signedPut(apiUrl(remoteHost) + path, jsonBody, localStationId, localPrivateKeyBase64);
+            return response.statusCode() >= 200 && response.statusCode() < 300;
         } catch (Exception e) {
-            log.error("Failed to fetch shared protocols from {}", remoteHost, e);
-            return List.of();
+            log.error("Failed signed PUT {} on {}", path, remoteHost, e);
+            return false;
         }
     }
+
+    /**
+     * Performs a signed DELETE without a request body, returning true on 2xx success.
+     */
+    public boolean delete(String remoteHost, String path, int localStationId, String localPrivateKeyBase64) {
+        try {
+            var response = signedDelete(apiUrl(remoteHost) + path, "", localStationId, localPrivateKeyBase64);
+            return response.statusCode() >= 200 && response.statusCode() < 300;
+        } catch (Exception e) {
+            log.error("Failed signed DELETE {} on {}", path, remoteHost, e);
+            return false;
+        }
+    }
+
+    /**
+     * Performs a signed DELETE with a request body, returning true on 2xx success.
+     * The request body is serialized to JSON internally.
+     */
+    public boolean delete(
+            String remoteHost, String path, Object requestBody, int localStationId, String localPrivateKeyBase64) {
+        try {
+            String jsonBody = mapper.writeValueAsString(requestBody);
+            var response = signedDelete(apiUrl(remoteHost) + path, jsonBody, localStationId, localPrivateKeyBase64);
+            return response.statusCode() >= 200 && response.statusCode() < 300;
+        } catch (Exception e) {
+            log.error("Failed signed DELETE {} on {}", path, remoteHost, e);
+            return false;
+        }
+    }
+
+    // -- Internal HTTP primitives --
 
     /**
      * Converts a base URL like "<a href="https://ember.example.com">...</a>" to the API prefix.
@@ -175,13 +250,15 @@ public class FederationHttpClient {
         String timestampStr = Instant.now().toString();
         var privateKey = signingService.decodePrivateKey(localPrivateKeyBase64);
         String signature = signingService.sign("", timestampStr, privateKey);
+        String stationUid = stationRepository.resolveUid(localStationId).toString();
 
         var request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .header("X-Federation-Station-Id", String.valueOf(localStationId))
+                .header("X-Federation-Station-Id", stationUid)
+                .header("X-Federation-Station-Name", resolveStationName(localStationId))
                 .header("X-Federation-Signature", signature)
                 .header("X-Federation-Timestamp", timestampStr)
-                .header("X-Federation-Version", String.valueOf(FederationService.FEDERATION_VERSION))
+                .header("X-Federation-Version", FederationService.FEDERATION_VERSION)
                 .GET()
                 .build();
 
@@ -193,15 +270,38 @@ public class FederationHttpClient {
         String timestampStr = Instant.now().toString();
         var privateKey = signingService.decodePrivateKey(localPrivateKeyBase64);
         String signature = signingService.sign(body, timestampStr, privateKey);
+        String stationUid = stationRepository.resolveUid(localStationId).toString();
 
         var request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .header("X-Federation-Station-Id", String.valueOf(localStationId))
+                .header("X-Federation-Station-Id", stationUid)
+                .header("X-Federation-Station-Name", resolveStationName(localStationId))
                 .header("X-Federation-Signature", signature)
                 .header("X-Federation-Timestamp", timestampStr)
-                .header("X-Federation-Version", String.valueOf(FederationService.FEDERATION_VERSION))
+                .header("X-Federation-Version", FederationService.FEDERATION_VERSION)
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+
+        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private HttpResponse<String> signedPut(String url, String body, int localStationId, String localPrivateKeyBase64)
+            throws Exception {
+        String timestampStr = Instant.now().toString();
+        var privateKey = signingService.decodePrivateKey(localPrivateKeyBase64);
+        String signature = signingService.sign(body, timestampStr, privateKey);
+        String stationUid = stationRepository.resolveUid(localStationId).toString();
+
+        var request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("X-Federation-Station-Id", stationUid)
+                .header("X-Federation-Station-Name", resolveStationName(localStationId))
+                .header("X-Federation-Signature", signature)
+                .header("X-Federation-Timestamp", timestampStr)
+                .header("X-Federation-Version", FederationService.FEDERATION_VERSION)
+                .header("Content-Type", "application/json")
+                .PUT(HttpRequest.BodyPublishers.ofString(body))
                 .build();
 
         return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -212,93 +312,19 @@ public class FederationHttpClient {
         String timestampStr = Instant.now().toString();
         var privateKey = signingService.decodePrivateKey(localPrivateKeyBase64);
         String signature = signingService.sign(body, timestampStr, privateKey);
+        String stationUid = stationRepository.resolveUid(localStationId).toString();
 
         var request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .header("X-Federation-Station-Id", String.valueOf(localStationId))
+                .header("X-Federation-Station-Id", stationUid)
+                .header("X-Federation-Station-Name", resolveStationName(localStationId))
                 .header("X-Federation-Signature", signature)
                 .header("X-Federation-Timestamp", timestampStr)
-                .header("X-Federation-Version", String.valueOf(FederationService.FEDERATION_VERSION))
+                .header("X-Federation-Version", FederationService.FEDERATION_VERSION)
                 .header("Content-Type", "application/json")
                 .method("DELETE", HttpRequest.BodyPublishers.ofString(body))
                 .build();
 
         return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     }
-
-    // -- Federated Events --
-
-    public List<RemoteFederatedEvent> fetchFederatedEvents(
-            String remoteHost, int localStationId, String localPrivateKeyBase64) {
-        try {
-            String url = apiUrl(remoteHost) + "/federation/remote/events";
-            var response = signedGet(url, localStationId, localPrivateKeyBase64);
-            if (response.statusCode() != 200) {
-                log.warn("Failed to fetch federated events from {}: HTTP {}", remoteHost, response.statusCode());
-                return List.of();
-            }
-            var type = mapper.getTypeFactory().constructCollectionType(List.class, RemoteFederatedEvent.class);
-            return mapper.readValue(response.body(), type);
-        } catch (Exception e) {
-            log.error("Failed to fetch federated events from {}", remoteHost, e);
-            return List.of();
-        }
-    }
-
-    public boolean registerForFederatedEvent(
-            String remoteHost,
-            int eventId,
-            String remoteMemberId,
-            String eventDate,
-            int localStationId,
-            String localPrivateKeyBase64) {
-        try {
-            String url = apiUrl(remoteHost) + "/federation/remote/events/" + eventId + "/register";
-            String body = mapper.writeValueAsString(new FederatedRegBody(remoteMemberId, eventDate));
-            var response = signedPost(url, body, localStationId, localPrivateKeyBase64);
-            return response.statusCode() == 201;
-        } catch (Exception e) {
-            log.error("Failed to register for federated event {} on {}", eventId, remoteHost, e);
-            return false;
-        }
-    }
-
-    public boolean withdrawFederatedRegistration(
-            String remoteHost,
-            int eventId,
-            String remoteMemberId,
-            String eventDate,
-            int localStationId,
-            String localPrivateKeyBase64) {
-        try {
-            String url = apiUrl(remoteHost) + "/federation/remote/events/" + eventId + "/register";
-            String body = mapper.writeValueAsString(new FederatedRegBody(remoteMemberId, eventDate));
-            var response = signedDelete(url, body, localStationId, localPrivateKeyBase64);
-            return response.statusCode() == 204;
-        } catch (Exception e) {
-            log.error("Failed to withdraw federated registration for event {} on {}", eventId, remoteHost, e);
-            return false;
-        }
-    }
-
-    public record RemoteKbFile(int id, String name, String description, String fileType) {}
-
-    public record RemoteQuizCatalog(int id, String name, String description) {}
-
-    public record RemoteProtocol(int id, String name, String description) {}
-
-    public record RemoteKbContent(int fileId, String content) {}
-
-    public record RemoteFederatedEvent(
-            int id,
-            String name,
-            String description,
-            String eventType,
-            int dayOfWeek,
-            String startTime,
-            String endTime,
-            boolean requiresRegistration,
-            boolean requiresConfirmation) {}
-
-    private record FederatedRegBody(String remoteMemberId, String eventDate) {}
 }

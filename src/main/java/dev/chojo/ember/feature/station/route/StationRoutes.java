@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.station.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.StationUidResolver;
+import dev.chojo.ember.api.roles.InstancePermission;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -37,10 +37,12 @@ public class StationRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(StationRoutes.class);
 
     private final StationService stationService;
+    private final StationRepository stationRepository;
 
     @Inject
-    public StationRoutes(StationService stationService) {
+    public StationRoutes(StationService stationService, StationRepository stationRepository) {
         this.stationService = stationService;
+        this.stationRepository = stationRepository;
     }
 
     private static boolean isBlank(String s) {
@@ -49,11 +51,11 @@ public class StationRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/stations", this::list, Roles.ADMIN);
-        routes.post(prefix + "/stations", this::create, Roles.ADMIN);
-        routes.get(prefix + "/stations/{id}", this::get, Roles.ADMIN);
-        routes.put(prefix + "/stations/{id}", this::update, Roles.ADMIN);
-        routes.delete(prefix + "/stations/{id}", this::delete, Roles.ADMIN);
+        routes.get(prefix + "/stations", this::list, InstancePermission.ADMINISTRATOR);
+        routes.post(prefix + "/stations", this::create, InstancePermission.ADMINISTRATOR);
+        routes.get(prefix + "/stations/{id}", this::get, InstancePermission.ADMINISTRATOR);
+        routes.put(prefix + "/stations/{id}", this::update, InstancePermission.ADMINISTRATOR);
+        routes.delete(prefix + "/stations/{id}", this::delete, InstancePermission.ADMINISTRATOR);
     }
 
     @OpenApi(
@@ -149,7 +151,7 @@ public class StationRoutes implements Routes {
     private void delete(Context ctx) {
         var station = resolveStation(ctx);
         if (stationService.delete(station.id())) {
-            StationUidResolver.instance().invalidate(station.id());
+            stationRepository.invalidateUidCache(station.id());
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw new NotFoundResponse();

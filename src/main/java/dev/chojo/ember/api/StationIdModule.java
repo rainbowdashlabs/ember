@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.api;
 
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import tools.jackson.core.JsonGenerator;
 import tools.jackson.databind.BeanDescription;
 import tools.jackson.databind.SerializationConfig;
@@ -16,27 +17,35 @@ import tools.jackson.databind.ser.ValueSerializerModifier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Jackson module that converts integer stationId fields to UUID strings in JSON output.
- * Any int/Integer field named "stationId", "sourceStationId", "partnerStationId", or
+ * Any int/Integer field named "stationId", "sourceStationId", or
  * "owningStationId" will be serialized as the station's UUID string.
  */
 public class StationIdModule extends SimpleModule {
-    private static final Set<String> STATION_ID_FIELDS =
-            Set.of("stationId", "sourceStationId", "partnerStationId", "owningStationId");
+    private static final Set<String> STATION_ID_FIELDS = Set.of("stationId", "sourceStationId", "owningStationId");
+    private final StationRepository stationRepository;
 
-    public StationIdModule() {
+    public StationIdModule(StationRepository stationRepository) {
         super("StationIdModule");
+        this.stationRepository = stationRepository;
     }
 
     @Override
     public void setupModule(SetupContext context) {
         super.setupModule(context);
-        context.addSerializerModifier(new StationIdSerializerModifier());
+        context.addSerializerModifier(new StationIdSerializerModifier(stationRepository));
     }
 
     private static class StationIdSerializerModifier extends ValueSerializerModifier {
+        private final StationRepository stationRepository;
+
+        StationIdSerializerModifier(StationRepository stationRepository) {
+            this.stationRepository = stationRepository;
+        }
+
         @Override
         public List<BeanPropertyWriter> changeProperties(
                 SerializationConfig config,
@@ -45,7 +54,7 @@ public class StationIdModule extends SimpleModule {
             var result = new ArrayList<BeanPropertyWriter>(beanProperties.size());
             for (var prop : beanProperties) {
                 if (STATION_ID_FIELDS.contains(prop.getName()) && isIntType(prop)) {
-                    result.add(new StationIdPropertyWriter(prop));
+                    result.add(new StationIdPropertyWriter(prop, stationRepository));
                 } else {
                     result.add(prop);
                 }
@@ -60,8 +69,11 @@ public class StationIdModule extends SimpleModule {
     }
 
     private static class StationIdPropertyWriter extends BeanPropertyWriter {
-        StationIdPropertyWriter(BeanPropertyWriter base) {
+        private final StationRepository stationRepository;
+
+        StationIdPropertyWriter(BeanPropertyWriter base, StationRepository stationRepository) {
             super(base);
+            this.stationRepository = stationRepository;
         }
 
         @Override
@@ -73,10 +85,10 @@ public class StationIdModule extends SimpleModule {
                 return;
             }
             int stationId = (value instanceof Integer i) ? i : ((Number) value).intValue();
-            String uid = StationUidResolver.instance().resolveToString(stationId);
+            UUID uid = stationRepository.resolveUid(stationId);
             gen.writeName(getName());
             if (uid != null) {
-                gen.writeString(uid);
+                gen.writeString(uid.toString());
             } else {
                 gen.writeNull();
             }
