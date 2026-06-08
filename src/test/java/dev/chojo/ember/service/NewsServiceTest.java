@@ -202,8 +202,7 @@ class NewsServiceTest extends RepositoryTestBase {
     void createCommentWithLegacyMention() {
         var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
         var mentionContent = "Hello @[999:Other Member]!";
-        var comment =
-                service.createComment(station.id(), newsId, null, authorIdentity, "News Author", mentionContent);
+        var comment = service.createComment(station.id(), newsId, null, authorIdentity, "News Author", mentionContent);
         assertNotNull(comment);
     }
 
@@ -212,8 +211,7 @@ class NewsServiceTest extends RepositoryTestBase {
     void createCommentWithBulkMention() {
         var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
         var mentionContent = "Attention @[GROUP:TestGroup:1]!";
-        var comment =
-                service.createComment(station.id(), newsId, null, authorIdentity, "News Author", mentionContent);
+        var comment = service.createComment(station.id(), newsId, null, authorIdentity, "News Author", mentionContent);
         assertNotNull(comment);
     }
 
@@ -222,8 +220,7 @@ class NewsServiceTest extends RepositoryTestBase {
     void createCommentWithLongContent() {
         var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
         var longContent = "A".repeat(150);
-        var comment =
-                service.createComment(station.id(), newsId, null, authorIdentity, "News Author", longContent);
+        var comment = service.createComment(station.id(), newsId, null, authorIdentity, "News Author", longContent);
         assertNotNull(comment);
     }
 

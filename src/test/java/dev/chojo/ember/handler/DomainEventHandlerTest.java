@@ -55,17 +55,17 @@ import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRepository;
-import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
-import dev.chojo.ember.feature.restriction.RestrictionRepository;
-import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -433,8 +433,10 @@ class DomainEventHandlerTest {
                 .handle(new BulkMentionedInComment(
                         STATION_ID, MEMBER_ID, "Author", CommentEntityType.NEWS, 1, "Title", MentionType.GROUP, 5));
 
-        verify(notificationService).notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
-        verify(notificationService).notifyIfAbsent(eq(21), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verify(notificationService)
+                .notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verify(notificationService)
+                .notifyIfAbsent(eq(21), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
     }
 
     @Test
@@ -447,7 +449,8 @@ class DomainEventHandlerTest {
 
         verify(notificationService, never())
                 .notifyIfAbsent(eq(MEMBER_ID), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
-        verify(notificationService).notifyIfAbsent(eq(21), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verify(notificationService)
+                .notifyIfAbsent(eq(21), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
     }
 
     @Test
@@ -459,15 +462,18 @@ class DomainEventHandlerTest {
         when(eventRepository.findById(42)).thenReturn(Optional.of(stationEvent));
         when(eventRepository.findAllRegistrations(42))
                 .thenReturn(List.of(
-                        new EventRegistration(1, 42, 20, LocalDate.now(), RegistrationStatus.ACCEPTED, Instant.now(), null),
-                        new EventRegistration(2, 42, 21, LocalDate.now(), RegistrationStatus.DECLINED, Instant.now(), null)));
+                        new EventRegistration(
+                                1, 42, 20, LocalDate.now(), RegistrationStatus.ACCEPTED, Instant.now(), null),
+                        new EventRegistration(
+                                2, 42, 21, LocalDate.now(), RegistrationStatus.DECLINED, Instant.now(), null)));
         when(memberRepository.findManagers(20)).thenReturn(List.of());
 
         bulkHandler()
                 .handle(new BulkMentionedInComment(
                         STATION_ID, null, "Author", CommentEntityType.NEWS, 1, "Title", MentionType.EVENT, 42));
 
-        verify(notificationService).notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verify(notificationService)
+                .notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
         verify(notificationService, never())
                 .notifyIfAbsent(eq(21), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
     }
@@ -490,8 +496,10 @@ class DomainEventHandlerTest {
                 .handle(new BulkMentionedInComment(
                         STATION_ID, null, "Author", CommentEntityType.NEWS, 1, "Title", MentionType.EVENT, 42));
 
-        verify(notificationService).notifyIfAbsent(eq(30), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
-        verify(notificationService).notifyIfAbsent(eq(31), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verify(notificationService)
+                .notifyIfAbsent(eq(30), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verify(notificationService)
+                .notifyIfAbsent(eq(31), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
     }
 
     @Test
@@ -510,22 +518,26 @@ class DomainEventHandlerTest {
                 .handle(new BulkMentionedInComment(
                         STATION_ID, null, "Author", CommentEntityType.NEWS, 1, "Title", MentionType.EVENT, 42));
 
-        verify(notificationService).notifyIfAbsent(eq(30), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verify(notificationService)
+                .notifyIfAbsent(eq(30), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
     }
 
     @Test
     void bulkMentionRegisteredNotifiesAcceptedMembers() {
         when(eventRepository.findAllRegistrations(42))
                 .thenReturn(List.of(
-                        new EventRegistration(1, 42, 20, LocalDate.now(), RegistrationStatus.ACCEPTED, Instant.now(), null),
-                        new EventRegistration(2, 42, 21, LocalDate.now(), RegistrationStatus.DECLINED, Instant.now(), null)));
+                        new EventRegistration(
+                                1, 42, 20, LocalDate.now(), RegistrationStatus.ACCEPTED, Instant.now(), null),
+                        new EventRegistration(
+                                2, 42, 21, LocalDate.now(), RegistrationStatus.DECLINED, Instant.now(), null)));
         when(memberRepository.findManagers(20)).thenReturn(List.of());
 
         bulkHandler()
                 .handle(new BulkMentionedInComment(
                         STATION_ID, null, "Author", CommentEntityType.NEWS, 1, "Title", MentionType.REGISTERED, 42));
 
-        verify(notificationService).notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verify(notificationService)
+                .notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
         verify(notificationService, never())
                 .notifyIfAbsent(eq(21), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
     }
@@ -534,8 +546,10 @@ class DomainEventHandlerTest {
     void bulkMentionDeclinedNotifiesDeclinedMembers() {
         when(eventRepository.findAllRegistrations(42))
                 .thenReturn(List.of(
-                        new EventRegistration(1, 42, 20, LocalDate.now(), RegistrationStatus.ACCEPTED, Instant.now(), null),
-                        new EventRegistration(2, 42, 21, LocalDate.now(), RegistrationStatus.DECLINED, Instant.now(), null)));
+                        new EventRegistration(
+                                1, 42, 20, LocalDate.now(), RegistrationStatus.ACCEPTED, Instant.now(), null),
+                        new EventRegistration(
+                                2, 42, 21, LocalDate.now(), RegistrationStatus.DECLINED, Instant.now(), null)));
         when(memberRepository.findManagers(21)).thenReturn(List.of());
 
         bulkHandler()
@@ -544,14 +558,15 @@ class DomainEventHandlerTest {
 
         verify(notificationService, never())
                 .notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
-        verify(notificationService).notifyIfAbsent(eq(21), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verify(notificationService)
+                .notifyIfAbsent(eq(21), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
     }
 
     @Test
     void bulkMentionAddsGuardiansForNonGroupMentions() {
         when(eventRepository.findAllRegistrations(42))
-                .thenReturn(List.of(
-                        new EventRegistration(1, 42, 20, LocalDate.now(), RegistrationStatus.ACCEPTED, Instant.now(), null)));
+                .thenReturn(List.of(new EventRegistration(
+                        1, 42, 20, LocalDate.now(), RegistrationStatus.ACCEPTED, Instant.now(), null)));
         when(memberRepository.findManagers(20)).thenReturn(List.of(member(50)));
         when(memberRepository.findManagers(50)).thenReturn(List.of());
 
@@ -559,8 +574,10 @@ class DomainEventHandlerTest {
                 .handle(new BulkMentionedInComment(
                         STATION_ID, null, "Author", CommentEntityType.NEWS, 1, "Title", MentionType.REGISTERED, 42));
 
-        verify(notificationService).notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
-        verify(notificationService).notifyIfAbsent(eq(50), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verify(notificationService)
+                .notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verify(notificationService)
+                .notifyIfAbsent(eq(50), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
     }
 
     @Test
