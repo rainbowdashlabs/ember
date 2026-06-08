@@ -10,6 +10,10 @@ definePageMeta({
   layout: 'default',
   name: 'set-password',
 })
+
+useHead({
+  title: 'Passwort setzen',
+})
 </script>
 
 <template>

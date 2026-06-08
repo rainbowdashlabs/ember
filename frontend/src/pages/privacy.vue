@@ -10,6 +10,10 @@ definePageMeta({
   layout: 'default',
   name: 'privacy',
 })
+
+useHead({
+  title: 'Datenschutz',
+})
 </script>
 
 <template>

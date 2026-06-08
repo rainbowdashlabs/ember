@@ -10,6 +10,10 @@ definePageMeta({
   layout: 'default',
   name: 'apply',
 })
+
+useHead({
+  title: 'Station beantragen',
+})
 </script>
 
 <template>

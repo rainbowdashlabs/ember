@@ -4,14 +4,16 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AttendanceConfigHelp from '~/views/helpcenter/stationview/manage/AttendanceConfigHelp'
+const route = useRoute()
 
 definePageMeta({
-  layout: 'helpcenter',
-  name: 'help-station-attendance-config',
+  layout: 'public-station',
+  name: 'public-station',
 })
+
+navigateTo(`/public/station/${route.params.stationUid}/calendar`, {replace: true})
 </script>
 
 <template>
-  <AttendanceConfigHelp />
+  <div />
 </template>

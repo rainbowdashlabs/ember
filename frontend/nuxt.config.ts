@@ -20,6 +20,10 @@ export default defineNuxtConfig({
   },
 
   nitro: {
+    publicAssets: [
+      {dir: '../public', baseURL: '/'},
+    ],
+    plugins: ['../server/plugins/theme-script.ts'],
     devProxy: {
       '/api': {target: 'http://localhost:8080', changeOrigin: true},
       '/docs': {target: 'http://localhost:8080', changeOrigin: true},

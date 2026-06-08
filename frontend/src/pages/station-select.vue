@@ -10,6 +10,10 @@ definePageMeta({
   layout: 'station',
   name: 'station-select',
 })
+
+useHead({
+  title: 'Station wählen',
+})
 </script>
 
 <template>

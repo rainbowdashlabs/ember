@@ -7,7 +7,7 @@
 import PublicKnowledgeBaseView from '~/views/public/PublicKnowledgeBaseView'
 
 definePageMeta({
-  layout: 'default',
+  layout: 'public-station',
   name: 'public-kb',
 })
 </script>

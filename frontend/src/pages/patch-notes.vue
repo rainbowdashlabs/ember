@@ -10,6 +10,10 @@ definePageMeta({
   layout: 'default',
   name: 'patch-notes',
 })
+
+useHead({
+  title: 'Änderungsprotokoll',
+})
 </script>
 
 <template>

@@ -10,6 +10,10 @@ definePageMeta({
   layout: 'default',
   name: 'style',
 })
+
+useHead({
+  title: 'Stilübersicht',
+})
 </script>
 
 <template>

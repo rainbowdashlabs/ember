@@ -10,6 +10,10 @@ definePageMeta({
   layout: 'default',
   name: 'imprint',
 })
+
+useHead({
+  title: 'Impressum',
+})
 </script>
 
 <template>

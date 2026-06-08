@@ -10,6 +10,10 @@ definePageMeta({
   layout: 'default',
   name: 'reconsent',
 })
+
+useHead({
+  title: 'Zustimmung',
+})
 </script>
 
 <template>

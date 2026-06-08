@@ -10,6 +10,13 @@ definePageMeta({
   layout: 'default',
   name: 'public-discovery',
 })
+
+useHead({
+  title: 'Stationen entdecken',
+  meta: [
+    {name: 'description', content: 'Finde Jugendfeuerwehren in deiner Nähe und entdecke ihre öffentlichen Stationen.'},
+  ],
+})
 </script>
 
 <template>

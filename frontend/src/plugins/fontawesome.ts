@@ -3,7 +3,10 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {library} from '@fortawesome/fontawesome-svg-core'
+import {library, config} from '@fortawesome/fontawesome-svg-core'
+import '@fortawesome/fontawesome-svg-core/styles.css'
+
+config.autoAddCss = false
 import {FontAwesomeIcon} from '@fortawesome/vue-fontawesome'
 import {
     faAngleDown, faAngleUp, faAnglesDown, faAnglesUp, faArrowDownWideShort, faArrowRight,

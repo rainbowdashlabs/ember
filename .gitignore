@@ -228,4 +228,6 @@ pyrightconfig.json
 .run
 .output
 frontend/.nuxt
-dev-errors
+dev-errorsfrontend_testing.md
+ssr_migration.md
+tasks.md

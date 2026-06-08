@@ -7,7 +7,7 @@
 import PublicStationCalendarView from '~/views/public/PublicStationCalendarView'
 
 definePageMeta({
-  layout: 'default',
+  layout: 'public-station',
   name: 'public-station-calendar',
 })
 </script>

@@ -7,7 +7,7 @@
 import LoginView from '~/views/LoginView.vue'
 
 useHead({
-  title: 'Anmelden — Ember',
+  title: 'Anmelden',
 })
 </script>
 

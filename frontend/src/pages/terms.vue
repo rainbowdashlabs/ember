@@ -10,6 +10,10 @@ definePageMeta({
   layout: 'default',
   name: 'terms',
 })
+
+useHead({
+  title: 'Nutzungsbedingungen',
+})
 </script>
 
 <template>

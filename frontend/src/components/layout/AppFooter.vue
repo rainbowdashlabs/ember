@@ -25,7 +25,7 @@ onMounted(async () => {
   <footer class="border-t border-bg-light-accent dark:border-bg-dark-accent py-6 px-4 mt-auto">
     <div class="max-w-6xl mx-auto flex flex-col gap-6 md:grid md:grid-cols-3 md:gap-4">
       <div class="flex flex-col items-center md:items-start gap-2">
-        <ThemeToggle/>
+        <ClientOnly><ThemeToggle/></ClientOnly>
         <div class="flex flex-col items-center md:items-start gap-1 text-sm">
           <router-link class="text-[var(--link)] hover:underline" to="/privacy">{{ t('footer.privacy') }}</router-link>
           <router-link class="text-[var(--link)] hover:underline" to="/terms">{{ t('footer.terms') }}</router-link>

@@ -8,7 +8,6 @@ import {computed, onMounted, provide, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
-import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
 import SidebarLink from '@/components/navigation/SidebarLink.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -52,17 +51,12 @@ provide('publicStation', station)
       :station-logo-url="logoUrl"
   >
     <template #sidebar="{ close }">
-      <SidebarGroup v-if="station.hasPublicCalendar" :icon="['fas', 'calendar-days']" :label="t('publicStation.calendar')" :prefix="basePath + '/calendar'">
-        <SidebarLink :icon="['fas', 'calendar']" name="public-station-calendar" :to="basePath + '/calendar'" @navigate="close">
-          {{ t('publicStation.upcomingEvents') }}
-        </SidebarLink>
-      </SidebarGroup>
-
-      <SidebarGroup v-if="station.hasPublicKb" :icon="['fas', 'book-open']" :label="t('publicStation.knowledgeBase')" :prefix="basePath + '/knowledge'">
-        <SidebarLink :icon="['fas', 'folder-open']" name="public-kb" :to="basePath + '/knowledge'" @navigate="close">
-          {{ t('publicStation.knowledgeBase') }}
-        </SidebarLink>
-      </SidebarGroup>
+      <SidebarLink v-if="station.hasPublicCalendar" :icon="['fas', 'calendar-days']" name="public-station-calendar" :to="basePath + '/calendar'" @navigate="close">
+        {{ t('publicStation.calendar') }}
+      </SidebarLink>
+      <SidebarLink v-if="station.hasPublicKb" :icon="['fas', 'book-open']" name="public-kb" :to="basePath + '/knowledge'" @navigate="close">
+        {{ t('publicStation.knowledgeBase') }}
+      </SidebarLink>
     </template>
 
     <template #header>
@@ -74,6 +68,6 @@ provide('publicStation', station)
       </router-link>
     </template>
 
-    <RouterView/>
+    <slot><RouterView/></slot>
   </SidebarLayout>
 </template>

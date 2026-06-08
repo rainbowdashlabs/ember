@@ -4,14 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AttendanceConfigView from '~/views/stationview/manage/AttendanceConfigView'
-
 definePageMeta({
   layout: 'station',
-  name: 'station-attendance-config',
 })
+
+navigateTo('/station/dashboard/overview', {replace: true})
 </script>
 
 <template>
-  <AttendanceConfigView />
+  <div />
 </template>

@@ -19,12 +19,21 @@ const {t} = useI18n()
 const route = useRoute()
 
 const stationUid = computed(() => route.params.stationUid as string)
-const events = ref<PublicEvent[]>([])
+const allEvents = ref<PublicEvent[]>([])
 const loading = ref(true)
+
+const events = computed(() => {
+  const now = new Date()
+  return allEvents.value.filter(e => {
+    if (e.eventType && e.eventType !== 'ONE_TIME') return true
+    if (!e.endTime) return !e.startTime || new Date(e.startTime) >= now
+    return new Date(e.endTime) >= now
+  })
+})
 
 onMounted(async () => {
   try {
-    events.value = await listPublicEvents(stationUid.value)
+    allEvents.value = await listPublicEvents(stationUid.value)
   } finally {
     loading.value = false
   }

@@ -5,6 +5,9 @@
  */
 <script setup lang="ts">
 import DashboardView from '~/views/DashboardView.vue'
+import {usePageTitle} from '~/composables/usePageTitle'
+
+usePageTitle()
 </script>
 
 <template>

@@ -5,6 +5,9 @@
  */
 <script setup lang="ts">
 import HelpCenterStationView from '~/views/HelpCenterStationView.vue'
+import {usePageTitle} from '~/composables/usePageTitle'
+
+usePageTitle()
 </script>
 
 <template>

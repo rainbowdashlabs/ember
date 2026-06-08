@@ -4,14 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import PublicKbFileView from '~/views/public/PublicKbFileView'
-
-definePageMeta({
-  layout: 'public-station',
-  name: 'public-kb-file',
-})
+import PublicStationShell from '~/views/public/PublicStationShell.vue'
 </script>
 
 <template>
-  <PublicKbFileView />
+  <PublicStationShell>
+    <slot />
+  </PublicStationShell>
 </template>

@@ -10,6 +10,10 @@ definePageMeta({
   layout: 'default',
   name: 'reset-password',
 })
+
+useHead({
+  title: 'Passwort zurücksetzen',
+})
 </script>
 
 <template>
