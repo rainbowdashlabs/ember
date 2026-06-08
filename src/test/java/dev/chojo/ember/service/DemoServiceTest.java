@@ -96,7 +96,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var federationHttpClient = new FederationHttpClient(signingService, stationRepo);
 
         var eventService = new EventService(eventRepo, restrictionRepo, noOpBus);
-        var newsService = new NewsService(newsRepo, restrictionRepo, noOpBus, stationMemberRepo);
+        var newsService = new NewsService(newsRepo, restrictionRepo, noOpBus, stationMemberRepo, accountRepo);
         var inventoryService = new InventoryService(inventoryRepo);
         var exchangeService = new ExchangeService(exchangeRepo, inventoryRepo, inventoryService, noOpBus);
         var procurementService = new ProcurementService(procurementRepo, inventoryService, inventoryRepo, noOpBus);
@@ -115,7 +115,9 @@ class DemoServiceTest extends RepositoryTestBase {
                 federationHttpClient,
                 kbCommentRepo,
                 eventFederationRepo,
-                memberIdentityFactory);
+                memberIdentityFactory,
+                noOpBus,
+                memberSvc);
         var quizService = new QuizService(
                 quizCatalogRepo,
                 quizTestRepo,

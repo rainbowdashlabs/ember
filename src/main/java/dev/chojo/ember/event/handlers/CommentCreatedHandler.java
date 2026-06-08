@@ -44,6 +44,7 @@ public class CommentCreatedHandler implements DomainEventHandler<CommentCreated>
                 switch (event.entityType()) {
                     case NEWS -> new NotificationData.NotificationLink("news-detail", Map.of("id", event.entityId()));
                     case KB -> new NotificationData.NotificationLink("kb-file", Map.of("id", event.entityId()));
+                    case EVENT -> new NotificationData.NotificationLink("event-detail", Map.of("id", event.entityId()));
                     default -> new NotificationData.NotificationLink("events");
                 };
         var data = NotificationData.of(

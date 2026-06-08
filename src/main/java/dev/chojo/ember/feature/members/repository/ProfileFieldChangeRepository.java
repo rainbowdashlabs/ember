@@ -30,7 +30,7 @@ public class ProfileFieldChangeRepository {
         return Query.query("""
                             SELECT c.id, c.field_id, c.member_id, c.old_value, c.new_value,
                                    c.changed_by, c.changed_at, c.requires_acknowledgement,
-                                   coalesce(a.first_name || ' ' || a.last_name, '') AS changed_by_name,
+                                   a.full_name AS changed_by_name,
                                    pf.name AS field_name
                             FROM profile_field_change c
                             JOIN station_member sm ON sm.id = c.changed_by
@@ -97,7 +97,7 @@ public class ProfileFieldChangeRepository {
         return Query.query("""
                             SELECT c.id, c.field_id, c.member_id, c.old_value, c.new_value,
                                    c.changed_by, c.changed_at, c.requires_acknowledgement,
-                                   coalesce(a.first_name || ' ' || a.last_name, '') AS changed_by_name,
+                                   a.full_name AS changed_by_name,
                                    pf.name AS field_name
                             FROM profile_field_change c
                             JOIN station_member sm ON sm.id = c.changed_by
@@ -116,7 +116,7 @@ public class ProfileFieldChangeRepository {
     public List<ProfileFieldChangeAcknowledgement> findAcknowledgements(int changeId) {
         return Query.query("""
                             SELECT ack.id, ack.change_id, ack.acknowledged_by, ack.acknowledged_at, ack.comment,
-                                   coalesce(a.first_name || ' ' || a.last_name, '') AS acknowledged_by_name
+                                   a.full_name AS acknowledged_by_name
                             FROM profile_field_change_acknowledgement ack
                             JOIN station_member sm ON sm.id = ack.acknowledged_by
                             JOIN account a ON a.id = sm.account_id
@@ -133,7 +133,7 @@ public class ProfileFieldChangeRepository {
     public List<ProfileFieldChangeAcknowledgement> findAcknowledgementsForMember(int memberId) {
         return Query.query("""
                             SELECT ack.id, ack.change_id, ack.acknowledged_by, ack.acknowledged_at, ack.comment,
-                                   coalesce(a.first_name || ' ' || a.last_name, '') AS acknowledged_by_name
+                                   a.full_name AS acknowledged_by_name
                             FROM profile_field_change_acknowledgement ack
                             JOIN profile_field_change c ON c.id = ack.change_id
                             JOIN station_member sm ON sm.id = ack.acknowledged_by
@@ -172,7 +172,7 @@ public class ProfileFieldChangeRepository {
     public List<MemberChangeSummary> findUnacknowledgedSummary(int stationId, int acknowledgedBy) {
         return Query.query("""
                             SELECT c.member_id,
-                                   coalesce(ma.first_name || ' ' || ma.last_name, '') AS member_name,
+                                   ma.full_name AS member_name,
                                    count(c.id) AS pending_count,
                                    max(c.changed_at) AS latest_change
                             FROM profile_field_change c
@@ -184,7 +184,7 @@ public class ProfileFieldChangeRepository {
                                   SELECT 1 FROM profile_field_change_acknowledgement ack
                                   WHERE ack.change_id = c.id AND ack.acknowledged_by = :acknowledged_by
                               )
-                            GROUP BY c.member_id, ma.first_name, ma.last_name
+                            GROUP BY c.member_id, ma.full_name
                             ORDER BY latest_change DESC;""")
                 .single(Call.of().bind("station_id", stationId).bind("acknowledged_by", acknowledgedBy))
                 .map(row -> new MemberChangeSummary(
@@ -226,7 +226,7 @@ public class ProfileFieldChangeRepository {
         return Query.query("""
                             SELECT c.id, c.field_id, c.member_id, c.old_value, c.new_value,
                                    c.changed_by, c.changed_at, c.requires_acknowledgement,
-                                   coalesce(a.first_name || ' ' || a.last_name, '') AS changed_by_name,
+                                   a.full_name AS changed_by_name,
                                    pf.name AS field_name
                             FROM profile_field_change c
                             JOIN station_member sm ON sm.id = c.member_id

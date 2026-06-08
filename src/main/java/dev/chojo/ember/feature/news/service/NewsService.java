@@ -7,11 +7,15 @@ package dev.chojo.ember.feature.news.service;
 
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.BulkMentionedInComment;
 import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.CommentDeleted;
+import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.event.events.NewsCreated;
 import dev.chojo.ember.event.events.NewsDeleted;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.entity.MentionType;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
@@ -25,6 +29,8 @@ import jakarta.inject.Singleton;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.regex.Pattern;
 
 /**
  * Service layer for managing news articles and comments.
@@ -32,21 +38,28 @@ import java.util.Optional;
  */
 @Singleton
 public class NewsService {
+    private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[([^/]+)/([^:]+):([^\\]]+)]");
+    private static final Pattern MENTION_PATTERN_LEGACY = Pattern.compile("@\\[(\\d+):([^\\]]+)]");
+    private static final Pattern BULK_MENTION_PATTERN = Pattern.compile("@\\[(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):(\\d+)]");
+
     private final NewsRepository newsRepository;
     private final RestrictionRepository restrictionRepository;
     private final DomainEventBus eventBus;
     private final StationMemberRepository stationMemberRepository;
+    private final AccountRepository accountRepository;
 
     @Inject
     public NewsService(
             NewsRepository newsRepository,
             RestrictionRepository restrictionRepository,
             DomainEventBus eventBus,
-            StationMemberRepository stationMemberRepository) {
+            StationMemberRepository stationMemberRepository,
+            AccountRepository accountRepository) {
         this.newsRepository = newsRepository;
         this.restrictionRepository = restrictionRepository;
         this.eventBus = eventBus;
         this.stationMemberRepository = stationMemberRepository;
+        this.accountRepository = accountRepository;
     }
 
     /**
@@ -72,8 +85,19 @@ public class NewsService {
             List<Integer> memberIds) {
         var news = newsRepository.create(stationId, title, contentMarkdown, contentHtml, author);
         setRestrictions(news.id(), userTypes, groupIds, tagIds, memberIds);
-        eventBus.publish(new NewsCreated(stationId, news.id(), title));
+        String authorName = resolveAuthorName(stationId, author);
+        eventBus.publish(new NewsCreated(stationId, news.id(), title, authorName));
         return news;
+    }
+
+    private String resolveAuthorName(int stationId, MemberIdentity author) {
+        if (author == null) return "";
+        return stationMemberRepository.resolveId(stationId, author.memberUid())
+                .flatMap(memberId -> stationMemberRepository.findById(memberId)
+                        .filter(m -> m.accountId() != null)
+                        .flatMap(m -> accountRepository.findById(m.accountId()))
+                        .map(a -> a.fullName()))
+                .orElse("");
     }
 
     /**
@@ -231,6 +255,40 @@ public class NewsService {
                     authorMemberId,
                     authorName,
                     preview));
+
+            if (authorMemberId != null) {
+                var matcher = MENTION_PATTERN.matcher(content);
+                while (matcher.find()) {
+                    try {
+                        var memberUid = UUID.fromString(matcher.group(2));
+                        stationMemberRepository.resolveId(stationId, memberUid).ifPresent(mentionedId -> {
+                            if (!mentionedId.equals(authorMemberId)) {
+                                eventBus.publish(new MentionedInComment(
+                                        stationId, mentionedId, authorMemberId, authorName,
+                                        CommentEntityType.NEWS, newsId, news.title()));
+                            }
+                        });
+                    } catch (IllegalArgumentException ignored) {
+                    }
+                }
+                var legacyMatcher = MENTION_PATTERN_LEGACY.matcher(content);
+                while (legacyMatcher.find()) {
+                    int mentionedId = Integer.parseInt(legacyMatcher.group(1));
+                    if (mentionedId != authorMemberId) {
+                        eventBus.publish(new MentionedInComment(
+                                stationId, mentionedId, authorMemberId, authorName,
+                                CommentEntityType.NEWS, newsId, news.title()));
+                    }
+                }
+                var bulkMatcher = BULK_MENTION_PATTERN.matcher(content);
+                while (bulkMatcher.find()) {
+                    var type = MentionType.valueOf(bulkMatcher.group(1));
+                    int targetId = Integer.parseInt(bulkMatcher.group(3));
+                    eventBus.publish(new BulkMentionedInComment(
+                            stationId, authorMemberId, authorName,
+                            CommentEntityType.NEWS, newsId, news.title(), type, targetId));
+                }
+            }
         }
         return comment;
     }

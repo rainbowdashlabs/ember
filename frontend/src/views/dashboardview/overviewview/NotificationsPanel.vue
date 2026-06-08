@@ -30,6 +30,7 @@ const feedStatus = ref<FeedStatusResponse | null>(null)
 const typeIcons: Record<string, string> = {
   NEW_NEWS: 'newspaper',
   NEWS_COMMENT: 'comment',
+  COMMENT_MENTION: 'at',
   EVENT_REGISTRATION_STATUS: 'calendar-days',
   EXCHANGE_STATUS_CHANGE: 'rotate',
   EXCHANGE_NEW_REQUEST: 'rotate',

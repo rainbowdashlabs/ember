@@ -65,6 +65,7 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -772,9 +773,9 @@ public class EventRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
         var req = ctx.bodyAsClass(RegisterRequest.class);
-        LocalDate date = req.eventDate() != null ? LocalDate.parse(req.eventDate()) : LocalDate.now();
 
         var event = eventService.findById(eventId).orElseThrow(NotFoundResponse::new);
+        LocalDate date = resolveEventDate(req, event);
         if (!event.requiresRegistration()) {
             throw new BadRequestResponse("Event does not require registration");
         }
@@ -831,7 +832,9 @@ public class EventRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
         var req = ctx.bodyAsClass(RegisterRequest.class);
-        LocalDate date = req.eventDate() != null ? LocalDate.parse(req.eventDate()) : LocalDate.now();
+
+        var event = eventService.findById(eventId).orElseThrow(NotFoundResponse::new);
+        LocalDate date = resolveEventDate(req, event);
 
         if (session.member() == null) throw new BadRequestResponse("Not a station member");
 
@@ -1402,6 +1405,24 @@ public class EventRoutes implements Routes {
     public record ReorderCategoriesRequest(List<Integer> orderedIds) {}
 
     // -- Event Fields (per-event) --
+
+    private LocalDate resolveEventDate(RegisterRequest req, StationEvent event) {
+        if (event.eventType() == StationEvent.EventType.ONE_TIME) {
+            if (event.startTime() == null) throw new BadRequestResponse("Event has no start time");
+            return event.startTime().atZone(ZoneId.systemDefault()).toLocalDate();
+        }
+        if (req.eventDate() == null) {
+            throw new BadRequestResponse("eventDate is required for recurring events");
+        }
+        LocalDate date = LocalDate.parse(req.eventDate());
+        if (event.dayOfWeek() != null) {
+            int isoDow = date.getDayOfWeek().getValue();
+            if (isoDow != event.dayOfWeek()) {
+                throw new BadRequestResponse("eventDate does not match the event's day of week");
+            }
+        }
+        return date;
+    }
 
     @OpenApiName("EventRegisterRequest")
     public record RegisterRequest(String eventDate, Integer memberId) {}

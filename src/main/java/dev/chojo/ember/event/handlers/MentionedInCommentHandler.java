@@ -41,10 +41,10 @@ public class MentionedInCommentHandler implements DomainEventHandler<MentionedIn
                     case BOARD_TICKET ->
                         new NotificationData.NotificationLink("ticket-detail", Map.of("ticketId", event.entityId()));
                     case KB -> new NotificationData.NotificationLink("kb-file", Map.of("id", event.entityId()));
-                    case EVENT -> new NotificationData.NotificationLink("events");
+                    case EVENT -> new NotificationData.NotificationLink("event-detail", Map.of("id", event.entityId()));
                 };
         var data = NotificationData.of(
-                new NotificationParams.NewsComment("", event.authorName(), "mentioned you in a comment"), link);
-        notificationService.notifyIfAbsent(event.mentionedMemberId(), NotificationType.NEWS_COMMENT, data);
+                new NotificationParams.CommentMention(event.entityTitle(), event.authorName()), link);
+        notificationService.notifyIfAbsent(event.mentionedMemberId(), NotificationType.COMMENT_MENTION, data);
     }
 }

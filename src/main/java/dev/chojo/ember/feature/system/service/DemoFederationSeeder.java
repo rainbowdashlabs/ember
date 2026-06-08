@@ -485,7 +485,8 @@ public class DemoFederationSeeder {
                         null,
                         memberIdentityFactory.local(primaryStationId, createdBy),
                         "Admin",
-                        "Nächste Woche üben wir den Löschangriff — bitte Sportkleidung mitbringen!"));
+                        "Nächste Woche üben wir den Löschangriff — bitte Sportkleidung mitbringen!",
+                        evUebung.name()));
 
         // Federated comments on the shared event "Gemeinsame Großübung" (event lives on partner station)
         var primaryAdmin = stationMemberRepository.findById(createdBy).orElseThrow();
@@ -514,7 +515,8 @@ public class DemoFederationSeeder {
                     fc1.id(),
                     memberIdentityFactory.local(partnerStation.id(), partnerMember.id()),
                     "Partner Manager",
-                    "Nein, wir haben genug Material da. Einfach nur Schutzkleidung mitbringen.");
+                    "Nein, wir haben genug Material da. Einfach nur Schutzkleidung mitbringen.",
+                    fedEvent.name());
             eventFederationService.createRemoteComment(
                     reversePartnerForEvents,
                     fedEvent.id(),
@@ -530,7 +532,7 @@ public class DemoFederationSeeder {
         if (!primaryKbFilesForComments.isEmpty()) {
             var kbFile = primaryKbFilesForComments.getFirst();
             // Local comment on a KB file
-            kbService.createComment(kbFile.id(), null, createdBy, "Sehr hilfreich, danke!");
+            kbService.createComment(primaryStationId, kbFile.id(), null, createdBy, "Admin", "Sehr hilfreich, danke!");
         }
         var partnerKbFiles = kbService.findFiles(partnerStation.id(), null);
         if (!partnerKbFiles.isEmpty() && reversePartnerForEvents != null) {
@@ -545,9 +547,11 @@ public class DemoFederationSeeder {
                     "Können wir den Ausbildungsleitfaden auch als PDF bekommen?");
             // Reply from the partner station member (local on partner station)
             kbService.createComment(
+                    partnerStation.id(),
                     sharedKbFile.id(),
                     kc1.id(),
                     partnerMember.id(),
+                    "Partner Manager",
                     "Klar, ich lade diese Woche eine PDF-Version hoch.");
         }
         log.info("Demo: Added KB comments (local + federated)");

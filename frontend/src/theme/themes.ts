@@ -45,7 +45,7 @@ export const THEMES: Record<string, ThemeDefinition> = {
             light: {
                 primary: '#fd4f00',
                 primaryAccent: '#C71100',
-                secondary: '#092e6e',
+                secondary: '#1858c8',
                 secondaryAccent: '#3694FF',
                 info: '#c8ab03',
                 infoAccent: '#af7501',
@@ -55,7 +55,7 @@ export const THEMES: Record<string, ThemeDefinition> = {
             dark: {
                 primary: '#ff7030',
                 primaryAccent: '#e04400',
-                secondary: '#1a4a90',
+                secondary: '#256dd5',
                 secondaryAccent: '#60b4ff',
                 info: '#e0c420',
                 infoAccent: '#c89810',

@@ -7,4 +7,4 @@ package dev.chojo.ember.event.events;
 
 import dev.chojo.ember.event.DomainEvent;
 
-public record NewsCreated(int stationId, int newsId, String title) implements DomainEvent {}
+public record NewsCreated(int stationId, int newsId, String title, String authorName) implements DomainEvent {}

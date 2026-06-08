@@ -32,7 +32,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class AccountRepository {
 
     private static final String ACCOUNT_COLUMNS =
-            "id, email, first_name, last_name, email_verified, instance_user_type";
+            "id, email, first_name, last_name, email_verified, instance_user_type, full_name";
     private static final String CONSENT_COLUMNS =
             "id, account_id, consent_version, privacy_version, tos_version, ip_address, country, user_agent, consented_at";
 

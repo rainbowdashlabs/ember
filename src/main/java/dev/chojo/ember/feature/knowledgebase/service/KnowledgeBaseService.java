@@ -6,6 +6,12 @@
 package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.BulkMentionedInComment;
+import dev.chojo.ember.event.events.CommentCreated;
+import dev.chojo.ember.event.events.MentionedInComment;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.entity.MentionType;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
@@ -17,6 +23,7 @@ import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessRestriction;
 import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileVersion;
@@ -69,6 +76,9 @@ import java.util.regex.Pattern;
 @Singleton
 public class KnowledgeBaseService {
     private static final Logger log = LoggerFactory.getLogger(KnowledgeBaseService.class);
+    private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[([^/]+)/([^:]+):([^\\]]+)]");
+    private static final Pattern MENTION_PATTERN_LEGACY = Pattern.compile("@\\[(\\d+):([^\\]]+)]");
+    private static final Pattern BULK_MENTION_PATTERN = Pattern.compile("@\\[(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):(\\d+)]");
     private static final Pattern TITLE_PATTERN =
             Pattern.compile("<title[^>]*>([^<]+)</title>", Pattern.CASE_INSENSITIVE);
     private static final Pattern META_DESC_PATTERN = Pattern.compile(
@@ -95,6 +105,8 @@ public class KnowledgeBaseService {
     private final KbCommentRepository kbCommentRepository;
     private final EventFederationRepository eventFederationRepository;
     private final MemberIdentityFactory memberIdentityFactory;
+    private final DomainEventBus eventBus;
+    private final StationMemberService stationMemberService;
     private final Parser markdownParser;
     private final HtmlRenderer htmlRenderer;
 
@@ -108,7 +120,9 @@ public class KnowledgeBaseService {
             FederationHttpClient federationHttpClient,
             KbCommentRepository kbCommentRepository,
             EventFederationRepository eventFederationRepository,
-            MemberIdentityFactory memberIdentityFactory) {
+            MemberIdentityFactory memberIdentityFactory,
+            DomainEventBus eventBus,
+            StationMemberService stationMemberService) {
         this.repository = repository;
         this.stationRepository = stationRepository;
         this.fileStorage = fileStorage;
@@ -118,6 +132,8 @@ public class KnowledgeBaseService {
         this.kbCommentRepository = kbCommentRepository;
         this.eventFederationRepository = eventFederationRepository;
         this.memberIdentityFactory = memberIdentityFactory;
+        this.eventBus = eventBus;
+        this.stationMemberService = stationMemberService;
         List<Extension> extensions = List.of(
                 TablesExtension.create(),
                 HeadingAnchorExtension.create(),
@@ -959,9 +975,62 @@ public class KnowledgeBaseService {
 
     // -- KB Comments --
 
-    public KbComment createComment(int fileId, Integer parentId, int authorId, String content) {
+    public KbComment createComment(int stationId, int fileId, Integer parentId, int authorId, String authorName,
+                                    String content) {
         var identity = memberIdentityFactory.fromMemberId(authorId);
-        return kbCommentRepository.create(fileId, parentId, identity, content);
+        var comment = kbCommentRepository.create(fileId, parentId, identity, content);
+
+        var file = findFile(fileId).orElse(null);
+        String fileTitle = file != null ? file.name() : "";
+        String preview = content.length() > 100 ? content.substring(0, 100) + "..." : content;
+
+        Integer parentAuthorId = null;
+        if (parentId != null) {
+            var parentComment = kbCommentRepository.findById(parentId).orElse(null);
+            if (parentComment != null && parentComment.author() != null) {
+                parentAuthorId = stationRepository
+                        .resolveId(parentComment.author().stationUid())
+                        .flatMap(sid -> stationMemberService.resolveId(sid, parentComment.author().memberUid()))
+                        .orElse(null);
+            }
+        }
+        eventBus.publish(new CommentCreated(
+                stationId, CommentEntityType.KB, fileId, fileTitle, comment.id(),
+                parentId, parentAuthorId, authorId, authorName, preview));
+
+        var matcher = MENTION_PATTERN.matcher(content);
+        while (matcher.find()) {
+            try {
+                var memberUid = UUID.fromString(matcher.group(2));
+                stationMemberService.resolveId(stationId, memberUid).ifPresent(mentionedId -> {
+                    if (mentionedId != authorId) {
+                        eventBus.publish(new MentionedInComment(
+                                stationId, mentionedId, authorId, authorName,
+                                CommentEntityType.KB, fileId, fileTitle));
+                    }
+                });
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        var legacyMatcher = MENTION_PATTERN_LEGACY.matcher(content);
+        while (legacyMatcher.find()) {
+            int mentionedId = Integer.parseInt(legacyMatcher.group(1));
+            if (mentionedId != authorId) {
+                eventBus.publish(new MentionedInComment(
+                        stationId, mentionedId, authorId, authorName,
+                        CommentEntityType.KB, fileId, fileTitle));
+            }
+        }
+        var bulkMatcher = BULK_MENTION_PATTERN.matcher(content);
+        while (bulkMatcher.find()) {
+            var type = MentionType.valueOf(bulkMatcher.group(1));
+            int targetId = Integer.parseInt(bulkMatcher.group(3));
+            eventBus.publish(new BulkMentionedInComment(
+                    stationId, authorId, authorName,
+                    CommentEntityType.KB, fileId, fileTitle, type, targetId));
+        }
+
+        return comment;
     }
 
     public KbComment createRemoteComment(

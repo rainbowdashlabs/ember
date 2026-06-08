@@ -24,22 +24,20 @@ import Alert from '@/components/feedback/Alert.vue'
 import EventFieldValue from '@/components/display/EventFieldValue.vue'
 import DetailLabel from '@/components/typography/DetailLabel.vue'
 import type {AttendanceTemplate, EventCategory, EventField, StationEvent, StationMember} from '@/api/types'
-import {EventTypes, RegistrationStatus, StationPermission, isRecurringEvent} from '@/api/types'
-import type {AbsentMember, EventRegistrationEntry, MemberRegistrationStats, FederatedEventRegistration} from '@/api/events'
-import {attendance, events, stationMembers, managedMembers as managedMembersApi} from '@/api'
+import {isRecurringEvent} from '@/api/types'
+import type {AbsentMember} from '@/api/events'
+import {attendance, events, managedMembers as managedMembersApi} from '@/api'
 import {useSession} from '@/composables/useSession'
-import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import CommentSection from '@/components/comment/CommentSection.vue'
 import NoteEditor from '@/components/comment/NoteEditor.vue'
+import TabBar from '@/components/navigation/TabBar.vue'
 import EventCancelModal from './eventdetailview/EventCancelModal.vue'
-import FederatedRegistrationsPanel from './eventdetailview/FederatedRegistrationsPanel.vue'
-import RegistrationsPanel from './eventdetailview/RegistrationsPanel.vue'
+import EventRegistrationsTab from './eventdetailview/EventRegistrationsTab.vue'
 
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {canManageEvents, canManageAttendance, hasPermission, isGuardian, sessionInfo} = useSession()
-const {refresh: refreshSidebarCounts} = useSidebarCounts()
+const {canManageEvents, canManageAttendance, isGuardian, sessionInfo} = useSession()
 
 const eventId = computed(() => Number(route.params.id))
 const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
@@ -49,82 +47,51 @@ const categories = ref<EventCategory[]>([])
 const templates = ref<AttendanceTemplate[]>([])
 const fields = ref<EventField[]>([])
 const reminders = ref<number[]>([])
-const registrations = ref<EventRegistrationEntry[]>([])
 const absentMembers = ref<AbsentMember[]>([])
-const registrationStats = ref<MemberRegistrationStats[]>([])
-const federatedRegs = ref<FederatedEventRegistration[]>([])
-const allMembers = ref<{ id: number; name: string }[]>([])
 const managedMembers = ref<StationMember[]>([])
 const eligibleMembers = ref<Record<number, number[]>>({})
 const loading = ref(true)
 const error = ref('')
+const activeTab = ref<'info' | 'registrations'>('info')
+const showCancelModal = ref(false)
+const registrationsTab = ref<InstanceType<typeof EventRegistrationsTab> | null>(null)
 const dayNames = ['', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
 
-interface StatusGroup {
-  status: string
-  entries: EventRegistrationEntry[]
-}
-
-const pendingRegistrations = computed(() => {
-  const pending = registrations.value.filter(r => r.status === RegistrationStatus.PENDING)
-  // Sort by fairness score (highest first = most deserving)
-  return [...pending].sort((a, b) => {
-    const sa = getStatsForMember(a.memberId)
-    const sb = getStatsForMember(b.memberId)
-    return (sb?.fairnessScore ?? 0) - (sa?.fairnessScore ?? 0)
-  })
-})
-
-const nonPendingRegistrations = computed<StatusGroup[]>(() => {
-  const byStatus = new Map<string, EventRegistrationEntry[]>()
-  for (const reg of registrations.value) {
-    if (reg.status === RegistrationStatus.PENDING) continue
-    const list = byStatus.get(reg.status) ?? []
-    list.push(reg)
-    byStatus.set(reg.status, list)
-  }
-  for (const list of byStatus.values()) {
-    list.sort((a, b) => a.memberName.localeCompare(b.memberName, 'de'))
-  }
-  return [RegistrationStatus.ACCEPTED, RegistrationStatus.DECLINED, RegistrationStatus.DENIED]
-      .filter(s => byStatus.has(s))
-      .map(s => ({status: s, entries: byStatus.get(s)!}))
-})
-
 function nextOccurrence(dayOfWeek: number): string {
-  const today = new Date()
-  const todayDow = today.getDay() === 0 ? 7 : today.getDay() // ISO: 1=Mon..7=Sun
+  const now = new Date()
+  const todayDow = now.getDay() === 0 ? 7 : now.getDay()
   let daysAhead = dayOfWeek - todayDow
-  if (daysAhead <= 0) daysAhead += 7
-  const next = new Date(today)
-  next.setDate(today.getDate() + daysAhead)
+  if (daysAhead < 0) daysAhead += 7
+  if (daysAhead === 0 && event.value?.endTime) {
+    const endToday = new Date(event.value.endTime)
+    if (now > endToday) daysAhead = 7
+  }
+  const next = new Date(now)
+  next.setDate(now.getDate() + daysAhead)
   return next.toISOString().slice(0, 10)
 }
 
 const nextOccurrenceDate = computed(() => {
-  if (!event.value || event.value.eventType !== EventTypes.RECURRING || !event.value.dayOfWeek) return null
-  // Only show next occurrence for weekly recurring
+  if (!event.value || !isRecurringEvent(event.value.eventType) || !event.value.dayOfWeek) return null
   return nextOccurrence(event.value.dayOfWeek)
 })
 
-function statusLabel(status: string): string {
-  if (status === RegistrationStatus.ACCEPTED) return t('eventsUpcoming.statusAccepted')
-  if (status === RegistrationStatus.PENDING) return t('eventsUpcoming.statusPending')
-  if (status === RegistrationStatus.DENIED) return t('eventsUpcoming.statusDenied')
-  if (status === RegistrationStatus.DECLINED) return t('eventsUpcoming.statusDeclined')
-  return status
-}
-function getStatsForMember(memberId: number): MemberRegistrationStats | undefined {
-  return registrationStats.value.find(s => s.memberId === memberId)
-}
-
-function renderMarkdown(md: string): string {
-  try {
-    return marked.parse(md) as string
-  } catch {
-    return md
+const registrableMembers = computed((): { id: number; name: string }[] => {
+  const eligible = eligibleMembers.value[eventId.value]
+  const ids = eligible ?? [currentMemberId.value, ...managedMembers.value.map(m => m.id)]
+  const result: { id: number; name: string }[] = []
+  for (const id of ids) {
+    if (id === currentMemberId.value) {
+      result.push({id, name: t('eventsUpcoming.myself')})
+    } else {
+      const m = managedMembers.value.find(mm => mm.id === id)
+      if (m) result.push({id, name: m.name ?? m.email ?? `#${id}`})
+    }
   }
-}
+  return result
+})
+
+const hasManagedMembers = computed(() => managedMembers.value.length > 0)
 
 function categoryName(id: number | null | undefined): string {
   if (!id) return t('events.noCategory')
@@ -144,22 +111,21 @@ function formatTime(iso?: string): string {
 
 function formatDate(dateStr?: string): string {
   if (!dateStr) return ''
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric'})
+  return new Date(dateStr).toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric'})
 }
 
 function formatDateLong(dateStr?: string): string {
   if (!dateStr) return ''
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('de-DE', {weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric'})
+  return new Date(dateStr).toLocaleDateString('de-DE', {weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric'})
 }
 
 function formatDatetime(iso?: string): string {
   if (!iso) return ''
-  return new Date(iso).toLocaleString('de-DE', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  })
+  return new Date(iso).toLocaleString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'})
+}
+
+function renderMarkdown(md: string): string {
+  try { return marked.parse(md) as string } catch { return md }
 }
 
 async function loadData() {
@@ -188,10 +154,10 @@ async function loadData() {
       }))
       eligibleMembers.value = elig
     }
-    await loadRegistrations()
     if ((canManageEvents() || canManageAttendance()) && isRecurringEvent(ev.eventType) && ev.dayOfWeek) {
       await loadAbsences()
     }
+    await registrationsTab.value?.loadRegistrations()
   } catch {
     error.value = t('common.error')
   } finally {
@@ -199,129 +165,16 @@ async function loadData() {
   }
 }
 
-async function loadRegistrations() {
-  try {
-    registrations.value = await events.listEventRegistrations(eventId.value)
-    if (hasPermission(StationPermission.EVENT_REGISTRATION) && event.value?.requiresRegistration) {
-      registrationStats.value = await events.getRegistrationStats(
-          eventId.value, event.value.categoryId ?? undefined)
-    }
-    if (hasPermission(StationPermission.EVENT_REGISTRATION)) {
-      federatedRegs.value = await events.listFederationRegistrations(eventId.value).catch(() => [])
-      const members = await stationMembers.listMembers().catch(() => [])
-      allMembers.value = members.map(m => ({ id: m.id, name: m.name ?? m.email ?? `#${m.id}` }))
-    }
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
-async function acceptFederatedReg(regId: number) {
-  await events.updateFederationRegistrationStatus(regId, 'ACCEPTED')
-  await loadRegistrations()
-}
-
-async function denyFederatedReg(regId: number) {
-  await events.updateFederationRegistrationStatus(regId, 'DENIED')
-  await loadRegistrations()
-}
-
 async function loadAbsences() {
   if (!nextOccurrenceDate.value) return
   try {
     absentMembers.value = await events.listAbsencesForDate(eventId.value, nextOccurrenceDate.value)
-  } catch {
-    // Not critical — may lack permission
-    absentMembers.value = []
-  }
-}
-
-async function reloadRegistrationsAndCounts() {
-  await loadRegistrations()
-  refreshSidebarCounts()
-}
-
-async function acceptRegistration(id: number) {
-  try {
-    await events.updateRegistrationStatus(id, RegistrationStatus.ACCEPTED)
-    await reloadRegistrationsAndCounts()
-  } catch { error.value = t('common.error') }
-}
-
-async function denyRegistration(id: number) {
-  try {
-    await events.updateRegistrationStatus(id, RegistrationStatus.DENIED)
-    await reloadRegistrationsAndCounts()
-  } catch { error.value = t('common.error') }
-}
-
-// Registration actions for self + managed members
-const registering = ref(false)
-const showCancelModal = ref(false)
-
-const registrableMembers = computed((): { id: number; name: string }[] => {
-  const eligible = eligibleMembers.value[eventId.value]
-  const ids = eligible ?? [currentMemberId.value, ...managedMembers.value.map(m => m.id)]
-  const result: { id: number; name: string }[] = []
-  for (const id of ids) {
-    if (id === currentMemberId.value) {
-      result.push({id, name: t('eventsUpcoming.myself')})
-    } else {
-      const m = managedMembers.value.find(mm => mm.id === id)
-      if (m) result.push({id, name: m.name ?? m.email ?? `#${id}`})
-    }
-  }
-  return result
-})
-
-const hasManagedMembers = computed(() => managedMembers.value.length > 0)
-
-function getRegistrationForMember(memberId: number): EventRegistrationEntry | undefined {
-  return registrations.value.find(r => r.memberId === memberId)
+  } catch { absentMembers.value = [] }
 }
 
 async function onEventCancelled() {
   showCancelModal.value = false
   await loadData()
-}
-
-async function registerMember(memberId: number) {
-  if (!event.value) return
-  registering.value = true
-  try {
-    await events.registerForEvent(event.value.id, {
-      memberId: memberId !== currentMemberId.value ? memberId : undefined,
-    })
-    await reloadRegistrationsAndCounts()
-  } catch { error.value = t('common.error') }
-  finally { registering.value = false }
-}
-
-async function declineMember(memberId: number) {
-  if (!event.value) return
-  registering.value = true
-  try {
-    await events.declineEvent(event.value.id, {
-      memberId: memberId !== currentMemberId.value ? memberId : undefined,
-    })
-    await reloadRegistrationsAndCounts()
-  } catch { error.value = t('common.error') }
-  finally { registering.value = false }
-}
-
-const manualRegisterMemberId = ref('')
-const unregisteredMembers = computed(() => {
-  const regIds = new Set(registrations.value.map(r => r.memberId))
-  return allMembers.value.filter(m => !regIds.has(m.id)).sort((a, b) => a.name.localeCompare(b.name))
-})
-
-async function manualRegister() {
-  if (!event.value || !manualRegisterMemberId.value) return
-  try {
-    await events.registerForEvent(event.value.id, { memberId: Number(manualRegisterMemberId.value) })
-    manualRegisterMemberId.value = ''
-    await reloadRegistrationsAndCounts()
-  } catch { error.value = t('common.error') }
 }
 
 onMounted(loadData)
@@ -334,14 +187,12 @@ onMounted(loadData)
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading && event">
-        <!-- Cancelled banner -->
         <Alert v-if="event.cancelled" variant="error">
           <span class="font-bold">{{ t('events.cancelled') }}</span>
           <span v-if="event.cancelReason"> — {{ event.cancelReason }}</span>
           <span v-if="event.cancelledAt" class="text-xs opacity-75 ml-2">{{ formatDatetime(event.cancelledAt) }}</span>
         </Alert>
 
-        <!-- Header -->
         <div class="flex items-center justify-between flex-wrap gap-3">
           <div class="flex items-center gap-3">
             <SectionHeader>{{ event.name }}</SectionHeader>
@@ -356,7 +207,6 @@ onMounted(loadData)
           </div>
         </div>
 
-        <!-- Registration info -->
         <div v-if="event.requiresRegistration" class="flex flex-wrap gap-3 text-sm">
           <SuccessBadge>{{ t('events.requiresRegistration') }}</SuccessBadge>
           <InfoBadge v-if="event.requiresConfirmation">{{ t('events.requiresConfirmation') }}</InfoBadge>
@@ -370,130 +220,89 @@ onMounted(loadData)
           <InfoBadge v-for="days in reminders" :key="days">{{ days }} {{ t('eventEdit.daysBefore') }}</InfoBadge>
         </div>
 
-        <NeutralContainer class="space-y-3">
-          <SubHeader>{{ t('events.general') }}</SubHeader>
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div class="sm:col-span-2">
-              <DetailLabel>{{ t('events.description') }}</DetailLabel>
-              <div v-if="event.description" class="prose prose-sm dark:prose-invert max-w-none mt-1" v-html="renderMarkdown(event.description)"/>
-              <p v-else class="text-sm">–</p>
-            </div>
-            <div>
-              <DetailLabel>{{ t('events.category') }}</DetailLabel>
-              <p class="text-sm">{{ categoryName(event.categoryId) }}</p>
-            </div>
-            <div v-if="isRecurringEvent(event.eventType)">
-              <DetailLabel>{{ t('events.dayOfWeek') }}</DetailLabel>
-              <p class="text-sm">{{ event.dayOfWeek ? dayNames[event.dayOfWeek] : '–' }}</p>
-            </div>
-            <div v-else>
-              <DetailLabel>{{ t('events.date') }}</DetailLabel>
-              <p class="text-sm">{{ formatDate(event.startTime) }}</p>
-            </div>
-            <div>
-              <DetailLabel>{{ t('events.startTime') }} – {{ t('events.endTime') }}</DetailLabel>
-              <p class="text-sm">{{ formatTime(event.startTime) }} – {{ formatTime(event.endTime) }}</p>
-            </div>
-            <div v-if="canManageEvents()">
-              <DetailLabel>{{ t('events.template') }}</DetailLabel>
-              <p class="text-sm">{{ templateName(event.templateId) }}</p>
-            </div>
-            <!-- Event Fields inline -->
-            <div v-for="field in fields" :key="field.id">
-              <DetailLabel>{{ field.name }}</DetailLabel>
-              <p class="text-sm">
-                <EventFieldValue :field-type="field.fieldType" :value="field.value"/>
-              </p>
-            </div>
-          </div>
-        </NeutralContainer>
+        <TabBar v-if="event.requiresRegistration" v-model="activeTab"
+                :tabs="[{key: 'info', label: t('eventDetail.tabInfo')}, {key: 'registrations', label: t('eventDetail.tabRegistrations')}]" />
 
-        <NeutralContainer v-if="isRecurringEvent(event.eventType) && nextOccurrenceDate" class="space-y-3">
-          <SubHeader>{{ t('eventDetail.nextOccurrence') }}</SubHeader>
-          <p class="text-sm font-medium">{{ formatDateLong(nextOccurrenceDate) }}</p>
-          <template v-if="canManageEvents() || canManageAttendance()">
-            <div v-if="absentMembers.length > 0" class="space-y-2">
-              <h4 class="text-xs font-semibold uppercase text-(--text-muted)">{{ t('eventDetail.absentMembers') }} ({{ absentMembers.length }})</h4>
-              <div class="flex flex-wrap gap-2">
-                <ErrorBadge v-for="m in absentMembers" :key="m.memberId">
-                  {{ m.memberName }}
-                  <span v-if="m.reason" class="ml-1 opacity-75">– {{ m.reason }}</span>
-                </ErrorBadge>
+        <!-- Info tab -->
+        <template v-if="activeTab === 'info' || !event.requiresRegistration">
+          <NeutralContainer class="space-y-3">
+            <SubHeader>{{ t('events.general') }}</SubHeader>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div class="sm:col-span-2">
+                <DetailLabel>{{ t('events.description') }}</DetailLabel>
+                <div v-if="event.description" class="prose prose-sm dark:prose-invert max-w-none mt-1" v-html="renderMarkdown(event.description)"/>
+                <p v-else class="text-sm">–</p>
+              </div>
+              <div>
+                <DetailLabel>{{ t('events.category') }}</DetailLabel>
+                <p class="text-sm">{{ categoryName(event.categoryId) }}</p>
+              </div>
+              <div v-if="isRecurringEvent(event.eventType)">
+                <DetailLabel>{{ t('events.dayOfWeek') }}</DetailLabel>
+                <p class="text-sm">{{ event.dayOfWeek ? dayNames[event.dayOfWeek] : '–' }}</p>
+              </div>
+              <div v-else>
+                <DetailLabel>{{ t('events.date') }}</DetailLabel>
+                <p class="text-sm">{{ formatDate(event.startTime) }}</p>
+              </div>
+              <div>
+                <DetailLabel>{{ t('events.startTime') }} – {{ t('events.endTime') }}</DetailLabel>
+                <p class="text-sm">{{ formatTime(event.startTime) }} – {{ formatTime(event.endTime) }}</p>
+              </div>
+              <div v-if="canManageEvents()">
+                <DetailLabel>{{ t('events.template') }}</DetailLabel>
+                <p class="text-sm">{{ templateName(event.templateId) }}</p>
+              </div>
+              <div v-for="field in fields" :key="field.id">
+                <DetailLabel>{{ field.name }}</DetailLabel>
+                <p class="text-sm"><EventFieldValue :field-type="field.fieldType" :value="field.value"/></p>
               </div>
             </div>
-            <p v-else class="text-sm text-(--text-muted)">{{ t('eventDetail.noAbsences') }}</p>
-          </template>
-        </NeutralContainer>
+          </NeutralContainer>
 
-        <NeutralContainer v-if="event.requiresRegistration && !canManageEvents()" class="space-y-3">
-          <SubHeader>{{ t('eventDetail.myRegistration') }}</SubHeader>
-          <div v-for="member in registrableMembers" :key="member.id" class="flex items-center gap-3 flex-wrap">
-            <span v-if="hasManagedMembers" class="text-sm font-medium min-w-24">{{ member.name }}</span>
-            <template v-if="getRegistrationForMember(member.id)">
-              <component :is="getRegistrationForMember(member.id)!.status === RegistrationStatus.ACCEPTED ? SuccessBadge : getRegistrationForMember(member.id)!.status === RegistrationStatus.PENDING ? InfoBadge : ErrorBadge">
-                {{ statusLabel(getRegistrationForMember(member.id)!.status) }}
-              </component>
-              <ErrorButton v-if="getRegistrationForMember(member.id)!.status !== RegistrationStatus.DECLINED" :disabled="registering" @click="declineMember(member.id)">
-                <font-awesome-icon :icon="['fas', 'ban']" class="mr-1"/>
-                {{ t('eventsUpcoming.decline') }}
-              </ErrorButton>
-              <PrimaryButton v-if="getRegistrationForMember(member.id)!.status === RegistrationStatus.DECLINED" :disabled="registering" @click="registerMember(member.id)">
-                <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
-                {{ t('eventsUpcoming.register') }}
-              </PrimaryButton>
+          <NeutralContainer v-if="isRecurringEvent(event.eventType) && nextOccurrenceDate" class="space-y-3">
+            <SubHeader>{{ t('eventDetail.nextOccurrence') }}</SubHeader>
+            <p class="text-sm font-medium">{{ formatDateLong(nextOccurrenceDate) }}</p>
+            <template v-if="canManageEvents() || canManageAttendance()">
+              <div v-if="absentMembers.length > 0" class="space-y-2">
+                <h4 class="text-xs font-semibold uppercase text-(--text-muted)">{{ t('eventDetail.absentMembers') }} ({{ absentMembers.length }})</h4>
+                <div class="flex flex-wrap gap-2">
+                  <ErrorBadge v-for="m in absentMembers" :key="m.memberId">{{ m.memberName }}<span v-if="m.reason" class="ml-1 opacity-75">– {{ m.reason }}</span></ErrorBadge>
+                </div>
+              </div>
+              <p v-else class="text-sm text-(--text-muted)">{{ t('eventDetail.noAbsences') }}</p>
             </template>
-            <template v-else>
-              <PrimaryButton :disabled="registering" @click="registerMember(member.id)">
-                <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
-                {{ t('eventsUpcoming.register') }}
-              </PrimaryButton>
-              <ErrorButton :disabled="registering" @click="declineMember(member.id)">
-                <font-awesome-icon :icon="['fas', 'ban']" class="mr-1"/>
-                {{ t('eventsUpcoming.decline') }}
-              </ErrorButton>
-            </template>
-          </div>
-        </NeutralContainer>
+          </NeutralContainer>
 
-        <RegistrationsPanel
+          <NeutralContainer v-if="canManageEvents()">
+            <NoteEditor entity-type="EVENT" :entity-id="eventId"/>
+          </NeutralContainer>
+
+          <NeutralContainer>
+            <CommentSection :event-id="eventId"/>
+          </NeutralContainer>
+        </template>
+
+        <!-- Registrations tab -->
+        <EventRegistrationsTab
+            v-show="activeTab === 'registrations' && event.requiresRegistration"
+            ref="registrationsTab"
             :event="event"
-            :registrations="registrations"
-            :pending-registrations="pendingRegistrations"
-            :non-pending-registrations="nonPendingRegistrations"
-            :registration-stats="registrationStats"
-            :unregistered-members="unregisteredMembers"
-            v-model:manual-register-member-id="manualRegisterMemberId"
-            @accept="acceptRegistration"
-            @deny="denyRegistration"
-            @manual-register="manualRegister"
+            :event-id="eventId"
+            :current-member-id="currentMemberId"
+            :registrable-members="registrableMembers"
+            :has-managed-members="hasManagedMembers"
+            :next-occurrence-date="nextOccurrenceDate"
+        />
+
+        <EventCancelModal
+            v-if="event"
+            :show="showCancelModal"
+            :event-id="event.id"
+            @close="showCancelModal = false"
+            @cancelled="onEventCancelled"
         />
       </template>
-
-      <FederatedRegistrationsPanel
-          v-if="!loading && canManageEvents()"
-          :registrations="federatedRegs"
-          @accept="acceptFederatedReg"
-          @deny="denyFederatedReg"
-      />
-
-      <!-- Notes (manager only) -->
-      <NeutralContainer v-if="!loading && canManageEvents()">
-        <NoteEditor entity-type="EVENT" :entity-id="eventId"/>
-      </NeutralContainer>
-
-      <!-- Comments -->
-      <NeutralContainer v-if="!loading">
-        <CommentSection :event-id="eventId"/>
-      </NeutralContainer>
-
-      <!-- Cancel Event Modal -->
-      <EventCancelModal
-          v-if="event"
-          :show="showCancelModal"
-          :event-id="event.id"
-          @close="showCancelModal = false"
-          @cancelled="onEventCancelled"
-      />
     </div>
   </ViewContent>
 </template>

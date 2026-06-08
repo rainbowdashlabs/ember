@@ -14,16 +14,31 @@ const props = withDefaults(defineProps<{
 })
 
 const reel = ref<HTMLElement | null>(null)
+const viewport = ref<HTMLElement | null>(null)
 const offset = ref(0)
 const hovered = ref(false)
+const tileWidth = ref(0)
 let timer = 0
+let resizeObserver: ResizeObserver | null = null
+let touchStartX = 0
+let touchStartY = 0
+let touchDeltaX = 0
+let swiping = false
+
+const GAP = 24
+
+function updateTileWidth() {
+  const el = viewport.value
+  if (!el) return
+  const w = el.clientWidth
+  let cols = 3
+  if (w < 640) cols = 1
+  else if (w < 900) cols = 2
+  tileWidth.value = (w - GAP * (cols - 1)) / cols
+}
 
 function getItemWidth(): number {
-  const el = reel.value
-  if (!el || !el.children[0]) return 0
-  const child = el.children[0] as HTMLElement
-  const gap = 24
-  return child.offsetWidth + gap
+  return tileWidth.value + GAP
 }
 
 function scrollTo(index: number) {
@@ -46,13 +61,11 @@ function goNext() {
 
 function goPrev() {
   if (offset.value <= 0) {
-    // Jump to end instantly, then animate back one
     const el = reel.value
     if (!el) return
     offset.value = props.itemCount
     el.style.transition = 'none'
     el.style.transform = `translateX(-${offset.value * getItemWidth()}px)`
-    // Force reflow then animate
     void el.offsetHeight
     offset.value--
     scrollTo(offset.value)
@@ -73,31 +86,80 @@ function handleTransitionEnd() {
   }
 }
 
+function onTouchStart(e: TouchEvent) {
+  touchStartX = e.touches[0].clientX
+  touchStartY = e.touches[0].clientY
+  touchDeltaX = 0
+  swiping = false
+}
+
+function onTouchMove(e: TouchEvent) {
+  const dx = e.touches[0].clientX - touchStartX
+  const dy = e.touches[0].clientY - touchStartY
+  if (!swiping && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
+    swiping = true
+  }
+  if (swiping) {
+    e.preventDefault()
+    touchDeltaX = dx
+    const el = reel.value
+    if (el) {
+      el.style.transition = 'none'
+      el.style.transform = `translateX(${-(offset.value * getItemWidth()) + touchDeltaX}px)`
+    }
+  }
+}
+
+function onTouchEnd() {
+  if (!swiping) return
+  const threshold = getItemWidth() * 0.25
+  if (touchDeltaX < -threshold) {
+    goNext()
+  } else if (touchDeltaX > threshold) {
+    goPrev()
+  } else {
+    scrollTo(offset.value)
+  }
+  swiping = false
+  touchDeltaX = 0
+}
+
 onMounted(() => {
+  updateTileWidth()
+  resizeObserver = new ResizeObserver(updateTileWidth)
+  if (viewport.value) resizeObserver.observe(viewport.value)
   timer = setInterval(advance, props.intervalMs) as unknown as number
 })
 
 onUnmounted(() => {
+  resizeObserver?.disconnect()
   clearInterval(timer)
 })
 </script>
 
 <template>
   <div
-    class="group flex items-center gap-3"
+    class="group flex items-center gap-2 sm:gap-3"
     @mouseenter="hovered = true"
     @mouseleave="hovered = false"
   >
     <!-- Left arrow -->
     <button
-      class="shrink-0 flex items-center justify-center w-10 h-10 rounded-full border border-(--border) text-(--text) opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-(--bg-accent) cursor-pointer"
+      class="shrink-0 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-(--border) text-(--text) sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200 hover:bg-(--bg-accent) cursor-pointer"
       @click="goPrev"
     >
-      <font-awesome-icon :icon="['fas', 'chevron-left']" class="h-4 w-4"/>
+      <font-awesome-icon :icon="['fas', 'chevron-left']" class="h-3 w-3 sm:h-4 sm:w-4"/>
     </button>
 
     <!-- Reel -->
-    <div class="overflow-hidden flex-1 px-1 py-2">
+    <div
+      ref="viewport"
+      class="overflow-hidden flex-1 min-w-0 px-1 py-2"
+      :style="{ '--tile-w': tileWidth + 'px' }"
+      @touchstart="onTouchStart"
+      @touchmove="onTouchMove"
+      @touchend="onTouchEnd"
+    >
       <div ref="reel" class="flex gap-6" @transitionend="handleTransitionEnd">
         <slot />
       </div>
@@ -105,10 +167,10 @@ onUnmounted(() => {
 
     <!-- Right arrow -->
     <button
-      class="shrink-0 flex items-center justify-center w-10 h-10 rounded-full border border-(--border) text-(--text) opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-(--bg-accent) cursor-pointer"
+      class="shrink-0 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-(--border) text-(--text) sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200 hover:bg-(--bg-accent) cursor-pointer"
       @click="goNext"
     >
-      <font-awesome-icon :icon="['fas', 'chevron-right']" class="h-4 w-4"/>
+      <font-awesome-icon :icon="['fas', 'chevron-right']" class="h-3 w-3 sm:h-4 sm:w-4"/>
     </button>
   </div>
 </template>

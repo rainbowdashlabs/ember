@@ -19,6 +19,8 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.FormerMemberService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.restriction.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.BadRequestResponse;
@@ -55,6 +57,7 @@ public class StationMemberRoutes implements Routes {
     private final ProfileFieldService profileFieldService;
     private final GdprDeletionService gdprDeletionService;
     private final MemberIdentityFactory memberIdentityFactory;
+    private final RestrictionRepository restrictionRepository;
 
     @Inject
     public StationMemberRoutes(
@@ -64,7 +67,8 @@ public class StationMemberRoutes implements Routes {
             FormerMemberService formerMemberService,
             ProfileFieldService profileFieldService,
             GdprDeletionService gdprDeletionService,
-            MemberIdentityFactory memberIdentityFactory) {
+            MemberIdentityFactory memberIdentityFactory,
+            RestrictionRepository restrictionRepository) {
         this.memberService = memberService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -72,6 +76,7 @@ public class StationMemberRoutes implements Routes {
         this.profileFieldService = profileFieldService;
         this.gdprDeletionService = gdprDeletionService;
         this.memberIdentityFactory = memberIdentityFactory;
+        this.restrictionRepository = restrictionRepository;
     }
 
     @Override
@@ -146,7 +151,26 @@ public class StationMemberRoutes implements Routes {
 
     private void completions(Context ctx) {
         var session = UserSession.from(ctx);
-        ctx.json(memberIdentityFactory.enrichCompletions(stationMemberRepository.findCompletions(session.stationId())));
+        var completions = stationMemberRepository.findCompletions(session.stationId());
+
+        String rtParam = ctx.queryParam("restrictionType");
+        String entityIdParam = ctx.queryParam("entityId");
+        if (rtParam != null && entityIdParam != null) {
+            try {
+                var rType = RestrictionType.valueOf(rtParam);
+                int entityId = Integer.parseInt(entityIdParam);
+                var allowedIds = restrictionRepository.findMembersPassingRestriction(
+                        rType, entityId, session.stationId());
+                if (!allowedIds.isEmpty()) {
+                    completions = completions.stream()
+                            .filter(c -> allowedIds.contains(c.id()))
+                            .toList();
+                }
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+
+        ctx.json(memberIdentityFactory.enrichCompletions(completions));
     }
 
     private void listByStation(Context ctx) {

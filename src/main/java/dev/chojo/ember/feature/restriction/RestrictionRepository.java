@@ -89,6 +89,53 @@ public class RestrictionRepository {
     }
 
     /**
+     * Returns the set of member IDs from the given station that pass the restrictions for an entity,
+     * including members with the manager permission for the entity type.
+     */
+    public Set<Integer> findMembersPassingRestriction(RestrictionType type, int entityId, int stationId) {
+        var restrictions = findRestrictions(type.table(), type.fkColumn(), entityId);
+        if (restrictions.isEmpty()) return Set.of();
+
+        var groupIds = restrictions.stream()
+                .filter(r -> r.groupId() != null)
+                .map(Restriction::groupId)
+                .toList();
+        var tagIds = restrictions.stream()
+                .filter(r -> r.tagId() != null)
+                .map(Restriction::tagId)
+                .toList();
+        var userTypes = restrictions.stream()
+                .filter(r -> r.userType() != null)
+                .map(Restriction::userType)
+                .toList();
+        var memberIds = restrictions.stream()
+                .filter(r -> r.memberId() != null)
+                .map(Restriction::memberId)
+                .collect(java.util.stream.Collectors.toCollection(java.util.HashSet::new));
+
+        if (!groupIds.isEmpty()) {
+            for (int gid : groupIds) {
+                memberGroupRepository.findMembers(gid).forEach(m -> memberIds.add(m.id()));
+            }
+        }
+        if (!tagIds.isEmpty()) {
+            for (int tid : tagIds) {
+                userTagRepository.findMembers(tid).forEach(m -> memberIds.add(m.id()));
+            }
+        }
+        if (!userTypes.isEmpty()) {
+            stationMemberRepository.findByStation(stationId, false).stream()
+                    .filter(m -> userTypes.contains(m.userType().name()))
+                    .forEach(m -> memberIds.add(m.id()));
+        }
+        // Include managers who bypass restrictions
+        stationMemberRepository.findMembersWithPermission(stationId, type.managerPermission())
+                .forEach(m -> memberIds.add(m.id()));
+
+        return memberIds;
+    }
+
+    /**
      * Checks if a member passes the restrictions for an entity.
      * Manager bypass is checked first in Java, then DB function handles matching.
      */

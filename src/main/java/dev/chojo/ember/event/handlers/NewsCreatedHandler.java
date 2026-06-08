@@ -36,7 +36,7 @@ public class NewsCreatedHandler implements DomainEventHandler<NewsCreated> {
                 event.stationId(),
                 NotificationType.NEW_NEWS,
                 NotificationData.of(
-                        new NotificationParams.NewNews(event.title(), null, null),
+                        new NotificationParams.NewNews(event.title(), event.authorName(), null),
                         new NotificationData.NotificationLink("news-detail", Map.of("id", event.newsId()))));
     }
 }

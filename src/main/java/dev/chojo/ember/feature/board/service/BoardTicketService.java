@@ -372,7 +372,8 @@ public class BoardTicketService {
                             authorMemberId,
                             ticketKey,
                             CommentEntityType.BOARD_TICKET,
-                            ticketId));
+                            ticketId,
+                            ticketKey));
                 }
             }
         }

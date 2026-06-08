@@ -21,6 +21,8 @@ public sealed interface NotificationParams {
 
     record NewsComment(String newsTitle, String author, String preview) implements NotificationParams {}
 
+    record CommentMention(String entityTitle, String author) implements NotificationParams {}
+
     record NewEvent(String title, String eventDescription) implements NotificationParams {}
 
     record EventRegistrationStatus(String eventName, RegistrationStatus status, String eventDescription)

@@ -1136,67 +1136,10 @@ public class KnowledgeBaseRoutes implements Routes {
         if (req.content() == null || req.content().isBlank()) {
             throw new BadRequestResponse("content is required");
         }
-        var comment = kbCommentRepository.create(
-                fileId,
-                req.parentId(),
-                memberIdentityFactory.local(
-                        session.stationId(), session.member().id()),
-                req.content());
-
-        // Publish domain events for notifications
-        int authorId = session.member().id();
-        String authorName = resolveMemberName(authorId);
-        var file = service.findFile(fileId).orElse(null);
-        String fileTitle = file != null ? file.name() : "";
-        String preview = req.content().length() > 100 ? req.content().substring(0, 100) + "..." : req.content();
-
-        Integer parentAuthorId = null;
-        if (req.parentId() != null) {
-            var parentComment = kbCommentRepository.findById(req.parentId()).orElse(null);
-            if (parentComment != null && parentComment.author() != null) {
-                parentAuthorId = stationRepository
-                        .resolveId(parentComment.author().stationUid())
-                        .flatMap(sid -> stationMemberService.resolveId(
-                                sid, parentComment.author().memberUid()))
-                        .orElse(null);
-            }
-        }
-        eventBus.publish(new CommentCreated(
-                session.stationId(),
-                CommentEntityType.KB,
-                fileId,
-                fileTitle,
-                comment.id(),
-                req.parentId(),
-                parentAuthorId,
-                authorId,
-                authorName,
-                preview));
-
-        // Parse @mentions and publish events (new format)
-        var matcher = MENTION_PATTERN.matcher(req.content());
-        while (matcher.find()) {
-            try {
-                var memberUid = UUID.fromString(matcher.group(2));
-                stationMemberService.resolveId(session.stationId(), memberUid).ifPresent(mentionedId -> {
-                    if (mentionedId != authorId) {
-                        eventBus.publish(new MentionedInComment(
-                                session.stationId(), mentionedId, authorId, authorName, CommentEntityType.KB, fileId));
-                    }
-                });
-            } catch (IllegalArgumentException ignored) {
-            }
-        }
-        // Legacy format
-        var legacyMatcher = MENTION_PATTERN_LEGACY.matcher(req.content());
-        while (legacyMatcher.find()) {
-            int mentionedId = Integer.parseInt(legacyMatcher.group(1));
-            if (mentionedId != authorId) {
-                eventBus.publish(new MentionedInComment(
-                        session.stationId(), mentionedId, authorId, authorName, CommentEntityType.KB, fileId));
-            }
-        }
-
+        String authorName = resolveMemberName(session.member().id());
+        var comment = service.createComment(
+                session.stationId(), fileId, req.parentId(),
+                session.member().id(), authorName, req.content());
         ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
     }
 

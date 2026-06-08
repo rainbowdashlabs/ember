@@ -7,24 +7,28 @@ package dev.chojo.ember.event.events;
 
 import dev.chojo.ember.event.DomainEvent;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.entity.MentionType;
 
 /**
- * Published when a member is @mentioned in a comment.
+ * Published when a group or special target is @mentioned in a comment.
+ * The handler resolves the mention type and target ID to individual members.
  *
  * @param stationId       the station where the comment was posted
- * @param mentionedMemberId the member ID of the mentioned user
  * @param authorMemberId  the member ID of the comment author
  * @param authorName      the display name of the comment author
- * @param entityType      the type of entity the comment is on (e.g. "event")
+ * @param entityType      the type of entity the comment is on
  * @param entityId        the ID of the entity
  * @param entityTitle     the title/name of the entity
+ * @param mentionType     the type of mention
+ * @param mentionTargetId the ID of the target (group ID or event ID)
  */
-public record MentionedInComment(
+public record BulkMentionedInComment(
         int stationId,
-        int mentionedMemberId,
         Integer authorMemberId,
         String authorName,
         CommentEntityType entityType,
         int entityId,
-        String entityTitle)
+        String entityTitle,
+        MentionType mentionType,
+        int mentionTargetId)
         implements DomainEvent {}

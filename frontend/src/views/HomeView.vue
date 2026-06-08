@@ -138,7 +138,8 @@ const highlights = [
             v-for="(feature, i) in [...features, ...features]"
             :key="`f-${i}`"
             :to="feature.help"
-            class="shrink-0 w-[calc((100%-3rem)/3)] rounded-xl border border-(--border) bg-(--bg) p-6 transition-shadow hover:border-primary/40 hover:shadow-lg"
+            class="shrink-0 rounded-xl border border-(--border) bg-(--bg) p-6 transition-shadow hover:border-primary/40 hover:shadow-lg"
+            :style="{ width: 'var(--tile-w)' }"
           >
             <div class="flex items-center justify-center h-12 w-12 rounded-lg bg-primary/10 mb-4 mx-auto">
               <font-awesome-icon :icon="feature.icon" class="h-6 w-6 text-primary"/>
@@ -165,7 +166,8 @@ const highlights = [
           <div
             v-for="(h, i) in [...highlights, ...highlights]"
             :key="`h-${i}`"
-            class="shrink-0 w-[calc((100%-3rem)/3)] rounded-xl border border-(--border) bg-(--bg) p-6"
+            class="shrink-0 rounded-xl border border-(--border) bg-(--bg) p-6"
+            :style="{ width: 'var(--tile-w)' }"
           >
             <div class="flex items-center justify-center h-10 w-10 rounded-lg bg-secondary/10 mb-3 mx-auto">
               <font-awesome-icon :icon="h.icon" class="h-5 w-5 text-secondary"/>

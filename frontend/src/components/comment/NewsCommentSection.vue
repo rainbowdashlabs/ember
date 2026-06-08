@@ -6,9 +6,9 @@
 <script setup lang="ts">
 import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {Comment} from '@/api/types'
+import type {Comment, MemberGroup} from '@/api/types'
 import type {MemberCompletion} from '@/api/stationMembers'
-import {news, stationMembers} from '@/api'
+import {news, stationMembers, memberGroups} from '@/api'
 import CommentThread from './CommentThread.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -24,6 +24,7 @@ const {t} = useI18n()
 
 const commentsList = ref<Comment[]>([])
 const members = ref<MemberCompletion[]>([])
+const groups = ref<MemberGroup[]>([])
 const loading = ref(true)
 const error = ref('')
 async function loadComments() {
@@ -32,7 +33,10 @@ async function loadComments() {
     const rawComments = props.stationUid
       ? await news.listFederatedNewsComments(props.stationUid, props.newsId)
       : await news.listComments(props.newsId)
-    const m = await stationMembers.listCompletions()
+    const [m, g] = await Promise.all([
+      stationMembers.listCompletions({type: 'NEWS', entityId: props.newsId}),
+      memberGroups.listGroups(),
+    ])
     // Adapt NewsComment to generic Comment interface
     commentsList.value = rawComments.map(c => ({
       id: c.id,
@@ -45,6 +49,7 @@ async function loadComments() {
       updatedAt: c.updatedAt ?? null,
     }))
     members.value = m
+    groups.value = g
   } catch { error.value = t('common.error') }
   finally { loading.value = false }
 }
@@ -95,6 +100,7 @@ onMounted(loadComments)
       <CommentThread
         :comments="commentsList"
         :members="members"
+        :groups="groups"
         :highlight-id="highlightCommentId"
         @create="createComment"
         @update="updateComment"

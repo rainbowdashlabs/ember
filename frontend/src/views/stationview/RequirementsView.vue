@@ -6,18 +6,18 @@
 <script lang="ts" setup>
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import { getRequirements } from '@/api/requirements'
 import type { RequirementsResponse } from '@/api/requirements'
 
 const { t } = useI18n()
+const route = useRoute()
 const router = useRouter()
 const loading = ref(true)
 const data = ref<RequirementsResponse | null>(null)
@@ -26,29 +26,33 @@ const hasRequirements = computed(() =>
     data.value != null && (data.value.profileIncomplete || data.value.forcedForms.length > 0 || data.value.forcedQuizzes.length > 0)
 )
 
+function redirectAway() {
+    const redirect = route.query.redirect as string | undefined
+    router.replace(redirect || {name: 'dashboard-overview'})
+}
+
 onMounted(async () => {
     try {
         data.value = await getRequirements()
-    } catch { /* ignore */ }
-    finally { loading.value = false }
+    } catch {
+        redirectAway()
+        return
+    }
+    loading.value = false
+    if (!hasRequirements.value) {
+        redirectAway()
+    }
 })
 </script>
 
 <template>
     <ViewContent>
         <Spinner v-if="loading" />
-        <template v-else>
+        <template v-else-if="hasRequirements">
             <SectionHeader class="mb-2">{{ t('requirements.title') }}</SectionHeader>
             <p class="text-sm text-(--text-muted) mb-6">{{ t('requirements.subtitle') }}</p>
 
-            <SuccessContainer v-if="!hasRequirements" class="max-w-xl">
-                <div class="flex items-center gap-3">
-                    <font-awesome-icon :icon="['fas', 'circle-check']" class="text-xl" />
-                    <p>{{ t('requirements.allDone') }}</p>
-                </div>
-            </SuccessContainer>
-
-            <div v-else class="space-y-4 max-w-xl">
+            <div class="space-y-4 max-w-xl">
                 <NeutralContainer v-if="data!.profileIncomplete">
                     <div class="flex items-center gap-3">
                         <font-awesome-icon :icon="['fas', 'user']" class="text-primary text-xl" />

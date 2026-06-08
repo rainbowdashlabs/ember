@@ -33,6 +33,7 @@ interface NotifyRow {
 const notifyRows: NotifyRow[] = [
   {type: 'NEW_NEWS', label: 'notifyNews', hint: 'notifyNewsHint'},
   {type: 'NEWS_COMMENT', label: 'notifyComments', hint: 'notifyCommentsHint'},
+  {type: 'COMMENT_MENTION', label: 'notifyMentions', hint: 'notifyMentionsHint'},
   {type: 'NEW_EVENT', label: 'notifyEvents', hint: 'notifyEventsHint'},
   {type: 'EVENT_REGISTRATION_STATUS', label: 'notifyEventStatus', hint: 'notifyEventStatusHint'},
   {type: 'EXCHANGE_STATUS_CHANGE', label: 'notifyExchanges', hint: 'notifyExchangesHint'},

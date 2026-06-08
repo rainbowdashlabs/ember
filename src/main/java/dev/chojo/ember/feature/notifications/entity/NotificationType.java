@@ -13,6 +13,7 @@ package dev.chojo.ember.feature.notifications.entity;
 public enum NotificationType {
     NEW_NEWS(NotificationParams.NewNews.class, "notification.newNews"),
     NEWS_COMMENT(NotificationParams.NewsComment.class, "notification.newsComment"),
+    COMMENT_MENTION(NotificationParams.CommentMention.class, "notification.commentMention"),
     EVENT_REGISTRATION_STATUS(NotificationParams.EventRegistrationStatus.class, "notification.eventRegistrationStatus"),
     EXCHANGE_STATUS_CHANGE(NotificationParams.ExchangeStatusChange.class, "notification.exchangeStatusChange"),
     EXCHANGE_NEW_REQUEST(NotificationParams.ExchangeNewRequest.class, "notification.exchangeNewRequest"),

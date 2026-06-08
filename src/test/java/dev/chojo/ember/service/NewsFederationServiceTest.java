@@ -73,7 +73,8 @@ class NewsFederationServiceTest extends RepositoryTestBase {
                 newsRepo,
                 new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo),
                 eventBus,
-                stationMemberRepo);
+                stationMemberRepo,
+                accountRepo);
 
         service = new NewsFederationService(
                 fedRepo,

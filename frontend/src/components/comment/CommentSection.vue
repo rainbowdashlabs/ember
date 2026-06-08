@@ -4,11 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onMounted, ref} from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {Comment} from '@/api/types'
+import type {Comment, MemberGroup} from '@/api/types'
 import type {MemberCompletion} from '@/api/stationMembers'
-import {comments as commentsApi, stationMembers} from '@/api'
+import type {SpecialMention} from '@/components/comment/MentionInput.vue'
+import {comments as commentsApi, stationMembers, memberGroups} from '@/api'
 import CommentThread from './CommentThread.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -22,17 +23,27 @@ const {t} = useI18n()
 
 const commentsList = ref<Comment[]>([])
 const members = ref<MemberCompletion[]>([])
+const groups = ref<MemberGroup[]>([])
 const loading = ref(true)
 const error = ref('')
+
+const specialMentions = computed<SpecialMention[]>(() => [
+  {type: 'EVENT', entityId: props.eventId, label: t('comments.mentionEvent'), icon: ['fas', 'calendar-days']},
+  {type: 'REGISTERED', entityId: props.eventId, label: t('comments.mentionRegistered'), icon: ['fas', 'user-check']},
+  {type: 'DECLINED', entityId: props.eventId, label: t('comments.mentionDeclined'), icon: ['fas', 'user-slash']},
+])
+
 async function loadComments() {
   loading.value = true
   try {
-    const [c, m] = await Promise.all([
+    const [c, m, g] = await Promise.all([
       commentsApi.listEventComments(props.eventId),
-      stationMembers.listCompletions(),
+      stationMembers.listCompletions({type: 'EVENT', entityId: props.eventId}),
+      memberGroups.listGroups(),
     ])
     commentsList.value = c
     members.value = m
+    groups.value = g
   } catch { error.value = t('common.error') }
   finally { loading.value = false }
 }
@@ -71,6 +82,8 @@ onMounted(loadComments)
       <CommentThread
         :comments="commentsList"
         :members="members"
+        :groups="groups"
+        :special-mentions="specialMentions"
         @create="createComment"
         @update="updateComment"
         @delete="deleteComment"

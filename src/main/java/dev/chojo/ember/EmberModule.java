@@ -26,6 +26,7 @@ import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.handlers.BoardTicketChangedHandler;
+import dev.chojo.ember.event.handlers.BulkMentionedInCommentHandler;
 import dev.chojo.ember.event.handlers.CommentCreatedHandler;
 import dev.chojo.ember.event.handlers.CommentDeletedHandler;
 import dev.chojo.ember.event.handlers.EventCancelledHandler;
@@ -212,6 +213,7 @@ public class EmberModule extends AbstractModule {
         eventBinder.addBinding().to(LendingStatusChangedHandler.class);
         eventBinder.addBinding().to(LendingMessageSentHandler.class);
         eventBinder.addBinding().to(MentionedInCommentHandler.class);
+        eventBinder.addBinding().to(BulkMentionedInCommentHandler.class);
         eventBinder.addBinding().to(BoardTicketChangedHandler.class);
         eventBinder.addBinding().to(EventCancelledHandler.class);
 

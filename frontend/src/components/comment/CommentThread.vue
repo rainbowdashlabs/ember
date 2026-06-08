@@ -6,9 +6,9 @@
 <script setup lang="ts">
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {Comment} from '@/api/types'
+import type {Comment, MemberGroup} from '@/api/types'
 import type {MemberCompletion} from '@/api/stationMembers'
-import MentionInput from '@/components/comment/MentionInput.vue'
+import MentionInput, {type SpecialMention} from '@/components/comment/MentionInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
@@ -16,15 +16,20 @@ import MemberName from '@/components/avatar/MemberName.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {useSession} from '@/composables/useSession'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   comments: Comment[]
   members: MemberCompletion[]
+  groups?: MemberGroup[]
+  specialMentions?: SpecialMention[]
   parentId?: number | null
   depth?: number
   highlightId?: number | null
   federated?: boolean
   readonly?: boolean
-}>()
+}>(), {
+  groups: () => [],
+  specialMentions: () => [],
+})
 
 const emit = defineEmits<{
   create: [parentId: number | null, content: string]
@@ -64,9 +69,10 @@ function childrenOf(commentId: number): Comment[] {
   return props.comments.filter(c => c.parentId === commentId)
 }
 
-function resolveMentions(text: string): Array<{ type: 'text'; value: string } | { type: 'mention'; name: string }> {
-  const parts: Array<{ type: 'text'; value: string } | { type: 'mention'; name: string }> = []
-  // Match both new format @[stationUid/memberUid:Name] and legacy @[123:Name]
+type MentionPart = { type: 'text'; value: string } | { type: 'mention'; name: string; bulk?: boolean }
+
+function resolveMentions(text: string): MentionPart[] {
+  const parts: MentionPart[] = []
   const regex = /@\[([^\]]+)]/g
   let last = 0
   let match: RegExpExecArray | null
@@ -76,21 +82,23 @@ function resolveMentions(text: string): Array<{ type: 'text'; value: string } | 
     }
     const inner = match[1]
     const colonIdx = inner.indexOf(':')
-    const fallback = colonIdx >= 0 ? inner.substring(colonIdx + 1) : inner
-    // Try to resolve from members list
     const slashIdx = inner.indexOf('/')
-    if (slashIdx >= 0 && colonIdx > slashIdx) {
-      // New format: stationUid/memberUid:Name
+    // Bulk mention: type:name:id (e.g. group:Vorstand:5)
+    const bulkMatch = inner.match(/^(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):\d+$/)
+    if (bulkMatch) {
+      parts.push({type: 'mention', name: bulkMatch[2], bulk: true})
+    } else if (slashIdx >= 0 && colonIdx > slashIdx) {
       const memberUid = inner.substring(slashIdx + 1, colonIdx)
+      const fallback = inner.substring(colonIdx + 1)
       const member = props.members.find(m => m.memberUid === memberUid)
       parts.push({type: 'mention', name: member?.name?.trim() || fallback})
     } else if (colonIdx >= 0) {
-      // Legacy format: 123:Name
       const id = parseInt(inner.substring(0, colonIdx))
+      const fallback = inner.substring(colonIdx + 1)
       const member = props.members.find(m => m.id === id)
       parts.push({type: 'mention', name: member?.name?.trim() || fallback})
     } else {
-      parts.push({type: 'mention', name: fallback})
+      parts.push({type: 'mention', name: inner})
     }
     last = regex.lastIndex
   }
@@ -152,7 +160,7 @@ const maxDepth = 6
   <div :class="(depth ?? 0) > 0 ? 'ml-4 pl-3 border-l-2 border-(--border)' : ''">
     <!-- Top-level new comment input (only at root depth, when not readonly) -->
     <div v-if="(depth ?? 0) === 0 && !readonly" class="space-y-2 mb-4">
-      <MentionInput v-model="newComment" :members="members" :placeholder="t('comments.placeholder')"/>
+      <MentionInput v-model="newComment" :members="members" :groups="groups" :special-mentions="specialMentions" :placeholder="t('comments.placeholder')"/>
       <div class="flex gap-2">
         <PrimaryButton :disabled="!newComment.trim()" compact @click="postTopLevel">{{ t('comments.post') }}</PrimaryButton>
       </div>
@@ -181,7 +189,7 @@ const maxDepth = 6
           <MutedText size="xs">{{ formatDate(comment.createdAt) }}</MutedText>
           <MutedText v-if="comment.updatedAt" size="xs">({{ t('comments.edited') }})</MutedText>
         </div>
-        <p class="text-sm whitespace-pre-wrap"><template v-for="(part, i) in resolveMentions(comment.content)" :key="i"><span v-if="part.type === 'mention'" class="font-semibold text-primary">@{{ part.name }}</span><template v-else>{{ part.value }}</template></template></p>
+        <p class="text-sm whitespace-pre-wrap"><template v-for="(part, i) in resolveMentions(comment.content)" :key="i"><span v-if="part.type === 'mention'" class="font-semibold" :class="part.bulk ? 'text-secondary' : 'text-primary'">@{{ part.name }}</span><template v-else>{{ part.value }}</template></template></p>
         <div class="flex items-center gap-1">
           <SecondaryButton v-if="(depth ?? 0) < maxDepth" compact @click="startReply(comment.id)">
             {{ t('comments.reply') }}
@@ -205,7 +213,7 @@ const maxDepth = 6
 
       <!-- Edit form -->
       <div v-else class="space-y-2">
-        <MentionInput v-model="editContent" :members="members"/>
+        <MentionInput v-model="editContent" :members="members" :groups="groups" :special-mentions="specialMentions"/>
         <div class="flex gap-2">
           <PrimaryButton compact @click="submitEdit">{{ t('comments.save') }}</PrimaryButton>
           <SecondaryButton compact @click="cancelEdit">{{ t('common.cancel') }}</SecondaryButton>
@@ -214,7 +222,7 @@ const maxDepth = 6
 
       <!-- Reply form -->
       <div v-if="replyingTo === comment.id" class="ml-4 space-y-2">
-        <MentionInput v-model="replyContent" :members="members" :placeholder="t('comments.replyPlaceholder')"/>
+        <MentionInput v-model="replyContent" :members="members" :groups="groups" :special-mentions="specialMentions" :placeholder="t('comments.replyPlaceholder')"/>
         <div class="flex gap-2">
           <PrimaryButton compact @click="submitReply">{{ t('comments.reply') }}</PrimaryButton>
           <SecondaryButton compact @click="cancelReply">{{ t('common.cancel') }}</SecondaryButton>
@@ -226,6 +234,8 @@ const maxDepth = 6
         v-if="childrenOf(comment.id).length > 0"
         :comments="comments"
         :members="members"
+        :groups="groups"
+        :special-mentions="specialMentions"
         :parent-id="comment.id"
         :depth="(depth ?? 0) + 1"
         :highlight-id="highlightId"

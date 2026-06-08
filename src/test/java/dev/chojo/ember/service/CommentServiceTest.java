@@ -92,7 +92,7 @@ class CommentServiceTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void createComment() {
-        var comment = service.create(station.id(), eventId, null, identity1, "Alice", "Hello world");
+        var comment = service.create(station.id(), eventId, null, identity1, "Alice", "Hello world", "Test Event");
         assertNotNull(comment);
         assertEquals("Hello world", comment.content());
         assertNotNull(comment.author());
@@ -121,7 +121,7 @@ class CommentServiceTest extends RepositoryTestBase {
     @Order(4)
     void createReplyNotifiesParentAuthor() {
         reset(eventBus);
-        var reply = service.create(station.id(), eventId, commentId, identity2, "Bob", "Nice comment!");
+        var reply = service.create(station.id(), eventId, commentId, identity2, "Bob", "Nice comment!", "Test Event");
         assertNotNull(reply);
         assertEquals(commentId, reply.parentId());
         replyId = reply.id();
@@ -143,7 +143,7 @@ class CommentServiceTest extends RepositoryTestBase {
     void createReplyToOwnCommentDoesNotNotify() {
         reset(eventBus);
         // Reply to own comment — should NOT publish CommentCreated
-        var selfReply = service.create(station.id(), eventId, commentId, identity1, "Alice", "Replying to myself");
+        var selfReply = service.create(station.id(), eventId, commentId, identity1, "Alice", "Replying to myself", "Test Event");
         assertNotNull(selfReply);
         verify(eventBus, never()).publish(argThat(event -> event instanceof CommentCreated));
         service.delete(selfReply.id());
@@ -161,7 +161,7 @@ class CommentServiceTest extends RepositoryTestBase {
     void createWithMentionPublishesEvent() {
         reset(eventBus);
         String content = "Hey @[" + member2.id() + ":Bob] check this out!";
-        var comment = service.create(station.id(), eventId, null, identity1, "Alice", content);
+        var comment = service.create(station.id(), eventId, null, identity1, "Alice", content, "Test Event");
         assertNotNull(comment);
         assertEquals(content, comment.content());
 
@@ -175,7 +175,8 @@ class CommentServiceTest extends RepositoryTestBase {
                             Integer authorMemberId,
                             String authorName,
                             CommentEntityType entityType,
-                            int entityId))) return false;
+                            int entityId,
+                            String entityTitle))) return false;
             return stationId == station.id()
                     && mentionedMemberId == member2.id()
                     && authorMemberId == member1.id()
@@ -190,7 +191,7 @@ class CommentServiceTest extends RepositoryTestBase {
     void createWithSelfMentionDoesNotPublish() {
         reset(eventBus);
         String content = "Talking about @[" + member1.id() + ":Alice] myself";
-        var comment = service.create(station.id(), eventId, null, identity1, "Alice", content);
+        var comment = service.create(station.id(), eventId, null, identity1, "Alice", content, "Test Event");
         assertNotNull(comment);
         assertEquals(content, comment.content());
 
@@ -246,7 +247,7 @@ class CommentServiceTest extends RepositoryTestBase {
 
         // Multiple mentions in one comment — both different from author
         String content = "Hey @[" + member2.id() + ":Bob] and @[" + member2.id() + ":Bob] again";
-        var comment = service.create(station.id(), eventId, null, identity1, "Alice", content);
+        var comment = service.create(station.id(), eventId, null, identity1, "Alice", content, "Test Event");
         assertNotNull(comment);
         // eventBus should have been called for member2 twice
         verify(eventBus, times(2))
@@ -260,7 +261,7 @@ class CommentServiceTest extends RepositoryTestBase {
     @Order(15)
     void createWithNoMentions() {
         reset(eventBus);
-        var comment = service.create(station.id(), eventId, null, identity1, "Alice", "No mentions here");
+        var comment = service.create(station.id(), eventId, null, identity1, "Alice", "No mentions here", "Test Event");
         assertNotNull(comment);
         // No mentions — eventBus should not be called
         verify(eventBus, never()).publish(any());
@@ -270,7 +271,7 @@ class CommentServiceTest extends RepositoryTestBase {
     @Test
     @Order(16)
     void updateExistingComment() {
-        var comment = service.create(station.id(), eventId, null, identity1, "Alice", "Original");
+        var comment = service.create(station.id(), eventId, null, identity1, "Alice", "Original", "Test Event");
         assertTrue(service.update(comment.id(), "Modified"));
         var found = service.findById(comment.id()).orElseThrow();
         assertEquals("Modified", found.content());
@@ -281,8 +282,8 @@ class CommentServiceTest extends RepositoryTestBase {
     @Order(17)
     void deleteCommentWithChildrenSoftDeletes() {
         // Create parent and child comments
-        var parent = service.create(station.id(), eventId, null, identity1, "Alice", "Parent comment");
-        var child = service.create(station.id(), eventId, parent.id(), identity2, "Bob", "Child comment");
+        var parent = service.create(station.id(), eventId, null, identity1, "Alice", "Parent comment", "Test Event");
+        var child = service.create(station.id(), eventId, parent.id(), identity2, "Bob", "Child comment", "Test Event");
 
         // Delete parent — should soft-delete since it has children
         assertTrue(service.delete(parent.id()));
@@ -302,7 +303,7 @@ class CommentServiceTest extends RepositoryTestBase {
     @Test
     @Order(18)
     void deleteCommentWithoutChildrenHardDeletes() {
-        var comment = service.create(station.id(), eventId, null, identity1, "Alice", "Standalone");
+        var comment = service.create(station.id(), eventId, null, identity1, "Alice", "Standalone", "Test Event");
         assertTrue(service.delete(comment.id()));
         assertTrue(service.findById(comment.id()).isEmpty());
     }
@@ -313,7 +314,7 @@ class CommentServiceTest extends RepositoryTestBase {
         reset(eventBus);
         // New format: @[stationUid/memberUid:Name]
         String content = "Hey @[" + station.uid() + "/" + member2.uid() + ":Bob] look!";
-        var comment = service.create(station.id(), eventId, null, identity1, "Alice", content);
+        var comment = service.create(station.id(), eventId, null, identity1, "Alice", content, "Test Event");
         assertNotNull(comment);
         verify(eventBus)
                 .publish(argThat(
@@ -327,7 +328,7 @@ class CommentServiceTest extends RepositoryTestBase {
         reset(eventBus);
         // Federated comments with null author skip mention parsing and reply notifications
         var comment = service.create(
-                station.id(), eventId, null, null, null, "Federated comment @[" + member2.id() + ":Bob]");
+                station.id(), eventId, null, null, null, "Federated comment @[" + member2.id() + ":Bob]", "Test Event");
         assertNotNull(comment);
         assertNull(comment.author());
         verify(eventBus, never()).publish(any());

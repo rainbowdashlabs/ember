@@ -7,8 +7,10 @@ package dev.chojo.ember.feature.comment.service;
 
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.BulkMentionedInComment;
 import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.MentionedInComment;
+import dev.chojo.ember.feature.comment.entity.MentionType;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
@@ -30,6 +32,7 @@ import java.util.regex.Pattern;
 public class CommentService {
     private static final Pattern MENTION_PATTERN_LEGACY = Pattern.compile("@\\[(\\d+):([^\\]]+)]");
     private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[([^/]+)/([^:]+):([^\\]]+)]");
+    private static final Pattern BULK_MENTION_PATTERN = Pattern.compile("@\\[(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):(\\d+)]");
 
     private final EventCommentRepository commentRepository;
     private final DomainEventBus eventBus;
@@ -71,16 +74,18 @@ public class CommentService {
     /**
      * Creates a new comment and publishes mention events for any @mentioned members.
      *
-     * @param stationId  the station ID
-     * @param eventId    the event ID
-     * @param parentId   parent comment ID for replies, or {@code null}
-     * @param author     the identity of the author, or {@code null} for anonymous/federated without identity
-     * @param authorName the display name of the author
-     * @param content    the comment text
+     * @param stationId   the station ID
+     * @param eventId     the event ID
+     * @param parentId    parent comment ID for replies, or {@code null}
+     * @param author      the identity of the author, or {@code null} for anonymous/federated without identity
+     * @param authorName  the display name of the author
+     * @param content     the comment text
+     * @param entityTitle the title/name of the event (used in notifications)
      * @return the created comment
      */
     public Comment create(
-            int stationId, int eventId, Integer parentId, MemberIdentity author, String authorName, String content) {
+            int stationId, int eventId, Integer parentId, MemberIdentity author, String authorName, String content,
+            String entityTitle) {
         var comment = commentRepository.create(eventId, parentId, author, content);
 
         // Resolve author to local member ID (null if federated / not on this station)
@@ -96,7 +101,7 @@ public class CommentService {
                             stationId,
                             CommentEntityType.EVENT,
                             eventId,
-                            "",
+                            entityTitle,
                             comment.id(),
                             parentId,
                             parentAuthorId,
@@ -113,9 +118,12 @@ public class CommentService {
             for (int mentionedId : mentionedIds) {
                 if (mentionedId != authorMemberId) {
                     eventBus.publish(new MentionedInComment(
-                            stationId, mentionedId, authorMemberId, authorName, CommentEntityType.EVENT, eventId));
+                            stationId, mentionedId, authorMemberId, authorName, CommentEntityType.EVENT, eventId,
+                            entityTitle));
                 }
             }
+            parseBulkMentions(stationId, authorMemberId, authorName, CommentEntityType.EVENT, eventId, entityTitle,
+                    content);
         }
 
         return comment;
@@ -162,6 +170,17 @@ public class CommentService {
      * @param content the comment text
      * @return list of mentioned member IDs
      */
+    private void parseBulkMentions(int stationId, Integer authorMemberId, String authorName,
+                                    CommentEntityType entityType, int entityId, String entityTitle, String content) {
+        var matcher = BULK_MENTION_PATTERN.matcher(content);
+        while (matcher.find()) {
+            var type = MentionType.valueOf(matcher.group(1));
+            int targetId = Integer.parseInt(matcher.group(3));
+            eventBus.publish(new BulkMentionedInComment(
+                    stationId, authorMemberId, authorName, entityType, entityId, entityTitle, type, targetId));
+        }
+    }
+
     private List<Integer> parseMentions(int stationId, String content) {
         var mentions = new ArrayList<Integer>();
         // New format: @[stationUid/memberUid:Name]

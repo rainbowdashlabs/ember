@@ -181,7 +181,7 @@ public class StationMemberRepository {
     public List<RichMember> findRichMembers(int stationId, boolean includeFormer) {
         return Query.query("""
                         SELECT sm.id, sm.station_id, sm.uid, sm.account_id, sm.former, sm.user_type,
-                               COALESCE(NULLIF(sm.display_name, ''), TRIM(CONCAT(a.first_name, ' ', a.last_name)), '') AS name,
+                               COALESCE(a.full_name, sm.display_name, '') AS name,
                                COALESCE(a.email, '') AS email,
                                COALESCE((SELECT json_agg(sp.name) FROM station_member_permission smp JOIN station_permission sp ON sp.id = smp.permission_id WHERE smp.member_id = sm.id), '[]'::json)::text AS roles,
                                COALESCE((SELECT json_agg(json_build_object('id', mg.id, 'name', mg.name)) FROM member_group_entry mge JOIN member_group mg ON mg.id = mge.group_id WHERE mge.member_id = sm.id), '[]'::json)::text AS groups,
@@ -205,7 +205,7 @@ public class StationMemberRepository {
     public List<MemberCompletion> findCompletions(int stationId) {
         UUID stationUid = stationRepository.resolveUid(stationId);
         return Query.query(
-                        "SELECT sm.id, sm.uid, COALESCE(NULLIF(sm.display_name, ''), TRIM(CONCAT(a.first_name, ' ', a.last_name)), 'Mitglied ' || sm.id) AS display_name FROM station_member sm LEFT JOIN account a ON sm.account_id = a.id WHERE sm.station_id = :station_id AND sm.former = FALSE ORDER BY display_name;")
+                        "SELECT sm.id, sm.uid, COALESCE(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name FROM station_member sm LEFT JOIN account a ON sm.account_id = a.id WHERE sm.station_id = :station_id AND sm.former = FALSE ORDER BY display_name;")
                 .single(Call.of().bind("station_id", stationId))
                 .map(row -> new MemberCompletion(
                         row.getInt("id"),

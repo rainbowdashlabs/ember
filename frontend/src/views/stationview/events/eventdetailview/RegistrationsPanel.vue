@@ -93,9 +93,10 @@ function formatDate(iso: string): string {
 
     <div v-if="pendingRegistrations.length > 0" class="space-y-2">
       <SubHeader>{{ statusLabel('PENDING') }}</SubHeader>
-      <div class="overflow-x-auto">
+      <!-- Manager view: table with stats and action buttons -->
+      <div v-if="hasPermission(StationPermission.EVENT_REGISTRATION)" class="overflow-x-auto">
         <table class="w-full text-sm border-collapse">
-          <thead v-if="hasPermission(StationPermission.EVENT_REGISTRATION) && registrationStats.length > 0">
+          <thead v-if="registrationStats.length > 0">
           <tr class="border-b border-(--border) text-left text-xs text-(--text-muted) uppercase">
             <th class="p-2">{{ t('registrationStats.member') }}</th>
             <th class="p-2 text-center">{{ t('registrationStats.score') }}</th>
@@ -108,7 +109,7 @@ function formatDate(iso: string): string {
           <tbody>
           <tr v-for="reg in pendingRegistrations" :key="reg.id" class="border-b border-(--border)">
             <td class="p-2"><MemberName :identity="reg.memberIdentity ?? null"/></td>
-            <template v-if="hasPermission(StationPermission.EVENT_REGISTRATION) && getStatsForMember(reg.memberId)">
+            <template v-if="getStatsForMember(reg.memberId)">
               <td class="p-2 text-center font-bold" :class="getStatsForMember(reg.memberId)!.priority === 'HIGH' ? 'text-[var(--error)]' : getStatsForMember(reg.memberId)!.priority === 'MEDIUM' ? 'text-[var(--info)]' : ''">
                 {{ getStatsForMember(reg.memberId)!.fairnessScore }}
               </td>
@@ -123,7 +124,7 @@ function formatDate(iso: string): string {
               <td class="p-2 text-center text-(--text-muted)" colspan="4">–</td>
             </template>
             <td class="p-2">
-              <div v-if="hasPermission(StationPermission.EVENT_REGISTRATION) && event.requiresConfirmation" class="flex items-center gap-2 justify-end">
+              <div v-if="event.requiresConfirmation" class="flex items-center gap-2 justify-end">
                 <PrimaryButton @click="emit('accept', reg.id)">
                   <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
                   {{ t('eventsRegistrations.accept') }}
@@ -138,6 +139,18 @@ function formatDate(iso: string): string {
           </tbody>
         </table>
       </div>
+      <!-- Non-manager view: card display matching confirmed registrations -->
+      <template v-else>
+        <NeutralContainer v-for="reg in pendingRegistrations" :key="reg.id">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <MemberName :identity="reg.memberIdentity ?? null"/>
+              <span v-if="reg.eventDate" class="text-xs text-(--text-muted)">{{ formatDate(reg.eventDate) }}</span>
+            </div>
+            <InfoBadge>{{ statusLabel('PENDING') }}</InfoBadge>
+          </div>
+        </NeutralContainer>
+      </template>
     </div>
 
     <div v-for="group in nonPendingRegistrations" :key="group.status" class="space-y-2">

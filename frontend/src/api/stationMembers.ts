@@ -21,8 +21,13 @@ export interface MemberCompletion {
     displayTag?: { name: string; color: string } | null
 }
 
-export async function listCompletions(): Promise<MemberCompletion[]> {
-    const res = await client.get<MemberCompletion[]>('/station-members/completions')
+export async function listCompletions(restriction?: { type: string; entityId: number }): Promise<MemberCompletion[]> {
+    const params: Record<string, string> = {}
+    if (restriction) {
+        params.restrictionType = restriction.type
+        params.entityId = String(restriction.entityId)
+    }
+    const res = await client.get<MemberCompletion[]>('/station-members/completions', { params })
     return res.data
 }
 

@@ -6,9 +6,9 @@
 <script setup lang="ts">
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {Comment} from '@/api/types'
+import type {Comment, MemberGroup} from '@/api/types'
 import type {MemberCompletion} from '@/api/stationMembers'
-import {knowledgeBase, stationMembers} from '@/api'
+import {knowledgeBase, stationMembers, memberGroups} from '@/api'
 import CommentThread from './CommentThread.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -24,6 +24,7 @@ const isFederated = computed(() => !!props.stationUid)
 
 const commentsList = ref<Comment[]>([])
 const members = ref<MemberCompletion[]>([])
+const groups = ref<MemberGroup[]>([])
 const loading = ref(true)
 const error = ref('')
 async function loadComments() {
@@ -43,7 +44,12 @@ async function loadComments() {
       updatedAt: c.updatedAt ?? null,
     }))
     if (!isFederated.value) {
-      members.value = await stationMembers.listCompletions()
+      const [m, g] = await Promise.all([
+        stationMembers.listCompletions({type: 'KB_FILE', entityId: props.fileId}),
+        memberGroups.listGroups(),
+      ])
+      members.value = m
+      groups.value = g
     }
   } catch { error.value = t('common.error') }
   finally { loading.value = false }
@@ -95,6 +101,7 @@ onMounted(loadComments)
       <CommentThread
         :comments="commentsList"
         :members="members"
+        :groups="groups"
         @create="createComment"
         @update="updateComment"
         @delete="deleteComment"

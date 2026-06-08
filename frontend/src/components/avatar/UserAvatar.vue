@@ -62,7 +62,7 @@ async function loadAvatar() {
   } catch { /* no avatar */ }
 }
 
-watch(() => props.identity, loadAvatar, {immediate: true, deep: true})
+watch(() => props.identity?.stationUid + '/' + props.identity?.memberUid, loadAvatar, {immediate: true})
 </script>
 
 <template>

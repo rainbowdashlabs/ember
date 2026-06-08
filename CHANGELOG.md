@@ -1,5 +1,54 @@
 # Changelog
 
+## v26.6.1
+
+### New Features
+
+#### Mention System
+- **Bulk mentions** — mention entire groups, all event participants, registered members, or declined members in comments
+- **Mention UI with avatars** — mention dropdown shows user avatars, name colors, and display tags
+- **Guardian notifications** — event-related bulk mentions also notify guardians of mentioned members
+- **Restricted mention lists** — when content is restricted to certain groups, only eligible members appear in the mention picker
+
+#### Notifications
+- **Mention notifications** — dedicated notification for mentions, separate from comment reply notifications
+- **News mention notifications** — mentioning users in news comments now triggers notifications
+- **News author in notifications** — new news notifications now show the author name
+
+#### Event Detail
+- **Tab layout** — event detail page split into Info and Registrations tabs
+- **Non-manager registration display** — pending registrations show as simple cards for users without confirmation permissions
+
+### Bug Fixes
+- **Event registration date** — registration and decline actions now use the correct event date instead of defaulting to today
+- **Recurring event next occurrence** — correctly shows today as next occurrence when the event hasn't ended yet
+- **Notification links** — comment and mention notifications for events now link to the specific event detail page instead of the events list
+- **Requirements redirect** — requirements page redirects to the dashboard when there are no pending requirements instead of showing an empty page
+- **Avatar loading** — user avatars no longer re-fetch on every hover in the mention dropdown
+
+### Improvements
+- **Mobile-friendly tile reel** — home page tiles are responsive (1 on mobile, 2 on tablet, 3 on desktop) with always-visible navigation arrows and touch swipe support
+- **Sidebar home link** — clicking the Ember logo/name in the sidebar navigates to the home page
+
+### Technical Changes
+
+#### Database
+- **Generated `full_name` column** — `account.full_name` stored generated column replaces repeated `TRIM(first_name || ' ' || last_name)` in SQL queries (patch_7)
+
+#### Backend Architecture
+- **`MentionType` enum** — replaces raw strings for bulk mention types (`GROUP`, `EVENT`, `REGISTERED`, `DECLINED`)
+- **`BulkMentionedInComment` domain event** — new event type resolved by `BulkMentionedInCommentHandler` to individual member notifications
+- **`COMMENT_MENTION` notification type** — separate from `NEWS_COMMENT`, with `CommentMention` params and own locale key
+- **KB comment events moved to service** — domain event publishing for KB comments moved from `KnowledgeBaseRoutes` to `KnowledgeBaseService`
+- **`NewsService` resolves author name** — derives author name from `MemberIdentity` via account lookup instead of requiring callers to pass it
+- **Event date validation** — backend derives event date for one-time events from `startTime` and validates day-of-week for recurring events
+- **Restriction-filtered completions** — `/station-members/completions` accepts optional `restrictionType` and `entityId` params to filter by entity visibility
+
+#### Frontend Architecture
+- **`EventRegistrationsTab` component** — extracted registration logic from `EventDetailView` (319 lines, down from 506)
+- **`MentionInput` unified suggestions** — refactored to support members, groups, and special mentions in a single dropdown
+- **`UserAvatar` watcher fix** — watches derived `stationUid/memberUid` string instead of deep-watching the identity object
+
 ## v26.6.0
 
 ### New Features
@@ -150,7 +199,7 @@
 - **BoardRoutes / BoardTicketRoutes** — 50+ REST endpoints
 - **DueDateReminderChecker** — scheduled executor for daily due date notifications
 - **BoardTicketChanged** domain event — consolidated watcher notification for all ticket changes
-- **MentionedInComment** extended — `BOARD_TICKET` entity type with ticket-detail link
+- **MentionedInComment** extended — `BOARD_TICKET` ethentity type with ticket-detail link
 - **LaneData, AccessData, TicketLabelMapping** — extracted to top-level records by spotless
 
 #### Frontend Architecture

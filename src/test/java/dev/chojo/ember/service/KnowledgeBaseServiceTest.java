@@ -20,8 +20,10 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -71,7 +73,9 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 httpClient,
                 kbCommentRepo,
                 eventFedRepo,
-                memberIdentityFactory);
+                memberIdentityFactory,
+                mock(DomainEventBus.class),
+                mock(StationMemberService.class));
         station = stationRepo.create("KbSvcStation");
         stationB = stationRepo.create("KbSvcStationB");
         account = accountRepo.create("kb-svc@test.com", "Kb", "SvcTester");

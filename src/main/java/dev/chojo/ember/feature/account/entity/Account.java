@@ -24,7 +24,8 @@ public record Account(
         String firstName,
         String lastName,
         boolean emailVerified,
-        InstanceUserType instanceUserType) {
+        InstanceUserType instanceUserType,
+        String fullName) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -35,15 +36,7 @@ public record Account(
                 row.getString("first_name"),
                 row.getString("last_name"),
                 row.getBoolean("email_verified"),
-                row.getEnum("instance_user_type", InstanceUserType.class));
-    }
-
-    /**
-     * Returns the full name by combining first and last name.
-     *
-     * @return the concatenated first and last name
-     */
-    public String fullName() {
-        return firstName + " " + lastName;
+                row.getEnum("instance_user_type", InstanceUserType.class),
+                row.getString("full_name"));
     }
 }
