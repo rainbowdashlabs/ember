@@ -129,7 +129,8 @@ public class RestrictionRepository {
                     .forEach(m -> memberIds.add(m.id()));
         }
         // Include managers who bypass restrictions
-        stationMemberRepository.findMembersWithPermission(stationId, type.managerPermission())
+        stationMemberRepository
+                .findMembersWithPermission(stationId, type.managerPermission())
                 .forEach(m -> memberIds.add(m.id()));
 
         return memberIds;

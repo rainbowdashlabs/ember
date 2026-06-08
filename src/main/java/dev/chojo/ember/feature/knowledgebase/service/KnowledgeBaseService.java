@@ -23,7 +23,6 @@ import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessRestriction;
 import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
-import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileVersion;
@@ -35,6 +34,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.UrlMetadata;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.restriction.Restriction;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
@@ -78,7 +78,8 @@ public class KnowledgeBaseService {
     private static final Logger log = LoggerFactory.getLogger(KnowledgeBaseService.class);
     private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[([^/]+)/([^:]+):([^\\]]+)]");
     private static final Pattern MENTION_PATTERN_LEGACY = Pattern.compile("@\\[(\\d+):([^\\]]+)]");
-    private static final Pattern BULK_MENTION_PATTERN = Pattern.compile("@\\[(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):(\\d+)]");
+    private static final Pattern BULK_MENTION_PATTERN =
+            Pattern.compile("@\\[(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):(\\d+)]");
     private static final Pattern TITLE_PATTERN =
             Pattern.compile("<title[^>]*>([^<]+)</title>", Pattern.CASE_INSENSITIVE);
     private static final Pattern META_DESC_PATTERN = Pattern.compile(
@@ -975,8 +976,8 @@ public class KnowledgeBaseService {
 
     // -- KB Comments --
 
-    public KbComment createComment(int stationId, int fileId, Integer parentId, int authorId, String authorName,
-                                    String content) {
+    public KbComment createComment(
+            int stationId, int fileId, Integer parentId, int authorId, String authorName, String content) {
         var identity = memberIdentityFactory.fromMemberId(authorId);
         var comment = kbCommentRepository.create(fileId, parentId, identity, content);
 
@@ -990,13 +991,22 @@ public class KnowledgeBaseService {
             if (parentComment != null && parentComment.author() != null) {
                 parentAuthorId = stationRepository
                         .resolveId(parentComment.author().stationUid())
-                        .flatMap(sid -> stationMemberService.resolveId(sid, parentComment.author().memberUid()))
+                        .flatMap(sid -> stationMemberService.resolveId(
+                                sid, parentComment.author().memberUid()))
                         .orElse(null);
             }
         }
         eventBus.publish(new CommentCreated(
-                stationId, CommentEntityType.KB, fileId, fileTitle, comment.id(),
-                parentId, parentAuthorId, authorId, authorName, preview));
+                stationId,
+                CommentEntityType.KB,
+                fileId,
+                fileTitle,
+                comment.id(),
+                parentId,
+                parentAuthorId,
+                authorId,
+                authorName,
+                preview));
 
         var matcher = MENTION_PATTERN.matcher(content);
         while (matcher.find()) {
@@ -1005,8 +1015,7 @@ public class KnowledgeBaseService {
                 stationMemberService.resolveId(stationId, memberUid).ifPresent(mentionedId -> {
                     if (mentionedId != authorId) {
                         eventBus.publish(new MentionedInComment(
-                                stationId, mentionedId, authorId, authorName,
-                                CommentEntityType.KB, fileId, fileTitle));
+                                stationId, mentionedId, authorId, authorName, CommentEntityType.KB, fileId, fileTitle));
                     }
                 });
             } catch (IllegalArgumentException ignored) {
@@ -1017,8 +1026,7 @@ public class KnowledgeBaseService {
             int mentionedId = Integer.parseInt(legacyMatcher.group(1));
             if (mentionedId != authorId) {
                 eventBus.publish(new MentionedInComment(
-                        stationId, mentionedId, authorId, authorName,
-                        CommentEntityType.KB, fileId, fileTitle));
+                        stationId, mentionedId, authorId, authorName, CommentEntityType.KB, fileId, fileTitle));
             }
         }
         var bulkMatcher = BULK_MENTION_PATTERN.matcher(content);
@@ -1026,8 +1034,7 @@ public class KnowledgeBaseService {
             var type = MentionType.valueOf(bulkMatcher.group(1));
             int targetId = Integer.parseInt(bulkMatcher.group(3));
             eventBus.publish(new BulkMentionedInComment(
-                    stationId, authorId, authorName,
-                    CommentEntityType.KB, fileId, fileTitle, type, targetId));
+                    stationId, authorId, authorName, CommentEntityType.KB, fileId, fileTitle, type, targetId));
         }
 
         return comment;

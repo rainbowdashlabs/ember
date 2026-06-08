@@ -19,10 +19,10 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.FormerMemberService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
-import dev.chojo.ember.feature.restriction.RestrictionRepository;
-import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.restriction.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -159,8 +159,8 @@ public class StationMemberRoutes implements Routes {
             try {
                 var rType = RestrictionType.valueOf(rtParam);
                 int entityId = Integer.parseInt(entityIdParam);
-                var allowedIds = restrictionRepository.findMembersPassingRestriction(
-                        rType, entityId, session.stationId());
+                var allowedIds =
+                        restrictionRepository.findMembersPassingRestriction(rType, entityId, session.stationId());
                 if (!allowedIds.isEmpty()) {
                     completions = completions.stream()
                             .filter(c -> allowedIds.contains(c.id()))

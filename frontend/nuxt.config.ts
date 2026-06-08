@@ -32,6 +32,9 @@ export default defineNuxtConfig({
   },
 
   vite: {
+    build: {
+      sourcemap: false,
+    },
     optimizeDeps: {
       include: ['echarts', 'vue-echarts'],
     },

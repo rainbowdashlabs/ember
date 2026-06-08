@@ -94,9 +94,7 @@ public class EventCommentRoutes implements Routes {
         }
         var author = memberIdentityFactory.local(
                 session.stationId(), session.member().id());
-        String eventName = eventService.findById(eventId)
-                .map(e -> e.name())
-                .orElse("");
+        String eventName = eventService.findById(eventId).map(e -> e.name()).orElse("");
         var comment = commentService.create(
                 session.stationId(),
                 eventId,

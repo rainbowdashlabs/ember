@@ -1,13 +1,11 @@
-FROM nixos/nix:latest AS build
+FROM node:24-alpine AS build
 
-WORKDIR /build/
-RUN nix-channel --update
-COPY shell.nix .
+WORKDIR /build
 
-COPY frontend/package*.json /build
-RUN nix-shell --run "npm ci"
+COPY frontend/package*.json ./
+RUN npm ci
 COPY frontend/ .
-RUN nix-shell --run "NODE_OPTIONS='--max-old-space-size=8192' npm run build"
+RUN NODE_OPTIONS='--max-old-space-size=8192' npm run build
 
 FROM node:22-alpine
 

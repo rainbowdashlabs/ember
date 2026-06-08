@@ -375,20 +375,23 @@ class DomainEventHandlerTest {
         var handler = new MentionedInCommentHandler(notificationService);
         assertEquals(MentionedInComment.class, handler.eventType());
 
-        handler.handle(new MentionedInComment(STATION_ID, 25, MEMBER_ID, "Author", CommentEntityType.NEWS, 5, "Test Title"));
+        handler.handle(
+                new MentionedInComment(STATION_ID, 25, MEMBER_ID, "Author", CommentEntityType.NEWS, 5, "Test Title"));
 
         verify(notificationService)
-                .notifyIfAbsent(eq(25), eq(NotificationType.NEWS_COMMENT), any(NotificationData.class));
+                .notifyIfAbsent(eq(25), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
     }
 
     @Test
     void mentionedInCommentUsesEventLinkForEventComments() {
         var handler = new MentionedInCommentHandler(notificationService);
 
-        handler.handle(new MentionedInComment(STATION_ID, 25, MEMBER_ID, "Author", CommentEntityType.EVENT, 5, "Test Title"));
+        handler.handle(
+                new MentionedInComment(STATION_ID, 25, MEMBER_ID, "Author", CommentEntityType.EVENT, 5, "Test Title"));
 
-        verify(notificationService).notifyIfAbsent(eq(25), eq(NotificationType.NEWS_COMMENT), argThat(data -> "events"
-                .equals(data.link().route())));
+        verify(notificationService)
+                .notifyIfAbsent(eq(25), eq(NotificationType.COMMENT_MENTION), argThat(data -> "event-detail"
+                        .equals(data.link().route())));
     }
 
     // -- ExchangeRequestedHandler --

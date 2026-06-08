@@ -143,7 +143,8 @@ class CommentServiceTest extends RepositoryTestBase {
     void createReplyToOwnCommentDoesNotNotify() {
         reset(eventBus);
         // Reply to own comment — should NOT publish CommentCreated
-        var selfReply = service.create(station.id(), eventId, commentId, identity1, "Alice", "Replying to myself", "Test Event");
+        var selfReply = service.create(
+                station.id(), eventId, commentId, identity1, "Alice", "Replying to myself", "Test Event");
         assertNotNull(selfReply);
         verify(eventBus, never()).publish(argThat(event -> event instanceof CommentCreated));
         service.delete(selfReply.id());
