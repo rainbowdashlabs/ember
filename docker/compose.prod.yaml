@@ -15,7 +15,7 @@ services:
 
   ember:
     container_name: ember
-    image: ghcr.io/rainbowdashlabs/ember-backend:latest
+    image: ghcr.io/rainbowdashlabs/ember-backend:${EMBER_TAG:-latest}
     environment:
       DB_HOST: postgres
       DB_PORT: "5432"
@@ -38,7 +38,7 @@ services:
 
   frontend:
     container_name: ember-frontend
-    image: ghcr.io/rainbowdashlabs/ember-frontend:latest
+    image: ghcr.io/rainbowdashlabs/ember-frontend:${EMBER_TAG:-latest}
     depends_on:
       - ember
     labels:

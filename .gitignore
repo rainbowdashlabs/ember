@@ -229,3 +229,4 @@ pyrightconfig.json
 .output
 frontend/.nuxt
 dev-errors
+.concept
