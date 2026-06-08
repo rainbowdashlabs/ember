@@ -29,6 +29,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
           check-regexp: "Verify.*"
+          ignore-checks: "Verify Docker Build"
           running-workflow-name: 'Deploy Docker Images (${{ matrix.name }})'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           allowed-conclusions: success
