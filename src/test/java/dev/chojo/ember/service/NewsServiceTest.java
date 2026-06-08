@@ -188,6 +188,53 @@ class NewsServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(27)
+    void createCommentWithMention() {
+        var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
+        var mentionContent = "Hello @[member/" + member.uid() + ":News Author]!";
+        var comment = service.createComment(station.id(), newsId, null, authorIdentity, "News Author", mentionContent);
+        assertNotNull(comment);
+        assertEquals(mentionContent, comment.content());
+    }
+
+    @Test
+    @Order(27)
+    void createCommentWithLegacyMention() {
+        var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
+        var mentionContent = "Hello @[999:Other Member]!";
+        var comment =
+                service.createComment(station.id(), newsId, null, authorIdentity, "News Author", mentionContent);
+        assertNotNull(comment);
+    }
+
+    @Test
+    @Order(27)
+    void createCommentWithBulkMention() {
+        var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
+        var mentionContent = "Attention @[GROUP:TestGroup:1]!";
+        var comment =
+                service.createComment(station.id(), newsId, null, authorIdentity, "News Author", mentionContent);
+        assertNotNull(comment);
+    }
+
+    @Test
+    @Order(27)
+    void createCommentWithLongContent() {
+        var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
+        var longContent = "A".repeat(150);
+        var comment =
+                service.createComment(station.id(), newsId, null, authorIdentity, "News Author", longContent);
+        assertNotNull(comment);
+    }
+
+    @Test
+    @Order(27)
+    void createCommentWithNullAuthor() {
+        var comment = service.createComment(station.id(), newsId, null, null, "System", "System message");
+        assertNotNull(comment);
+    }
+
+    @Test
     @Order(29)
     void deleteNonExistentNews() {
         assertFalse(service.delete(-999));

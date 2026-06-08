@@ -8,6 +8,7 @@ package dev.chojo.ember.handler;
 import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.event.events.BoardTicketChanged;
+import dev.chojo.ember.event.events.BulkMentionedInComment;
 import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.EventCreated;
@@ -28,6 +29,7 @@ import dev.chojo.ember.event.events.ProcurementCreated;
 import dev.chojo.ember.event.events.ProcurementFulfilled;
 import dev.chojo.ember.event.events.RegistrationDeadlineExpired;
 import dev.chojo.ember.event.handlers.BoardTicketChangedHandler;
+import dev.chojo.ember.event.handlers.BulkMentionedInCommentHandler;
 import dev.chojo.ember.event.handlers.CommentCreatedHandler;
 import dev.chojo.ember.event.handlers.CommentDeletedHandler;
 import dev.chojo.ember.event.handlers.EventCreatedHandler;
@@ -48,8 +50,14 @@ import dev.chojo.ember.event.handlers.ProcurementCreatedHandler;
 import dev.chojo.ember.event.handlers.ProcurementFulfilledHandler;
 import dev.chojo.ember.event.handlers.RegistrationDeadlineExpiredHandler;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.entity.MentionType;
+import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
+import dev.chojo.ember.feature.restriction.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -62,7 +70,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -71,6 +82,9 @@ import static org.mockito.Mockito.*;
 class DomainEventHandlerTest {
     private NotificationService notificationService;
     private StationMemberRepository memberRepository;
+    private MemberGroupRepository memberGroupRepository;
+    private EventRepository eventRepository;
+    private RestrictionRepository restrictionRepository;
 
     private static final int STATION_ID = 1;
     private static final int MEMBER_ID = 10;
@@ -79,6 +93,9 @@ class DomainEventHandlerTest {
     void setUp() {
         notificationService = mock(NotificationService.class);
         memberRepository = mock(StationMemberRepository.class);
+        memberGroupRepository = mock(MemberGroupRepository.class);
+        eventRepository = mock(EventRepository.class);
+        restrictionRepository = mock(RestrictionRepository.class);
     }
 
     private StationMember member(int id) {
@@ -391,6 +408,171 @@ class DomainEventHandlerTest {
 
         verify(notificationService)
                 .notifyIfAbsent(eq(25), eq(NotificationType.COMMENT_MENTION), argThat(data -> "event-detail"
+                        .equals(data.link().route())));
+    }
+
+    // -- BulkMentionedInCommentHandler --
+
+    private BulkMentionedInCommentHandler bulkHandler() {
+        return new BulkMentionedInCommentHandler(
+                notificationService, memberGroupRepository, eventRepository, memberRepository, restrictionRepository);
+    }
+
+    @Test
+    void bulkMentionedEventType() {
+        assertEquals(BulkMentionedInComment.class, bulkHandler().eventType());
+    }
+
+    @Test
+    void bulkMentionGroupNotifiesGroupMembers() {
+        when(memberGroupRepository.findMembers(5)).thenReturn(List.of(member(20), member(21)));
+        when(memberRepository.findManagers(20)).thenReturn(List.of());
+        when(memberRepository.findManagers(21)).thenReturn(List.of());
+
+        bulkHandler()
+                .handle(new BulkMentionedInComment(
+                        STATION_ID, MEMBER_ID, "Author", CommentEntityType.NEWS, 1, "Title", MentionType.GROUP, 5));
+
+        verify(notificationService).notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verify(notificationService).notifyIfAbsent(eq(21), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+    }
+
+    @Test
+    void bulkMentionGroupSkipsAuthor() {
+        when(memberGroupRepository.findMembers(5)).thenReturn(List.of(member(MEMBER_ID), member(21)));
+
+        bulkHandler()
+                .handle(new BulkMentionedInComment(
+                        STATION_ID, MEMBER_ID, "Author", CommentEntityType.NEWS, 1, "Title", MentionType.GROUP, 5));
+
+        verify(notificationService, never())
+                .notifyIfAbsent(eq(MEMBER_ID), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verify(notificationService).notifyIfAbsent(eq(21), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+    }
+
+    @Test
+    void bulkMentionEventWithRegistrationRequired() {
+        var stationEvent = mock(StationEvent.class);
+        when(stationEvent.requiresRegistration()).thenReturn(true);
+        when(stationEvent.id()).thenReturn(42);
+        when(stationEvent.stationId()).thenReturn(STATION_ID);
+        when(eventRepository.findById(42)).thenReturn(Optional.of(stationEvent));
+        when(eventRepository.findAllRegistrations(42))
+                .thenReturn(List.of(
+                        new EventRegistration(1, 42, 20, LocalDate.now(), RegistrationStatus.ACCEPTED, Instant.now(), null),
+                        new EventRegistration(2, 42, 21, LocalDate.now(), RegistrationStatus.DECLINED, Instant.now(), null)));
+        when(memberRepository.findManagers(20)).thenReturn(List.of());
+
+        bulkHandler()
+                .handle(new BulkMentionedInComment(
+                        STATION_ID, null, "Author", CommentEntityType.NEWS, 1, "Title", MentionType.EVENT, 42));
+
+        verify(notificationService).notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verify(notificationService, never())
+                .notifyIfAbsent(eq(21), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+    }
+
+    @Test
+    void bulkMentionEventWithoutRegistrationAndNoRestrictions() {
+        var stationEvent = mock(StationEvent.class);
+        when(stationEvent.requiresRegistration()).thenReturn(false);
+        when(stationEvent.id()).thenReturn(42);
+        when(stationEvent.stationId()).thenReturn(STATION_ID);
+        when(eventRepository.findById(42)).thenReturn(Optional.of(stationEvent));
+        when(eventRepository.findAllRegistrations(42)).thenReturn(List.of());
+        when(restrictionRepository.findMembersPassingRestriction(RestrictionType.EVENT, 42, STATION_ID))
+                .thenReturn(Set.of());
+        when(memberRepository.findByStation(STATION_ID, false)).thenReturn(List.of(member(30), member(31)));
+        when(memberRepository.findManagers(30)).thenReturn(List.of());
+        when(memberRepository.findManagers(31)).thenReturn(List.of());
+
+        bulkHandler()
+                .handle(new BulkMentionedInComment(
+                        STATION_ID, null, "Author", CommentEntityType.NEWS, 1, "Title", MentionType.EVENT, 42));
+
+        verify(notificationService).notifyIfAbsent(eq(30), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verify(notificationService).notifyIfAbsent(eq(31), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+    }
+
+    @Test
+    void bulkMentionEventWithRestrictions() {
+        var stationEvent = mock(StationEvent.class);
+        when(stationEvent.requiresRegistration()).thenReturn(false);
+        when(stationEvent.id()).thenReturn(42);
+        when(stationEvent.stationId()).thenReturn(STATION_ID);
+        when(eventRepository.findById(42)).thenReturn(Optional.of(stationEvent));
+        when(eventRepository.findAllRegistrations(42)).thenReturn(List.of());
+        when(restrictionRepository.findMembersPassingRestriction(RestrictionType.EVENT, 42, STATION_ID))
+                .thenReturn(Set.of(30));
+        when(memberRepository.findManagers(30)).thenReturn(List.of());
+
+        bulkHandler()
+                .handle(new BulkMentionedInComment(
+                        STATION_ID, null, "Author", CommentEntityType.NEWS, 1, "Title", MentionType.EVENT, 42));
+
+        verify(notificationService).notifyIfAbsent(eq(30), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+    }
+
+    @Test
+    void bulkMentionRegisteredNotifiesAcceptedMembers() {
+        when(eventRepository.findAllRegistrations(42))
+                .thenReturn(List.of(
+                        new EventRegistration(1, 42, 20, LocalDate.now(), RegistrationStatus.ACCEPTED, Instant.now(), null),
+                        new EventRegistration(2, 42, 21, LocalDate.now(), RegistrationStatus.DECLINED, Instant.now(), null)));
+        when(memberRepository.findManagers(20)).thenReturn(List.of());
+
+        bulkHandler()
+                .handle(new BulkMentionedInComment(
+                        STATION_ID, null, "Author", CommentEntityType.NEWS, 1, "Title", MentionType.REGISTERED, 42));
+
+        verify(notificationService).notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verify(notificationService, never())
+                .notifyIfAbsent(eq(21), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+    }
+
+    @Test
+    void bulkMentionDeclinedNotifiesDeclinedMembers() {
+        when(eventRepository.findAllRegistrations(42))
+                .thenReturn(List.of(
+                        new EventRegistration(1, 42, 20, LocalDate.now(), RegistrationStatus.ACCEPTED, Instant.now(), null),
+                        new EventRegistration(2, 42, 21, LocalDate.now(), RegistrationStatus.DECLINED, Instant.now(), null)));
+        when(memberRepository.findManagers(21)).thenReturn(List.of());
+
+        bulkHandler()
+                .handle(new BulkMentionedInComment(
+                        STATION_ID, null, "Author", CommentEntityType.NEWS, 1, "Title", MentionType.DECLINED, 42));
+
+        verify(notificationService, never())
+                .notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verify(notificationService).notifyIfAbsent(eq(21), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+    }
+
+    @Test
+    void bulkMentionAddsGuardiansForNonGroupMentions() {
+        when(eventRepository.findAllRegistrations(42))
+                .thenReturn(List.of(
+                        new EventRegistration(1, 42, 20, LocalDate.now(), RegistrationStatus.ACCEPTED, Instant.now(), null)));
+        when(memberRepository.findManagers(20)).thenReturn(List.of(member(50)));
+        when(memberRepository.findManagers(50)).thenReturn(List.of());
+
+        bulkHandler()
+                .handle(new BulkMentionedInComment(
+                        STATION_ID, null, "Author", CommentEntityType.NEWS, 1, "Title", MentionType.REGISTERED, 42));
+
+        verify(notificationService).notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verify(notificationService).notifyIfAbsent(eq(50), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+    }
+
+    @Test
+    void bulkMentionUsesCorrectLinkForEntityType() {
+        when(memberGroupRepository.findMembers(5)).thenReturn(List.of(member(20)));
+
+        bulkHandler()
+                .handle(new BulkMentionedInComment(
+                        STATION_ID, null, "Author", CommentEntityType.EVENT, 1, "Title", MentionType.GROUP, 5));
+
+        verify(notificationService)
+                .notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), argThat(data -> "event-detail"
                         .equals(data.link().route())));
     }
 
