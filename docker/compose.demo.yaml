@@ -18,9 +18,7 @@ services:
     container_name: ember_demo
     build:
       context: ..
-      dockerfile: docker/Dockerfile
-    ports:
-      - "8888:8080"
+      dockerfile: docker/backend.Dockerfile
     environment:
       DB_HOST: ember_demo_db
       DB_PORT: "5432"
@@ -36,6 +34,16 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  frontend:
+    container_name: ember_demo_frontend
+    build:
+      context: ..
+      dockerfile: docker/frontend.Dockerfile
+    ports:
+      - "8888:3000"
+    depends_on:
+      - ember
 
 volumes:
   demo-data:

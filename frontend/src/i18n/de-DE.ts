@@ -907,30 +907,61 @@ export default {
                     },
                 },
                 docker: 'Installation mit Docker',
-                dockerText: 'Der einfachste Weg ist Docker Compose. Erstelle eine docker-compose.yml:',
+                dockerText: 'Ember besteht aus zwei Containern: dem Backend (Java API) und dem Frontend (Nuxt SSR). Der einfachste Weg ist Docker Compose. Das folgende Beispiel enthält Traefik-Labels für automatisches HTTPS:',
                 dockerCompose: `services:
-  ember:
-    image: ghcr.io/rainbowdashlabs/ember:latest
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./config:/app/config
-      - ./data:/app/data
-    depends_on:
-      - postgres
-
   postgres:
-    image: postgres:17
+    image: postgres:17-alpine
     environment:
       POSTGRES_DB: ember
       POSTGRES_USER: ember
       POSTGRES_PASSWORD: sicher-aendern
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ember"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  ember:
+    image: ghcr.io/rainbowdashlabs/ember-backend:latest
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: ember
+      DB_PASSWORD: sicher-aendern
+      DB_DATABASE: ember
+      DB_SCHEMA: ember_schema
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.ember-api.rule: >
+        Host(\`\${EMBER_HOST}\`) && PathPrefix(\`/api\`)
+      traefik.http.routers.ember-api.entrypoints: websecure
+      traefik.http.routers.ember-api.tls.certresolver: letsencrypt
+      traefik.http.services.ember-api.loadbalancer.server.port: "8080"
+
+  frontend:
+    image: ghcr.io/rainbowdashlabs/ember-frontend:latest
+    depends_on:
+      - ember
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.ember-web.rule: >
+        Host(\`\${EMBER_HOST}\`)
+      traefik.http.routers.ember-web.entrypoints: websecure
+      traefik.http.routers.ember-web.tls.certresolver: letsencrypt
+      traefik.http.routers.ember-web.priority: "1"
+      traefik.http.services.ember-web.loadbalancer.server.port: "3000"
 
 volumes:
   pgdata:`,
-                dockerText2: 'Starte alles mit docker compose up -d. Beim ersten Start wird automatisch eine Konfigurationsdatei unter config/ erstellt und ein Admin-Konto mit zufälligem Passwort generiert (in der Konsole sichtbar).',
+                dockerText2: 'Setze die Umgebungsvariable EMBER_HOST auf deine Domain (z.B. EMBER_HOST=ember.deine-feuerwehr.de). Der API-Router hat eine höhere Priorität, sodass /api-Anfragen ans Backend gehen und alles andere ans Frontend. Starte alles mit docker compose up -d. Beim ersten Start wird automatisch eine Konfigurationsdatei unter config/ erstellt und ein Admin-Konto mit zufälligem Passwort generiert (in der Konsole sichtbar).',
                 config: 'Konfiguration',
                 configText: 'Die Konfiguration liegt in config/config.yml. Die wichtigsten Einstellungen:',
                 configDb: 'Datenbank',
