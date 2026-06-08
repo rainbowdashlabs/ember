@@ -5,6 +5,9 @@
  */
 <script setup lang="ts">
 import HomeView from '~/views/HomeView.vue'
+import {useCanonical} from '~/composables/useCanonical'
+
+useCanonical('/')
 
 useHead({
   title: 'Digitale Verwaltung für Jugendfeuerwehren',
@@ -13,6 +16,9 @@ useHead({
     {property: 'og:title', content: 'Ember — Digitale Verwaltung für Jugendfeuerwehren'},
     {property: 'og:description', content: 'Kostenlose Open-Source-Verwaltungsplattform für Jugendfeuerwehren.'},
     {property: 'og:type', content: 'website'},
+    {name: 'twitter:card', content: 'summary'},
+    {name: 'twitter:title', content: 'Ember — Digitale Verwaltung für Jugendfeuerwehren'},
+    {name: 'twitter:description', content: 'Kostenlose Open-Source-Verwaltungsplattform für Jugendfeuerwehren.'},
   ],
   script: [
     {

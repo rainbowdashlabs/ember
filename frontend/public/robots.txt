@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Allow: /discovery
+Allow: /public/
+Allow: /helpcenter/
+Disallow: /station/
+Disallow: /admin/
+Disallow: /api/
+
+Sitemap: /sitemap.xml

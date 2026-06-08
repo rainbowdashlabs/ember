@@ -3,7 +3,25 @@ export default defineNuxtConfig({
 
   srcDir: 'src/',
 
-  modules: [],
+  modules: ['@nuxtjs/sitemap'],
+
+  site: {
+    url: process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+  },
+
+  runtimeConfig: {
+    public: {
+      googleSiteVerification: process.env.NUXT_PUBLIC_GOOGLE_SITE_VERIFICATION || '',
+    },
+  },
+
+  sitemap: {
+    sources: ['/api/__sitemap'],
+    defaults: {
+      changefreq: 'weekly',
+      priority: 0.5,
+    },
+  },
 
   css: ['~/style.css'],
 

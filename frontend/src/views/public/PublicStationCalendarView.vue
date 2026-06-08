@@ -31,6 +31,27 @@ const events = computed(() => {
   })
 })
 
+useHead(computed(() => {
+  const oneTimeEvents = events.value.filter(e => e.startTime && (!e.eventType || e.eventType === 'ONE_TIME'))
+  if (oneTimeEvents.length === 0) return {}
+  return {
+    script: [
+      {
+        type: 'application/ld+json',
+        children: JSON.stringify(oneTimeEvents.slice(0, 20).map(e => ({
+          '@context': 'https://schema.org',
+          '@type': 'Event',
+          name: e.name,
+          ...(e.startTime ? {startDate: e.startTime} : {}),
+          ...(e.endTime ? {endDate: e.endTime} : {}),
+          ...(e.description ? {description: e.description} : {}),
+          eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+        }))),
+      },
+    ],
+  }
+}))
+
 onMounted(async () => {
   try {
     allEvents.value = await listPublicEvents(stationUid.value)
