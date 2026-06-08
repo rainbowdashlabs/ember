@@ -122,6 +122,6 @@ async function handleLogout() {
       />
     </template>
 
-    <RouterView/>
+    <slot><RouterView/></slot>
   </SidebarLayout>
 </template>

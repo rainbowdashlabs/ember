@@ -1,0 +1,17 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+<script setup lang="ts">
+import ThemingHelp from '~/views/helpcenter/stationview/profile/ThemingHelp'
+
+definePageMeta({
+  layout: 'helpcenter',
+  name: 'help-profile-theming',
+})
+</script>
+
+<template>
+  <ThemingHelp />
+</template>

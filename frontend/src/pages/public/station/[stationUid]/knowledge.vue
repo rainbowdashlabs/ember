@@ -1,0 +1,17 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+<script setup lang="ts">
+import PublicKnowledgeBaseView from '~/views/public/PublicKnowledgeBaseView'
+
+definePageMeta({
+  layout: 'default',
+  name: 'public-kb',
+})
+</script>
+
+<template>
+  <PublicKnowledgeBaseView />
+</template>

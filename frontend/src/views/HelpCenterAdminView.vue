@@ -70,6 +70,6 @@ const pageTitle = computed(() => {
       </router-link>
     </template>
 
-    <RouterView/>
+    <slot><RouterView/></slot>
   </SidebarLayout>
 </template>

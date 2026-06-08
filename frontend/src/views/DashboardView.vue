@@ -391,7 +391,7 @@ async function handleLogout() {
     <Alert v-if="isDemo" class="mb-4" variant="info">
       {{ t('demo.banner') }}
     </Alert>
-    <RouterView/>
+    <slot><RouterView/></slot>
     <OnboardingTour/>
     <ReportProblemButton/>
     <DevToolsButton/>
