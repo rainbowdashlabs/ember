@@ -36,11 +36,15 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Map;
 
 @Singleton
@@ -82,7 +86,20 @@ public class AdminSettingsRoutes implements Routes {
         routes.get(prefix + "/admin/config/mailing", this::getMailingConfig, InstancePermission.ADMINISTRATOR);
         routes.put(prefix + "/admin/config/mailing", this::updateMailingConfig, InstancePermission.ADMINISTRATOR);
         routes.get(prefix + "/admin/legal/{type}", this::getLegalDocument, InstancePermission.ADMINISTRATOR);
+        routes.get(prefix + "/admin/legal/{type}/locales", this::getLegalLocales, InstancePermission.ADMINISTRATOR);
+        routes.get(
+                prefix + "/admin/legal/{type}/{locale}",
+                this::getLegalDocumentLocale,
+                InstancePermission.ADMINISTRATOR);
+        routes.get(
+                prefix + "/admin/legal/{type}/{locale}/files", this::getLegalFiles, InstancePermission.ADMINISTRATOR);
+        routes.put(
+                prefix + "/admin/legal/{type}/{locale}/files", this::saveLegalFiles, InstancePermission.ADMINISTRATOR);
         routes.put(prefix + "/admin/legal/{type}", this::updateLegalDocument, InstancePermission.ADMINISTRATOR);
+        routes.put(
+                prefix + "/admin/legal/{type}/{locale}",
+                this::updateLegalDocumentLocale,
+                InstancePermission.ADMINISTRATOR);
     }
 
     private void initializeAppLogos() {
@@ -356,7 +373,48 @@ public class AdminSettingsRoutes implements Routes {
         ctx.json(new LegalDocumentResponse(type, doc.markdown(), doc.version()));
     }
 
+    private void getLegalDocumentLocale(Context ctx) {
+        String type = ctx.pathParam("type");
+        String locale = ctx.pathParam("locale");
+        Path dir = legalDir(type);
+        if (dir == null) {
+            ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("error", "Invalid legal document type: " + type));
+            return;
+        }
+        var doc = documentService.getDocument(dir, locale);
+        ctx.json(new LegalDocumentResponse(type, doc.markdown(), doc.version()));
+    }
+
+    private void getLegalLocales(Context ctx) {
+        String type = ctx.pathParam("type");
+        Path dir = legalDir(type);
+        if (dir == null) {
+            ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("error", "Invalid legal document type: " + type));
+            return;
+        }
+        List<String> locales = new ArrayList<>();
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
+            for (Path entry : stream) {
+                if (Files.isDirectory(entry) && !entry.getFileName().toString().equals("history")) {
+                    locales.add(entry.getFileName().toString());
+                }
+            }
+        } catch (IOException e) {
+            log.error("Failed to list locales for {}", type, e);
+        }
+        Collections.sort(locales);
+        ctx.json(locales);
+    }
+
     private void updateLegalDocument(Context ctx) {
+        updateLegalDocumentForLocale(ctx, "de");
+    }
+
+    private void updateLegalDocumentLocale(Context ctx) {
+        updateLegalDocumentForLocale(ctx, ctx.pathParam("locale"));
+    }
+
+    private void updateLegalDocumentForLocale(Context ctx, String locale) {
         String type = ctx.pathParam("type");
         Path dir = legalDir(type);
         if (dir == null) {
@@ -364,18 +422,85 @@ public class AdminSettingsRoutes implements Routes {
             return;
         }
         var request = ctx.bodyAsClass(LegalDocumentRequest.class);
-        Path localeDir = dir.resolve("de");
+        Path localeDir = dir.resolve(locale);
         try {
             Files.createDirectories(localeDir);
-            // Write content as a single markdown file
             Path file = localeDir.resolve("01-content.md");
             Files.writeString(file, request.content(), StandardCharsets.UTF_8);
-            // Re-initialize to archive old version and generate diff
             documentService.initialize(dir);
-            var doc = documentService.getDocument(dir, "de");
+            var doc = documentService.getDocument(dir, locale);
             ctx.json(new LegalDocumentResponse(type, doc.markdown(), doc.version()));
         } catch (IOException e) {
-            log.error("Failed to write legal document: {}", type, e);
+            log.error("Failed to write legal document: {}/{}", type, locale, e);
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private void getLegalFiles(Context ctx) {
+        String type = ctx.pathParam("type");
+        String locale = ctx.pathParam("locale");
+        Path dir = legalDir(type);
+        if (dir == null) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            return;
+        }
+        ctx.json(readLegalFiles(dir.resolve(locale)));
+    }
+
+    private List<LegalFileEntry> readLegalFiles(Path localeDir) {
+        List<LegalFileEntry> files = new ArrayList<>();
+        if (!Files.isDirectory(localeDir)) return files;
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(localeDir, "*.md")) {
+            List<Path> sorted = new ArrayList<>();
+            stream.forEach(sorted::add);
+            Collections.sort(sorted);
+            for (Path file : sorted) {
+                String rawName = file.getFileName().toString();
+                boolean enabled = !rawName.startsWith("_");
+                String content = Files.readString(file, StandardCharsets.UTF_8);
+                // Strip the leading _ and numeric prefix for display: _01-name.md or 01-name.md -> name
+                String displayName = rawName.replaceFirst("^_?\\d+-", "").replaceFirst("\\.md$", "");
+                files.add(new LegalFileEntry(rawName, displayName, content, enabled));
+            }
+        } catch (IOException e) {
+            log.error("Failed to list legal files in {}", localeDir, e);
+        }
+        return files;
+    }
+
+    private void saveLegalFiles(Context ctx) {
+        String type = ctx.pathParam("type");
+        String locale = ctx.pathParam("locale");
+        Path dir = legalDir(type);
+        if (dir == null) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            return;
+        }
+        Path localeDir = dir.resolve(locale);
+        var request = ctx.bodyAsClass(LegalFileEntry[].class);
+        try {
+            Files.createDirectories(localeDir);
+            // Delete all existing .md files
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(localeDir, "*.md")) {
+                for (Path old : stream) {
+                    Files.delete(old);
+                }
+            }
+            // Write files in order with numeric prefix
+            List<LegalFileEntry> result = new ArrayList<>();
+            for (int i = 0; i < request.length; i++) {
+                var entry = request[i];
+                String prefix = String.format("%02d", i + 1);
+                String safeName = entry.displayName().replaceAll("[^a-zA-Z0-9_-]", "-");
+                String filename = (entry.enabled() ? "" : "_") + prefix + "-" + safeName + ".md";
+                Path file = localeDir.resolve(filename);
+                Files.writeString(file, entry.content(), StandardCharsets.UTF_8);
+                result.add(new LegalFileEntry(filename, entry.displayName(), entry.content(), entry.enabled()));
+            }
+            documentService.initialize(dir);
+            ctx.json(result);
+        } catch (IOException e) {
+            log.error("Failed to save legal files for {}/{}", type, locale, e);
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -441,6 +566,8 @@ public class AdminSettingsRoutes implements Routes {
     public record LegalDocumentResponse(String type, String content, String version) {}
 
     public record LegalDocumentRequest(String content) {}
+
+    public record LegalFileEntry(String filename, String displayName, String content, boolean enabled) {}
 
     public record PublicThemeResponse(
             String defaultTheme, String defaultFeel, boolean lockFeel, boolean forcePrideFlag) {}

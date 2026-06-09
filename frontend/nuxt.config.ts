@@ -56,7 +56,18 @@ export default defineNuxtConfig({
       sourcemap: false,
     },
     optimizeDeps: {
-      include: ['echarts', 'vue-echarts'],
+      include: [
+        '@fortawesome/fontawesome-svg-core',
+        '@fortawesome/free-brands-svg-icons',
+        '@fortawesome/free-solid-svg-icons',
+        '@fortawesome/vue-fontawesome',
+        '@vue/devtools-core',
+        '@vue/devtools-kit',
+        'axios',
+        'echarts',
+        'vue-echarts',
+        'vue-i18n',
+      ],
     },
     server: {
       proxy: {

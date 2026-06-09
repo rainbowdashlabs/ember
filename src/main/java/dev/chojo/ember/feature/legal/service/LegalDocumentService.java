@@ -272,6 +272,8 @@ public class LegalDocumentService {
         List<Path> files = new ArrayList<>();
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, "*.md")) {
             for (Path entry : stream) {
+                // Skip disabled files (prefixed with _)
+                if (entry.getFileName().toString().startsWith("_")) continue;
                 files.add(entry);
             }
         } catch (IOException e) {

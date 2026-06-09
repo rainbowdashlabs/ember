@@ -91,12 +91,36 @@ export async function updateMailingConfig(data: MailingConfig): Promise<MailingC
     return res.data
 }
 
-export async function getLegalDocument(type: string): Promise<LegalDocument> {
-    const res = await client.get<LegalDocument>(`/admin/legal/${type}`)
+export async function getLegalDocument(type: string, locale?: string): Promise<LegalDocument> {
+    const path = locale ? `/admin/legal/${type}/${locale}` : `/admin/legal/${type}`
+    const res = await client.get<LegalDocument>(path)
     return res.data
 }
 
-export async function updateLegalDocument(type: string, content: string): Promise<LegalDocument> {
-    const res = await client.put<LegalDocument>(`/admin/legal/${type}`, { content })
+export async function getLegalLocales(type: string): Promise<string[]> {
+    const res = await client.get<string[]>(`/admin/legal/${type}/locales`)
+    return res.data
+}
+
+export async function updateLegalDocument(type: string, content: string, locale?: string): Promise<LegalDocument> {
+    const path = locale ? `/admin/legal/${type}/${locale}` : `/admin/legal/${type}`
+    const res = await client.put<LegalDocument>(path, { content })
+    return res.data
+}
+
+export interface LegalFile {
+    filename: string
+    displayName: string
+    content: string
+    enabled: boolean
+}
+
+export async function getLegalFiles(type: string, locale: string): Promise<LegalFile[]> {
+    const res = await client.get<LegalFile[]>(`/admin/legal/${type}/${locale}/files`)
+    return res.data
+}
+
+export async function saveLegalFiles(type: string, locale: string, files: LegalFile[]): Promise<LegalFile[]> {
+    const res = await client.put<LegalFile[]>(`/admin/legal/${type}/${locale}/files`, files)
     return res.data
 }
