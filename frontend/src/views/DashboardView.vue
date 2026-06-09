@@ -214,7 +214,7 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.INVENTORY)" :badge="counts.pendingExchanges" :icon="['fas', 'boxes-stacked']" :label="t('sidebar.inventory')" prefix="/station/inventory">
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.INVENTORY)" :badge="counts.pendingExchanges + counts.lendingRequests" :icon="['fas', 'boxes-stacked']" :label="t('sidebar.inventory')" prefix="/station/inventory">
         <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_READ)" :icon="['fas', 'house']" name="inventory-overview" to="/station/inventory/overview"
                      @navigate="close">
           {{ t('sidebar.overview') }}
@@ -223,7 +223,7 @@ async function handleLogout() {
                      @navigate="close">
           {{ t('sidebar.myInventory') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'rotate']" name="inventory-exchanges" to="/station/inventory/exchanges"
+        <SidebarLink :badge="counts.pendingExchanges" :icon="['fas', 'rotate']" name="inventory-exchanges" to="/station/inventory/exchanges"
                      @navigate="close">
           {{ t('sidebar.inventoryExchanges') }}
         </SidebarLink>
@@ -332,6 +332,12 @@ async function handleLogout() {
         </SidebarLink>
         <SidebarLink v-if="hasPermission(StationPermission.BOARD_EDIT)" :icon="['fas', 'gears']" name="board-manage" to="/station/boards/manage" @navigate="close">
           {{ t('sidebar.boardManage') }}
+        </SidebarLink>
+      </SidebarGroup>
+
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="hasPermission(StationPermission.PROCEDURE_READ) || counts.procedureCount > 0" :badge="counts.procedureCount" :icon="['fas', 'list-check']" :label="t('sidebar.procedures')" prefix="/station/procedures" to="/station/procedures" name="procedure-list" @navigate="close">
+        <SidebarLink v-if="hasPermission(StationPermission.PROCEDURE_MANAGER)" :icon="['fas', 'clipboard-list']" name="procedure-template-list" to="/station/procedures/templates" @navigate="close">
+          {{ t('sidebar.procedureTemplates') }}
         </SidebarLink>
       </SidebarGroup>
 

@@ -328,6 +328,21 @@ public enum StationPermission implements RouteRole {
     BOARD_MANAGER(BOARD_FEDERATE),
 
     /**
+     * Allows reading procedures assigned to the member.
+     */
+    PROCEDURE_READ,
+
+    /**
+     * Allows creating, assigning, and progressing procedures.
+     */
+    PROCEDURE_EDIT(PROCEDURE_READ),
+
+    /**
+     * Allows creating and managing procedure templates.
+     */
+    PROCEDURE_MANAGER(PROCEDURE_EDIT),
+
+    /**
      * Knowledgebase management
      */
     KNOWLEDGE_EDIT,
@@ -402,6 +417,7 @@ public enum StationPermission implements RouteRole {
             MEMBER_MANAGER,
             NEWS_MANAGER,
             POLL_MANAGER,
+            PROCEDURE_MANAGER,
             PROTOCOL_MANAGER,
             STATION_MANAGER,
             TEST_MANAGER,

@@ -44,6 +44,10 @@ import dev.chojo.ember.event.handlers.MembersAddedToGroupHandler;
 import dev.chojo.ember.event.handlers.MentionedInCommentHandler;
 import dev.chojo.ember.event.handlers.NewsCreatedHandler;
 import dev.chojo.ember.event.handlers.NewsDeletedHandler;
+import dev.chojo.ember.event.handlers.ProcedureAssignedHandler;
+import dev.chojo.ember.event.handlers.ProcedureItemCheckedHandler;
+import dev.chojo.ember.event.handlers.ProcedureReopenedHandler;
+import dev.chojo.ember.event.handlers.ProcedureResolvedHandler;
 import dev.chojo.ember.event.handlers.ProcurementCreatedHandler;
 import dev.chojo.ember.event.handlers.ProcurementFulfilledHandler;
 import dev.chojo.ember.event.handlers.RegistrationDeadlineExpiredHandler;
@@ -87,6 +91,7 @@ import dev.chojo.ember.feature.members.route.UserSettingsRoutes;
 import dev.chojo.ember.feature.members.route.UserTagRoutes;
 import dev.chojo.ember.feature.news.route.NewsRoutes;
 import dev.chojo.ember.feature.notifications.route.NotificationRoutes;
+import dev.chojo.ember.feature.procedure.route.ProcedureRoutes;
 import dev.chojo.ember.feature.protocol.route.TestProtocolRoutes;
 import dev.chojo.ember.feature.quiz.route.AiRoutes;
 import dev.chojo.ember.feature.quiz.route.QuizRoutes;
@@ -191,6 +196,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(RequirementsRoutes.class);
         routesBinder.addBinding().to(SidebarCountRoutes.class);
         routesBinder.addBinding().to(DataRoutes.class);
+        routesBinder.addBinding().to(ProcedureRoutes.class);
 
         // Domain event handlers
         Multibinder<DomainEventHandler<?>> eventBinder = Multibinder.newSetBinder(binder(), new TypeLiteral<>() {});
@@ -216,6 +222,10 @@ public class EmberModule extends AbstractModule {
         eventBinder.addBinding().to(BulkMentionedInCommentHandler.class);
         eventBinder.addBinding().to(BoardTicketChangedHandler.class);
         eventBinder.addBinding().to(EventCancelledHandler.class);
+        eventBinder.addBinding().to(ProcedureAssignedHandler.class);
+        eventBinder.addBinding().to(ProcedureResolvedHandler.class);
+        eventBinder.addBinding().to(ProcedureReopenedHandler.class);
+        eventBinder.addBinding().to(ProcedureItemCheckedHandler.class);
 
         // Eager singletons — started on boot
         bind(EventThresholdChecker.class).asEagerSingleton();

@@ -19,6 +19,7 @@ const counts = ref<SidebarCounts>({
     lostAndFoundPending: 0,
     myInventoryCount: 0,
     pendingExchanges: 0,
+    procedureCount: 0,
 })
 
 export function useSidebarCounts() {

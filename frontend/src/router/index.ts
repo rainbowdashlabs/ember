@@ -727,6 +727,37 @@ const router = createRouter({
                     name: 'board-settings',
                     component: () => import('@/views/stationview/boards/BoardSettingsView.vue'),
                 },
+                // -- Procedures --
+                {
+                    path: 'procedures',
+                    name: 'procedure-list',
+                    component: () => import('@/views/stationview/procedure/ProcedureListView.vue'),
+                },
+                {
+                    path: 'procedures/create',
+                    name: 'procedure-create',
+                    component: () => import('@/views/stationview/procedure/ProcedureCreateView.vue'),
+                },
+                {
+                    path: 'procedures/templates',
+                    name: 'procedure-template-list',
+                    component: () => import('@/views/stationview/procedure/ProcedureTemplateListView.vue'),
+                },
+                {
+                    path: 'procedures/templates/:id',
+                    name: 'procedure-template-edit',
+                    component: () => import('@/views/stationview/procedure/ProcedureTemplateEditView.vue'),
+                },
+                {
+                    path: 'procedures/:id/edit',
+                    name: 'procedure-edit',
+                    component: () => import('@/views/stationview/procedure/ProcedureCreateView.vue'),
+                },
+                {
+                    path: 'procedures/:id',
+                    name: 'procedure-detail',
+                    component: () => import('@/views/stationview/procedure/ProcedureDetailView.vue'),
+                },
                 {
                     path: ':pathMatch(.*)*',
                     name: 'station-not-found',
@@ -1494,6 +1525,32 @@ const router = createRouter({
                     path: 'boards/:boardKey/tickets/:ticketNumber',
                     name: 'help-ticket-detail',
                     component: () => import('@/views/helpcenter/stationview/boards/TicketDetailHelp.vue')
+                },
+                // Procedures
+                {
+                    path: 'procedures',
+                    name: 'help-procedure-list',
+                    redirect: { name: 'help-procedure-module-overview' },
+                },
+                {
+                    path: 'procedures/overview',
+                    name: 'help-procedure-module-overview',
+                    component: () => import('@/views/helpcenter/stationview/procedure/ProcedureOverviewHelp.vue'),
+                },
+                {
+                    path: 'procedures/:id',
+                    name: 'help-procedure-detail',
+                    redirect: { name: 'help-procedure-module-overview' },
+                },
+                {
+                    path: 'procedures/templates',
+                    name: 'help-procedure-template-list',
+                    redirect: { name: 'help-procedure-module-overview' },
+                },
+                {
+                    path: 'procedures/templates/:id',
+                    name: 'help-procedure-template-edit',
+                    redirect: { name: 'help-procedure-module-overview' },
                 },
                 {
                     path: ':pathMatch(.*)*',

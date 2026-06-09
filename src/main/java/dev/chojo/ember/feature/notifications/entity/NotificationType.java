@@ -33,7 +33,11 @@ public enum NotificationType {
     REGISTRATION_DEADLINE_EXPIRED(
             NotificationParams.RegistrationDeadlineExpired.class, "notification.registrationDeadlineExpired"),
     EVENT_CANCELLED(NotificationParams.EventCancelled.class, "notification.eventCancelled"),
-    EVENT_REMINDER(NotificationParams.EventReminder.class, "notification.eventReminder");
+    EVENT_REMINDER(NotificationParams.EventReminder.class, "notification.eventReminder"),
+    PROCEDURE_ASSIGNED(NotificationParams.ProcedureAssigned.class, "notification.procedureAssigned"),
+    PROCEDURE_RESOLVED(NotificationParams.ProcedureResolvedParams.class, "notification.procedureResolved"),
+    PROCEDURE_REOPENED(NotificationParams.ProcedureReopenedParams.class, "notification.procedureReopened"),
+    PROCEDURE_ITEM_CHECKED(NotificationParams.ProcedureItemCheckedParams.class, "notification.procedureItemChecked");
 
     private final Class<? extends NotificationParams> paramsType;
     private final String localeKey;
