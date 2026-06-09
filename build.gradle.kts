@@ -173,7 +173,7 @@ tasks {
     register<JacocoReport>("jacocoFullReport") {
         group = "verification"
         description = "Merged coverage report from all test tasks"
-        dependsOn("testRepositories", "testServices", "testOther")
+        dependsOn("test", "testRepositories", "testServices", "testOther")
         executionData(
             fileTree("build/jacoco") { include("*.exec") }
         )
@@ -188,7 +188,7 @@ tasks {
     register<JacocoCoverageVerification>("jacocoCoverageCheck") {
         group = "verification"
         description = "Enforces 80% line coverage for services and repositories"
-        dependsOn("testRepositories", "testServices", "testOther")
+        dependsOn("test", "testRepositories", "testServices", "testOther")
         executionData(
             fileTree("build/jacoco") { include("*.exec") }
         )
