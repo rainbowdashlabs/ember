@@ -66,5 +66,28 @@ public class KbFileStorageService {
         }
     }
 
+    /**
+     * Store the converted PDF for a presentation file.
+     */
+    public void storePresentationPdf(int fileId, byte[] pdfData) throws IOException {
+        Path dir = baseDir.resolve(String.valueOf(fileId));
+        Files.createDirectories(dir);
+        Files.write(dir.resolve("presentation.pdf"), pdfData);
+    }
+
+    /**
+     * Read the converted PDF for a presentation file.
+     */
+    public Optional<FileData> readPresentationPdf(int fileId) {
+        Path pdfPath = baseDir.resolve(String.valueOf(fileId)).resolve("presentation.pdf");
+        if (!Files.exists(pdfPath)) return Optional.empty();
+        try {
+            return Optional.of(new FileData(Files.readAllBytes(pdfPath), "application/pdf"));
+        } catch (IOException e) {
+            log.error("Failed to read presentation PDF for file {}", fileId, e);
+            return Optional.empty();
+        }
+    }
+
     public record FileData(byte[] data, String contentType) {}
 }

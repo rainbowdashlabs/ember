@@ -4,6 +4,15 @@
 
 ### New Features
 
+#### Knowledge Base: Presentation Support
+- **Presentation uploads** — upload PowerPoint (.pptx, .ppt) and OpenDocument (.odp) presentations to the knowledge base
+- **Automatic PDF conversion** — presentations are converted to PDF server-side via LibreOffice headless for in-browser viewing
+- **Async conversion** — upload returns immediately, conversion runs in the background with status tracking (pending/success/failed)
+- **Presentation mode** — full-screen slide-by-slide viewer for PDFs and presentations using pdf.js, with keyboard/click/swipe navigation and slide counter
+- **Auto-hiding controls** — presentation mode header and navigation buttons fade out after inactivity for a clean viewing experience
+- **Original file download** — download the original presentation file from the file detail view
+- **Re-upload** — replace the original presentation and trigger reconversion
+
 #### Procedures (Abläufe)
 - **New module: Procedures** — per-user checklists for structured processes (onboarding, equipment handout, etc.)
 - **Templates** — reusable procedure blueprints with items and dependency chains, managed by PROCEDURE_MANAGER
@@ -37,6 +46,7 @@
 - **Environment variable reference** — hosting help page now documents all env vars organized by category: Database, API, Mailing, Auth, Theming, Tools, Frontend, Demo, and Docker/Compose — each with default value and beginner-friendly description
 
 ### Improvements
+- **FileInput component** — new reusable styled file picker component replacing raw `<input type="file">` elements across the knowledge base
 - **Frontend Docker image** — replaced `nixos/nix:latest` with `node:24-alpine` for dramatically faster builds (no nix-shell overhead)
 - **Inventory item status** — item detail now shows "Zugewiesen" (assigned) or "Verfügbar" (available) instead of generic "Aktiv"
 - **Inventory member avatars** — member names in inventory edit view now display with avatars via MemberName component

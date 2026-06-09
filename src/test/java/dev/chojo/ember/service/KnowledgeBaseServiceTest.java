@@ -964,7 +964,8 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
-                false);
+                false,
+                null);
         when(httpClient.get(
                         eq("https://remote-kb.example.com"), eq("/remote/kb/files/77"), eq(station.id()), any(), any()))
                 .thenReturn(remoteFile);

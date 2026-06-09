@@ -30,9 +30,9 @@ public class KnowledgeBaseRepository {
     private static final String FOLDER_COLUMNS_BARE =
             "id, station_id, parent_id, name, description, icon_url, position, created_by, created_at, updated_at, restriction_mode, EXISTS(SELECT 1 FROM kb_access_restriction r WHERE r.folder_id = id) AS restricted";
     private static final String FILE_COLUMNS =
-            "f.id, f.station_id, f.folder_id, f.name, f.description, f.file_type, f.mime_type, f.file_size, f.icon_url, f.youtube_url, f.link_url, f.position, f.created_by, f.created_at, f.updated_at, f.source_file_id, f.source_station_id, f.restriction_mode, EXISTS(SELECT 1 FROM kb_access_restriction r WHERE r.file_id = f.id) AS restricted";
+            "f.id, f.station_id, f.folder_id, f.name, f.description, f.file_type, f.mime_type, f.file_size, f.icon_url, f.youtube_url, f.link_url, f.position, f.created_by, f.created_at, f.updated_at, f.source_file_id, f.source_station_id, f.restriction_mode, EXISTS(SELECT 1 FROM kb_access_restriction r WHERE r.file_id = f.id) AS restricted, f.conversion_status";
     private static final String FILE_COLUMNS_BARE =
-            "id, station_id, folder_id, name, description, file_type, mime_type, file_size, icon_url, youtube_url, link_url, position, created_by, created_at, updated_at, source_file_id, source_station_id, restriction_mode, EXISTS(SELECT 1 FROM kb_access_restriction r WHERE r.file_id = id) AS restricted";
+            "id, station_id, folder_id, name, description, file_type, mime_type, file_size, icon_url, youtube_url, link_url, position, created_by, created_at, updated_at, source_file_id, source_station_id, restriction_mode, EXISTS(SELECT 1 FROM kb_access_restriction r WHERE r.file_id = id) AS restricted, conversion_status";
 
     // -- Folders --
 
@@ -178,6 +178,13 @@ public class KnowledgeBaseRepository {
                         .bind("description", description)
                         .bind("icon_url", iconUrl)
                         .bind("position", position))
+                .update()
+                .changed();
+    }
+
+    public boolean updateConversionStatus(int fileId, String status) {
+        return Query.query("UPDATE kb_file SET conversion_status = :status, updated_at = now() WHERE id = :id;")
+                .single(Call.of().bind("id", fileId).bind("status", status))
                 .update()
                 .changed();
     }

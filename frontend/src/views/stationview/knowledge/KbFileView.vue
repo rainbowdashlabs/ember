@@ -20,6 +20,8 @@ import PageHeader from '@/components/typography/PageHeader.vue'
 import KbTagsSection from '@/views/stationview/knowledge/kbfileview/KbTagsSection.vue'
 import KbRelatedFilesSection from '@/views/stationview/knowledge/kbfileview/KbRelatedFilesSection.vue'
 import KbCommentSection from '@/components/comment/KbCommentSection.vue'
+import PresentationViewer from '@/views/stationview/knowledge/kbfileview/PresentationViewer.vue'
+import KbPresentationContent from '@/views/stationview/knowledge/kbfileview/KbPresentationContent.vue'
 import {useSession} from '@/composables/useSession'
 import {knowledgeBase} from '@/api'
 import type {KbFile, KbTag, MarkdownHtmlResponse} from '@/api/knowledgeBase'
@@ -36,26 +38,18 @@ const file = ref<KbFile | null>(null)
 const lastEditedByName = ref<string | null>(null)
 const loading = ref(true)
 const error = ref('')
-
-// Markdown
 const markdownData = ref<MarkdownHtmlResponse | null>(null)
 const editing = ref(false)
 const editContent = ref('')
 const saving = ref(false)
-
-// Text
 const textContent = ref('')
-
-// Tags
 const fileTags = ref<KbTag[]>([])
 const allStationTags = ref<KbTag[]>([])
-
-// Related files
 const relatedFiles = ref<KbFile[]>([])
-
-// Description editing
 const editingDescription = ref(false)
 const editDescriptionValue = ref('')
+const showPresentation = ref(false)
+const originalUrl = computed(() => file.value ? knowledgeBase.originalFileUrl(file.value.id) : '')
 
 const fileId = computed(() => Number(route.params.id))
 const isFederated = computed(() => {
@@ -151,7 +145,6 @@ async function loadData() {
         loading.value = false
     }
 }
-
 function toggleEdit() {
     editing.value = !editing.value
     if (editing.value) {
@@ -164,7 +157,6 @@ function toggleEdit() {
 }
 
 const hasUnsavedChanges = ref(false)
-
 function onContentInput() {
     hasUnsavedChanges.value = true
 }
@@ -188,7 +180,6 @@ async function saveContent() {
         saving.value = false
     }
 }
-
 async function addTag(name: string) {
     if (!file.value) return
     const tagNames = fileTags.value.map(t => t.name)
@@ -196,13 +187,11 @@ async function addTag(name: string) {
     fileTags.value = await knowledgeBase.setFileTags(file.value.id, tagNames)
     allStationTags.value = await knowledgeBase.listTags()
 }
-
 async function removeTag(tagName: string) {
     if (!file.value) return
     const tagNames = fileTags.value.map(t => t.name).filter(n => n !== tagName)
     fileTags.value = await knowledgeBase.setFileTags(file.value.id, tagNames)
 }
-
 function startEditDescription() {
     editingDescription.value = true
     editDescriptionValue.value = file.value?.description ?? ''
@@ -219,7 +208,6 @@ async function saveDescription() {
     lastEditedByName.value = reloaded.lastEditedByName
     editingDescription.value = false
 }
-
 async function addRelatedFile(targetId: number) {
     if (!file.value) return
     const ids = [...relatedFiles.value.map(f => f.id), targetId]
@@ -231,7 +219,6 @@ async function removeRelatedFile(targetId: number) {
     const ids = relatedFiles.value.map(f => f.id).filter(id => id !== targetId)
     relatedFiles.value = await knowledgeBase.setRelatedFiles(file.value.id, ids)
 }
-
 function goBack() {
     if (file.value?.folderId) {
         router.push({name: 'kb-browse', query: {folderId: file.value.folderId}})
@@ -239,7 +226,6 @@ function goBack() {
         router.push({name: 'kb-browse'})
     }
 }
-
 const shareCopied = ref(false)
 function copyShareLink() {
     if (!file.value) return
@@ -250,11 +236,17 @@ function copyShareLink() {
         setTimeout(() => { shareCopied.value = false }, 2000)
     })
 }
-
+async function handleReuploadFile(uploadFile: File) {
+    if (!file.value) return
+    try {
+        file.value = await knowledgeBase.reuploadOriginal(file.value.id, uploadFile)
+    } catch {
+        error.value = t('common.error')
+    }
+}
 watch(loaded, (isLoaded) => {
     if (isLoaded) loadData()
 }, {immediate: true})
-
 onMounted(() => {
     if (loaded.value) loadData()
 })
@@ -302,6 +294,19 @@ onMounted(() => {
                         <font-awesome-icon :icon="['fas', 'clock-rotate-left']"/>
                         {{ t('kb.versions') }}
                     </SecondaryButton>
+                    <SecondaryButton
+                        v-if="(file.fileType === KbFileType.PDF || (file.fileType === KbFileType.PRESENTATION && file.conversionStatus === 'SUCCESS'))"
+                        @click="showPresentation = true"
+                    >
+                        <font-awesome-icon :icon="['fas', 'display']"/>
+                        {{ t('kb.present') }}
+                    </SecondaryButton>
+                    <a v-if="file.fileType === KbFileType.PRESENTATION" :href="originalUrl" download class="inline-block">
+                        <SecondaryButton>
+                            <font-awesome-icon :icon="['fas', 'download']"/>
+                            {{ t('kb.downloadOriginal') }}
+                        </SecondaryButton>
+                    </a>
                 </template>
             </div>
 
@@ -454,6 +459,14 @@ onMounted(() => {
                 </NeutralContainer>
             </template>
 
+            <!-- PRESENTATION -->
+            <template v-else-if="file.fileType === KbFileType.PRESENTATION">
+                <KbPresentationContent
+                    :file="file" :content-url="contentUrl" :can-edit="canEditKnowledge()"
+                    @reupload="handleReuploadFile"
+                />
+            </template>
+
             <!-- OTHER -->
             <template v-else>
                 <NeutralContainer class="text-center py-8">
@@ -475,5 +488,12 @@ onMounted(() => {
                 class="mt-6"
             />
         </template>
+        <!-- Presentation Viewer Overlay -->
+        <PresentationViewer
+            v-if="showPresentation && file"
+            :content-url="contentUrl"
+            :title="file.name"
+            @close="showPresentation = false"
+        />
     </ViewContent>
 </template>

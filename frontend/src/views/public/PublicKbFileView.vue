@@ -241,6 +241,13 @@ onMounted(() => {
                     </NeutralContainer>
                 </template>
 
+                <!-- PRESENTATION -->
+                <template v-else-if="file.fileType === KbFileType.PRESENTATION && file.conversionStatus === 'SUCCESS'">
+                    <NeutralContainer class="p-0">
+                        <iframe :src="contentUrl" class="w-full min-h-[80vh] rounded" :title="file.name"/>
+                    </NeutralContainer>
+                </template>
+
                 <!-- OTHER -->
                 <template v-else>
                     <NeutralContainer class="text-center py-8">
