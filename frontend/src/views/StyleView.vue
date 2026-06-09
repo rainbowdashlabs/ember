@@ -140,15 +140,19 @@ const logoLayers: LogoLayer[] = [
   { name: 'fire_eyes_right', label: 'Right Open' },
   { name: 'fire_eyes_right_half', label: 'Right Half' },
   { name: 'fire_blink_right', label: 'Right Blink' },
-  { name: 'fire_eyes_blink', label: 'Squint' },
   { name: 'fire_faq', label: 'FAQ' },
+  { name: 'fire_woah_one', label: 'Woah 1' },
+  { name: 'fire_woah_two', label: 'Woah 2' },
 ]
 
 const allEyeLayerNames = new Set([
   'fire_eyes_left', 'fire_eyes_left_half', 'fire_blink_left',
   'fire_eyes_mid', 'fire_eyes_mid_half', 'fire_blink',
   'fire_eyes_right', 'fire_eyes_right_half', 'fire_blink_right',
-  'fire_eyes_blink',
+])
+
+const displayLayerNames = new Set([
+  'fire_faq', 'fire_woah_one', 'fire_woah_two',
 ])
 
 const eyeDirections = ['Left', 'Mid', 'Right'] as const
@@ -162,11 +166,17 @@ const eyeMatrix: Record<string, Record<string, string>> = {
 const decorationLayers: LogoLayer[] = [
   { name: 'fire_glow', label: 'Glow' },
   { name: 'fire_blush', label: 'Blush' },
+]
+
+const displayLayers: LogoLayer[] = [
   { name: 'fire_faq', label: 'FAQ' },
+  { name: 'fire_woah_one', label: 'Woah 1' },
+  { name: 'fire_woah_two', label: 'Woah 2' },
 ]
 
 const activeLogoLayers = ref(new Set(['fire_glow', 'fire_blank', 'fire_eyes_mid']))
 const logoAutoBlink = ref(false)
+const logoDisplayShake = ref(true)
 const logoGazePositions = ref<EyeDirection[]>([])
 
 const gazeDirectionOptions: { key: EyeDirection; label: string }[] = [
@@ -197,6 +207,15 @@ function toggleDecoration(name: string) {
   if (activeLogoLayers.value.has(name)) {
     activeLogoLayers.value.delete(name)
   } else {
+    activeLogoLayers.value.add(name)
+  }
+}
+
+function toggleDisplay(name: string) {
+  if (activeLogoLayers.value.has(name)) {
+    activeLogoLayers.value.delete(name)
+  } else {
+    for (const d of displayLayerNames) activeLogoLayers.value.delete(d)
     activeLogoLayers.value.add(name)
   }
 }
@@ -244,6 +263,7 @@ function toggleDecoration(name: string) {
           :auto-blink="logoAutoBlink"
           :gaze-positions="logoGazePositions"
           :bounce="logoShake"
+          :display-shake="logoDisplayShake"
           size="w-48 h-48"
           :pixel-size="512"
           @update:active-layers="activeLogoLayers = $event"
@@ -256,6 +276,10 @@ function toggleDecoration(name: string) {
           <label class="flex items-center gap-2 mb-1">
             <ToggleInput v-model="logoShake"/>
             <span class="text-xs font-medium text-(--text-muted)">Hüpfen</span>
+          </label>
+          <label class="flex items-center gap-2 mb-1">
+            <ToggleInput v-model="logoDisplayShake"/>
+            <span class="text-xs font-medium text-(--text-muted)">Wackeln (Anzeige)</span>
           </label>
           <div>
             <p class="text-xs font-medium text-(--text-muted) mb-1">Blickrichtung</p>
@@ -292,15 +316,6 @@ function toggleDecoration(name: string) {
                 </SelectionToggleButton>
               </template>
             </div>
-            <div class="mt-2">
-              <SelectionToggleButton
-                size="sm"
-                :selected="isEyeSelected('fire_eyes_blink')"
-                @toggle="isEyeSelected('fire_eyes_blink') ? selectEye('') : selectEye('fire_eyes_blink')"
-              >
-                Squint
-              </SelectionToggleButton>
-            </div>
           </div>
           <div>
             <p class="text-xs font-medium text-(--text-muted) mb-1">Dekoration</p>
@@ -310,6 +325,19 @@ function toggleDecoration(name: string) {
                 :key="layer.name"
                 :selected="activeLogoLayers.has(layer.name)"
                 @toggle="toggleDecoration(layer.name)"
+              >
+                {{ layer.label }}
+              </SelectionToggleButton>
+            </div>
+          </div>
+          <div>
+            <p class="text-xs font-medium text-(--text-muted) mb-1">Anzeige</p>
+            <div class="flex flex-wrap gap-2">
+              <SelectionToggleButton
+                v-for="layer in displayLayers"
+                :key="layer.name"
+                :selected="activeLogoLayers.has(layer.name)"
+                @toggle="toggleDisplay(layer.name)"
               >
                 {{ layer.label }}
               </SelectionToggleButton>

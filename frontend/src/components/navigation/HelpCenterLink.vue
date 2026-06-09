@@ -77,7 +77,7 @@ const helpRoute = computed(() => {
       class="shrink-0 inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-primary transition-colors"
       target="_blank"
   >
-    <LayeredEmberLogo :layers="faqLogo.layers" :active-layers="faqLogo.activeLayers" :auto-blink="true" size="w-6 h-6 shrink-0" :pixel-size="64" />
+    <LayeredEmberLogo :layers="faqLogo.layers" :active-layers="faqLogo.activeLayers" :auto-blink="true" :display-shake="true" size="w-6 h-6 shrink-0" :pixel-size="64" />
     <span class="hidden sm:inline">{{ t('helpCenter.link') }}</span>
   </router-link>
 </template>

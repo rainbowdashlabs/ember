@@ -108,24 +108,27 @@ public class AdminSettingsRoutes implements Routes {
     }
 
     private void initializeLogoFragments() {
-        String[] fragments = {
-            "fire_blank",
-            "fire_blink",
-            "fire_blink_left",
-            "fire_blink_right",
-            "fire_blush",
-            "fire_eyes_blink",
-            "fire_eyes_left",
-            "fire_eyes_left_half",
-            "fire_eyes_mid",
-            "fire_eyes_mid_half",
-            "fire_eyes_right",
-            "fire_eyes_right_half",
-            "fire_faq",
-            "fire_glow"
+        // Map from API name (used by frontend) to resource filename
+        Map.Entry<String, String>[] fragments = new Map.Entry[] {
+            Map.entry("fire_blank", "fire_blank"),
+            Map.entry("fire_blink", "fire_blink_mid"),
+            Map.entry("fire_blink_left", "fire_blink_left"),
+            Map.entry("fire_blink_right", "fire_blink_right"),
+            Map.entry("fire_blush", "fire_blush"),
+            Map.entry("fire_eyes_left", "fire_eyes_left"),
+            Map.entry("fire_eyes_left_half", "fire_eyes_left_half"),
+            Map.entry("fire_eyes_mid", "fire_eyes_mid"),
+            Map.entry("fire_eyes_mid_half", "fire_eyes_mid_half"),
+            Map.entry("fire_eyes_right", "fire_eyes_right"),
+            Map.entry("fire_eyes_right_half", "fire_eyes_right_half"),
+            Map.entry("fire_faq", "fire_faq"),
+            Map.entry("fire_glow", "fire_glow"),
+            Map.entry("fire_woah_one", "fire_woah_one"),
+            Map.entry("fire_woah_two", "fire_woah_two"),
         };
-        for (String fragment : fragments) {
-            storeIfChanged(ImageCategory.LOGO_FRAGMENTS, fragment, "logo_fragments/" + fragment + ".png");
+        for (var fragment : fragments) {
+            storeIfChanged(
+                    ImageCategory.LOGO_FRAGMENTS, fragment.getKey(), "logo_fragments/" + fragment.getValue() + ".png");
         }
     }
 

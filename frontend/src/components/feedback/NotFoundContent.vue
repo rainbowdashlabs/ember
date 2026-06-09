@@ -16,7 +16,7 @@ const faqLogo = emberLogoFaq()
 
 <template>
   <div class="flex flex-col items-center justify-center py-20 px-4 text-center">
-    <LayeredEmberLogo :layers="faqLogo.layers" :active-layers="faqLogo.activeLayers" :auto-blink="true" :bounce="true" size="w-32 h-32 mb-6" :pixel-size="512" />
+    <LayeredEmberLogo :layers="faqLogo.layers" :active-layers="faqLogo.activeLayers" :auto-blink="true" :bounce="true" :display-shake="true" size="w-32 h-32 mb-6" :pixel-size="512" />
     <PageHeader class="text-6xl font-extrabold text-primary mb-2">404</PageHeader>
     <p class="text-xl font-medium mb-2">{{ t('notFound.title') }}</p>
     <p class="text-(--text-muted) mb-8 max-w-md">{{ t('notFound.text') }}</p>

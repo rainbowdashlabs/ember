@@ -29,7 +29,7 @@ const sections = [
 <template>
   <HelpArticle :title="t('helpCenter.welcome.title')" :subtitle="t('helpCenter.welcome.subtitle')">
     <div class="flex justify-center mb-4">
-      <LayeredEmberLogo :layers="faqLogo.layers" :active-layers="faqLogo.activeLayers" :auto-blink="true" :bounce="true" size="w-32 h-32" :pixel-size="512" />
+      <LayeredEmberLogo :layers="faqLogo.layers" :active-layers="faqLogo.activeLayers" :auto-blink="true" :bounce="true" :display-shake="true" size="w-32 h-32" :pixel-size="512" />
     </div>
 
     <HelpSection :title="t('helpCenter.welcome.whatIs')">

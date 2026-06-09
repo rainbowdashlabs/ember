@@ -21,12 +21,14 @@ const props = withDefaults(defineProps<{
   autoBlink?: boolean
   gazePositions?: EyeDirection[]
   bounce?: boolean
+  displayShake?: boolean
 }>(), {
   pixelSize: 512,
   size: 'w-48 h-48',
   autoBlink: false,
   gazePositions: () => [],
   bounce: false,
+  displayShake: false,
 })
 
 const emit = defineEmits<{
@@ -37,7 +39,10 @@ const allEyeLayers = new Set([
   'fire_eyes_left', 'fire_eyes_left_half', 'fire_blink_left',
   'fire_eyes_mid', 'fire_eyes_mid_half', 'fire_blink',
   'fire_eyes_right', 'fire_eyes_right_half', 'fire_blink_right',
-  'fire_eyes_blink',
+])
+
+const allDisplayLayers = new Set([
+  'fire_faq', 'fire_woah_one', 'fire_woah_two',
 ])
 
 const layerToDirection: Record<string, EyeDirection> = {
@@ -222,7 +227,7 @@ onUnmounted(() => {
       :key="layer.name"
       :src="fragmentUrl(layer.name)"
       alt=""
-      :class="['absolute inset-0 w-full h-full object-contain', { 'faq-shake': layer.name.includes('faq') }]"
+      :class="['absolute inset-0 w-full h-full object-contain', { 'display-shake': displayShake && allDisplayLayers.has(layer.name) }]"
     />
   </div>
 </template>
@@ -240,12 +245,12 @@ onUnmounted(() => {
   96% { transform: translateY(0); }
 }
 
-.faq-shake {
-  animation: faq-wobble 4s ease-in-out infinite;
+.display-shake {
+  animation: display-wobble 4s ease-in-out infinite;
   transform-origin: center center;
 }
 
-@keyframes faq-wobble {
+@keyframes display-wobble {
   0%, 85%, 100% { transform: rotate(0deg); }
   88% { transform: rotate(-3deg); }
   91% { transform: rotate(3deg); }
