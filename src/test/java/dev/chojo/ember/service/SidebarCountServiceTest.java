@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.system.service.RequirementsService;
 import dev.chojo.ember.feature.system.service.SidebarCountService;
@@ -48,6 +49,7 @@ class SidebarCountServiceTest {
     private StationRepository stationRepository;
     private InventoryService inventoryService;
     private ExchangeService exchangeService;
+    private ProcedureService procedureService;
 
     private SidebarCountService service;
 
@@ -68,6 +70,7 @@ class SidebarCountServiceTest {
         stationRepository = mock(StationRepository.class);
         inventoryService = mock(InventoryService.class);
         exchangeService = mock(ExchangeService.class);
+        procedureService = mock(ProcedureService.class);
         when(stationRepository.resolveUid(STATION_ID)).thenReturn(STATION_UID);
 
         service = new SidebarCountService(
@@ -81,7 +84,8 @@ class SidebarCountServiceTest {
                 lostAndFoundRepository,
                 stationRepository,
                 inventoryService,
-                exchangeService);
+                exchangeService,
+                procedureService);
     }
 
     private UserSession sessionWithPermissions(Set<StationPermission> permissions) {
@@ -220,7 +224,7 @@ class SidebarCountServiceTest {
 
     @Test
     void sidebarCountsRecord() {
-        var counts = new SidebarCounts(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11);
+        var counts = new SidebarCounts(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
 
         assertEquals(1, counts.notifications());
         assertEquals(2, counts.requirements());
@@ -233,11 +237,12 @@ class SidebarCountServiceTest {
         assertEquals(9, counts.lostAndFoundPending());
         assertEquals(10, counts.myInventoryCount());
         assertEquals(11, counts.pendingExchanges());
+        assertEquals(12, counts.procedureCount());
     }
 
     @Test
     void sidebarCountsZeroed() {
-        var counts = new SidebarCounts(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        var counts = new SidebarCounts(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
         assertEquals(0, counts.notifications());
         assertEquals(0, counts.requirements());
@@ -250,12 +255,13 @@ class SidebarCountServiceTest {
         assertEquals(0, counts.lostAndFoundPending());
         assertEquals(0, counts.myInventoryCount());
         assertEquals(0, counts.pendingExchanges());
+        assertEquals(0, counts.procedureCount());
     }
 
     @Test
     void sidebarCountsEquality() {
-        var a = new SidebarCounts(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11);
-        var b = new SidebarCounts(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11);
+        var a = new SidebarCounts(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
+        var b = new SidebarCounts(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
         assertEquals(a, b);
         assertEquals(a.hashCode(), b.hashCode());
     }

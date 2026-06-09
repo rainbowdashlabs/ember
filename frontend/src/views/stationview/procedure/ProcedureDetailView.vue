@@ -1,0 +1,335 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+<script setup lang="ts">
+import {ref, computed, watch} from 'vue'
+import {useI18n} from 'vue-i18n'
+import {useRoute, useRouter} from 'vue-router'
+import ViewContent from '@/components/layout/ViewContent.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import SuccessButton from '@/components/button/SuccessButton.vue'
+import ErrorButton from '@/components/button/ErrorButton.vue'
+import IconButton from '@/components/button/IconButton.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import SuccessContainer from '@/components/container/SuccessContainer.vue'
+import Modal from '@/components/feedback/Modal.vue'
+import Spinner from '@/components/feedback/Spinner.vue'
+import Alert from '@/components/feedback/Alert.vue'
+import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
+import SuccessBadge from '@/components/badge/SuccessBadge.vue'
+import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
+import MemberName from '@/components/avatar/MemberName.vue'
+import MutedText from '@/components/typography/MutedText.vue'
+import {useSession} from '@/composables/useSession'
+import {procedures} from '@/api'
+import {StationPermission} from '@/api/types'
+import type {ProcedureDetail, ProcedureItem} from '@/api/procedures'
+import {ProcedureStatus} from '@/api/procedures'
+
+const {t} = useI18n()
+const route = useRoute()
+const router = useRouter()
+const {hasPermission, loaded} = useSession()
+
+const canEdit = computed(() => hasPermission(StationPermission.PROCEDURE_EDIT))
+
+const detail = ref<ProcedureDetail | null>(null)
+const loading = ref(true)
+const error = ref('')
+
+const showResolveModal = ref(false)
+
+const procedureId = computed(() => Number(route.params.id))
+
+const isOverdue = computed(() => {
+  if (!detail.value?.procedure.dueAt) return false
+  if (detail.value.procedure.status === ProcedureStatus.RESOLVED) return false
+  return new Date(detail.value.procedure.dueAt) < new Date()
+})
+
+const progress = computed(() => {
+  if (!detail.value) return {checked: 0, total: 0, percent: 0}
+  const total = detail.value.items.length
+  const checked = detail.value.items.filter(i => i.checked).length
+  return {checked, total, percent: total > 0 ? Math.round((checked / total) * 100) : 0}
+})
+
+function getDependencyNames(item: ProcedureItem): string[] {
+  if (!detail.value) return []
+  return detail.value.dependencies
+      .filter(d => d[0] === item.id)
+      .map(d => detail.value!.items.find(i => i.id === d[1]))
+      .filter(i => i && !i.checked)
+      .map(i => i!.title)
+}
+
+function isDependencyMet(item: ProcedureItem): boolean {
+  if (!detail.value) return true
+  const deps = detail.value.dependencies.filter(d => d[0] === item.id)
+  if (deps.length === 0) return true
+  return deps.every(d => {
+    const depItem = detail.value!.items.find(i => i.id === d[1])
+    return depItem?.checked ?? false
+  })
+}
+
+const sortedItems = computed(() => {
+  if (!detail.value) return []
+  const items = [...detail.value.items]
+  const deps = detail.value.dependencies
+  const result: ProcedureItem[] = []
+  const placed = new Set<number>()
+  const remaining = new Set(items.map(i => i.id))
+
+  while (remaining.size > 0) {
+    let added = false
+    for (const item of items) {
+      if (!remaining.has(item.id)) continue
+      const itemDeps = deps.filter(d => d[0] === item.id).map(d => d[1])
+      if (itemDeps.every(d => placed.has(d) || !remaining.has(d))) {
+        result.push(item)
+        placed.add(item.id)
+        remaining.delete(item.id)
+        added = true
+      }
+    }
+    if (!added) {
+      for (const item of items) {
+        if (remaining.has(item.id)) result.push(item)
+      }
+      break
+    }
+  }
+  return result
+})
+
+async function loadData() {
+  loading.value = true
+  error.value = ''
+  try {
+    detail.value = await procedures.getProcedure(procedureId.value)
+  } catch {
+    error.value = t('common.error')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function refreshSilently() {
+  try {
+    detail.value = await procedures.getProcedure(procedureId.value)
+  } catch { /* optimistic state is good enough */
+  }
+}
+
+function canCheckItem(item: ProcedureItem): boolean {
+  if (item.checked) return canEdit.value // only EDIT users can uncheck
+  if (!isDependencyMet(item)) return false
+  if (!item.userAssigned && !canEdit.value) return false // non-EDIT can only check userAssigned items
+  return true
+}
+
+async function toggleItem(item: ProcedureItem) {
+  if (!canCheckItem(item)) return
+  // Optimistic update
+  if (detail.value) {
+    detail.value = {
+      ...detail.value,
+      items: detail.value.items.map(i => i.id === item.id
+          ? {...i, checked: !i.checked, checkedAt: !i.checked ? new Date().toISOString() : null}
+          : i),
+    }
+  }
+  try {
+    await procedures.patchItem(procedureId.value, item.id, {checked: !item.checked})
+    await refreshSilently()
+  } catch {
+    error.value = t('common.error')
+    await refreshSilently()
+  }
+}
+
+async function updateNote(item: ProcedureItem, note: string) {
+  try {
+    await procedures.patchItem(procedureId.value, item.id, {note: note || undefined})
+  } catch {
+    error.value = t('common.error')
+  }
+}
+
+async function handleResolve() {
+  try {
+    if (detail.value?.procedure.status === ProcedureStatus.OPEN) {
+      await procedures.resolveProcedure(procedureId.value)
+    } else {
+      await procedures.reopenProcedure(procedureId.value)
+    }
+    showResolveModal.value = false
+    await loadData()
+  } catch {
+    error.value = t('common.error')
+  }
+}
+
+function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return ''
+  return new Date(dateStr).toLocaleDateString('de-DE')
+}
+
+function formatDateTime(dateStr: string | null | undefined): string {
+  if (!dateStr) return ''
+  return new Date(dateStr).toLocaleString('de-DE')
+}
+
+watch(loaded, (v) => {
+  if (v) loadData()
+}, {immediate: true})
+</script>
+
+<template>
+  <ViewContent>
+    <Spinner v-if="loading"/>
+    <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
+
+    <template v-if="detail && !loading">
+      <!-- Header -->
+      <div class="flex items-start justify-between mb-4 gap-4">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1 flex-wrap">
+            <SectionHeader>{{ detail.procedure.name }}</SectionHeader>
+            <SuccessBadge v-if="detail.procedure.status === ProcedureStatus.RESOLVED">{{ t('procedures.resolved') }}</SuccessBadge>
+            <PrimaryBadge v-else>{{ t('procedures.open') }}</PrimaryBadge>
+            <ErrorBadge v-if="isOverdue">{{ t('procedures.overdue') }}</ErrorBadge>
+          </div>
+          <p v-if="detail.procedure.description" class="text-[var(--text-muted)] text-sm">{{ detail.procedure.description }}</p>
+          <div class="flex flex-wrap gap-4 mt-2 text-sm text-[var(--text-muted)]">
+            <span v-if="detail.procedure.dueAt" class="flex items-center gap-1" :class="{ 'text-[var(--error)]': isOverdue }">
+              <font-awesome-icon :icon="['fas', 'calendar']" class="w-3 h-3"/>
+              {{ formatDate(detail.procedure.dueAt) }}
+            </span>
+            <span v-if="detail.procedure.resolvedAt" class="flex items-center gap-1">
+              <font-awesome-icon :icon="['fas', 'check-circle']" class="w-3 h-3"/>
+              {{ formatDateTime(detail.procedure.resolvedAt) }}
+            </span>
+          </div>
+        </div>
+        <div v-if="canEdit" class="flex gap-2 shrink-0">
+          <SecondaryButton @click="router.push({ name: 'procedure-edit', params: { id: procedureId } })">
+            <font-awesome-icon :icon="['fas', 'pen']" class="mr-1"/> {{ t('common.edit') }}
+          </SecondaryButton>
+          <SuccessButton v-if="detail.procedure.status === ProcedureStatus.OPEN" @click="showResolveModal = true">
+            <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/> {{ t('procedures.resolve') }}
+          </SuccessButton>
+          <ErrorButton v-else @click="showResolveModal = true">
+            <font-awesome-icon :icon="['fas', 'rotate-left']" class="mr-1"/> {{ t('procedures.reopen') }}
+          </ErrorButton>
+        </div>
+      </div>
+
+      <!-- Assignees -->
+      <NeutralContainer v-if="detail.assignees.length > 0" class="mb-4">
+        <SubHeader class="mb-2">{{ t('procedures.assignees') }}</SubHeader>
+        <div class="flex flex-wrap gap-2">
+          <MemberName v-for="assignee in detail.assignees" :key="assignee.memberUid" :identity="assignee" size="sm"/>
+        </div>
+      </NeutralContainer>
+
+      <!-- Progress bar -->
+      <NeutralContainer class="mb-4">
+        <div class="flex items-center gap-3">
+          <span class="text-sm font-medium">{{ t('procedures.progress') }}</span>
+          <div class="flex-1 h-2 bg-[var(--bg-light-accent)] dark:bg-[var(--bg-dark-accent)] rounded-full overflow-hidden">
+            <div class="h-full bg-[var(--success)] rounded-full transition-all" :style="{ width: progress.percent + '%' }"/>
+          </div>
+          <span class="text-sm text-[var(--text-muted)]">{{ progress.checked }}/{{ progress.total }}</span>
+        </div>
+      </NeutralContainer>
+
+      <!-- Checklist items -->
+      <SubHeader class="mb-3">{{ t('procedures.items') }}</SubHeader>
+
+      <div class="space-y-2">
+        <component
+            :is="item.checked ? SuccessContainer : NeutralContainer"
+            v-for="item in sortedItems"
+            :key="item.id"
+        >
+          <div class="flex items-start gap-3">
+            <!-- Checkbox -->
+            <div class="pt-0.5 shrink-0">
+              <IconButton
+                  v-if="canCheckItem(item)"
+                  :icon="item.checked ? ['fas', 'square-check'] : ['fas', 'square']"
+                  :label="item.checked ? t('procedures.uncheck') : t('procedures.check')"
+                  :class="item.checked ? 'text-[var(--success)]' : 'text-[var(--text-muted)]'"
+                  @click="toggleItem(item)"
+              />
+              <font-awesome-icon
+                  v-else-if="item.checked"
+                  :icon="['fas', 'square-check']"
+                  class="w-4 h-4 text-[var(--success)] mt-1 ml-2"
+              />
+              <font-awesome-icon
+                  v-else
+                  :icon="['fas', 'lock']"
+                  class="w-4 h-4 text-[var(--text-muted)] opacity-50 mt-1 ml-2"
+                  :title="!isDependencyMet(item) ? t('procedures.locked') + ': ' + getDependencyNames(item).join(', ') : t('procedures.editOnly')"
+              />
+            </div>
+
+            <!-- Content -->
+            <div class="flex-1 min-w-0">
+              <div class="font-medium" :class="{ 'line-through opacity-60': item.checked }">{{ item.title }}</div>
+              <div v-if="item.description" class="text-sm text-[var(--text-muted)]">{{ item.description }}</div>
+              <div v-if="!isDependencyMet(item) && !item.checked"
+                   class="text-xs text-[var(--text-muted)] mt-1 flex items-center gap-1">
+                <font-awesome-icon :icon="['fas', 'lock']" class="w-3 h-3"/>
+                {{ t('procedures.dependsOn') }}: {{ getDependencyNames(item).join(', ') }}
+              </div>
+              <div v-if="item.checkedAt" class="text-xs text-[var(--text-muted)] mt-1">
+                {{ t('procedures.checkedBy') }}: {{ formatDateTime(item.checkedAt) }}
+              </div>
+
+              <!-- Note -->
+              <div v-if="item.note || (!item.checked && canEdit)" class="mt-2">
+                <TextAreaInput
+                    v-if="!item.checked && canEdit"
+                    :model-value="item.note ?? ''"
+                    :placeholder="t('procedures.itemNote')"
+                    class="!text-xs !py-1 !min-h-0"
+                    :rows="1"
+                    @blur="(e: Event) => updateNote(item, (e.target as HTMLTextAreaElement).value)"
+                />
+                <p v-else-if="item.note" class="text-sm text-[var(--text-muted)] italic">{{ item.note }}</p>
+              </div>
+            </div>
+          </div>
+        </component>
+      </div>
+
+      <div v-if="detail.items.length === 0" class="text-center text-[var(--text-muted)] py-8">
+        {{ t('procedures.empty') }}
+      </div>
+    </template>
+
+    <!-- Resolve/Reopen Modal -->
+    <Modal v-model="showResolveModal">
+      <SubHeader class="mb-3">
+        {{ detail?.procedure.status === ProcedureStatus.OPEN ? t('procedures.resolve') : t('procedures.reopen') }}
+      </SubHeader>
+      <p class="mb-4">{{ detail?.procedure.name }}</p>
+      <div class="flex gap-2 justify-end">
+        <SecondaryButton @click="showResolveModal = false">{{ t('common.cancel') }}</SecondaryButton>
+        <PrimaryButton @click="handleResolve">
+          {{ detail?.procedure.status === ProcedureStatus.OPEN ? t('procedures.resolve') : t('procedures.reopen') }}
+        </PrimaryButton>
+      </div>
+    </Modal>
+  </ViewContent>
+</template>

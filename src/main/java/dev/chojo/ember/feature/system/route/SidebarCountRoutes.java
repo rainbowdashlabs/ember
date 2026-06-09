@@ -31,7 +31,7 @@ public class SidebarCountRoutes implements Routes {
     private void getSidebarCounts(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (session.member() == null || session.stationId() == null) {
-            ctx.json(new SidebarCountService.SidebarCounts(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+            ctx.json(new SidebarCountService.SidebarCounts(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
             return;
         }
         ctx.json(sidebarCountService.getCounts(session));

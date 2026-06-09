@@ -4,6 +4,20 @@
 
 ### New Features
 
+#### Procedures (Abläufe)
+- **New module: Procedures** — per-user checklists for structured processes (onboarding, equipment handout, etc.)
+- **Templates** — reusable procedure blueprints with items and dependency chains, managed by PROCEDURE_MANAGER
+- **Procedure instances** — created ad-hoc or from templates, with editable items before submission
+- **Assignees** — assign procedures to one or more members with member picker
+- **Item dependencies** — items can depend on other items (DAG), blocked items shown with lock icon
+- **Public/private visibility** — procedures and individual items can be marked private (only visible to PROCEDURE_EDIT users)
+- **User-assigned items** — items can be flagged as checkable by assignees; other items require PROCEDURE_EDIT permission
+- **Resolve/reopen** — procedures can be resolved at any time and reopened if needed
+- **Notifications** — domain events for assignment, resolution, reopening, and item completion
+- **Sidebar integration** — badge shows open procedures; visible to all users with assigned procedures
+- **Demo data** — 2 templates (onboarding, equipment handout) and 4 sample procedures with mixed states
+- **Help center** — overview article for the procedures module
+
 #### Server-Side Rendering
 - **Nuxt 3 SSR migration** — frontend migrated from Vue SPA to Nuxt 3 with hybrid rendering: SSR for public pages, ISR for help center, SPA for authenticated station/admin views
 - **Two-container deployment** — separate backend (Java) and frontend (Nuxt) Docker images for independent scaling and deployment

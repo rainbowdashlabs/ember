@@ -113,6 +113,7 @@ public class DemoService {
     private final DemoFederationSeeder federationSeeder;
     private final DemoLendingSeeder lendingSeeder;
     private final DemoBoardSeeder boardSeeder;
+    private final DemoProcedureSeeder procedureSeeder;
     private final ApplicationSettingRepository applicationSettingRepository;
     private final EventService eventService;
     private final NewsService newsService;
@@ -154,6 +155,7 @@ public class DemoService {
             DemoFederationSeeder federationSeeder,
             DemoLendingSeeder lendingSeeder,
             DemoBoardSeeder boardSeeder,
+            DemoProcedureSeeder procedureSeeder,
             ApplicationSettingRepository applicationSettingRepository,
             EventService eventService,
             NewsService newsService,
@@ -189,6 +191,7 @@ public class DemoService {
         this.federationSeeder = federationSeeder;
         this.lendingSeeder = lendingSeeder;
         this.boardSeeder = boardSeeder;
+        this.procedureSeeder = procedureSeeder;
         this.applicationSettingRepository = applicationSettingRepository;
         this.eventService = eventService;
         this.newsService = newsService;
@@ -1692,6 +1695,15 @@ public class DemoService {
                         for (var m : anfaengerMembers) protocolTestees.add(m.id());
                         protocolSeeder.seed(station.id(), adminMember.id(), protocolTestees);
                         log.info("Demo: Created Test Protocol data");
+                    },
+                    executor));
+
+            // Procedures
+            tasks.add(CompletableFuture.runAsync(
+                    () -> {
+                        procedureSeeder.seed(
+                                station.id(), adminMember, betreuerMembers, anfaengerMembers, new Random(42_020));
+                        log.info("Demo: Created Procedure data");
                     },
                     executor));
 

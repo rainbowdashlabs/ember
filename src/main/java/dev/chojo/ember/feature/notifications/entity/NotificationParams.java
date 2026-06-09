@@ -63,4 +63,13 @@ public sealed interface NotificationParams {
     record EventCancelled(String eventName, String reason) implements NotificationParams {}
 
     record EventReminder(String eventName, int daysBefore, String eventDate) implements NotificationParams {}
+
+    record ProcedureAssigned(String procedureName, String assignedByName) implements NotificationParams {}
+
+    record ProcedureResolvedParams(String procedureName) implements NotificationParams {}
+
+    record ProcedureReopenedParams(String procedureName) implements NotificationParams {}
+
+    record ProcedureItemCheckedParams(String procedureName, String itemTitle, String checkedByName)
+            implements NotificationParams {}
 }

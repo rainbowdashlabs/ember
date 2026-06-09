@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import jakarta.inject.Inject;
@@ -35,6 +36,7 @@ public class SidebarCountService {
     private final StationRepository stationRepository;
     private final InventoryService inventoryService;
     private final ExchangeService exchangeService;
+    private final ProcedureService procedureService;
 
     @Inject
     public SidebarCountService(
@@ -48,7 +50,8 @@ public class SidebarCountService {
             LostAndFoundRepository lostAndFoundRepository,
             StationRepository stationRepository,
             InventoryService inventoryService,
-            ExchangeService exchangeService) {
+            ExchangeService exchangeService,
+            ProcedureService procedureService) {
         this.notificationService = notificationService;
         this.requirementsService = requirementsService;
         this.profileFieldChangeRepository = profileFieldChangeRepository;
@@ -60,6 +63,7 @@ public class SidebarCountService {
         this.stationRepository = stationRepository;
         this.inventoryService = inventoryService;
         this.exchangeService = exchangeService;
+        this.procedureService = procedureService;
     }
 
     public SidebarCounts getCounts(UserSession session) {
@@ -114,6 +118,14 @@ public class SidebarCountService {
             pendingExchanges = exchangeService.countPendingByStation(stationId);
         }
 
+        int procedureCount;
+        if (roles.contains(StationPermission.PROCEDURE_EDIT)) {
+            procedureCount = procedureService.countOpenByStation(stationId);
+        } else {
+            // All users see count of their assigned procedures with available items
+            procedureCount = procedureService.countOpenByAssigneeWithAvailableItems(stationId, memberId);
+        }
+
         return new SidebarCounts(
                 notifications,
                 requirements,
@@ -125,7 +137,8 @@ public class SidebarCountService {
                 waitingListEntries,
                 lostAndFoundPending,
                 myInventoryCount,
-                pendingExchanges);
+                pendingExchanges,
+                procedureCount);
     }
 
     public record SidebarCounts(
@@ -139,5 +152,6 @@ public class SidebarCountService {
             int waitingListEntries,
             int lostAndFoundPending,
             int myInventoryCount,
-            int pendingExchanges) {}
+            int pendingExchanges,
+            int procedureCount) {}
 }

@@ -51,6 +51,7 @@ import dev.chojo.ember.feature.system.service.DemoKnowledgeBaseSeeder;
 import dev.chojo.ember.feature.system.service.DemoLendingSeeder;
 import dev.chojo.ember.feature.system.service.DemoMediaSeeder;
 import dev.chojo.ember.feature.system.service.DemoNotificationSeeder;
+import dev.chojo.ember.feature.system.service.DemoProcedureSeeder;
 import dev.chojo.ember.feature.system.service.DemoProtocolSeeder;
 import dev.chojo.ember.feature.system.service.DemoQuizSeeder;
 import dev.chojo.ember.feature.system.service.DemoService;
@@ -201,6 +202,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var lendingSeeder = new DemoLendingSeeder(lendingService, inventoryRepo);
         var boardSeeder = new DemoBoardSeeder(
                 boardRepo, boardTicketRepo, federatedBoardService, federationService, memberIdentityFactory);
+        var procedureSeeder = new DemoProcedureSeeder(procedureRepo);
 
         // -- DemoService --
         demoService = new DemoService(
@@ -232,6 +234,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 federationSeeder,
                 lendingSeeder,
                 boardSeeder,
+                procedureSeeder,
                 applicationSettingRepo,
                 eventService,
                 newsService,

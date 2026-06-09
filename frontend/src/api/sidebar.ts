@@ -17,6 +17,7 @@ export interface SidebarCounts {
     lostAndFoundPending: number
     myInventoryCount: number
     pendingExchanges: number
+    procedureCount: number
 }
 
 export async function getSidebarCounts(): Promise<SidebarCounts> {
