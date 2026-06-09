@@ -8,11 +8,14 @@ import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
+import HelpPermissionGuard from '@/components/helpcenter/HelpPermissionGuard.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import BulletList from '@/components/typography/BulletList.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import Spinner from '@/components/feedback/Spinner.vue'
+import {StationPermission} from '@/api/types'
 
 const {t} = useI18n()
 </script>
@@ -85,6 +88,55 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.kbFileView.versionsTitle')">
       <p>{{ t('helpCenter.kbFileView.versionsText') }}</p>
     </HelpSection>
+
+    <HelpSection :title="t('helpCenter.kbFileView.presentationsTitle')">
+      <p>{{ t('helpCenter.kbFileView.presentationsText') }}</p>
+      <p>{{ t('helpCenter.kbFileView.presentationsFormats') }}</p>
+    </HelpSection>
+
+    <!-- Dummy: Presentation conversion states -->
+    <NeutralContainer class="space-y-4">
+      <div class="flex items-center gap-2">
+        <font-awesome-icon :icon="['fas', 'file-powerpoint']" class="text-[var(--accent)]"/>
+        <span class="font-semibold">Schulung-Brandschutz.pptx</span>
+        <PrimaryBadge>Präsentation</PrimaryBadge>
+      </div>
+      <div class="flex gap-2">
+        <SecondaryButton compact disabled>
+          <font-awesome-icon :icon="['fas', 'display']" class="mr-1"/> Präsentieren
+        </SecondaryButton>
+        <SecondaryButton compact disabled>
+          <font-awesome-icon :icon="['fas', 'download']" class="mr-1"/> Original herunterladen
+        </SecondaryButton>
+      </div>
+      <MutedText tag="p">{{ t('helpCenter.kbFileView.presentationsButtons') }}</MutedText>
+    </NeutralContainer>
+
+    <HelpSection :title="t('helpCenter.kbFileView.presentationModeTitle')">
+      <p>{{ t('helpCenter.kbFileView.presentationModeText') }}</p>
+      <BulletList>
+        <li>{{ t('helpCenter.kbFileView.presentationModeKeys') }}</li>
+        <li>{{ t('helpCenter.kbFileView.presentationModeClick') }}</li>
+        <li>{{ t('helpCenter.kbFileView.presentationModeSwipe') }}</li>
+        <li>{{ t('helpCenter.kbFileView.presentationModeEsc') }}</li>
+      </BulletList>
+      <p>{{ t('helpCenter.kbFileView.presentationModeAutoHide') }}</p>
+    </HelpSection>
+
+    <!-- Dummy: Conversion pending -->
+    <NeutralContainer class="text-center py-4">
+      <Spinner size="lg"/>
+      <MutedText tag="p" class="mt-2">Die Datei wird in ein PDF umgewandelt...</MutedText>
+    </NeutralContainer>
+    <MutedText tag="p" size="sm" class="mt-1">{{ t('helpCenter.kbFileView.conversionHint') }}</MutedText>
+
+    <HelpPermissionGuard :permissions="[StationPermission.KNOWLEDGE_EDIT]" :label="t('helpCenter.permissionLabel.knowledgeEdit')">
+      <HelpSection :title="t('helpCenter.kbFileView.reuploadTitle')">
+        <p>{{ t('helpCenter.kbFileView.reuploadText') }}</p>
+      </HelpSection>
+    </HelpPermissionGuard>
+
+    <HelpTip>{{ t('helpCenter.kbFileView.presentationTip') }}</HelpTip>
 
     <HelpTip>{{ t('helpCenter.kbFileView.tip') }}</HelpTip>
   </HelpArticle>
