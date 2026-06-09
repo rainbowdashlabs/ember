@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref} from 'vue'
+import {ref, watch} from 'vue'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -13,11 +13,13 @@ import TransferSection from './stationview/TransferSection.vue'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 
-const {hasPermission} = useSession()
+const {hasPermission, loaded} = useSession()
 const router = useRouter()
-if (!hasPermission(StationPermission.STATION_IMPORT_EXPORT)) {
-  router.replace({name: 'dashboard-overview'})
-}
+watch(loaded, (isLoaded) => {
+  if (isLoaded && !hasPermission(StationPermission.STATION_IMPORT_EXPORT)) {
+    router.replace('/station/dashboard/overview')
+  }
+}, {immediate: true})
 
 const error = ref('')
 const success = ref('')

@@ -4,18 +4,20 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue'
+import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 
-const {hasPermission} = useSession()
+const {hasPermission, loaded} = useSession()
 const router = useRouter()
-if (!hasPermission(StationPermission.STATION_LOOK_AND_FEEL)) {
-  router.replace({name: 'dashboard-overview'})
-}
+watch(loaded, (isLoaded) => {
+  if (isLoaded && !hasPermission(StationPermission.STATION_LOOK_AND_FEEL)) {
+    router.replace('/station/dashboard/overview')
+  }
+}, {immediate: true})
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'

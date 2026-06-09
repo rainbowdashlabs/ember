@@ -8,7 +8,9 @@ definePageMeta({
   layout: 'station',
 })
 
-navigateTo('/station/dashboard/overview', {replace: true})
+if (import.meta.client) {
+  navigateTo('/station/dashboard/overview', {replace: true})
+}
 </script>
 
 <template>

@@ -32,8 +32,10 @@ export default defineNuxtConfig({
     '/discovery/**': {ssr: true},
     '/public/**': {ssr: true},
     '/helpcenter/**': {isr: 3600},
+    '/station': {redirect: '/station/dashboard/overview'},
     '/station/**': {ssr: false},
     '/admin/**': {ssr: false},
+    '/style': {ssr: false},
     '/api/**': {proxy: 'http://localhost:8080/api/**'},
   },
 

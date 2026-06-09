@@ -4,18 +4,20 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted, ref} from 'vue'
+import {onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 
-const {hasPermission} = useSession()
+const {hasPermission, loaded} = useSession()
 const router = useRouter()
-if (!hasPermission(StationPermission.STATION_GENERAL)) {
-  router.replace({name: 'dashboard-overview'})
-}
+watch(loaded, (isLoaded) => {
+  if (isLoaded && !hasPermission(StationPermission.STATION_GENERAL)) {
+    router.replace('/station/dashboard/overview')
+  }
+}, {immediate: true})
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import FileUploadButton from '@/components/button/FileUploadButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onMounted, ref} from 'vue'
+import {onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -17,11 +17,13 @@ import {stationManage} from '@/api'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 
-const {hasPermission, load: reloadSession} = useSession()
+const {hasPermission, loaded, load: reloadSession} = useSession()
 const router = useRouter()
-if (!hasPermission(StationPermission.STATION_MODULES)) {
-  router.replace({name: 'dashboard-overview'})
-}
+watch(loaded, (isLoaded) => {
+  if (isLoaded && !hasPermission(StationPermission.STATION_MODULES)) {
+    router.replace('/station/dashboard/overview')
+  }
+}, {immediate: true})
 
 const {t} = useI18n()
 
