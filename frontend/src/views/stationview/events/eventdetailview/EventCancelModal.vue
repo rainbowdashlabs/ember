@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref} from 'vue'
+import {ref, computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -23,6 +23,10 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+const visible = computed({
+  get: () => props.show,
+  set: (v: boolean) => { if (!v) emit('close') },
+})
 const cancelReason = ref('')
 const cancelling = ref(false)
 
@@ -39,7 +43,7 @@ async function cancelEvent() {
 </script>
 
 <template>
-  <Modal :show="show" @close="emit('close')">
+  <Modal v-model="visible">
     <template #header>{{ t('events.cancelEvent') }}</template>
     <div class="space-y-4">
       <p>{{ t('events.cancelConfirm') }}</p>

@@ -16,6 +16,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
+import RegistrationStatsTable from './RegistrationStatsTable.vue'
 import {RegistrationStatus, StationPermission} from '@/api/types'
 import type {StationEvent} from '@/api/types'
 import type {EventRegistrationEntry, MemberRegistrationStats} from '@/api/events'
@@ -62,10 +63,6 @@ function statusLabel(status: string): string {
   return status
 }
 
-function getStatsForMember(memberId: number): MemberRegistrationStats | undefined {
-  return props.registrationStats.find(s => s.memberId === memberId)
-}
-
 function formatDate(iso: string): string {
   if (!iso) return ''
   return new Date(iso).toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric'})
@@ -94,51 +91,14 @@ function formatDate(iso: string): string {
     <div v-if="pendingRegistrations.length > 0" class="space-y-2">
       <SubHeader>{{ statusLabel('PENDING') }}</SubHeader>
       <!-- Manager view: table with stats and action buttons -->
-      <div v-if="hasPermission(StationPermission.EVENT_REGISTRATION)" class="overflow-x-auto">
-        <table class="w-full text-sm border-collapse">
-          <thead v-if="registrationStats.length > 0">
-          <tr class="border-b border-(--border) text-left text-xs text-(--text-muted) uppercase">
-            <th class="p-2">{{ t('registrationStats.member') }}</th>
-            <th class="p-2 text-center">{{ t('registrationStats.score') }}</th>
-            <th class="p-2 text-center">{{ t('registrationStats.accepted') }}</th>
-            <th class="p-2 text-center">{{ t('registrationStats.denied') }}</th>
-            <th class="p-2 text-center">{{ t('registrationStats.rate') }}</th>
-            <th class="p-2"></th>
-          </tr>
-          </thead>
-          <tbody>
-          <tr v-for="reg in pendingRegistrations" :key="reg.id" class="border-b border-(--border)">
-            <td class="p-2"><MemberName :identity="reg.memberIdentity ?? null"/></td>
-            <template v-if="getStatsForMember(reg.memberId)">
-              <td class="p-2 text-center font-bold" :class="getStatsForMember(reg.memberId)!.priority === 'HIGH' ? 'text-[var(--error)]' : getStatsForMember(reg.memberId)!.priority === 'MEDIUM' ? 'text-[var(--info)]' : ''">
-                {{ getStatsForMember(reg.memberId)!.fairnessScore }}
-              </td>
-              <td class="p-2 text-center"><SuccessBadge>{{ getStatsForMember(reg.memberId)!.accepted }}</SuccessBadge></td>
-              <td class="p-2 text-center">
-                <ErrorBadge v-if="getStatsForMember(reg.memberId)!.denied > 0">{{ getStatsForMember(reg.memberId)!.denied }}</ErrorBadge>
-                <span v-else>0</span>
-              </td>
-              <td class="p-2 text-center">{{ Math.round(getStatsForMember(reg.memberId)!.acceptRate * 100) }}%</td>
-            </template>
-            <template v-else>
-              <td class="p-2 text-center text-(--text-muted)" colspan="4">–</td>
-            </template>
-            <td class="p-2">
-              <div v-if="event.requiresConfirmation" class="flex items-center gap-2 justify-end">
-                <PrimaryButton @click="emit('accept', reg.id)">
-                  <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
-                  {{ t('eventsRegistrations.accept') }}
-                </PrimaryButton>
-                <ErrorButton @click="emit('deny', reg.id)">
-                  <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1"/>
-                  {{ t('eventsRegistrations.deny') }}
-                </ErrorButton>
-              </div>
-            </td>
-          </tr>
-          </tbody>
-        </table>
-      </div>
+      <RegistrationStatsTable
+          v-if="hasPermission(StationPermission.EVENT_REGISTRATION)"
+          :registrations="pendingRegistrations"
+          :stats="registrationStats"
+          :show-actions="event.requiresConfirmation"
+          @accept="emit('accept', $event)"
+          @deny="emit('deny', $event)"
+      />
       <!-- Non-manager view: card display matching confirmed registrations -->
       <template v-else>
         <NeutralContainer v-for="reg in pendingRegistrations" :key="reg.id">

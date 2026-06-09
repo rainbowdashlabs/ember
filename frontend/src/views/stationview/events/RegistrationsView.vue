@@ -7,8 +7,6 @@
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -18,7 +16,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import MemberName from '@/components/avatar/MemberName.vue'
+import RegistrationStatsTable from './eventdetailview/RegistrationStatsTable.vue'
 import {events, stationMembers} from '@/api'
 import type {StationEvent, StationMember} from '@/api/types'
 import {RegistrationStatus} from '@/api/types'
@@ -70,11 +68,6 @@ const eventGroups = computed((): EventGroup[] => {
   })
   return result
 })
-
-function getStats(memberId: number): MemberRegistrationStats | undefined {
-  return registrationStats.value.find(s => s.memberId === memberId)
-}
-
 
 function formatDeadline(iso?: string | null): string {
   if (!iso) return ''
@@ -168,46 +161,13 @@ onMounted(loadData)
             <!-- Expanded: fair acceptance table -->
             <template v-if="expandedEventId === group.event.id">
               <div class="border-t border-(--border) pt-3" @click.stop>
-                <table class="w-full text-sm">
-                  <thead>
-                    <tr class="text-xs text-(--text-muted) border-b border-(--border)">
-                      <th class="p-2 text-left">{{ t('eventsRegistrations.member') }}</th>
-                      <th class="p-2 text-center">{{ t('eventsRegistrations.score') }}</th>
-                      <th class="p-2 text-center">{{ t('eventsRegistrations.acceptedCol') }}</th>
-                      <th class="p-2 text-center">{{ t('eventsRegistrations.deniedCol') }}</th>
-                      <th class="p-2 text-center">{{ t('eventsRegistrations.date') }}</th>
-                      <th class="p-2"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="reg in group.pending" :key="reg.id" class="border-b border-(--border) last:border-0">
-                      <td class="p-2">
-                        <MemberName :identity="reg.memberIdentity ?? null"/>
-                      </td>
-                      <td class="p-2 text-center font-bold" :class="getStats(reg.memberId)?.priority === 'HIGH' ? 'text-error' : getStats(reg.memberId)?.priority === 'MEDIUM' ? 'text-info' : ''">
-                        {{ getStats(reg.memberId)?.fairnessScore ?? '-' }}
-                      </td>
-                      <td class="p-2 text-center">
-                        <SuccessBadge v-if="getStats(reg.memberId)">{{ getStats(reg.memberId)!.accepted }}</SuccessBadge>
-                      </td>
-                      <td class="p-2 text-center">
-                        <ErrorBadge v-if="getStats(reg.memberId)?.denied">{{ getStats(reg.memberId)!.denied }}</ErrorBadge>
-                        <span v-else>0</span>
-                      </td>
-                      <td class="p-2 text-center text-xs text-(--text-muted)">{{ reg.eventDate }}</td>
-                      <td class="p-2">
-                        <div class="flex items-center gap-1 justify-end">
-                          <PrimaryButton compact :icon="['fas', 'check']" @click="accept(reg.id)">
-                            {{ t('eventsRegistrations.accept') }}
-                          </PrimaryButton>
-                          <ErrorButton compact :icon="['fas', 'xmark']" @click="deny(reg.id)">
-                            {{ t('eventsRegistrations.deny') }}
-                          </ErrorButton>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                <RegistrationStatsTable
+                    :registrations="group.pending"
+                    :stats="registrationStats"
+                    :show-actions="true"
+                    @accept="accept($event)"
+                    @deny="deny($event)"
+                />
               </div>
             </template>
           </component>
