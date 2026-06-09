@@ -43,7 +43,7 @@ const features = [
   {icon: ['fas', 'book-open'], key: 'knowledgeBase', help: '/helpcenter/station/knowledge'},
   {icon: ['fas', 'graduation-cap'], key: 'quiz', help: '/helpcenter/station/quiz/catalogs'},
   {icon: ['fas', 'clipboard-check'], key: 'protocol', help: '/helpcenter/station/protocols'},
-  {icon: ['fas', 'list-check'], key: 'waitingList', help: '/helpcenter/station/members/waitinglist'},
+  {icon: ['fas', 'list-check'], key: 'waitingList', help: '/helpcenter/station/members/waiting-lists'},
   {icon: ['fas', 'box-open'], key: 'lostAndFound', help: '/helpcenter/station/inventory/overview'},
   {icon: ['fas', 'arrow-right-arrow-left'], key: 'federation', help: '/helpcenter/station/manage/federation'},
   {icon: ['fas', 'globe'], key: 'publicStation', help: '/helpcenter/station/manage/federation/settings'},

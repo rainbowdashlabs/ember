@@ -15,6 +15,8 @@ export interface SidebarCounts {
     openEvents: number
     waitingListEntries: number
     lostAndFoundPending: number
+    myInventoryCount: number
+    pendingExchanges: number
 }
 
 export async function getSidebarCounts(): Promise<SidebarCounts> {

@@ -175,6 +175,10 @@ public class InventoryService {
         return inventoryRepository.findItemsByMember(memberId);
     }
 
+    public int countItemsByMember(int memberId) {
+        return inventoryRepository.countItemsByMember(memberId);
+    }
+
     /**
      * Finds all items in an inventory.
      *

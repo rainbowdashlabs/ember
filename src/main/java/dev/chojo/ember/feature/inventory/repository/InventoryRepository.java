@@ -311,6 +311,14 @@ public class InventoryRepository {
                 .all();
     }
 
+    public int countItemsByMember(int memberId) {
+        return Query.query("SELECT count(*) FROM inventory_item WHERE assigned_to = :member_id;")
+                .single(Call.of().bind("member_id", memberId))
+                .map(row -> row.getInt(1))
+                .first()
+                .orElse(0);
+    }
+
     /**
      * Finds all unassigned and non-lost items in an inventory, ordered by name.
      *

@@ -127,13 +127,24 @@ function toggle(name: string, node: TreeNode) {
 
   if (newSet.has(role.id)) {
     newSet.delete(role.id)
+    // Restore children that were removed when this parent was enabled
+    const saved = collapsedChildren.value.get(name)
+    if (saved) {
+      for (const id of saved) newSet.add(id)
+      collapsedChildren.value.delete(name)
+    }
   } else {
     newSet.add(role.id)
-    // Remove explicitly selected children (now implicit)
+    // Remove explicitly selected children (now implicit), but remember them
+    const removed = new Set<number>()
     for (const childName of allChildNames(node)) {
       const childRole = roleByName.value.get(childName)
-      if (childRole) newSet.delete(childRole.id)
+      if (childRole && newSet.has(childRole.id)) {
+        removed.add(childRole.id)
+        newSet.delete(childRole.id)
+      }
     }
+    if (removed.size > 0) collapsedChildren.value.set(name, removed)
   }
   emit('update:modelValue', newSet)
 }
@@ -147,6 +158,10 @@ function toggleLeaf(name: string) {
   else newSet.add(role.id)
   emit('update:modelValue', newSet)
 }
+
+// Remember children that were implicitly removed when a parent was enabled,
+// so they can be restored if the parent is unchecked in the same session.
+const collapsedChildren = ref<Map<string, Set<number>>>(new Map())
 
 const expanded = ref<Set<string>>(new Set())
 

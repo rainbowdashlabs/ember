@@ -5636,6 +5636,8 @@ volumes:
         size: 'Größe',
         status: 'Status',
         active: 'Aktiv',
+        statusAssigned: 'Zugewiesen',
+        available: 'Verfügbar',
         assignedTo: 'Zugewiesen an',
         edit: 'Bearbeiten',
         saved: 'Gegenstand gespeichert.',

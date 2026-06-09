@@ -175,6 +175,10 @@ public class ExchangeService {
         return exchangeRepository.delete(id);
     }
 
+    public int countPendingByStation(int stationId) {
+        return exchangeRepository.countPendingByStation(stationId);
+    }
+
     /**
      * Completes an exchange by handling old item disposal (delete for external, unassign for internal)
      * and assigning the replacement item to the member.

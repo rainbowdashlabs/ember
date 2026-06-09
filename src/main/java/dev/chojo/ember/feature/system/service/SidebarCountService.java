@@ -10,6 +10,8 @@ import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
+import dev.chojo.ember.feature.inventory.service.ExchangeService;
+import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
@@ -31,6 +33,8 @@ public class SidebarCountService {
     private final WaitingListRepository waitingListRepository;
     private final LostAndFoundRepository lostAndFoundRepository;
     private final StationRepository stationRepository;
+    private final InventoryService inventoryService;
+    private final ExchangeService exchangeService;
 
     @Inject
     public SidebarCountService(
@@ -42,7 +46,9 @@ public class SidebarCountService {
             FederationRepository federationRepository,
             WaitingListRepository waitingListRepository,
             LostAndFoundRepository lostAndFoundRepository,
-            StationRepository stationRepository) {
+            StationRepository stationRepository,
+            InventoryService inventoryService,
+            ExchangeService exchangeService) {
         this.notificationService = notificationService;
         this.requirementsService = requirementsService;
         this.profileFieldChangeRepository = profileFieldChangeRepository;
@@ -52,6 +58,8 @@ public class SidebarCountService {
         this.waitingListRepository = waitingListRepository;
         this.lostAndFoundRepository = lostAndFoundRepository;
         this.stationRepository = stationRepository;
+        this.inventoryService = inventoryService;
+        this.exchangeService = exchangeService;
     }
 
     public SidebarCounts getCounts(UserSession session) {
@@ -99,6 +107,13 @@ public class SidebarCountService {
             lostAndFoundPending = lostAndFoundRepository.countClaimedNotProvided(stationId);
         }
 
+        int myInventoryCount = inventoryService.countItemsByMember(memberId);
+
+        int pendingExchanges = 0;
+        if (roles.contains(StationPermission.INVENTORY_EDIT)) {
+            pendingExchanges = exchangeService.countPendingByStation(stationId);
+        }
+
         return new SidebarCounts(
                 notifications,
                 requirements,
@@ -108,7 +123,9 @@ public class SidebarCountService {
                 federationRequests,
                 openEvents,
                 waitingListEntries,
-                lostAndFoundPending);
+                lostAndFoundPending,
+                myInventoryCount,
+                pendingExchanges);
     }
 
     public record SidebarCounts(
@@ -120,5 +137,7 @@ public class SidebarCountService {
             int federationRequests,
             int openEvents,
             int waitingListEntries,
-            int lostAndFoundPending) {}
+            int lostAndFoundPending,
+            int myInventoryCount,
+            int pendingExchanges) {}
 }

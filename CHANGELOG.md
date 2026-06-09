@@ -24,6 +24,16 @@
 
 ### Improvements
 - **Frontend Docker image** — replaced `nixos/nix:latest` with `node:24-alpine` for dramatically faster builds (no nix-shell overhead)
+- **Inventory item status** — item detail now shows "Zugewiesen" (assigned) or "Verfügbar" (available) instead of generic "Aktiv"
+- **Inventory member avatars** — member names in inventory edit view now display with avatars via MemberName component
+- **Members sidebar badge** — now includes both pending changes and waiting list entry counts
+- **Inventory sidebar badge** — shows pending exchange request count on the inventory section
+
+### Bug Fixes
+- **Help center waiting list link** — home page feature tile linked to non-existent route `/helpcenter/station/members/waitinglist` instead of `/helpcenter/station/members/waiting-lists`
+- **Inventory item assigned user** — assigned user was not shown on the item detail page; lookup relied on history entries instead of the direct assignment
+- **Permission picker rollback** — unchecking a parent permission (e.g. LOST_AND_FOUND_MANAGE) discarded previously selected child permissions (e.g. LOST_AND_FOUND_CREATE) instead of restoring them
+- **My Inventory tab visibility** — sidebar tab was always visible even when the user had no assigned inventory items
 
 ### Technical Changes
 

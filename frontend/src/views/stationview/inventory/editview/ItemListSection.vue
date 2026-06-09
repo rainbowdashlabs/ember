@@ -20,6 +20,7 @@ import Td from '@/components/table/Td.vue'
 import THead from '@/components/table/THead.vue'
 import TRow from '@/components/table/TRow.vue'
 import ItemModals from './ItemModals.vue'
+import MemberName from '@/components/avatar/MemberName.vue'
 import type {InventoryDetail, InventoryItem, StationMember} from '@/api/types'
 import {InventoryTypes, ItemSource} from '@/api/types'
 import {inventory} from '@/api'
@@ -58,6 +59,11 @@ function getMemberName(memberId: number | null | undefined): string {
   if (!memberId) return ''
   const m = props.members.find(mem => mem.id === memberId)
   return m ? (m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`) : `#${memberId}`
+}
+
+function getMemberIdentity(memberId: number | null | undefined) {
+  if (!memberId) return null
+  return props.members.find(mem => mem.id === memberId)?.identity ?? null
 }
 
 function getSizeLabel(sizeId: number | null | undefined): string {
@@ -153,7 +159,7 @@ async function doMarkFound(item: InventoryItem) {
           </div>
           <div>
             <div class="text-(--text-muted)">{{ t('inventory.edit.colAssigned') }}</div>
-            <div v-if="item.assignedTo" class="text-primary font-medium">{{ getMemberName(item.assignedTo) }}</div>
+            <div v-if="item.assignedTo" class="font-medium"><MemberName :identity="getMemberIdentity(item.assignedTo)"/></div>
             <div v-else class="text-(--text-muted)">&#x2013;</div>
           </div>
         </div>
@@ -196,7 +202,7 @@ async function doMarkFound(item: InventoryItem) {
               <span v-else class="text-(--text-muted)">&#x2013;</span>
             </Td>
             <Td>
-              <span v-if="item.assignedTo" class="text-primary font-medium">{{ getMemberName(item.assignedTo) }}</span>
+              <MemberName v-if="item.assignedTo" :identity="getMemberIdentity(item.assignedTo)"/>
               <span v-else class="text-(--text-muted)">&#x2013;</span>
             </Td>
             <Td align="right">

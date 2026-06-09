@@ -17,6 +17,8 @@ const counts = ref<SidebarCounts>({
     openEvents: 0,
     waitingListEntries: 0,
     lostAndFoundPending: 0,
+    myInventoryCount: 0,
+    pendingExchanges: 0,
 })
 
 export function useSidebarCounts() {

@@ -23,7 +23,9 @@ import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
 import NoteEditor from '@/components/comment/NoteEditor.vue'
+import MemberName from '@/components/avatar/MemberName.vue'
 import {inventory, stationMembers} from '@/api'
 import type {InventoryItem, InventoryItemHistory, InventorySize, StationMember} from '@/api/types'
 import {StationPermission} from '@/api/types'
@@ -46,10 +48,11 @@ const success = ref('')
 
 const isManager = computed(() => hasPermission('INVENTORY_MANAGER') || hasPermission('STATION_ADMINISTRATOR'))
 const canEditItem = computed(() => canEdit.value || isManager.value)
-const currentAssignment = computed(() => {
-  const current = historyEntries.value.find(h => !h.returned)
-  return current?.memberName || null
+const assignedMember = computed(() => {
+  if (!item.value?.assignedTo) return null
+  return members.value.find(m => m.id === item.value!.assignedTo) ?? null
 })
+const assignedMemberIdentity = computed(() => assignedMember.value?.identity ?? null)
 
 // -- Edit state --
 const editing = ref(false)
@@ -240,11 +243,12 @@ onMounted(loadData)
             <div>
               <FieldLabel class="text-xs">{{ t('itemDetail.status') }}</FieldLabel>
               <ErrorBadge v-if="item.lostAt">{{ t('profile.lostSince') }} {{ formatDate(item.lostAt) }}</ErrorBadge>
-              <SuccessBadge v-else>{{ t('itemDetail.active') }}</SuccessBadge>
+              <SuccessBadge v-else-if="item.assignedTo">{{ t('itemDetail.statusAssigned') }}</SuccessBadge>
+              <InfoBadge v-else>{{ t('itemDetail.available') }}</InfoBadge>
             </div>
-            <div v-if="currentAssignment">
+            <div v-if="assignedMember">
               <FieldLabel class="text-xs">{{ t('itemDetail.assignedTo') }}</FieldLabel>
-              <span>{{ currentAssignment }}</span>
+              <MemberName :identity="assignedMemberIdentity"/>
             </div>
           </div>
         </NeutralContainer>
