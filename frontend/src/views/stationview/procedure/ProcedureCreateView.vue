@@ -11,7 +11,8 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
+import SelectInput from '@/components/input/select/SelectInput.vue'
+import ProcedureItemCard from '@/views/stationview/procedure/procedurecreateview/ProcedureItemCard.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -364,14 +365,14 @@ watch(loaded, (v) => {
         <!-- Template selector (create mode only) -->
         <NeutralContainer v-if="!isEditMode">
           <FieldLabel class="mb-2">{{ t('procedures.loadFromTemplate') }}</FieldLabel>
-          <select
-              class="w-full rounded-lg border border-(--border) bg-(--bg) text-(--text) p-2 outline-none focus:ring-2 focus:ring-primary/50"
-              :value="selectedTemplateId != null ? String(selectedTemplateId) : ''"
-              @change="handleTemplateChange(($event.target as HTMLSelectElement).value || undefined)"
+          <SelectInput
+              :model-value="selectedTemplateId != null ? String(selectedTemplateId) : ''"
+              class="w-full"
+              @update:model-value="handleTemplateChange($event || undefined)"
           >
             <option value="">{{ t('procedures.noTemplate') }}</option>
             <option v-for="tpl in templates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
-          </select>
+          </SelectInput>
           <MutedText size="sm" class="mt-1">{{ t('procedures.templateHint') }}</MutedText>
         </NeutralContainer>
 
@@ -435,52 +436,11 @@ watch(loaded, (v) => {
 
           <MutedText v-if="items.length === 0" size="sm">{{ t('procedures.noItems') }}</MutedText>
 
-          <div v-for="(item, index) in items" :key="index"
-               class="p-3 rounded-lg border border-(--border) space-y-2">
-            <div class="flex items-start gap-3">
-              <div class="flex-1 min-w-0 space-y-2">
-                <TextInput v-model="item.title" :placeholder="t('procedures.itemTitle')"/>
-                <TextAreaInput v-model="item.description" :placeholder="t('procedures.itemDescription')" :rows="2"/>
-              </div>
-              <div class="flex items-center gap-1 shrink-0">
-                <IconButton :icon="['fas', 'chevron-up']" :label="t('common.moveUp')" :disabled="index === 0"
-                            @click="moveItem(index, -1)"/>
-                <IconButton :icon="['fas', 'chevron-down']" :label="t('common.moveDown')"
-                            :disabled="index === items.length - 1" @click="moveItem(index, 1)"/>
-                <DeleteButton @click="removeItem(index)"/>
-              </div>
-            </div>
-            <div class="flex items-center gap-4 text-sm">
-              <label class="flex items-center gap-1.5 cursor-pointer">
-                <ToggleInput v-model="item.userAssigned"/>
-                <span class="text-(--text-muted)">{{ t('procedures.userCanCheck') }}</span>
-              </label>
-              <label class="flex items-center gap-1.5 cursor-pointer">
-                <ToggleInput v-model="item.isPublic"/>
-                <span class="text-(--text-muted)">{{ t('procedures.itemPublic') }}</span>
-              </label>
-            </div>
-            <!-- Dependencies -->
-            <div class="text-sm">
-              <FieldLabel class="mb-1">{{ t('procedures.dependsOn') }}</FieldLabel>
-              <div v-if="item.dependsOn.length > 0" class="flex flex-wrap gap-1 mb-1">
-                <span v-for="depId in item.dependsOn" :key="depId"
-                      class="inline-flex items-center gap-1 bg-(--bg-light-accent) dark:bg-(--bg-dark-accent) rounded px-2 py-0.5 text-xs">
-                  {{ items.find(i => i.tempId === depId)?.title || '?' }}
-                  <IconButton :icon="['fas', 'xmark']" label="Remove" class="!p-0"
-                              @click="item.dependsOn = item.dependsOn.filter(d => d !== depId)"/>
-                </span>
-              </div>
-              <select v-if="items.filter(i => i.tempId !== item.tempId && !item.dependsOn.includes(i.tempId)).length > 0"
-                      class="w-full rounded border border-(--border) bg-(--bg) text-(--text) p-1 text-xs"
-                      @change="(e: Event) => { const v = Number((e.target as HTMLSelectElement).value); if (v) { item.dependsOn = [...item.dependsOn, v]; (e.target as HTMLSelectElement).value = '' } }">
-                <option value="">{{ t('procedures.addDependency') }}</option>
-                <option v-for="other in items.filter(i => i.tempId !== item.tempId && !item.dependsOn.includes(i.tempId))"
-                        :key="other.tempId" :value="other.tempId">{{ other.title || t('procedures.untitledItem') }}
-                </option>
-              </select>
-            </div>
-          </div>
+          <ProcedureItemCard
+              v-for="(item, index) in items" :key="item.tempId"
+              :item="item" :index="index" :total-items="items.length" :all-items="items"
+              @move="moveItem(index, $event)" @remove="removeItem(index)"
+          />
         </NeutralContainer>
 
         <!-- Submit -->

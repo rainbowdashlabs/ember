@@ -1543,6 +1543,16 @@ const router = createRouter({
                     redirect: { name: 'help-procedure-module-overview' },
                 },
                 {
+                    path: 'procedures/create',
+                    name: 'help-procedure-create',
+                    redirect: { name: 'help-procedure-module-overview' },
+                },
+                {
+                    path: 'procedures/:id/edit',
+                    name: 'help-procedure-edit',
+                    redirect: { name: 'help-procedure-module-overview' },
+                },
+                {
                     path: 'procedures/templates',
                     name: 'help-procedure-template-list',
                     redirect: { name: 'help-procedure-module-overview' },
