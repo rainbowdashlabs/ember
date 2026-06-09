@@ -4923,6 +4923,7 @@ volumes:
         moduleTestProtocol: 'Prüfprotokolle',
         moduleKnowledgeBase: 'Lernsammlung',
         moduleBoards: 'Boards',
+        moduleProcedures: 'Abläufe',
         ownerBadge: 'Eigentümer',
         transferOwnershipTitle: 'Eigentümer übertragen',
         transferOwnershipHint: 'Übertrage die Eigentümerschaft dieser Wache an ein anderes Mitglied mit der Manager-Rolle.',

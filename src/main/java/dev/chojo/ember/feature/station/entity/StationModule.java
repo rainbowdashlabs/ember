@@ -19,5 +19,6 @@ public enum StationModule {
     QUIZ,
     KNOWLEDGE_BASE,
     TEST_PROTOCOL,
-    BOARDS
+    BOARDS,
+    PROCEDURES
 }
