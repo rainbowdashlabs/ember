@@ -28,7 +28,7 @@ ENV GITHUB_SHA=$GITHUB_SHA
 
 ENV DOCKER=true
 
-RUN apk add --no-cache typst pandoc libreoffice-still
+RUN apk add --no-cache typst pandoc libreoffice-impress
 
 WORKDIR /app
 
