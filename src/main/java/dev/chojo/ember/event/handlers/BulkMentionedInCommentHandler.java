@@ -9,7 +9,6 @@ import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.BulkMentionedInComment;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
-import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
@@ -24,7 +23,6 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -57,26 +55,30 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
 
     @Override
     public void handle(BulkMentionedInComment event) {
-        Set<Integer> memberIds = switch (event.mentionType()) {
-            case GROUP -> memberGroupRepository.findMembers(event.mentionTargetId()).stream()
-                    .map(StationMember::id)
-                    .collect(java.util.stream.Collectors.toCollection(HashSet::new));
-            case EVENT -> resolveEventMembers(event);
-            case REGISTERED -> resolveRegistrationsByStatus(event.mentionTargetId(), RegistrationStatus.ACCEPTED);
-            case DECLINED -> resolveRegistrationsByStatus(event.mentionTargetId(), RegistrationStatus.DECLINED);
-        };
+        Set<Integer> memberIds =
+                switch (event.mentionType()) {
+                    case GROUP ->
+                        memberGroupRepository.findMembers(event.mentionTargetId()).stream()
+                                .map(StationMember::id)
+                                .collect(java.util.stream.Collectors.toCollection(HashSet::new));
+                    case EVENT -> resolveEventMembers(event);
+                    case REGISTERED ->
+                        resolveRegistrationsByStatus(event.mentionTargetId(), RegistrationStatus.ACCEPTED);
+                    case DECLINED -> resolveRegistrationsByStatus(event.mentionTargetId(), RegistrationStatus.DECLINED);
+                };
 
         if (event.mentionType() != dev.chojo.ember.feature.comment.entity.MentionType.GROUP) {
             addGuardians(memberIds);
         }
 
-        var link = switch (event.entityType()) {
-            case NEWS -> new NotificationData.NotificationLink("news-detail", Map.of("id", event.entityId()));
-            case BOARD_TICKET ->
-                    new NotificationData.NotificationLink("ticket-detail", Map.of("ticketId", event.entityId()));
-            case KB -> new NotificationData.NotificationLink("kb-file", Map.of("id", event.entityId()));
-            case EVENT -> new NotificationData.NotificationLink("event-detail", Map.of("id", event.entityId()));
-        };
+        var link =
+                switch (event.entityType()) {
+                    case NEWS -> new NotificationData.NotificationLink("news-detail", Map.of("id", event.entityId()));
+                    case BOARD_TICKET ->
+                        new NotificationData.NotificationLink("ticket-detail", Map.of("ticketId", event.entityId()));
+                    case KB -> new NotificationData.NotificationLink("kb-file", Map.of("id", event.entityId()));
+                    case EVENT -> new NotificationData.NotificationLink("event-detail", Map.of("id", event.entityId()));
+                };
 
         var data = NotificationData.of(
                 new NotificationParams.CommentMention(event.entityTitle(), event.authorName()), link);

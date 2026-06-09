@@ -104,6 +104,31 @@ function goBack() {
     }
 }
 
+useHead(computed(() => {
+    if (!file.value || !stationInfo.value) return {}
+    const f = file.value
+    const desc = f.description || `${f.name} — ${stationInfo.value.stationName}`
+    return {
+        title: `${f.name} — ${stationInfo.value.stationName}`,
+        meta: [
+            {name: 'description', content: desc},
+        ],
+        script: [
+            {
+                type: 'application/ld+json',
+                children: JSON.stringify({
+                    '@context': 'https://schema.org',
+                    '@type': 'BreadcrumbList',
+                    itemListElement: [
+                        {'@type': 'ListItem', position: 1, name: stationInfo.value.stationName, item: `/public/station/${stationUid.value}/knowledge`},
+                        {'@type': 'ListItem', position: 2, name: f.name},
+                    ],
+                }),
+            },
+        ],
+    }
+}))
+
 onMounted(() => {
     loadData()
 })

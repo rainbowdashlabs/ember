@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
+import {computed, nextTick, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import {marked} from 'marked'
@@ -157,12 +157,13 @@ async function loadData() {
     if ((canManageEvents() || canManageAttendance()) && isRecurringEvent(ev.eventType) && ev.dayOfWeek) {
       await loadAbsences()
     }
-    await registrationsTab.value?.loadRegistrations()
   } catch {
     error.value = t('common.error')
   } finally {
     loading.value = false
   }
+  await nextTick()
+  await registrationsTab.value?.loadRegistrations()
 }
 
 async function loadAbsences() {

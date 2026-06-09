@@ -1,0 +1,17 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+<script setup lang="ts">
+import ModuleOverviewHelp from '~/views/helpcenter/stationview/knowledge/ModuleOverviewHelp'
+
+definePageMeta({
+  layout: 'helpcenter',
+  name: 'help-knowledge-module-overview',
+})
+</script>
+
+<template>
+  <ModuleOverviewHelp />
+</template>

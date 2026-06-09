@@ -8,13 +8,13 @@ import {computed, onMounted, provide, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
-import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
 import SidebarLink from '@/components/navigation/SidebarLink.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type {PublicStationInfo} from '@/api/discovery'
 import {getPublicStationInfo} from '@/api/discovery'
+import {useCanonical} from '~/composables/useCanonical'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -40,6 +40,43 @@ onMounted(async () => {
 })
 
 provide('publicStation', station)
+
+useCanonical(() => route.path)
+
+useHead(computed(() => {
+  if (!station.value) return {}
+  const s = station.value
+  const desc = s.description || `Öffentliche Seite von ${s.name}`
+  const stationLogo = s.hasLogo ? `/api/v1/public/stations/${s.stationUid}/logo` : undefined
+  return {
+    title: s.name,
+    meta: [
+      {name: 'description', content: desc},
+      {property: 'og:title', content: `${s.name} — Ember`},
+      {property: 'og:description', content: desc},
+      {property: 'og:type', content: 'website'},
+      ...(stationLogo ? [
+        {property: 'og:image', content: stationLogo},
+        {name: 'twitter:image', content: stationLogo},
+      ] : []),
+      {name: 'twitter:card', content: stationLogo ? 'summary_large_image' : 'summary'},
+      {name: 'twitter:title', content: `${s.name} — Ember`},
+      {name: 'twitter:description', content: desc},
+    ],
+    script: [
+      {
+        type: 'application/ld+json',
+        children: JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'Organization',
+          name: s.name,
+          ...(s.description ? {description: s.description} : {}),
+          ...(stationLogo ? {logo: stationLogo} : {}),
+        }),
+      },
+    ],
+  }
+}))
 </script>
 
 <template>
@@ -52,17 +89,12 @@ provide('publicStation', station)
       :station-logo-url="logoUrl"
   >
     <template #sidebar="{ close }">
-      <SidebarGroup v-if="station.hasPublicCalendar" :icon="['fas', 'calendar-days']" :label="t('publicStation.calendar')" :prefix="basePath + '/calendar'">
-        <SidebarLink :icon="['fas', 'calendar']" name="public-station-calendar" :to="basePath + '/calendar'" @navigate="close">
-          {{ t('publicStation.upcomingEvents') }}
-        </SidebarLink>
-      </SidebarGroup>
-
-      <SidebarGroup v-if="station.hasPublicKb" :icon="['fas', 'book-open']" :label="t('publicStation.knowledgeBase')" :prefix="basePath + '/knowledge'">
-        <SidebarLink :icon="['fas', 'folder-open']" name="public-kb" :to="basePath + '/knowledge'" @navigate="close">
-          {{ t('publicStation.knowledgeBase') }}
-        </SidebarLink>
-      </SidebarGroup>
+      <SidebarLink v-if="station.hasPublicCalendar" :icon="['fas', 'calendar-days']" name="public-station-calendar" :to="basePath + '/calendar'" @navigate="close">
+        {{ t('publicStation.calendar') }}
+      </SidebarLink>
+      <SidebarLink v-if="station.hasPublicKb" :icon="['fas', 'book-open']" name="public-kb" :to="basePath + '/knowledge'" @navigate="close">
+        {{ t('publicStation.knowledgeBase') }}
+      </SidebarLink>
     </template>
 
     <template #header>
@@ -74,6 +106,6 @@ provide('publicStation', station)
       </router-link>
     </template>
 
-    <RouterView/>
+    <slot><RouterView/></slot>
   </SidebarLayout>
 </template>

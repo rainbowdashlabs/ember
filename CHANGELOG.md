@@ -1,5 +1,50 @@
 # Changelog
 
+## v26.7.0
+
+### New Features
+
+#### Server-Side Rendering
+- **Nuxt 3 SSR migration** — frontend migrated from Vue SPA to Nuxt 3 with hybrid rendering: SSR for public pages, ISR for help center, SPA for authenticated station/admin views
+- **Two-container deployment** — separate backend (Java) and frontend (Nuxt) Docker images for independent scaling and deployment
+
+#### SEO
+- **Dynamic sitemap** — `@nuxtjs/sitemap` generates `/sitemap.xml` with static pages and dynamic station URLs fetched from the discovery API
+- **robots.txt** — crawl rules allowing public pages (`/discovery`, `/public/`, `/helpcenter/`) and blocking private routes (`/station/`, `/admin/`, `/api/`)
+- **Canonical URLs** — `useCanonical` composable adds `<link rel="canonical">` and `og:url` to all public pages
+- **Open Graph & Twitter cards** — all public pages include OG tags (title, description, type, image, locale, site_name) and Twitter card meta
+- **Structured data (JSON-LD)** — `SoftwareApplication` on homepage, `Organization` on station pages, `Event` on public calendar (enables rich results), `BreadcrumbList` on KB navigation
+- **SearchAction schema** — sitelinks search box on discovery page
+- **Google optimizations** — `max-image-preview:large`, `max-snippet:-1`, `max-video-preview:-1` for richer search result previews
+- **Google Search Console** — optional `NUXT_PUBLIC_GOOGLE_SITE_VERIFICATION` env var for site verification
+- **Help center SEO** — `HelpArticle` component auto-generates meta description and OG tags from article title/subtitle for all 142 help pages
+
+#### Documentation
+- **Environment variable reference** — hosting help page now documents all env vars organized by category: Database, API, Mailing, Auth, Theming, Tools, Frontend, Demo, and Docker/Compose — each with default value and beginner-friendly description
+
+### Improvements
+- **Frontend Docker image** — replaced `nixos/nix:latest` with `node:24-alpine` for dramatically faster builds (no nix-shell overhead)
+- **Inventory item status** — item detail now shows "Zugewiesen" (assigned) or "Verfügbar" (available) instead of generic "Aktiv"
+- **Inventory member avatars** — member names in inventory edit view now display with avatars via MemberName component
+- **Members sidebar badge** — now includes both pending changes and waiting list entry counts
+- **Inventory sidebar badge** — shows pending exchange request count on the inventory section
+
+### Bug Fixes
+- **Help center waiting list link** — home page feature tile linked to non-existent route `/helpcenter/station/members/waitinglist` instead of `/helpcenter/station/members/waiting-lists`
+- **Inventory item assigned user** — assigned user was not shown on the item detail page; lookup relied on history entries instead of the direct assignment
+- **Permission picker rollback** — unchecking a parent permission (e.g. LOST_AND_FOUND_MANAGE) discarded previously selected child permissions (e.g. LOST_AND_FOUND_CREATE) instead of restoring them
+- **My Inventory tab visibility** — sidebar tab was always visible even when the user had no assigned inventory items
+
+### Technical Changes
+
+#### Frontend Architecture
+- **`useCanonical` composable** — reusable canonical URL + `og:url` injection from `NUXT_PUBLIC_SITE_URL`
+- **`__sitemap` server route** — Nitro server route fetching discoverable stations for dynamic sitemap entries
+- **`build.mjs` wrapper** — polls for build output completion, then SIGKILL's the detached nuxi process group to work around esbuild hang
+
+#### CI/CD
+- **`ignore-checks`** — Docker Build workflow excludes `Verify Docker Build` from `wait-on-check-action` to prevent deadlock
+
 ## v26.6.1
 
 ### New Features

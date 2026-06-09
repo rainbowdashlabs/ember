@@ -40,7 +40,8 @@ import java.util.regex.Pattern;
 public class NewsService {
     private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[([^/]+)/([^:]+):([^\\]]+)]");
     private static final Pattern MENTION_PATTERN_LEGACY = Pattern.compile("@\\[(\\d+):([^\\]]+)]");
-    private static final Pattern BULK_MENTION_PATTERN = Pattern.compile("@\\[(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):(\\d+)]");
+    private static final Pattern BULK_MENTION_PATTERN =
+            Pattern.compile("@\\[(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):(\\d+)]");
 
     private final NewsRepository newsRepository;
     private final RestrictionRepository restrictionRepository;
@@ -92,8 +93,10 @@ public class NewsService {
 
     private String resolveAuthorName(int stationId, MemberIdentity author) {
         if (author == null) return "";
-        return stationMemberRepository.resolveId(stationId, author.memberUid())
-                .flatMap(memberId -> stationMemberRepository.findById(memberId)
+        return stationMemberRepository
+                .resolveId(stationId, author.memberUid())
+                .flatMap(memberId -> stationMemberRepository
+                        .findById(memberId)
                         .filter(m -> m.accountId() != null)
                         .flatMap(m -> accountRepository.findById(m.accountId()))
                         .map(a -> a.fullName()))
@@ -264,8 +267,13 @@ public class NewsService {
                         stationMemberRepository.resolveId(stationId, memberUid).ifPresent(mentionedId -> {
                             if (!mentionedId.equals(authorMemberId)) {
                                 eventBus.publish(new MentionedInComment(
-                                        stationId, mentionedId, authorMemberId, authorName,
-                                        CommentEntityType.NEWS, newsId, news.title()));
+                                        stationId,
+                                        mentionedId,
+                                        authorMemberId,
+                                        authorName,
+                                        CommentEntityType.NEWS,
+                                        newsId,
+                                        news.title()));
                             }
                         });
                     } catch (IllegalArgumentException ignored) {
@@ -276,8 +284,13 @@ public class NewsService {
                     int mentionedId = Integer.parseInt(legacyMatcher.group(1));
                     if (mentionedId != authorMemberId) {
                         eventBus.publish(new MentionedInComment(
-                                stationId, mentionedId, authorMemberId, authorName,
-                                CommentEntityType.NEWS, newsId, news.title()));
+                                stationId,
+                                mentionedId,
+                                authorMemberId,
+                                authorName,
+                                CommentEntityType.NEWS,
+                                newsId,
+                                news.title()));
                     }
                 }
                 var bulkMatcher = BULK_MENTION_PATTERN.matcher(content);
@@ -285,8 +298,14 @@ public class NewsService {
                     var type = MentionType.valueOf(bulkMatcher.group(1));
                     int targetId = Integer.parseInt(bulkMatcher.group(3));
                     eventBus.publish(new BulkMentionedInComment(
-                            stationId, authorMemberId, authorName,
-                            CommentEntityType.NEWS, newsId, news.title(), type, targetId));
+                            stationId,
+                            authorMemberId,
+                            authorName,
+                            CommentEntityType.NEWS,
+                            newsId,
+                            news.title(),
+                            type,
+                            targetId));
                 }
             }
         }

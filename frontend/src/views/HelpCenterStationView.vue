@@ -491,6 +491,6 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
       </router-link>
     </template>
 
-    <RouterView/>
+    <slot><RouterView/></slot>
   </SidebarLayout>
 </template>

@@ -31,20 +31,6 @@ onMounted(async () => {
     isDemo.value = res.data.demo ?? false
   } catch { /* ignore */ }
   adminSettings.isRegistrationEnabled().then(v => registrationEnabled.value = v).catch(() => {})
-
-  const script = document.createElement('script')
-  script.type = 'application/ld+json'
-  script.textContent = JSON.stringify({
-    '@context': 'https://schema.org',
-    '@type': 'SoftwareApplication',
-    name: 'Ember',
-    applicationCategory: 'BusinessApplication',
-    operatingSystem: 'Web',
-    description: t('landing.heroSubtitle'),
-    offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
-    author: { '@type': 'Organization', name: 'RainbowDashLabs' },
-  })
-  document.head.appendChild(script)
 })
 
 const features = [
@@ -57,7 +43,7 @@ const features = [
   {icon: ['fas', 'book-open'], key: 'knowledgeBase', help: '/helpcenter/station/knowledge'},
   {icon: ['fas', 'graduation-cap'], key: 'quiz', help: '/helpcenter/station/quiz/catalogs'},
   {icon: ['fas', 'clipboard-check'], key: 'protocol', help: '/helpcenter/station/protocols'},
-  {icon: ['fas', 'list-check'], key: 'waitingList', help: '/helpcenter/station/members/waitinglist'},
+  {icon: ['fas', 'list-check'], key: 'waitingList', help: '/helpcenter/station/members/waiting-lists'},
   {icon: ['fas', 'box-open'], key: 'lostAndFound', help: '/helpcenter/station/inventory/overview'},
   {icon: ['fas', 'arrow-right-arrow-left'], key: 'federation', help: '/helpcenter/station/manage/federation'},
   {icon: ['fas', 'globe'], key: 'publicStation', help: '/helpcenter/station/manage/federation/settings'},
@@ -139,7 +125,7 @@ const highlights = [
             :key="`f-${i}`"
             :to="feature.help"
             class="shrink-0 rounded-xl border border-(--border) bg-(--bg) p-6 transition-shadow hover:border-primary/40 hover:shadow-lg"
-            :style="{ width: 'var(--tile-w)' }"
+            :style="{ width: 'var(--tile-w, 100%)' }"
           >
             <div class="flex items-center justify-center h-12 w-12 rounded-lg bg-primary/10 mb-4 mx-auto">
               <font-awesome-icon :icon="feature.icon" class="h-6 w-6 text-primary"/>
@@ -167,7 +153,7 @@ const highlights = [
             v-for="(h, i) in [...highlights, ...highlights]"
             :key="`h-${i}`"
             class="shrink-0 rounded-xl border border-(--border) bg-(--bg) p-6"
-            :style="{ width: 'var(--tile-w)' }"
+            :style="{ width: 'var(--tile-w, 100%)' }"
           >
             <div class="flex items-center justify-center h-10 w-10 rounded-lg bg-secondary/10 mb-3 mx-auto">
               <font-awesome-icon :icon="h.icon" class="h-5 w-5 text-secondary"/>

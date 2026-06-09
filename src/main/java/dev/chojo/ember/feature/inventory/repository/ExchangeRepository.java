@@ -184,6 +184,15 @@ public class ExchangeRepository {
                 .all();
     }
 
+    public int countPendingByStation(int stationId) {
+        return Query.query(
+                        "SELECT count(*) FROM equipment_exchange_request WHERE station_id = :station_id AND status != :done;")
+                .single(Call.of().bind("station_id", stationId).bind("done", ExchangeStatus.EXCHANGED))
+                .map(row -> row.getInt(1))
+                .first()
+                .orElse(0);
+    }
+
     /**
      * Deletes an exchange request by its ID.
      *

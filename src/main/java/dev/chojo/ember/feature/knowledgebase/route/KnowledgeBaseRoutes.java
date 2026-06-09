@@ -12,12 +12,9 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.event.DomainEventBus;
-import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.CommentDeleted;
-import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationShare;
@@ -1138,8 +1135,7 @@ public class KnowledgeBaseRoutes implements Routes {
         }
         String authorName = resolveMemberName(session.member().id());
         var comment = service.createComment(
-                session.stationId(), fileId, req.parentId(),
-                session.member().id(), authorName, req.content());
+                session.stationId(), fileId, req.parentId(), session.member().id(), authorName, req.content());
         ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
     }
 

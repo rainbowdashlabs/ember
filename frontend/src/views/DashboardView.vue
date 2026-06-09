@@ -178,7 +178,7 @@ async function handleLogout() {
         </SidebarExpandableLink>
       </SidebarGroup>
 
-      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="hasAnyMemberPermission() || hasAnyWaitlistPermission()" :badge="counts.pendingChanges" :icon="['fas', 'users']"
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="hasAnyMemberPermission() || hasAnyWaitlistPermission()" :badge="counts.pendingChanges + counts.waitingListEntries" :icon="['fas', 'users']"
                     :label="t('sidebar.members')" prefix="/station/members" :to="membersDefaultRoute" name="members-list" @navigate="close">
         <SidebarLink v-if="hasPermission(StationPermission.MEMBER_EDIT)" :icon="['fas', 'user-plus']" name="members-create" to="/station/members/create" @navigate="close">
           {{ t('sidebar.create') }}
@@ -214,12 +214,12 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.INVENTORY)" :icon="['fas', 'boxes-stacked']" :label="t('sidebar.inventory')" prefix="/station/inventory">
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.INVENTORY)" :badge="counts.pendingExchanges" :icon="['fas', 'boxes-stacked']" :label="t('sidebar.inventory')" prefix="/station/inventory">
         <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_READ)" :icon="['fas', 'house']" name="inventory-overview" to="/station/inventory/overview"
                      @navigate="close">
           {{ t('sidebar.overview') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'boxes-stacked']" name="inventory-my" to="/station/inventory/my"
+        <SidebarLink v-if="counts.myInventoryCount > 0" :icon="['fas', 'boxes-stacked']" name="inventory-my" to="/station/inventory/my"
                      @navigate="close">
           {{ t('sidebar.myInventory') }}
         </SidebarLink>
@@ -391,7 +391,7 @@ async function handleLogout() {
     <Alert v-if="isDemo" class="mb-4" variant="info">
       {{ t('demo.banner') }}
     </Alert>
-    <RouterView/>
+    <slot><RouterView/></slot>
     <OnboardingTour/>
     <ReportProblemButton/>
     <DevToolsButton/>

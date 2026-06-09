@@ -1,0 +1,17 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+<script setup lang="ts">
+import ApiStatusHelp from '~/views/helpcenter/adminview/ApiStatusHelp'
+
+definePageMeta({
+  layout: 'helpcenter',
+  name: 'help-admin-api-status',
+})
+</script>
+
+<template>
+  <ApiStatusHelp />
+</template>

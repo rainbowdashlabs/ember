@@ -18,8 +18,9 @@ const allLayers: LogoLayer[] = [
     { name: 'fire_eyes_right', label: 'Right Open' },
     { name: 'fire_eyes_right_half', label: 'Right Half' },
     { name: 'fire_blink_right', label: 'Right Blink' },
-    { name: 'fire_eyes_blink', label: 'Squint' },
     { name: 'fire_faq', label: 'FAQ' },
+    { name: 'fire_woah_one', label: 'Woah 1' },
+    { name: 'fire_woah_two', label: 'Woah 2' },
 ]
 
 /** Standard ember logo: glow + flame + eyes looking forward */

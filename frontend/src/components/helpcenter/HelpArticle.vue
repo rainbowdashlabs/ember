@@ -4,13 +4,23 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 
-defineProps<{
+const props = defineProps<{
   title: string
   subtitle?: string
 }>()
+
+useHead(computed(() => ({
+  meta: [
+    {name: 'description', content: props.subtitle || `Hilfe-Center: ${props.title}`},
+    {property: 'og:title', content: `${props.title} — Hilfe-Center — Ember`},
+    {property: 'og:description', content: props.subtitle || `Hilfe-Center: ${props.title}`},
+    {property: 'og:type', content: 'article'},
+  ],
+})))
 </script>
 
 <template>

@@ -81,6 +81,13 @@ class ExchangeRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(4)
+    void countPendingByStation() {
+        assertEquals(1, exchangeRepo.countPendingByStation(station.id()));
+        assertEquals(0, exchangeRepo.countPendingByStation(-1));
+    }
+
+    @Test
     @Order(5)
     void updateStatus() {
         assertTrue(exchangeRepo.updateStatus(requestId, ExchangeStatus.RECEIVED));
@@ -94,6 +101,7 @@ class ExchangeRepositoryTest extends RepositoryTestBase {
         assertTrue(exchangeRepo.updateStatusWithExchangedItem(requestId, ExchangeStatus.EXCHANGED, itemId));
         var request = exchangeRepo.findById(requestId).orElseThrow();
         assertEquals(ExchangeStatus.EXCHANGED, request.status());
+        assertEquals(0, exchangeRepo.countPendingByStation(station.id()));
     }
 
     @Test

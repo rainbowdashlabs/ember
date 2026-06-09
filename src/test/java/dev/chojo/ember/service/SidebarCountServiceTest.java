@@ -14,6 +14,8 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
+import dev.chojo.ember.feature.inventory.service.ExchangeService;
+import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
@@ -44,6 +46,8 @@ class SidebarCountServiceTest {
     private WaitingListRepository waitingListRepository;
     private LostAndFoundRepository lostAndFoundRepository;
     private StationRepository stationRepository;
+    private InventoryService inventoryService;
+    private ExchangeService exchangeService;
 
     private SidebarCountService service;
 
@@ -62,6 +66,8 @@ class SidebarCountServiceTest {
         waitingListRepository = mock(WaitingListRepository.class);
         lostAndFoundRepository = mock(LostAndFoundRepository.class);
         stationRepository = mock(StationRepository.class);
+        inventoryService = mock(InventoryService.class);
+        exchangeService = mock(ExchangeService.class);
         when(stationRepository.resolveUid(STATION_ID)).thenReturn(STATION_UID);
 
         service = new SidebarCountService(
@@ -73,7 +79,9 @@ class SidebarCountServiceTest {
                 federationRepository,
                 waitingListRepository,
                 lostAndFoundRepository,
-                stationRepository);
+                stationRepository,
+                inventoryService,
+                exchangeService);
     }
 
     private UserSession sessionWithPermissions(Set<StationPermission> permissions) {
@@ -108,6 +116,8 @@ class SidebarCountServiceTest {
         when(lostAndFoundRepository.countClaimedNotProvided(STATION_ID)).thenReturn(1);
 
         when(federationRepository.countPendingRequests(STATION_UID)).thenReturn(8);
+        when(inventoryService.countItemsByMember(MEMBER_ID)).thenReturn(9);
+        when(exchangeService.countPendingByStation(STATION_ID)).thenReturn(3);
 
         var counts = service.getCounts(session);
 
@@ -120,6 +130,8 @@ class SidebarCountServiceTest {
         assertEquals(0, counts.openEvents());
         assertEquals(6, counts.waitingListEntries());
         assertEquals(1, counts.lostAndFoundPending());
+        assertEquals(9, counts.myInventoryCount());
+        assertEquals(3, counts.pendingExchanges());
     }
 
     @Test
@@ -142,6 +154,8 @@ class SidebarCountServiceTest {
         assertEquals(0, counts.openEvents());
         assertEquals(0, counts.waitingListEntries());
         assertEquals(0, counts.lostAndFoundPending());
+        assertEquals(0, counts.myInventoryCount());
+        assertEquals(0, counts.pendingExchanges());
 
         verifyNoInteractions(profileFieldChangeRepository);
         verifyNoInteractions(eventRepository);
@@ -149,6 +163,7 @@ class SidebarCountServiceTest {
         verifyNoInteractions(federationRepository);
         verifyNoInteractions(waitingListRepository);
         verifyNoInteractions(lostAndFoundRepository);
+        verifyNoInteractions(exchangeService);
     }
 
     @Test
@@ -205,7 +220,7 @@ class SidebarCountServiceTest {
 
     @Test
     void sidebarCountsRecord() {
-        var counts = new SidebarCounts(1, 2, 3, 4, 5, 6, 7, 8, 9);
+        var counts = new SidebarCounts(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11);
 
         assertEquals(1, counts.notifications());
         assertEquals(2, counts.requirements());
@@ -216,11 +231,13 @@ class SidebarCountServiceTest {
         assertEquals(7, counts.openEvents());
         assertEquals(8, counts.waitingListEntries());
         assertEquals(9, counts.lostAndFoundPending());
+        assertEquals(10, counts.myInventoryCount());
+        assertEquals(11, counts.pendingExchanges());
     }
 
     @Test
     void sidebarCountsZeroed() {
-        var counts = new SidebarCounts(0, 0, 0, 0, 0, 0, 0, 0, 0);
+        var counts = new SidebarCounts(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
         assertEquals(0, counts.notifications());
         assertEquals(0, counts.requirements());
@@ -231,12 +248,14 @@ class SidebarCountServiceTest {
         assertEquals(0, counts.openEvents());
         assertEquals(0, counts.waitingListEntries());
         assertEquals(0, counts.lostAndFoundPending());
+        assertEquals(0, counts.myInventoryCount());
+        assertEquals(0, counts.pendingExchanges());
     }
 
     @Test
     void sidebarCountsEquality() {
-        var a = new SidebarCounts(1, 2, 3, 4, 5, 6, 7, 8, 9);
-        var b = new SidebarCounts(1, 2, 3, 4, 5, 6, 7, 8, 9);
+        var a = new SidebarCounts(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11);
+        var b = new SidebarCounts(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11);
         assertEquals(a, b);
         assertEquals(a.hashCode(), b.hashCode());
     }

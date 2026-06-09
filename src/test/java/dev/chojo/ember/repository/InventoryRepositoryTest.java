@@ -148,10 +148,12 @@ class InventoryRepositoryTest extends RepositoryTestBase {
                 member.id(), inventoryRepo.findItemById(itemId).orElseThrow().assignedTo());
 
         assertFalse(inventoryRepo.findItemsByMember(member.id()).isEmpty());
+        assertEquals(1, inventoryRepo.countItemsByMember(member.id()));
 
         // Unassign
         assertTrue(inventoryRepo.assignItem(itemId, null));
         assertNull(inventoryRepo.findItemById(itemId).orElseThrow().assignedTo());
+        assertEquals(0, inventoryRepo.countItemsByMember(member.id()));
     }
 
     // -- History --

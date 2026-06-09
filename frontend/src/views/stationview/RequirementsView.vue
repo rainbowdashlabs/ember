@@ -28,7 +28,7 @@ const hasRequirements = computed(() =>
 
 function redirectAway() {
     const redirect = route.query.redirect as string | undefined
-    router.replace(redirect || {name: 'dashboard-overview'})
+    router.replace(redirect || '/station/dashboard/overview')
 }
 
 onMounted(async () => {

@@ -141,6 +141,20 @@ let publicThemeFetched = false
 async function fetchPublicTheme() {
     if (publicThemeFetched) return
     publicThemeFetched = true
+
+    // Apply cached instance theme immediately to avoid flash
+    const cachedTheme = getItem('instance_theme')
+    const cachedFeel = getItem('instance_feel') as FeelValue | null
+    if (cachedTheme && !getItem('theme_name')) {
+        activeTheme.value = cachedTheme
+        applyTheme(cachedTheme)
+        if (cachedFeel) {
+            const feel = resolveEffectiveFeel(cachedFeel, cachedTheme)
+            activeFeel.value = feel
+            applyFeel(feel)
+        }
+    }
+
     try {
         const { getPublicTheme } = await import('@/api/adminSettings')
         const pub = await getPublicTheme()
@@ -148,7 +162,9 @@ async function fetchPublicTheme() {
         instanceFeel.value = (pub.defaultFeel ?? 'ROUNDED') as FeelValue
         usePride().setForcePrideFlag(pub.forcePrideFlag ?? false)
 
-        // Apply instance defaults only if no session/user theme has been set
+        setItem('instance_theme', pub.defaultTheme)
+        setItem('instance_feel', pub.defaultFeel ?? 'ROUNDED')
+
         const savedTheme = getItem('theme_name')
         if (!savedTheme || !THEMES[savedTheme]) {
             activeTheme.value = pub.defaultTheme

@@ -154,8 +154,8 @@ onUnmounted(() => {
     <!-- Reel -->
     <div
       ref="viewport"
-      class="overflow-hidden flex-1 min-w-0 px-1 py-2"
-      :style="{ '--tile-w': tileWidth + 'px' }"
+      class="overflow-hidden flex-1 min-w-0 py-2"
+      :style="tileWidth > 0 ? { '--tile-w': tileWidth + 'px' } : undefined"
       @touchstart="onTouchStart"
       @touchmove="onTouchMove"
       @touchend="onTouchEnd"

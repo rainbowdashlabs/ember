@@ -131,7 +131,7 @@ onMounted(loadMailConfig)
   <NeutralContainer class="space-y-4">
     <div class="flex items-center gap-2">
       <SectionHeader>{{ t('stationManage.mailTitle') }}</SectionHeader>
-      <router-link :to="{name: 'help-station-mail-config'}" target="_blank" class="text-[var(--text-muted)] hover:text-primary transition-colors">
+      <router-link :to="{name: 'help-station-mailing'}" target="_blank" class="text-[var(--text-muted)] hover:text-primary transition-colors">
         <font-awesome-icon :icon="['fas', 'circle-question']" class="w-4 h-4"/>
       </router-link>
     </div>

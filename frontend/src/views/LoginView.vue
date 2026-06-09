@@ -101,7 +101,7 @@ const roleGroups = computed(() => {
 onMounted(async () => {
   const token = getItem('session_token')
   if (token) {
-    router.push({name: 'dashboard-overview'})
+    navigateTo('/station/dashboard/overview')
     return
   }
 
@@ -139,11 +139,11 @@ async function resolveStationAndRedirect() {
   const stations = await session.getStations()
   if (stations.length === 1) {
     setActiveStation(stations[0].stationId)
-    await router.push(redirectPath || {name: 'requirements'})
+    await navigateTo(redirectPath || '/station/requirements')
   } else if (stations.length > 1) {
-    await router.push({name: 'station-select', query: redirectPath ? {redirect: redirectPath} : undefined})
+    await navigateTo({path: '/station-select', query: redirectPath ? {redirect: redirectPath} : undefined})
   } else {
-    await router.push(redirectPath || {name: 'requirements'})
+    await navigateTo(redirectPath || '/station/requirements')
   }
 }
 
@@ -239,8 +239,8 @@ async function handleLogin() {
     const result = await auth.login({email: email.value, password: password.value})
 
     if (result.passwordChangeRequired && result.passwordChangeToken) {
-      await router.push({
-        name: 'set-password',
+      await navigateTo({
+        path: '/set-password',
         query: {token: result.passwordChangeToken},
       })
       return

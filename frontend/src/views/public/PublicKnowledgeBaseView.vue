@@ -129,6 +129,35 @@ function onSearchInput() {
     }, 300)
 }
 
+useHead(computed(() => {
+    if (!stationInfo.value) return {}
+    const folderName = currentFolder.value?.name
+    const title = folderName
+        ? `${folderName} — Wissensdatenbank — ${stationInfo.value.stationName}`
+        : `Wissensdatenbank — ${stationInfo.value.stationName}`
+    const desc = currentFolder.value?.description || `Öffentliche Wissensdatenbank von ${stationInfo.value.stationName}`
+    const breadcrumbs: { '@type': string; position: number; name: string; item?: string }[] = [
+        {'@type': 'ListItem', position: 1, name: stationInfo.value.stationName, item: `/public/station/${stationUid.value}/knowledge`},
+    ]
+    if (folderName) {
+        breadcrumbs.push({'@type': 'ListItem', position: 2, name: folderName})
+    }
+    return {
+        title,
+        meta: [{name: 'description', content: desc}],
+        script: [
+            {
+                type: 'application/ld+json',
+                children: JSON.stringify({
+                    '@context': 'https://schema.org',
+                    '@type': 'BreadcrumbList',
+                    itemListElement: breadcrumbs,
+                }),
+            },
+        ],
+    }
+}))
+
 watch(() => route.query.folderId, () => {
     loadData()
 })

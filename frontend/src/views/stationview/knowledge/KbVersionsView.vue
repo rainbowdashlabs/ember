@@ -164,7 +164,7 @@ onMounted(() => {
         </template>
 
         <!-- Revert Confirmation -->
-        <Modal :show="showRevertModal" @close="showRevertModal = false">
+        <Modal v-model="showRevertModal">
             <template #title>{{ t('kb.revert') }}</template>
             <p class="mb-4">{{ t('kb.revertConfirm') }}</p>
             <div class="flex gap-2 justify-end">

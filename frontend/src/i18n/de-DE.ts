@@ -907,30 +907,61 @@ export default {
                     },
                 },
                 docker: 'Installation mit Docker',
-                dockerText: 'Der einfachste Weg ist Docker Compose. Erstelle eine docker-compose.yml:',
+                dockerText: 'Ember besteht aus zwei Containern: dem Backend (Java API) und dem Frontend (Nuxt SSR). Der einfachste Weg ist Docker Compose. Das folgende Beispiel enthält Traefik-Labels für automatisches HTTPS:',
                 dockerCompose: `services:
-  ember:
-    image: ghcr.io/rainbowdashlabs/ember:latest
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./config:/app/config
-      - ./data:/app/data
-    depends_on:
-      - postgres
-
   postgres:
-    image: postgres:17
+    image: postgres:17-alpine
     environment:
       POSTGRES_DB: ember
       POSTGRES_USER: ember
       POSTGRES_PASSWORD: sicher-aendern
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ember"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  ember:
+    image: ghcr.io/rainbowdashlabs/ember-backend:latest
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: ember
+      DB_PASSWORD: sicher-aendern
+      DB_DATABASE: ember
+      DB_SCHEMA: ember_schema
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.ember-api.rule: >
+        Host(\`ember.example.com\`) && PathPrefix(\`/api\`)
+      traefik.http.routers.ember-api.entrypoints: websecure
+      traefik.http.routers.ember-api.tls.certresolver: letsencrypt
+      traefik.http.services.ember-api.loadbalancer.server.port: "8080"
+
+  frontend:
+    image: ghcr.io/rainbowdashlabs/ember-frontend:latest
+    depends_on:
+      - ember
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.ember-web.rule: >
+        Host(\`ember.example.com\`)
+      traefik.http.routers.ember-web.entrypoints: websecure
+      traefik.http.routers.ember-web.tls.certresolver: letsencrypt
+      traefik.http.routers.ember-web.priority: "1"
+      traefik.http.services.ember-web.loadbalancer.server.port: "3000"
 
 volumes:
   pgdata:`,
-                dockerText2: 'Starte alles mit docker compose up -d. Beim ersten Start wird automatisch eine Konfigurationsdatei unter config/ erstellt und ein Admin-Konto mit zufälligem Passwort generiert (in der Konsole sichtbar).',
+                dockerText2: 'Ersetze ember.example.com durch deine Domain. Der API-Router hat eine höhere Priorität, sodass /api-Anfragen ans Backend gehen und alles andere ans Frontend. Starte alles mit docker compose up -d. Beim ersten Start wird automatisch eine Konfigurationsdatei unter config/ erstellt und ein Admin-Konto mit zufälligem Passwort generiert (in der Konsole sichtbar).',
                 config: 'Konfiguration',
                 configText: 'Die Konfiguration liegt in config/config.yml. Die wichtigsten Einstellungen:',
                 configDb: 'Datenbank',
@@ -942,11 +973,65 @@ volumes:
                 configAuth: 'Authentifizierung',
                 configAuthText: 'Sitzungsdauer, Token-Gültigkeit und andere Sicherheitseinstellungen.',
                 envVars: 'Umgebungsvariablen',
-                envVarsText: 'Zusätzlich zur Konfigurationsdatei können einige Einstellungen über Umgebungsvariablen gesetzt werden:',
-                envDb: 'DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_DATABASE, DB_SCHEMA — Datenbankverbindung',
-                envDemo: 'DEMO_ENABLED, DEMO_DEV — Demo-Modus und Entwicklungsmodus',
-                envTypst: 'TYPST_BIN — Pfad zur Typst-Binary für PDF-Export (Standard: typst)',
-                envPandoc: 'PANDOC_BIN — Pfad zur Pandoc-Binary für Dokumenten-Import (Standard: pandoc)',
+                envVarsText: 'Umgebungsvariablen werden über die Docker-Compose-Datei gesetzt und überschreiben die Werte aus der Konfigurationsdatei. Sie sind der einfachste Weg, Ember für deine Umgebung anzupassen, ohne die config.yml direkt zu bearbeiten.',
+                envDefault: 'Standard',
+                envGroupDb: 'Datenbank (Backend)',
+                envGroupApi: 'API-Server (Backend)',
+                envGroupMailing: 'E-Mail-Versand (Backend)',
+                envGroupAuth: 'Authentifizierung (Backend)',
+                envGroupTheming: 'Design (Backend)',
+                envGroupTools: 'Externe Programme (Backend)',
+                envGroupFrontend: 'Frontend',
+                envGroupDemo: 'Demo-Modus (Backend)',
+                envGroupDemoNote: 'Diese Variablen sind nur relevant, wenn du eine öffentliche Demo-Instanz betreibst. Im normalen Betrieb kannst du sie ignorieren.',
+                envGroupDocker: 'Docker / Compose',
+                envGroupDockerNote: 'Diese Variablen werden in der docker-compose.yml gesetzt und steuern die Container-Konfiguration.',
+                envTip: 'Umgebungsvariablen haben immer Vorrang vor den Werten in der config.yml. So kannst du z.B. pro Umgebung (Test, Produktion) unterschiedliche Datenbank-Zugangsdaten setzen, ohne die Konfigurationsdatei zu ändern.',
+                env: {
+                    dbHost: 'Die Adresse des PostgreSQL-Servers. Bei Docker Compose ist das der Name des Datenbank-Containers (z.B. "postgres").',
+                    dbPort: 'Der Port, auf dem PostgreSQL erreichbar ist. Der Standardport von PostgreSQL ist 5432.',
+                    dbUser: 'Der Benutzername für die Datenbank-Anmeldung. Muss mit dem PostgreSQL-Benutzer übereinstimmen.',
+                    dbPassword: 'Das Passwort für die Datenbank-Anmeldung. Unbedingt ändern — verwende ein sicheres, zufälliges Passwort!',
+                    dbDatabase: 'Der Name der Datenbank, die Ember verwenden soll. Wird beim ersten Start automatisch erstellt.',
+                    dbSchema: 'Das Datenbankschema innerhalb der Datenbank. Normalerweise musst du das nicht ändern.',
+                    dbPoolSize: 'Wie viele gleichzeitige Verbindungen Ember zur Datenbank offen hält. Ein höherer Wert erlaubt mehr parallele Anfragen, verbraucht aber mehr Arbeitsspeicher.',
+                    typstBin: 'Pfad zur Typst-Programmdatei. Typst wird für den PDF-Export von Protokollen und Berichten verwendet. Im Docker-Container ist es bereits vorinstalliert.',
+                    pandocBin: 'Pfad zur Pandoc-Programmdatei. Pandoc wird für den Import und die Konvertierung von Dokumenten verwendet. Im Docker-Container ist es bereits vorinstalliert.',
+                    publicDir: 'Ordner für statische Dateien (z.B. ein eigenes Frontend). Im normalen Betrieb mit dem Frontend-Container nicht relevant.',
+                    apiHost: 'Die Netzwerkadresse, auf der der Backend-Server lauscht. 0.0.0.0 bedeutet "auf allen Adressen" — das ist die richtige Einstellung in Docker.',
+                    apiPort: 'Der Port, auf dem die Backend-API erreichbar ist. Wird intern im Docker-Netzwerk verwendet.',
+                    apiBaseUrl: 'Die öffentliche URL deiner Ember-Instanz (z.B. https://ember.deine-feuerwehr.de). Wird für Links in E-Mails und Einladungen verwendet. Sehr wichtig für den Produktivbetrieb!',
+                    apiMaxImageSize: 'Maximale Dateigröße für hochgeladene Bilder in Bytes. Der Standard ist 5 MB (5242880 Bytes). Erhöhe diesen Wert, wenn Nutzer größere Bilder hochladen sollen.',
+                    mailingProvider: 'Der E-Mail-Versandtyp. Derzeit wird nur SMTP unterstützt.',
+                    mailingSmtp: 'Die Adresse des SMTP-Servers (z.B. smtp.gmail.com oder mail.dein-provider.de).',
+                    mailingUser: 'Der Benutzername für die SMTP-Anmeldung. Oft ist das die vollständige E-Mail-Adresse.',
+                    mailingPassword: 'Das Passwort für die SMTP-Anmeldung. Bei manchen Anbietern (z.B. Gmail) brauchst du ein App-Passwort statt deines normalen Passworts.',
+                    mailingSenderAddress: "Die Absender-E-Mail-Adresse, die Empfänger sehen (z.B. noreply{'@'}deine-feuerwehr.de).",
+                    mailingSenderName: 'Der Absendername, der neben der E-Mail-Adresse angezeigt wird.',
+                    mailingDailyLimit: 'Maximale Anzahl an E-Mails, die pro Tag versendet werden. Schützt vor versehentlichem Massenversand.',
+                    mailingDigestInterval: 'Wie oft (in Minuten) gesammelte Benachrichtigungen als Zusammenfassung per E-Mail versendet werden. Standard ist 60 Minuten.',
+                    authSessionMinutes: 'Wie lange eine Sitzung nach der letzten Aktivität gültig bleibt (in Minuten). Nach Ablauf muss sich der Nutzer erneut anmelden.',
+                    authVerifyTokenHours: 'Wie viele Stunden ein E-Mail-Bestätigungslink gültig ist (z.B. bei der Registrierung).',
+                    authPasswordTokenHours: 'Wie viele Stunden ein Passwort-Zurücksetzen-Link gültig ist.',
+                    authTokenBytes: 'Länge der generierten Sicherheits-Token in Bytes. Ein höherer Wert ist sicherer, aber 32 Bytes sind bereits sehr sicher.',
+                    themingDefaultTheme: 'Das Standard-Farbschema für neue Nutzer und nicht angemeldete Besucher (z.B. "ember").',
+                    themingDefaultFeel: 'Das Standard-Design für Ecken und Formen. "ROUNDED" verwendet abgerundete Ecken, "CORNERS" verwendet eckige.',
+                    themingLockFeel: 'Wenn auf true gesetzt, können Wachen das Design (rund/eckig) nicht mehr ändern — es gilt instanzweit das Standard-Design.',
+                    siteUrl: 'Die öffentliche URL deiner Ember-Instanz (z.B. https://ember.deine-feuerwehr.de). Wird für den Sitemap, SEO-Metadaten und kanonische Links verwendet. Wichtig für die Suchmaschinen-Auffindbarkeit.',
+                    googleVerification: 'Bestätigungscode für die Google Search Console. Damit kannst du überprüfen, wie Google deine Seite indexiert. Erhältst du nach der Registrierung bei search.google.com.',
+                    apiBase: 'Interne Adresse des Backend-Servers, die der Frontend-Container verwendet, um Daten für den Sitemap zu laden. Im Docker-Netzwerk ist das typischerweise http://ember:8080.',
+                    nitroPort: 'Der Port, auf dem der Frontend-Container Anfragen entgegennimmt. Wird im Docker-Container automatisch gesetzt.',
+                    nitroHost: 'Die Netzwerkadresse, auf der der Frontend-Container lauscht. 0.0.0.0 bedeutet "alle Adressen" — das ist in Docker richtig.',
+                    demoEnabled: 'Aktiviert den Demo-Modus. In diesem Modus werden bestimmte Aktionen (wie das Löschen von Wachen) blockiert und die Daten werden regelmäßig zurückgesetzt.',
+                    demoDev: 'Aktiviert den Entwicklungsmodus der Demo. Es werden Demo-Konten erstellt, aber die Daten werden nicht automatisch zurückgesetzt.',
+                    demoIdleReset: 'Wie viele Minuten ohne Aktivität vergehen müssen, bevor die Demo-Daten automatisch zurückgesetzt werden.',
+                    demoFederationHttp: 'Erzwingt, dass die Föderations-Kommunikation innerhalb derselben Instanz über HTTP statt über direkte Aufrufe läuft. Nur für Entwicklung und Tests relevant.',
+                    emberTag: 'Die Version des Docker-Images, die verwendet werden soll. Beispiele: "latest" (neueste stabile Version), "dev" (Entwicklungsversion), "v1.0" (bestimmte Version).',
+                    emberHost: 'Die Domain, unter der Ember erreichbar sein soll (z.B. ember.deine-feuerwehr.de). Wird in den Traefik-Labels für das automatische Routing verwendet.',
+                    postgresDb: 'Der Name der Datenbank im PostgreSQL-Container. Wird beim ersten Start des Containers automatisch erstellt. Muss mit DB_DATABASE übereinstimmen.',
+                    postgresUser: 'Der Benutzername für den PostgreSQL-Container. Wird beim ersten Start erstellt. Muss mit DB_USER übereinstimmen.',
+                    postgresPassword: 'Das Passwort für den PostgreSQL-Container. Muss mit DB_PASSWORD übereinstimmen.',
+                },
                 dataDir: 'Datenverzeichnis',
                 dataDirText: 'Das data/ Verzeichnis enthält alle Dateien, die nicht in der Datenbank gespeichert werden:',
                 dataLegal: 'privacy/, consent/, tos/, imprint/ — Rechtliche Dokumente (Markdown)',
@@ -2025,7 +2110,7 @@ volumes:
             threadingTitle: 'Unterhaltungen',
             threadingText: 'Du kannst direkt auf einen Kommentar antworten. So entstehen übersichtliche Unterhaltungen.',
             mentionTitle: 'Erwähnungen',
-            mentionText: 'Wenn du jemanden erwähnen möchtest, tippe @ und den Namen. Die Person wird dann benachrichtigt.',
+            mentionText: "Wenn du jemanden erwähnen möchtest, tippe {'@'} und den Namen. Die Person wird dann benachrichtigt.",
             editDeleteTitle: 'Bearbeiten und Löschen',
             editDeleteText: 'Du kannst deine eigenen Kommentare jederzeit bearbeiten oder löschen. Bearbeitete Kommentare werden mit „bearbeitet" markiert.',
             dummyAuthor: 'Lisa Schmidt',
@@ -2447,7 +2532,7 @@ volumes:
             linkBlocksDesc: 'Ein Ticket kann erst bearbeitet werden, wenn das andere fertig ist.',
             linkCausesDesc: 'Ein Ticket ist der Grund, warum das andere entstanden ist.',
             mentionsTitle: 'Personen erwähnen',
-            mentionsText: 'In der Beschreibung kannst du mit @ andere Mitglieder erwähnen. Tippe @ und dann den Namen. Die Person wird benachrichtigt.',
+            mentionsText: "In der Beschreibung kannst du mit {'@'} andere Mitglieder erwähnen. Tippe {'@'} und dann den Namen. Die Person wird benachrichtigt.",
             tip: 'Wenn du im Schnelldialog auf dem Board schon Daten eingegeben hast, werden diese automatisch in dieses Formular übernommen.',
         },
         ticketDetail: {
@@ -5551,6 +5636,8 @@ volumes:
         size: 'Größe',
         status: 'Status',
         active: 'Aktiv',
+        statusAssigned: 'Zugewiesen',
+        available: 'Verfügbar',
         assignedTo: 'Zugewiesen an',
         edit: 'Bearbeiten',
         saved: 'Gegenstand gespeichert.',

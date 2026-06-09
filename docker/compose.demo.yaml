@@ -16,11 +16,7 @@ services:
 
   ember:
     container_name: ember_demo
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-    ports:
-      - "8888:8080"
+    image: ghcr.io/rainbowdashlabs/ember-backend:${EMBER_TAG:-latest}
     environment:
       DB_HOST: ember_demo_db
       DB_PORT: "5432"
@@ -36,6 +32,25 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.ember-demo-api.rule: "Host(`${EMBER_HOST}`) && PathPrefix(`/api`)"
+      traefik.http.routers.ember-demo-api.entrypoints: websecure
+      traefik.http.routers.ember-demo-api.tls.certresolver: letsencrypt
+      traefik.http.services.ember-demo-api.loadbalancer.server.port: "8080"
+
+  frontend:
+    container_name: ember_demo_frontend
+    image: ghcr.io/rainbowdashlabs/ember-frontend:${EMBER_TAG:-latest}
+    depends_on:
+      - ember
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.ember-demo-web.rule: "Host(`${EMBER_HOST}`)"
+      traefik.http.routers.ember-demo-web.entrypoints: websecure
+      traefik.http.routers.ember-demo-web.tls.certresolver: letsencrypt
+      traefik.http.routers.ember-demo-web.priority: "1"
+      traefik.http.services.ember-demo-web.loadbalancer.server.port: "3000"
 
 volumes:
   demo-data:
