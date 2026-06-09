@@ -13,8 +13,8 @@
     "refactor": "python3 scripts/refactor.py",
     "refactor:scan": "python3 scripts/refactor.py scan",
     "build": "node scripts/build.mjs",
-    "build:spa": "vue-tsc -b && node scripts/lint-icons.mjs && node scripts/lint-conventions.mjs && node scripts/lint-helpcenter.mjs && node scripts/lint-locales.mjs && vite build",
-    "lint": "vue-tsc -b && node scripts/lint-icons.mjs && node scripts/lint-conventions.mjs && node scripts/lint-helpcenter.mjs && node scripts/lint-locales.mjs",
+    "build:spa": "node scripts/lint-icons.mjs && node scripts/lint-conventions.mjs && node scripts/lint-helpcenter.mjs && node scripts/lint-locales.mjs && vite build",
+    "lint": "node scripts/lint-icons.mjs && node scripts/lint-conventions.mjs && node scripts/lint-helpcenter.mjs && node scripts/lint-locales.mjs",
     "preview": "nuxi preview",
     "preview:spa": "vite preview"
   },

@@ -121,38 +121,18 @@ import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
 import type { EyeDirection } from '@/components/display/LayeredEmberLogo.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import PrideText from '@/components/display/PrideText.vue'
-import type { LogoLayer } from '@/components/display/LayeredEmberLogo.vue'
+import { emberLogo } from '@/composables/useEmberLogo'
 
 const toggleStates = ref(new Set([1, 3]))
 const pridePreview = ref(true)
 const logoShake = ref(false)
 
-const logoLayers: LogoLayer[] = [
-  { name: 'fire_glow', label: 'Glow' },
-  { name: 'fire_blank', label: 'Flame' },
-  { name: 'fire_blush', label: 'Blush' },
-  { name: 'fire_eyes_left', label: 'Left Open' },
-  { name: 'fire_eyes_left_half', label: 'Left Half' },
-  { name: 'fire_blink_left', label: 'Left Blink' },
-  { name: 'fire_eyes_mid', label: 'Mid Open' },
-  { name: 'fire_eyes_mid_half', label: 'Mid Half' },
-  { name: 'fire_blink', label: 'Mid Blink' },
-  { name: 'fire_eyes_right', label: 'Right Open' },
-  { name: 'fire_eyes_right_half', label: 'Right Half' },
-  { name: 'fire_blink_right', label: 'Right Blink' },
-  { name: 'fire_faq', label: 'FAQ' },
-  { name: 'fire_woah_one', label: 'Woah 1' },
-  { name: 'fire_woah_two', label: 'Woah 2' },
-]
+const { layers: logoLayers } = emberLogo()
 
 const allEyeLayerNames = new Set([
   'fire_eyes_left', 'fire_eyes_left_half', 'fire_blink_left',
   'fire_eyes_mid', 'fire_eyes_mid_half', 'fire_blink',
   'fire_eyes_right', 'fire_eyes_right_half', 'fire_blink_right',
-])
-
-const displayLayerNames = new Set([
-  'fire_faq', 'fire_woah_one', 'fire_woah_two',
 ])
 
 const eyeDirections = ['Left', 'Mid', 'Right'] as const
