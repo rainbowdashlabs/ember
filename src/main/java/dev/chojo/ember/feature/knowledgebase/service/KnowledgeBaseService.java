@@ -515,23 +515,33 @@ public class KnowledgeBaseService {
     }
 
     private void triggerPresentationConversion(int fileId, byte[] data, String filename) {
-        CompletableFuture.runAsync(() -> {
-            try {
-                byte[] pdfBytes = PresentationConverter.toPdf(data, filename);
-                fileStorage.storePresentationPdf(fileId, pdfBytes);
-                // Extract text from the generated PDF for search indexing
-                String pdfText = extractPdfText(pdfBytes);
-                if (pdfText != null && !pdfText.isBlank()) {
-                    repository.storeTextContent(fileId, pdfText);
-                }
-                updateSearchIndex(fileId, pdfText);
-                repository.updateConversionStatus(fileId, ConversionStatus.SUCCESS.name());
-                log.info("Presentation conversion succeeded for file {}", fileId);
-            } catch (Exception e) {
-                log.error("Presentation conversion failed for file {}", fileId, e);
-                repository.updateConversionStatus(fileId, ConversionStatus.FAILED.name());
+        CompletableFuture.runAsync(() -> performPresentationConversion(fileId, data, filename));
+    }
+
+    void performPresentationConversion(int fileId, byte[] data, String filename) {
+        try {
+            byte[] pdfBytes = PresentationConverter.toPdf(data, filename);
+            storePresentationResult(fileId, pdfBytes);
+        } catch (Exception e) {
+            log.error("Presentation conversion failed for file {}", fileId, e);
+            repository.updateConversionStatus(fileId, ConversionStatus.FAILED.name());
+        }
+    }
+
+    public void storePresentationResult(int fileId, byte[] pdfBytes) {
+        try {
+            fileStorage.storePresentationPdf(fileId, pdfBytes);
+            String pdfText = extractPdfText(pdfBytes);
+            if (pdfText != null && !pdfText.isBlank()) {
+                repository.storeTextContent(fileId, pdfText);
             }
-        });
+            updateSearchIndex(fileId, pdfText);
+            repository.updateConversionStatus(fileId, ConversionStatus.SUCCESS.name());
+            log.info("Presentation conversion succeeded for file {}", fileId);
+        } catch (Exception e) {
+            log.error("Failed to store presentation result for file {}", fileId, e);
+            repository.updateConversionStatus(fileId, ConversionStatus.FAILED.name());
+        }
     }
 
     /**
