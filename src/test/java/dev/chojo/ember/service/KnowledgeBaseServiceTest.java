@@ -845,6 +845,27 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(141)
+    void storePresentationResultFailsOnStorageError() {
+        byte[] data = new byte[] {0x01};
+        var file = service.createUploadedFile(
+                station.id(),
+                null,
+                "store-fail.pptx",
+                "Storage error",
+                data,
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                member.id());
+        // Make storage throw to trigger the error path
+        doThrow(new RuntimeException("disk full")).when(fileStorage).storePresentationPdf(eq(file.id()), any());
+        service.storePresentationResult(file.id(), "pdf".getBytes(StandardCharsets.UTF_8));
+        var reloaded = service.findFile(file.id());
+        assertTrue(reloaded.isPresent());
+        assertEquals(ConversionStatus.FAILED, reloaded.get().conversionStatus());
+        service.deleteFile(file.id());
+    }
+
+    @Test
+    @Order(142)
     void conversionFailedStatusReturnsPdfEmpty() {
         var file = knowledgeBaseRepo.createFile(
                 station.id(),
