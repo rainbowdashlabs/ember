@@ -34,6 +34,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
@@ -856,7 +857,11 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 "application/vnd.openxmlformats-officedocument.presentationml.presentation",
                 member.id());
         // Make storage throw to trigger the error path
-        doThrow(new RuntimeException("disk full")).when(fileStorage).storePresentationPdf(eq(file.id()), any());
+        try {
+            doThrow(new IOException("disk full")).when(fileStorage).storePresentationPdf(eq(file.id()), any());
+        } catch (IOException ignored) {
+            // Mockito stub setup, never actually thrown
+        }
         service.storePresentationResult(file.id(), "pdf".getBytes(StandardCharsets.UTF_8));
         var reloaded = service.findFile(file.id());
         assertTrue(reloaded.isPresent());
