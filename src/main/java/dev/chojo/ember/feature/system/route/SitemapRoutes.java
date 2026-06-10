@@ -152,7 +152,8 @@ public class SitemapRoutes implements Routes {
     private boolean hasPublicContent(Station station) {
         return station.publicCalendarEnabled()
                 || station.publicKbMode() != PublicKbMode.OFF
-                || station.publicPagesEnabled();
+                || station.publicPagesEnabled()
+                || station.publicWaitlistEnabled();
     }
 
     private String baseUrl(Context ctx) {

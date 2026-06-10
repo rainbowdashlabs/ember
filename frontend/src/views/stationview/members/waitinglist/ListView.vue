@@ -111,7 +111,12 @@ onMounted(loadData)
           >
             <div class="space-y-3">
               <div class="flex items-center justify-between">
-                <SubHeader>{{ item.list.name }}</SubHeader>
+                <div class="flex items-center gap-2">
+                  <SubHeader>{{ item.list.name }}</SubHeader>
+                  <span v-if="item.list.isPublic" class="text-xs font-medium bg-success/15 text-success rounded-full px-2 py-0.5">
+                    {{ t('waitingList.publicBadge') }}
+                  </span>
+                </div>
                 <span class="text-sm font-medium bg-primary/15 text-primary rounded-full px-3 py-0.5">
                   {{ item.entryCount }}
                 </span>

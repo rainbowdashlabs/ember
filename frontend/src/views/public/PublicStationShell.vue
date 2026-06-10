@@ -149,6 +149,10 @@ useHead(computed(() => {
       <SidebarLink v-if="station.hasPublicKb" :icon="['fas', 'book-open']" name="public-kb" :to="basePath + '/knowledge'" @navigate="close">
         {{ t('publicStation.knowledgeBase') }}
       </SidebarLink>
+      <!-- Waitlist registration -->
+      <SidebarLink v-if="station.hasPublicWaitlist" :icon="['fas', 'clipboard-list']" name="public-waitlist" :to="basePath + '/waitlist'" @navigate="close">
+        {{ t('publicStation.waitlist') }}
+      </SidebarLink>
       <!-- Remaining pages (excluding landing page), with nested children -->
       <template v-if="station.hasPublicPages">
         <template v-for="page in topLevelPages" :key="page.id">

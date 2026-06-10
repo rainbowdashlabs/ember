@@ -158,7 +158,8 @@ public class StationManageRoutes implements Routes {
                 station.discoveryShowKb(),
                 station.publicCalendarEnabled(),
                 station.publicPagesEnabled(),
-                station.publicSlug());
+                station.publicSlug(),
+                station.publicWaitlistEnabled());
     }
 
     @OpenApi(
@@ -214,6 +215,9 @@ public class StationManageRoutes implements Routes {
         }
         if (request.publicPagesEnabled() != null) {
             stationService.updatePublicPagesEnabled(session.stationId(), request.publicPagesEnabled());
+        }
+        if (request.publicWaitlistEnabled() != null) {
+            stationService.updatePublicWaitlistEnabled(session.stationId(), request.publicWaitlistEnabled());
         }
         if (request.publicSlug() != null) {
             try {
@@ -572,7 +576,8 @@ public class StationManageRoutes implements Routes {
             Boolean discoveryShowKb,
             Boolean publicCalendarEnabled,
             Boolean publicPagesEnabled,
-            String publicSlug) {}
+            String publicSlug,
+            Boolean publicWaitlistEnabled) {}
 
     // -- Station deletion --
 
@@ -606,7 +611,8 @@ public class StationManageRoutes implements Routes {
             boolean discoveryShowKb,
             boolean publicCalendarEnabled,
             boolean publicPagesEnabled,
-            String publicSlug) {}
+            String publicSlug,
+            boolean publicWaitlistEnabled) {}
 
     /**
      * Response containing the station's mail configuration and current usage statistics.

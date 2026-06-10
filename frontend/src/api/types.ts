@@ -1471,6 +1471,7 @@ export interface ClaimLostAndFoundRequest {
 // -- Waiting List --
 
 export const WaitingListEntryStatus = {
+    PENDING: 'PENDING',
     WAITING: 'WAITING',
     INVITED: 'INVITED',
     TESTING: 'TESTING',
@@ -1502,6 +1503,7 @@ export interface WaitingList {
     testingGroupId?: number | null
     joinGroupId?: number | null
     attendanceThreshold: number
+    isPublic: boolean
 }
 
 export interface WaitingListField {
@@ -1512,6 +1514,7 @@ export interface WaitingListField {
     config: string
     position: number
     required: boolean
+    isPublic: boolean
 }
 
 export interface WaitingListInvite {
@@ -1586,6 +1589,18 @@ export interface WaitingListPublicStatus {
 }
 
 export interface WaitingListInviteInfo {
+    listName: string
+    listDescription: string
+    fields: WaitingListField[]
+}
+
+export interface PublicWaitlistSummary {
+    id: number
+    name: string
+    description: string
+}
+
+export interface PublicWaitlistFormResponse {
     listName: string
     listDescription: string
     fields: WaitingListField[]

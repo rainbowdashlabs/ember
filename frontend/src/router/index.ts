@@ -95,6 +95,11 @@ const router = createRouter({
             component: () => import('@/views/WaitingListStatusView.vue'),
         },
         {
+            path: '/public/waitlist/verify/:token',
+            name: 'waitlist-verify',
+            component: () => import('@/views/public/PublicWaitlistVerifyView.vue'),
+        },
+        {
             path: '/privacy',
             name: 'privacy',
             component: () => import('@/views/PrivacyPolicyView.vue'),
@@ -218,22 +223,22 @@ const router = createRouter({
                     component: MembersConfigView,
                 },
                 {
-                    path: 'manage/federation',
+                    path: 'federate',
                     name: 'station-federation',
                     component: () => import('@/views/stationview/manage/FederationView.vue'),
                 },
                 {
-                    path: 'manage/federation/settings',
+                    path: 'federate/settings',
                     name: 'station-federation-settings',
                     component: () => import('@/views/stationview/manage/FederationSettingsView.vue'),
                 },
                 {
-                    path: 'manage/federation/:id',
+                    path: 'federate/:id',
                     name: 'station-federation-partner',
                     component: () => import('@/views/stationview/manage/FederationPartnerView.vue'),
                 },
                 {
-                    path: 'manage/discovery',
+                    path: 'federate/discovery',
                     name: 'station-discovery',
                     component: () => import('@/views/stationview/manage/DiscoveryView.vue'),
                 },
@@ -1033,22 +1038,22 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/stationview/manage/ImportHelp.vue')
                 },
                 {
-                    path: 'manage/federation',
+                    path: 'federate',
                     name: 'help-station-federation',
                     component: () => import('@/views/helpcenter/stationview/manage/FederationHelp.vue')
                 },
                 {
-                    path: 'manage/federation/settings',
+                    path: 'federate/settings',
                     name: 'help-station-federation-settings',
                     component: () => import('@/views/helpcenter/stationview/manage/FederationSettingsHelp.vue')
                 },
                 {
-                    path: 'manage/federation/:id',
+                    path: 'federate/:id',
                     name: 'help-station-federation-partner',
                     component: () => import('@/views/helpcenter/stationview/manage/FederationPartnerHelp.vue')
                 },
                 {
-                    path: 'manage/discovery',
+                    path: 'federate/discovery',
                     name: 'help-station-discovery',
                     component: () => import('@/views/helpcenter/stationview/manage/DiscoveryHelp.vue')
                 },
@@ -1698,6 +1703,11 @@ const router = createRouter({
                     name: 'public-page',
                     component: () => import('@/views/public/PublicPageView.vue'),
                 },
+                {
+                    path: 'waitlist',
+                    name: 'public-waitlist',
+                    component: () => import('@/views/public/PublicWaitlistView.vue'),
+                },
             ],
         },
         {
@@ -1720,7 +1730,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-    const publicRoutes = ['home', 'login', 'requirements', 'forgot-password', 'set-password', 'reset-password', 'apply', 'apply-verify', 'waitlist-register', 'waitlist-status', 'style', 'privacy', 'terms', 'imprint', 'patch-notes', 'not-found']
+    const publicRoutes = ['home', 'login', 'requirements', 'forgot-password', 'set-password', 'reset-password', 'apply', 'apply-verify', 'waitlist-register', 'waitlist-status', 'waitlist-verify', 'style', 'privacy', 'terms', 'imprint', 'patch-notes', 'not-found']
     if (publicRoutes.includes(to.name as string)) {
         return true
     }

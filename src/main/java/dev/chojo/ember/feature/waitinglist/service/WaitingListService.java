@@ -5,9 +5,13 @@
  */
 package dev.chojo.ember.feature.waitinglist.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.auth.PasswordHasher;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.WaitlistPublicRegistration;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
@@ -54,6 +58,8 @@ public class WaitingListService {
 
     public record GuardianInput(String name, String email, String phone) {}
 
+    private static final ObjectMapper JSON = new ObjectMapper();
+
     private final WaitingListRepository repository;
     private final StationRepository stationRepository;
     private final StationMemberRepository stationMemberRepository;
@@ -62,6 +68,7 @@ public class WaitingListService {
     private final EmailService emailService;
     private final NotificationService notificationService;
     private final PasswordHasher passwordHasher;
+    private final DomainEventBus eventBus;
 
     @Inject
     public WaitingListService(
@@ -72,7 +79,8 @@ public class WaitingListService {
             AccountRepository accountRepository,
             EmailService emailService,
             NotificationService notificationService,
-            PasswordHasher passwordHasher) {
+            PasswordHasher passwordHasher,
+            DomainEventBus eventBus) {
         this.repository = repository;
         this.stationRepository = stationRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -81,6 +89,7 @@ public class WaitingListService {
         this.emailService = emailService;
         this.notificationService = notificationService;
         this.passwordHasher = passwordHasher;
+        this.eventBus = eventBus;
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             var t = new Thread(r, "waitlist-confirmation-checker");
             t.setDaemon(true);
@@ -107,7 +116,8 @@ public class WaitingListService {
             int confirmIntervalDays,
             Integer testingGroupId,
             Integer joinGroupId,
-            int attendanceThreshold) {
+            int attendanceThreshold,
+            boolean isPublic) {
         return repository.create(
                 stationId,
                 name,
@@ -116,7 +126,8 @@ public class WaitingListService {
                 confirmIntervalDays,
                 testingGroupId,
                 joinGroupId,
-                attendanceThreshold);
+                attendanceThreshold,
+                isPublic);
     }
 
     public Optional<WaitingList> update(
@@ -127,7 +138,8 @@ public class WaitingListService {
             int confirmIntervalDays,
             Integer testingGroupId,
             Integer joinGroupId,
-            int attendanceThreshold) {
+            int attendanceThreshold,
+            boolean isPublic) {
         return repository.update(
                 id,
                 name,
@@ -136,7 +148,8 @@ public class WaitingListService {
                 confirmIntervalDays,
                 testingGroupId,
                 joinGroupId,
-                attendanceThreshold);
+                attendanceThreshold,
+                isPublic);
     }
 
     public Optional<WaitingList> updateVisibleFields(int id, String visibleFieldsJson) {
@@ -154,13 +167,25 @@ public class WaitingListService {
     }
 
     public WaitingListField createField(
-            int listId, String name, String fieldType, WaitingListFieldConfig config, int position, boolean required) {
-        return repository.createField(listId, name, fieldType, config, position, required);
+            int listId,
+            String name,
+            String fieldType,
+            WaitingListFieldConfig config,
+            int position,
+            boolean required,
+            boolean isPublic) {
+        return repository.createField(listId, name, fieldType, config, position, required, isPublic);
     }
 
     public Optional<WaitingListField> updateField(
-            int fieldId, String name, String fieldType, WaitingListFieldConfig config, int position, boolean required) {
-        return repository.updateField(fieldId, name, fieldType, config, position, required);
+            int fieldId,
+            String name,
+            String fieldType,
+            WaitingListFieldConfig config,
+            int position,
+            boolean required,
+            boolean isPublic) {
+        return repository.updateField(fieldId, name, fieldType, config, position, required, isPublic);
     }
 
     public void deleteField(int fieldId) {
@@ -665,5 +690,135 @@ public class WaitingListService {
 
     private String resolveStationName(int stationId) {
         return stationRepository.findById(stationId).map(Station::name).orElse("");
+    }
+
+    // --- Public waitlist ---
+
+    public List<WaitingList> findPublicByStation(int stationId) {
+        return repository.findPublicByStation(stationId);
+    }
+
+    public List<WaitingListField> findPublicFieldsByList(int listId) {
+        return repository.findPublicFieldsByList(listId);
+    }
+
+    public boolean hasPublicWaitlists(int stationId) {
+        return repository.hasPublicWaitlists(stationId);
+    }
+
+    public void submitPublicRegistration(
+            int listId,
+            String firstname,
+            String lastname,
+            String email,
+            List<GuardianInput> guardians,
+            Map<Integer, String> fieldValues,
+            String notes) {
+        var list = repository.findById(listId).orElseThrow(() -> new IllegalArgumentException("List not found"));
+        if (!list.isPublic()) {
+            throw new IllegalStateException("List is not public");
+        }
+
+        String token = UUID.randomUUID().toString();
+        String guardiansJson;
+        String fieldValuesJson;
+        try {
+            guardiansJson = JSON.writeValueAsString(guardians != null ? guardians : List.of());
+            fieldValuesJson = JSON.writeValueAsString(fieldValues != null ? fieldValues : Map.of());
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to serialize registration data", e);
+        }
+
+        repository.createVerificationToken(
+                token, listId, firstname, lastname, email, guardiansJson, fieldValuesJson, notes != null ? notes : "");
+
+        String stationName = resolveStationName(list.stationId());
+        emailService.sendWaitlistVerifyEmail(email, firstname, stationName, token, "de", list.stationId());
+    }
+
+    public boolean verifyPublicRegistration(String token) {
+        var verification = repository.findVerificationByToken(token).orElse(null);
+        if (verification == null) return false;
+        if (verification.isExpired()) {
+            repository.deleteVerificationToken(verification.id());
+            return false;
+        }
+
+        List<GuardianInput> guardians;
+        Map<Integer, String> fieldValues;
+        try {
+            guardians = JSON.readValue(verification.guardians(), new TypeReference<>() {});
+            fieldValues = JSON.readValue(verification.fieldValues(), new TypeReference<>() {});
+        } catch (Exception e) {
+            log.error("Failed to deserialize verification data for token {}", token, e);
+            return false;
+        }
+
+        String parentName =
+                guardians != null && !guardians.isEmpty() ? guardians.getFirst().name() : "";
+        String accessToken = UUID.randomUUID().toString();
+        var entry = repository.createEntryWithStatus(
+                verification.listId(),
+                verification.firstname(),
+                verification.lastname(),
+                parentName,
+                verification.email(),
+                accessToken,
+                verification.notes(),
+                WaitingListEntryStatus.PENDING);
+
+        if (guardians != null) {
+            insertGuardians(entry.id(), guardians);
+        }
+        if (fieldValues != null) {
+            for (var e : fieldValues.entrySet()) {
+                repository.upsertEntryValue(entry.id(), e.getKey(), e.getValue());
+            }
+        }
+
+        repository.deleteVerificationToken(verification.id());
+
+        var list = repository.findById(verification.listId()).orElse(null);
+        if (list != null) {
+            eventBus.publish(new WaitlistPublicRegistration(list.stationId(), entry.fullName(), list.name()));
+        }
+
+        return true;
+    }
+
+    public WaitingListEntry approvePendingEntry(int entryId) {
+        var entry =
+                repository.findEntryById(entryId).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
+        if (entry.status() != WaitingListEntryStatus.PENDING) {
+            throw new IllegalStateException("Entry is not pending");
+        }
+        repository.updateEntryStatus(entryId, WaitingListEntryStatus.WAITING);
+
+        // Send registration confirmation email to guardians
+        var list = repository.findById(entry.listId()).orElse(null);
+        String stationName = list != null ? resolveStationName(list.stationId()) : "";
+        int stationId = list != null ? list.stationId() : 0;
+        var guardians = repository.findGuardiansByEntry(entryId);
+        for (var g : guardians) {
+            if (g.email() != null && !g.email().isBlank()) {
+                emailService.sendWaitlistRegistrationEmail(
+                        g.email(), g.name(), entry.accessToken(), stationName, "de", stationId);
+            }
+        }
+        if (guardians.isEmpty() && entry.email() != null && !entry.email().isBlank()) {
+            emailService.sendWaitlistRegistrationEmail(
+                    entry.email(), entry.fullName(), entry.accessToken(), stationName, "de", stationId);
+        }
+
+        return repository.findEntryById(entryId).orElseThrow();
+    }
+
+    public void rejectPendingEntry(int entryId) {
+        var entry =
+                repository.findEntryById(entryId).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
+        if (entry.status() != WaitingListEntryStatus.PENDING) {
+            throw new IllegalStateException("Entry is not pending");
+        }
+        repository.deleteEntry(entryId);
     }
 }

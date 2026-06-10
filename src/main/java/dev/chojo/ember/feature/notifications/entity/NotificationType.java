@@ -37,7 +37,9 @@ public enum NotificationType {
     PROCEDURE_ASSIGNED(NotificationParams.ProcedureAssigned.class, "notification.procedureAssigned"),
     PROCEDURE_RESOLVED(NotificationParams.ProcedureResolvedParams.class, "notification.procedureResolved"),
     PROCEDURE_REOPENED(NotificationParams.ProcedureReopenedParams.class, "notification.procedureReopened"),
-    PROCEDURE_ITEM_CHECKED(NotificationParams.ProcedureItemCheckedParams.class, "notification.procedureItemChecked");
+    PROCEDURE_ITEM_CHECKED(NotificationParams.ProcedureItemCheckedParams.class, "notification.procedureItemChecked"),
+    WAITLIST_PUBLIC_REGISTRATION(
+            NotificationParams.WaitlistPublicRegistration.class, "notification.waitlistPublicRegistration");
 
     private final Class<? extends NotificationParams> paramsType;
     private final String localeKey;

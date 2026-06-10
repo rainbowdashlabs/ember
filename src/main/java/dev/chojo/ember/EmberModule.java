@@ -51,6 +51,7 @@ import dev.chojo.ember.event.handlers.ProcedureResolvedHandler;
 import dev.chojo.ember.event.handlers.ProcurementCreatedHandler;
 import dev.chojo.ember.event.handlers.ProcurementFulfilledHandler;
 import dev.chojo.ember.event.handlers.RegistrationDeadlineExpiredHandler;
+import dev.chojo.ember.event.handlers.WaitlistPublicRegistrationHandler;
 import dev.chojo.ember.feature.account.route.AuthRoutes;
 import dev.chojo.ember.feature.account.route.SessionRoutes;
 import dev.chojo.ember.feature.attendance.route.AttendanceRoutes;
@@ -232,6 +233,7 @@ public class EmberModule extends AbstractModule {
         eventBinder.addBinding().to(ProcedureResolvedHandler.class);
         eventBinder.addBinding().to(ProcedureReopenedHandler.class);
         eventBinder.addBinding().to(ProcedureItemCheckedHandler.class);
+        eventBinder.addBinding().to(WaitlistPublicRegistrationHandler.class);
 
         // Eager singletons — started on boot
         bind(EventThresholdChecker.class).asEagerSingleton();

@@ -334,6 +334,27 @@ public class EmailService {
         }
     }
 
+    public void sendWaitlistVerifyEmail(
+            String email, String name, String stationName, String token, String locale, Integer stationId) {
+        String url = api.baseUrl() + "/public/waitlist/verify?token=" + token;
+        var vars = baseVars(name, stationId);
+        vars.put("url", url);
+        vars.put("stationName", stationName != null ? stationName : "");
+        if (stationId != null) {
+            vars.put("logoUrl", api.baseUrl() + "/api/v1/stations/" + stationId + "/logo");
+            queueStationEmail(
+                    stationId,
+                    email,
+                    resolveSubject(locale, "waitlist-verify", stationName),
+                    loadTemplate("waitlist-verify.html", locale, vars));
+        } else {
+            enqueueGlobal(
+                    email,
+                    resolveSubject(locale, "waitlist-verify", stationName),
+                    loadTemplate("waitlist-verify.html", locale, vars));
+        }
+    }
+
     /**
      * Build and queue a station notification email.
      */
@@ -545,6 +566,10 @@ public class EmailService {
                 "de".equals(locale)
                         ? "Antrag für " + stationName + " eingegangen"
                         : "Application for " + stationName + " received";
+            case "waitlist-verify" ->
+                "de".equals(locale)
+                        ? "Wartelisten-Anmeldung bestätigen" + string
+                        : "Confirm waiting list registration" + string;
             case "waitlist-registered" ->
                 "de".equals(locale) ? "Wartelisten-Anmeldung" + string : "Waiting list registration" + string;
             case "waitlist-confirm-reminder" ->

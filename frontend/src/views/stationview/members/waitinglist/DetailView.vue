@@ -11,6 +11,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import PendingSection from './detailview/PendingSection.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -79,6 +80,9 @@ const deletingEntry = ref(false)
 const sortedEntries = computed(() =>
   [...entries.value].sort((a, b) => b.score - a.score),
 )
+const pendingEntries = computed(() =>
+  sortedEntries.value.filter(e => e.entry.status === 'PENDING'),
+)
 const waitingEntries = computed(() =>
   sortedEntries.value.filter(e => e.entry.status === 'WAITING' || e.entry.status === 'INVITED'),
 )
@@ -91,7 +95,6 @@ const finishedEntries = computed(() =>
 
 const visibleFieldIds = computed(() => new Set(list.value?.visibleFields ?? []))
 const showFieldToggle = ref(false)
-
 function entryFullName(item: WaitingListEntryWithScore): string {
   const e = item.entry
   return e.lastname ? `${e.firstname} ${e.lastname}` : e.firstname
@@ -222,6 +225,32 @@ async function doMoveToJoined(entryId: number) {
   }
 }
 
+async function doApproveEntry(entryId: number) {
+  error.value = ''
+  try {
+    await waitingList.approveEntry(listId.value, entryId)
+    entries.value = await waitingList.listEntries(listId.value)
+    success.value = t('waitingList.entryApproved')
+    setTimeout(() => { success.value = '' }, 3000)
+    refreshSidebarCounts()
+  } catch {
+    error.value = t('common.error')
+  }
+}
+
+async function doRejectEntry(entryId: number) {
+  error.value = ''
+  try {
+    await waitingList.rejectEntry(listId.value, entryId)
+    entries.value = await waitingList.listEntries(listId.value)
+    success.value = t('waitingList.entryRejected')
+    setTimeout(() => { success.value = '' }, 3000)
+    refreshSidebarCounts()
+  } catch {
+    error.value = t('common.error')
+  }
+}
+
 async function doWithdrawEntry(entryId: number) {
   error.value = ''
   try {
@@ -333,6 +362,14 @@ onMounted(loadData)
           @updated="handleListUpdated"
           @error="showErrorMessage"
           @success="showSuccessMessage"
+        />
+
+        <PendingSection
+          :entries="pendingEntries"
+          :fields="fields"
+          :readonly="!canEdit"
+          @approve="doApproveEntry"
+          @reject="doRejectEntry"
         />
 
         <WaitingSection

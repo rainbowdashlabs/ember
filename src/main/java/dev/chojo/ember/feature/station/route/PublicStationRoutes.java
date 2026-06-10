@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationService;
+import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
 import io.javalin.http.Context;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
@@ -31,13 +32,18 @@ public class PublicStationRoutes implements Routes {
     private final StationRepository stationRepository;
     private final StationService stationService;
     private final PageService pageService;
+    private final WaitingListService waitingListService;
 
     @Inject
     public PublicStationRoutes(
-            StationRepository stationRepository, StationService stationService, PageService pageService) {
+            StationRepository stationRepository,
+            StationService stationService,
+            PageService pageService,
+            WaitingListService waitingListService) {
         this.stationRepository = stationRepository;
         this.stationService = stationService;
         this.pageService = pageService;
+        this.waitingListService = waitingListService;
     }
 
     @Override
@@ -62,8 +68,10 @@ public class PublicStationRoutes implements Routes {
         boolean hasPublicKb = station.publicKbMode() != PublicKbMode.OFF;
         boolean hasPublicCalendar = station.publicCalendarEnabled();
         boolean hasPublicPages = station.publicPagesEnabled() && pageService.hasPublishedPages(station.id());
+        boolean hasPublicWaitlist =
+                station.publicWaitlistEnabled() && waitingListService.hasPublicWaitlists(station.id());
 
-        if (!hasPublicKb && !hasPublicCalendar && !hasPublicPages) {
+        if (!hasPublicKb && !hasPublicCalendar && !hasPublicPages && !hasPublicWaitlist) {
             throw new NotFoundResponse();
         }
 
@@ -79,6 +87,7 @@ public class PublicStationRoutes implements Routes {
                 hasPublicKb,
                 hasPublicCalendar,
                 hasPublicPages,
+                hasPublicWaitlist,
                 landingPageSlug,
                 station.publicSlug(),
                 station.defaultTheme(),
@@ -94,6 +103,7 @@ public class PublicStationRoutes implements Routes {
             boolean hasPublicKb,
             boolean hasPublicCalendar,
             boolean hasPublicPages,
+            boolean hasPublicWaitlist,
             String landingPageSlug,
             String publicSlug,
             String defaultTheme,

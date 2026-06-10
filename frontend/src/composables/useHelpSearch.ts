@@ -56,8 +56,8 @@ const HELP_PAGE_MAP: { route: string; path: string; i18nPrefix: string; section:
     {route: 'help-station-members-config', path: '/helpcenter/station/members/config', i18nPrefix: 'helpCenter.membersConfig', section: 'Mitglieder > Konfiguration'},
     {route: 'help-station-mail-config', path: '/helpcenter/station/manage/mail-config', i18nPrefix: 'helpCenter.mailConfig', section: 'Verwaltung > E-Mail'},
     {route: 'help-station-theme-manage', path: '/helpcenter/station/manage/theme', i18nPrefix: 'helpCenter.themeManage', section: 'Verwaltung > Farbschema'},
-    {route: 'help-station-federation', path: '/helpcenter/station/manage/federation', i18nPrefix: 'helpCenter.federation', section: 'Verwaltung > Föderation'},
-    {route: 'help-station-federation-partner', path: '/helpcenter/station/manage/federation/0', i18nPrefix: 'helpCenter.federationPartner', section: 'Verwaltung > Föderationspartner'},
+    {route: 'help-station-federation', path: '/helpcenter/station/federate', i18nPrefix: 'helpCenter.federation', section: 'Verwaltung > Föderation'},
+    {route: 'help-station-federation-partner', path: '/helpcenter/station/federate/0', i18nPrefix: 'helpCenter.federationPartner', section: 'Verwaltung > Föderationspartner'},
     // Members
     {route: 'help-members-module-overview', path: '/helpcenter/station/members', i18nPrefix: 'helpCenter.membersOverview', section: 'Mitglieder'},
     {route: 'help-members-create', path: '/helpcenter/station/members/create', i18nPrefix: 'helpCenter.membersCreate', section: 'Mitglieder > Anlegen'},

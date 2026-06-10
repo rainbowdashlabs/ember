@@ -59,18 +59,20 @@ public class DemoWaitingListSeeder {
                 180,
                 gaesteGroup.id(),
                 joinGroupId,
-                5);
+                5,
+                true);
 
         var nameField = waitingListRepository.createField(
-                list.id(), "Vorname", "TEXT", WaitingListFieldConfig.parse("{}"), 0, true);
+                list.id(), "Vorname", "TEXT", WaitingListFieldConfig.parse("{}"), 0, true, true);
         var ageField = waitingListRepository.createField(
-                list.id(), "Alter", "NUMBER", WaitingListFieldConfig.parse("{}"), 1, true);
+                list.id(), "Alter", "NUMBER", WaitingListFieldConfig.parse("{}"), 1, true, true);
         var expField = waitingListRepository.createField(
                 list.id(),
                 "Erfahrung",
                 "ENUM",
                 WaitingListFieldConfig.parse("{\"options\":[\"anfaenger\",\"fortgeschritten\"]}"),
                 2,
+                true,
                 true);
 
         // Create invite codes
@@ -142,7 +144,25 @@ public class DemoWaitingListSeeder {
                         "Felix",
                         "9",
                         "fortgeschritten",
-                        WaitingListEntryStatus.WITHDRAWN));
+                        WaitingListEntryStatus.WITHDRAWN),
+                new Kid(
+                        "Jonas",
+                        "Lehmann",
+                        "Andrea Lehmann",
+                        "andrea@example.com",
+                        "Jonas",
+                        "8",
+                        "anfaenger",
+                        WaitingListEntryStatus.PENDING),
+                new Kid(
+                        "Mia",
+                        "Hoffmann",
+                        "Carsten Hoffmann",
+                        "carsten@example.com",
+                        "Mia",
+                        "7",
+                        "anfaenger",
+                        WaitingListEntryStatus.PENDING));
 
         // Collect testing member IDs to add attendance later
         var testingMemberIds = new ArrayList<Integer>();
@@ -169,6 +189,12 @@ public class DemoWaitingListSeeder {
                         "zweit-" + kid.email,
                         "+49 171 " + (2000000 + entry.id()),
                         1);
+            }
+
+            // PENDING entries just need their status set (from public registration)
+            if (kid.status == WaitingListEntryStatus.PENDING) {
+                waitingListRepository.updateEntryStatus(entry.id(), WaitingListEntryStatus.PENDING);
+                continue;
             }
 
             // For entries that progressed beyond WAITING, create a linked member

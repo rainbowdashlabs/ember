@@ -335,6 +335,10 @@ public class StationService {
         stationRepository.updatePublicPagesEnabled(stationId, enabled);
     }
 
+    public void updatePublicWaitlistEnabled(int stationId, boolean enabled) {
+        stationRepository.updatePublicWaitlistEnabled(stationId, enabled);
+    }
+
     public void updatePublicSlug(int stationId, String slug) {
         if (slug != null) {
             var existing = stationRepository.findBySlug(slug);

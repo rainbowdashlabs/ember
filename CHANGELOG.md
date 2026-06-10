@@ -32,6 +32,18 @@
 - **Discovery links** — station discovery uses slugs for cleaner URLs
 - **Settings UI** — editable slug in federation settings with duplicate detection
 
+#### Public Waitlist Registration
+- **Public waitlists** — per-waitlist `isPublic` toggle allows external registration without login
+- **Per-field visibility** — each waitlist field can be marked as public or hidden from the registration form
+- **Email verification** — registrants receive a verification email; token expires after 24 hours
+- **Pending approval** — verified registrations get `PENDING` status, requiring WAITLIST_EDIT approval
+- **Approve/reject** — expandable pending entries in the waitlist detail view with approve/reject actions showing full registration details
+- **Notifications** — WAITLIST_EDIT users are notified when a new public registration arrives
+- **Station toggle** — `publicWaitlistEnabled` station setting controls whether public waitlists are available
+- **Public registration page** — list selection, form with public fields, guardian inputs, and email verification flow
+- **Verification page** — standalone page at `/public/waitlist/verify/{token}` confirming email
+- **Public sidebar** — waitlist link in the public station sidebar when enabled
+
 #### Station Settings UX
 - **Reactive save** — federation settings now auto-save on change (debounced 600ms) instead of requiring a save button
 - **Save indicator** — shows "Speichern…" spinner and "Gespeichert" checkmark
@@ -101,6 +113,21 @@
 #### Station Applications
 - **Enum status** — `StationApplication.status` changed from raw string to `ApplicationStatus` enum
 - **DB migration** — existing lowercase status values normalized to uppercase
+
+#### Public Waitlist Backend
+- **PENDING status** — new `WaitingListEntryStatus.PENDING` for entries awaiting approval
+- **Verification tokens** — `waitlist_verification_token` table with 24h expiry
+- **Domain event** — `WaitlistPublicRegistration` event + handler for WAITLIST_EDIT notifications
+- **Email template** — verification email in DE/EN
+
+#### Federation Routes
+- **Route restructure** — federation management moved from `/station/manage/federation` to `/station/federate` to fix sidebar prefix overlap
+
+#### Help Center
+- **Roles page** — rewritten to use correct "Benutzertypen & Berechtigungen" terminology
+- **Federation page** — added missing i18n keys (shared5-7, dummy content keys)
+- **FormLabel component** — extracted repeated label pattern into reusable component
+- **Page editor help** — dedicated help center page for page editor route
 
 #### Demo Service Refactoring
 - **DemoService split** — reduced from 2180 to 679 lines by extracting 4 new seeders:

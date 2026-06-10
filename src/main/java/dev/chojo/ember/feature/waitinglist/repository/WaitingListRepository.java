@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryValue;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListField;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
+import dev.chojo.ember.feature.waitinglist.entity.WaitlistVerificationToken;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -57,12 +58,13 @@ public class WaitingListRepository {
             int confirmIntervalDays,
             Integer testingGroupId,
             Integer joinGroupId,
-            int attendanceThreshold) {
+            int attendanceThreshold,
+            boolean isPublic) {
         return Query.query("""
                         INSERT INTO waiting_list (station_id, name, description, scoring_formula, confirm_interval_days,
-                            testing_group_id, join_group_id, attendance_threshold)
+                            testing_group_id, join_group_id, attendance_threshold, public)
                         VALUES (:station_id, :name, :description, :scoring_formula, :confirm_interval_days,
-                            :testing_group_id, :join_group_id, :attendance_threshold)
+                            :testing_group_id, :join_group_id, :attendance_threshold, :public)
                         RETURNING *;""")
                 .single(Call.of()
                         .bind("station_id", stationId)
@@ -72,7 +74,8 @@ public class WaitingListRepository {
                         .bind("confirm_interval_days", confirmIntervalDays)
                         .bind("testing_group_id", testingGroupId)
                         .bind("join_group_id", joinGroupId)
-                        .bind("attendance_threshold", attendanceThreshold))
+                        .bind("attendance_threshold", attendanceThreshold)
+                        .bind("public", isPublic))
                 .map(WaitingList.map())
                 .first()
                 .orElseThrow();
@@ -86,12 +89,13 @@ public class WaitingListRepository {
             int confirmIntervalDays,
             Integer testingGroupId,
             Integer joinGroupId,
-            int attendanceThreshold) {
+            int attendanceThreshold,
+            boolean isPublic) {
         return Query.query("""
                         UPDATE waiting_list SET name = :name, description = :description,
                         scoring_formula = :scoring_formula, confirm_interval_days = :confirm_interval_days,
                         testing_group_id = :testing_group_id, join_group_id = :join_group_id,
-                        attendance_threshold = :attendance_threshold
+                        attendance_threshold = :attendance_threshold, public = :public
                         WHERE id = :id RETURNING *;""")
                 .single(Call.of()
                         .bind("id", id)
@@ -101,7 +105,8 @@ public class WaitingListRepository {
                         .bind("confirm_interval_days", confirmIntervalDays)
                         .bind("testing_group_id", testingGroupId)
                         .bind("join_group_id", joinGroupId)
-                        .bind("attendance_threshold", attendanceThreshold))
+                        .bind("attendance_threshold", attendanceThreshold)
+                        .bind("public", isPublic))
                 .map(WaitingList.map())
                 .first();
     }
@@ -131,10 +136,16 @@ public class WaitingListRepository {
     }
 
     public WaitingListField createField(
-            int listId, String name, String fieldType, WaitingListFieldConfig config, int position, boolean required) {
+            int listId,
+            String name,
+            String fieldType,
+            WaitingListFieldConfig config,
+            int position,
+            boolean required,
+            boolean isPublic) {
         return Query.query("""
-                        INSERT INTO waiting_list_field (list_id, name, field_type, config, position, required)
-                        VALUES (:list_id, :name, :field_type, :config::jsonb, :position, :required)
+                        INSERT INTO waiting_list_field (list_id, name, field_type, config, position, required, public)
+                        VALUES (:list_id, :name, :field_type, :config::jsonb, :position, :required, :public)
                         RETURNING *;""")
                 .single(Call.of()
                         .bind("list_id", listId)
@@ -142,17 +153,24 @@ public class WaitingListRepository {
                         .bind("field_type", fieldType)
                         .bind("config", config.toJson())
                         .bind("position", position)
-                        .bind("required", required))
+                        .bind("required", required)
+                        .bind("public", isPublic))
                 .map(WaitingListField.map())
                 .first()
                 .orElseThrow();
     }
 
     public Optional<WaitingListField> updateField(
-            int fieldId, String name, String fieldType, WaitingListFieldConfig config, int position, boolean required) {
+            int fieldId,
+            String name,
+            String fieldType,
+            WaitingListFieldConfig config,
+            int position,
+            boolean required,
+            boolean isPublic) {
         return Query.query("""
                         UPDATE waiting_list_field SET name = :name, field_type = :field_type,
-                        config = :config::jsonb, position = :position, required = :required
+                        config = :config::jsonb, position = :position, required = :required, public = :public
                         WHERE id = :id RETURNING *;""")
                 .single(Call.of()
                         .bind("id", fieldId)
@@ -160,7 +178,8 @@ public class WaitingListRepository {
                         .bind("field_type", fieldType)
                         .bind("config", config.toJson())
                         .bind("position", position)
-                        .bind("required", required))
+                        .bind("required", required)
+                        .bind("public", isPublic))
                 .map(WaitingListField.map())
                 .first();
     }
@@ -449,6 +468,108 @@ public class WaitingListRepository {
     public void deleteGuardiansByEntry(int entryId) {
         Query.query("DELETE FROM waiting_list_entry_guardian WHERE entry_id = :entry_id;")
                 .single(Call.of().bind("entry_id", entryId))
+                .delete();
+    }
+
+    // --- Public waitlist queries ---
+
+    public List<WaitingList> findPublicByStation(int stationId) {
+        return Query.query(
+                        "SELECT * FROM waiting_list WHERE station_id = :station_id AND public = true ORDER BY created_at DESC;")
+                .single(Call.of().bind("station_id", stationId))
+                .map(WaitingList.map())
+                .all();
+    }
+
+    public List<WaitingListField> findPublicFieldsByList(int listId) {
+        return Query.query(
+                        "SELECT * FROM waiting_list_field WHERE list_id = :list_id AND public = true ORDER BY position;")
+                .single(Call.of().bind("list_id", listId))
+                .map(WaitingListField.map())
+                .all();
+    }
+
+    public boolean hasPublicWaitlists(int stationId) {
+        return Query.query(
+                        "SELECT EXISTS(SELECT 1 FROM waiting_list WHERE station_id = :station_id AND public = true) AS exists;")
+                .single(Call.of().bind("station_id", stationId))
+                .map(row -> row.getBoolean("exists"))
+                .first()
+                .orElse(false);
+    }
+
+    public WaitingListEntry createEntryWithStatus(
+            int listId,
+            String firstname,
+            String lastname,
+            String parentName,
+            String email,
+            String accessToken,
+            String notes,
+            WaitingListEntryStatus status) {
+        return Query.query("""
+                        INSERT INTO waiting_list_entry (list_id, firstname, lastname, parent_name, email, access_token, notes, status)
+                        VALUES (:list_id, :firstname, :lastname, :parent_name, :email, :access_token, :notes, :status)
+                        RETURNING *;""")
+                .single(Call.of()
+                        .bind("list_id", listId)
+                        .bind("firstname", firstname)
+                        .bind("lastname", lastname)
+                        .bind("parent_name", parentName)
+                        .bind("email", email)
+                        .bind("access_token", accessToken)
+                        .bind("notes", notes)
+                        .bind("status", status.name()))
+                .map(WaitingListEntry.map())
+                .first()
+                .orElseThrow();
+    }
+
+    // --- Verification tokens ---
+
+    public WaitlistVerificationToken createVerificationToken(
+            String token,
+            int listId,
+            String firstname,
+            String lastname,
+            String email,
+            String guardiansJson,
+            String fieldValuesJson,
+            String notes) {
+        return Query.query("""
+                        INSERT INTO waitlist_verification_token (token, list_id, firstname, lastname, email, guardians, field_values, notes)
+                        VALUES (:token, :list_id, :firstname, :lastname, :email, :guardians::jsonb, :field_values::jsonb, :notes)
+                        RETURNING *;""")
+                .single(Call.of()
+                        .bind("token", token)
+                        .bind("list_id", listId)
+                        .bind("firstname", firstname)
+                        .bind("lastname", lastname)
+                        .bind("email", email)
+                        .bind("guardians", guardiansJson)
+                        .bind("field_values", fieldValuesJson)
+                        .bind("notes", notes))
+                .map(WaitlistVerificationToken.map())
+                .first()
+                .orElseThrow();
+    }
+
+    public Optional<WaitlistVerificationToken> findVerificationByToken(String token) {
+        return Query.query("SELECT * FROM waitlist_verification_token WHERE token = :token;")
+                .single(Call.of().bind("token", token))
+                .map(WaitlistVerificationToken.map())
+                .first();
+    }
+
+    public void deleteVerificationToken(int id) {
+        Query.query("DELETE FROM waitlist_verification_token WHERE id = :id;")
+                .single(Call.of().bind("id", id))
+                .delete();
+    }
+
+    public void deleteExpiredVerificationTokens() {
+        Query.query("DELETE FROM waitlist_verification_token WHERE expires_at < now();")
+                .single(Call.of())
                 .delete();
     }
 }

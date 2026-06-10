@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.waitinglist.route;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryGuardian;
@@ -46,10 +47,12 @@ public class WaitingListRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(WaitingListRoutes.class);
 
     private final WaitingListService service;
+    private final StationRepository stationRepository;
 
     @Inject
-    public WaitingListRoutes(WaitingListService service) {
+    public WaitingListRoutes(WaitingListService service, StationRepository stationRepository) {
         this.service = service;
+        this.stationRepository = stationRepository;
     }
 
     private void verifyListOwnership(int listId, UserSession session) {
@@ -67,6 +70,12 @@ public class WaitingListRoutes implements Routes {
         routes.get(prefix + "/public/waiting-list/entry/{token}", this::getEntryByToken);
         routes.post(prefix + "/public/waiting-list/entry/{token}/remove", this::removeByToken);
         routes.post(prefix + "/public/waiting-list/entry/{token}/confirm", this::confirmInterest);
+
+        // Public waitlist registration
+        routes.get(prefix + "/public/station/{stationUid}/waitlists", this::listPublicWaitlists);
+        routes.get(prefix + "/public/station/{stationUid}/waitlists/{wid}/form", this::getPublicForm);
+        routes.post(prefix + "/public/station/{stationUid}/waitlists/{wid}/register", this::submitPublicRegistration);
+        routes.get(prefix + "/public/waitlist/verify/{token}", this::verifyPublicEmail);
 
         // Read endpoints
         routes.get(prefix + "/waiting-lists", this::listAll, StationPermission.WAITLIST_READ);
@@ -118,6 +127,16 @@ public class WaitingListRoutes implements Routes {
         routes.post(
                 prefix + "/waiting-lists/{id}/entries/{entryId}/withdraw",
                 this::withdrawEntry,
+                StationPermission.WAITLIST_EDIT);
+
+        // Approve/reject pending entries
+        routes.post(
+                prefix + "/waiting-lists/{id}/entries/{entryId}/approve",
+                this::approveEntry,
+                StationPermission.WAITLIST_EDIT);
+        routes.post(
+                prefix + "/waiting-lists/{id}/entries/{entryId}/reject",
+                this::rejectEntry,
                 StationPermission.WAITLIST_EDIT);
     }
 
@@ -259,7 +278,8 @@ public class WaitingListRoutes implements Routes {
                 request.confirmIntervalDays() != null ? request.confirmIntervalDays() : 180,
                 request.testingGroupId(),
                 request.joinGroupId(),
-                request.attendanceThreshold() != null ? request.attendanceThreshold() : 5);
+                request.attendanceThreshold() != null ? request.attendanceThreshold() : 5,
+                request.isPublic() != null && request.isPublic());
         ctx.status(HttpStatus.CREATED).json(list);
     }
 
@@ -302,7 +322,8 @@ public class WaitingListRoutes implements Routes {
                         request.confirmIntervalDays() != null ? request.confirmIntervalDays() : 180,
                         request.testingGroupId(),
                         request.joinGroupId(),
-                        request.attendanceThreshold() != null ? request.attendanceThreshold() : 5)
+                        request.attendanceThreshold() != null ? request.attendanceThreshold() : 5,
+                        request.isPublic() != null && request.isPublic())
                 .orElseThrow(NotFoundResponse::new);
         ctx.json(updated);
     }
@@ -359,7 +380,8 @@ public class WaitingListRoutes implements Routes {
                 request.fieldType(),
                 request.config() != null ? request.config() : WaitingListFieldConfig.parse("{}"),
                 request.position(),
-                request.required());
+                request.required(),
+                request.isPublic() == null || request.isPublic());
         ctx.status(HttpStatus.CREATED).json(field);
     }
 
@@ -374,7 +396,8 @@ public class WaitingListRoutes implements Routes {
                         request.fieldType(),
                         request.config() != null ? request.config() : WaitingListFieldConfig.parse("{}"),
                         request.position(),
-                        request.required())
+                        request.required(),
+                        request.isPublic() == null || request.isPublic())
                 .orElseThrow(NotFoundResponse::new);
         ctx.json(field);
     }
@@ -608,13 +631,19 @@ public class WaitingListRoutes implements Routes {
             Integer confirmIntervalDays,
             Integer testingGroupId,
             Integer joinGroupId,
-            Integer attendanceThreshold) {}
+            Integer attendanceThreshold,
+            Boolean isPublic) {}
 
     @OpenApiName("WaitingListListWithCount")
     public record ListWithCount(WaitingList list, int entryCount) {}
 
     public record FieldRequest(
-            String name, String fieldType, WaitingListFieldConfig config, int position, boolean required) {}
+            String name,
+            String fieldType,
+            WaitingListFieldConfig config,
+            int position,
+            boolean required,
+            Boolean isPublic) {}
 
     public record VisibleFieldsRequest(List<Integer> fieldIds) {}
 
@@ -658,4 +687,107 @@ public class WaitingListRoutes implements Routes {
         }
         return List.of();
     }
+
+    // --- Public waitlist routes ---
+
+    private int resolveStation(Context ctx) {
+        String stationUid = ctx.pathParam("stationUid");
+        var station = stationRepository
+                .findBySlug(stationUid)
+                .or(() -> {
+                    try {
+                        return stationRepository.findByUid(java.util.UUID.fromString(stationUid));
+                    } catch (IllegalArgumentException e) {
+                        return java.util.Optional.empty();
+                    }
+                })
+                .orElseThrow(NotFoundResponse::new);
+        if (!station.publicWaitlistEnabled()) throw new NotFoundResponse();
+        return station.id();
+    }
+
+    private void listPublicWaitlists(Context ctx) {
+        int stationId = resolveStation(ctx);
+        var lists = service.findPublicByStation(stationId);
+        ctx.json(lists.stream()
+                .map(l -> new PublicWaitlistSummary(l.id(), l.name(), l.description()))
+                .toList());
+    }
+
+    private void getPublicForm(Context ctx) {
+        int stationId = resolveStation(ctx);
+        int wid = ctx.pathParamAsClass("wid", Integer.class).get();
+        var list = service.findById(wid).orElseThrow(NotFoundResponse::new);
+        if (list.stationId() != stationId || !list.isPublic()) throw new NotFoundResponse();
+        var fields = service.findPublicFieldsByList(wid);
+        ctx.json(new PublicFormResponse(list.name(), list.description(), fields));
+    }
+
+    private void submitPublicRegistration(Context ctx) {
+        int stationId = resolveStation(ctx);
+        int wid = ctx.pathParamAsClass("wid", Integer.class).get();
+        var list = service.findById(wid).orElseThrow(NotFoundResponse::new);
+        if (list.stationId() != stationId || !list.isPublic()) throw new NotFoundResponse();
+        var request = ctx.bodyAsClass(PublicRegistrationRequest.class);
+        if (request.firstname() == null || request.firstname().isBlank()) {
+            throw new BadRequestResponse("firstname is required");
+        }
+        if (request.email() == null || request.email().isBlank()) {
+            throw new BadRequestResponse("email is required");
+        }
+        var guardianInputs = request.guardians() != null
+                ? request.guardians().stream()
+                        .map(g -> new WaitingListService.GuardianInput(
+                                g.name() != null ? g.name() : "",
+                                g.email() != null ? g.email() : "",
+                                g.phone() != null ? g.phone() : ""))
+                        .toList()
+                : List.<WaitingListService.GuardianInput>of();
+        service.submitPublicRegistration(
+                wid,
+                request.firstname(),
+                request.lastname() != null ? request.lastname() : "",
+                request.email(),
+                guardianInputs,
+                request.values() != null ? request.values() : Map.of(),
+                request.notes());
+        ctx.status(HttpStatus.ACCEPTED).json(Map.of("status", "verification_email_sent"));
+    }
+
+    private void verifyPublicEmail(Context ctx) {
+        String token = ctx.pathParam("token");
+        boolean success = service.verifyPublicRegistration(token);
+        if (!success) {
+            throw new BadRequestResponse("Invalid or expired verification token");
+        }
+        ctx.json(Map.of("status", "verified"));
+    }
+
+    private void approveEntry(Context ctx) {
+        int listId = ctx.pathParamAsClass("id", Integer.class).get();
+        verifyListOwnership(listId, UserSession.from(ctx));
+        int entryId = ctx.pathParamAsClass("entryId", Integer.class).get();
+        var entry = service.approvePendingEntry(entryId);
+        ctx.json(entry);
+    }
+
+    private void rejectEntry(Context ctx) {
+        int listId = ctx.pathParamAsClass("id", Integer.class).get();
+        verifyListOwnership(listId, UserSession.from(ctx));
+        int entryId = ctx.pathParamAsClass("entryId", Integer.class).get();
+        service.rejectPendingEntry(entryId);
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    public record PublicWaitlistSummary(int id, String name, String description) {}
+
+    public record PublicFormResponse(String listName, String listDescription, List<WaitingListField> fields) {}
+
+    public record PublicRegistrationRequest(
+            String firstname,
+            String lastname,
+            String email,
+            List<GuardianRequest> guardians,
+            Map<Integer, String> values,
+            String notes) {}
 }

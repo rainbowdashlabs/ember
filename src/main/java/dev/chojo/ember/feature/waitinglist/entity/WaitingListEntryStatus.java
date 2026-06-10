@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.waitinglist.entity;
 
 public enum WaitingListEntryStatus {
+    PENDING,
     WAITING,
     INVITED,
     TESTING,

@@ -34,6 +34,7 @@ const discoveryDescription = ref('')
 const publicKbMode = ref('OFF')
 const publicCalendarEnabled = ref(false)
 const publicPagesEnabled = ref(false)
+const publicWaitlistEnabled = ref(false)
 const publicSlug = ref('')
 const stationId = ref('')
 const stationName = ref('')
@@ -69,6 +70,7 @@ async function loadSettings() {
     publicKbMode.value = info.publicKbMode ?? 'OFF'
     publicCalendarEnabled.value = info.publicCalendarEnabled ?? false
     publicPagesEnabled.value = info.publicPagesEnabled ?? false
+    publicWaitlistEnabled.value = info.publicWaitlistEnabled ?? false
     publicSlug.value = info.publicSlug ?? ''
     // Mark initialized after all values are set so watchers don't trigger on load
     setTimeout(() => { initialized.value = true }, 50)
@@ -93,6 +95,7 @@ async function save() {
       publicKbMode: publicKbMode.value,
       publicCalendarEnabled: publicCalendarEnabled.value,
       publicPagesEnabled: publicPagesEnabled.value,
+      publicWaitlistEnabled: publicWaitlistEnabled.value,
       publicSlug: publicSlug.value || null,
     })
     saved.value = true
@@ -117,7 +120,7 @@ function debouncedSave() {
 
 // Watch all form fields for changes
 watch(
-    [discoveryVisibility, discoveryDescription, publicKbMode, publicCalendarEnabled, publicPagesEnabled, publicSlug],
+    [discoveryVisibility, discoveryDescription, publicKbMode, publicCalendarEnabled, publicPagesEnabled, publicWaitlistEnabled, publicSlug],
     debouncedSave,
 )
 
@@ -209,6 +212,15 @@ watch(loaded, (v) => { if (v) loadSettings() })
           <div v-if="publicPagesEnabled" class="space-y-1">
             <FieldLabel>{{ t('stationManage.publicPages.publicUrl') }}</FieldLabel>
             <code class="block rounded bg-bg-light-accent dark:bg-bg-dark-accent px-3 py-2 text-sm break-all select-all">{{ publicPagesUrl }}</code>
+          </div>
+        </NeutralContainer>
+
+        <NeutralContainer class="space-y-4">
+          <SubHeader>{{ t('helpCenter.federation.publicWaitlistTitle') }}</SubHeader>
+          <MutedText size="sm">{{ t('helpCenter.federation.publicWaitlistText') }}</MutedText>
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium">{{ t('waitingList.isPublic') }}</span>
+            <ToggleInput v-model="publicWaitlistEnabled"/>
           </div>
         </NeutralContainer>
 

@@ -360,11 +360,11 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="canManageFederation()" :badge="counts.federationRequests" :icon="['fas', 'arrow-right-arrow-left']" :label="t('sidebar.federation')" :prefix="['/station/manage/federation', '/station/manage/discovery']" to="/station/manage/federation" name="station-federation" @navigate="close">
-        <SidebarLink :badge="counts.federationRequests" :icon="['fas', 'gear']" name="station-federation-settings" to="/station/manage/federation/settings" @navigate="close">
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="canManageFederation()" :badge="counts.federationRequests" :icon="['fas', 'arrow-right-arrow-left']" :label="t('sidebar.federation')" :prefix="['/station/federate', '/station/federate/discovery']" to="/station/federate" name="station-federation" @navigate="close">
+        <SidebarLink :badge="counts.federationRequests" :icon="['fas', 'gear']" name="station-federation-settings" to="/station/federate/settings" @navigate="close">
           {{ t('sidebar.federationSettings') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'compass']" name="station-discovery" to="/station/manage/discovery" @navigate="close">
+        <SidebarLink :icon="['fas', 'compass']" name="station-discovery" to="/station/federate/discovery" @navigate="close">
           {{ t('sidebar.discovery') }}
         </SidebarLink>
       </SidebarGroup>
