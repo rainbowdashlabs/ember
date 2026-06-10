@@ -73,6 +73,17 @@ for (const file of vueFiles) {
         }
     }
 
+    // ── Rule 3b: No <span> with rounded-full + px- (text badges) — use Badge components instead ──
+    // Only flags spans that look like text badges (have padding like px-2), not simple color dots
+    if (!isInsideDir(file, 'badge')) {
+        for (let i = 0; i < templateLines.length; i++) {
+            const line = templateLines[i]
+            if (/<span\b[^>]*\brounded-full\b[^>]*\bpx-/.test(line) || /<span\b[^>]*\bpx-[^>]*\brounded-full\b/.test(line)) {
+                warn(CAT_RAW_ELEMENTS, file, templateStartLine + i, `<span> with rounded-full + padding — use a Badge component (PrimaryBadge, SuccessBadge, etc.) instead.`)
+            }
+        }
+    }
+
     // ── Rule 4: No more than 6 class arguments per element outside components/ ──
     if (!isInsideComponents(file)) {
         for (let i = 0; i < templateLines.length; i++) {

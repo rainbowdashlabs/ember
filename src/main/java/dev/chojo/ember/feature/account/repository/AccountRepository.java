@@ -43,7 +43,7 @@ public class AccountRepository {
      * @return the account, or empty if not found
      */
     public Optional<Account> findById(int id) {
-        return query("SELECT " + ACCOUNT_COLUMNS + " FROM account WHERE id = :id;")
+        return query("SELECT %s FROM account WHERE id = :id;", ACCOUNT_COLUMNS)
                 .single(Call.of().bind("id", id))
                 .map(Account.map())
                 .first();
@@ -56,7 +56,7 @@ public class AccountRepository {
      * @return the account, or empty if not found
      */
     public Optional<Account> findByEmail(String email) {
-        return query("SELECT " + ACCOUNT_COLUMNS + " FROM account WHERE email = :email;")
+        return query("SELECT %s FROM account WHERE email = :email;", ACCOUNT_COLUMNS)
                 .single(Call.of().bind("email", email))
                 .map(Account.map())
                 .first();
@@ -68,7 +68,7 @@ public class AccountRepository {
      * @return list of all accounts
      */
     public List<Account> findAll() {
-        return query("SELECT " + ACCOUNT_COLUMNS + " FROM account;")
+        return query("SELECT %s FROM account;", ACCOUNT_COLUMNS)
                 .single()
                 .map(Account.map())
                 .all();
@@ -85,7 +85,8 @@ public class AccountRepository {
     public Account create(String email, String firstName, String lastName) {
         return query(
                         "INSERT INTO account(email, first_name, last_name) VALUES(:email, :first_name, :last_name) RETURNING "
-                                + ACCOUNT_COLUMNS + ";")
+                                + ACCOUNT_COLUMNS + ";",
+                        ACCOUNT_COLUMNS)
                 .single(Call.of()
                         .bind("email", email)
                         .bind("first_name", firstName)

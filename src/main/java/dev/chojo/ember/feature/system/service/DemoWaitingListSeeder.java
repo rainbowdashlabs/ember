@@ -51,10 +51,11 @@ public class DemoWaitingListSeeder {
         // Create the "Gäste" group for testing-phase members
         var gaesteGroup = memberGroupRepository.create(stationId, "Gäste");
 
+        // --- Jugendfeuerwehr waitlist ---
         var list = waitingListRepository.create(
                 stationId,
-                "Warteliste 2026",
-                "Warteliste für neue Mitglieder im Jahr 2026",
+                "Jugendfeuerwehr",
+                "Warteliste für neue Mitglieder der Jugendfeuerwehr (10–18 Jahre). Melde dich an und wir laden dich zu einer Schnupperübung ein.",
                 "[Alter] * (\"[Erfahrung]\" == \"fortgeschritten\" ? 2 : 1)",
                 180,
                 gaesteGroup.id(),
@@ -70,10 +71,27 @@ public class DemoWaitingListSeeder {
                 list.id(),
                 "Erfahrung",
                 "ENUM",
-                WaitingListFieldConfig.parse("{\"options\":[\"anfaenger\",\"fortgeschritten\"]}"),
+                WaitingListFieldConfig.parse("{\"options\":[\"Anfänger\",\"Fortgeschritten\"]}"),
                 2,
                 true,
                 true);
+
+        // --- Kinderfeuerwehr waitlist ---
+        var kinderList = waitingListRepository.create(
+                stationId,
+                "Kinderfeuerwehr",
+                "Warteliste für die Kinderfeuerwehr (6–10 Jahre). Spielerisch die Feuerwehr kennenlernen!",
+                null,
+                365,
+                null,
+                null,
+                0,
+                true);
+        waitingListRepository.createField(
+                kinderList.id(), "Name des Kindes", "TEXT", WaitingListFieldConfig.parse("{}"), 0, true, true);
+        waitingListRepository.createField(
+                kinderList.id(), "Geburtsdatum", "DATE", WaitingListFieldConfig.parse("{}"), 1, true, true);
+        waitingListRepository.createInvite(kinderList.id(), "demo-kinder-invite", 10, null);
 
         // Create invite codes
         waitingListRepository.createInvite(list.id(), "demo-invite-active", 5, null);

@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.comment.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.comment.entity.Comment;
@@ -14,6 +13,8 @@ import jakarta.inject.Singleton;
 
 import java.util.List;
 import java.util.Optional;
+
+import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
  * Repository for managing event comments with threaded reply support.
@@ -29,9 +30,20 @@ public class EventCommentRepository {
      * @return the list of comments
      */
     public List<Comment> findByEvent(int eventId) {
-        return Query.query(
-                        "SELECT id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at"
-                                + " FROM event_comment WHERE event_id = :event_id ORDER BY created_at;")
+        return query("""
+                SELECT
+                    id,
+                    parent_id,
+                    author_station_uid,
+                    author_member_uid,
+                    content,
+                    deleted,
+                    created_at,
+                    updated_at
+                FROM
+                    event_comment
+                WHERE event_id = :event_id
+                ORDER BY created_at;""")
                 .single(Call.of().bind("event_id", eventId))
                 .map(Comment.map())
                 .all();
@@ -44,11 +56,19 @@ public class EventCommentRepository {
      * @return the comment, if found
      */
     public Optional<Comment> findById(int id) {
-        return Query.query(
-                        "SELECT id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at FROM event_comment WHERE id = :id;")
-                .single(Call.of().bind("id", id))
-                .map(Comment.map())
-                .first();
+        return query("""
+                SELECT
+                    id,
+                    parent_id,
+                    author_station_uid,
+                    author_member_uid,
+                    content,
+                    deleted,
+                    created_at,
+                    updated_at
+                FROM
+                    event_comment
+                WHERE id = :id;""").single(Call.of().bind("id", id)).map(Comment.map()).first();
     }
 
     /**
@@ -61,10 +81,14 @@ public class EventCommentRepository {
      * @return the created comment
      */
     public Comment create(int eventId, Integer parentId, MemberIdentity author, String content) {
-        return Query.query(
-                        "INSERT INTO event_comment (event_id, parent_id, author_station_uid, author_member_uid, content)"
-                                + " VALUES (:event_id, :parent_id, :author_station_uid::uuid, :author_member_uid::uuid, :content)"
-                                + " RETURNING id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at;")
+        return query("""
+                INSERT
+                        INTO
+                            event_comment
+                            (event_id, parent_id, author_station_uid, author_member_uid, content)
+                        VALUES
+                            (:event_id, :parent_id, :author_station_uid::UUID, :author_member_uid::UUID, :content)
+                        RETURNING id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at;""")
                 .single(Call.of()
                         .bind("event_id", eventId)
                         .bind("parent_id", parentId)
@@ -90,7 +114,7 @@ public class EventCommentRepository {
      * @return {@code true} if the comment was updated
      */
     public boolean update(int id, String content) {
-        return Query.query("UPDATE event_comment SET content = :content, updated_at = now() WHERE id = :id;")
+        return query("UPDATE event_comment SET content = :content, updated_at = now() WHERE id = :id;")
                 .single(Call.of().bind("id", id).bind("content", content))
                 .update()
                 .changed();
@@ -105,12 +129,12 @@ public class EventCommentRepository {
     public boolean delete(int id) {
         boolean hasChildren = hasChildren(id);
         if (hasChildren) {
-            return Query.query("UPDATE event_comment SET deleted = TRUE, content = '' WHERE id = :id;")
+            return query("UPDATE event_comment SET deleted = TRUE, content = '' WHERE id = :id;")
                     .single(Call.of().bind("id", id))
                     .update()
                     .changed();
         }
-        return Query.query("DELETE FROM event_comment WHERE id = :id;")
+        return query("DELETE FROM event_comment WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .update()
                 .changed();
@@ -123,7 +147,7 @@ public class EventCommentRepository {
      * @return {@code true} if the comment has children
      */
     public boolean hasChildren(int id) {
-        return Query.query("SELECT EXISTS(SELECT 1 FROM event_comment WHERE parent_id = :id);")
+        return query("SELECT exists(SELECT 1 FROM event_comment WHERE parent_id = :id);")
                 .single(Call.of().bind("id", id))
                 .map(row -> row.getBoolean(1))
                 .first()
