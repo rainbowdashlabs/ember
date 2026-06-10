@@ -1276,6 +1276,7 @@ export interface NewsEntry {
     memberIds: number[]
     commentCount: number
     restricted?: boolean
+    publicBlog?: boolean
 }
 
 export interface NewsRequest {
@@ -1286,6 +1287,15 @@ export interface NewsRequest {
     groupIds: number[]
     tagIds: number[]
     memberIds: number[]
+    publicBlog?: boolean
+}
+
+export interface PublicBlogEntry {
+    id: number
+    title: string
+    contentHtml: string
+    authorName: string
+    publishedAt: string
 }
 
 export interface NewsComment {

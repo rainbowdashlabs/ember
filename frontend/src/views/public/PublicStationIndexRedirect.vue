@@ -20,6 +20,8 @@ function redirect(info: PublicStationInfo | null) {
 
   if (info.landingPageSlug) {
     router.replace(`${base}/page/${info.landingPageSlug}`)
+  } else if (info.hasPublicBlog) {
+    router.replace(`${base}/blog`)
   } else if (info.hasPublicCalendar) {
     router.replace(`${base}/calendar`)
   } else if (info.hasPublicKb) {

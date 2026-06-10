@@ -26,6 +26,7 @@ export interface PublicStationInfo {
     hasPublicCalendar: boolean
     hasPublicPages: boolean
     hasPublicWaitlist: boolean
+    hasPublicBlog: boolean
     landingPageSlug: string | null
     publicSlug: string | null
     defaultTheme: string | null

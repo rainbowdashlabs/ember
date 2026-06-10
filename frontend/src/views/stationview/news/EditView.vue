@@ -25,6 +25,7 @@ import type { PartnerResponse } from '@/api/federation'
 import { news, memberGroups, userTags, federation } from '@/api'
 import FederationSharePicker from '@/components/input/FederationSharePicker.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
+import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import { useSession } from '@/composables/useSession'
 
 const { t } = useI18n()
@@ -47,6 +48,8 @@ const tags = ref<UserTag[]>([])
 const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
+
+const publicBlog = ref(false)
 
 // Federation sharing
 const federationShared = ref(false)
@@ -83,6 +86,7 @@ async function loadData() {
       selectedUserTypes.value = entry.userTypes ?? []
       selectedGroupIds.value = entry.groupIds ?? []
       selectedTagIds.value = entry.tagIds ?? []
+      publicBlog.value = entry.publicBlog ?? false
 
       if (canFederateNews()) {
         const fedShare = await news.getFederationShare(newsId.value)
@@ -114,6 +118,7 @@ async function save() {
       groupIds: selectedGroupIds.value,
       tagIds: selectedTagIds.value,
       memberIds: [] as number[],
+      publicBlog: publicBlog.value,
     }
     let savedId: number
     if (newsId.value) {
@@ -173,6 +178,16 @@ watch(loaded, (isLoaded) => {
           <div class="space-y-1">
             <FieldLabel>{{ t('news.content') }}</FieldLabel>
             <MarkdownEditor v-model="contentMarkdown" :placeholder="t('news.contentPlaceholder')" />
+          </div>
+        </NeutralContainer>
+
+        <NeutralContainer class="space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <SubHeader>{{ t('news.publicBlog') }}</SubHeader>
+              <p class="text-xs text-(--text-muted)">{{ t('news.publicBlogHint') }}</p>
+            </div>
+            <ToggleInput v-model="publicBlog"/>
           </div>
         </NeutralContainer>
 

@@ -193,7 +193,7 @@ public class ProfileFieldRepository {
                 DELETE FROM profile_field_value
                 WHERE member_id = :member_id
                   AND field_id NOT IN (
-                      SELECT id FROM profile_field WHERE keep_on_archive = TRUE
+                      SELECT id FROM profile_field WHERE keep_on_archive
                   );""").single(Call.of().bind("member_id", memberId)).delete();
     }
 }

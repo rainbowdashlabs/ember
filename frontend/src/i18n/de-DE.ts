@@ -2262,6 +2262,8 @@ volumes:
             publicCalendarText: 'Wenn du den öffentlichen Kalender aktivierst, können Besucher die Termine deiner Wache ohne Anmeldung sehen. Die Kalender-URL kannst du auf eurer Website verlinken.',
             publicWaitlistTitle: 'Öffentliche Wartelisten',
             publicWaitlistText: 'Wenn du öffentliche Wartelisten aktivierst, können sich Besucher über eure öffentliche Seite auf als öffentlich markierten Wartelisten anmelden.',
+            publicBlogTitle: 'Öffentlicher Blog',
+            publicBlogText: 'Wenn du den Blog aktivierst, werden als Blog markierte Neuigkeiten auf eurer öffentlichen Seite angezeigt.',
             tip: 'Tipp: Die öffentliche URL kannst du direkt auf eurer Website verlinken.',
         },
         federatedKb: {
@@ -5639,6 +5641,9 @@ volumes:
         visibilityTeam: 'Team',
         visibilityManager: 'Leitung',
         partnerNews: 'Partner-Neuigkeiten',
+        publicBlog: 'Blog-Beitrag',
+        publicBlogHint: 'Wenn aktiviert, wird diese Neuigkeit auf der öffentlichen Seite als Blog-Beitrag angezeigt.',
+        publicBlogBadge: 'Blog',
     },
     userSettings: {
         title: 'Einstellungen',
@@ -7151,6 +7156,12 @@ volumes:
         backToDiscovery: 'Zurück zur Übersicht',
         waitlist: 'Warteliste',
         waitlistRegistration: 'Anmeldung',
+        blog: 'Blog',
+        blogTitle: 'Neuigkeiten',
+        blogNoEntries: 'Noch keine Blog-Beiträge.',
+        blogReadMore: 'Weiterlesen',
+        blogPublishedAt: 'Veröffentlicht am',
+        blogBy: 'von',
     },
     registrationStats: {
         title: 'Anmelde-Statistik',

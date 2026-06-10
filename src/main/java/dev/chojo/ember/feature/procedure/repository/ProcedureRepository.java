@@ -173,7 +173,7 @@ public class ProcedureRepository {
 
     public List<Procedure> findProceduresByAssignee(
             int stationId, int memberId, ProcedureStatus status, boolean publicOnly) {
-        var publicFilter = publicOnly ? " AND p.public = TRUE" : "";
+        var publicFilter = publicOnly ? " AND p.public" : "";
         if (status != null) {
             return Query.query("""
                             SELECT p.* FROM procedure p
@@ -361,7 +361,7 @@ public class ProcedureRepository {
 
     public boolean uncheckItem(int id) {
         return Query.query(
-                        "UPDATE procedure_item SET checked = FALSE, checked_at = NULL, checked_by = NULL WHERE id = :id AND checked = TRUE;")
+                        "UPDATE procedure_item SET checked = FALSE, checked_at = NULL, checked_by = NULL WHERE id = :id AND checked;")
                 .single(Call.of().bind("id", id))
                 .update()
                 .changed();
@@ -435,13 +435,13 @@ public class ProcedureRepository {
                         WHERE p.station_id = :station_id
                           AND pa.member_id = :member_id
                           AND p.status = 'OPEN'
-                          AND pi.checked = FALSE
-                          AND pi.public = TRUE
-                          AND pi.user_assigned = TRUE
+                          AND NOT pi.checked
+                          AND pi.public
+                          AND pi.user_assigned
                           AND NOT EXISTS (
                               SELECT 1 FROM procedure_item_dependency d
                               JOIN procedure_item dep ON dep.id = d.depends_on_item_id
-                              WHERE d.item_id = pi.id AND dep.checked = FALSE
+                              WHERE d.item_id = pi.id AND NOT dep.checked
                           );""")
                 .single(Call.of().bind("station_id", stationId).bind("member_id", memberId))
                 .map(row -> row.getInt("count"))

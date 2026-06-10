@@ -35,6 +35,7 @@ const publicKbMode = ref('OFF')
 const publicCalendarEnabled = ref(false)
 const publicPagesEnabled = ref(false)
 const publicWaitlistEnabled = ref(false)
+const publicBlogEnabled = ref(false)
 const publicSlug = ref('')
 const stationId = ref('')
 const stationName = ref('')
@@ -71,6 +72,7 @@ async function loadSettings() {
     publicCalendarEnabled.value = info.publicCalendarEnabled ?? false
     publicPagesEnabled.value = info.publicPagesEnabled ?? false
     publicWaitlistEnabled.value = info.publicWaitlistEnabled ?? false
+    publicBlogEnabled.value = info.publicBlogEnabled ?? false
     publicSlug.value = info.publicSlug ?? ''
     // Mark initialized after all values are set so watchers don't trigger on load
     setTimeout(() => { initialized.value = true }, 50)
@@ -96,6 +98,7 @@ async function save() {
       publicCalendarEnabled: publicCalendarEnabled.value,
       publicPagesEnabled: publicPagesEnabled.value,
       publicWaitlistEnabled: publicWaitlistEnabled.value,
+      publicBlogEnabled: publicBlogEnabled.value,
       publicSlug: publicSlug.value || null,
     })
     saved.value = true
@@ -120,7 +123,7 @@ function debouncedSave() {
 
 // Watch all form fields for changes
 watch(
-    [discoveryVisibility, discoveryDescription, publicKbMode, publicCalendarEnabled, publicPagesEnabled, publicWaitlistEnabled, publicSlug],
+    [discoveryVisibility, discoveryDescription, publicKbMode, publicCalendarEnabled, publicPagesEnabled, publicWaitlistEnabled, publicBlogEnabled, publicSlug],
     debouncedSave,
 )
 
@@ -221,6 +224,15 @@ watch(loaded, (v) => { if (v) loadSettings() })
           <div class="flex items-center justify-between">
             <span class="text-sm font-medium">{{ t('waitingList.isPublic') }}</span>
             <ToggleInput v-model="publicWaitlistEnabled"/>
+          </div>
+        </NeutralContainer>
+
+        <NeutralContainer class="space-y-4">
+          <SubHeader>{{ t('helpCenter.federation.publicBlogTitle') }}</SubHeader>
+          <MutedText size="sm">{{ t('helpCenter.federation.publicBlogText') }}</MutedText>
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium">{{ t('helpCenter.federation.publicBlogTitle') }}</span>
+            <ToggleInput v-model="publicBlogEnabled"/>
           </div>
         </NeutralContainer>
 

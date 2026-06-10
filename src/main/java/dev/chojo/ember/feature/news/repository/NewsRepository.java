@@ -26,9 +26,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class NewsRepository {
 
     private static final String NEWS_COLUMNS =
-            "n.id, n.station_id, n.title, n.content_markdown, n.content_html, n.author_station_uid, n.author_member_uid, n.published_at, n.created_at, n.restriction_mode, EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = n.id) AS restricted";
+            "n.id, n.station_id, n.title, n.content_markdown, n.content_html, n.author_station_uid, n.author_member_uid, n.published_at, n.created_at, n.restriction_mode, EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = n.id) AS restricted, n.public_blog";
     private static final String NEWS_COLUMNS_BARE =
-            "id, station_id, title, content_markdown, content_html, author_station_uid, author_member_uid, published_at, created_at, restriction_mode, EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = id) AS restricted";
+            "id, station_id, title, content_markdown, content_html, author_station_uid, author_member_uid, published_at, created_at, restriction_mode, EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = id) AS restricted, public_blog";
 
     /**
      * Creates a new news article and returns the persisted entity.
@@ -156,6 +156,40 @@ public class NewsRepository {
                 .single(Call.of().bind("id", id))
                 .delete()
                 .changed();
+    }
+
+    public void updatePublicBlog(int id, boolean publicBlog) {
+        Query.query("UPDATE news SET public_blog = :public_blog WHERE id = :id;")
+                .single(Call.of().bind("id", id).bind("public_blog", publicBlog))
+                .update();
+    }
+
+    public List<News> findPublicBlogEntries(int stationId, int offset, int limit) {
+        return Query.query("SELECT " + NEWS_COLUMNS
+                        + " FROM news n WHERE n.station_id = :station_id"
+                        + " AND n.public_blog = TRUE AND n.published_at IS NOT NULL"
+                        + " AND NOT EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = n.id)"
+                        + " ORDER BY n.published_at DESC LIMIT :limit OFFSET :offset;")
+                .single(Call.of()
+                        .bind("station_id", stationId)
+                        .bind("limit", limit)
+                        .bind("offset", offset))
+                .map(News.map())
+                .all();
+    }
+
+    public boolean hasPublicBlogEntries(int stationId) {
+        return Query.query("""
+                        SELECT EXISTS(
+                            SELECT 1 FROM news n
+                            WHERE n.station_id = :station_id AND n.public_blog = TRUE
+                            AND n.published_at IS NOT NULL
+                            AND NOT EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = n.id)
+                        ) AS exists;""")
+                .single(Call.of().bind("station_id", stationId))
+                .map(row -> row.getBoolean("exists"))
+                .first()
+                .orElse(false);
     }
 
     // -- Comments --

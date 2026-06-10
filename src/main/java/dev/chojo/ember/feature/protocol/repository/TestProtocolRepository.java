@@ -349,7 +349,7 @@ public class TestProtocolRepository {
 
     public List<TestProtocolRunMember> findCompletedRunMembers(int runId) {
         return Query.query(
-                        "SELECT * FROM test_protocol_run_member WHERE run_id = :run_id AND completed = TRUE ORDER BY member_id;")
+                        "SELECT * FROM test_protocol_run_member WHERE run_id = :run_id AND completed ORDER BY member_id;")
                 .single(Call.of().bind("run_id", runId))
                 .map(TestProtocolRunMember.map())
                 .all();

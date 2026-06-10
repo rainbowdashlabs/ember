@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.station.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -33,17 +34,20 @@ public class PublicStationRoutes implements Routes {
     private final StationService stationService;
     private final PageService pageService;
     private final WaitingListService waitingListService;
+    private final NewsService newsService;
 
     @Inject
     public PublicStationRoutes(
             StationRepository stationRepository,
             StationService stationService,
             PageService pageService,
-            WaitingListService waitingListService) {
+            WaitingListService waitingListService,
+            NewsService newsService) {
         this.stationRepository = stationRepository;
         this.stationService = stationService;
         this.pageService = pageService;
         this.waitingListService = waitingListService;
+        this.newsService = newsService;
     }
 
     @Override
@@ -70,8 +74,9 @@ public class PublicStationRoutes implements Routes {
         boolean hasPublicPages = station.publicPagesEnabled() && pageService.hasPublishedPages(station.id());
         boolean hasPublicWaitlist =
                 station.publicWaitlistEnabled() && waitingListService.hasPublicWaitlists(station.id());
+        boolean hasPublicBlog = station.publicBlogEnabled() && newsService.hasPublicBlogEntries(station.id());
 
-        if (!hasPublicKb && !hasPublicCalendar && !hasPublicPages && !hasPublicWaitlist) {
+        if (!hasPublicKb && !hasPublicCalendar && !hasPublicPages && !hasPublicWaitlist && !hasPublicBlog) {
             throw new NotFoundResponse();
         }
 
@@ -88,6 +93,7 @@ public class PublicStationRoutes implements Routes {
                 hasPublicCalendar,
                 hasPublicPages,
                 hasPublicWaitlist,
+                hasPublicBlog,
                 landingPageSlug,
                 station.publicSlug(),
                 station.defaultTheme(),
@@ -104,6 +110,7 @@ public class PublicStationRoutes implements Routes {
             boolean hasPublicCalendar,
             boolean hasPublicPages,
             boolean hasPublicWaitlist,
+            boolean hasPublicBlog,
             String landingPageSlug,
             String publicSlug,
             String defaultTheme,

@@ -222,7 +222,7 @@ public class StationMemberRepository {
      * Find former members of a station.
      */
     public List<StationMember> findFormerByStation(int stationId) {
-        return Query.query("SELECT * FROM station_member WHERE station_id = :station_id AND former = TRUE;")
+        return Query.query("SELECT * FROM station_member WHERE station_id = :station_id AND former;")
                 .single(Call.of().bind("station_id", stationId))
                 .map(StationMember.map())
                 .all();
@@ -233,7 +233,7 @@ public class StationMemberRepository {
      */
     public List<StationMember> findByStationAndUserType(int stationId, StationUserType userType) {
         return Query.query(
-                        "SELECT * FROM station_member WHERE station_id = :station_id AND user_type = :user_type AND former = FALSE;")
+                        "SELECT * FROM station_member WHERE station_id = :station_id AND user_type = :user_type AND NOT former;")
                 .single(Call.of().bind("station_id", stationId).bind("user_type", userType))
                 .map(StationMember.map())
                 .all();

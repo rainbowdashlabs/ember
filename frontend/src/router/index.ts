@@ -1708,6 +1708,16 @@ const router = createRouter({
                     name: 'public-waitlist',
                     component: () => import('@/views/public/PublicWaitlistView.vue'),
                 },
+                {
+                    path: 'blog',
+                    name: 'public-blog',
+                    component: () => import('@/views/public/PublicBlogView.vue'),
+                },
+                {
+                    path: 'blog/:blogId',
+                    name: 'public-blog-detail',
+                    component: () => import('@/views/public/PublicBlogDetailView.vue'),
+                },
             ],
         },
         {

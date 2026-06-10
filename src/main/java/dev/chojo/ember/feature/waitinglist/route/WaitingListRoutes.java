@@ -378,7 +378,7 @@ public class WaitingListRoutes implements Routes {
                 listId,
                 request.name(),
                 request.fieldType(),
-                request.config() != null ? request.config() : WaitingListFieldConfig.parse("{}"),
+                WaitingListFieldConfig.parse(request.config() != null ? request.config() : "{}"),
                 request.position(),
                 request.required(),
                 request.isPublic() == null || request.isPublic());
@@ -394,7 +394,7 @@ public class WaitingListRoutes implements Routes {
                         fieldId,
                         request.name(),
                         request.fieldType(),
-                        request.config() != null ? request.config() : WaitingListFieldConfig.parse("{}"),
+                        WaitingListFieldConfig.parse(request.config() != null ? request.config() : "{}"),
                         request.position(),
                         request.required(),
                         request.isPublic() == null || request.isPublic())
@@ -638,12 +638,7 @@ public class WaitingListRoutes implements Routes {
     public record ListWithCount(WaitingList list, int entryCount) {}
 
     public record FieldRequest(
-            String name,
-            String fieldType,
-            WaitingListFieldConfig config,
-            int position,
-            boolean required,
-            Boolean isPublic) {}
+            String name, String fieldType, String config, int position, boolean required, Boolean isPublic) {}
 
     public record VisibleFieldsRequest(List<Integer> fieldIds) {}
 

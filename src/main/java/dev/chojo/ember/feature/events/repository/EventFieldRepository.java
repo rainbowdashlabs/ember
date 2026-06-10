@@ -32,7 +32,7 @@ public class EventFieldRepository {
         if (eventIds.isEmpty()) return List.of();
         return Query.query(
                         "SELECT " + ALL_COLUMNS
-                                + " FROM event_field WHERE event_id = ANY(:event_ids) AND overview = TRUE ORDER BY event_id, position;")
+                                + " FROM event_field WHERE event_id = ANY(:event_ids) AND overview ORDER BY event_id, position;")
                 .single(Call.of().bind("event_ids", eventIds, PostgreSqlTypes.INTEGER))
                 .map(EventField.map())
                 .all();

@@ -77,3 +77,31 @@ WHERE EXISTS (
 -- Normalize station_application status values to uppercase for enum mapping
 UPDATE ember_schema.station_application SET status = upper(status) WHERE status != upper(status);
 ALTER TABLE ember_schema.station_application ALTER COLUMN status SET DEFAULT 'UNVERIFIED';
+
+-- Public waitlist: allow stations to expose waitlists for self-registration
+ALTER TABLE ember_schema.waiting_list ADD COLUMN public BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE ember_schema.waiting_list_field ADD COLUMN public BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE ember_schema.station ADD COLUMN public_waitlist_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE ember_schema.waitlist_verification_token (
+    id           SERIAL      PRIMARY KEY,
+    token        TEXT        NOT NULL UNIQUE,
+    list_id      INTEGER     NOT NULL REFERENCES ember_schema.waiting_list (id) ON DELETE CASCADE,
+    firstname    TEXT        NOT NULL,
+    lastname     TEXT        NOT NULL DEFAULT '',
+    email        TEXT        NOT NULL,
+    guardians    JSONB       NOT NULL DEFAULT '[]'::jsonb,
+    field_values JSONB       NOT NULL DEFAULT '{}'::jsonb,
+    notes        TEXT        NOT NULL DEFAULT '',
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at   TIMESTAMPTZ NOT NULL DEFAULT (now() + interval '24 hours')
+);
+
+CREATE INDEX idx_wl_verify_token ON ember_schema.waitlist_verification_token (token);
+CREATE INDEX idx_wl_verify_expires ON ember_schema.waitlist_verification_token (expires_at);
+
+-- Public blog: allow news entries to be published on the public station page
+ALTER TABLE ember_schema.news ADD COLUMN public_blog BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE ember_schema.station ADD COLUMN public_blog_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE INDEX idx_news_public_blog ON ember_schema.news (station_id, public_blog) WHERE public_blog = TRUE AND published_at IS NOT NULL;

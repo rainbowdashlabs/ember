@@ -141,6 +141,10 @@ useHead(computed(() => {
                    @navigate="close">
         {{ landingPage.title }}
       </SidebarLink>
+      <!-- Blog -->
+      <SidebarLink v-if="station.hasPublicBlog" :icon="['fas', 'newspaper']" name="public-blog" :to="basePath + '/blog'" @navigate="close">
+        {{ t('publicStation.blog') }}
+      </SidebarLink>
       <!-- Calendar -->
       <SidebarLink v-if="station.hasPublicCalendar" :icon="['fas', 'calendar-days']" name="public-station-calendar" :to="basePath + '/calendar'" @navigate="close">
         {{ t('publicStation.calendar') }}

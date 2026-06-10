@@ -286,6 +286,7 @@ public class DemoService {
         stationRepository.updatePublicCalendarEnabled(station.id(), true);
         stationRepository.updatePublicPagesEnabled(station.id(), true);
         stationRepository.updatePublicWaitlistEnabled(station.id(), true);
+        stationRepository.updatePublicBlogEnabled(station.id(), true);
         stationRepository.updatePublicKbMode(station.id(), PublicKbMode.ALLOW_ALL);
         stationRepository.updateDiscoverySettings(
                 station.id(),

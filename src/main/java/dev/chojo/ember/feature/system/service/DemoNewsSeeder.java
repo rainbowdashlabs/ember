@@ -99,6 +99,10 @@ public class DemoNewsSeeder {
                 List.of(),
                 List.of());
 
+        // Mark first two news as blog entries
+        newsService.updatePublicBlog(news1.id(), true);
+        newsService.updatePublicBlog(news2.id(), true);
+
         // Comments on news
         var comment1 = newsService.createComment(
                 stationId,

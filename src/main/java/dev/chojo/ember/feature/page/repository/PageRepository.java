@@ -96,7 +96,7 @@ public class PageRepository {
                 FROM
                     station_page
                 WHERE station_id = :station_id
-                  AND published = TRUE
+                  AND published
                 ORDER BY sort_order;""", PAGE_COLUMNS)
                 .single(Call.of().bind("station_id", stationId))
                 .map(StationPage.mapFlat())

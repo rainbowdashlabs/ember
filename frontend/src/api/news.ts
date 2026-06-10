@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type { CommentRequest, NewsComment, NewsEntry, NewsRequest } from './types'
+import type { CommentRequest, NewsComment, NewsEntry, NewsRequest, PublicBlogEntry } from './types'
 
 // -- Federation share management --
 
@@ -147,4 +147,16 @@ export async function updateComment(commentId: number, data: CommentRequest): Pr
 
 export async function deleteComment(commentId: number): Promise<void> {
     await client.delete(`/news/comments/${commentId}`)
+}
+
+// --- Public Blog ---
+
+export async function listPublicBlog(stationUid: string, offset = 0, limit = 20): Promise<PublicBlogEntry[]> {
+    const res = await client.get<PublicBlogEntry[]>(`/public/station/${stationUid}/blog`, {params: {offset, limit}})
+    return res.data
+}
+
+export async function getPublicBlogEntry(stationUid: string, blogId: number): Promise<PublicBlogEntry> {
+    const res = await client.get<PublicBlogEntry>(`/public/station/${stationUid}/blog/${blogId}`)
+    return res.data
 }

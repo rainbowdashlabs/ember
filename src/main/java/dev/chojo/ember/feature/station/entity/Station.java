@@ -45,7 +45,8 @@ public record Station(
         Integer landingPageId,
         boolean publicPagesEnabled,
         String publicSlug,
-        boolean publicWaitlistEnabled) {
+        boolean publicWaitlistEnabled,
+        boolean publicBlogEnabled) {
     public static RowMapping<Station> map() {
         return row -> new Station(
                 row.getInt("id"),
@@ -68,6 +69,7 @@ public record Station(
                 row.getObject("landing_page_id") != null ? row.getInt("landing_page_id") : null,
                 row.getBoolean("public_pages_enabled"),
                 row.getString("public_slug"),
-                row.getBoolean("public_waitlist_enabled"));
+                row.getBoolean("public_waitlist_enabled"),
+                row.getBoolean("public_blog_enabled"));
     }
 }

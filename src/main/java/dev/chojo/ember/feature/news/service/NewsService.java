@@ -170,6 +170,18 @@ public class NewsService {
      * @param id the news article ID
      * @return {@code true} if the article was deleted
      */
+    public void updatePublicBlog(int id, boolean publicBlog) {
+        newsRepository.updatePublicBlog(id, publicBlog);
+    }
+
+    public List<News> findPublicBlogEntries(int stationId, int offset, int limit) {
+        return newsRepository.findPublicBlogEntries(stationId, offset, limit);
+    }
+
+    public boolean hasPublicBlogEntries(int stationId) {
+        return newsRepository.hasPublicBlogEntries(stationId);
+    }
+
     public boolean delete(int id) {
         var news = newsRepository.findById(id).orElse(null);
         if (news == null) return false;

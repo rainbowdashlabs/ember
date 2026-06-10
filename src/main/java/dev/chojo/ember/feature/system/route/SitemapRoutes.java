@@ -153,7 +153,8 @@ public class SitemapRoutes implements Routes {
         return station.publicCalendarEnabled()
                 || station.publicKbMode() != PublicKbMode.OFF
                 || station.publicPagesEnabled()
-                || station.publicWaitlistEnabled();
+                || station.publicWaitlistEnabled()
+                || station.publicBlogEnabled();
     }
 
     private String baseUrl(Context ctx) {
