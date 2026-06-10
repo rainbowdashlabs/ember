@@ -134,8 +134,8 @@ const { t } = useI18n()
             <div class="flex-1">
               <div class="flex items-center gap-2">
                 <span class="font-medium">Alter</span>
-                <span class="text-xs bg-secondary/15 text-secondary rounded-full px-2 py-0.5">{{ t('waitingList.typeNumber') }}</span>
-                <span class="text-xs bg-primary/15 text-primary rounded-full px-2 py-0.5">{{ t('waitingList.required') }}</span>
+                <SecondaryBadge>{{ t('waitingList.typeNumber') }}</SecondaryBadge>
+                <PrimaryBadge>{{ t('waitingList.required') }}</PrimaryBadge>
               </div>
             </div>
             <EditButton/>
@@ -145,7 +145,7 @@ const { t } = useI18n()
             <div class="flex-1">
               <div class="flex items-center gap-2">
                 <span class="font-medium">Erfahrung</span>
-                <span class="text-xs bg-secondary/15 text-secondary rounded-full px-2 py-0.5">{{ t('waitingList.typeEnum') }}</span>
+                <SecondaryBadge>{{ t('waitingList.typeEnum') }}</SecondaryBadge>
               </div>
               <MutedText class="mt-1">{{ t('waitingList.options') }}: Anfänger, Fortgeschritten</MutedText>
             </div>

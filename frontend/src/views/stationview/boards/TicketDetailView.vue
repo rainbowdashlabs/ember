@@ -422,7 +422,7 @@ watch(ticketNumber, loadData)
                         <FieldLabel class="mb-1">Labels</FieldLabel>
                         <LabelSelectInput v-if="canEdit" :labels="allLabels" :selected="ticketLabels" @toggle="toggleLabel" @create="createAndAddLabel" />
                         <div v-else class="flex flex-wrap gap-1">
-                            <span v-for="label in ticketLabels" :key="label.id" class="text-xs px-2 py-0.5 rounded-full" :style="{ backgroundColor: label.color, color: contrastTextColor(label.color) }">{{ label.name }}</span>
+                            <BaseBadge v-for="label in ticketLabels" :key="label.id" bg-class="" :style="{ backgroundColor: label.color, color: contrastTextColor(label.color) }">{{ label.name }}</BaseBadge>
                             <span v-if="ticketLabels.length === 0" class="text-sm text-(--text-muted)">—</span>
                         </div>
                     </div>

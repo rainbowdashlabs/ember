@@ -22,6 +22,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import ViewContent from '@/components/layout/ViewContent.vue'
 import type {PublicWaitlistSummary, PublicWaitlistFormResponse, WaitingListField} from '@/api/types'
 import {waitingList} from '@/api'
 
@@ -136,6 +137,7 @@ onMounted(loadLists)
 </script>
 
 <template>
+  <ViewContent>
   <div class="max-w-2xl mx-auto space-y-6">
     <SectionHeader>{{ t('waitingList.publicRegistration.title') }}</SectionHeader>
     <p class="text-(--text-muted)">{{ t('waitingList.publicRegistration.subtitle') }}</p>
@@ -241,4 +243,5 @@ onMounted(loadLists)
       </template>
     </template>
   </div>
+  </ViewContent>
 </template>

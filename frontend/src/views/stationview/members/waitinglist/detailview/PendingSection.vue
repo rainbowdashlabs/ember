@@ -58,7 +58,7 @@ function toggle(id: number) {
             <font-awesome-icon :icon="['fas', expandedId === item.entry.id ? 'chevron-down' : 'chevron-right']" class="h-3 w-3 text-(--text-muted) shrink-0"/>
             <span class="font-medium text-sm">{{ fullName(item) }}</span>
             <span v-if="item.entry.email" class="text-xs text-(--text-muted) truncate">{{ item.entry.email }}</span>
-            <span class="text-xs bg-info/15 text-info rounded-full px-2 py-0.5 shrink-0">{{ t('waitingList.status_PENDING') }}</span>
+            <InfoBadge class="shrink-0">{{ t('waitingList.status_PENDING') }}</InfoBadge>
           </div>
           <div v-if="!readonly" class="flex items-center gap-2 shrink-0 ml-2" @click.stop>
             <SuccessButton size="sm" :icon="['fas', 'check']" @click="emit('approve', item.entry.id)">{{ t('waitingList.approve') }}</SuccessButton>

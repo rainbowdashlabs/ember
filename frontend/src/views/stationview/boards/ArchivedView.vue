@@ -80,7 +80,7 @@ onMounted(loadData)
             </div>
 
             <div v-if="allLabels.length > 0" class="flex flex-wrap gap-1 mb-4 items-center">
-                <span v-for="label in allLabels" :key="label.id" class="text-xs px-2 py-0.5 rounded-full cursor-pointer transition-all" :class="labelFilter.has(label.id) ? 'ring-2 ring-offset-1 ring-[var(--text)]' : 'opacity-70 hover:opacity-100'" :style="{ backgroundColor: label.color, color: contrastTextColor(label.color) }" @click="toggleLabelFilter(label.id)">{{ label.name }}</span>
+                <BaseBadge v-for="label in allLabels" :key="label.id" bg-class="" class="cursor-pointer transition-all" :class="labelFilter.has(label.id) ? 'ring-2 ring-offset-1 ring-[var(--text)]' : 'opacity-70 hover:opacity-100'" :style="{ backgroundColor: label.color, color: contrastTextColor(label.color) }" @click="toggleLabelFilter(label.id)">{{ label.name }}</BaseBadge>
                 <span v-if="labelFilter.size > 0" class="text-xs text-(--text-muted) cursor-pointer ml-1" @click="labelFilter = new Set()"><font-awesome-icon :icon="['fas', 'xmark']" class="text-[0.6rem]" /></span>
             </div>
 
@@ -93,7 +93,7 @@ onMounted(loadData)
                     <tr v-for="ticket in filteredTickets" :key="ticket.id" class="border-b border-(--border) last:border-0 cursor-pointer hover:bg-primary/5" @click="router.push(`/station/boards/${board.shortKey}/tickets/${ticket.ticketNumber}`)">
                         <td class="py-2 pr-3 font-mono text-(--text-muted) whitespace-nowrap">{{ board.shortKey }}-{{ ticket.ticketNumber }}</td>
                         <td class="py-2 pr-3">{{ ticket.title }}</td>
-                        <td class="py-2 pr-3"><div class="flex gap-1"><span v-for="l in labelsForTicket(ticket.id)" :key="l.id" class="text-[0.6rem] px-1.5 py-0.5 rounded-full" :style="{ backgroundColor: l.color, color: contrastTextColor(l.color) }">{{ l.name }}</span></div></td>
+                        <td class="py-2 pr-3"><div class="flex gap-1"><BaseBadge v-for="l in labelsForTicket(ticket.id)" :key="l.id" bg-class="" :style="{ backgroundColor: l.color, color: contrastTextColor(l.color) }">{{ l.name }}</BaseBadge></div></td>
                         <td class="py-2 pr-3"><font-awesome-icon :icon="priorityIcon(ticket.priority)" :class="priorityColor(ticket.priority)" class="text-xs" /></td>
                         <td class="py-2 pr-3"><div v-if="ticket.assignee" class="flex items-center gap-1"><UserAvatar :identity="ticket.assignee" size="sm" /><span class="text-xs whitespace-nowrap">{{ members.find(m => m.memberUid === ticket.assignee?.memberUid)?.name ?? '' }}</span></div></td>
                         <td class="py-2 text-xs whitespace-nowrap">{{ ticket.dueDate ? new Date(ticket.dueDate).toLocaleDateString('de-DE') : '' }}</td>

@@ -79,7 +79,7 @@ for (const file of vueFiles) {
         for (let i = 0; i < templateLines.length; i++) {
             const line = templateLines[i]
             if (/<span\b[^>]*\brounded-full\b[^>]*\bpx-/.test(line) || /<span\b[^>]*\bpx-[^>]*\brounded-full\b/.test(line)) {
-                warn(CAT_RAW_ELEMENTS, file, templateStartLine + i, `<span> with rounded-full + padding — use a Badge component (PrimaryBadge, SuccessBadge, etc.) instead.`)
+                error(CAT_RAW_ELEMENTS, file, templateStartLine + i, `<span> with rounded-full + padding — use a Badge component (PrimaryBadge, SuccessBadge, etc.) instead.`)
             }
         }
     }

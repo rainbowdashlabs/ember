@@ -13,6 +13,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import ViewContent from '@/components/layout/ViewContent.vue'
 import type {PublicBlogEntry} from '@/api/types'
 import {news} from '@/api'
 
@@ -54,6 +55,7 @@ onMounted(load)
 </script>
 
 <template>
+  <ViewContent>
   <div class="space-y-6">
     <SectionHeader>{{ t('publicStation.blogTitle') }}</SectionHeader>
 
@@ -78,4 +80,5 @@ onMounted(load)
       </NeutralContainer>
     </div>
   </div>
+  </ViewContent>
 </template>

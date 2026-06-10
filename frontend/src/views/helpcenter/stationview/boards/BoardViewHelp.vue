@@ -129,14 +129,14 @@ const {t} = useI18n()
                 <div class="md:flex-1 md:min-w-[14rem] md:max-w-[24rem] bg-bg-light-accent dark:bg-bg-dark-accent border border-[var(--border)] rounded-lg p-3 border-t-2" style="border-top-color: var(--primary)">
                     <div class="flex items-center justify-between mb-3">
                         <SubHeader class="text-sm text-[var(--text-muted)] uppercase tracking-wide">Offen</SubHeader>
-                        <span class="text-xs text-[var(--text-muted)] bg-[var(--bg)] px-1.5 py-0.5 rounded-full">2</span>
+                        <BaseBadge bg-class="bg-[var(--bg)]" class="text-[var(--text-muted)]">2</BaseBadge>
                     </div>
                     <div class="space-y-2">
                         <!-- Ticket 1 -->
                         <div class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-3 shadow-sm">
                             <p class="text-sm font-medium leading-tight mb-1">Dienstplan Juni erstellen</p>
                             <div class="flex flex-wrap gap-1 mb-2">
-                                <span class="text-[0.65rem] leading-tight px-1.5 py-0.5 rounded-full font-medium bg-blue-500 text-white">Planung</span>
+                                <BaseBadge bg-class="bg-blue-500" class="text-white">Planung</BaseBadge>
                             </div>
                             <div class="flex items-center justify-between text-xs text-[var(--text-muted)]">
                                 <div class="flex items-center gap-2">
@@ -171,15 +171,15 @@ const {t} = useI18n()
                 <div class="md:flex-1 md:min-w-[14rem] md:max-w-[24rem] bg-bg-light-accent dark:bg-bg-dark-accent border border-[var(--border)] rounded-lg p-3 border-t-2" style="border-top-color: #3694FF">
                     <div class="flex items-center justify-between mb-3">
                         <SubHeader class="text-sm text-[var(--text-muted)] uppercase tracking-wide">In Arbeit</SubHeader>
-                        <span class="text-xs text-[var(--text-muted)] bg-[var(--bg)] px-1.5 py-0.5 rounded-full">1</span>
+                        <BaseBadge bg-class="bg-[var(--bg)]" class="text-[var(--text-muted)]">1</BaseBadge>
                     </div>
                     <div class="space-y-2">
                         <!-- Ticket 3 -->
                         <div class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-3 shadow-sm">
                             <p class="text-sm font-medium leading-tight mb-1">Fahrzeugcheck organisieren</p>
                             <div class="flex flex-wrap gap-1 mb-2">
-                                <span class="text-[0.65rem] leading-tight px-1.5 py-0.5 rounded-full font-medium bg-green-600 text-white">Wartung</span>
-                                <span class="text-[0.65rem] leading-tight px-1.5 py-0.5 rounded-full font-medium bg-orange-500 text-white">Dringend</span>
+                                <BaseBadge bg-class="bg-green-600" class="text-white">Wartung</BaseBadge>
+                                <BaseBadge bg-class="bg-orange-500" class="text-white">Dringend</BaseBadge>
                             </div>
                             <!-- Checklist progress -->
                             <div class="flex items-center gap-2 mb-2">
@@ -217,7 +217,7 @@ const {t} = useI18n()
                 <div class="md:flex-1 md:min-w-[14rem] md:max-w-[24rem] bg-bg-light-accent dark:bg-bg-dark-accent border border-[var(--border)] rounded-lg p-3 border-t-2" style="border-top-color: #00C507">
                     <div class="flex items-center justify-between mb-3">
                         <SubHeader class="text-sm text-[var(--text-muted)] uppercase tracking-wide">Erledigt</SubHeader>
-                        <span class="text-xs text-[var(--text-muted)] bg-[var(--bg)] px-1.5 py-0.5 rounded-full">1</span>
+                        <BaseBadge bg-class="bg-[var(--bg)]" class="text-[var(--text-muted)]">1</BaseBadge>
                     </div>
                     <div class="space-y-2">
                         <!-- Ticket 4 -->

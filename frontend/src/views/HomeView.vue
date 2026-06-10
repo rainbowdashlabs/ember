@@ -175,10 +175,10 @@ const highlights = [
           {{ t('landing.audienceText') }}
         </p>
         <div class="flex flex-wrap justify-center gap-3">
-          <span class="rounded-full bg-primary/10 text-primary px-4 py-1.5 text-sm font-medium">{{ t('landing.audienceTag1') }}</span>
-          <span class="rounded-full bg-secondary/10 text-secondary px-4 py-1.5 text-sm font-medium">{{ t('landing.audienceTag2') }}</span>
-          <span class="rounded-full bg-success/10 text-success px-4 py-1.5 text-sm font-medium">{{ t('landing.audienceTag3') }}</span>
-          <span class="rounded-full bg-info/10 text-info px-4 py-1.5 text-sm font-medium">{{ t('landing.audienceTag4') }}</span>
+          <PrimaryBadge>{{ t('landing.audienceTag1') }}</PrimaryBadge>
+          <SecondaryBadge>{{ t('landing.audienceTag2') }}</SecondaryBadge>
+          <SuccessBadge>{{ t('landing.audienceTag3') }}</SuccessBadge>
+          <InfoBadge>{{ t('landing.audienceTag4') }}</InfoBadge>
         </div>
       </div>
     </section>

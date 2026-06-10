@@ -67,10 +67,10 @@ const {t} = useI18n()
                                 <IconButton :icon="['fas', 'star']" :label="t('boards.bookmark')" class="text-text-light-secondary dark:text-text-dark-secondary hover:text-yellow-500" />
                             </div>
                             <div class="flex items-center gap-2 mt-3">
-                                <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-bg-light-accent dark:bg-bg-dark-accent">
+                                <SecondaryBadge class="inline-flex items-center gap-1">
                                     <font-awesome-icon :icon="['fas', 'lock']" class="text-[0.65rem]" />
                                     {{ t('boards.readOnlyBadge') }}
-                                </span>
+                                </SecondaryBadge>
                             </div>
                         </NeutralContainer>
 
@@ -87,10 +87,10 @@ const {t} = useI18n()
                                 <IconButton :icon="['fas', 'star']" :label="t('boards.bookmarked')" class="text-yellow-500 hover:text-yellow-600" />
                             </div>
                             <div class="flex items-center gap-2 mt-3">
-                                <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+                                <SuccessBadge class="inline-flex items-center gap-1">
                                     <font-awesome-icon :icon="['fas', 'pen']" class="text-[0.65rem]" />
                                     {{ t('boards.fullAccessBadge') }}
-                                </span>
+                                </SuccessBadge>
                             </div>
                         </NeutralContainer>
                     </div>
@@ -113,10 +113,10 @@ const {t} = useI18n()
                                 <IconButton :icon="['fas', 'star']" :label="t('boards.bookmark')" class="text-text-light-secondary dark:text-text-dark-secondary hover:text-yellow-500" />
                             </div>
                             <div class="flex items-center gap-2 mt-3">
-                                <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-bg-light-accent dark:bg-bg-dark-accent">
+                                <SecondaryBadge class="inline-flex items-center gap-1">
                                     <font-awesome-icon :icon="['fas', 'lock']" class="text-[0.65rem]" />
                                     {{ t('boards.readOnlyBadge') }}
-                                </span>
+                                </SecondaryBadge>
                             </div>
                         </NeutralContainer>
                     </div>

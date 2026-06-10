@@ -322,9 +322,9 @@ async function handleLogout() {
         <SidebarLink v-for="bm in bookmarkedBoards" :key="`fed-${bm.id}`" :icon="['fas', 'table-columns']" :name="`fed-board-${bm.id}`" :to="`/station/federation/boards/${bm.partnerStationUid}/${bm.remoteBoardShortKey}`" :active="route.path.startsWith(`/station/federation/boards/${bm.partnerStationUid}/${bm.remoteBoardShortKey}`)" @navigate="close">
           <span class="flex items-center gap-1.5">
             {{ bm.remoteBoardName }}
-            <span class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold bg-secondary/70 border border-secondary/30 text-white shrink-0">
+            <SecondaryBadge class="shrink-0">
               <font-awesome-icon :icon="['fas', 'arrow-right-arrow-left']" class="w-2.5 h-2.5" />
-            </span>
+            </SecondaryBadge>
           </span>
         </SidebarLink>
         <SidebarLink :icon="['fas', 'globe']" name="federated-boards" to="/station/federation/boards" @navigate="close">

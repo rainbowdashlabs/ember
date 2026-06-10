@@ -7,6 +7,7 @@
 import PublicBlogDetailView from '~/views/public/PublicBlogDetailView'
 
 definePageMeta({
+  layout: 'public-station',
   name: 'public-blog-detail',
 })
 </script>

@@ -110,9 +110,9 @@ function formatDate(iso: string): string {
                 <div v-if="item.type === 'transition'" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
                     <MemberName :identity="(item.data as BoardTicketTransition).actor" size="sm" />
                     <span>{{ t('boards.movedFrom') }}</span>
-                    <span class="font-medium text-xs px-2 py-0.5 rounded-full" :style="{ backgroundColor: lanes.find(l => l.id === (item.data as BoardTicketTransition).fromLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === (item.data as BoardTicketTransition).fromLaneId)?.color ?? '#fd4f00') }">{{ laneName((item.data as BoardTicketTransition).fromLaneId) }}</span>
+                    <BaseBadge bg-class="" class="font-medium" :style="{ backgroundColor: lanes.find(l => l.id === (item.data as BoardTicketTransition).fromLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === (item.data as BoardTicketTransition).fromLaneId)?.color ?? '#fd4f00') }">{{ laneName((item.data as BoardTicketTransition).fromLaneId) }}</BaseBadge>
                     <span>{{ t('boards.movedTo') }}</span>
-                    <span class="font-medium text-xs px-2 py-0.5 rounded-full" :style="{ backgroundColor: lanes.find(l => l.id === (item.data as BoardTicketTransition).toLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === (item.data as BoardTicketTransition).toLaneId)?.color ?? '#fd4f00') }">{{ laneName((item.data as BoardTicketTransition).toLaneId) }}</span>
+                    <BaseBadge bg-class="" class="font-medium" :style="{ backgroundColor: lanes.find(l => l.id === (item.data as BoardTicketTransition).toLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === (item.data as BoardTicketTransition).toLaneId)?.color ?? '#fd4f00') }">{{ laneName((item.data as BoardTicketTransition).toLaneId) }}</BaseBadge>
                     <span class="ml-auto text-xs">{{ formatDate(item.ts) }}</span>
                 </div>
                 <div v-else-if="item.type === 'history'" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
@@ -125,7 +125,7 @@ function formatDate(iso: string): string {
                         </template>
                     </template>
                     <template v-else-if="((item.data as BoardTicketHistoryEntry).action === 'LABEL_ADDED' || (item.data as BoardTicketHistoryEntry).action === 'LABEL_REMOVED') && (item.data as BoardTicketHistoryEntry).detail">
-                        <span class="text-xs px-2 py-0.5 rounded-full" :style="{ backgroundColor: findLabel((item.data as BoardTicketHistoryEntry).detail!)?.color ?? '#6b7280', color: contrastTextColor(findLabel((item.data as BoardTicketHistoryEntry).detail!)?.color ?? '#6b7280') }">{{ (item.data as BoardTicketHistoryEntry).detail }}</span>
+                        <BaseBadge bg-class="" :style="{ backgroundColor: findLabel((item.data as BoardTicketHistoryEntry).detail!)?.color ?? '#6b7280', color: contrastTextColor(findLabel((item.data as BoardTicketHistoryEntry).detail!)?.color ?? '#6b7280') }">{{ (item.data as BoardTicketHistoryEntry).detail }}</BaseBadge>
                     </template>
                     <template v-else-if="(item.data as BoardTicketHistoryEntry).action === 'DUE_DATE_CHANGED' && (item.data as BoardTicketHistoryEntry).detail">
                         <span class="text-(--text)">{{ (item.data as BoardTicketHistoryEntry).detail }}</span>
@@ -152,9 +152,9 @@ function formatDate(iso: string): string {
                 <div v-else-if="item.type === 'transition'" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
                     <MemberName :identity="(item.data as BoardTicketTransition).actor" size="sm" />
                     <span>{{ t('boards.movedFrom') }}</span>
-                    <span class="font-medium text-xs px-2 py-0.5 rounded-full" :style="{ backgroundColor: lanes.find(l => l.id === (item.data as BoardTicketTransition).fromLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === (item.data as BoardTicketTransition).fromLaneId)?.color ?? '#fd4f00') }">{{ laneName((item.data as BoardTicketTransition).fromLaneId) }}</span>
+                    <BaseBadge bg-class="" class="font-medium" :style="{ backgroundColor: lanes.find(l => l.id === (item.data as BoardTicketTransition).fromLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === (item.data as BoardTicketTransition).fromLaneId)?.color ?? '#fd4f00') }">{{ laneName((item.data as BoardTicketTransition).fromLaneId) }}</BaseBadge>
                     <span>{{ t('boards.movedTo') }}</span>
-                    <span class="font-medium text-xs px-2 py-0.5 rounded-full" :style="{ backgroundColor: lanes.find(l => l.id === (item.data as BoardTicketTransition).toLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === (item.data as BoardTicketTransition).toLaneId)?.color ?? '#fd4f00') }">{{ laneName((item.data as BoardTicketTransition).toLaneId) }}</span>
+                    <BaseBadge bg-class="" class="font-medium" :style="{ backgroundColor: lanes.find(l => l.id === (item.data as BoardTicketTransition).toLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === (item.data as BoardTicketTransition).toLaneId)?.color ?? '#fd4f00') }">{{ laneName((item.data as BoardTicketTransition).toLaneId) }}</BaseBadge>
                     <span class="ml-auto text-xs">{{ formatDate(item.ts) }}</span>
                 </div>
                 <div v-else-if="item.type === 'history'" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
@@ -167,7 +167,7 @@ function formatDate(iso: string): string {
                         </template>
                     </template>
                     <template v-else-if="((item.data as BoardTicketHistoryEntry).action === 'LABEL_ADDED' || (item.data as BoardTicketHistoryEntry).action === 'LABEL_REMOVED') && (item.data as BoardTicketHistoryEntry).detail">
-                        <span class="text-xs px-2 py-0.5 rounded-full" :style="{ backgroundColor: findLabel((item.data as BoardTicketHistoryEntry).detail!)?.color ?? '#6b7280', color: contrastTextColor(findLabel((item.data as BoardTicketHistoryEntry).detail!)?.color ?? '#6b7280') }">{{ (item.data as BoardTicketHistoryEntry).detail }}</span>
+                        <BaseBadge bg-class="" :style="{ backgroundColor: findLabel((item.data as BoardTicketHistoryEntry).detail!)?.color ?? '#6b7280', color: contrastTextColor(findLabel((item.data as BoardTicketHistoryEntry).detail!)?.color ?? '#6b7280') }">{{ (item.data as BoardTicketHistoryEntry).detail }}</BaseBadge>
                     </template>
                     <span v-else-if="(item.data as BoardTicketHistoryEntry).detail" class="text-(--text)">{{ (item.data as BoardTicketHistoryEntry).detail }}</span>
                     <span class="ml-auto text-xs">{{ formatDate(item.ts) }}</span>

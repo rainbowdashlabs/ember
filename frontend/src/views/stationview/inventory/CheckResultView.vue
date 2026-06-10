@@ -118,15 +118,15 @@ onMounted(loadData)
                   <template v-if="item.internalId"> &middot; {{ item.internalId }}</template>
                 </div>
               </div>
-              <span class="inline-block self-start rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0"
-                :class="{
-                  'bg-success/15 text-success': item.result === 'CONFIRMED',
-                  'bg-info/15 text-info-accent': item.result === 'NOT_IN_POSSESSION',
-                  'bg-error/15 text-error': item.result === 'LOST',
-                }"
-              >
+              <SuccessBadge v-if="item.result === 'CONFIRMED'" class="self-start shrink-0">
                 {{ resultLabel(item.result) }}
-              </span>
+              </SuccessBadge>
+              <InfoBadge v-else-if="item.result === 'NOT_IN_POSSESSION'" class="self-start shrink-0">
+                {{ resultLabel(item.result) }}
+              </InfoBadge>
+              <ErrorBadge v-else-if="item.result === 'LOST'" class="self-start shrink-0">
+                {{ resultLabel(item.result) }}
+              </ErrorBadge>
             </div>
             <MutedText tag="p" size="sm" class="mt-1" v-if="item.note">{{ item.note }}</MutedText>
           </NeutralContainer>

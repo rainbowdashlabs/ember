@@ -13,6 +13,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {PublicBlogEntry} from '@/api/types'
+import ViewContent from '@/components/layout/ViewContent.vue'
 import {news} from '@/api'
 
 const {t} = useI18n()
@@ -49,6 +50,7 @@ onMounted(load)
 </script>
 
 <template>
+  <ViewContent>
   <div class="space-y-6">
     <SecondaryButton size="sm" :icon="['fas', 'arrow-left']" @click="goBack">
       {{ t('publicStation.blogTitle') }}
@@ -68,4 +70,5 @@ onMounted(load)
       </NeutralContainer>
     </template>
   </div>
+  </ViewContent>
 </template>

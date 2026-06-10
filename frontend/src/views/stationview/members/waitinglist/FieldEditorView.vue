@@ -259,8 +259,8 @@ onMounted(loadData)
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
                   <span class="font-medium">{{ field.name }}</span>
-                  <span class="text-xs bg-secondary/15 text-secondary rounded-full px-2 py-0.5">{{ fieldTypeLabel(field.fieldType) }}</span>
-                  <span v-if="field.required" class="text-xs bg-primary/15 text-primary rounded-full px-2 py-0.5">{{ t('waitingList.required') }}</span>
+                  <SecondaryBadge>{{ fieldTypeLabel(field.fieldType) }}</SecondaryBadge>
+                  <PrimaryBadge v-if="field.required">{{ t('waitingList.required') }}</PrimaryBadge>
                 </div>
                 <MutedText tag="div" class="mt-1" v-if="field.fieldType === 'ENUM'">
                   {{ t('waitingList.options') }}: {{ parseConfig(field.config).options ? (parseConfig(field.config).options as string[]).join(', ') : '-' }}

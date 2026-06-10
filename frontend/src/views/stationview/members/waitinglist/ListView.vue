@@ -113,13 +113,13 @@ onMounted(loadData)
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                   <SubHeader>{{ item.list.name }}</SubHeader>
-                  <span v-if="item.list.isPublic" class="text-xs font-medium bg-success/15 text-success rounded-full px-2 py-0.5">
+                  <SuccessBadge v-if="item.list.isPublic">
                     {{ t('waitingList.publicBadge') }}
-                  </span>
+                  </SuccessBadge>
                 </div>
-                <span class="text-sm font-medium bg-primary/15 text-primary rounded-full px-3 py-0.5">
+                <PrimaryBadge>
                   {{ item.entryCount }}
-                </span>
+                </PrimaryBadge>
               </div>
               <p v-if="item.list.description" class="text-sm text-(--text-muted) line-clamp-2">
                 {{ item.list.description }}

@@ -302,13 +302,14 @@ watch([partnerUid, boardKey], loadData)
                     <SectionHeader>{{ board.name }}</SectionHeader>
                     <span class="text-xs font-mono text-(--text-muted) bg-(--bg-accent) px-1.5 py-0.5 rounded">{{ board.shortKey }}</span>
                     <!-- Share mode badge -->
-                    <span
-                        class="text-xs font-semibold px-2 py-0.5 rounded-full"
-                        :class="isReadOnly ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'"
-                    >
-                        <font-awesome-icon :icon="isReadOnly ? ['fas', 'eye'] : ['fas', 'pen']" class="mr-1" />
-                        {{ isReadOnly ? t('boards.readOnlyBadge') : t('boards.fullAccessBadge') }}
-                    </span>
+                    <InfoBadge v-if="isReadOnly" class="inline-flex items-center gap-1">
+                        <font-awesome-icon :icon="['fas', 'eye']" class="text-[0.65rem]" />
+                        {{ t('boards.readOnlyBadge') }}
+                    </InfoBadge>
+                    <SuccessBadge v-else class="inline-flex items-center gap-1">
+                        <font-awesome-icon :icon="['fas', 'pen']" class="text-[0.65rem]" />
+                        {{ t('boards.fullAccessBadge') }}
+                    </SuccessBadge>
                 </div>
                 <div class="flex items-center gap-2">
                     <!-- Search (both modes) -->
@@ -367,7 +368,7 @@ watch([partnerUid, boardKey], loadData)
                     <!-- Lane header -->
                     <div class="flex items-center justify-between mb-3">
                         <SubHeader class="text-sm text-[var(--text-muted)] uppercase tracking-wide">{{ lane.name }}</SubHeader>
-                        <span class="text-xs text-[var(--text-muted)] bg-[var(--bg)] px-1.5 py-0.5 rounded-full">{{ visibleTicketsForLane(lane.id).length }}</span>
+                        <BaseBadge bg-class="bg-[var(--bg)]" class="text-[var(--text-muted)]">{{ visibleTicketsForLane(lane.id).length }}</BaseBadge>
                     </div>
 
                     <!-- Tickets -->

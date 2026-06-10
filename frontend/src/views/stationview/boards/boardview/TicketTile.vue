@@ -93,7 +93,7 @@ const isOverdue = computed(() => {
 
         <!-- Labels -->
         <div v-if="labels && labels.length > 0" class="flex flex-wrap gap-1 mb-2">
-            <span v-for="label in labels" :key="label.id" class="text-[0.65rem] leading-tight px-1.5 py-0.5 rounded-full font-medium" :style="{ backgroundColor: label.color, color: contrastTextColor(label.color) }">{{ label.name }}</span>
+            <BaseBadge v-for="label in labels" :key="label.id" bg-class="" :style="{ backgroundColor: label.color, color: contrastTextColor(label.color) }">{{ label.name }}</BaseBadge>
         </div>
 
         <!-- Checklist progress -->

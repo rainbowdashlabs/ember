@@ -52,12 +52,13 @@ const dummyLabels = [
 
                 <!-- Dummy: Label filter bar -->
                 <div class="flex flex-wrap gap-1 items-center">
-                    <span
+                    <BaseBadge
                         v-for="label in dummyLabels"
                         :key="label.name"
-                        class="text-xs px-2 py-0.5 rounded-full cursor-pointer transition-all opacity-70 hover:opacity-100"
+                        bg-class=""
+                        class="cursor-pointer transition-all opacity-70 hover:opacity-100"
                         :style="{ backgroundColor: label.color, color: contrastTextColor(label.color) }"
-                    >{{ label.name }}</span>
+                    >{{ label.name }}</BaseBadge>
                 </div>
 
                 <!-- Dummy: Archive table -->
@@ -78,7 +79,7 @@ const dummyLabels = [
                             <td class="py-2 pr-3">{{ t('helpCenter.archived.dummyTitle1') }}</td>
                             <td class="py-2 pr-3">
                                 <div class="flex gap-1">
-                                    <span class="text-[0.6rem] px-1.5 py-0.5 rounded-full" :style="{ backgroundColor: dummyLabels[0].color, color: contrastTextColor(dummyLabels[0].color) }">{{ dummyLabels[0].name }}</span>
+                                    <BaseBadge bg-class="" :style="{ backgroundColor: dummyLabels[0].color, color: contrastTextColor(dummyLabels[0].color) }">{{ dummyLabels[0].name }}</BaseBadge>
                                 </div>
                             </td>
                             <td class="py-2 pr-3"><font-awesome-icon :icon="['fas', 'angles-up']" class="text-xs text-red-500" /></td>
@@ -95,7 +96,7 @@ const dummyLabels = [
                             <td class="py-2 pr-3">{{ t('helpCenter.archived.dummyTitle2') }}</td>
                             <td class="py-2 pr-3">
                                 <div class="flex gap-1">
-                                    <span class="text-[0.6rem] px-1.5 py-0.5 rounded-full" :style="{ backgroundColor: dummyLabels[1].color, color: contrastTextColor(dummyLabels[1].color) }">{{ dummyLabels[1].name }}</span>
+                                    <BaseBadge bg-class="" :style="{ backgroundColor: dummyLabels[1].color, color: contrastTextColor(dummyLabels[1].color) }">{{ dummyLabels[1].name }}</BaseBadge>
                                 </div>
                             </td>
                             <td class="py-2 pr-3"><font-awesome-icon :icon="['fas', 'equals']" class="text-xs text-yellow-500" /></td>
@@ -112,7 +113,7 @@ const dummyLabels = [
                             <td class="py-2 pr-3">{{ t('helpCenter.archived.dummyTitle3') }}</td>
                             <td class="py-2 pr-3">
                                 <div class="flex gap-1">
-                                    <span class="text-[0.6rem] px-1.5 py-0.5 rounded-full" :style="{ backgroundColor: dummyLabels[2].color, color: contrastTextColor(dummyLabels[2].color) }">{{ dummyLabels[2].name }}</span>
+                                    <BaseBadge bg-class="" :style="{ backgroundColor: dummyLabels[2].color, color: contrastTextColor(dummyLabels[2].color) }">{{ dummyLabels[2].name }}</BaseBadge>
                                 </div>
                             </td>
                             <td class="py-2 pr-3"><font-awesome-icon :icon="['fas', 'angle-down']" class="text-xs text-blue-400" /></td>

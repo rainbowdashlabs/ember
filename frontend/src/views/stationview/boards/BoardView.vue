@@ -334,7 +334,7 @@ watch(boardKey, loadData)
                                         <span class="truncate">{{ result.title }}</span>
                                     </div>
                                     <div v-if="labelsForTicket(result.id).length > 0" class="flex flex-wrap gap-1 mt-0.5">
-                                        <span v-for="label in labelsForTicket(result.id)" :key="label.id" class="text-[0.6rem] leading-tight px-1.5 py-px rounded-full font-medium" :style="{ backgroundColor: label.color, color: contrastTextColor(label.color) }">{{ label.name }}</span>
+                                        <BaseBadge v-for="label in labelsForTicket(result.id)" :key="label.id" bg-class="" :style="{ backgroundColor: label.color, color: contrastTextColor(label.color) }">{{ label.name }}</BaseBadge>
                                     </div>
                                 </div>
                                 <!-- Right: lane, priority, avatar -->
@@ -396,7 +396,7 @@ watch(boardKey, loadData)
                     <!-- Lane header -->
                     <div class="flex items-center justify-between mb-3">
                         <SubHeader class="text-sm text-[var(--text-muted)] uppercase tracking-wide">{{ lane.name }}</SubHeader>
-                        <span class="text-xs text-[var(--text-muted)] bg-[var(--bg)] px-1.5 py-0.5 rounded-full">{{ visibleTicketsForLane(lane.id).length }}</span>
+                        <BaseBadge bg-class="bg-[var(--bg)]" class="text-[var(--text-muted)]">{{ visibleTicketsForLane(lane.id).length }}</BaseBadge>
                     </div>
 
                     <!-- Tickets -->

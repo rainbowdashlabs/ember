@@ -7,6 +7,7 @@
 import PublicWaitlistView from '~/views/public/PublicWaitlistView'
 
 definePageMeta({
+  layout: 'public-station',
   name: 'public-waitlist',
 })
 </script>
