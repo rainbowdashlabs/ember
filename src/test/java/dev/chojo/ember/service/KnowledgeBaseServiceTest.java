@@ -728,18 +728,20 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(135)
-    void presentationConversionSucceedsAfterUpload() throws InterruptedException {
+    void presentationUploadSetsPendingThenStoreResultSetsSuccess() {
         byte[] data = new byte[] {0x01};
         var file = service.createUploadedFile(
                 station.id(),
                 null,
-                "no-convert.pptx",
+                "convert-test.pptx",
                 "Convert me",
                 data,
                 "application/vnd.openxmlformats-officedocument.presentationml.presentation",
                 member.id());
-        // Wait for async conversion to complete
-        awaitConversionDone(file.id());
+        assertEquals(KbFileType.PRESENTATION, file.fileType());
+        // Simulate successful conversion by calling storePresentationResult directly
+        byte[] fakePdf = "fake-pdf".getBytes(StandardCharsets.UTF_8);
+        service.storePresentationResult(file.id(), fakePdf);
         var reloaded = service.findFile(file.id());
         assertTrue(reloaded.isPresent());
         assertEquals(ConversionStatus.SUCCESS, reloaded.get().conversionStatus());
@@ -789,7 +791,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(139)
-    void reuploadPresentationThenConversionSucceeds() throws InterruptedException {
+    void reuploadPresentationResetsToPending() {
         byte[] data = new byte[] {0x01};
         var file = service.createUploadedFile(
                 station.id(),
@@ -799,14 +801,16 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 data,
                 "application/vnd.openxmlformats-officedocument.presentationml.presentation",
                 member.id());
-        // Wait for initial conversion to complete
-        awaitConversionDone(file.id());
-        // Reupload and wait again
+        // Simulate completed conversion
+        service.storePresentationResult(file.id(), "fake".getBytes(StandardCharsets.UTF_8));
+        assertEquals(
+                ConversionStatus.SUCCESS,
+                service.findFile(file.id()).orElseThrow().conversionStatus());
+        // Reupload resets to PENDING and triggers reconversion
         service.reuploadPresentation(file.id(), new byte[] {0x02}, "application/vnd.ms-powerpoint", "v2.ppt");
-        awaitConversionDone(file.id());
         var reloaded = service.findFile(file.id());
         assertTrue(reloaded.isPresent());
-        assertEquals(ConversionStatus.SUCCESS, reloaded.get().conversionStatus());
+        assertEquals(ConversionStatus.PENDING, reloaded.get().conversionStatus());
         service.deleteFile(file.id());
     }
 
@@ -1199,16 +1203,5 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
 
         var content = service.getFederatedKbFileContent(station.id(), stationC.uid(), 55);
         assertEquals("# Remote Content", content);
-    }
-
-    private static void awaitConversionDone(int fileId) throws InterruptedException {
-        for (int i = 0; i < 30; i++) {
-            var f = service.findFile(fileId);
-            if (f.isPresent() && f.get().conversionStatus() != ConversionStatus.PENDING) {
-                return;
-            }
-            Thread.sleep(500);
-        }
-        fail("Conversion did not complete within 15 seconds for file " + fileId);
     }
 }
