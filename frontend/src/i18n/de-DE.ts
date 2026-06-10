@@ -50,6 +50,10 @@ export default {
                 title: 'Öffentliche Seite',
                 desc: 'Zeige Termine und Lernsammlung öffentlich ohne Login. Perfekt für Eltern und Interessierte.',
             },
+            publicPages: {
+                title: 'Eigene Website',
+                desc: 'Erstelle individuelle Seiten für eure Jugendabteilung — mit Texten, Bildern und Videos. Ganz ohne externe Tools.',
+            },
             notifications: {
                 title: 'Benachrichtigungen',
                 desc: 'Bleibe immer informiert — über neue Termine, Neuigkeiten, Tausch-Anfragen und mehr. Optional auch per E-Mail-Digest.',

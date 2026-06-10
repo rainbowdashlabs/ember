@@ -1,6 +1,6 @@
 # Changelog
 
-## v26.8.0
+## v26.7.0
 
 ### New Features
 
@@ -35,29 +35,6 @@
 #### Station Settings UX
 - **Reactive save** — federation settings now auto-save on change (debounced 600ms) instead of requiring a save button
 - **Save indicator** — shows "Speichern…" spinner and "Gespeichert" checkmark
-
-### Improvements
-
-#### Sitemap
-- **Jackson XML serialization** — replaced manual XML string concatenation with typed records and Jackson `XmlMapper`
-- **`lastmod` dates** — KB files and pages include W3C Datetime `lastmod` from `updatedAt`; index URLs derive `lastmod` from their most recent child
-- **Caffeine caching** — sitemap responses cached in-memory for 6 hours
-
-#### Station Applications
-- **Enum status** — `StationApplication.status` changed from raw string to `ApplicationStatus` enum
-- **DB migration** — existing lowercase status values normalized to uppercase
-
-#### Demo Service Refactoring
-- **DemoService split** — reduced from 2180 to 679 lines by extracting 4 new seeders:
-  - `DemoMemberSeeder` (643 lines) — groups, profile fields, users, tags
-  - `DemoEventSeeder` (684 lines) — categories, events, attendance, templates
-  - `DemoNewsSeeder` (214 lines) — news articles with comments
-  - `DemoPageSeeder` (174 lines) — public pages with hierarchy
-- **Parallel seeding** — member seeding runs first, all other seeders run in parallel
-
-## v26.7.0
-
-### New Features
 
 #### Knowledge Base: Presentation Support
 - **Presentation uploads** — upload PowerPoint (.pptx, .ppt) and OpenDocument (.odp) presentations to the knowledge base
@@ -115,6 +92,23 @@
 - **My Inventory tab visibility** — sidebar tab was always visible even when the user had no assigned inventory items
 
 ### Technical Changes
+
+#### Sitemap
+- **Jackson XML serialization** — replaced manual XML string concatenation with typed records and Jackson `XmlMapper`
+- **`lastmod` dates** — KB files and pages include W3C Datetime `lastmod` from `updatedAt`; index URLs derive `lastmod` from their most recent child
+- **Caffeine caching** — sitemap responses cached in-memory for 6 hours
+
+#### Station Applications
+- **Enum status** — `StationApplication.status` changed from raw string to `ApplicationStatus` enum
+- **DB migration** — existing lowercase status values normalized to uppercase
+
+#### Demo Service Refactoring
+- **DemoService split** — reduced from 2180 to 679 lines by extracting 4 new seeders:
+  - `DemoMemberSeeder` (643 lines) — groups, profile fields, users, tags
+  - `DemoEventSeeder` (684 lines) — categories, events, attendance, templates
+  - `DemoNewsSeeder` (214 lines) — news articles with comments
+  - `DemoPageSeeder` (174 lines) — public pages with hierarchy
+- **Parallel seeding** — member seeding runs first, all other seeders run in parallel
 
 #### Frontend Architecture
 - **`useCanonical` composable** — reusable canonical URL + `og:url` injection from `NUXT_PUBLIC_SITE_URL`

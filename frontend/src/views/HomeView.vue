@@ -47,6 +47,7 @@ const features = [
   {icon: ['fas', 'box-open'], key: 'lostAndFound', help: '/helpcenter/station/inventory/overview'},
   {icon: ['fas', 'arrow-right-arrow-left'], key: 'federation', help: '/helpcenter/station/manage/federation'},
   {icon: ['fas', 'globe'], key: 'publicStation', help: '/helpcenter/station/manage/federation/settings'},
+  {icon: ['fas', 'file-lines'], key: 'publicPages', help: '/helpcenter/station/pages'},
   {icon: ['fas', 'bell'], key: 'notifications', help: '/helpcenter/station/profile/settings'},
   {icon: ['fas', 'circle-question'], key: 'helpCenter', help: '/helpcenter/station/basics'},
 ]
