@@ -109,6 +109,7 @@ tasks {
         testLogging {
             events("passed", "skipped", "failed")
         }
+        maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
     }
 
     register<Test>("testRepositories") {
@@ -119,6 +120,7 @@ tasks {
         useJUnitPlatform { excludeTags("locale") }
         testLogging { events("passed", "skipped", "failed") }
         filter { includeTestsMatching("dev.chojo.ember.repository.*") }
+        maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
     }
 
     register<Test>("testServices") {
@@ -129,6 +131,7 @@ tasks {
         useJUnitPlatform { excludeTags("locale") }
         testLogging { events("passed", "skipped", "failed") }
         filter { includeTestsMatching("dev.chojo.ember.service.*") }
+        maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
     }
 
     register<Test>("testOther") {
@@ -142,6 +145,7 @@ tasks {
             excludeTestsMatching("dev.chojo.ember.repository.*")
             excludeTestsMatching("dev.chojo.ember.service.*")
         }
+        maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
     }
 
     register<JavaExec>("generateFederationVersion") {

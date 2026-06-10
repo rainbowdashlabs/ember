@@ -235,7 +235,7 @@ public class KnowledgeBaseService {
             updateSearchIndex(file.id(), pdfText);
         } else if (fileType == KbFileType.PRESENTATION) {
             storeBinaryFile(file.id(), data, mimeType);
-            repository.updateConversionStatus(file.id(), ConversionStatus.PENDING.name());
+            repository.updateConversionStatus(file.id(), ConversionStatus.PENDING);
             triggerPresentationConversion(file.id(), data, name);
             updateSearchIndex(file.id(), null);
         } else {
@@ -524,7 +524,7 @@ public class KnowledgeBaseService {
             storePresentationResult(fileId, pdfBytes);
         } catch (Exception e) {
             log.error("Presentation conversion failed for file {}", fileId, e);
-            repository.updateConversionStatus(fileId, ConversionStatus.FAILED.name());
+            repository.updateConversionStatus(fileId, ConversionStatus.FAILED);
         }
     }
 
@@ -536,11 +536,11 @@ public class KnowledgeBaseService {
                 repository.storeTextContent(fileId, pdfText);
             }
             updateSearchIndex(fileId, pdfText);
-            repository.updateConversionStatus(fileId, ConversionStatus.SUCCESS.name());
+            repository.updateConversionStatus(fileId, ConversionStatus.SUCCESS);
             log.info("Presentation conversion succeeded for file {}", fileId);
         } catch (Exception e) {
             log.error("Failed to store presentation result for file {}", fileId, e);
-            repository.updateConversionStatus(fileId, ConversionStatus.FAILED.name());
+            repository.updateConversionStatus(fileId, ConversionStatus.FAILED);
         }
     }
 
@@ -556,7 +556,7 @@ public class KnowledgeBaseService {
      */
     public void reuploadPresentation(int fileId, byte[] data, String mimeType, String filename) {
         storeBinaryFile(fileId, data, mimeType);
-        repository.updateConversionStatus(fileId, ConversionStatus.PENDING.name());
+        repository.updateConversionStatus(fileId, ConversionStatus.PENDING);
         triggerPresentationConversion(fileId, data, filename);
     }
 

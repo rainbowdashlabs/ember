@@ -728,25 +728,21 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(135)
-    void presentationConversionCompletesAfterUpload() throws InterruptedException {
+    void presentationConversionSucceedsAfterUpload() throws InterruptedException {
         byte[] data = new byte[] {0x01};
         var file = service.createUploadedFile(
                 station.id(),
                 null,
                 "no-convert.pptx",
-                "No PDF yet",
+                "Convert me",
                 data,
                 "application/vnd.openxmlformats-officedocument.presentationml.presentation",
                 member.id());
         // Wait for async conversion to complete
         awaitConversionDone(file.id());
-        // Verify conversion status was updated (SUCCESS if LibreOffice available, FAILED otherwise)
         var reloaded = service.findFile(file.id());
         assertTrue(reloaded.isPresent());
-        assertTrue(
-                reloaded.get().conversionStatus() == ConversionStatus.SUCCESS
-                        || reloaded.get().conversionStatus() == ConversionStatus.FAILED,
-                "Expected SUCCESS or FAILED but was " + reloaded.get().conversionStatus());
+        assertEquals(ConversionStatus.SUCCESS, reloaded.get().conversionStatus());
         service.deleteFile(file.id());
     }
 
@@ -793,12 +789,12 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(139)
-    void reuploadPresentationThenCheckConversionCompletes() throws InterruptedException {
+    void reuploadPresentationThenConversionSucceeds() throws InterruptedException {
         byte[] data = new byte[] {0x01};
         var file = service.createUploadedFile(
                 station.id(),
                 null,
-                "reupload-fail.pptx",
+                "reupload-test2.pptx",
                 "Will convert",
                 data,
                 "application/vnd.openxmlformats-officedocument.presentationml.presentation",
@@ -808,13 +804,9 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         // Reupload and wait again
         service.reuploadPresentation(file.id(), new byte[] {0x02}, "application/vnd.ms-powerpoint", "v2.ppt");
         awaitConversionDone(file.id());
-        // Conversion should have completed (SUCCESS if LibreOffice available, FAILED otherwise)
         var reloaded = service.findFile(file.id());
         assertTrue(reloaded.isPresent());
-        assertTrue(
-                reloaded.get().conversionStatus() == ConversionStatus.SUCCESS
-                        || reloaded.get().conversionStatus() == ConversionStatus.FAILED,
-                "Expected SUCCESS or FAILED but was " + reloaded.get().conversionStatus());
+        assertEquals(ConversionStatus.SUCCESS, reloaded.get().conversionStatus());
         service.deleteFile(file.id());
     }
 
@@ -860,8 +852,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 1,
                 null,
                 member.id());
-        knowledgeBaseRepo.updateConversionStatus(file.id(), ConversionStatus.FAILED.name());
-        knowledgeBaseRepo.updateConversionStatus(file.id(), ConversionStatus.FAILED.name());
+        knowledgeBaseRepo.updateConversionStatus(file.id(), ConversionStatus.FAILED);
         // getPresentationPdf returns empty when no PDF was stored
         when(fileStorage.readPresentationPdf(file.id())).thenReturn(Optional.empty());
         var pdf = service.getPresentationPdf(file.id());

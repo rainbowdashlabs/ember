@@ -7,6 +7,7 @@ package dev.chojo.ember.api;
 
 import dev.chojo.ember.api.roles.InstancePermission;
 import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
@@ -316,7 +317,7 @@ public class ApiServer {
                             account.email(),
                             account.firstName(),
                             account.lastName(),
-                            member.userType().name(),
+                            member.userType(),
                             permissionNames,
                             groupNames,
                             tagNames,
@@ -617,7 +618,7 @@ public class ApiServer {
             String email,
             String firstName,
             String lastName,
-            String userType,
+            StationUserType userType,
             List<String> permissions,
             List<String> groups,
             List<String> tags,

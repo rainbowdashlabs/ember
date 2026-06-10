@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.knowledgebase.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
+import dev.chojo.ember.feature.knowledgebase.entity.ConversionStatus;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessRestriction;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
@@ -182,7 +183,7 @@ public class KnowledgeBaseRepository {
                 .changed();
     }
 
-    public boolean updateConversionStatus(int fileId, String status) {
+    public boolean updateConversionStatus(int fileId, ConversionStatus status) {
         return Query.query("UPDATE kb_file SET conversion_status = :status, updated_at = now() WHERE id = :id;")
                 .single(Call.of().bind("id", fileId).bind("status", status))
                 .update()
