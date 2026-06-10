@@ -3611,6 +3611,10 @@ volumes:
             dummyNewTitle: 'Über uns',
             dummyMetaDesc: 'Informationen über unsere Jugendfeuerwehr.',
         },
+        pageEditor: {
+            title: 'Seite bearbeiten',
+            subtitle: 'Im Editor gestaltest du Inhalt und Layout deiner öffentlichen Seite.',
+        },
         federationPartner: {
             title: 'Föderationspartner',
             sidebarLabel: 'Partner verwalten',

@@ -281,14 +281,14 @@ onMounted(() => loadData())
                 <div class="space-y-4">
                     <SectionHeader>{{ t('stationPages.createPage') }}</SectionHeader>
                     <div>
-                        <label class="text-sm text-[var(--text-muted)] mb-1 block">{{ t('stationPages.editor.titleLabel') }}</label>
+                        <FormLabel>{{ t('stationPages.editor.titleLabel') }}</FormLabel>
                         <TextInput
                             v-model="newTitle"
                             :placeholder="t('stationPages.editor.titlePlaceholder')"
                         />
                     </div>
                     <div>
-                        <label class="text-sm text-[var(--text-muted)] mb-1 block">{{ t('stationPages.editor.parent') }}</label>
+                        <FormLabel>{{ t('stationPages.editor.parent') }}</FormLabel>
                         <SelectInput v-model="newParentId">
                             <option value="">{{ t('stationPages.editor.noParent') }}</option>
                             <option

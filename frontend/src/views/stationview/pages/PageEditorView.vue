@@ -253,15 +253,15 @@ onMounted(() => loadData())
                     <SectionHeader>{{ t('stationPages.editor.metadata') }}</SectionHeader>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                            <label class="text-sm text-[var(--text-muted)] mb-1 block">{{ t('stationPages.editor.titleLabel') }}</label>
+                            <FormLabel>{{ t('stationPages.editor.titleLabel') }}</FormLabel>
                             <TextInput v-model="title" :placeholder="t('stationPages.editor.titlePlaceholder')"/>
                         </div>
                         <div>
-                            <label class="text-sm text-[var(--text-muted)] mb-1 block">{{ t('stationPages.editor.slugLabel') }}</label>
+                            <FormLabel>{{ t('stationPages.editor.slugLabel') }}</FormLabel>
                             <TextInput v-model="slug" :placeholder="t('stationPages.editor.slugPlaceholder')"/>
                         </div>
                         <div>
-                            <label class="text-sm text-[var(--text-muted)] mb-1 block">{{ t('stationPages.editor.parent') }}</label>
+                            <FormLabel>{{ t('stationPages.editor.parent') }}</FormLabel>
                             <SelectInput v-model="parentId as unknown as string">
                                 <option :value="null">{{ t('stationPages.editor.noParent') }}</option>
                                 <option
@@ -274,7 +274,7 @@ onMounted(() => loadData())
                             </SelectInput>
                         </div>
                         <div>
-                            <label class="text-sm text-[var(--text-muted)] mb-1 block">{{ t('stationPages.editor.metaDescription') }}</label>
+                            <FormLabel>{{ t('stationPages.editor.metaDescription') }}</FormLabel>
                             <TextInput
                                 v-model="metaDescription"
                                 :placeholder="t('stationPages.editor.metaDescriptionPlaceholder')"

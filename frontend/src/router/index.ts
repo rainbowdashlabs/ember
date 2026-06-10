@@ -1487,6 +1487,11 @@ const router = createRouter({
                     name: 'help-pages',
                     component: () => import('@/views/helpcenter/stationview/pages/PagesHelp.vue')
                 },
+                {
+                    path: 'pages/:id',
+                    name: 'help-page-editor',
+                    component: () => import('@/views/helpcenter/stationview/pages/PageEditorHelp.vue')
+                },
                 // Boards
                 {
                     path: 'federation/boards',

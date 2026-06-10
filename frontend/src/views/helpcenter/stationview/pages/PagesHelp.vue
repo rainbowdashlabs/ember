@@ -129,11 +129,11 @@ const {t} = useI18n()
         <NeutralContainer class="space-y-3">
           <span class="font-semibold">{{ t('stationPages.createPage') }}</span>
           <div>
-            <label class="text-sm text-[var(--text-muted)] mb-1 block">{{ t('stationPages.editor.titleLabel') }}</label>
+            <FormLabel>{{ t('stationPages.editor.titleLabel') }}</FormLabel>
             <TextInput :model-value="t('helpCenter.pages.dummyNewTitle')" :placeholder="t('stationPages.editor.titlePlaceholder')"/>
           </div>
           <div>
-            <label class="text-sm text-[var(--text-muted)] mb-1 block">{{ t('stationPages.editor.parent') }}</label>
+            <FormLabel>{{ t('stationPages.editor.parent') }}</FormLabel>
             <SelectInput :model-value="''">
               <option value="">{{ t('stationPages.editor.noParent') }}</option>
             </SelectInput>
@@ -166,21 +166,21 @@ const {t} = useI18n()
           <span class="font-semibold">{{ t('stationPages.editor.metadata') }}</span>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label class="text-sm text-[var(--text-muted)] mb-1 block">{{ t('stationPages.editor.titleLabel') }}</label>
+              <FormLabel>{{ t('stationPages.editor.titleLabel') }}</FormLabel>
               <TextInput :model-value="t('helpCenter.pages.dummyPage1')" :placeholder="t('stationPages.editor.titlePlaceholder')"/>
             </div>
             <div>
-              <label class="text-sm text-[var(--text-muted)] mb-1 block">{{ t('stationPages.editor.slugLabel') }}</label>
+              <FormLabel>{{ t('stationPages.editor.slugLabel') }}</FormLabel>
               <TextInput :model-value="t('helpCenter.pages.dummySlug1')" :placeholder="t('stationPages.editor.slugPlaceholder')"/>
             </div>
             <div>
-              <label class="text-sm text-[var(--text-muted)] mb-1 block">{{ t('stationPages.editor.parent') }}</label>
+              <FormLabel>{{ t('stationPages.editor.parent') }}</FormLabel>
               <SelectInput :model-value="''">
                 <option value="">{{ t('stationPages.editor.noParent') }}</option>
               </SelectInput>
             </div>
             <div>
-              <label class="text-sm text-[var(--text-muted)] mb-1 block">{{ t('stationPages.editor.metaDescription') }}</label>
+              <FormLabel>{{ t('stationPages.editor.metaDescription') }}</FormLabel>
               <TextInput :model-value="t('helpCenter.pages.dummyMetaDesc')" :placeholder="t('stationPages.editor.metaDescriptionPlaceholder')"/>
             </div>
           </div>
