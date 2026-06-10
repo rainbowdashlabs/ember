@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.knowledgebase.entity.ConversionStatus;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessRestriction;
 import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
@@ -40,6 +41,7 @@ import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.PresentationConverter;
 import dev.chojo.ember.util.TextDiff;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -68,6 +70,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
@@ -230,6 +233,11 @@ public class KnowledgeBaseService {
                 repository.storeTextContent(file.id(), pdfText);
             }
             updateSearchIndex(file.id(), pdfText);
+        } else if (fileType == KbFileType.PRESENTATION) {
+            storeBinaryFile(file.id(), data, mimeType);
+            repository.updateConversionStatus(file.id(), ConversionStatus.PENDING);
+            triggerPresentationConversion(file.id(), data, name);
+            updateSearchIndex(file.id(), null);
         } else {
             storeBinaryFile(file.id(), data, mimeType);
             updateSearchIndex(file.id(), null);
@@ -506,6 +514,52 @@ public class KnowledgeBaseService {
         }
     }
 
+    private void triggerPresentationConversion(int fileId, byte[] data, String filename) {
+        CompletableFuture.runAsync(() -> performPresentationConversion(fileId, data, filename));
+    }
+
+    void performPresentationConversion(int fileId, byte[] data, String filename) {
+        try {
+            byte[] pdfBytes = PresentationConverter.toPdf(data, filename);
+            storePresentationResult(fileId, pdfBytes);
+        } catch (Exception e) {
+            log.error("Presentation conversion failed for file {}", fileId, e);
+            repository.updateConversionStatus(fileId, ConversionStatus.FAILED);
+        }
+    }
+
+    public void storePresentationResult(int fileId, byte[] pdfBytes) {
+        try {
+            fileStorage.storePresentationPdf(fileId, pdfBytes);
+            String pdfText = extractPdfText(pdfBytes);
+            if (pdfText != null && !pdfText.isBlank()) {
+                repository.storeTextContent(fileId, pdfText);
+            }
+            updateSearchIndex(fileId, pdfText);
+            repository.updateConversionStatus(fileId, ConversionStatus.SUCCESS);
+            log.info("Presentation conversion succeeded for file {}", fileId);
+        } catch (Exception e) {
+            log.error("Failed to store presentation result for file {}", fileId, e);
+            repository.updateConversionStatus(fileId, ConversionStatus.FAILED);
+        }
+    }
+
+    /**
+     * Get the converted PDF content for a presentation file.
+     */
+    public Optional<byte[]> getPresentationPdf(int fileId) {
+        return fileStorage.readPresentationPdf(fileId).map(KbFileStorageService.FileData::data);
+    }
+
+    /**
+     * Re-upload a presentation file (replaces original + reconverts PDF).
+     */
+    public void reuploadPresentation(int fileId, byte[] data, String mimeType, String filename) {
+        storeBinaryFile(fileId, data, mimeType);
+        repository.updateConversionStatus(fileId, ConversionStatus.PENDING);
+        triggerPresentationConversion(fileId, data, filename);
+    }
+
     // -- Content --
 
     public Optional<String> getMarkdownContent(int fileId) {
@@ -691,8 +745,14 @@ public class KnowledgeBaseService {
         }
     }
 
+    private static final Set<String> PRESENTATION_MIME_TYPES = Set.of(
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "application/vnd.ms-powerpoint",
+            "application/vnd.oasis.opendocument.presentation");
+
     private KbFileType detectFileType(String mimeType, String filename) {
         if (mimeType != null) {
+            if (PRESENTATION_MIME_TYPES.contains(mimeType)) return KbFileType.PRESENTATION;
             if (mimeType.equals("application/pdf")) return KbFileType.PDF;
             if (mimeType.startsWith("image/")) return KbFileType.IMAGE;
             if (mimeType.equals("text/markdown") || filename.endsWith(".md")) return KbFileType.MARKDOWN;
@@ -700,6 +760,8 @@ public class KnowledgeBaseService {
         }
         if (filename != null) {
             String lower = filename.toLowerCase();
+            if (lower.endsWith(".pptx") || lower.endsWith(".ppt") || lower.endsWith(".odp"))
+                return KbFileType.PRESENTATION;
             if (lower.endsWith(".pdf")) return KbFileType.PDF;
             if (lower.endsWith(".md") || lower.endsWith(".markdown")) return KbFileType.MARKDOWN;
             if (lower.endsWith(".txt")) return KbFileType.TEXT;

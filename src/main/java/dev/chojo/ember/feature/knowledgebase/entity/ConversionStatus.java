@@ -5,13 +5,11 @@
  */
 package dev.chojo.ember.feature.knowledgebase.entity;
 
-public enum KbFileType {
-    MARKDOWN,
-    PDF,
-    TEXT,
-    IMAGE,
-    YOUTUBE,
-    LINK,
-    PRESENTATION,
-    OTHER
+/**
+ * Status of the server-side conversion for presentation files.
+ */
+public enum ConversionStatus {
+    PENDING,
+    SUCCESS,
+    FAILED
 }

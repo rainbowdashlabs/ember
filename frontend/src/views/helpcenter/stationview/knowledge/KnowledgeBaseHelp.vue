@@ -57,6 +57,7 @@ const { t } = useI18n()
         <li><strong>{{ t('helpCenter.kb.textFiles') }}</strong>: {{ t('helpCenter.kb.textDesc') }}</li>
         <li><strong>{{ t('helpCenter.kb.images') }}</strong>: {{ t('helpCenter.kb.imagesDesc') }}</li>
         <li><strong>YouTube</strong>: {{ t('helpCenter.kb.youtubeDesc') }}</li>
+        <li><strong>{{ t('helpCenter.kb.presentations') }}</strong>: {{ t('helpCenter.kb.presentationsDesc') }}</li>
       </BulletList>
     </HelpSection>
 

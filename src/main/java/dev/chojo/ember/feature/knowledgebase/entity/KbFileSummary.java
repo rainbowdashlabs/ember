@@ -45,7 +45,8 @@ public record KbFileSummary(
                 null,
                 null,
                 null,
-                restricted);
+                restricted,
+                null);
     }
 
     public static KbFileSummary of(KbFile file) {

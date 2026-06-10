@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.knowledgebase.entity.ConversionStatus;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
@@ -33,9 +34,11 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -53,12 +56,13 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     private static Station stationB;
     private static int partnerIdAtoB;
     private static FederationHttpClient httpClient;
+    private static KbFileStorageService fileStorage;
     private static Station stationC;
     private static int remotePartnerId;
 
     @BeforeAll
     static void setup() {
-        var fileStorage = mock(KbFileStorageService.class);
+        fileStorage = mock(KbFileStorageService.class);
         federationRepo = new FederationRepository();
         federationService = new FederationService(federationRepo, stationRepo, new Api());
         httpClient = mock(FederationHttpClient.class);
@@ -652,10 +656,247 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         }
     }
 
+    // -- Presentation file type detection --
+
+    @Test
+    @Order(130)
+    void createUploadedFileByMimePptx() {
+        byte[] data = new byte[] {0x50, 0x4B};
+        var file = service.createUploadedFile(
+                station.id(),
+                null,
+                "slides.pptx",
+                "PPTX by mime",
+                data,
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                member.id());
+        assertNotNull(file);
+        assertEquals(KbFileType.PRESENTATION, file.fileType());
+        // conversionStatus is set after creation via updateConversionStatus, check via findFile
+        var reloaded = service.findFile(file.id());
+        assertTrue(reloaded.isPresent());
+        assertNotNull(reloaded.get().conversionStatus());
+        service.deleteFile(file.id());
+    }
+
+    @Test
+    @Order(131)
+    void createUploadedFileByMimePpt() {
+        byte[] data = new byte[] {0x01};
+        var file = service.createUploadedFile(
+                station.id(), null, "old.ppt", "PPT", data, "application/vnd.ms-powerpoint", member.id());
+        assertNotNull(file);
+        assertEquals(KbFileType.PRESENTATION, file.fileType());
+        service.deleteFile(file.id());
+    }
+
+    @Test
+    @Order(132)
+    void createUploadedFileByMimeOdp() {
+        byte[] data = new byte[] {0x01};
+        var file = service.createUploadedFile(
+                station.id(),
+                null,
+                "deck.odp",
+                "ODP",
+                data,
+                "application/vnd.oasis.opendocument.presentation",
+                member.id());
+        assertNotNull(file);
+        assertEquals(KbFileType.PRESENTATION, file.fileType());
+        service.deleteFile(file.id());
+    }
+
+    @Test
+    @Order(133)
+    void createUploadedFileByExtensionPptx() {
+        byte[] data = new byte[] {0x01};
+        var file = service.createUploadedFile(station.id(), null, "talk.pptx", "By ext", data, null, member.id());
+        assertNotNull(file);
+        assertEquals(KbFileType.PRESENTATION, file.fileType());
+        service.deleteFile(file.id());
+    }
+
+    @Test
+    @Order(134)
+    void createUploadedFileByExtensionOdp() {
+        byte[] data = new byte[] {0x01};
+        var file = service.createUploadedFile(station.id(), null, "talk.odp", "By ext", data, null, member.id());
+        assertNotNull(file);
+        assertEquals(KbFileType.PRESENTATION, file.fileType());
+        service.deleteFile(file.id());
+    }
+
+    @Test
+    @Order(135)
+    void presentationUploadSetsPendingThenStoreResultSetsSuccess() {
+        byte[] data = new byte[] {0x01};
+        var file = service.createUploadedFile(
+                station.id(),
+                null,
+                "convert-test.pptx",
+                "Convert me",
+                data,
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                member.id());
+        assertEquals(KbFileType.PRESENTATION, file.fileType());
+        // Simulate successful conversion by calling storePresentationResult directly
+        byte[] fakePdf = "fake-pdf".getBytes(StandardCharsets.UTF_8);
+        service.storePresentationResult(file.id(), fakePdf);
+        var reloaded = service.findFile(file.id());
+        assertTrue(reloaded.isPresent());
+        assertEquals(ConversionStatus.SUCCESS, reloaded.get().conversionStatus());
+        service.deleteFile(file.id());
+    }
+
+    @Test
+    @Order(136)
+    void reuploadPresentationUpdatesStatus() {
+        byte[] data = new byte[] {0x01};
+        var file = service.createUploadedFile(
+                station.id(),
+                null,
+                "reupload-test.pptx",
+                "Reupload",
+                data,
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                member.id());
+        // Reupload triggers reconversion
+        service.reuploadPresentation(file.id(), new byte[] {0x02}, "application/vnd.ms-powerpoint", "v2.ppt");
+        // File should still exist and be retrievable
+        var reloaded = service.findFile(file.id());
+        assertTrue(reloaded.isPresent());
+        service.deleteFile(file.id());
+    }
+
+    @Test
+    @Order(137)
+    void createUploadedFileByExtensionPpt() {
+        byte[] data = new byte[] {0x01};
+        var file = service.createUploadedFile(station.id(), null, "legacy.ppt", "PPT ext", data, null, member.id());
+        assertNotNull(file);
+        assertEquals(KbFileType.PRESENTATION, file.fileType());
+        service.deleteFile(file.id());
+    }
+
+    @Test
+    @Order(138)
+    void createUploadedFileUnknownType() {
+        byte[] data = new byte[] {0x01};
+        var file = service.createUploadedFile(
+                station.id(), null, "data.bin", "Unknown", data, "application/x-custom", member.id());
+        assertNotNull(file);
+        assertEquals(KbFileType.OTHER, file.fileType());
+        service.deleteFile(file.id());
+    }
+
+    @Test
+    @Order(139)
+    void reuploadPresentationResetsToPending() {
+        byte[] data = new byte[] {0x01};
+        var file = service.createUploadedFile(
+                station.id(),
+                null,
+                "reupload-test2.pptx",
+                "Will convert",
+                data,
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                member.id());
+        // Simulate completed conversion
+        service.storePresentationResult(file.id(), "fake".getBytes(StandardCharsets.UTF_8));
+        assertEquals(
+                ConversionStatus.SUCCESS,
+                service.findFile(file.id()).orElseThrow().conversionStatus());
+        // Reupload resets to PENDING and triggers reconversion
+        service.reuploadPresentation(file.id(), new byte[] {0x02}, "application/vnd.ms-powerpoint", "v2.ppt");
+        var reloaded = service.findFile(file.id());
+        assertTrue(reloaded.isPresent());
+        assertEquals(ConversionStatus.PENDING, reloaded.get().conversionStatus());
+        service.deleteFile(file.id());
+    }
+
+    @Test
+    @Order(140)
+    void storePresentationResultSuccess() {
+        byte[] data = new byte[] {0x01};
+        var file = service.createUploadedFile(
+                station.id(),
+                null,
+                "store-test.pptx",
+                "Store result",
+                data,
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                member.id());
+        // Directly call storePresentationResult with fake PDF bytes
+        byte[] fakePdf = "fake-pdf-content".getBytes(StandardCharsets.UTF_8);
+        // Configure mock to return the stored PDF
+        when(fileStorage.readPresentationPdf(file.id()))
+                .thenReturn(Optional.of(new KbFileStorageService.FileData(fakePdf, "application/pdf")));
+        service.storePresentationResult(file.id(), fakePdf);
+        // Should now be SUCCESS
+        var reloaded = service.findFile(file.id());
+        assertTrue(reloaded.isPresent());
+        assertEquals(ConversionStatus.SUCCESS, reloaded.get().conversionStatus());
+        // getPresentationPdf should now return content
+        var pdf = service.getPresentationPdf(file.id());
+        assertTrue(pdf.isPresent());
+        assertArrayEquals(fakePdf, pdf.get());
+        service.deleteFile(file.id());
+    }
+
+    @Test
+    @Order(141)
+    void storePresentationResultFailsOnStorageError() {
+        byte[] data = new byte[] {0x01};
+        var file = service.createUploadedFile(
+                station.id(),
+                null,
+                "store-fail.pptx",
+                "Storage error",
+                data,
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                member.id());
+        // Make storage throw to trigger the error path
+        try {
+            doThrow(new IOException("disk full")).when(fileStorage).storePresentationPdf(eq(file.id()), any());
+        } catch (IOException ignored) {
+            // Mockito stub setup, never actually thrown
+        }
+        service.storePresentationResult(file.id(), "pdf".getBytes(StandardCharsets.UTF_8));
+        var reloaded = service.findFile(file.id());
+        assertTrue(reloaded.isPresent());
+        assertEquals(ConversionStatus.FAILED, reloaded.get().conversionStatus());
+        service.deleteFile(file.id());
+    }
+
+    @Test
+    @Order(142)
+    void conversionFailedStatusReturnsPdfEmpty() {
+        var file = knowledgeBaseRepo.createFile(
+                station.id(),
+                null,
+                "failed-conv.pptx",
+                "Simulated failure",
+                KbFileType.PRESENTATION,
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                1,
+                null,
+                member.id());
+        knowledgeBaseRepo.updateConversionStatus(file.id(), ConversionStatus.FAILED);
+        // getPresentationPdf returns empty when no PDF was stored
+        when(fileStorage.readPresentationPdf(file.id())).thenReturn(Optional.empty());
+        var pdf = service.getPresentationPdf(file.id());
+        assertTrue(pdf.isEmpty());
+        var reloaded = service.findFile(file.id());
+        assertTrue(reloaded.isPresent());
+        assertEquals(ConversionStatus.FAILED, reloaded.get().conversionStatus());
+        service.deleteFile(file.id());
+    }
+
     // -- canAccess with member-based restriction --
 
     @Test
-    @Order(108)
+    @Order(150)
     void canAccessWithMemberRestriction() {
         // Create a file with a member-based restriction
         var restrictedFile = service.createMarkdownFile(
@@ -964,7 +1205,8 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
-                false);
+                false,
+                null);
         when(httpClient.get(
                         eq("https://remote-kb.example.com"), eq("/remote/kb/files/77"), eq(station.id()), any(), any()))
                 .thenReturn(remoteFile);

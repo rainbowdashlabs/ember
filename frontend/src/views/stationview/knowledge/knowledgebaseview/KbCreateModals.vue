@@ -14,6 +14,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import {knowledgeBase} from '@/api'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FileInput from '@/components/input/FileInput.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -131,13 +132,10 @@ async function handleCreateFile() {
     }
 }
 
-function onFileSelect(event: Event) {
-    const input = event.target as HTMLInputElement
-    if (input.files && input.files.length > 0) {
-        uploadFileRef.value = input.files[0]
-        if (!uploadFileName.value) {
-            uploadFileName.value = input.files[0].name
-        }
+function onFileSelect(file: File) {
+    uploadFileRef.value = file
+    if (!uploadFileName.value) {
+        uploadFileName.value = file.name
     }
 }
 
@@ -157,16 +155,13 @@ async function handleUploadFile() {
     }
 }
 
-function onImportFileSelect(event: Event) {
-    const input = event.target as HTMLInputElement
-    if (input.files && input.files.length > 0) {
-        importFileRef.value = input.files[0]
-        if (!importFileName.value) {
-            let name = input.files[0].name
-            const dot = name.lastIndexOf('.')
-            if (dot > 0) name = name.substring(0, dot)
-            importFileName.value = name
-        }
+function onImportFileSelect(file: File) {
+    importFileRef.value = file
+    if (!importFileName.value) {
+        let name = file.name
+        const dot = name.lastIndexOf('.')
+        if (dot > 0) name = name.substring(0, dot)
+        importFileName.value = name
     }
 }
 
@@ -253,11 +248,7 @@ defineExpose({
     <Modal v-model="showUploadModal">
         <SubHeader class="mb-3">{{ t('kb.uploadFile') }}</SubHeader>
         <form @submit.prevent="handleUploadFile" class="flex flex-col gap-3">
-            <input
-                type="file"
-                class="block w-full text-sm text-[var(--text)] file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-[var(--primary)] file:text-[var(--color-primary-text)] hover:file:bg-[var(--primary-accent)] cursor-pointer"
-                @change="onFileSelect"
-            />
+            <FileInput @select="onFileSelect"/>
             <TextInput v-model="uploadFileName" :placeholder="t('kb.fileName')"/>
             <TextAreaInput v-model="uploadFileDescription" :placeholder="t('kb.description')"/>
             <PrimaryButton type="submit" :disabled="!uploadFileRef">{{ t('kb.uploadFile') }}</PrimaryButton>
@@ -269,7 +260,7 @@ defineExpose({
         <SubHeader class="mb-3">{{ t('kb.importDocument') }}</SubHeader>
         <p class="text-sm text-[var(--text-muted)] mb-3">{{ t('kb.importDocumentHint') }}</p>
         <form @submit.prevent="handleImportDocument" class="flex flex-col gap-3">
-            <input type="file" accept=".docx,.odt,.rtf,.html,.htm,.epub,.tex" @change="onImportFileSelect" />
+            <FileInput accept=".docx,.odt,.rtf,.html,.htm,.epub,.tex" @select="onImportFileSelect"/>
             <TextInput v-model="importFileName" :placeholder="t('kb.fileName')" />
             <TextAreaInput v-model="importFileDescription" :placeholder="t('kb.description')" />
             <div class="flex gap-2 justify-end">

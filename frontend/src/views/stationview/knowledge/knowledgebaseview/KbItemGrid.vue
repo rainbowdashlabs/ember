@@ -52,6 +52,8 @@ function fileIcon(file: KbFile): string[] {
             return ['fab', 'youtube']
         case KbFileType.LINK:
             return ['fas', 'link']
+        case KbFileType.PRESENTATION:
+            return ['fas', 'file-powerpoint']
         default:
             return ['fas', 'file']
     }

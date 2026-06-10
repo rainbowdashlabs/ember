@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbAccessRestriction;
 import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
@@ -181,6 +182,10 @@ public class KnowledgeBaseRoutes implements Routes {
         routes.get(prefix + "/kb/files/{id}/content", this::getFileContent, StationPermission.USER);
         routes.get(prefix + "/kb/files/{id}/html", this::getMarkdownHtml, StationPermission.USER);
         routes.put(prefix + "/kb/files/{id}/content", this::updateMarkdownContent, StationPermission.KNOWLEDGE_EDIT);
+
+        // Presentation original file
+        routes.get(prefix + "/kb/files/{id}/original", this::getOriginalFile, StationPermission.USER);
+        routes.put(prefix + "/kb/files/{id}/original", this::reuploadOriginal, StationPermission.KNOWLEDGE_EDIT);
 
         // Versions (markdown only)
         routes.get(prefix + "/kb/files/{id}/versions", this::listVersions, StationPermission.USER);
@@ -562,6 +567,14 @@ public class KnowledgeBaseRoutes implements Routes {
                 ctx.header("Content-Disposition", "inline; filename=\"" + file.name() + "\"");
                 ctx.result(data.get());
             }
+            case PRESENTATION -> {
+                // Return the converted PDF for viewing
+                var pdf = service.getPresentationPdf(id);
+                if (pdf.isEmpty()) throw new NotFoundResponse("Conversion not ready");
+                ctx.contentType("application/pdf");
+                ctx.header("Content-Disposition", "inline; filename=\"" + file.name() + ".pdf\"");
+                ctx.result(pdf.get());
+            }
             case YOUTUBE -> ctx.json(new YoutubeResponse(file.youtubeUrl()));
             case LINK -> ctx.json(new LinkResponse(file.linkUrl()));
         }
@@ -586,6 +599,44 @@ public class KnowledgeBaseRoutes implements Routes {
         service.updateMarkdownContent(
                 id, req.content() != null ? req.content() : "", session.member().id());
         ctx.status(204);
+    }
+
+    // -- Presentation Original --
+
+    private void getOriginalFile(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var file = service.findFile(id).orElseThrow(NotFoundResponse::new);
+        if (file.fileType() != KbFileType.PRESENTATION) {
+            throw new BadRequestResponse("Only presentation files have an original");
+        }
+        var data = service.getFileContent(id);
+        if (data.isEmpty()) throw new NotFoundResponse();
+        ctx.contentType(file.mimeType() != null ? file.mimeType() : "application/octet-stream");
+        ctx.header("Content-Disposition", "attachment; filename=\"" + file.name() + "\"");
+        ctx.result(data.get());
+    }
+
+    private void reuploadOriginal(Context ctx) {
+        var session = UserSession.from(ctx);
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var file = service.findFile(id).orElseThrow(NotFoundResponse::new);
+        if (file.fileType() != KbFileType.PRESENTATION) {
+            throw new BadRequestResponse("Only presentation files support re-upload");
+        }
+        if (file.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
+        var uploaded = ctx.uploadedFile("file");
+        if (uploaded == null) throw new BadRequestResponse("file is required");
+        if (uploaded.size() > MAX_UPLOAD_SIZE) throw new BadRequestResponse("File too large (max 50MB)");
+        try (var content = uploaded.content()) {
+            byte[] data = content.readAllBytes();
+            service.reuploadPresentation(id, data, uploaded.contentType(), uploaded.filename());
+            ctx.json(service.findFile(id).orElseThrow());
+        } catch (Exception e) {
+            log.warn("Failed to re-upload presentation file", e);
+            throw new InternalServerErrorResponse("Failed to re-upload file");
+        }
     }
 
     // -- Versions --

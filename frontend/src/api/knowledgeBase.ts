@@ -40,6 +40,7 @@ export interface KbFile {
     sourceFileId: number | null
     sourceStationId: string | null
     restricted?: boolean
+    conversionStatus: string | null
 }
 
 export interface KbFileVersion {
@@ -79,6 +80,7 @@ export const KbFileType = {
     IMAGE: 'IMAGE',
     YOUTUBE: 'YOUTUBE',
     LINK: 'LINK',
+    PRESENTATION: 'PRESENTATION',
     OTHER: 'OTHER',
 } as const
 
@@ -246,6 +248,23 @@ export async function getTextContent(id: number): Promise<string> {
 
 export async function updateMarkdownContent(id: number, content: string): Promise<void> {
     await client.put(`/kb/files/${id}/content`, {content})
+}
+
+// -- Presentation Original --
+
+export function originalFileUrl(id: number): string {
+    const token = getItem('session_token') ?? ''
+    const stationId = getItem('station_id') ?? ''
+    return `${client.defaults.baseURL}/kb/files/${id}/original?token=${encodeURIComponent(token)}&stationId=${encodeURIComponent(stationId)}`
+}
+
+export async function reuploadOriginal(id: number, file: File): Promise<KbFile> {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await client.put<KbFile>(`/kb/files/${id}/original`, formData, {
+        headers: {'Content-Type': 'multipart/form-data'},
+    })
+    return res.data
 }
 
 // -- Versions --
