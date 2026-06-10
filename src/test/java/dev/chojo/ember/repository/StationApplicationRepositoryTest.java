@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.repository;
 
+import dev.chojo.ember.feature.station.entity.ApplicationStatus;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.UUID;
 
+import static dev.chojo.ember.feature.station.entity.ApplicationStatus.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -27,7 +29,7 @@ class StationApplicationRepositoryTest extends RepositoryTestBase {
         assertNotNull(app);
         assertEquals("Max", app.firstName());
         assertEquals("Test Station", app.stationName());
-        assertEquals("unverified", app.status());
+        assertEquals(UNVERIFIED, app.status());
         applicationId = app.id();
     }
 
@@ -55,7 +57,7 @@ class StationApplicationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(5)
     void findByStatus() {
-        var unverified = stationApplicationRepo.findByStatus("unverified");
+        var unverified = stationApplicationRepo.findByStatus(ApplicationStatus.UNVERIFIED);
         assertFalse(unverified.isEmpty());
     }
 
@@ -70,7 +72,7 @@ class StationApplicationRepositoryTest extends RepositoryTestBase {
     void verify() {
         assertTrue(stationApplicationRepo.verify(applicationId));
         assertEquals(
-                "pending",
+                PENDING,
                 stationApplicationRepo.findById(applicationId).orElseThrow().status());
     }
 
@@ -85,7 +87,7 @@ class StationApplicationRepositoryTest extends RepositoryTestBase {
     void accept() {
         assertTrue(stationApplicationRepo.accept(applicationId));
         assertEquals(
-                "accepted",
+                ACCEPTED,
                 stationApplicationRepo.findById(applicationId).orElseThrow().status());
     }
 
@@ -109,7 +111,7 @@ class StationApplicationRepositoryTest extends RepositoryTestBase {
         stationApplicationRepo.verify(app.id());
         assertTrue(stationApplicationRepo.deny(app.id(), "Not accepted"));
         var denied = stationApplicationRepo.findById(app.id()).orElseThrow();
-        assertEquals("denied", denied.status());
+        assertEquals(DENIED, denied.status());
         assertEquals("Not accepted", denied.denyReason());
     }
 

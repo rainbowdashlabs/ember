@@ -4,9 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, computed, watch, onMounted} from 'vue'
+import {ref, computed, watch, onMounted, inject} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter, useRoute} from 'vue-router'
+import type {Ref} from 'vue'
+import type {PublicStationInfo as StationInfo} from '@/api/discovery'
 import Spinner from '@/components/feedback/Spinner.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -24,7 +26,8 @@ const {t} = useI18n()
 const router = useRouter()
 const route = useRoute()
 
-const stationUid = computed(() => route.params.stationUid as string)
+const publicStation = inject<Ref<StationInfo | null>>('publicStation')
+const stationUid = computed(() => publicStation?.value?.stationUid ?? route.params.stationUid as string)
 const currentFolderId = computed(() => {
     const param = route.query.folderId
     return param ? Number(param) : null

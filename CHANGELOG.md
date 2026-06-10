@@ -1,5 +1,60 @@
 # Changelog
 
+## v26.8.0
+
+### New Features
+
+#### Public Pages (Layout Editor)
+- **Page builder** — stations can create public pages using a lightweight layout editor inspired by WordPress/Elementor
+- **Row-based layout** — pages are built from horizontal rows, each containing 1-4 columns with free-form percentage widths
+- **Content types** — cells support rich markdown (WYSIWYG TipTap editor), images (upload with fit/sizing), and videos (YouTube embeds or direct URLs)
+- **Responsive design** — horizontal rows automatically stack vertically on mobile
+- **Page hierarchy** — pages support up to 3 levels of nesting with nested URL paths (e.g., `/page/about/team`)
+- **Landing page** — one page can be designated as the station landing page, shown first in the sidebar
+- **Station slug** — stations get a human-readable URL slug (auto-generated from name, editable) as alternative to UUID
+- **SEO metadata** — per-page meta description and OG image, with auto-generation from content
+- **Markdown rendering** — server-side commonmark rendering for public pages
+- **Station theming** — public pages display the station's configured theme (colors, feel)
+- **Image management** — per-page image upload (max 5 MB), orphaned images auto-cleaned on save
+- **Copy/cut/paste** — clipboard for rows and cells with paste buttons between rows
+- **Column controls** — visual column split buttons, swap button between columns, free-form resize handles
+- **Move up/down** — row reordering via buttons
+- **Preview mode** — toggle between edit and preview in the editor
+- **Page duplication** — duplicate pages with full row/cell tree
+- **Publish/unpublish** — PAGE_MANAGER permission for publishing, unpublished parents hide children
+- **Help center** — article explaining page management
+- **Demo data** — 4 sample pages (Willkommen, Über uns, Unser Team, Ausrüstung, Mitmachen) with hierarchy
+
+#### Station Public URL
+- **Public slug** — stations have a customizable URL slug (e.g., `/public/station/jugendfeuerwehr-musterstadt`)
+- **Auto-generated** — slugs created from station name on creation, with dedup
+- **UUID redirect** — UUID-based URLs automatically redirect to the slug version
+- **Discovery links** — station discovery uses slugs for cleaner URLs
+- **Settings UI** — editable slug in federation settings with duplicate detection
+
+#### Station Settings UX
+- **Reactive save** — federation settings now auto-save on change (debounced 600ms) instead of requiring a save button
+- **Save indicator** — shows "Speichern…" spinner and "Gespeichert" checkmark
+
+### Improvements
+
+#### Sitemap
+- **Jackson XML serialization** — replaced manual XML string concatenation with typed records and Jackson `XmlMapper`
+- **`lastmod` dates** — KB files and pages include W3C Datetime `lastmod` from `updatedAt`; index URLs derive `lastmod` from their most recent child
+- **Caffeine caching** — sitemap responses cached in-memory for 6 hours
+
+#### Station Applications
+- **Enum status** — `StationApplication.status` changed from raw string to `ApplicationStatus` enum
+- **DB migration** — existing lowercase status values normalized to uppercase
+
+#### Demo Service Refactoring
+- **DemoService split** — reduced from 2180 to 679 lines by extracting 4 new seeders:
+  - `DemoMemberSeeder` (643 lines) — groups, profile fields, users, tags
+  - `DemoEventSeeder` (684 lines) — categories, events, attendance, templates
+  - `DemoNewsSeeder` (214 lines) — news articles with comments
+  - `DemoPageSeeder` (174 lines) — public pages with hierarchy
+- **Parallel seeding** — member seeding runs first, all other seeders run in parallel
+
 ## v26.7.0
 
 ### New Features

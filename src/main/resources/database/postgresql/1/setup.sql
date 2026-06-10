@@ -748,7 +748,7 @@ CREATE TABLE ember_schema.station_application
     station_name       TEXT        NOT NULL,
     introduction       TEXT        NOT NULL DEFAULT '',
     verification_token TEXT,
-    status             TEXT        NOT NULL DEFAULT 'unverified',
+    status             TEXT        NOT NULL DEFAULT 'UNVERIFIED',
     deny_reason        TEXT,
     created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     resolved_at        TIMESTAMPTZ

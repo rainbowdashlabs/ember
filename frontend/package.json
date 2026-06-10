@@ -54,6 +54,7 @@
     "tailwindcss": "^4.2.4",
     "turndown": "^7.2.4",
     "vue": "^3.5.32",
+    "vue-draggable-plus": "^0.6.1",
     "vue-echarts": "^8.0.1",
     "vue-i18n": "^11.4.2",
     "vue-router": "^5.0.6"

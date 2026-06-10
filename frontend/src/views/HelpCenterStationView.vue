@@ -479,6 +479,9 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
           {{ t('helpCenter.kbVersions.sidebarLabel') }}
         </SidebarLink>
       </SidebarGroup>
+
+      <SidebarGroup :icon="['fas', 'file-lines']" :label="t('sidebar.pages')" prefix="/helpcenter/station/pages"
+                    to="/helpcenter/station/pages" name="help-pages" @navigate="close"/>
       </template>
     </template>
 

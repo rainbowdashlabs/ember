@@ -39,18 +39,24 @@ import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsService;
+import dev.chojo.ember.feature.page.service.PageImageStorageService;
+import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.feature.system.service.DemoAttendanceSeeder;
 import dev.chojo.ember.feature.system.service.DemoBoardSeeder;
+import dev.chojo.ember.feature.system.service.DemoEventSeeder;
 import dev.chojo.ember.feature.system.service.DemoFederationSeeder;
 import dev.chojo.ember.feature.system.service.DemoFormSeeder;
 import dev.chojo.ember.feature.system.service.DemoInventorySeeder;
 import dev.chojo.ember.feature.system.service.DemoKnowledgeBaseSeeder;
 import dev.chojo.ember.feature.system.service.DemoLendingSeeder;
 import dev.chojo.ember.feature.system.service.DemoMediaSeeder;
+import dev.chojo.ember.feature.system.service.DemoMemberSeeder;
+import dev.chojo.ember.feature.system.service.DemoNewsSeeder;
 import dev.chojo.ember.feature.system.service.DemoNotificationSeeder;
+import dev.chojo.ember.feature.system.service.DemoPageSeeder;
 import dev.chojo.ember.feature.system.service.DemoProcedureSeeder;
 import dev.chojo.ember.feature.system.service.DemoProtocolSeeder;
 import dev.chojo.ember.feature.system.service.DemoQuizSeeder;
@@ -171,6 +177,10 @@ class DemoServiceTest extends RepositoryTestBase {
         var federatedBoardService = new FederatedBoardService(federatedBoardRepo);
 
         // -- Seeders --
+        var memberSeeder = new DemoMemberSeeder(
+                accountRepo, stationMemberRepo, memberGroupRepo, profileFieldRepo, profileFieldChangeRepo, userTagRepo);
+        var eventSeeder =
+                new DemoEventSeeder(eventRepo, eventFieldRepo, attendanceRepo, eventService, eventTemplateService);
         var attendanceSeeder = new DemoAttendanceSeeder(attendanceRepo);
         var inventorySeeder = new DemoInventorySeeder(inventoryRepo, inventoryCheckRepo, accountRepo);
         var formSeeder = new DemoFormSeeder(formRepo, restrictionRepo);
@@ -203,6 +213,8 @@ class DemoServiceTest extends RepositoryTestBase {
         var boardSeeder = new DemoBoardSeeder(
                 boardRepo, boardTicketRepo, federatedBoardService, federationService, memberIdentityFactory);
         var procedureSeeder = new DemoProcedureSeeder(procedureRepo);
+        var pageSeeder = new DemoPageSeeder(new PageService(pageRepo, new PageImageStorageService()));
+        var newsSeeder = new DemoNewsSeeder(newsService, stationMemberRepo);
 
         // -- DemoService --
         demoService = new DemoService(
@@ -212,16 +224,11 @@ class DemoServiceTest extends RepositoryTestBase {
                 accountRepo,
                 stationRepo,
                 stationMemberRepo,
-                memberGroupRepo,
-                eventRepo,
-                attendanceRepo,
                 inventoryRepo,
-                profileFieldRepo,
                 exchangeRepo,
-                userTagRepo,
-                profileFieldChangeRepo,
-                eventFieldRepo,
                 passwordHasher,
+                memberSeeder,
+                eventSeeder,
                 formSeeder,
                 notificationSeeder,
                 attendanceSeeder,
@@ -235,12 +242,11 @@ class DemoServiceTest extends RepositoryTestBase {
                 lendingSeeder,
                 boardSeeder,
                 procedureSeeder,
+                pageSeeder,
+                newsSeeder,
                 applicationSettingRepo,
-                eventService,
-                newsService,
                 exchangeService,
                 procurementService,
-                eventTemplateService,
                 feedTokenService);
     }
 

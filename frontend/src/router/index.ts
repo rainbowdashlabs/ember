@@ -578,6 +578,17 @@ const router = createRouter({
                     name: 'kb-versions',
                     component: () => import('@/views/stationview/knowledge/KbVersionsView.vue'),
                 },
+                // Public Pages
+                {
+                    path: 'pages',
+                    name: 'pages-list',
+                    component: () => import('@/views/stationview/pages/PagesListView.vue'),
+                },
+                {
+                    path: 'pages/:id',
+                    name: 'page-editor',
+                    component: () => import('@/views/stationview/pages/PageEditorView.vue'),
+                },
                 // Quiz
                 {
                     path: 'quiz/catalogs',
@@ -1470,6 +1481,12 @@ const router = createRouter({
                     name: 'help-kb-versions',
                     component: () => import('@/views/helpcenter/stationview/knowledge/VersionsHelp.vue')
                 },
+                // Public Pages
+                {
+                    path: 'pages',
+                    name: 'help-pages',
+                    component: () => import('@/views/helpcenter/stationview/pages/PagesHelp.vue')
+                },
                 // Boards
                 {
                     path: 'federation/boards',
@@ -1654,7 +1671,7 @@ const router = createRouter({
                 {
                     path: '',
                     name: 'public-station',
-                    redirect: to => ({name: 'public-station-calendar', params: to.params}),
+                    component: () => import('@/views/public/PublicStationIndexRedirect.vue'),
                 },
                 {
                     path: 'calendar',
@@ -1670,6 +1687,11 @@ const router = createRouter({
                     path: 'knowledge/file/:id',
                     name: 'public-kb-file',
                     component: () => import('@/views/public/PublicKbFileView.vue'),
+                },
+                {
+                    path: 'page/:slug(.*)',
+                    name: 'public-page',
+                    component: () => import('@/views/public/PublicPageView.vue'),
                 },
             ],
         },

@@ -147,7 +147,8 @@ public class DiscoveryRoutes implements Routes {
                 s.discoveryShowKb() && s.publicKbMode() != PublicKbMode.OFF,
                 s.publicCalendarEnabled(),
                 partnerUids.contains(s.uid()),
-                isOwnStation);
+                isOwnStation,
+                s.publicSlug());
     }
 
     public record DiscoveryEntry(
@@ -158,7 +159,8 @@ public class DiscoveryRoutes implements Routes {
             boolean hasPublicKb,
             boolean hasPublicCalendar,
             boolean alreadyFederated,
-            boolean isOwnStation) {}
+            boolean isOwnStation,
+            String publicSlug) {}
 
     public record FederationRequestBody(UUID stationUid) {}
 

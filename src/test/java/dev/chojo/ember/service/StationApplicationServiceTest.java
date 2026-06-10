@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import static dev.chojo.ember.feature.station.entity.ApplicationStatus.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
@@ -37,7 +38,7 @@ class StationApplicationServiceTest extends RepositoryTestBase {
         assertNotNull(app);
         assertEquals("Max", app.firstName());
         assertEquals("Max Station", app.stationName());
-        assertEquals("unverified", app.status());
+        assertEquals(UNVERIFIED, app.status());
         assertNotNull(app.verificationToken());
         applicationId = app.id();
         verificationToken = app.verificationToken();
@@ -78,7 +79,7 @@ class StationApplicationServiceTest extends RepositoryTestBase {
     void verifyWithValidToken() {
         assertTrue(service.verify(verificationToken));
         var app = service.findById(applicationId).orElseThrow();
-        assertEquals("pending", app.status());
+        assertEquals(PENDING, app.status());
     }
 
     @Test
@@ -103,7 +104,7 @@ class StationApplicationServiceTest extends RepositoryTestBase {
 
         // Deny it
         var denied = service.deny(app2.id(), "Not suitable");
-        assertEquals("denied", denied.status());
+        assertEquals(DENIED, denied.status());
         assertEquals("Not suitable", denied.denyReason());
     }
 
@@ -112,7 +113,7 @@ class StationApplicationServiceTest extends RepositoryTestBase {
     void denyAlreadyPending() {
         // applicationId is still pending — deny it here
         var denied = service.deny(applicationId, "Duplicate request");
-        assertEquals("denied", denied.status());
+        assertEquals(DENIED, denied.status());
     }
 
     @Test
@@ -123,7 +124,7 @@ class StationApplicationServiceTest extends RepositoryTestBase {
         stationApplicationRepo.verify(app.id());
 
         var accepted = service.accept(app.id());
-        assertEquals("accepted", accepted.status());
+        assertEquals(ACCEPTED, accepted.status());
 
         // The station should now exist
         var stations = stationRepo.findAll();

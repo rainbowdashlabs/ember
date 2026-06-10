@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
+import dev.chojo.ember.util.SlugGenerator;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -99,6 +100,10 @@ public class StationService {
         // Ensure every station has a federation private key
         var keyPair = federationService.generateKeyPair();
         stationRepository.updateFederationPrivateKey(station.id(), federationService.encodePrivateKey(keyPair));
+        // Auto-generate a public slug from the station name
+        var slug = SlugGenerator.uniqueSlug(
+                name, (s, _) -> stationRepository.findBySlug(s).isPresent(), 0);
+        stationRepository.updatePublicSlug(station.id(), slug);
         return stationRepository.findById(station.id()).orElse(station);
     }
 
@@ -324,6 +329,20 @@ public class StationService {
      */
     public void updatePublicCalendarEnabled(int stationId, boolean enabled) {
         stationRepository.updatePublicCalendarEnabled(stationId, enabled);
+    }
+
+    public void updatePublicPagesEnabled(int stationId, boolean enabled) {
+        stationRepository.updatePublicPagesEnabled(stationId, enabled);
+    }
+
+    public void updatePublicSlug(int stationId, String slug) {
+        if (slug != null) {
+            var existing = stationRepository.findBySlug(slug);
+            if (existing.isPresent() && existing.get().id() != stationId) {
+                throw new IllegalArgumentException("Slug is already in use");
+            }
+        }
+        stationRepository.updatePublicSlug(stationId, slug);
     }
 
     public void updateDiscoverySettings(

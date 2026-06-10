@@ -50,6 +50,7 @@ import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.news.repository.NewsRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationSettingsRepository;
+import dev.chojo.ember.feature.page.repository.PageRepository;
 import dev.chojo.ember.feature.procedure.repository.ProcedureRepository;
 import dev.chojo.ember.feature.protocol.repository.TestProtocolRepository;
 import dev.chojo.ember.feature.quiz.repository.AiProviderRepository;
@@ -125,6 +126,7 @@ public abstract class RepositoryTestBase {
     protected static BoardTicketRepository boardTicketRepo;
     protected static FederatedBoardRepository federatedBoardRepo;
     protected static ProcedureRepository procedureRepo;
+    protected static PageRepository pageRepo;
     protected static MemberIdentityFactory memberIdentityFactory;
     protected static MemberNameResolver memberNameResolver;
     protected static DataSource dataSource;
@@ -220,6 +222,7 @@ public abstract class RepositoryTestBase {
         boardTicketRepo = new BoardTicketRepository(stationMemberRepo, stationRepo);
         federatedBoardRepo = new FederatedBoardRepository();
         procedureRepo = new ProcedureRepository();
+        pageRepo = new PageRepository();
         var eventFedRepo = new EventFederationRepository();
         var fedRepo = new FederationRepository();
         var memberSvc = new StationMemberService(stationMemberRepo, stationRepo, accountRepo, null);

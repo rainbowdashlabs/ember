@@ -91,6 +91,8 @@ import dev.chojo.ember.feature.members.route.UserSettingsRoutes;
 import dev.chojo.ember.feature.members.route.UserTagRoutes;
 import dev.chojo.ember.feature.news.route.NewsRoutes;
 import dev.chojo.ember.feature.notifications.route.NotificationRoutes;
+import dev.chojo.ember.feature.page.route.PageRoutes;
+import dev.chojo.ember.feature.page.route.PublicPageRoutes;
 import dev.chojo.ember.feature.procedure.route.ProcedureRoutes;
 import dev.chojo.ember.feature.protocol.route.TestProtocolRoutes;
 import dev.chojo.ember.feature.quiz.route.AiRoutes;
@@ -108,6 +110,7 @@ import dev.chojo.ember.feature.system.route.ProblemReportRoutes;
 import dev.chojo.ember.feature.system.route.ProblemRoutes;
 import dev.chojo.ember.feature.system.route.RequirementsRoutes;
 import dev.chojo.ember.feature.system.route.SidebarCountRoutes;
+import dev.chojo.ember.feature.system.route.SitemapRoutes;
 import dev.chojo.ember.feature.system.route.UtilRoutes;
 import dev.chojo.ember.feature.waitinglist.route.WaitingListRoutes;
 import jakarta.inject.Singleton;
@@ -161,6 +164,8 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(StatisticsRoutes.class);
         routesBinder.addBinding().to(MemberImportRoutes.class);
         routesBinder.addBinding().to(NewsRoutes.class);
+        routesBinder.addBinding().to(PageRoutes.class);
+        routesBinder.addBinding().to(PublicPageRoutes.class);
         routesBinder.addBinding().to(UserSettingsRoutes.class);
         routesBinder.addBinding().to(ExchangeRoutes.class);
         routesBinder.addBinding().to(ProcurementRoutes.class);
@@ -196,6 +201,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(RequirementsRoutes.class);
         routesBinder.addBinding().to(SidebarCountRoutes.class);
         routesBinder.addBinding().to(DataRoutes.class);
+        routesBinder.addBinding().to(SitemapRoutes.class);
         routesBinder.addBinding().to(ProcedureRoutes.class);
 
         // Domain event handlers

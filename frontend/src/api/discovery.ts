@@ -14,6 +14,7 @@ export interface DiscoveryEntry {
     hasPublicCalendar: boolean
     alreadyFederated: boolean
     isOwnStation: boolean
+    publicSlug: string | null
 }
 
 export interface PublicStationInfo {
@@ -23,6 +24,12 @@ export interface PublicStationInfo {
     hasLogo: boolean
     hasPublicKb: boolean
     hasPublicCalendar: boolean
+    hasPublicPages: boolean
+    landingPageSlug: string | null
+    publicSlug: string | null
+    defaultTheme: string | null
+    defaultFeel: string | null
+    customThemeColors: string | null
 }
 
 export async function getPublicStationInfo(stationUid: string): Promise<PublicStationInfo> {

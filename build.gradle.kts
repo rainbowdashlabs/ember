@@ -242,6 +242,7 @@ tasks {
                     "*.AiService*",
                     // File I/O services
                     "*.KbFileStorageService*",
+                    "*.PageImageStorageService*",
                     // External binary dependent services
                     "*.LegalDocumentService*",
                     // Daemon/scheduler threads

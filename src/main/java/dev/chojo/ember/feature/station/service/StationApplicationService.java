@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.station.entity.ApplicationStatus;
 import dev.chojo.ember.feature.station.entity.StationApplication;
 import dev.chojo.ember.feature.station.repository.StationApplicationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -99,7 +100,7 @@ public class StationApplicationService {
      * @return a list of pending applications
      */
     public List<StationApplication> findPending() {
-        return applicationRepository.findByStatus("pending");
+        return applicationRepository.findByStatus(ApplicationStatus.PENDING);
     }
 
     /**
@@ -117,7 +118,7 @@ public class StationApplicationService {
                 .findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Application not found"));
 
-        if (!"pending".equals(application.status())) {
+        if (ApplicationStatus.PENDING != application.status()) {
             throw new IllegalStateException("Application is not pending");
         }
 
@@ -160,7 +161,7 @@ public class StationApplicationService {
                 .findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Application not found"));
 
-        if (!"pending".equals(application.status())) {
+        if (ApplicationStatus.PENDING != application.status()) {
             throw new IllegalStateException("Application is not pending");
         }
 

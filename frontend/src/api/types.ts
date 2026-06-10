@@ -81,6 +81,8 @@ export const StationPermission = {
     PROCEDURE_READ: 'PROCEDURE_READ',
     PROCEDURE_EDIT: 'PROCEDURE_EDIT',
     PROCEDURE_MANAGER: 'PROCEDURE_MANAGER',
+    PAGE_EDIT: 'PAGE_EDIT',
+    PAGE_MANAGER: 'PAGE_MANAGER',
     KNOWLEDGE_EDIT: 'KNOWLEDGE_EDIT',
     KNOWLEDGE_FEDERATE: 'KNOWLEDGE_FEDERATE',
     KNOWLEDGE_MANAGER: 'KNOWLEDGE_MANAGER',
@@ -659,6 +661,8 @@ export interface StationManageInfo {
     discoveryDescription?: string | null
     discoveryShowKb?: boolean
     publicCalendarEnabled?: boolean
+    publicPagesEnabled?: boolean
+    publicSlug?: string | null
 }
 
 export interface UpdateStationNameRequest {
@@ -675,6 +679,8 @@ export interface UpdateStationNameRequest {
     discoveryDescription?: string | null
     discoveryShowKb?: boolean
     publicCalendarEnabled?: boolean
+    publicPagesEnabled?: boolean
+    publicSlug?: string | null
 }
 
 // -- Stations --

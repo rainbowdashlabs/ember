@@ -4,9 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
+import {computed, onMounted, ref, inject} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
+import type {Ref} from 'vue'
+import type {PublicStationInfo} from '@/api/discovery'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -18,7 +20,8 @@ import {getIcalFeedUrl, getIcalSubscribeUrl, listPublicEvents} from '@/api/publi
 const {t} = useI18n()
 const route = useRoute()
 
-const stationUid = computed(() => route.params.stationUid as string)
+const publicStation = inject<Ref<PublicStationInfo | null>>('publicStation')
+const stationUid = computed(() => publicStation?.value?.stationUid ?? route.params.stationUid as string)
 const allEvents = ref<PublicEvent[]>([])
 const loading = ref(true)
 

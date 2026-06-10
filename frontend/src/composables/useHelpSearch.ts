@@ -152,6 +152,8 @@ const HELP_PAGE_MAP: { route: string; path: string; i18nPrefix: string; section:
     {route: 'help-knowledge-federated', path: '/helpcenter/station/knowledge/federated', i18nPrefix: 'helpCenter.federatedKb', section: 'Lernsammlung > Geteilte Inhalte'},
     {route: 'help-kb-file', path: '/helpcenter/station/knowledge/file/0', i18nPrefix: 'helpCenter.kbFileView', section: 'Lernsammlung > Datei anzeigen'},
     {route: 'help-kb-versions', path: '/helpcenter/station/knowledge/file/0/versions', i18nPrefix: 'helpCenter.kbVersions', section: 'Lernsammlung > Versionsverlauf'},
+    // Public Pages
+    {route: 'help-pages', path: '/helpcenter/station/pages', i18nPrefix: 'helpCenter.pages', section: 'Öffentliche Seiten'},
     // Admin
     {route: 'help-admin-module-overview', path: '/helpcenter/admin', i18nPrefix: 'helpCenter.admin', section: 'Administration'},
     {route: 'help-admin-stations-module-overview', path: '/helpcenter/admin/stations/overview', i18nPrefix: 'helpCenter.adminStationsOverview', section: 'Administration > Wachen'},

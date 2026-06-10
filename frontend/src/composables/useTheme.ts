@@ -278,6 +278,14 @@ async function setDarkMode(mode: DarkModeValue) {
     }
 }
 
+function applyCustomColors(colorsJson: string) {
+    try {
+        customThemeColors.value = JSON.parse(colorsJson) as ThemeColors
+    } catch {
+        /* ignore malformed JSON */
+    }
+}
+
 function resetToInstanceDefaults() {
     // Clear user/station overrides from localStorage
     setItem('theme_name', '')
@@ -309,6 +317,7 @@ export function useTheme() {
         customThemeColors: readonly(customThemeColors),
         applyTheme,
         applyFeel,
+        applyCustomColors,
         applyDarkMode,
         resolveEffectiveFeel,
         initFromLocalStorage,

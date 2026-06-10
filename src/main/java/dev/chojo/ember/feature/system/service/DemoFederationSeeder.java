@@ -125,6 +125,7 @@ public class DemoFederationSeeder {
 
         // Create a second station
         var partnerStation = stationRepository.create("JF Partnerwache");
+        stationRepository.updatePublicSlug(partnerStation.id(), "jf-partnerwache");
         log.info("Demo: Created partner station '{}' (id={})", partnerStation.name(), partnerStation.id());
         stationRepository.updateDiscoverySettings(
                 partnerStation.id(),
@@ -560,6 +561,7 @@ public class DemoFederationSeeder {
 
         // === Third station (not federated) ===
         var thirdStation = stationRepository.create("JF Nachbarstadt");
+        stationRepository.updatePublicSlug(thirdStation.id(), "jf-nachbarstadt");
         log.info("Demo: Created third station '{}' (id={})", thirdStation.name(), thirdStation.id());
         stationRepository.updateDiscoverySettings(
                 thirdStation.id(), DiscoveryVisibility.PUBLIC, "Nachbarstadt sucht Partner für Übungsaustausch", true);

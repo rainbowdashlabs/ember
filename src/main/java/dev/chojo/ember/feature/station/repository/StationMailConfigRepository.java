@@ -6,12 +6,13 @@
 package dev.chojo.ember.feature.station.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.station.entity.StationMailConfig;
 import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
 import java.util.Optional;
+
+import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
  * Repository for station mail configuration and per-station email send count tracking.
@@ -26,7 +27,7 @@ public class StationMailConfigRepository {
      * @return the mail configuration, or empty if none exists
      */
     public Optional<StationMailConfig> findByStation(int stationId) {
-        return Query.query("SELECT * FROM station_mail_config WHERE station_id = :station_id;")
+        return query("SELECT * FROM station_mail_config WHERE station_id = :station_id;")
                 .single(Call.of().bind("station_id", stationId))
                 .map(StationMailConfig.map())
                 .first();
@@ -39,20 +40,34 @@ public class StationMailConfigRepository {
      * @return the persisted mail configuration
      */
     public StationMailConfig upsert(StationMailConfig config) {
-        return Query.query("""
-                            INSERT INTO station_mail_config(station_id, provider, smtp_host, smtp_port, smtp_ssl,
-                                smtp_user, smtp_password, sender_address, sender_name, api_key,
-                                provider_name, provider_url, daily_limit, monthly_limit, updated_at)
-                            VALUES(:station_id, :provider, :smtp_host, :smtp_port, :smtp_ssl,
-                                :smtp_user, :smtp_password, :sender_address, :sender_name, :api_key,
-                                :provider_name, :provider_url, :daily_limit, :monthly_limit, now())
-                            ON CONFLICT (station_id) DO UPDATE SET
-                                provider = :provider, smtp_host = :smtp_host, smtp_port = :smtp_port, smtp_ssl = :smtp_ssl,
-                                smtp_user = :smtp_user, smtp_password = :smtp_password, sender_address = :sender_address,
-                                sender_name = :sender_name, api_key = :api_key,
-                                provider_name = :provider_name, provider_url = :provider_url,
-                                daily_limit = :daily_limit, monthly_limit = :monthly_limit, updated_at = now()
-                            RETURNING *;""")
+        return query("""
+                INSERT
+                INTO
+                    station_mail_config(station_id, provider, smtp_host, smtp_port, smtp_ssl,
+                                        smtp_user, smtp_password, sender_address, sender_name, api_key,
+                                        provider_name, provider_url, daily_limit, monthly_limit, updated_at)
+                VALUES
+                    (:station_id, :provider, :smtp_host, :smtp_port, :smtp_ssl,
+                     :smtp_user, :smtp_password, :sender_address, :sender_name, :api_key,
+                     :provider_name, :provider_url, :daily_limit, :monthly_limit, now())
+                ON CONFLICT (station_id)
+                    DO UPDATE
+                    SET
+                        provider       = :provider,
+                        smtp_host      = :smtp_host,
+                        smtp_port      = :smtp_port,
+                        smtp_ssl       = :smtp_ssl,
+                        smtp_user      = :smtp_user,
+                        smtp_password  = :smtp_password,
+                        sender_address = :sender_address,
+                        sender_name    = :sender_name,
+                        api_key        = :api_key,
+                        provider_name  = :provider_name,
+                        provider_url   = :provider_url,
+                        daily_limit    = :daily_limit,
+                        monthly_limit  = :monthly_limit,
+                        updated_at     = now()
+                RETURNING *;""")
                 .single(Call.of()
                         .bind("station_id", config.stationId())
                         .bind("provider", config.provider())
@@ -79,7 +94,7 @@ public class StationMailConfigRepository {
      * @param stationId the station ID
      */
     public void delete(int stationId) {
-        Query.query("DELETE FROM station_mail_config WHERE station_id = :station_id;")
+        query("DELETE FROM station_mail_config WHERE station_id = :station_id;")
                 .single(Call.of().bind("station_id", stationId))
                 .delete();
     }
@@ -94,7 +109,7 @@ public class StationMailConfigRepository {
      * @return the number of emails sent, or 0 if no record exists
      */
     public int getDailyCount(int stationId, LocalDate day) {
-        return Query.query("SELECT count FROM station_email_count WHERE station_id = :station_id AND day = :day;")
+        return query("SELECT count FROM station_email_count WHERE station_id = :station_id AND day = :day;")
                 .single(Call.of().bind("station_id", stationId).bind("day", day))
                 .map(row -> row.getInt("count"))
                 .first()
@@ -111,8 +126,14 @@ public class StationMailConfigRepository {
     public int getMonthlyCount(int stationId, LocalDate month) {
         LocalDate firstDay = month.withDayOfMonth(1);
         LocalDate lastDay = month.withDayOfMonth(month.lengthOfMonth());
-        return Query.query(
-                        "SELECT coalesce(sum(count), 0) FROM station_email_count WHERE station_id = :station_id AND day >= :first AND day <= :last;")
+        return query("""
+                SELECT
+                    coalesce(sum(count), 0)
+                FROM
+                    station_email_count
+                WHERE station_id = :station_id
+                  AND day >= :first
+                  AND day <= :last;""")
                 .single(Call.of()
                         .bind("station_id", stationId)
                         .bind("first", firstDay)
@@ -129,9 +150,14 @@ public class StationMailConfigRepository {
      * @param day       the day to increment
      */
     public void incrementDailyCount(int stationId, LocalDate day) {
-        Query.query("""
-                     INSERT INTO station_email_count(station_id, day, count) VALUES(:station_id, :day, 1)
-                     ON CONFLICT (station_id, day) DO UPDATE SET count = station_email_count.count + 1;""")
+        query("""
+                INSERT
+                INTO
+                    station_email_count(station_id, day, count)
+                VALUES
+                    (:station_id, :day, 1)
+                ON CONFLICT (station_id, day) DO UPDATE SET
+                    count = station_email_count.count + 1;""")
                 .single(Call.of().bind("station_id", stationId).bind("day", day))
                 .insert();
     }
@@ -142,7 +168,7 @@ public class StationMailConfigRepository {
      * @param keepDays the number of days of history to retain
      */
     public void cleanupOldCounts(int keepDays) {
-        Query.query("DELETE FROM station_email_count WHERE day < :cutoff;")
+        query("DELETE FROM station_email_count WHERE day < :cutoff;")
                 .single(Call.of().bind("cutoff", LocalDate.now().minusDays(keepDays)))
                 .delete();
     }
