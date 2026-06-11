@@ -358,6 +358,9 @@ async function handleLogout() {
         <SidebarLink v-if="hasPermission(StationPermission.STATION_IMPORT_EXPORT)" :icon="['fas', 'file-import']" name="station-import" to="/station/manage/import" @navigate="close">
           {{ t('sidebar.stationImport') }}
         </SidebarLink>
+        <SidebarLink v-if="hasPermission(StationPermission.STATION_MANAGER)" :icon="['fas', 'hard-drive']" name="station-storage" to="/station/manage/storage" @navigate="close">
+          {{ t('sidebar.storage') }}
+        </SidebarLink>
       </SidebarGroup>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="canManageFederation()" :badge="counts.federationRequests" :icon="['fas', 'arrow-right-arrow-left']" :label="t('sidebar.federation')" :prefix="['/station/federate', '/station/federate/discovery']" to="/station/federate" name="station-federation" @navigate="close">

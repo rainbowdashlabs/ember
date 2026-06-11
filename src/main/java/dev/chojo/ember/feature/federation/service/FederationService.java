@@ -49,6 +49,11 @@ public class FederationService {
         this.repository = repository;
         this.stationRepository = stationRepository;
         this.instanceHost = extractHost(apiConfig.baseUrl());
+
+        int updated = repository.backfillLocalPartnerVersions(FEDERATION_VERSION);
+        if (updated > 0) {
+            log.info("Updated federation version for {} local partner(s) to {}", updated, FEDERATION_VERSION);
+        }
     }
 
     private static String loadFederationVersion() {

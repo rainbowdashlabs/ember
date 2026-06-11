@@ -89,7 +89,10 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'triangle-exclamation']" :label="t('sidebar.monitoring')" prefix="/admin/problem" group-key="monitoring">
+      <SidebarGroup :icon="['fas', 'triangle-exclamation']" :label="t('sidebar.monitoring')" prefix="/admin" group-key="monitoring">
+        <SidebarLink :icon="['fas', 'hard-drive']" name="admin-storage" to="/admin/storage" @navigate="close">
+          {{ t('sidebar.storageDashboard') }}
+        </SidebarLink>
         <SidebarLink :icon="['fas', 'bug']" name="admin-problems" to="/admin/problems" @navigate="close">
           {{ t('sidebar.problemLog') }}
         </SidebarLink>

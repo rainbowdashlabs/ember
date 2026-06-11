@@ -74,4 +74,6 @@ public sealed interface NotificationParams {
             implements NotificationParams {}
 
     record WaitlistPublicRegistration(String childName, String listName) implements NotificationParams {}
+
+    record StorageWarning(int usedPercent, String usedFormatted, String quotaFormatted) implements NotificationParams {}
 }

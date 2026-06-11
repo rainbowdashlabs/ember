@@ -788,6 +788,24 @@ class DomainEventHandlerTest {
     }
 
     @Test
+    void storageWarningNotifiesStationManagers() {
+        var handler = new dev.chojo.ember.event.handlers.StorageWarningHandler(notificationService);
+        var event =
+                new dev.chojo.ember.event.events.StorageWarningEvent(STATION_ID, 85, 4_500_000_000L, 5_368_709_120L);
+
+        assertEquals(dev.chojo.ember.event.events.StorageWarningEvent.class, handler.eventType());
+
+        handler.handle(event);
+
+        verify(notificationService)
+                .notifyMembersWithRole(
+                        eq(STATION_ID),
+                        eq("STATION_MANAGER"),
+                        eq(NotificationType.STORAGE_WARNING),
+                        any(NotificationData.class));
+    }
+
+    @Test
     void waitlistPublicRegistrationHandlerNotifiesWaitlistEditRole() {
         var handler = new dev.chojo.ember.event.handlers.WaitlistPublicRegistrationHandler(notificationService);
         var event = new dev.chojo.ember.event.events.WaitlistPublicRegistration(

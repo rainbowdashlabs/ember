@@ -208,6 +208,11 @@ const router = createRouter({
                     component: () => import('@/views/stationview/manage/StationImportView.vue'),
                 },
                 {
+                    path: 'manage/storage',
+                    name: 'station-storage',
+                    component: () => import('@/views/stationview/manage/StationStorageView.vue'),
+                },
+                {
                     path: 'attendance/config',
                     name: 'station-attendance-config',
                     component: AttendanceConfigView,
@@ -838,6 +843,11 @@ const router = createRouter({
                     path: 'problem-reports',
                     name: 'admin-problem-reports',
                     component: () => import('@/views/adminview/AdminProblemReportsView.vue'),
+                },
+                {
+                    path: 'storage',
+                    name: 'admin-storage',
+                    component: () => import('@/views/adminview/AdminStorageView.vue'),
                 },
                 {
                     path: 'api-status',

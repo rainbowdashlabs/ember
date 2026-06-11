@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.federation.entity.FederationMetadataCache;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationShare;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
+import dev.chojo.ember.feature.federation.service.FederationService;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -77,15 +78,16 @@ public class FederationRepository {
     public FederationPartner createPartner(
             int stationId, UUID partnerStationUid, String inviteCode, String publicKey, String remoteHost) {
         return Query.query("""
-                        INSERT INTO federation_partner(station_id, partner_station_id, invite_code, public_key, status, remote_host)
-                        VALUES (:station_id, :partner_station_id::uuid, :invite_code, :public_key, 'PENDING', :remote_host)
+                        INSERT INTO federation_partner(station_id, partner_station_id, invite_code, public_key, status, remote_host, federation_version)
+                        VALUES (:station_id, :partner_station_id::uuid, :invite_code, :public_key, 'PENDING', :remote_host, :federation_version)
                         RETURNING *;""")
                 .single(Call.of()
                         .bind("station_id", stationId)
                         .bind("partner_station_id", partnerStationUid, UUID_STRING)
                         .bind("invite_code", inviteCode)
                         .bind("public_key", publicKey)
-                        .bind("remote_host", remoteHost))
+                        .bind("remote_host", remoteHost)
+                        .bind("federation_version", FederationService.FEDERATION_VERSION))
                 .map(FederationPartner.map())
                 .first()
                 .orElseThrow();
@@ -111,6 +113,20 @@ public class FederationRepository {
         Query.query("UPDATE federation_partner SET federation_version = :version, updated_at = now() WHERE id = :id;")
                 .single(Call.of().bind("id", id).bind("version", version))
                 .update();
+    }
+
+    /**
+     * Sets the federation version for all local partners (no remote_host) that have an outdated version.
+     * Local partners always run the same code, so their version is always the current one.
+     */
+    public int backfillLocalPartnerVersions(String currentVersion) {
+        return Query.query("""
+                        UPDATE federation_partner
+                        SET federation_version = :version, updated_at = now()
+                        WHERE remote_host IS NULL AND federation_version != :version;""")
+                .single(Call.of().bind("version", currentVersion))
+                .update()
+                .rows();
     }
 
     public boolean updatePartnerStatus(int id, String status) {
