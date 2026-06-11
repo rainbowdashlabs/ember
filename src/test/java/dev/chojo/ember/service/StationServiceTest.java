@@ -343,6 +343,7 @@ class StationServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(50)
     void updatePublicWaitlistEnabled() {
         service.updatePublicWaitlistEnabled(stationId, true);
         assertTrue(stationRepo.findById(stationId).orElseThrow().publicWaitlistEnabled());
@@ -351,6 +352,7 @@ class StationServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(51)
     void updatePublicBlogEnabled() {
         service.updatePublicBlogEnabled(stationId, true);
         assertTrue(stationRepo.findById(stationId).orElseThrow().publicBlogEnabled());

@@ -611,9 +611,11 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void hasPublicWaitlists() {
-        assertFalse(service.hasPublicWaitlists(station.id()));
-        service.create(station.id(), "PublicHas " + UUID.randomUUID(), "", null, 180, null, null, 5, true);
-        assertTrue(service.hasPublicWaitlists(station.id()));
+        // Use a fresh station so no prior public lists interfere
+        var freshStation = stationRepo.create("HasPublicTest " + UUID.randomUUID());
+        assertFalse(service.hasPublicWaitlists(freshStation.id()));
+        service.create(freshStation.id(), "PublicHas " + UUID.randomUUID(), "", null, 180, null, null, 5, true);
+        assertTrue(service.hasPublicWaitlists(freshStation.id()));
     }
 
     @Test
@@ -664,7 +666,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         // Entry should exist with PENDING status
         var entries = service.findEntriesByStatus(publicList.id(), WaitingListEntryStatus.PENDING);
         assertEquals(1, entries.size());
-        assertEquals("TestChild", entries.getFirst().entry().firstname());
+        assertEquals("TestChild", entries.getFirst().firstname());
     }
 
     @Test

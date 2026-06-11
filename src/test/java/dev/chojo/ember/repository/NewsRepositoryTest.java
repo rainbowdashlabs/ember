@@ -196,6 +196,33 @@ class NewsRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(40)
+    void updatePublicBlog() {
+        newsRepo.updatePublicBlog(newsId, true);
+        assertTrue(newsRepo.findById(newsId).orElseThrow().publicBlog());
+        newsRepo.updatePublicBlog(newsId, false);
+        assertFalse(newsRepo.findById(newsId).orElseThrow().publicBlog());
+    }
+
+    @Test
+    @Order(41)
+    void findPublicBlogEntries() {
+        newsRepo.updatePublicBlog(newsId, true);
+        var entries = newsRepo.findPublicBlogEntries(station.id(), 0, 10);
+        assertTrue(entries.stream().anyMatch(n -> n.id() == newsId));
+        newsRepo.updatePublicBlog(newsId, false);
+    }
+
+    @Test
+    @Order(42)
+    void hasPublicBlogEntries() {
+        newsRepo.updatePublicBlog(newsId, true);
+        assertTrue(newsRepo.hasPublicBlogEntries(station.id()));
+        newsRepo.updatePublicBlog(newsId, false);
+        assertFalse(newsRepo.hasPublicBlogEntries(station.id()));
+    }
+
+    @Test
     @Order(99)
     void delete() {
         assertTrue(newsRepo.delete(newsId));
