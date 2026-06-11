@@ -120,3 +120,66 @@ SET firstname = split_part(name, ' ', 1),
 WHERE name != '';
 
 ALTER TABLE ember_schema.waiting_list_entry_guardian DROP COLUMN name;
+
+-- Storage monitoring & quota system
+
+-- Per-station storage usage tracking by category
+CREATE TABLE ember_schema.station_storage_usage (
+    station_id   INTEGER NOT NULL REFERENCES ember_schema.station(id) ON DELETE CASCADE,
+    category     TEXT    NOT NULL,
+    total_bytes  BIGINT  NOT NULL DEFAULT 0,
+    file_count   INTEGER NOT NULL DEFAULT 0,
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (station_id, category)
+);
+
+COMMENT ON TABLE ember_schema.station_storage_usage IS 'Tracks per-station storage usage grouped by category';
+COMMENT ON COLUMN ember_schema.station_storage_usage.category IS 'Storage category enum value (KB_FILES, BOARD_ATTACHMENTS, PAGE_IMAGES, AVATARS, IMAGES)';
+COMMENT ON COLUMN ember_schema.station_storage_usage.total_bytes IS 'Total bytes used in this category for this station';
+COMMENT ON COLUMN ember_schema.station_storage_usage.file_count IS 'Number of files in this category for this station';
+COMMENT ON COLUMN ember_schema.station_storage_usage.updated_at IS 'When this usage record was last updated';
+
+-- Reusable quota presets for easy station configuration
+CREATE TABLE ember_schema.storage_quota_preset (
+    id          SERIAL  PRIMARY KEY,
+    name        TEXT    NOT NULL UNIQUE,
+    total       BIGINT  NOT NULL,
+    kb          BIGINT  NOT NULL,
+    board       BIGINT  NOT NULL,
+    images      BIGINT  NOT NULL,
+    pages       BIGINT  NOT NULL,
+    per_file    BIGINT  NOT NULL,
+    per_image   BIGINT  NOT NULL
+);
+
+COMMENT ON TABLE ember_schema.storage_quota_preset IS 'Named quota profiles that can be applied to stations';
+COMMENT ON COLUMN ember_schema.storage_quota_preset.name IS 'Display name of the preset (e.g. Small, Standard, Premium)';
+COMMENT ON COLUMN ember_schema.storage_quota_preset.total IS 'Total storage quota in bytes';
+COMMENT ON COLUMN ember_schema.storage_quota_preset.kb IS 'KB files quota in bytes';
+COMMENT ON COLUMN ember_schema.storage_quota_preset.board IS 'Board attachments quota in bytes';
+COMMENT ON COLUMN ember_schema.storage_quota_preset.images IS 'Images quota in bytes';
+COMMENT ON COLUMN ember_schema.storage_quota_preset.pages IS 'Page images quota in bytes';
+COMMENT ON COLUMN ember_schema.storage_quota_preset.per_file IS 'Maximum bytes per single file upload';
+COMMENT ON COLUMN ember_schema.storage_quota_preset.per_image IS 'Maximum bytes per single image upload';
+
+-- Per-station quota overrides (NULL = use instance default from config)
+ALTER TABLE ember_schema.station
+    ADD COLUMN storage_quota_bytes        BIGINT,
+    ADD COLUMN storage_quota_kb_bytes     BIGINT,
+    ADD COLUMN storage_quota_board_bytes  BIGINT,
+    ADD COLUMN storage_quota_images_bytes BIGINT,
+    ADD COLUMN storage_quota_pages_bytes  BIGINT,
+    ADD COLUMN storage_per_file_bytes     BIGINT,
+    ADD COLUMN storage_per_image_bytes    BIGINT,
+    ADD COLUMN storage_warning_sent       BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN storage_preset_id         INTEGER REFERENCES ember_schema.storage_quota_preset(id) ON DELETE SET NULL;
+
+COMMENT ON COLUMN ember_schema.station.storage_quota_bytes IS 'Total storage quota override in bytes (NULL = use instance default)';
+COMMENT ON COLUMN ember_schema.station.storage_quota_kb_bytes IS 'KB files quota override in bytes (NULL = use instance default)';
+COMMENT ON COLUMN ember_schema.station.storage_quota_board_bytes IS 'Board attachments quota override in bytes (NULL = use instance default)';
+COMMENT ON COLUMN ember_schema.station.storage_quota_images_bytes IS 'Images quota override in bytes (NULL = use instance default)';
+COMMENT ON COLUMN ember_schema.station.storage_quota_pages_bytes IS 'Page images quota override in bytes (NULL = use instance default)';
+COMMENT ON COLUMN ember_schema.station.storage_per_file_bytes IS 'Maximum bytes per file upload override (NULL = use instance default)';
+COMMENT ON COLUMN ember_schema.station.storage_per_image_bytes IS 'Maximum bytes per image upload override (NULL = use instance default)';
+COMMENT ON COLUMN ember_schema.station.storage_warning_sent IS 'Whether the storage warning notification has been sent for this station';
+COMMENT ON COLUMN ember_schema.station.storage_preset_id IS 'Last applied storage quota preset (NULL if using defaults or manually configured)';

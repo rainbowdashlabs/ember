@@ -601,6 +601,11 @@ public class TestProtocolRoutes implements Routes {
             List<EvalMemberData> members,
             Integer passThreshold) {}
 
+    private record RemoteProtocolSummary(int id, String name, String description, String updatedAt) {}
+
+    private record RemoteProtocolDetail(
+            TestProtocol protocol, List<TestProtocolSection> sections, List<TestProtocolItem> items) {}
+
     // -- Federated endpoints (user-facing, aggregates from partners) --
 
     private void federatedBrowseProtocols(Context ctx) {
@@ -640,11 +645,11 @@ public class TestProtocolRoutes implements Routes {
                 .filter(s -> s.protocolId() != null)
                 .flatMap(s -> service.findProtocol(s.protocolId()).stream())
                 .filter(proto -> proto.stationId() == partner.stationId())
-                .map(proto -> Map.<String, Object>of(
-                        "id", proto.id(),
-                        "name", proto.name(),
-                        "description", proto.description(),
-                        "updatedAt", proto.updatedAt().toString()))
+                .map(proto -> new RemoteProtocolSummary(
+                        proto.id(),
+                        proto.name(),
+                        proto.description(),
+                        proto.updatedAt().toString()))
                 .toList();
         ctx.json(result);
     }
@@ -658,7 +663,7 @@ public class TestProtocolRoutes implements Routes {
         }
         var sections = service.findSections(protocolId);
         var items = service.findAllItemsByProtocol(protocolId);
-        ctx.json(Map.of("protocol", protocol, "sections", sections, "items", items));
+        ctx.json(new RemoteProtocolDetail(protocol, sections, items));
     }
 
     // -- Federation helpers --

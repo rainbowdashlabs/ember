@@ -24,6 +24,7 @@ import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
+import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.handlers.BoardTicketChangedHandler;
 import dev.chojo.ember.event.handlers.BulkMentionedInCommentHandler;
@@ -51,6 +52,7 @@ import dev.chojo.ember.event.handlers.ProcedureResolvedHandler;
 import dev.chojo.ember.event.handlers.ProcurementCreatedHandler;
 import dev.chojo.ember.event.handlers.ProcurementFulfilledHandler;
 import dev.chojo.ember.event.handlers.RegistrationDeadlineExpiredHandler;
+import dev.chojo.ember.event.handlers.StorageWarningHandler;
 import dev.chojo.ember.event.handlers.WaitlistPublicRegistrationHandler;
 import dev.chojo.ember.feature.account.route.AuthRoutes;
 import dev.chojo.ember.feature.account.route.SessionRoutes;
@@ -67,6 +69,7 @@ import dev.chojo.ember.feature.events.service.EventThresholdChecker;
 import dev.chojo.ember.feature.federation.route.FederationRemoteRoutes;
 import dev.chojo.ember.feature.federation.route.FederationRoutes;
 import dev.chojo.ember.feature.federation.route.LendingRoutes;
+import dev.chojo.ember.feature.federation.service.FederationVersionBroadcaster;
 import dev.chojo.ember.feature.feed.route.FeedTokenRoutes;
 import dev.chojo.ember.feature.feed.route.UserFeedRoutes;
 import dev.chojo.ember.feature.form.route.FormRoutes;
@@ -104,6 +107,8 @@ import dev.chojo.ember.feature.station.route.StationApplicationRoutes;
 import dev.chojo.ember.feature.station.route.StationManageRoutes;
 import dev.chojo.ember.feature.station.route.StationRoutes;
 import dev.chojo.ember.feature.statistics.route.StatisticsRoutes;
+import dev.chojo.ember.feature.storage.route.StorageRoutes;
+import dev.chojo.ember.feature.storage.service.StorageReconciliationService;
 import dev.chojo.ember.feature.system.route.AdminSettingsRoutes;
 import dev.chojo.ember.feature.system.route.ApiStatusRoutes;
 import dev.chojo.ember.feature.system.route.DataRoutes;
@@ -204,6 +209,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(DataRoutes.class);
         routesBinder.addBinding().to(SitemapRoutes.class);
         routesBinder.addBinding().to(ProcedureRoutes.class);
+        routesBinder.addBinding().to(StorageRoutes.class);
 
         // Domain event handlers
         Multibinder<DomainEventHandler<?>> eventBinder = Multibinder.newSetBinder(binder(), new TypeLiteral<>() {});
@@ -234,10 +240,13 @@ public class EmberModule extends AbstractModule {
         eventBinder.addBinding().to(ProcedureReopenedHandler.class);
         eventBinder.addBinding().to(ProcedureItemCheckedHandler.class);
         eventBinder.addBinding().to(WaitlistPublicRegistrationHandler.class);
+        eventBinder.addBinding().to(StorageWarningHandler.class);
 
         // Eager singletons — started on boot
         bind(EventThresholdChecker.class).asEagerSingleton();
         bind(EventReminderChecker.class).asEagerSingleton();
+        bind(StorageReconciliationService.class).asEagerSingleton();
+        bind(FederationVersionBroadcaster.class).asEagerSingleton();
     }
 
     @Provides
@@ -283,6 +292,12 @@ public class EmberModule extends AbstractModule {
     @Singleton
     Demo demo(File config) {
         return config.demo();
+    }
+
+    @Provides
+    @Singleton
+    Storage storage(File config) {
+        return config.storage();
     }
 
     @Provides

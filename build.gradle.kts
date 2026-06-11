@@ -256,6 +256,12 @@ tasks {
                     // Import services (complex CSV parsing with many edge cases)
                     "*.MemberImportService*",
                     "*.StationImportService*",
+                    // Storage monitoring (filesystem walks, scheduled reconciliation, ZIP compression)
+                    "*.StorageReconciliationService*",
+                    "*.PresentationCompressor*",
+                    "*.StorageQuotaService*",
+                    // Federation version broadcaster (daemon thread, startup-only)
+                    "*.FederationVersionBroadcaster*",
                 )
                 limit {
                     counter = "LINE"

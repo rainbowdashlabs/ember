@@ -10,12 +10,12 @@ config.autoAddCss = false
 import {FontAwesomeIcon} from '@fortawesome/vue-fontawesome'
 import {
     faAngleDown, faAngleUp, faAnglesDown, faAnglesUp, faArrowDownWideShort, faArrowRight,
-    faArrowUpWideShort, faEllipsis, faEquals, faAsterisk, faBan, faBars, faBell, faBold,
+    faArrowsRotate, faArrowUpWideShort, faEllipsis, faEquals, faAsterisk, faBan, faBars, faBell, faBold,
     faBoxesStacked, faBoxOpen, faBuilding, faCalendarDays, faCalendarPlus, faChartLine, faCheck,
     faCheckDouble, faChevronDown, faChevronLeft, faChevronRight, faChevronUp, faCircle,
     faCircleCheck, faCircleDot, faCircleInfo, faClipboardCheck, faClipboardList, faClipboardUser,
     faCode, faClockRotateLeft, faComment, faCopy, faDownload, faEye, faFileCode, faFileExport,
-    faFire, faFolderPlus, faGauge, faGear, faGears, faGlobe, faGripVertical, faHashtag, faHeading,
+    faFire, faFolderPlus, faGauge, faGear, faGears, faGlobe, faGripVertical, faHardDrive, faHashtag, faHeading,
     faHighlighter, faHouse, faIdCard, faItalic, faLayerGroup, faAlignCenter, faAlignLeft,
     faAlignRight, faLink, faLinkSlash, faList, faListOl, faListUl, faLock, faMedal, faMinus,
     faNewspaper, faMobileScreen, faMoon, faParagraph, faPen, faPenToSquare, faPeopleGroup,
@@ -56,7 +56,7 @@ library.add(
     faSafari, faEdge, faOpera, faGlobe, faUserSlash, faUserCheck, faCircleQuestion, faFilter,
     faTags, faSquarePollVertical, faStar, faHeart, faThumbsUp, faGripLines, faLocationDot,
     faCamera, faToggleOn, faArrowRightArrowLeft, faPuzzlePiece, faBook, faServer, faDatabase,
-    faEnvelope, faArrowDown, faUserGear, faCalendar, faChartBar, faChartPie, faClock, faHand,
+    faHardDrive, faArrowsRotate, faEnvelope, faArrowDown, faUserGear, faCalendar, faChartBar, faChartPie, faClock, faHand,
     faImage, faPaperPlane, faPlug, faTag, faUmbrellaBeach, faUserMinus, faUserShield, faUserTie,
     faListCheck, faScaleBalanced, faSliders, faCircleHalfStroke, faPalette, faSquare,
     faSquareCheck, faGraduationCap, faBrain, faFileLines, faFilePdf, faFileImport, faFlask,

@@ -1522,11 +1522,11 @@ public class EventRoutes implements Routes {
         if (event.stationId() != session.stationId()) throw new ForbiddenResponse();
         var share = eventFederationService.findShareByEvent(id);
         if (share.isEmpty()) {
-            ctx.json(Map.of("shared", false));
+            ctx.json(new FederationShareResponse(false, null, null));
             return;
         }
         var targets = eventFederationService.findShareTargets(share.get().id());
-        ctx.json(Map.of("shared", true, "scope", share.get().scope(), "partnerIds", targets));
+        ctx.json(new FederationShareResponse(true, share.get().scope(), targets));
     }
 
     private void setFederationShare(Context ctx) {
@@ -1536,7 +1536,7 @@ public class EventRoutes implements Routes {
         if (event.stationId() != session.stationId()) throw new ForbiddenResponse();
         var req = ctx.bodyAsClass(SetFederationShareRequest.class);
         eventFederationService.setShare(id, req.scope(), req.partnerIds() != null ? req.partnerIds() : List.of());
-        ctx.json(Map.of("shared", true, "scope", req.scope()));
+        ctx.json(new FederationShareResponse(true, req.scope(), null));
     }
 
     private void removeFederationShare(Context ctx) {
@@ -1618,7 +1618,7 @@ public class EventRoutes implements Routes {
         var fields = eventFieldService.findByEvent(eventId).stream()
                 .filter(EventField::isPublic)
                 .toList();
-        ctx.json(Map.of("event", event, "publicFields", fields));
+        ctx.json(new FederatedEventDetail(event, fields));
     }
 
     private void federatedRegister(Context ctx) {
@@ -1643,7 +1643,7 @@ public class EventRoutes implements Routes {
             eventFederationService.registerFederated(
                     eventId, partner.id(), remoteMemberId, LocalDate.parse(req.eventDate()));
         }
-        ctx.status(HttpStatus.CREATED).json(Map.of("status", "PENDING"));
+        ctx.status(HttpStatus.CREATED).json(new StatusResponse("PENDING"));
     }
 
     private void updateFederationRegistrationStatus(Context ctx) {
@@ -1720,9 +1720,7 @@ public class EventRoutes implements Routes {
         var fields = eventFieldService.findByEvent(eventId).stream()
                 .filter(EventField::isPublic)
                 .toList();
-        var result = new HashMap<>(toRemoteEvent(event));
-        result.put("publicFields", fields);
-        ctx.json(result);
+        ctx.json(new RemoteEventDetail(toRemoteEvent(event), fields));
     }
 
     private void remoteRegister(Context ctx) {
@@ -1764,18 +1762,18 @@ public class EventRoutes implements Routes {
         var memberUid = UUID.fromString(ctx.pathParam("memberUid"));
         var registrations = eventFederationService.findRegistrationsByRemoteMember(memberUid);
         ctx.json(registrations.stream()
-                .map(r -> Map.of(
-                        "eventId", r.eventId(),
-                        "remoteMemberId", r.remoteMemberId().toString(),
-                        "eventDate", r.eventDate().toString(),
-                        "status", r.status(),
-                        "partnerId", r.partnerId()))
+                .map(r -> new RemoteMemberRegistration(
+                        r.eventId(),
+                        r.remoteMemberId().toString(),
+                        r.eventDate().toString(),
+                        r.status(),
+                        r.partnerId()))
                 .toList());
     }
 
     private void remoteOnRegistrationStatus(Context ctx) {
         requireFederationPartner(ctx);
-        ctx.json(Map.of("status", "ok"));
+        ctx.json(new StatusResponse("ok"));
     }
 
     // -- Federation helpers --
@@ -1802,18 +1800,40 @@ public class EventRoutes implements Routes {
                 .orElse("?");
     }
 
-    private Map<String, Object> toRemoteEvent(StationEvent e) {
-        return Map.of(
-                "id", e.id(),
-                "name", e.name(),
-                "description", e.description() != null ? e.description() : "",
-                "eventType", e.eventType() != null ? e.eventType().name() : "",
-                "dayOfWeek", e.dayOfWeek() != null ? e.dayOfWeek() : 0,
-                "startTime", e.startTime() != null ? e.startTime().toString() : "",
-                "endTime", e.endTime() != null ? e.endTime().toString() : "",
-                "requiresRegistration", e.requiresRegistration(),
-                "requiresConfirmation", true);
+    private RemoteEvent toRemoteEvent(StationEvent e) {
+        return new RemoteEvent(
+                e.id(),
+                e.name(),
+                e.description() != null ? e.description() : "",
+                e.eventType() != null ? e.eventType().name() : "",
+                e.dayOfWeek() != null ? e.dayOfWeek() : 0,
+                e.startTime() != null ? e.startTime().toString() : "",
+                e.endTime() != null ? e.endTime().toString() : "",
+                e.requiresRegistration(),
+                true);
     }
+
+    public record FederationShareResponse(boolean shared, String scope, List<Integer> partnerIds) {}
+
+    public record FederatedEventDetail(Object event, List<EventField> publicFields) {}
+
+    public record StatusResponse(String status) {}
+
+    public record RemoteMemberRegistration(
+            int eventId, String remoteMemberId, String eventDate, String status, int partnerId) {}
+
+    public record RemoteEvent(
+            int id,
+            String name,
+            String description,
+            String eventType,
+            int dayOfWeek,
+            String startTime,
+            String endTime,
+            boolean requiresRegistration,
+            boolean requiresConfirmation) {}
+
+    public record RemoteEventDetail(RemoteEvent event, List<EventField> publicFields) {}
 
     public record FederatedRegBody(String eventDate, UUID memberId) {}
 

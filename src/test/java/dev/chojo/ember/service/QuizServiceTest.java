@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.entity.SectionEntry;
 import dev.chojo.ember.feature.quiz.entity.SourceEntry;
@@ -32,7 +33,6 @@ import org.junit.jupiter.api.TestMethodOrder;
 import java.time.Instant;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -1010,9 +1010,9 @@ class QuizServiceTest extends RepositoryTestBase {
                 0);
         var result = service.getFederatedQuizCatalog(station.id(), stationB.uid(), fedCatalog.id());
         assertNotNull(result);
-        assertTrue(result.containsKey("catalog"));
-        assertTrue(result.containsKey("categories"));
-        assertTrue(result.containsKey("questions"));
+        assertNotNull(result.catalog());
+        assertNotNull(result.categories());
+        assertNotNull(result.questions());
         quizCatalogRepo.deleteQuestion(fedQuestion.id());
         quizCatalogRepo.delete(fedCatalog.id());
     }
@@ -1101,7 +1101,8 @@ class QuizServiceTest extends RepositoryTestBase {
     @Test
     @Order(211)
     void getFederatedQuizCatalogRemote() {
-        var remoteResult = Map.of("catalog", Map.of("id", 88), "categories", List.of(), "questions", List.of());
+        var remoteResult = new QuizService.FederatedCatalogDetail(
+                new QuizCatalog(88, 0, "RemoteCatalog", "desc", false, null, null), List.of(), List.of());
         when(httpClient.get(
                         eq("https://remote-quiz.example.com"),
                         eq("/remote/quiz/catalogs/88"),
@@ -1111,6 +1112,6 @@ class QuizServiceTest extends RepositoryTestBase {
                 .thenReturn(remoteResult);
         var result = service.getFederatedQuizCatalog(station.id(), stationC.uid(), 88);
         assertNotNull(result);
-        assertTrue(result.containsKey("catalog"));
+        assertNotNull(result.catalog());
     }
 }

@@ -60,6 +60,8 @@ import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.station.repository.StationApplicationRepository;
 import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.storage.repository.StorageQuotaPresetRepository;
+import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
@@ -127,6 +129,8 @@ public abstract class RepositoryTestBase {
     protected static FederatedBoardRepository federatedBoardRepo;
     protected static ProcedureRepository procedureRepo;
     protected static PageRepository pageRepo;
+    protected static StorageUsageRepository storageUsageRepo;
+    protected static StorageQuotaPresetRepository storagePresetRepo;
     protected static MemberIdentityFactory memberIdentityFactory;
     protected static MemberNameResolver memberNameResolver;
     protected static DataSource dataSource;
@@ -223,6 +227,8 @@ public abstract class RepositoryTestBase {
         federatedBoardRepo = new FederatedBoardRepository();
         procedureRepo = new ProcedureRepository();
         pageRepo = new PageRepository();
+        storageUsageRepo = new StorageUsageRepository();
+        storagePresetRepo = new StorageQuotaPresetRepository();
         var eventFedRepo = new EventFederationRepository();
         var fedRepo = new FederationRepository();
         var memberSvc = new StationMemberService(stationMemberRepo, stationRepo, accountRepo, null);

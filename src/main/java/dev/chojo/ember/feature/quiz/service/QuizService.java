@@ -51,7 +51,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -878,7 +877,7 @@ public class QuizService {
     }
 
     @SuppressWarnings("unchecked")
-    public Map<String, Object> getFederatedQuizCatalog(int localStationId, UUID partnerStationUid, int catalogId) {
+    public FederatedCatalogDetail getFederatedQuizCatalog(int localStationId, UUID partnerStationUid, int catalogId) {
         var partner = resolveActivePartner(localStationId, partnerStationUid);
         if (partner.isRemote()) {
             var result = federationHttpClient.get(
@@ -886,7 +885,7 @@ public class QuizService {
                     "/remote/quiz/catalogs/" + catalogId,
                     localStationId,
                     getPrivateKey(localStationId),
-                    Map.class);
+                    FederatedCatalogDetail.class);
             if (result == null) throw new IllegalStateException("Failed to fetch catalog from remote partner");
             return result;
         }
@@ -897,8 +896,11 @@ public class QuizService {
         }
         var categories = findCategories(catalog.stationId());
         var questions = findQuestions(catalog.id());
-        return Map.of("catalog", catalog, "categories", categories, "questions", questions);
+        return new FederatedCatalogDetail(catalog, categories, questions);
     }
+
+    public record FederatedCatalogDetail(
+            QuizCatalog catalog, List<QuizCategory> categories, List<QuizQuestion> questions) {}
 
     public QuizCatalog copyQuizCatalog(int catalogId, int targetStationId) {
         var source = findCatalog(catalogId).orElseThrow();

@@ -350,7 +350,7 @@ public class QuizRoutes implements Routes {
                 req.position() != null ? req.position() : 0)) {
             throw new NotFoundResponse();
         }
-        ctx.status(HttpStatus.OK).json(Map.of("success", true));
+        ctx.status(HttpStatus.OK).json(new SuccessResponse(true));
     }
 
     private void deleteCategory(Context ctx) {
@@ -796,7 +796,7 @@ public class QuizRoutes implements Routes {
         if (session.member() == null) throw new BadRequestResponse("Not a station member");
         var attempt = quizService.findAttempt(testId, session.member().id());
         if (attempt.isEmpty()) {
-            ctx.json(Map.of("attempt", (Object) Map.of()));
+            ctx.json(new EmptyAttemptResponse());
             return;
         }
         ctx.json(new AttemptDetail(
@@ -818,7 +818,7 @@ public class QuizRoutes implements Routes {
         }
         var req = ctx.bodyAsClass(AnswerRequest.class);
         quizService.saveAnswer(attemptId, req.questionId(), req.answer());
-        ctx.json(Map.of("success", true));
+        ctx.json(new SuccessResponse(true));
     }
 
     private void submitAttempt(Context ctx) {
@@ -863,7 +863,7 @@ public class QuizRoutes implements Routes {
         var req = ctx.bodyAsClass(GradeRequest.class);
         if (req.points() == null) throw new BadRequestResponse("points is required");
         quizService.gradeAnswer(answerId, req.points());
-        ctx.json(Map.of("success", true));
+        ctx.json(new SuccessResponse(true));
     }
 
     private void gradeAttempt(Context ctx) {
@@ -922,7 +922,7 @@ public class QuizRoutes implements Routes {
         var req = ctx.bodyAsClass(AccessRequest.class);
         if (req.memberId() == null) throw new BadRequestResponse("memberId is required");
         quizService.grantMemberAccess(testId, req.memberId(), req.closesAt());
-        ctx.json(Map.of("success", true));
+        ctx.json(new SuccessResponse(true));
     }
 
     private void revokeAccess(Context ctx) {
@@ -1160,7 +1160,7 @@ public class QuizRoutes implements Routes {
             imported++;
         }
 
-        ctx.json(Map.of("imported", imported));
+        ctx.json(new ImportResult(imported));
     }
 
     private QuizQuestionType parseQuestionType(String type) {
@@ -1284,7 +1284,7 @@ public class QuizRoutes implements Routes {
                     data,
                     file.contentType(),
                     apiConfig.maxImageSizeBytes());
-            ctx.json(Map.of("success", true));
+            ctx.json(new SuccessResponse(true));
         } catch (IllegalArgumentException e) {
             log.warn("Invalid argument storing question image for question {}", id, e);
             throw new BadRequestResponse(e.getMessage());
@@ -1387,6 +1387,17 @@ public class QuizRoutes implements Routes {
 
     public record AvailableTest(QuizTest test, String attemptStatus, Instant startedAt, Instant submittedAt) {}
 
+    private record SuccessResponse(boolean success) {}
+
+    private record EmptyAttemptResponse() {}
+
+    private record ImportResult(int imported) {}
+
+    private record RemoteCatalogSummary(int id, String name, String description, String updatedAt) {}
+
+    private record RemoteCatalogDetail(
+            QuizCatalog catalog, List<QuizCategory> categories, List<QuizQuestion> questions) {}
+
     private record CatalogListResponse(List<QuizCatalog> catalogs, List<SharedCatalogItem> sharedCatalogs) {}
 
     private record SharedCatalogItem(
@@ -1431,11 +1442,11 @@ public class QuizRoutes implements Routes {
                 .filter(s -> s.catalogId() != null)
                 .flatMap(s -> quizService.findCatalog(s.catalogId()).stream())
                 .filter(catalog -> catalog.stationId() == partner.stationId())
-                .map(catalog -> Map.<String, Object>of(
-                        "id", catalog.id(),
-                        "name", catalog.name(),
-                        "description", catalog.description(),
-                        "updatedAt", catalog.updatedAt().toString()))
+                .map(catalog -> new RemoteCatalogSummary(
+                        catalog.id(),
+                        catalog.name(),
+                        catalog.description(),
+                        catalog.updatedAt().toString()))
                 .toList();
         ctx.json(result);
     }
@@ -1449,7 +1460,7 @@ public class QuizRoutes implements Routes {
         }
         var categories = quizService.findCategories(catalog.stationId());
         var questions = quizService.findQuestions(catalog.id());
-        ctx.json(Map.of("catalog", catalog, "categories", categories, "questions", questions));
+        ctx.json(new RemoteCatalogDetail(catalog, categories, questions));
     }
 
     // -- Federation helpers --

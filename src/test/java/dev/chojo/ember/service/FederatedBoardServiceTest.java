@@ -462,9 +462,13 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         reset(webhookService);
         // partnerId is FULL
         notificationService.notifyMention(partnerId, boardId, ticketId, "FTB-1", REMOTE_MEMBER_1);
-        verify(webhookService).fireEventToPartner(eq(partnerId), eq(WebhookEvent.BOARD_MENTION), argThat(map -> map.get(
-                        "remoteMemberId")
-                .equals(REMOTE_MEMBER_1)));
+        verify(webhookService)
+                .fireEventToPartner(
+                        eq(partnerId),
+                        eq(WebhookEvent.BOARD_MENTION),
+                        argThat(payload -> ((FederatedBoardNotificationService.TicketMemberPayload) payload)
+                                .remoteMemberId()
+                                .equals(REMOTE_MEMBER_1)));
 
         reset(webhookService);
         // partner2Id is READ_ONLY
@@ -479,7 +483,10 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         notificationService.notifyAssignment(partnerId, boardId, ticketId, "FTB-1", REMOTE_ASSIGNEE);
         verify(webhookService)
                 .fireEventToPartner(
-                        eq(partnerId), eq(WebhookEvent.BOARD_ASSIGNMENT), argThat(map -> map.get("remoteMemberId")
+                        eq(partnerId),
+                        eq(WebhookEvent.BOARD_ASSIGNMENT),
+                        argThat(payload -> ((FederatedBoardNotificationService.TicketMemberPayload) payload)
+                                .remoteMemberId()
                                 .equals(REMOTE_ASSIGNEE)));
     }
 
@@ -498,7 +505,10 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         notificationService.notifyUnassignment(partnerId, boardId, ticketId, "FTB-1", REMOTE_ASSIGNEE);
         verify(webhookService)
                 .fireEventToPartner(
-                        eq(partnerId), eq(WebhookEvent.BOARD_UNASSIGNMENT), argThat(map -> map.get("remoteMemberId")
+                        eq(partnerId),
+                        eq(WebhookEvent.BOARD_UNASSIGNMENT),
+                        argThat(payload -> ((FederatedBoardNotificationService.TicketMemberPayload) payload)
+                                .remoteMemberId()
                                 .equals(REMOTE_ASSIGNEE)));
     }
 
@@ -516,15 +526,17 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         reset(webhookService);
         notificationService.notifyBoardRenamed(boardId, "New Name", "NN");
         // Should be called for both share targets
+        verify(webhookService).fireEventToPartner(eq(partnerId), eq(WebhookEvent.BOARD_RENAMED), argThat(payload -> {
+            var p = (FederatedBoardNotificationService.BoardRenamedPayload) payload;
+            return p.newName().equals("New Name") && p.newShortKey().equals("NN");
+        }));
         verify(webhookService)
                 .fireEventToPartner(
-                        eq(partnerId),
+                        eq(partner2Id),
                         eq(WebhookEvent.BOARD_RENAMED),
-                        argThat(map -> map.get("newName").equals("New Name")
-                                && map.get("newShortKey").equals("NN")));
-        verify(webhookService)
-                .fireEventToPartner(eq(partner2Id), eq(WebhookEvent.BOARD_RENAMED), argThat(map -> map.get("newName")
-                        .equals("New Name")));
+                        argThat(payload -> ((FederatedBoardNotificationService.BoardRenamedPayload) payload)
+                                .newName()
+                                .equals("New Name")));
     }
 
     @Test
@@ -534,10 +546,14 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         notificationService.notifyBoardUnshared(boardId);
         verify(webhookService)
                 .fireEventToPartner(
-                        eq(partnerId), eq(WebhookEvent.BOARD_UNSHARED), argThat(map -> map.containsKey("boardId")));
+                        eq(partnerId),
+                        eq(WebhookEvent.BOARD_UNSHARED),
+                        argThat(payload -> payload instanceof FederatedBoardNotificationService.BoardIdPayload));
         verify(webhookService)
                 .fireEventToPartner(
-                        eq(partner2Id), eq(WebhookEvent.BOARD_UNSHARED), argThat(map -> map.containsKey("boardId")));
+                        eq(partner2Id),
+                        eq(WebhookEvent.BOARD_UNSHARED),
+                        argThat(payload -> payload instanceof FederatedBoardNotificationService.BoardIdPayload));
     }
 
     @Test
@@ -547,7 +563,10 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         notificationService.notifyShareModeChanged(partnerId, boardId, BoardShareMode.READ_ONLY);
         verify(webhookService)
                 .fireEventToPartner(
-                        eq(partnerId), eq(WebhookEvent.BOARD_SHARE_MODE_CHANGED), argThat(map -> map.get("shareMode")
+                        eq(partnerId),
+                        eq(WebhookEvent.BOARD_SHARE_MODE_CHANGED),
+                        argThat(payload -> ((FederatedBoardNotificationService.ShareModeChangedPayload) payload)
+                                .shareMode()
                                 .equals("READ_ONLY")));
     }
 

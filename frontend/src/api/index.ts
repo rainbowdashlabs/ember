@@ -46,6 +46,7 @@ export * as procedures from './procedures'
 export * as federatedBoards from './federatedBoards'
 export * as comments from './comments'
 export * as storage from './storage'
+export * as storageMonitoring from './storageMonitoring'
 export * as util from './util'
 export * as data from './data'
 

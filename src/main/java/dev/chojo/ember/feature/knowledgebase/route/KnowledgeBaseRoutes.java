@@ -57,7 +57,6 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -1056,6 +1055,15 @@ public class KnowledgeBaseRoutes implements Routes {
 
     public record ImageUploadResponse(String imageId) {}
 
+    public record FederatedKbItem(
+            int remoteId, String title, String description, String stationName, int stationId, int partnerId) {}
+
+    public record FileContentResponse(int fileId, String content) {}
+
+    public record RemoteKbFileSummary(int id, String name, String description, String fileType, String updatedAt) {}
+
+    public record RemoteKbSearchResultItem(int id, String name, String description, String snippet) {}
+
     // -- Federated endpoints (user-facing, aggregates from partners) --
 
     private void federatedBrowseKb(Context ctx) {
@@ -1067,14 +1075,13 @@ public class KnowledgeBaseRoutes implements Routes {
                             .findById(i.sourceStationId())
                             .map(Station::name)
                             .orElse("Unknown");
-                    return Map.of(
-                            "remoteId", i.file().id(),
-                            "title", i.file().name(),
-                            "description",
-                                    i.file().description() != null ? i.file().description() : "",
-                            "stationName", name,
-                            "stationId", i.sourceStationId(),
-                            "partnerId", i.partnerId());
+                    return new FederatedKbItem(
+                            i.file().id(),
+                            i.file().name(),
+                            i.file().description() != null ? i.file().description() : "",
+                            name,
+                            i.sourceStationId(),
+                            i.partnerId());
                 })
                 .toList());
     }
@@ -1091,7 +1098,7 @@ public class KnowledgeBaseRoutes implements Routes {
         var stationUid = UUID.fromString(ctx.pathParam("stationuid"));
         int fileId = ctx.pathParamAsClass("id", Integer.class).get();
         var content = service.getFederatedKbFileContent(session.stationId(), stationUid, fileId);
-        ctx.json(Map.of("fileId", fileId, "content", content));
+        ctx.json(new FileContentResponse(fileId, content));
     }
 
     private void federatedCopyFile(Context ctx) {
@@ -1111,12 +1118,12 @@ public class KnowledgeBaseRoutes implements Routes {
                 .filter(s -> s.fileId() != null)
                 .flatMap(s -> service.findFile(s.fileId()).stream())
                 .filter(file -> file.stationId() == partner.stationId())
-                .map(file -> Map.<String, Object>of(
-                        "id", file.id(),
-                        "name", file.name(),
-                        "description", file.description() != null ? file.description() : "",
-                        "fileType", file.fileType().name(),
-                        "updatedAt", file.updatedAt().toString()))
+                .map(file -> new RemoteKbFileSummary(
+                        file.id(),
+                        file.name(),
+                        file.description() != null ? file.description() : "",
+                        file.fileType().name(),
+                        file.updatedAt().toString()))
                 .toList();
         ctx.json(result);
     }
@@ -1136,14 +1143,10 @@ public class KnowledgeBaseRoutes implements Routes {
                 .collect(Collectors.toSet());
         ctx.json(results.stream()
                 .filter(r -> sharedFileIds.contains(r.file().id()))
-                .map(r -> Map.<String, Object>of(
-                        "id",
+                .map(r -> new RemoteKbSearchResultItem(
                         r.file().id(),
-                        "name",
                         r.file().name(),
-                        "description",
                         r.file().description() != null ? r.file().description() : "",
-                        "snippet",
                         r.snippet() != null ? r.snippet() : ""))
                 .toList());
     }
@@ -1166,7 +1169,7 @@ public class KnowledgeBaseRoutes implements Routes {
             throw new ForbiddenResponse("File not shared with this partner");
         }
         var content = service.getMarkdownContent(fileId).orElse("");
-        ctx.json(Map.of("fileId", fileId, "content", content));
+        ctx.json(new FileContentResponse(fileId, content));
     }
 
     // -- Local KB comment endpoints --

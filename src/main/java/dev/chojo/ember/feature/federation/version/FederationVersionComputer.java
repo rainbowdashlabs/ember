@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.federation.version;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import dev.chojo.ember.feature.board.route.BoardRoutes;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ChangeType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
@@ -23,6 +24,9 @@ import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
+import dev.chojo.ember.feature.federation.route.FederationRemoteRoutes;
+import dev.chojo.ember.feature.federation.route.FederationRoutes;
+import dev.chojo.ember.feature.federation.route.LendingRoutes;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 
 import java.lang.reflect.RecordComponent;
@@ -74,7 +78,12 @@ public final class FederationVersionComputer {
     /**
      * Classes that contain inner record DTOs used in federation communication.
      */
-    private static final List<Class<?>> DTO_CONTAINER_CLASSES = List.of(FederationHttpClient.class);
+    private static final List<Class<?>> DTO_CONTAINER_CLASSES = List.of(
+            FederationHttpClient.class,
+            FederationRemoteRoutes.class,
+            FederationRoutes.class,
+            LendingRoutes.class,
+            BoardRoutes.class);
 
     private FederationVersionComputer() {}
 

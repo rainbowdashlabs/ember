@@ -57,7 +57,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -454,13 +453,13 @@ public class FederatedBoardProxyService {
             UUID remoteMemberId) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
-            var body = Map.of(
-                    "remoteMemberId", remoteMemberId,
-                    "laneId", laneId != null ? laneId : "",
-                    "title", title != null ? title : "",
-                    "description", description != null ? description : "",
-                    "priority", priority != null ? priority : "",
-                    "dueDate", dueDate != null ? dueDate : "");
+            var body = new CreateTicketBody(
+                    remoteMemberId,
+                    laneId != null ? String.valueOf(laneId) : "",
+                    title != null ? title : "",
+                    description != null ? description : "",
+                    priority != null ? priority : "",
+                    dueDate != null ? dueDate : "");
             return remotePost(partner, "/remote/boards/" + boardKey + "/tickets", body, BoardTicket.class);
         }
         int boardId = resolveBoardId(boardKey, partner);
@@ -571,7 +570,7 @@ public class FederatedBoardProxyService {
     public void proxyReorderTickets(int partnerId, String boardKey, int laneId, List<Integer> orderedIds) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
-            var body = Map.of("laneId", laneId, "orderedIds", orderedIds);
+            var body = new ReorderBody(laneId, orderedIds);
             remotePut(partner, "/remote/boards/" + boardKey + "/tickets/reorder", body);
             return;
         }
@@ -728,7 +727,7 @@ public class FederatedBoardProxyService {
     public BoardLabel proxyCreateLabel(int partnerId, String boardKey, String name, String color) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
-            var body = Map.of("name", name, "color", color != null ? color : "#6b7280");
+            var body = new CreateLabelBody(name, color != null ? color : "#6b7280");
             return remotePost(partner, "/remote/boards/" + boardKey + "/labels", body, BoardLabel.class);
         }
         int boardId = resolveBoardId(boardKey, partner);
@@ -738,7 +737,7 @@ public class FederatedBoardProxyService {
     public void proxyWatchTicket(int partnerId, String boardKey, int ticketNumber, UUID remoteMemberId) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
-            var body = Map.of("remoteMemberId", remoteMemberId);
+            var body = new RemoteMemberBody(remoteMemberId);
             remotePost(partner, "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/watch", body);
             return;
         }
@@ -1235,4 +1234,13 @@ public class FederatedBoardProxyService {
 
     public record RemoteDiscoveredBoard(
             String uid, String name, String shortKey, String description, String shareMode, String requiredRole) {}
+
+    record CreateTicketBody(
+            UUID remoteMemberId, String laneId, String title, String description, String priority, String dueDate) {}
+
+    record ReorderBody(int laneId, List<Integer> orderedIds) {}
+
+    record CreateLabelBody(String name, String color) {}
+
+    record RemoteMemberBody(UUID remoteMemberId) {}
 }

@@ -48,33 +48,49 @@ jobs:
       - name: Login to Registry
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login -u $ --password-stdin ghcr.io
       - name: Push image
-        run: docker push ${{ matrix.image }}:${{ github.sha }}
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: docker push ${{ matrix.image }}:${{ github.sha }}
       - name: Tag & Push dev image
         if: github.ref_name == 'main' && github.event_name == 'push'
-        run: |
-          docker image tag ${{ matrix.image }}:${{ github.sha }} ${{ matrix.image }}:dev
-          docker push ${{ matrix.image }}:dev
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: |
+            docker image tag ${{ matrix.image }}:${{ github.sha }} ${{ matrix.image }}:dev
+            docker push ${{ matrix.image }}:dev
       - name: Tag & Push feature branch image
         if: startsWith(github.ref_name, 'feature/')
-        run: |
-          BRANCH_TAG=$(echo "${{ github.ref_name }}" | sed 's|feature/||' | sed 's|[^a-zA-Z0-9._-]|-|g')
-          docker image tag "${{ matrix.image }}:${{ github.sha }}" "${{ matrix.image }}:snapshot"
-          docker image tag "${{ matrix.image }}:${{ github.sha }}" "${{ matrix.image }}:$BRANCH_TAG"
-          docker push "${{ matrix.image }}:snapshot"
-          docker push "${{ matrix.image }}:$BRANCH_TAG"
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: |
+            BRANCH_TAG=$(echo "${{ github.ref_name }}" | sed 's|feature/||' | sed 's|[^a-zA-Z0-9._-]|-|g')
+            docker image tag "${{ matrix.image }}:${{ github.sha }}" "${{ matrix.image }}:snapshot"
+            docker image tag "${{ matrix.image }}:${{ github.sha }}" "${{ matrix.image }}:$BRANCH_TAG"
+            docker push "${{ matrix.image }}:snapshot"
+            docker push "${{ matrix.image }}:$BRANCH_TAG"
       - name: Tag & Push release images
         if: github.event_name == 'release'
-        run: |
-          VERSION="${{ github.ref_name }}"
-          VERSION="${VERSION#v}"
-          MAJOR="${VERSION%%.*}"
-          MINOR="${VERSION#*.}"
-          MINOR="${MINOR%%.*}"
-          docker image tag "${{ matrix.image }}:${{ github.sha }}" "${{ matrix.image }}:latest"
-          docker image tag "${{ matrix.image }}:${{ github.sha }}" "${{ matrix.image }}:v$MAJOR"
-          docker image tag "${{ matrix.image }}:${{ github.sha }}" "${{ matrix.image }}:v$MAJOR.$MINOR"
-          docker image tag "${{ matrix.image }}:${{ github.sha }}" "${{ matrix.image }}:v$VERSION"
-          docker push "${{ matrix.image }}:latest"
-          docker push "${{ matrix.image }}:v$MAJOR"
-          docker push "${{ matrix.image }}:v$MAJOR.$MINOR"
-          docker push "${{ matrix.image }}:v$VERSION"
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: |
+            VERSION="${{ github.ref_name }}"
+            VERSION="${VERSION#v}"
+            MAJOR="${VERSION%%.*}"
+            MINOR="${VERSION#*.}"
+            MINOR="${MINOR%%.*}"
+            docker image tag "${{ matrix.image }}:${{ github.sha }}" "${{ matrix.image }}:latest"
+            docker image tag "${{ matrix.image }}:${{ github.sha }}" "${{ matrix.image }}:v$MAJOR"
+            docker image tag "${{ matrix.image }}:${{ github.sha }}" "${{ matrix.image }}:v$MAJOR.$MINOR"
+            docker image tag "${{ matrix.image }}:${{ github.sha }}" "${{ matrix.image }}:v$VERSION"
+            docker push "${{ matrix.image }}:latest"
+            docker push "${{ matrix.image }}:v$MAJOR"
+            docker push "${{ matrix.image }}:v$MAJOR.$MINOR"
+            docker push "${{ matrix.image }}:v$VERSION"

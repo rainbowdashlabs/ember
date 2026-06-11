@@ -748,7 +748,7 @@ public class WaitingListRoutes implements Routes {
                 guardianInputs,
                 request.values() != null ? request.values() : Map.of(),
                 request.notes());
-        ctx.status(HttpStatus.ACCEPTED).json(Map.of("status", "verification_email_sent"));
+        ctx.status(HttpStatus.ACCEPTED).json(new StatusResponse("verification_email_sent"));
     }
 
     private void verifyPublicEmail(Context ctx) {
@@ -757,7 +757,7 @@ public class WaitingListRoutes implements Routes {
         if (!success) {
             throw new BadRequestResponse("Invalid or expired verification token");
         }
-        ctx.json(Map.of("status", "verified"));
+        ctx.json(new StatusResponse("verified"));
     }
 
     private void approveEntry(Context ctx) {
@@ -775,6 +775,8 @@ public class WaitingListRoutes implements Routes {
         service.rejectPendingEntry(entryId);
         ctx.status(HttpStatus.NO_CONTENT);
     }
+
+    private record StatusResponse(String status) {}
 
     public record PublicWaitlistSummary(int id, String name, String description) {}
 

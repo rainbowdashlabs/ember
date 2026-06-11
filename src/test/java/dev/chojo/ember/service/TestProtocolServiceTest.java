@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.protocol.entity.TestProtocol;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -386,9 +387,9 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         testProtocolRepo.createItem(sec.id(), "FedItem", "item desc", 10.0, 0);
         var result = service.getFederatedProtocol(station.id(), stationB.uid(), fedProto.id());
         assertNotNull(result);
-        assertTrue(result.containsKey("protocol"));
-        assertTrue(result.containsKey("sections"));
-        assertTrue(result.containsKey("items"));
+        assertNotNull(result.protocol());
+        assertNotNull(result.sections());
+        assertNotNull(result.items());
         testProtocolRepo.deleteProtocol(fedProto.id());
     }
 
@@ -471,7 +472,8 @@ class TestProtocolServiceTest extends RepositoryTestBase {
     @Test
     @Order(241)
     void getFederatedProtocolRemote() {
-        var remoteResult = Map.of("protocol", Map.of("id", 77), "sections", List.of(), "items", List.of());
+        var remoteResult = new TestProtocolService.FederatedProtocolDetail(
+                new TestProtocol(77, 0, "RemoteProto", "desc", 80, null, null), List.of(), List.of());
         when(httpClient.get(
                         eq("https://remote-proto.example.com"),
                         eq("/remote/protocols/77"),
@@ -481,6 +483,6 @@ class TestProtocolServiceTest extends RepositoryTestBase {
                 .thenReturn(remoteResult);
         var result = service.getFederatedProtocol(station.id(), stationC.uid(), 77);
         assertNotNull(result);
-        assertTrue(result.containsKey("protocol"));
+        assertNotNull(result.protocol());
     }
 }

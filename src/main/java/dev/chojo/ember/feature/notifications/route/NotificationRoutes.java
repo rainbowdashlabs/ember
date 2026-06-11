@@ -83,8 +83,7 @@ public class NotificationRoutes implements Routes {
             responses = @OpenApiResponse(status = "200"))
     private void count(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(Map.of(
-                "count",
+        ctx.json(new CountResponse(
                 notificationService.countUnacknowledged(session.member().id())));
     }
 
@@ -127,6 +126,8 @@ public class NotificationRoutes implements Routes {
                 n.createdAt(),
                 n.acknowledgedAt());
     }
+
+    record CountResponse(long count) {}
 
     public record NotificationLinkResponse(String route, Map<String, Object> routeParams) {}
 

@@ -20,7 +20,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -60,7 +59,7 @@ public class FederationWebhookService {
      * Fires a webhook event to all active partners of the given station that have a webhook URL.
      */
     // Available for federation event delivery — not yet triggered from change listeners
-    public void fireEvent(int stationId, WebhookEvent event, Map<String, Object> payload) {
+    public void fireEvent(int stationId, WebhookEvent event, Object payload) {
         var partners = federationService.findPartners(stationId);
         for (var partner : partners) {
             if (partner.status() != FederationPartner.FederationStatus.ACTIVE) continue;
@@ -74,14 +73,10 @@ public class FederationWebhookService {
     /**
      * Delivers a webhook with retry logic.
      */
-    private void deliverWebhook(
-            FederationPartner partner, String webhookUrl, WebhookEvent event, Map<String, Object> payload) {
+    private void deliverWebhook(FederationPartner partner, String webhookUrl, WebhookEvent event, Object payload) {
         try {
-            var body = objectMapper.writeValueAsString(Map.of(
-                    "event", event.name(),
-                    "stationId", partner.stationId(),
-                    "timestamp", Instant.now().toString(),
-                    "data", payload));
+            var body = objectMapper.writeValueAsString(new WebhookBody(
+                    event.name(), partner.stationId(), Instant.now().toString(), payload));
 
             for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
                 if (attempt > 0) {
@@ -145,7 +140,7 @@ public class FederationWebhookService {
     /**
      * Fires a webhook event to a specific partner.
      */
-    public void fireEventToPartner(int partnerId, WebhookEvent event, Map<String, Object> payload) {
+    public void fireEventToPartner(int partnerId, WebhookEvent event, Object payload) {
         var partner = repository.findPartnerById(partnerId);
         if (partner.isEmpty()) return;
         var p = partner.get();
@@ -171,4 +166,6 @@ public class FederationWebhookService {
         BOARD_UNSHARED,
         BOARD_SHARE_MODE_CHANGED
     }
+
+    record WebhookBody(String event, int stationId, String timestamp, Object data) {}
 }
