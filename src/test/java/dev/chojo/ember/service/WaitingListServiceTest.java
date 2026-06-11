@@ -596,4 +596,136 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var joined = service.moveToJoined(entry.id());
         assertEquals(WaitingListEntryStatus.JOINED, joined.status());
     }
+
+    // --- Public waitlist tests ---
+
+    @Test
+    void findPublicByStation() {
+        // listId is created with isPublic=false in @BeforeEach
+        var publicList =
+                service.create(station.id(), "Public " + UUID.randomUUID(), "", null, 180, null, null, 5, true);
+        var publicLists = service.findPublicByStation(station.id());
+        assertTrue(publicLists.stream().anyMatch(l -> l.id() == publicList.id()));
+        assertTrue(publicLists.stream().noneMatch(l -> l.id() == listId));
+    }
+
+    @Test
+    void hasPublicWaitlists() {
+        assertFalse(service.hasPublicWaitlists(station.id()));
+        service.create(station.id(), "PublicHas " + UUID.randomUUID(), "", null, 180, null, null, 5, true);
+        assertTrue(service.hasPublicWaitlists(station.id()));
+    }
+
+    @Test
+    void findPublicFieldsByList() {
+        var publicField =
+                service.createField(listId, "PubField", "TEXT", WaitingListFieldConfig.parse("{}"), 0, false, true);
+        var privateField =
+                service.createField(listId, "PrivField", "TEXT", WaitingListFieldConfig.parse("{}"), 1, false, false);
+        var publicFields = service.findPublicFieldsByList(listId);
+        assertTrue(publicFields.stream().anyMatch(f -> f.id() == publicField.id()));
+        assertTrue(publicFields.stream().noneMatch(f -> f.id() == privateField.id()));
+    }
+
+    @Test
+    void submitAndVerifyPublicRegistration() {
+        var publicList =
+                service.create(station.id(), "PubReg " + UUID.randomUUID(), "", null, 180, null, null, 5, true);
+        service.createField(publicList.id(), "Age", "NUMBER", WaitingListFieldConfig.parse("{}"), 0, true, true);
+
+        service.submitPublicRegistration(
+                publicList.id(),
+                "TestChild",
+                "Last",
+                "verify-test@test.com",
+                List.of(new GuardianInput("Parent", "Last", "parent@test.com", "")),
+                Map.of(),
+                "notes");
+
+        // Retrieve the token from the repository (via the verification table)
+        var token = waitingListRepo.findPublicByStation(station.id()).stream()
+                .flatMap(l -> {
+                    // We know a token was created — find it
+                    return java.util.stream.Stream.empty();
+                })
+                .findFirst();
+
+        // Verify via the DB directly
+        var tokens = de.chojo.sadu.queries.api.query.Query.query(
+                        "SELECT token FROM waitlist_verification_token WHERE list_id = :list_id")
+                .single(de.chojo.sadu.queries.api.call.Call.of().bind("list_id", publicList.id()))
+                .map(row -> row.getString("token"))
+                .all();
+        assertFalse(tokens.isEmpty());
+
+        boolean verified = service.verifyPublicRegistration(tokens.getFirst());
+        assertTrue(verified);
+
+        // Entry should exist with PENDING status
+        var entries = service.findEntriesByStatus(publicList.id(), WaitingListEntryStatus.PENDING);
+        assertEquals(1, entries.size());
+        assertEquals("TestChild", entries.getFirst().entry().firstname());
+    }
+
+    @Test
+    void approvePendingEntry() {
+        var publicList =
+                service.create(station.id(), "Approve " + UUID.randomUUID(), "", null, 180, null, null, 5, true);
+        // Create a PENDING entry directly
+        var entry = waitingListRepo.createEntryWithStatus(
+                publicList.id(),
+                "Pending",
+                "Child",
+                "",
+                "pending@test.com",
+                UUID.randomUUID().toString(),
+                "",
+                WaitingListEntryStatus.PENDING);
+
+        var approved = service.approvePendingEntry(entry.id());
+        assertEquals(WaitingListEntryStatus.WAITING, approved.status());
+    }
+
+    @Test
+    void rejectPendingEntry() {
+        var publicList =
+                service.create(station.id(), "Reject " + UUID.randomUUID(), "", null, 180, null, null, 5, true);
+        var entry = waitingListRepo.createEntryWithStatus(
+                publicList.id(),
+                "Reject",
+                "Child",
+                "",
+                "reject@test.com",
+                UUID.randomUUID().toString(),
+                "",
+                WaitingListEntryStatus.PENDING);
+
+        service.rejectPendingEntry(entry.id());
+        assertTrue(service.findEntryById(entry.id()).isEmpty());
+    }
+
+    @Test
+    void submitPublicRegistrationNonPublicListThrows() {
+        // listId is not public
+        assertThrows(
+                IllegalStateException.class,
+                () -> service.submitPublicRegistration(listId, "Test", "", "t@t.com", List.of(), Map.of(), ""));
+    }
+
+    @Test
+    void verifyPublicRegistrationInvalidToken() {
+        assertFalse(service.verifyPublicRegistration("nonexistent-token"));
+    }
+
+    @Test
+    void approveNonPendingThrows() {
+        var entry = service.createEntry(listId, "NotPending", "", guardians("", "np@test.com"), Map.of(), "");
+        assertThrows(IllegalStateException.class, () -> service.approvePendingEntry(entry.id()));
+    }
+
+    @Test
+    void rejectNonPendingThrows() {
+        var entry = service.createEntry(listId, "NotPending2", "", guardians("", "np2@test.com"), Map.of(), "");
+        assertThrows(IllegalStateException.class, () -> service.rejectPendingEntry(entry.id()));
+    }
 }

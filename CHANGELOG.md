@@ -43,6 +43,15 @@
 - **Public registration page** — list selection, form with public fields, guardian inputs, and email verification flow
 - **Verification page** — standalone page at `/public/waitlist/verify/{token}` confirming email
 - **Public sidebar** — waitlist link in the public station sidebar when enabled
+- **Guardian name split** — guardians now have separate firstname + lastname fields for direct account conversion
+
+#### Public Blog
+- **Blog entries** — news articles can be flagged as blog posts via a toggle in the editor
+- **Blog badge** — blog entries show a "Blog" badge in the internal news list
+- **Public blog page** — blog list with title, excerpt, author, and date; detail view with full HTML content
+- **Landing fallback** — blog becomes the default landing page when no custom page is set
+- **Station toggle** — `publicBlogEnabled` setting controls whether the blog is available
+- **Public sidebar** — blog link appears after landing page, before calendar
 
 #### Station Settings UX
 - **Reactive save** — federation settings now auto-save on change (debounced 600ms) instead of requiring a save button
@@ -119,6 +128,20 @@
 - **Verification tokens** — `waitlist_verification_token` table with 24h expiry
 - **Domain event** — `WaitlistPublicRegistration` event + handler for WAITLIST_EDIT notifications
 - **Email template** — verification email in DE/EN
+
+#### Guardian Schema
+- **Name split** — `waiting_list_entry_guardian.name` replaced with `firstname` + `lastname` for direct account creation
+- **`GuardianInput` type** — extracted from inline object types in frontend for type safety
+
+#### Badge Convention
+- **Lint rule** — error-level rule flags `<span>` with `rounded-full` + padding; must use Badge components
+- **Refactored** — 54 violations converted to PrimaryBadge, SecondaryBadge, SuccessBadge, etc.
+- **Inline type rule** — warning-level rule flags `ref<{ ... }>` patterns that should use named types
+
+#### Bug Fixes
+- **AccountRepository.setEmailVerified** — missing `= TRUE` in SET clause
+- **EventCommentRepository.delete** — missing `= TRUE` in soft-delete SET clause
+- **WaitingListFieldConfig deserialization** — `FieldRequest.config` changed to `String` to match frontend JSON contract
 
 #### Federation Routes
 - **Route restructure** — federation management moved from `/station/manage/federation` to `/station/federate` to fix sidebar prefix overlap

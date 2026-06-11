@@ -4718,6 +4718,26 @@ volumes:
             label: 'Statistiken',
             desc: 'Kann die Stationsstatistiken einsehen.',
         },
+        PAGE_MANAGER: {
+            label: 'Seiten verwalten',
+            desc: 'Vollzugriff auf öffentliche Seiten: veröffentlichen, löschen, Startseite festlegen.',
+        },
+        PAGE_EDIT: {
+            label: 'Seiten bearbeiten',
+            desc: 'Kann öffentliche Seiten erstellen und bearbeiten.',
+        },
+        PROCEDURE_MANAGER: {
+            label: 'Abläufe verwalten',
+            desc: 'Vollzugriff auf Abläufe und Vorlagen.',
+        },
+        PROCEDURE_EDIT: {
+            label: 'Abläufe bearbeiten',
+            desc: 'Kann Abläufe erstellen, bearbeiten und abhaken.',
+        },
+        PROCEDURE_READ: {
+            label: 'Abläufe einsehen',
+            desc: 'Kann zugewiesene Abläufe und deren Status einsehen.',
+        },
     },
     userTypePermissions: {
         title: 'Typberechtigungen',

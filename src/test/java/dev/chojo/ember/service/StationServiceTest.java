@@ -343,6 +343,22 @@ class StationServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    void updatePublicWaitlistEnabled() {
+        service.updatePublicWaitlistEnabled(stationId, true);
+        assertTrue(stationRepo.findById(stationId).orElseThrow().publicWaitlistEnabled());
+        service.updatePublicWaitlistEnabled(stationId, false);
+        assertFalse(stationRepo.findById(stationId).orElseThrow().publicWaitlistEnabled());
+    }
+
+    @Test
+    void updatePublicBlogEnabled() {
+        service.updatePublicBlogEnabled(stationId, true);
+        assertTrue(stationRepo.findById(stationId).orElseThrow().publicBlogEnabled());
+        service.updatePublicBlogEnabled(stationId, false);
+        assertFalse(stationRepo.findById(stationId).orElseThrow().publicBlogEnabled());
+    }
+
+    @Test
     @Order(99)
     void delete() {
         assertTrue(service.delete(stationId));
