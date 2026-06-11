@@ -168,7 +168,6 @@ public class NewsService {
      * Deletes a news article by its ID.
      *
      * @param id the news article ID
-     * @return {@code true} if the article was deleted
      */
     public void updatePublicBlog(int id, boolean publicBlog) {
         newsRepository.updatePublicBlog(id, publicBlog);
