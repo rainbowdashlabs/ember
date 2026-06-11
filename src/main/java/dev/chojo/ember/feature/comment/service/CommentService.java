@@ -179,7 +179,6 @@ public class CommentService {
      * Pattern: {@code @[123]} where 123 is the member ID.
      *
      * @param content the comment text
-     * @return list of mentioned member IDs
      */
     private void parseBulkMentions(
             int stationId,

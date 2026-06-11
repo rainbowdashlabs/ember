@@ -24,6 +24,7 @@ import jakarta.inject.Singleton;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Singleton
 public class BoardService {
@@ -102,7 +103,7 @@ public class BoardService {
         var incomingIds = lanes.stream()
                 .map(LaneData::id)
                 .filter(id -> id != null && id > 0)
-                .collect(java.util.stream.Collectors.toSet());
+                .collect(Collectors.toSet());
 
         // Find the first lane in the new set to use as a fallback for orphaned tickets
         Integer fallbackLaneId = null;
@@ -234,7 +235,7 @@ public class BoardService {
             var memberTagIds = tagService.findTagsForMember(memberId).stream()
                     .map(UserTag::id)
                     .toList();
-            if (memberTagIds.stream().anyMatch(tagIds::contains)) return true;
+            return memberTagIds.stream().anyMatch(tagIds::contains);
         }
         return false;
     }

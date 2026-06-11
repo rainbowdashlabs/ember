@@ -5,12 +5,13 @@
  */
 package dev.chojo.ember.feature.members.repository;
 
-import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.members.entity.UserSettings;
 import jakarta.inject.Singleton;
 
 import java.util.Optional;
+
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
  * Repository for user notification and communication settings.
@@ -25,11 +26,11 @@ public class UserSettingsRepository {
      * @return the member's settings
      */
     public UserSettings findOrCreate(int memberId) {
-        return Query.query("""
+        return query("""
                             INSERT INTO user_settings(member_id) VALUES(:member_id)
                             ON CONFLICT (member_id) DO NOTHING
                             RETURNING *;""")
-                .single(Call.of().bind("member_id", memberId))
+                .single(call().bind("member_id", memberId))
                 .map(UserSettings.map())
                 .first()
                 .orElseGet(() -> findByMemberId(memberId).orElseThrow());
@@ -39,8 +40,8 @@ public class UserSettingsRepository {
      * Finds settings for a member, returning empty if none exist.
      */
     public Optional<UserSettings> findByMemberId(int memberId) {
-        return Query.query("SELECT * FROM user_settings WHERE member_id = :member_id;")
-                .single(Call.of().bind("member_id", memberId))
+        return query("SELECT * FROM user_settings WHERE member_id = :member_id;")
+                .single(call().bind("member_id", memberId))
                 .map(UserSettings.map())
                 .first();
     }
@@ -53,23 +54,22 @@ public class UserSettingsRepository {
      * @return the updated settings
      */
     public UserSettings updateEmailEnabled(int memberId, boolean emailEnabled) {
-        return Query.query("""
+        return query("""
                             INSERT INTO user_settings(member_id, email_enabled) VALUES(:member_id, :email_enabled)
                             ON CONFLICT (member_id) DO UPDATE SET email_enabled = :email_enabled
                             RETURNING *;""")
-                .single(Call.of().bind("member_id", memberId).bind("email_enabled", emailEnabled))
+                .single(call().bind("member_id", memberId).bind("email_enabled", emailEnabled))
                 .map(UserSettings.map())
                 .first()
                 .orElseThrow();
     }
 
     public UserSettings updateTheme(int memberId, String theme, String darkMode, String feel) {
-        return Query.query("""
+        return query("""
                             INSERT INTO user_settings(member_id, theme, dark_mode, feel) VALUES(:member_id, :theme, :dark_mode, :feel)
                             ON CONFLICT (member_id) DO UPDATE SET theme = :theme, dark_mode = :dark_mode, feel = :feel
                             RETURNING *;""")
-                .single(Call.of()
-                        .bind("member_id", memberId)
+                .single(call().bind("member_id", memberId)
                         .bind("theme", theme)
                         .bind("dark_mode", darkMode)
                         .bind("feel", feel))

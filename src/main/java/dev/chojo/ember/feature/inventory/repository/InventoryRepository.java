@@ -5,8 +5,6 @@
  */
 package dev.chojo.ember.feature.inventory.repository;
 
-import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -22,6 +20,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
@@ -39,8 +39,8 @@ public class InventoryRepository {
      * @return the inventory, or empty if not found
      */
     public Optional<Inventory> findById(int id) {
-        return Query.query("SELECT id, station_id, name, inventory_type, has_sizes FROM inventory WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        return query("SELECT id, station_id, name, inventory_type, has_sizes FROM inventory WHERE id = :id;")
+                .single(call().bind("id", id))
                 .map(Inventory.map())
                 .first();
     }
@@ -52,15 +52,15 @@ public class InventoryRepository {
      * @return list of inventories for the station
      */
     public List<Inventory> findByStation(int stationId) {
-        return Query.query(
+        return query(
                         "SELECT id, station_id, name, inventory_type, has_sizes FROM inventory WHERE station_id = :station_id;")
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(Inventory.map())
                 .all();
     }
 
     public List<InventorySummary> findSummariesByStation(int stationId) {
-        return Query.query("""
+        return query("""
                         SELECT i.id, i.station_id, i.name, i.inventory_type, i.has_sizes,
                                COALESCE(counts.item_count, 0) AS item_count,
                                COALESCE(counts.lost_count, 0) AS lost_count,
@@ -91,7 +91,7 @@ public class InventoryRepository {
                         ) lent ON lent.inventory_id = i.id
                         WHERE i.station_id = :station_id
                         ORDER BY i.name;""")
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(InventorySummary.map())
                 .all();
     }
@@ -106,10 +106,9 @@ public class InventoryRepository {
      * @return the created inventory
      */
     public Inventory create(int stationId, String name, InventoryType inventoryType, boolean hasSizes) {
-        return Query.query(
+        return query(
                         "INSERT INTO inventory(station_id, name, inventory_type, has_sizes) VALUES(:station_id, :name, :inventory_type, :has_sizes) RETURNING id, station_id, name, inventory_type, has_sizes;")
-                .single(Call.of()
-                        .bind("station_id", stationId)
+                .single(call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("inventory_type", inventoryType)
                         .bind("has_sizes", hasSizes))
@@ -128,10 +127,9 @@ public class InventoryRepository {
      * @return {@code true} if the inventory was updated
      */
     public boolean update(int id, String name, InventoryType inventoryType, boolean hasSizes) {
-        return Query.query(
+        return query(
                         "UPDATE inventory SET name = :name, inventory_type = :inventory_type, has_sizes = :has_sizes WHERE id = :id;")
-                .single(Call.of()
-                        .bind("name", name)
+                .single(call().bind("name", name)
                         .bind("inventory_type", inventoryType)
                         .bind("has_sizes", hasSizes)
                         .bind("id", id))
@@ -146,8 +144,8 @@ public class InventoryRepository {
      * @return {@code true} if the inventory was deleted
      */
     public boolean delete(int id) {
-        return Query.query("DELETE FROM inventory WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        return query("DELETE FROM inventory WHERE id = :id;")
+                .single(call().bind("id", id))
                 .delete()
                 .changed();
     }
@@ -161,9 +159,9 @@ public class InventoryRepository {
      * @return list of sizes
      */
     public List<InventorySize> findSizes(int inventoryId) {
-        return Query.query(
+        return query(
                         "SELECT id, inventory_id, label, position, note FROM inventory_size WHERE inventory_id = :inventory_id ORDER BY position;")
-                .single(Call.of().bind("inventory_id", inventoryId))
+                .single(call().bind("inventory_id", inventoryId))
                 .map(InventorySize.map())
                 .all();
     }
@@ -178,10 +176,9 @@ public class InventoryRepository {
      * @return the insertion result
      */
     public InsertionResult createSize(int inventoryId, String label, int position, String note) {
-        return Query.query(
+        return query(
                         "INSERT INTO inventory_size(inventory_id, label, position, note) VALUES(:inventory_id, :label, :position, :note);")
-                .single(Call.of()
-                        .bind("inventory_id", inventoryId)
+                .single(call().bind("inventory_id", inventoryId)
                         .bind("label", label)
                         .bind("position", position)
                         .bind("note", note != null ? note : ""))
@@ -198,10 +195,8 @@ public class InventoryRepository {
      * @return {@code true} if the size was updated
      */
     public boolean updateSize(int id, String label, int position, String note) {
-        return Query.query(
-                        "UPDATE inventory_size SET label = :label, position = :position, note = :note WHERE id = :id;")
-                .single(Call.of()
-                        .bind("label", label)
+        return query("UPDATE inventory_size SET label = :label, position = :position, note = :note WHERE id = :id;")
+                .single(call().bind("label", label)
                         .bind("position", position)
                         .bind("note", note != null ? note : "")
                         .bind("id", id))
@@ -216,8 +211,8 @@ public class InventoryRepository {
      * @return {@code true} if the size was deleted
      */
     public boolean deleteSize(int id) {
-        return Query.query("DELETE FROM inventory_size WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        return query("DELETE FROM inventory_size WHERE id = :id;")
+                .single(call().bind("id", id))
                 .delete()
                 .changed();
     }
@@ -231,25 +226,25 @@ public class InventoryRepository {
      * @return the item, or empty if not found
      */
     public Optional<InventoryItem> findItemById(int id) {
-        return Query.query("SELECT * FROM inventory_item WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        return query("SELECT * FROM inventory_item WHERE id = :id;")
+                .single(call().bind("id", id))
                 .map(InventoryItem.map())
                 .first();
     }
 
     public Optional<InventoryItem> findByInternalId(int stationId, String internalId) {
-        return Query.query("""
+        return query("""
                         SELECT ii.* FROM inventory_item ii
                         JOIN inventory i ON i.id = ii.inventory_id
                         WHERE i.station_id = :station_id AND ii.internal_id = :internal_id
                         LIMIT 1;""")
-                .single(Call.of().bind("station_id", stationId).bind("internal_id", internalId))
+                .single(call().bind("station_id", stationId).bind("internal_id", internalId))
                 .map(InventoryItem.map())
                 .first();
     }
 
     public List<InventoryItem> findFreeItems(int inventoryId, LocalDate dateFrom, LocalDate dateTo) {
-        return Query.query("""
+        return query("""
                         SELECT * FROM inventory_item
                         WHERE inventory_id = :inventory_id
                           AND assigned_to IS NULL
@@ -263,8 +258,7 @@ public class InventoryRepository {
                                 AND (lr.requested_date_to IS NULL OR lr.requested_date_to >= :date_from)
                           )
                         ORDER BY id;""")
-                .single(Call.of()
-                        .bind("inventory_id", inventoryId)
+                .single(call().bind("inventory_id", inventoryId)
                         .bind("date_from", dateFrom)
                         .bind("date_to", dateTo))
                 .map(InventoryItem.map())
@@ -278,42 +272,42 @@ public class InventoryRepository {
      * @return list of items
      */
     public List<InventoryItem> findItems(int inventoryId) {
-        return Query.query("SELECT * FROM inventory_item WHERE inventory_id = :inventory_id;")
-                .single(Call.of().bind("inventory_id", inventoryId))
+        return query("SELECT * FROM inventory_item WHERE inventory_id = :inventory_id;")
+                .single(call().bind("inventory_id", inventoryId))
                 .map(InventoryItem.map())
                 .all();
     }
 
     public List<InventoryItem> findItemsByStation(int stationId) {
-        return Query.query("""
+        return query("""
                         SELECT ii.* FROM inventory_item ii
                         JOIN inventory i ON i.id = ii.inventory_id
                         WHERE i.station_id = :station_id;""")
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(InventoryItem.map())
                 .all();
     }
 
     public List<InventorySize> findSizesByStation(int stationId) {
-        return Query.query("""
+        return query("""
                         SELECT s.id, s.inventory_id, s.label, s.position, s.note FROM inventory_size s
                         JOIN inventory i ON i.id = s.inventory_id
                         WHERE i.station_id = :station_id ORDER BY s.position;""")
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(InventorySize.map())
                 .all();
     }
 
     public List<InventoryItem> findItemsByMember(int memberId) {
-        return Query.query("SELECT * FROM inventory_item WHERE assigned_to = :member_id;")
-                .single(Call.of().bind("member_id", memberId))
+        return query("SELECT * FROM inventory_item WHERE assigned_to = :member_id;")
+                .single(call().bind("member_id", memberId))
                 .map(InventoryItem.map())
                 .all();
     }
 
     public int countItemsByMember(int memberId) {
-        return Query.query("SELECT count(*) FROM inventory_item WHERE assigned_to = :member_id;")
-                .single(Call.of().bind("member_id", memberId))
+        return query("SELECT count(*) FROM inventory_item WHERE assigned_to = :member_id;")
+                .single(call().bind("member_id", memberId))
                 .map(row -> row.getInt(1))
                 .first()
                 .orElse(0);
@@ -326,9 +320,9 @@ public class InventoryRepository {
      * @return list of available items
      */
     public List<InventoryItem> findUnassignedItems(int inventoryId) {
-        return Query.query(
+        return query(
                         "SELECT * FROM inventory_item WHERE inventory_id = :inventory_id AND assigned_to IS NULL AND lost_at IS NULL ORDER BY name;")
-                .single(Call.of().bind("inventory_id", inventoryId))
+                .single(call().bind("inventory_id", inventoryId))
                 .map(InventoryItem.map())
                 .all();
     }
@@ -365,12 +359,11 @@ public class InventoryRepository {
             Integer sizeId,
             String metadata,
             InventoryItem.ItemSource itemSource) {
-        return Query.query("""
+        return query("""
                             INSERT INTO inventory_item(inventory_id, internal_id, name, size_id, metadata, item_source)
                             VALUES (:inventory_id, :internal_id, :name, :size_id, :metadata::JSONB, :item_source)
                             RETURNING *;""")
-                .single(Call.of()
-                        .bind("inventory_id", inventoryId)
+                .single(call().bind("inventory_id", inventoryId)
                         .bind("internal_id", internalId)
                         .bind("name", name)
                         .bind("size_id", sizeId)
@@ -392,7 +385,7 @@ public class InventoryRepository {
      * @return {@code true} if the item was updated
      */
     public boolean updateItem(int id, String internalId, String name, Integer sizeId, String metadata) {
-        return Query.query("""
+        return query("""
                             UPDATE inventory_item
                             SET
                                 internal_id = :internal_id,
@@ -400,8 +393,7 @@ public class InventoryRepository {
                                 size_id     = :size_id,
                                 metadata    = :metadata::JSONB
                             WHERE id = :id;""")
-                .single(Call.of()
-                        .bind("internal_id", internalId)
+                .single(call().bind("internal_id", internalId)
                         .bind("name", name)
                         .bind("size_id", sizeId)
                         .bind("metadata", metadata)
@@ -418,8 +410,8 @@ public class InventoryRepository {
      * @return {@code true} if the assignment was updated
      */
     public boolean assignItem(int itemId, Integer memberId) {
-        return Query.query("UPDATE inventory_item SET assigned_to = :member_id WHERE id = :id;")
-                .single(Call.of().bind("member_id", memberId).bind("id", itemId))
+        return query("UPDATE inventory_item SET assigned_to = :member_id WHERE id = :id;")
+                .single(call().bind("member_id", memberId).bind("id", itemId))
                 .update()
                 .changed();
     }
@@ -431,8 +423,8 @@ public class InventoryRepository {
      * @return {@code true} if the item was marked as lost
      */
     public boolean markLost(int id) {
-        return Query.query("UPDATE inventory_item SET lost_at = now() WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        return query("UPDATE inventory_item SET lost_at = now() WHERE id = :id;")
+                .single(call().bind("id", id))
                 .update()
                 .changed();
     }
@@ -444,8 +436,8 @@ public class InventoryRepository {
      * @return {@code true} if the item was marked as found
      */
     public boolean markFound(int id) {
-        return Query.query("UPDATE inventory_item SET lost_at = NULL WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        return query("UPDATE inventory_item SET lost_at = NULL WHERE id = :id;")
+                .single(call().bind("id", id))
                 .update()
                 .changed();
     }
@@ -457,8 +449,8 @@ public class InventoryRepository {
      * @return {@code true} if the item was deleted
      */
     public boolean deleteItem(int id) {
-        return Query.query("DELETE FROM inventory_item WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        return query("DELETE FROM inventory_item WHERE id = :id;")
+                .single(call().bind("id", id))
                 .delete()
                 .changed();
     }
@@ -472,9 +464,9 @@ public class InventoryRepository {
      * @return list of history entries
      */
     public List<InventoryItemHistory> findHistory(int itemId) {
-        return Query.query(
+        return query(
                         "SELECT id, item_id, member_id, member_name, given_out, returned FROM inventory_item_history WHERE item_id = :itemId ORDER BY given_out DESC;")
-                .single(Call.of().bind("itemId", itemId))
+                .single(call().bind("itemId", itemId))
                 .map(InventoryItemHistory.map())
                 .all();
     }
@@ -488,12 +480,9 @@ public class InventoryRepository {
      * @return the created history entry
      */
     public InventoryItemHistory createHistory(int itemId, int memberId, String memberName) {
-        return Query.query(
+        return query(
                         "INSERT INTO inventory_item_history(item_id, member_id, member_name) VALUES(:itemId, :memberId, :memberName) RETURNING id, item_id, member_id, member_name, given_out, returned;")
-                .single(Call.of()
-                        .bind("itemId", itemId)
-                        .bind("memberId", memberId)
-                        .bind("memberName", memberName))
+                .single(call().bind("itemId", itemId).bind("memberId", memberId).bind("memberName", memberName))
                 .map(InventoryItemHistory.map())
                 .first()
                 .orElseThrow();
@@ -510,11 +499,10 @@ public class InventoryRepository {
      */
     public void createHistoryWithDates(
             int itemId, int memberId, String memberName, Instant givenOut, Instant returned) {
-        Query.query("""
+        query("""
                      INSERT INTO inventory_item_history(item_id, member_id, member_name, given_out, returned)
                      VALUES(:itemId, :memberId, :memberName, :givenOut, :returned);""")
-                .single(Call.of()
-                        .bind("itemId", itemId)
+                .single(call().bind("itemId", itemId)
                         .bind("memberId", memberId)
                         .bind("memberName", memberName)
                         .bind("givenOut", givenOut, INSTANT_TIMESTAMP)
@@ -530,9 +518,9 @@ public class InventoryRepository {
      * @return {@code true} if a history entry was updated
      */
     public boolean returnHistory(int itemId, int memberId) {
-        return Query.query(
+        return query(
                         "UPDATE inventory_item_history SET returned = now() WHERE item_id = :itemId AND member_id = :memberId AND returned IS NULL;")
-                .single(Call.of().bind("itemId", itemId).bind("memberId", memberId))
+                .single(call().bind("itemId", itemId).bind("memberId", memberId))
                 .update()
                 .changed();
     }
@@ -546,9 +534,9 @@ public class InventoryRepository {
      * @return list of requirements
      */
     public List<InventoryRequirement> findAllRequirementsByStation(int stationId) {
-        return Query.query(
+        return query(
                         "SELECT r.id, r.inventory_id, r.user_type, r.group_id, r.quantity, r.position FROM inventory_requirement r JOIN inventory i ON r.inventory_id = i.id WHERE i.station_id = :stationId ORDER BY r.position, r.id;")
-                .single(Call.of().bind("stationId", stationId))
+                .single(call().bind("stationId", stationId))
                 .map(InventoryRequirement.map())
                 .all();
     }
@@ -563,10 +551,9 @@ public class InventoryRepository {
      * @return the created requirement
      */
     public InventoryRequirement createRequirement(int inventoryId, String userType, int groupId, int quantity) {
-        return Query.query(
+        return query(
                         "INSERT INTO inventory_requirement(inventory_id, user_type, group_id, quantity) VALUES(:inventoryId, :userType, :groupId, :quantity) RETURNING id, inventory_id, user_type, group_id, quantity, position;")
-                .single(Call.of()
-                        .bind("inventoryId", inventoryId)
+                .single(call().bind("inventoryId", inventoryId)
                         .bind("userType", userType != null && !userType.isBlank() ? userType : null)
                         .bind("groupId", groupId == 0 ? null : groupId)
                         .bind("quantity", quantity))
@@ -583,8 +570,8 @@ public class InventoryRepository {
      * @return {@code true} if the requirement was updated
      */
     public boolean updateRequirement(int id, int quantity) {
-        return Query.query("UPDATE inventory_requirement SET quantity = :quantity WHERE id = :id;")
-                .single(Call.of().bind("quantity", quantity).bind("id", id))
+        return query("UPDATE inventory_requirement SET quantity = :quantity WHERE id = :id;")
+                .single(call().bind("quantity", quantity).bind("id", id))
                 .update()
                 .changed();
     }
@@ -597,8 +584,8 @@ public class InventoryRepository {
      * @return {@code true} if the requirement was updated
      */
     public boolean updateRequirementPosition(int id, int position) {
-        return Query.query("UPDATE inventory_requirement SET position = :position WHERE id = :id;")
-                .single(Call.of().bind("position", position).bind("id", id))
+        return query("UPDATE inventory_requirement SET position = :position WHERE id = :id;")
+                .single(call().bind("position", position).bind("id", id))
                 .update()
                 .changed();
     }
@@ -610,8 +597,8 @@ public class InventoryRepository {
      * @return {@code true} if the requirement was deleted
      */
     public boolean deleteRequirement(int id) {
-        return Query.query("DELETE FROM inventory_requirement WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        return query("DELETE FROM inventory_requirement WHERE id = :id;")
+                .single(call().bind("id", id))
                 .delete()
                 .changed();
     }

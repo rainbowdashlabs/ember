@@ -6,8 +6,6 @@
 package dev.chojo.ember.feature.quiz.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
-import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
@@ -17,32 +15,34 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
+
 @Singleton
 public class QuizCatalogRepository {
 
     // -- Catalogs --
 
     public List<QuizCatalog> findByStation(int stationId) {
-        return Query.query("SELECT * FROM quiz_catalog WHERE station_id = :station_id ORDER BY name;")
-                .single(Call.of().bind("station_id", stationId))
+        return query("SELECT * FROM quiz_catalog WHERE station_id = :station_id ORDER BY name;")
+                .single(call().bind("station_id", stationId))
                 .map(QuizCatalog.map())
                 .all();
     }
 
     public Optional<QuizCatalog> findById(int id) {
-        return Query.query("SELECT * FROM quiz_catalog WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        return query("SELECT * FROM quiz_catalog WHERE id = :id;")
+                .single(call().bind("id", id))
                 .map(QuizCatalog.map())
                 .first();
     }
 
     public QuizCatalog create(int stationId, String name, String description, boolean trainingEnabled) {
-        return Query.query("""
+        return query("""
                         INSERT INTO quiz_catalog(station_id, name, description, training_enabled)
                         VALUES (:station_id, :name, :description, :training_enabled)
                         RETURNING *;""")
-                .single(Call.of()
-                        .bind("station_id", stationId)
+                .single(call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("description", description)
                         .bind("training_enabled", trainingEnabled))
@@ -52,12 +52,11 @@ public class QuizCatalogRepository {
     }
 
     public boolean update(int id, String name, String description, boolean trainingEnabled) {
-        return Query.query("""
+        return query("""
                         UPDATE quiz_catalog
                         SET name = :name, description = :description, training_enabled = :training_enabled, updated_at = now()
                         WHERE id = :id;""")
-                .single(Call.of()
-                        .bind("id", id)
+                .single(call().bind("id", id)
                         .bind("name", name)
                         .bind("description", description)
                         .bind("training_enabled", trainingEnabled))
@@ -66,8 +65,8 @@ public class QuizCatalogRepository {
     }
 
     public boolean delete(int id) {
-        return Query.query("DELETE FROM quiz_catalog WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        return query("DELETE FROM quiz_catalog WHERE id = :id;")
+                .single(call().bind("id", id))
                 .delete()
                 .changed();
     }
@@ -75,26 +74,25 @@ public class QuizCatalogRepository {
     // -- Categories --
 
     public List<QuizCategory> findCategoriesByStation(int stationId) {
-        return Query.query("SELECT * FROM quiz_category WHERE station_id = :station_id ORDER BY position;")
-                .single(Call.of().bind("station_id", stationId))
+        return query("SELECT * FROM quiz_category WHERE station_id = :station_id ORDER BY position;")
+                .single(call().bind("station_id", stationId))
                 .map(QuizCategory.map())
                 .all();
     }
 
     public Optional<QuizCategory> findCategoryById(int id) {
-        return Query.query("SELECT * FROM quiz_category WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        return query("SELECT * FROM quiz_category WHERE id = :id;")
+                .single(call().bind("id", id))
                 .map(QuizCategory.map())
                 .first();
     }
 
     public QuizCategory createCategory(int stationId, String name, String description, int position) {
-        return Query.query("""
+        return query("""
                         INSERT INTO quiz_category(station_id, name, description, position)
                         VALUES (:station_id, :name, :description, :position)
                         RETURNING *;""")
-                .single(Call.of()
-                        .bind("station_id", stationId)
+                .single(call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("description", description)
                         .bind("position", position))
@@ -104,10 +102,9 @@ public class QuizCatalogRepository {
     }
 
     public boolean updateCategory(int id, String name, String description, int position) {
-        return Query.query(
+        return query(
                         "UPDATE quiz_category SET name = :name, description = :description, position = :position WHERE id = :id;")
-                .single(Call.of()
-                        .bind("id", id)
+                .single(call().bind("id", id)
                         .bind("name", name)
                         .bind("description", description)
                         .bind("position", position))
@@ -116,8 +113,8 @@ public class QuizCatalogRepository {
     }
 
     public boolean deleteCategory(int id) {
-        return Query.query("DELETE FROM quiz_category WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        return query("DELETE FROM quiz_category WHERE id = :id;")
+                .single(call().bind("id", id))
                 .delete()
                 .changed();
     }
@@ -125,31 +122,31 @@ public class QuizCatalogRepository {
     // -- Questions --
 
     public List<QuizQuestion> findQuestions(int catalogId) {
-        return Query.query("SELECT * FROM quiz_question WHERE catalog_id = :catalog_id ORDER BY position;")
-                .single(Call.of().bind("catalog_id", catalogId))
+        return query("SELECT * FROM quiz_question WHERE catalog_id = :catalog_id ORDER BY position;")
+                .single(call().bind("catalog_id", catalogId))
                 .map(QuizQuestion.map())
                 .all();
     }
 
     public List<QuizQuestion> findQuestionsByCategory(int catalogId, int categoryId) {
-        return Query.query(
+        return query(
                         "SELECT * FROM quiz_question WHERE catalog_id = :catalog_id AND category_id = :category_id ORDER BY position;")
-                .single(Call.of().bind("catalog_id", catalogId).bind("category_id", categoryId))
+                .single(call().bind("catalog_id", catalogId).bind("category_id", categoryId))
                 .map(QuizQuestion.map())
                 .all();
     }
 
     public Optional<QuizQuestion> findQuestionById(int id) {
-        return Query.query("SELECT * FROM quiz_question WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        return query("SELECT * FROM quiz_question WHERE id = :id;")
+                .single(call().bind("id", id))
                 .map(QuizQuestion.map())
                 .first();
     }
 
     public List<QuizQuestion> findQuestionsByIds(List<Integer> ids) {
         if (ids.isEmpty()) return List.of();
-        return Query.query("SELECT * FROM quiz_question WHERE id = ANY(:ids);")
-                .single(Call.of().bind("ids", ids, PostgreSqlTypes.INTEGER))
+        return query("SELECT * FROM quiz_question WHERE id = ANY(:ids);")
+                .single(call().bind("ids", ids, PostgreSqlTypes.INTEGER))
                 .map(QuizQuestion.map())
                 .all();
     }
@@ -165,12 +162,11 @@ public class QuizCatalogRepository {
             boolean autoPoints,
             String config,
             int position) {
-        return Query.query("""
+        return query("""
                         INSERT INTO quiz_question(catalog_id, category_id, question_type, title, description, image_url, points, auto_points, config, position)
                         VALUES (:catalog_id, :category_id, :question_type, :title, :description, :image_url, :points, :auto_points, :config::jsonb, :position)
                         RETURNING *;""")
-                .single(Call.of()
-                        .bind("catalog_id", catalogId)
+                .single(call().bind("catalog_id", catalogId)
                         .bind("category_id", categoryId)
                         .bind("question_type", quizQuestionType.name())
                         .bind("title", title)
@@ -195,14 +191,13 @@ public class QuizCatalogRepository {
             boolean autoPoints,
             String config,
             int position) {
-        return Query.query("""
+        return query("""
                         UPDATE quiz_question
                         SET category_id = :category_id, title = :title, description = :description,
                             image_url = :image_url, points = :points, auto_points = :auto_points,
                             config = :config::jsonb, position = :position, updated_at = now()
                         WHERE id = :id;""")
-                .single(Call.of()
-                        .bind("id", id)
+                .single(call().bind("id", id)
                         .bind("category_id", categoryId)
                         .bind("title", title)
                         .bind("description", description)
@@ -216,24 +211,24 @@ public class QuizCatalogRepository {
     }
 
     public boolean deleteQuestion(int id) {
-        return Query.query("DELETE FROM quiz_question WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        return query("DELETE FROM quiz_question WHERE id = :id;")
+                .single(call().bind("id", id))
                 .delete()
                 .changed();
     }
 
     public int countQuestions(int catalogId) {
-        return Query.query("SELECT count(*) AS cnt FROM quiz_question WHERE catalog_id = :catalog_id;")
-                .single(Call.of().bind("catalog_id", catalogId))
+        return query("SELECT count(*) AS cnt FROM quiz_question WHERE catalog_id = :catalog_id;")
+                .single(call().bind("catalog_id", catalogId))
                 .map(row -> row.getInt("cnt"))
                 .first()
                 .orElse(0);
     }
 
     public List<QuizCatalog> findTrainingCatalogs(int stationId) {
-        return Query.query(
+        return query(
                         "SELECT * FROM quiz_catalog WHERE station_id = :station_id AND training_enabled = true ORDER BY name;")
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(QuizCatalog.map())
                 .all();
     }

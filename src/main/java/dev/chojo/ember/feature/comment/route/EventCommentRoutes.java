@@ -12,6 +12,7 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.service.CommentService;
+import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
@@ -94,7 +95,8 @@ public class EventCommentRoutes implements Routes {
         }
         var author = memberIdentityFactory.local(
                 session.stationId(), session.member().id());
-        String eventName = eventService.findById(eventId).map(e -> e.name()).orElse("");
+        String eventName =
+                eventService.findById(eventId).map(StationEvent::name).orElse("");
         var comment = commentService.create(
                 session.stationId(),
                 eventId,

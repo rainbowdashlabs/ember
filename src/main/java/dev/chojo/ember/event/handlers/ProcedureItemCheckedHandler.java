@@ -7,6 +7,7 @@ package dev.chojo.ember.event.handlers;
 
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.ProcedureItemChecked;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
@@ -36,7 +37,7 @@ public class ProcedureItemCheckedHandler implements DomainEventHandler<Procedure
     public void handle(ProcedureItemChecked event) {
         String checkedByName = stationMemberRepository
                 .findById(event.checkedByMemberId())
-                .map(m -> m.displayName())
+                .map(StationMember::displayName)
                 .orElse("?");
         var data = NotificationData.of(
                 new NotificationParams.ProcedureItemCheckedParams(

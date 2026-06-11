@@ -38,6 +38,7 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -75,10 +76,8 @@ public class BoardRoutes implements Routes {
     private final FederatedBoardProxyService proxyService;
     private final FederationRepository federationRepository;
     private final BoardTicketService ticketService;
-    private final FederatedBoardRepository federatedBoardRepository;
     private final EventFederationRepository eventFederationRepository;
     private final StationMemberRepository stationMemberRepository;
-    private final AccountRepository accountRepository;
     private final StationRepository stationRepository;
     private final MemberNameResolver memberNameResolver;
     private final MemberIdentityFactory memberIdentityFactory;
@@ -102,10 +101,8 @@ public class BoardRoutes implements Routes {
         this.proxyService = proxyService;
         this.federationRepository = federationRepository;
         this.ticketService = ticketService;
-        this.federatedBoardRepository = federatedBoardRepository;
         this.eventFederationRepository = eventFederationRepository;
         this.stationMemberRepository = stationMemberRepository;
-        this.accountRepository = accountRepository;
         this.stationRepository = stationRepository;
         this.memberNameResolver = memberNameResolver;
         this.memberIdentityFactory = memberIdentityFactory;
@@ -1783,7 +1780,7 @@ public class BoardRoutes implements Routes {
         var board = boardService.findById(boardId).orElseThrow(NotFoundResponse::new);
         var mode = federatedBoardService.getShareMode(boardId, partner.id()).orElse(BoardShareMode.READ_ONLY);
         String stationName =
-                stationRepository.findById(board.stationId()).map(s -> s.name()).orElse("");
+                stationRepository.findById(board.stationId()).map(Station::name).orElse("");
         ctx.json(
                 FederatedBoardProxyService.FederatedBoardDetail.of(board, mode.name(), stationName, stationRepository));
     }

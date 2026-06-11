@@ -95,7 +95,7 @@ public class UserSettingsRoutes implements Routes {
         var notifMap = new EnumMap<NotificationType, NotificationSetting>(NotificationType.class);
         if (request.notifications() != null) {
             for (var entry : request.notifications().entrySet()) {
-                var type = NotificationType.valueOf(entry.getKey());
+                var type = entry.getKey();
                 var toggle = entry.getValue();
                 notifMap.put(
                         type, new NotificationSetting(memberId, type, toggle.app(), toggle.email(), toggle.feed()));
@@ -133,13 +133,13 @@ public class UserSettingsRoutes implements Routes {
         }
 
         // Build response map with defaults for missing types
-        var responseMap = new LinkedHashMap<String, NotificationToggle>();
+        var responseMap = new LinkedHashMap<NotificationType, NotificationToggle>();
         for (var type : NotificationType.values()) {
             var setting = notifSettings.get(type);
             boolean app = setting == null || setting.appEnabled();
             boolean email = setting != null && setting.emailEnabled();
             boolean feed = setting == null || setting.feedEnabled();
-            responseMap.put(type.name(), new NotificationToggle(app, email, feed));
+            responseMap.put(type, new NotificationToggle(app, email, feed));
         }
 
         return new SettingsResponse(
@@ -153,14 +153,14 @@ public class UserSettingsRoutes implements Routes {
             String theme,
             String darkMode,
             String feel,
-            Map<String, NotificationToggle> notifications) {}
+            Map<NotificationType, NotificationToggle> notifications) {}
 
     public record SettingsResponse(
             boolean emailEnabled,
             String theme,
             String darkMode,
             String feel,
-            Map<String, NotificationToggle> notifications,
+            Map<NotificationType, NotificationToggle> notifications,
             boolean mailConfigured,
             String mailProviderName,
             String mailProviderUrl) {}

@@ -31,6 +31,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Singleton
 public class SitemapRoutes implements Routes {
@@ -81,9 +82,7 @@ public class SitemapRoutes implements Routes {
 
     private void sitemapStation(Context ctx) {
         var stationUid = ctx.pathParam("stationUid");
-        var station = stationRepository
-                .findByUid(java.util.UUID.fromString(stationUid))
-                .orElseThrow(NotFoundResponse::new);
+        var station = stationRepository.findByUid(UUID.fromString(stationUid)).orElseThrow(NotFoundResponse::new);
 
         if (!hasPublicContent(station)) throw new NotFoundResponse();
 

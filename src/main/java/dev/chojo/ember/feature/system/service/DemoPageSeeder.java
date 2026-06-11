@@ -39,14 +39,19 @@ public class DemoPageSeeder {
                         new PageService.RowData(
                                 0,
                                 List.of(new PageService.CellData(
-                                        0,
-                                        100,
-                                        CellContentType.MARKDOWN,
-                                        "# Willkommen bei der Jugendfeuerwehr Musterstadt\n\nWir sind eine aktive Jugendfeuerwehr mit rund 40 Mitgliedern im Alter von 10 bis 18 Jahren. "
-                                                + "Bei uns lernst du alles rund um die Feuerwehr — von Erster Hilfe über Brandbekämpfung bis hin zu Wettbewerben und Zeltlagern.\n\n"
-                                                + "## Was wir bieten\n\n- Regelmäßige Übungen jeden Freitag\n- Wettbewerbe auf Kreis- und Landesebene\n"
-                                                + "- Zeltlager und Ausflüge\n- Erste-Hilfe-Kurse\n- Kameradschaft und Teamarbeit",
-                                        CellConfig.EMPTY))),
+                                        0, 100, CellContentType.MARKDOWN, """
+                                                # Willkommen bei der Jugendfeuerwehr Musterstadt
+
+                                                Wir sind eine aktive Jugendfeuerwehr mit rund 40 Mitgliedern im Alter von 10 bis 18 Jahren. \
+                                                Bei uns lernst du alles rund um die Feuerwehr — von Erster Hilfe über Brandbekämpfung bis hin zu Wettbewerben und Zeltlagern.
+
+                                                ## Was wir bieten
+
+                                                - Regelmäßige Übungen jeden Freitag
+                                                - Wettbewerbe auf Kreis- und Landesebene
+                                                - Zeltlager und Ausflüge
+                                                - Erste-Hilfe-Kurse
+                                                - Kameradschaft und Teamarbeit""", CellConfig.EMPTY))),
                         new PageService.RowData(
                                 1,
                                 List.of(
@@ -76,15 +81,16 @@ public class DemoPageSeeder {
                 null,
                 List.of(new PageService.RowData(
                         0,
-                        List.of(new PageService.CellData(
-                                0,
-                                100,
-                                CellContentType.MARKDOWN,
-                                "# Über uns\n\nDie Jugendfeuerwehr Musterstadt wurde 1985 gegründet und ist seitdem fester Bestandteil der Freiwilligen Feuerwehr Musterstadt. "
-                                        + "Wir sind stolz auf unsere lange Tradition und freuen uns über jedes neue Mitglied.\n\n"
-                                        + "## Unsere Geschichte\n\nSeit der Gründung haben über 200 Jugendliche den Weg zu uns gefunden. "
-                                        + "Viele sind heute aktive Mitglieder der Einsatzabteilung.",
-                                CellConfig.EMPTY)))));
+                        List.of(new PageService.CellData(0, 100, CellContentType.MARKDOWN, """
+                                        # Über uns
+
+                                        Die Jugendfeuerwehr Musterstadt wurde 1985 gegründet und ist seitdem fester Bestandteil der Freiwilligen Feuerwehr Musterstadt. \
+                                        Wir sind stolz auf unsere lange Tradition und freuen uns über jedes neue Mitglied.
+
+                                        ## Unsere Geschichte
+
+                                        Seit der Gründung haben über 200 Jugendliche den Weg zu uns gefunden. \
+                                        Viele sind heute aktive Mitglieder der Einsatzabteilung.""", CellConfig.EMPTY)))));
         pageService.setPublished(about.id(), true);
 
         // Child: Team
@@ -98,14 +104,19 @@ public class DemoPageSeeder {
                 null,
                 List.of(new PageService.RowData(
                         0,
-                        List.of(new PageService.CellData(
-                                0,
-                                100,
-                                CellContentType.MARKDOWN,
-                                "# Unser Team\n\n## Jugendfeuerwehrwart\n**Max Mustermann** — seit 2015 dabei, leitet die Übungen und organisiert Wettbewerbe.\n\n"
-                                        + "## Stellvertretende Jugendfeuerwehrwartin\n**Anna Schmidt** — kümmert sich um die Ausbildung und Zeltlager.\n\n"
-                                        + "## Betreuer\n- Thomas Müller\n- Lisa Weber\n- Jonas Fischer",
-                                CellConfig.EMPTY)))));
+                        List.of(new PageService.CellData(0, 100, CellContentType.MARKDOWN, """
+                                        # Unser Team
+
+                                        ## Jugendfeuerwehrwart
+                                        **Max Mustermann** — seit 2015 dabei, leitet die Übungen und organisiert Wettbewerbe.
+
+                                        ## Stellvertretende Jugendfeuerwehrwartin
+                                        **Anna Schmidt** — kümmert sich um die Ausbildung und Zeltlager.
+
+                                        ## Betreuer
+                                        - Thomas Müller
+                                        - Lisa Weber
+                                        - Jonas Fischer""", CellConfig.EMPTY)))));
         pageService.setPublished(team.id(), true);
 
         // Child: Ausrüstung
@@ -119,14 +130,17 @@ public class DemoPageSeeder {
                 null,
                 List.of(new PageService.RowData(
                         0,
-                        List.of(new PageService.CellData(
-                                0,
-                                100,
-                                CellContentType.MARKDOWN,
-                                "# Ausrüstung\n\nJedes Mitglied erhält bei Eintritt:\n\n"
-                                        + "- Jugendfeuerwehr-Uniform (Hose, Jacke, Helm)\n- Handschuhe\n- Sicherheitsschuhe\n"
-                                        + "- Jugendfeuerwehr-T-Shirt\n\nDie Ausrüstung wird von der Gemeinde gestellt und muss bei Austritt zurückgegeben werden.",
-                                CellConfig.EMPTY)))));
+                        List.of(new PageService.CellData(0, 100, CellContentType.MARKDOWN, """
+                                        # Ausrüstung
+
+                                        Jedes Mitglied erhält bei Eintritt:
+
+                                        - Jugendfeuerwehr-Uniform (Hose, Jacke, Helm)
+                                        - Handschuhe
+                                        - Sicherheitsschuhe
+                                        - Jugendfeuerwehr-T-Shirt
+
+                                        Die Ausrüstung wird von der Gemeinde gestellt und muss bei Austritt zurückgegeben werden.""", CellConfig.EMPTY)))));
         pageService.setPublished(equipment.id(), true);
 
         // Mitmachen page
@@ -142,33 +156,43 @@ public class DemoPageSeeder {
                         new PageService.RowData(
                                 0,
                                 List.of(new PageService.CellData(
-                                        0,
-                                        100,
-                                        CellContentType.MARKDOWN,
-                                        "# Mitmachen\n\nDu bist zwischen 10 und 18 Jahre alt und hast Lust auf Feuerwehr? Dann komm einfach vorbei!\n\n"
-                                                + "## So geht's\n\n1. Komm freitags um 17:30 Uhr zu einer Schnupperübung\n"
-                                                + "2. Bring deine Eltern mit — sie können alles fragen\n3. Nach 2-3 Schnupperübungen entscheidest du dich\n"
-                                                + "4. Anmeldeformular ausfüllen — fertig!\n\n"
-                                                + "**Wichtig:** Du brauchst keine Vorkenntnisse. Wir bringen dir alles bei!",
-                                        CellConfig.EMPTY))),
+                                        0, 100, CellContentType.MARKDOWN, """
+                                                # Mitmachen
+
+                                                Du bist zwischen 10 und 18 Jahre alt und hast Lust auf Feuerwehr? Dann komm einfach vorbei!
+
+                                                ## So geht's
+
+                                                1. Komm freitags um 17:30 Uhr zu einer Schnupperübung
+                                                2. Bring deine Eltern mit — sie können alles fragen
+                                                3. Nach 2-3 Schnupperübungen entscheidest du dich
+                                                4. Anmeldeformular ausfüllen — fertig!
+
+                                                **Wichtig:** Du brauchst keine Vorkenntnisse. Wir bringen dir alles bei!""", CellConfig.EMPTY))),
                         new PageService.RowData(
                                 1,
                                 List.of(
                                         new PageService.CellData(
-                                                0,
-                                                60,
-                                                CellContentType.MARKDOWN,
-                                                "## Was du mitbringen solltest\n\n- Spaß an Teamarbeit\n- Neugier\n- Feste Schuhe für die ersten Übungen\n\n"
-                                                        + "Alles andere stellen wir!",
-                                                CellConfig.EMPTY),
+                                                0, 60, CellContentType.MARKDOWN, """
+                                                        ## Was du mitbringen solltest
+
+                                                        - Spaß an Teamarbeit
+                                                        - Neugier
+                                                        - Feste Schuhe für die ersten Übungen
+
+                                                        Alles andere stellen wir!""", CellConfig.EMPTY),
                                         new PageService.CellData(
-                                                1,
-                                                40,
-                                                CellContentType.MARKDOWN,
-                                                "## Häufige Fragen\n\n**Kostet das etwas?**\nNein, die Mitgliedschaft ist kostenlos.\n\n"
-                                                        + "**Wie oft sind Übungen?**\nJeden Freitag, außer in den Ferien.\n\n"
-                                                        + "**Ab welchem Alter?**\nAb 10 Jahren.",
-                                                CellConfig.EMPTY)))));
+                                                1, 40, CellContentType.MARKDOWN, """
+                                                        ## Häufige Fragen
+
+                                                        **Kostet das etwas?**
+                                                        Nein, die Mitgliedschaft ist kostenlos.
+
+                                                        **Wie oft sind Übungen?**
+                                                        Jeden Freitag, außer in den Ferien.
+
+                                                        **Ab welchem Alter?**
+                                                        Ab 10 Jahren.""", CellConfig.EMPTY)))));
         pageService.setPublished(join.id(), true);
     }
 }

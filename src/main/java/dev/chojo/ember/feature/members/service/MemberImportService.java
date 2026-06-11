@@ -11,6 +11,7 @@ import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.ProfileField;
+import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
@@ -225,8 +226,8 @@ public class MemberImportService {
                         if (!contact.phone().isBlank()) {
                             int mgrId = manager.id();
                             profileFields.stream()
-                                    .filter(f -> f.name().equals("Mobilnummer")
-                                            && f.scope().name().equals("GUARDIAN"))
+                                    .filter(f ->
+                                            f.name().equals("Mobilnummer") && f.scope() == ProfileFieldScope.GUARDIAN)
                                     .findFirst()
                                     .ifPresent(f -> profileFieldRepository.setValue(mgrId, f.id(), contact.phone()));
                         }

@@ -5,13 +5,14 @@
  */
 package dev.chojo.ember.feature.news.repository;
 
-import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.news.entity.NewsFederationShare;
 import jakarta.inject.Singleton;
 
 import java.util.List;
 import java.util.Optional;
+
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
  * Repository for managing federated news sharing and comment author tracking.
@@ -28,9 +29,8 @@ public class NewsFederationRepository {
      * @return the share, if configured
      */
     public Optional<NewsFederationShare> findShareByNews(int newsId) {
-        return Query.query(
-                        "SELECT id, news_id, scope, visibility_role FROM news_federation_share WHERE news_id = :news_id;")
-                .single(Call.of().bind("news_id", newsId))
+        return query("SELECT id, news_id, scope, visibility_role FROM news_federation_share WHERE news_id = :news_id;")
+                .single(call().bind("news_id", newsId))
                 .map(NewsFederationShare.map())
                 .first();
     }
@@ -44,12 +44,12 @@ public class NewsFederationRepository {
      * @return the created or updated share
      */
     public NewsFederationShare setShare(int newsId, String scope, String visibilityRole) {
-        return Query.query("""
+        return query("""
                         INSERT INTO news_federation_share(news_id, scope, visibility_role)
                         VALUES (:news_id, :scope, :visibility_role)
                         ON CONFLICT (news_id) DO UPDATE SET scope = :scope, visibility_role = :visibility_role
                         RETURNING id, news_id, scope, visibility_role;""")
-                .single(Call.of().bind("news_id", newsId).bind("scope", scope).bind("visibility_role", visibilityRole))
+                .single(call().bind("news_id", newsId).bind("scope", scope).bind("visibility_role", visibilityRole))
                 .map(NewsFederationShare.map())
                 .first()
                 .orElseThrow();
@@ -62,13 +62,12 @@ public class NewsFederationRepository {
      * @param partnerIds the partner IDs to target
      */
     public void setShareTargets(int shareId, List<Integer> partnerIds) {
-        Query.query("DELETE FROM news_federation_share_target WHERE share_id = :share_id;")
-                .single(Call.of().bind("share_id", shareId))
+        query("DELETE FROM news_federation_share_target WHERE share_id = :share_id;")
+                .single(call().bind("share_id", shareId))
                 .delete();
         for (int partnerId : partnerIds) {
-            Query.query(
-                            "INSERT INTO news_federation_share_target(share_id, partner_id) VALUES (:share_id, :partner_id);")
-                    .single(Call.of().bind("share_id", shareId).bind("partner_id", partnerId))
+            query("INSERT INTO news_federation_share_target(share_id, partner_id) VALUES (:share_id, :partner_id);")
+                    .single(call().bind("share_id", shareId).bind("partner_id", partnerId))
                     .insert();
         }
     }
@@ -80,8 +79,8 @@ public class NewsFederationRepository {
      * @return the list of partner IDs
      */
     public List<Integer> findShareTargets(int shareId) {
-        return Query.query("SELECT partner_id FROM news_federation_share_target WHERE share_id = :share_id;")
-                .single(Call.of().bind("share_id", shareId))
+        return query("SELECT partner_id FROM news_federation_share_target WHERE share_id = :share_id;")
+                .single(call().bind("share_id", shareId))
                 .map(row -> row.getInt("partner_id"))
                 .all();
     }
@@ -92,8 +91,8 @@ public class NewsFederationRepository {
      * @param newsId the news article ID
      */
     public void removeShare(int newsId) {
-        Query.query("DELETE FROM news_federation_share WHERE news_id = :news_id;")
-                .single(Call.of().bind("news_id", newsId))
+        query("DELETE FROM news_federation_share WHERE news_id = :news_id;")
+                .single(call().bind("news_id", newsId))
                 .delete();
     }
 
@@ -109,7 +108,7 @@ public class NewsFederationRepository {
      * @return the list of shared news IDs
      */
     public List<Integer> findSharedNewsIds(int partnerId, int stationId) {
-        return Query.query("""
+        return query("""
                         SELECT nfs.news_id
                         FROM news_federation_share nfs
                             JOIN news n ON n.id = nfs.news_id
@@ -119,7 +118,7 @@ public class NewsFederationRepository {
                                OR (nfs.scope = 'SPECIFIC'
                                    AND EXISTS (SELECT 1 FROM news_federation_share_target nfst
                                                WHERE nfst.share_id = nfs.id AND nfst.partner_id = :partner_id)));""")
-                .single(Call.of().bind("station_id", stationId).bind("partner_id", partnerId))
+                .single(call().bind("station_id", stationId).bind("partner_id", partnerId))
                 .map(row -> row.getInt("news_id"))
                 .all();
     }
@@ -131,8 +130,8 @@ public class NewsFederationRepository {
      * @return the visibility role, if the news is shared
      */
     public Optional<String> findVisibilityRole(int newsId) {
-        return Query.query("SELECT visibility_role FROM news_federation_share WHERE news_id = :news_id;")
-                .single(Call.of().bind("news_id", newsId))
+        return query("SELECT visibility_role FROM news_federation_share WHERE news_id = :news_id;")
+                .single(call().bind("news_id", newsId))
                 .map(row -> row.getString("visibility_role"))
                 .first();
     }

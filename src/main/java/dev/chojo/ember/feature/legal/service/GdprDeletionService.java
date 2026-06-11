@@ -5,8 +5,6 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
-import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.media.service.ImageCategory;
@@ -16,6 +14,8 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -76,68 +76,68 @@ public class GdprDeletionService {
         Integer accountId = member != null ? member.accountId() : null;
 
         // Delete profile field values
-        Query.query("DELETE FROM profile_field_value WHERE member_id = :id;")
-                .single(Call.of().bind("id", memberId))
+        query("DELETE FROM profile_field_value WHERE member_id = :id;")
+                .single(call().bind("id", memberId))
                 .delete();
 
         // Delete notification settings
-        Query.query("DELETE FROM user_notification_settings WHERE member_id = :id;")
-                .single(Call.of().bind("id", memberId))
+        query("DELETE FROM user_notification_settings WHERE member_id = :id;")
+                .single(call().bind("id", memberId))
                 .delete();
-        Query.query("DELETE FROM user_settings WHERE member_id = :id;")
-                .single(Call.of().bind("id", memberId))
+        query("DELETE FROM user_settings WHERE member_id = :id;")
+                .single(call().bind("id", memberId))
                 .delete();
 
         // Delete notifications
-        Query.query("DELETE FROM notification WHERE member_id = :id;")
-                .single(Call.of().bind("id", memberId))
+        query("DELETE FROM notification WHERE member_id = :id;")
+                .single(call().bind("id", memberId))
                 .delete();
 
         // Remove manager relationships
-        Query.query("DELETE FROM member_manager WHERE manager_id = :id OR managed_id = :id;")
-                .single(Call.of().bind("id", memberId))
+        query("DELETE FROM member_manager WHERE manager_id = :id OR managed_id = :id;")
+                .single(call().bind("id", memberId))
                 .delete();
 
         // Remove group memberships
-        Query.query("DELETE FROM member_group_entry WHERE member_id = :id;")
-                .single(Call.of().bind("id", memberId))
+        query("DELETE FROM member_group_entry WHERE member_id = :id;")
+                .single(call().bind("id", memberId))
                 .delete();
 
         // Remove tag assignments
-        Query.query("DELETE FROM user_tag_entry WHERE member_id = :id;")
-                .single(Call.of().bind("id", memberId))
+        query("DELETE FROM user_tag_entry WHERE member_id = :id;")
+                .single(call().bind("id", memberId))
                 .delete();
 
         // Anonymize inventory item history
-        Query.query("UPDATE inventory_item_history SET member_name = :anon WHERE member_id = :id;")
-                .single(Call.of().bind("anon", ANONYMOUS).bind("id", memberId))
+        query("UPDATE inventory_item_history SET member_name = :anon WHERE member_id = :id;")
+                .single(call().bind("anon", ANONYMOUS).bind("id", memberId))
                 .update();
 
         // Unassign inventory items
-        Query.query("UPDATE inventory_item SET assigned_to = NULL WHERE assigned_to = :id;")
-                .single(Call.of().bind("id", memberId))
+        query("UPDATE inventory_item SET assigned_to = NULL WHERE assigned_to = :id;")
+                .single(call().bind("id", memberId))
                 .update();
 
         // Anonymize news author (keep the content) — match by member UUID
         var memberUid = stationMemberRepository.resolveUid(memberId);
         if (memberUid != null) {
-            Query.query(
+            query(
                             "UPDATE news SET author_station_uid = NULL, author_member_uid = NULL WHERE author_member_uid = :uid::uuid;")
-                    .single(Call.of().bind("uid", memberUid, StandardValueConverter.UUID_STRING))
+                    .single(call().bind("uid", memberUid, StandardValueConverter.UUID_STRING))
                     .update();
 
             // Delete news comments by member UUID
-            Query.query("DELETE FROM news_comment WHERE author_member_uid = :uid::uuid;")
-                    .single(Call.of().bind("uid", memberUid, StandardValueConverter.UUID_STRING))
+            query("DELETE FROM news_comment WHERE author_member_uid = :uid::uuid;")
+                    .single(call().bind("uid", memberUid, StandardValueConverter.UUID_STRING))
                     .delete();
         }
 
         // Delete profile field change data
-        Query.query("DELETE FROM profile_field_change_acknowledgement WHERE acknowledged_by = :id;")
-                .single(Call.of().bind("id", memberId))
+        query("DELETE FROM profile_field_change_acknowledgement WHERE acknowledged_by = :id;")
+                .single(call().bind("id", memberId))
                 .delete();
-        Query.query("DELETE FROM profile_field_change WHERE member_id = :id;")
-                .single(Call.of().bind("id", memberId))
+        query("DELETE FROM profile_field_change WHERE member_id = :id;")
+                .single(call().bind("id", memberId))
                 .delete();
 
         // Delete avatar from disk (keyed by member UUID)
@@ -146,8 +146,8 @@ public class GdprDeletionService {
         }
 
         // Mark as former and disconnect from account
-        Query.query("UPDATE station_member SET former = TRUE, account_id = NULL WHERE id = :id;")
-                .single(Call.of().bind("id", memberId))
+        query("UPDATE station_member SET former = TRUE, account_id = NULL WHERE id = :id;")
+                .single(call().bind("id", memberId))
                 .update();
 
         // If the account has no remaining members, delete the account entirely
@@ -165,21 +165,21 @@ public class GdprDeletionService {
         accountRepository.deleteSessionsByAccount(accountId);
 
         // Delete tokens
-        Query.query("DELETE FROM account_token WHERE account_id = :id;")
-                .single(Call.of().bind("id", accountId))
+        query("DELETE FROM account_token WHERE account_id = :id;")
+                .single(call().bind("id", accountId))
                 .delete();
 
         // Delete credentials
         accountRepository.deleteCredential(accountId);
 
         // Delete external auth
-        Query.query("DELETE FROM account_external_auth WHERE account_id = :id;")
-                .single(Call.of().bind("id", accountId))
+        query("DELETE FROM account_external_auth WHERE account_id = :id;")
+                .single(call().bind("id", accountId))
                 .delete();
 
         // Delete saved filters
-        Query.query("DELETE FROM saved_filter WHERE account_id = :id;")
-                .single(Call.of().bind("id", accountId))
+        query("DELETE FROM saved_filter WHERE account_id = :id;")
+                .single(call().bind("id", accountId))
                 .delete();
 
         // Delete the account itself

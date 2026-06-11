@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.station.repository;
 
-import de.chojo.sadu.queries.api.call.Call;
 import dev.chojo.ember.feature.station.entity.ApplicationStatus;
 import dev.chojo.ember.feature.station.entity.StationApplication;
 import jakarta.inject.Singleton;
@@ -47,8 +46,7 @@ public class StationApplicationRepository {
                 VALUES
                     (:first_name, :last_name, :email, :station_name, :introduction, :verification_token)
                 RETURNING id, first_name, last_name, email, station_name, introduction, verification_token, status, deny_reason, created_at, resolved_at;""")
-                .single(Call.of()
-                        .bind("first_name", firstName)
+                .single(call().bind("first_name", firstName)
                         .bind("last_name", lastName)
                         .bind("email", email)
                         .bind("station_name", stationName)
@@ -82,7 +80,7 @@ public class StationApplicationRepository {
                         FROM
                             station_application
                         WHERE id = :id;""")
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .map(StationApplication.map())
                 .first();
     }
@@ -164,7 +162,7 @@ public class StationApplicationRepository {
                         FROM
                             station_application
                         WHERE verification_token = :token;""")
-                .single(Call.of().bind("token", token))
+                .single(call().bind("token", token))
                 .map(StationApplication.map())
                 .first();
     }
@@ -182,7 +180,7 @@ public class StationApplicationRepository {
                             status             = 'PENDING',
                             verification_token = NULL
                         WHERE id = :id
-                          AND status = 'UNVERIFIED';""").single(Call.of().bind("id", id)).update().changed();
+                          AND status = 'UNVERIFIED';""").single(call().bind("id", id)).update().changed();
     }
 
     /**
@@ -198,7 +196,7 @@ public class StationApplicationRepository {
                             status      = 'ACCEPTED',
                             resolved_at = now()
                         WHERE id = :id
-                          AND status = 'PENDING';""").single(Call.of().bind("id", id)).update().changed();
+                          AND status = 'PENDING';""").single(call().bind("id", id)).update().changed();
     }
 
     /**
@@ -217,7 +215,7 @@ public class StationApplicationRepository {
                             resolved_at = now()
                         WHERE id = :id
                           AND status = 'PENDING';""")
-                .single(Call.of().bind("id", id).bind("reason", reason))
+                .single(call().bind("id", id).bind("reason", reason))
                 .update()
                 .changed();
     }

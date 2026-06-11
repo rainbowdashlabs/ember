@@ -5,8 +5,6 @@
  */
 package dev.chojo.ember.feature.events.repository;
 
-import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.EventTemplateField;
@@ -16,34 +14,37 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
+
 @Singleton
 public class EventTemplateRepository {
 
     public List<EventTemplate> findByStation(int stationId) {
-        return Query.query("SELECT id, station_id, name, title, description, category_id, event_type,"
+        return query("SELECT id, station_id, name, title, description, category_id, event_type,"
                         + " requires_registration, registration_deadline_offset, requires_confirmation, restriction_mode, attendance_template_id, registration_limit"
                         + " FROM event_template WHERE station_id = :station_id ORDER BY name;")
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(EventTemplate.map())
                 .all();
     }
 
     public Optional<EventTemplate> findById(int id) {
-        return Query.query("SELECT id, station_id, name, title, description, category_id, event_type,"
+        return query("SELECT id, station_id, name, title, description, category_id, event_type,"
                         + " requires_registration, registration_deadline_offset, requires_confirmation, restriction_mode, attendance_template_id, registration_limit"
                         + " FROM event_template WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .map(EventTemplate.map())
                 .first();
     }
 
     public EventTemplate create(int stationId, String name) {
-        return Query.query(
+        return query(
                         "INSERT INTO event_template(station_id, name)"
                                 + " VALUES (:station_id, :name)"
                                 + " RETURNING id, station_id, name, title, description, category_id, event_type,"
                                 + " requires_registration, registration_deadline_offset, requires_confirmation, restriction_mode, attendance_template_id, registration_limit;")
-                .single(Call.of().bind("station_id", stationId).bind("name", name))
+                .single(call().bind("station_id", stationId).bind("name", name))
                 .map(EventTemplate.map())
                 .first()
                 .orElseThrow();
@@ -62,7 +63,7 @@ public class EventTemplateRepository {
             String restrictionMode,
             Integer attendanceTemplateId,
             Integer registrationLimit) {
-        return Query.query("UPDATE event_template SET"
+        return query("UPDATE event_template SET"
                         + " name = :name,"
                         + " title = :title,"
                         + " description = :description,"
@@ -75,8 +76,7 @@ public class EventTemplateRepository {
                         + " attendance_template_id = :attendance_template_id,"
                         + " registration_limit = :registration_limit"
                         + " WHERE id = :id;")
-                .single(Call.of()
-                        .bind("id", id)
+                .single(call().bind("id", id)
                         .bind("name", name)
                         .bind("title", title)
                         .bind("description", description)
@@ -93,31 +93,29 @@ public class EventTemplateRepository {
     }
 
     public boolean delete(int id) {
-        return Query.query("DELETE FROM event_template WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        return query("DELETE FROM event_template WHERE id = :id;")
+                .single(call().bind("id", id))
                 .delete()
                 .changed();
     }
 
     public List<EventTemplateField> findFields(int templateId) {
-        return Query.query(
-                        "SELECT id, template_id, name, field_type, config, position, overview, public, attendance_field_id"
-                                + " FROM event_template_field WHERE template_id = :template_id ORDER BY position;")
-                .single(Call.of().bind("template_id", templateId))
+        return query("SELECT id, template_id, name, field_type, config, position, overview, public, attendance_field_id"
+                        + " FROM event_template_field WHERE template_id = :template_id ORDER BY position;")
+                .single(call().bind("template_id", templateId))
                 .map(EventTemplateField.map())
                 .all();
     }
 
     public void replaceFields(int templateId, List<EventTemplateFieldData> fields) {
-        Query.query("DELETE FROM event_template_field WHERE template_id = :template_id;")
-                .single(Call.of().bind("template_id", templateId))
+        query("DELETE FROM event_template_field WHERE template_id = :template_id;")
+                .single(call().bind("template_id", templateId))
                 .delete();
         for (EventTemplateFieldData f : fields) {
-            Query.query(
+            query(
                             "INSERT INTO event_template_field(template_id, name, field_type, config, position, overview, public, attendance_field_id)"
                                     + " VALUES (:template_id, :name, :field_type, :config::jsonb, :position, :overview, :public, :attendance_field_id);")
-                    .single(Call.of()
-                            .bind("template_id", templateId)
+                    .single(call().bind("template_id", templateId)
                             .bind("name", f.name())
                             .bind("field_type", f.fieldType() != null ? f.fieldType() : EventFieldType.STRING)
                             .bind("config", f.config() != null ? f.config().toJson() : "{}")
@@ -130,20 +128,19 @@ public class EventTemplateRepository {
     }
 
     public List<String> findRestrictions(int templateId) {
-        return Query.query("SELECT user_type FROM event_template_restriction WHERE template_id = :template_id;")
-                .single(Call.of().bind("template_id", templateId))
+        return query("SELECT user_type FROM event_template_restriction WHERE template_id = :template_id;")
+                .single(call().bind("template_id", templateId))
                 .map(row -> row.getString("user_type"))
                 .all();
     }
 
     public void setRestrictions(int templateId, List<String> userTypes) {
-        Query.query("DELETE FROM event_template_restriction WHERE template_id = :template_id;")
-                .single(Call.of().bind("template_id", templateId))
+        query("DELETE FROM event_template_restriction WHERE template_id = :template_id;")
+                .single(call().bind("template_id", templateId))
                 .delete();
         for (String userType : userTypes) {
-            Query.query(
-                            "INSERT INTO event_template_restriction(template_id, user_type) VALUES (:template_id, :user_type);")
-                    .single(Call.of().bind("template_id", templateId).bind("user_type", userType))
+            query("INSERT INTO event_template_restriction(template_id, user_type) VALUES (:template_id, :user_type);")
+                    .single(call().bind("template_id", templateId).bind("user_type", userType))
                     .insert();
         }
     }
@@ -151,21 +148,21 @@ public class EventTemplateRepository {
     // --- Reminders ---
 
     public List<Integer> findReminderDays(int templateId) {
-        return Query.query(
+        return query(
                         "SELECT days_before FROM event_template_reminder WHERE template_id = :template_id ORDER BY days_before;")
-                .single(Call.of().bind("template_id", templateId))
+                .single(call().bind("template_id", templateId))
                 .map(row -> row.getInt("days_before"))
                 .all();
     }
 
     public void replaceReminders(int templateId, List<Integer> daysBefore) {
-        Query.query("DELETE FROM event_template_reminder WHERE template_id = :template_id;")
-                .single(Call.of().bind("template_id", templateId))
+        query("DELETE FROM event_template_reminder WHERE template_id = :template_id;")
+                .single(call().bind("template_id", templateId))
                 .delete();
         for (int days : daysBefore) {
-            Query.query(
+            query(
                             "INSERT INTO event_template_reminder(template_id, days_before) VALUES(:template_id, :days_before) ON CONFLICT DO NOTHING;")
-                    .single(Call.of().bind("template_id", templateId).bind("days_before", days))
+                    .single(call().bind("template_id", templateId).bind("days_before", days))
                     .insert();
         }
     }

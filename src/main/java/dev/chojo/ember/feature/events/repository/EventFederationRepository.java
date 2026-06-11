@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.events.repository;
 
-import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventFederationShare;
@@ -17,6 +16,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
@@ -35,7 +35,7 @@ public class EventFederationRepository {
      */
     public Optional<EventFederationShare> findShareByEvent(int eventId) {
         return query("SELECT id, event_id, scope FROM event_federation_share WHERE event_id = :event_id;")
-                .single(Call.of().bind("event_id", eventId))
+                .single(call().bind("event_id", eventId))
                 .map(EventFederationShare.map())
                 .first();
     }
@@ -53,7 +53,7 @@ public class EventFederationRepository {
                 VALUES (:event_id, :scope)
                 ON CONFLICT (event_id) DO UPDATE SET scope = :scope
                 RETURNING id, event_id, scope;""")
-                .single(Call.of().bind("event_id", eventId).bind("scope", scope))
+                .single(call().bind("event_id", eventId).bind("scope", scope))
                 .map(EventFederationShare.map())
                 .first()
                 .orElseThrow();
@@ -67,7 +67,7 @@ public class EventFederationRepository {
      */
     public void setShareTargets(int shareId, List<Integer> partnerIds) {
         query("DELETE FROM event_federation_share_target WHERE share_id = :share_id;")
-                .single(Call.of().bind("share_id", shareId))
+                .single(call().bind("share_id", shareId))
                 .delete();
         for (int partnerId : partnerIds) {
             query("""
@@ -76,7 +76,7 @@ public class EventFederationRepository {
                         event_federation_share_target(share_id, partner_id)
                     VALUES
                         (:share_id, :partner_id);""")
-                    .single(Call.of().bind("share_id", shareId).bind("partner_id", partnerId))
+                    .single(call().bind("share_id", shareId).bind("partner_id", partnerId))
                     .insert();
         }
     }
@@ -89,7 +89,7 @@ public class EventFederationRepository {
      */
     public List<Integer> findShareTargets(int shareId) {
         return query("SELECT partner_id FROM event_federation_share_target WHERE share_id = :share_id;")
-                .single(Call.of().bind("share_id", shareId))
+                .single(call().bind("share_id", shareId))
                 .map(row -> row.getInt("partner_id"))
                 .all();
     }
@@ -101,7 +101,7 @@ public class EventFederationRepository {
      */
     public void removeShare(int eventId) {
         query("DELETE FROM event_federation_share WHERE event_id = :event_id;")
-                .single(Call.of().bind("event_id", eventId))
+                .single(call().bind("event_id", eventId))
                 .delete();
     }
 
@@ -125,7 +125,7 @@ public class EventFederationRepository {
                        OR (efs.scope = 'SPECIFIC'
                            AND exists (SELECT 1 FROM event_federation_share_target efst
                                        WHERE efst.share_id = efs.id AND efst.partner_id = :partner_id)));""")
-                .single(Call.of().bind("station_id", stationId).bind("partner_id", partnerId))
+                .single(call().bind("station_id", stationId).bind("partner_id", partnerId))
                 .map(row -> row.getInt("event_id"))
                 .all();
     }
@@ -147,8 +147,7 @@ public class EventFederationRepository {
                 INSERT INTO event_federation_registration(event_id, partner_id, remote_member_id, event_date)
                 VALUES (:event_id, :partner_id, :remote_member_id::UUID, :event_date)
                 RETURNING id, event_id, partner_id, remote_member_id, event_date, status, created_at;""")
-                .single(Call.of()
-                        .bind("event_id", eventId)
+                .single(call().bind("event_id", eventId)
                         .bind("partner_id", partnerId)
                         .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING)
                         .bind("event_date", eventDate))
@@ -166,7 +165,7 @@ public class EventFederationRepository {
      */
     public boolean updateRegistrationStatus(int id, RegistrationStatus status) {
         return query("UPDATE event_federation_registration SET status = :status WHERE id = :id;")
-                .single(Call.of().bind("status", status).bind("id", id))
+                .single(call().bind("status", status).bind("id", id))
                 .update()
                 .changed();
     }
@@ -190,7 +189,7 @@ public class EventFederationRepository {
                 FROM
                     event_federation_registration
                 WHERE id = :id;""")
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .map(EventFederationRegistration.map())
                 .first();
     }
@@ -217,7 +216,7 @@ public class EventFederationRepository {
                         event_federation_registration
                     WHERE event_id = :event_id
                     ORDER BY created_at;""")
-                    .single(Call.of().bind("event_id", eventId))
+                    .single(call().bind("event_id", eventId))
                     .map(EventFederationRegistration.map())
                     .all();
         }
@@ -235,7 +234,7 @@ public class EventFederationRepository {
                 WHERE event_id = :event_id
                   AND event_date = :event_date
                 ORDER BY created_at;""")
-                .single(Call.of().bind("event_id", eventId).bind("event_date", eventDate))
+                .single(call().bind("event_id", eventId).bind("event_date", eventDate))
                 .map(EventFederationRegistration.map())
                 .all();
     }
@@ -260,7 +259,7 @@ public class EventFederationRepository {
                     event_federation_registration
                 WHERE remote_member_id = :remote_member_id::UUID
                 ORDER BY event_date;""")
-                .single(Call.of().bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
+                .single(call().bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
                 .map(EventFederationRegistration.map())
                 .all();
     }
@@ -280,7 +279,7 @@ public class EventFederationRepository {
                             event_federation_registration
                         WHERE partner_id = :partner_id
                         ORDER BY event_date;""")
-                .single(Call.of().bind("partner_id", partnerId))
+                .single(call().bind("partner_id", partnerId))
                 .map(EventFederationRegistration.map())
                 .all();
     }
@@ -303,8 +302,7 @@ public class EventFederationRepository {
                   AND partner_id = :partner_id
                   AND remote_member_id = :remote_member_id::UUID
                   AND event_date = :event_date;""")
-                .single(Call.of()
-                        .bind("event_id", eventId)
+                .single(call().bind("event_id", eventId)
                         .bind("partner_id", partnerId)
                         .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING)
                         .bind("event_date", eventDate))
@@ -333,8 +331,7 @@ public class EventFederationRepository {
                     SET
                         display_name = :display_name,
                         cached_at    = now();""")
-                .single(Call.of()
-                        .bind("partner_id", partnerId)
+                .single(call().bind("partner_id", partnerId)
                         .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING)
                         .bind("display_name", displayName))
                 .insert();
@@ -355,8 +352,7 @@ public class EventFederationRepository {
                     federation_member_name_cache
                 WHERE partner_id = :partner_id
                   AND remote_member_id = :remote_member_id::UUID;""")
-                .single(Call.of()
-                        .bind("partner_id", partnerId)
+                .single(call().bind("partner_id", partnerId)
                         .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
                 .map(row -> row.getString("display_name"))
                 .first();
@@ -375,8 +371,7 @@ public class EventFederationRepository {
                 federation_member_name_cache
             WHERE partner_id = :partner_id
               AND remote_member_id = :remote_member_id::UUID;""")
-                .single(Call.of()
-                        .bind("partner_id", partnerId)
+                .single(call().bind("partner_id", partnerId)
                         .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
                 .delete();
     }

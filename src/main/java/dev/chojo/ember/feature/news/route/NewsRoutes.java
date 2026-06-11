@@ -54,8 +54,6 @@ import java.util.UUID;
 public class NewsRoutes implements Routes {
     private final NewsService newsService;
     private final NewsFederationService newsFederationService;
-    private final AccountRepository accountRepository;
-    private final StationMemberRepository stationMemberRepository;
     private final FederationRepository federationRepository;
     private final FederationHttpClient federationHttpClient;
     private final StationRepository stationRepository;
@@ -77,8 +75,6 @@ public class NewsRoutes implements Routes {
             MemberIdentityFactory memberIdentityFactory) {
         this.newsService = newsService;
         this.newsFederationService = newsFederationService;
-        this.accountRepository = accountRepository;
-        this.stationMemberRepository = stationMemberRepository;
         this.federationRepository = federationRepository;
         this.federationHttpClient = federationHttpClient;
         this.stationRepository = stationRepository;

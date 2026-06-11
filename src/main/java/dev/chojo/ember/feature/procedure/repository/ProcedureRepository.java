@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.procedure.repository;
 
-import de.chojo.sadu.queries.api.call.Call;
 import dev.chojo.ember.feature.procedure.entity.Procedure;
 import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
 import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
@@ -17,6 +16,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
@@ -30,32 +30,31 @@ public class ProcedureRepository {
                 ? "SELECT * FROM procedure_template WHERE station_id = :station_id ORDER BY created_at DESC;"
                 : "SELECT * FROM procedure_template WHERE station_id = :station_id AND archived = FALSE ORDER BY created_at DESC;";
         return query(sql)
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(ProcedureTemplate.map())
                 .all();
     }
 
     public Optional<ProcedureTemplate> findTemplateById(int id) {
         return query("SELECT * FROM procedure_template WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .map(ProcedureTemplate.map())
                 .first();
     }
 
     public ProcedureTemplate createTemplate(int stationId, String name, String description, int createdBy) {
         return query("""
-                
+
                     INSERT
                 INTO
                     procedure_template(station_id, name, description, created_by)
                 VALUES
                     (:station_id, :name, :description, :created_by)
                 RETURNING *;""")
-                .single(Call.of()
-                            .bind("station_id", stationId)
-                            .bind("name", name)
-                            .bind("description", description)
-                            .bind("created_by", createdBy))
+                .single(call().bind("station_id", stationId)
+                        .bind("name", name)
+                        .bind("description", description)
+                        .bind("created_by", createdBy))
                 .map(ProcedureTemplate.map())
                 .first()
                 .orElseThrow();
@@ -63,17 +62,16 @@ public class ProcedureRepository {
 
     public boolean updateTemplate(int id, String name, String description) {
         return query("UPDATE procedure_template SET name = :name, description = :description WHERE id = :id;")
-                .single(Call.of()
-                            .bind("name", name)
-                            .bind("description", description)
-                            .bind("id", id))
+                .single(call().bind("name", name)
+                        .bind("description", description)
+                        .bind("id", id))
                 .update()
                 .changed();
     }
 
     public boolean archiveTemplate(int id) {
         return query("UPDATE procedure_template SET archived = TRUE WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .update()
                 .changed();
     }
@@ -87,7 +85,7 @@ public class ProcedureRepository {
                     procedure_template_item
                 WHERE template_id = :template_id
                 ORDER BY position;""")
-                .single(Call.of().bind("template_id", templateId))
+                .single(call().bind("template_id", templateId))
                 .map(ProcedureTemplateItem.map())
                 .all();
     }
@@ -101,13 +99,12 @@ public class ProcedureRepository {
                 VALUES
                     (:template_id, :title, :description, :public, :user_assigned, :position)
                 RETURNING *;""")
-                .single(Call.of()
-                            .bind("template_id", templateId)
-                            .bind("title", title)
-                            .bind("description", description)
-                            .bind("public", isPublic)
-                            .bind("user_assigned", userAssigned)
-                            .bind("position", position))
+                .single(call().bind("template_id", templateId)
+                        .bind("title", title)
+                        .bind("description", description)
+                        .bind("public", isPublic)
+                        .bind("user_assigned", userAssigned)
+                        .bind("position", position))
                 .map(ProcedureTemplateItem.map())
                 .first()
                 .orElseThrow();
@@ -124,20 +121,19 @@ public class ProcedureRepository {
                     user_assigned = :user_assigned,
                     position      = :position
                 WHERE id = :id;""")
-                .single(Call.of()
-                            .bind("title", title)
-                            .bind("description", description)
-                            .bind("public", isPublic)
-                            .bind("user_assigned", userAssigned)
-                            .bind("position", position)
-                            .bind("id", id))
+                .single(call().bind("title", title)
+                        .bind("description", description)
+                        .bind("public", isPublic)
+                        .bind("user_assigned", userAssigned)
+                        .bind("position", position)
+                        .bind("id", id))
                 .update()
                 .changed();
     }
 
     public boolean deleteTemplateItem(int id) {
         return query("DELETE FROM procedure_template_item WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .delete()
                 .changed();
     }
@@ -154,8 +150,8 @@ public class ProcedureRepository {
                         JOIN procedure_template_item i
                         ON i.id = d.item_id
                 WHERE i.template_id = :template_id;""")
-                .single(Call.of().bind("template_id", templateId))
-                .map(row -> new int[]{row.getInt("item_id"), row.getInt("depends_on_item_id")})
+                .single(call().bind("template_id", templateId))
+                .map(row -> new int[] {row.getInt("item_id"), row.getInt("depends_on_item_id")})
                 .all();
     }
 
@@ -168,7 +164,7 @@ public class ProcedureRepository {
                     SELECT id
                     FROM procedure_template_item
                     WHERE template_id = :template_id
-                                 );""").single(Call.of().bind("template_id", templateId)).delete();
+                                 );""").single(call().bind("template_id", templateId)).delete();
         for (int[] dep : dependencies) {
             query("""
                     INSERT
@@ -177,7 +173,7 @@ public class ProcedureRepository {
                     VALUES
                         (:item_id, :depends_on_item_id)
                     ON CONFLICT DO NOTHING;""")
-                    .single(Call.of().bind("item_id", dep[0]).bind("depends_on_item_id", dep[1]))
+                    .single(call().bind("item_id", dep[0]).bind("depends_on_item_id", dep[1]))
                     .insert();
         }
     }
@@ -190,12 +186,12 @@ public class ProcedureRepository {
                     SELECT * FROM procedure
                     WHERE station_id = :station_id AND status = :status
                     ORDER BY created_at DESC;""")
-                    .single(Call.of().bind("station_id", stationId).bind("status", status))
+                    .single(call().bind("station_id", stationId).bind("status", status))
                     .map(Procedure.map())
                     .all();
         }
         return query("SELECT * FROM procedure WHERE station_id = :station_id ORDER BY created_at DESC;")
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(Procedure.map())
                 .all();
     }
@@ -215,10 +211,9 @@ public class ProcedureRepository {
                       AND pa.member_id = :member_id
                       AND p.status = :status %s
                     ORDER BY p.created_at DESC;""", publicFilter)
-                    .single(Call.of()
-                                .bind("station_id", stationId)
-                                .bind("member_id", memberId)
-                                .bind("status", status))
+                    .single(call().bind("station_id", stationId)
+                            .bind("member_id", memberId)
+                            .bind("status", status))
                     .map(Procedure.map())
                     .all();
         }
@@ -232,14 +227,14 @@ public class ProcedureRepository {
                 WHERE p.station_id = :station_id
                   AND pa.member_id = :member_id %s
                 ORDER BY p.created_at DESC;""", publicFilter)
-                .single(Call.of().bind("station_id", stationId).bind("member_id", memberId))
+                .single(call().bind("station_id", stationId).bind("member_id", memberId))
                 .map(Procedure.map())
                 .all();
     }
 
     public Optional<Procedure> findProcedureById(int id) {
         return query("SELECT * FROM procedure WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .map(Procedure.map())
                 .first();
     }
@@ -256,14 +251,13 @@ public class ProcedureRepository {
                 INSERT INTO procedure(station_id, template_id, name, description, public, assigned_by, due_at)
                 VALUES(:station_id, :template_id, :name, :description, :public, :assigned_by, :due_at)
                 RETURNING *;""")
-                .single(Call.of()
-                            .bind("station_id", stationId)
-                            .bind("template_id", templateId)
-                            .bind("name", name)
-                            .bind("description", description)
-                            .bind("public", isPublic)
-                            .bind("assigned_by", assignedBy)
-                            .bind("due_at", dueAt, INSTANT_TIMESTAMP))
+                .single(call().bind("station_id", stationId)
+                        .bind("template_id", templateId)
+                        .bind("name", name)
+                        .bind("description", description)
+                        .bind("public", isPublic)
+                        .bind("assigned_by", assignedBy)
+                        .bind("due_at", dueAt, INSTANT_TIMESTAMP))
                 .map(Procedure.map())
                 .first()
                 .orElseThrow();
@@ -278,12 +272,11 @@ public class ProcedureRepository {
                     public      = :public,
                     due_at      = :due_at
                 WHERE id = :id;""")
-                .single(Call.of()
-                            .bind("name", name)
-                            .bind("description", description)
-                            .bind("public", isPublic)
-                            .bind("due_at", dueAt, INSTANT_TIMESTAMP)
-                            .bind("id", id))
+                .single(call().bind("name", name)
+                        .bind("description", description)
+                        .bind("public", isPublic)
+                        .bind("due_at", dueAt, INSTANT_TIMESTAMP)
+                        .bind("id", id))
                 .update()
                 .changed();
     }
@@ -295,23 +288,19 @@ public class ProcedureRepository {
                             status      = 'RESOLVED',
                             resolved_at = now()
                         WHERE id = :id
-                          AND status = 'OPEN';""")
-                .single(Call.of().bind("id", id))
-                .update()
-                .changed();
+                          AND status = 'OPEN';""").single(call().bind("id", id)).update().changed();
     }
 
     public boolean reopenProcedure(int id) {
-        return query(
-                "UPDATE procedure SET status = 'OPEN', resolved_at = NULL WHERE id = :id AND status = 'RESOLVED';")
-                .single(Call.of().bind("id", id))
+        return query("UPDATE procedure SET status = 'OPEN', resolved_at = NULL WHERE id = :id AND status = 'RESOLVED';")
+                .single(call().bind("id", id))
                 .update()
                 .changed();
     }
 
     public boolean deleteProcedure(int id) {
         return query("DELETE FROM procedure WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .delete()
                 .changed();
     }
@@ -320,7 +309,7 @@ public class ProcedureRepository {
 
     public List<Integer> findAssigneeIds(int procedureId) {
         return query("SELECT member_id FROM procedure_assignee WHERE procedure_id = :procedure_id;")
-                .single(Call.of().bind("procedure_id", procedureId))
+                .single(call().bind("procedure_id", procedureId))
                 .map(row -> row.getInt("member_id"))
                 .all();
     }
@@ -333,14 +322,13 @@ public class ProcedureRepository {
                 VALUES
                     (:procedure_id, :member_id)
                 ON CONFLICT DO NOTHING;""")
-                .single(Call.of().bind("procedure_id", procedureId).bind("member_id", memberId))
+                .single(call().bind("procedure_id", procedureId).bind("member_id", memberId))
                 .insert();
     }
 
     public boolean removeAssignee(int procedureId, int memberId) {
-        return query(
-                "DELETE FROM procedure_assignee WHERE procedure_id = :procedure_id AND member_id = :member_id;")
-                .single(Call.of().bind("procedure_id", procedureId).bind("member_id", memberId))
+        return query("DELETE FROM procedure_assignee WHERE procedure_id = :procedure_id AND member_id = :member_id;")
+                .single(call().bind("procedure_id", procedureId).bind("member_id", memberId))
                 .delete()
                 .changed();
     }
@@ -349,14 +337,14 @@ public class ProcedureRepository {
 
     public List<ProcedureItem> findItems(int procedureId) {
         return query("SELECT * FROM procedure_item WHERE procedure_id = :procedure_id ORDER BY position;")
-                .single(Call.of().bind("procedure_id", procedureId))
+                .single(call().bind("procedure_id", procedureId))
                 .map(ProcedureItem.map())
                 .all();
     }
 
     public Optional<ProcedureItem> findItemById(int id) {
         return query("SELECT * FROM procedure_item WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .map(ProcedureItem.map())
                 .first();
     }
@@ -370,13 +358,12 @@ public class ProcedureRepository {
                 VALUES
                     (:procedure_id, :title, :description, :public, :user_assigned, :position)
                 RETURNING *;""")
-                .single(Call.of()
-                            .bind("procedure_id", procedureId)
-                            .bind("title", title)
-                            .bind("description", description)
-                            .bind("public", isPublic)
-                            .bind("user_assigned", userAssigned)
-                            .bind("position", position))
+                .single(call().bind("procedure_id", procedureId)
+                        .bind("title", title)
+                        .bind("description", description)
+                        .bind("public", isPublic)
+                        .bind("user_assigned", userAssigned)
+                        .bind("position", position))
                 .map(ProcedureItem.map())
                 .first()
                 .orElseThrow();
@@ -393,20 +380,19 @@ public class ProcedureRepository {
                     user_assigned = :user_assigned,
                     position      = :position
                 WHERE id = :id;""")
-                .single(Call.of()
-                            .bind("title", title)
-                            .bind("description", description)
-                            .bind("public", isPublic)
-                            .bind("user_assigned", userAssigned)
-                            .bind("position", position)
-                            .bind("id", id))
+                .single(call().bind("title", title)
+                        .bind("description", description)
+                        .bind("public", isPublic)
+                        .bind("user_assigned", userAssigned)
+                        .bind("position", position)
+                        .bind("id", id))
                 .update()
                 .changed();
     }
 
     public boolean deleteItem(int id) {
         return query("DELETE FROM procedure_item WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .delete()
                 .changed();
     }
@@ -415,7 +401,7 @@ public class ProcedureRepository {
         return query("""
                 UPDATE procedure_item SET checked = TRUE, checked_at = now(), checked_by = :checked_by
                 WHERE id = :id AND checked = FALSE;""")
-                .single(Call.of().bind("checked_by", checkedBy).bind("id", id))
+                .single(call().bind("checked_by", checkedBy).bind("id", id))
                 .update()
                 .changed();
     }
@@ -428,15 +414,12 @@ public class ProcedureRepository {
                     checked_at = NULL,
                     checked_by = NULL
                 WHERE id = :id
-                  AND checked;""")
-                .single(Call.of().bind("id", id))
-                .update()
-                .changed();
+                  AND checked;""").single(call().bind("id", id)).update().changed();
     }
 
     public boolean updateItemNote(int id, String note) {
         return query("UPDATE procedure_item SET note = :note WHERE id = :id;")
-                .single(Call.of().bind("note", note).bind("id", id))
+                .single(call().bind("note", note).bind("id", id))
                 .update()
                 .changed();
     }
@@ -453,8 +436,8 @@ public class ProcedureRepository {
                         JOIN procedure_item i
                         ON i.id = d.item_id
                 WHERE i.procedure_id = :procedure_id;""")
-                .single(Call.of().bind("procedure_id", procedureId))
-                .map(row -> new int[]{row.getInt("item_id"), row.getInt("depends_on_item_id")})
+                .single(call().bind("procedure_id", procedureId))
+                .map(row -> new int[] {row.getInt("item_id"), row.getInt("depends_on_item_id")})
                 .all();
     }
 
@@ -467,8 +450,7 @@ public class ProcedureRepository {
                     SELECT id
                     FROM procedure_item
                     WHERE procedure_id = :procedure_id
-                                 );""")
-                .single(Call.of().bind("procedure_id", procedureId)).delete();
+                                 );""").single(call().bind("procedure_id", procedureId)).delete();
         for (int[] dep : dependencies) {
             addItemDependency(dep[0], dep[1]);
         }
@@ -482,7 +464,7 @@ public class ProcedureRepository {
                 VALUES
                     (:item_id, :depends_on_item_id)
                 ON CONFLICT DO NOTHING;""")
-                .single(Call.of().bind("item_id", itemId).bind("depends_on_item_id", dependsOnItemId))
+                .single(call().bind("item_id", itemId).bind("depends_on_item_id", dependsOnItemId))
                 .insert();
     }
 
@@ -496,13 +478,12 @@ public class ProcedureRepository {
                 VALUES
                     (:procedure_id, :title, :description, :public, :user_assigned, :position)
                 RETURNING *;""")
-                .single(Call.of()
-                            .bind("procedure_id", procedureId)
-                            .bind("title", item.title())
-                            .bind("description", item.description())
-                            .bind("public", item.isPublic())
-                            .bind("user_assigned", item.userAssigned())
-                            .bind("position", item.position()))
+                .single(call().bind("procedure_id", procedureId)
+                        .bind("title", item.title())
+                        .bind("description", item.description())
+                        .bind("public", item.isPublic())
+                        .bind("user_assigned", item.userAssigned())
+                        .bind("position", item.position()))
                 .map(ProcedureItem.map())
                 .first()
                 .orElseThrow();
@@ -536,7 +517,7 @@ public class ProcedureRepository {
                     WHERE d.item_id = pi.id
                       AND NOT dep.checked
                                  );""")
-                .single(Call.of().bind("station_id", stationId).bind("member_id", memberId))
+                .single(call().bind("station_id", stationId).bind("member_id", memberId))
                 .map(row -> row.getInt("count"))
                 .first()
                 .orElse(0);
@@ -544,7 +525,7 @@ public class ProcedureRepository {
 
     public int countOpenByStation(int stationId) {
         return query("SELECT count(*) FROM procedure WHERE station_id = :station_id AND status = 'OPEN';")
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(row -> row.getInt("count"))
                 .first()
                 .orElse(0);

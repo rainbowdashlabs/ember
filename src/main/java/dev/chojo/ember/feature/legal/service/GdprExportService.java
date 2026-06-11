@@ -5,8 +5,6 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
-import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -28,6 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
  * Service for exporting all personal data associated with an account or station member
@@ -160,9 +161,9 @@ public class GdprExportService {
 
     private void addKbFiles(ZipOutputStream zip, int memberId) throws IOException {
         // Find KB files created by this member
-        var files = Query.query(
+        var files = query(
                         "SELECT kf.id, kf.name, kf.file_type FROM kb_file kf JOIN kb_file_version kfv ON kfv.file_id = kf.id WHERE kfv.version = 1 AND kfv.created_by = :member_id")
-                .single(Call.of().bind("member_id", memberId))
+                .single(call().bind("member_id", memberId))
                 .map(row -> new KbFileEntry(row.getInt("id"), row.getString("name"), row.getString("file_type")))
                 .all();
 
@@ -174,8 +175,8 @@ public class GdprExportService {
 
             if ("MARKDOWN".equals(fileType) || "TEXT".equals(fileType)) {
                 // Get text content from DB
-                var textOpt = Query.query("SELECT text_content FROM kb_file_content WHERE file_id = :id")
-                        .single(Call.of().bind("id", fileId))
+                var textOpt = query("SELECT text_content FROM kb_file_content WHERE file_id = :id")
+                        .single(call().bind("id", fileId))
                         .map(row -> row.getString("text_content"))
                         .first();
                 if (textOpt.isPresent() && textOpt.get() != null) {
@@ -363,13 +364,12 @@ public class GdprExportService {
         if (memberUid != null) {
             data.put(
                     "newsAuthored",
-                    Query.query("""
+                    query("""
                     SELECT title, published_at, created_at
                     FROM news
                     WHERE author_member_uid = :uid::uuid
                     ORDER BY created_at DESC""")
-                            .single(Call.of()
-                                    .bind(
+                            .single(call().bind(
                                             "uid",
                                             memberUid,
                                             de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING))
@@ -386,14 +386,13 @@ public class GdprExportService {
             // News comments
             data.put(
                     "newsComments",
-                    Query.query("""
+                    query("""
                     SELECT n.title AS news_title, nc.content, nc.created_at
                     FROM news_comment nc
                     JOIN news n ON n.id = nc.news_id
                     WHERE nc.author_member_uid = :uid::uuid
                     ORDER BY nc.created_at DESC""")
-                            .single(Call.of()
-                                    .bind(
+                            .single(call().bind(
                                             "uid",
                                             memberUid,
                                             de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING))
@@ -444,8 +443,8 @@ public class GdprExportService {
 
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> queryRows(String sql, int id) {
-        return (List<Map<String, Object>>) (List<?>) Query.query(sql)
-                .single(Call.of().bind("id", id))
+        return (List<Map<String, Object>>) (List<?>) query(sql)
+                .single(call().bind("id", id))
                 .map(row -> {
                     var meta = row.getMetaData();
                     var map = new LinkedHashMap<String, Object>();

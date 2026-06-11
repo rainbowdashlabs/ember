@@ -5,12 +5,13 @@
  */
 package dev.chojo.ember.feature.mail.repository;
 
-import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
 import java.util.List;
+
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
  * Repository for the email queue, managing enqueuing, fetching, status updates, rate limiting,
@@ -39,10 +40,9 @@ public class EmailQueueRepository {
      * @param stationId the station ID (null for system emails)
      */
     public void enqueue(String recipient, String subject, String body, Integer stationId) {
-        Query.query(
+        query(
                         "INSERT INTO email_queue(recipient, subject, body, station_id) VALUES(:recipient, :subject, :body, :station_id);")
-                .single(Call.of()
-                        .bind("recipient", recipient)
+                .single(call().bind("recipient", recipient)
                         .bind("subject", subject)
                         .bind("body", body)
                         .bind("station_id", stationId))
@@ -56,13 +56,13 @@ public class EmailQueueRepository {
      * @return the list of emails now in SENDING state
      */
     public List<QueuedEmail> fetchPending(int limit) {
-        return Query.query("""
+        return query("""
                             UPDATE email_queue SET status = 'SENDING'
                             WHERE id IN (
                                 SELECT id FROM email_queue WHERE status = 'PENDING' ORDER BY created_at LIMIT :limit
                             )
                             RETURNING id, recipient, subject, body, station_id;""")
-                .single(Call.of().bind("limit", limit))
+                .single(call().bind("limit", limit))
                 .map(row -> new QueuedEmail(
                         row.getInt("id"),
                         row.getString("recipient"),
@@ -78,8 +78,8 @@ public class EmailQueueRepository {
      * @param id the queued email ID
      */
     public void markSent(int id) {
-        Query.query("UPDATE email_queue SET status = 'SENT' WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        query("UPDATE email_queue SET status = 'SENT' WHERE id = :id;")
+                .single(call().bind("id", id))
                 .update();
     }
 
@@ -89,8 +89,8 @@ public class EmailQueueRepository {
      * @param id the queued email ID
      */
     public void markFailed(int id) {
-        Query.query("UPDATE email_queue SET status = 'FAILED' WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        query("UPDATE email_queue SET status = 'FAILED' WHERE id = :id;")
+                .single(call().bind("id", id))
                 .update();
     }
 
@@ -100,8 +100,8 @@ public class EmailQueueRepository {
      * @param id the queued email ID
      */
     public void requeue(int id) {
-        Query.query("UPDATE email_queue SET status = 'PENDING' WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        query("UPDATE email_queue SET status = 'PENDING' WHERE id = :id;")
+                .single(call().bind("id", id))
                 .update();
     }
 
@@ -111,7 +111,7 @@ public class EmailQueueRepository {
      * @return the pending email count
      */
     public int pendingCount() {
-        return Query.query("SELECT count(*) FROM email_queue WHERE status = 'PENDING';")
+        return query("SELECT count(*) FROM email_queue WHERE status = 'PENDING';")
                 .single()
                 .map(row -> row.getInt(1))
                 .first()
@@ -125,8 +125,8 @@ public class EmailQueueRepository {
      * @return the count of emails sent on that day
      */
     public int getDailyCount(LocalDate day) {
-        return Query.query("SELECT count FROM email_daily_count WHERE day = :day;")
-                .single(Call.of().bind("day", day))
+        return query("SELECT count FROM email_daily_count WHERE day = :day;")
+                .single(call().bind("day", day))
                 .map(row -> row.getInt("count"))
                 .first()
                 .orElse(0);
@@ -138,9 +138,9 @@ public class EmailQueueRepository {
      * @param day the date to increment
      */
     public void incrementDailyCount(LocalDate day) {
-        Query.query("""
+        query("""
                 INSERT INTO email_daily_count(day, count) VALUES(:day, 1)
-                ON CONFLICT (day) DO UPDATE SET count = email_daily_count.count + 1;""").single(Call.of().bind("day", day)).insert();
+                ON CONFLICT (day) DO UPDATE SET count = email_daily_count.count + 1;""").single(call().bind("day", day)).insert();
     }
 
     /**
@@ -149,12 +149,12 @@ public class EmailQueueRepository {
      * @param keepDays the number of days to retain entries
      */
     public void cleanupOldEntries(int keepDays) {
-        Query.query(
+        query(
                         "DELETE FROM email_queue WHERE status IN ('SENT', 'FAILED') AND created_at < now() - make_interval(days => :days);")
-                .single(Call.of().bind("days", keepDays))
+                .single(call().bind("days", keepDays))
                 .delete();
-        Query.query("DELETE FROM email_daily_count WHERE day < :cutoff;")
-                .single(Call.of().bind("cutoff", LocalDate.now().minusDays(keepDays)))
+        query("DELETE FROM email_daily_count WHERE day < :cutoff;")
+                .single(call().bind("cutoff", LocalDate.now().minusDays(keepDays)))
                 .delete();
     }
 

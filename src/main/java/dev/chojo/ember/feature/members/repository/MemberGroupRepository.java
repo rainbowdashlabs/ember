@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.members.repository;
 
-import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Permission;
@@ -15,6 +14,7 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
@@ -28,7 +28,7 @@ public class MemberGroupRepository {
      */
     public Optional<MemberGroup> findById(int id) {
         return query("SELECT * FROM member_group WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .map(MemberGroup.map())
                 .first();
     }
@@ -38,7 +38,7 @@ public class MemberGroupRepository {
      */
     public List<MemberGroup> findByStation(int stationId) {
         return query("SELECT * FROM member_group WHERE station_id = :station_id ORDER BY position DESC, name;")
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(MemberGroup.map())
                 .all();
     }
@@ -51,7 +51,7 @@ public class MemberGroupRepository {
                         INSERT INTO member_group(station_id, name, position)
                         VALUES(:station_id, :name, COALESCE((SELECT MAX(position) + 1 FROM member_group WHERE station_id = :station_id), 0))
                         RETURNING *;""")
-                .single(Call.of().bind("station_id", stationId).bind("name", name))
+                .single(call().bind("station_id", stationId).bind("name", name))
                 .map(MemberGroup.map())
                 .first()
                 .orElseThrow();
@@ -62,8 +62,7 @@ public class MemberGroupRepository {
      */
     public boolean update(int id, String name, String color, int position) {
         return query("UPDATE member_group SET name = :name, color = :color, position = :position WHERE id = :id;")
-                .single(Call.of()
-                        .bind("name", name)
+                .single(call().bind("name", name)
                         .bind("color", color)
                         .bind("position", position)
                         .bind("id", id))
@@ -76,7 +75,7 @@ public class MemberGroupRepository {
      */
     public boolean delete(int id) {
         return query("DELETE FROM member_group WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .delete()
                 .changed();
     }
@@ -95,7 +94,7 @@ public class MemberGroupRepository {
                         JOIN member_group_entry mge
                         ON sm.id = mge.member_id
                 WHERE mge.group_id = :group_id AND NOT sm.former;""")
-                .single(Call.of().bind("group_id", groupId))
+                .single(call().bind("group_id", groupId))
                 .map(StationMember.map())
                 .all();
     }
@@ -110,7 +109,7 @@ public class MemberGroupRepository {
                 JOIN member_group_entry mge ON mg.id = mge.group_id
                 WHERE mge.member_id = :member_id
                 ORDER BY mg.position DESC, mg.name;""")
-                .single(Call.of().bind("member_id", memberId))
+                .single(call().bind("member_id", memberId))
                 .map(MemberGroup.map())
                 .all();
     }
@@ -120,7 +119,7 @@ public class MemberGroupRepository {
      */
     public InsertionResult addMember(int groupId, int memberId) {
         return query("INSERT INTO member_group_entry(group_id, member_id) VALUES(:group_id, :member_id);")
-                .single(Call.of().bind("group_id", groupId).bind("member_id", memberId))
+                .single(call().bind("group_id", groupId).bind("member_id", memberId))
                 .insert();
     }
 
@@ -129,7 +128,7 @@ public class MemberGroupRepository {
      */
     public boolean removeMember(int groupId, int memberId) {
         return query("DELETE FROM member_group_entry WHERE group_id = :group_id AND member_id = :member_id;")
-                .single(Call.of().bind("group_id", groupId).bind("member_id", memberId))
+                .single(call().bind("group_id", groupId).bind("member_id", memberId))
                 .delete()
                 .changed();
     }
@@ -145,7 +144,7 @@ public class MemberGroupRepository {
                 FROM station_permission sp
                 JOIN member_group_permission mgp ON sp.id = mgp.permission_id
                 WHERE mgp.group_id = :group_id;""")
-                .single(Call.of().bind("group_id", groupId))
+                .single(call().bind("group_id", groupId))
                 .map(Permission.map())
                 .all();
     }
@@ -156,7 +155,7 @@ public class MemberGroupRepository {
     public InsertionResult addGroupPermission(int groupId, int permissionId) {
         return query(
                         "INSERT INTO member_group_permission(group_id, permission_id) VALUES(:group_id, :permission_id) ON CONFLICT DO NOTHING;")
-                .single(Call.of().bind("group_id", groupId).bind("permission_id", permissionId))
+                .single(call().bind("group_id", groupId).bind("permission_id", permissionId))
                 .insert();
     }
 
@@ -166,7 +165,7 @@ public class MemberGroupRepository {
     public boolean removeGroupPermission(int groupId, int permissionId) {
         return query(
                         "DELETE FROM member_group_permission WHERE group_id = :group_id AND permission_id = :permission_id;")
-                .single(Call.of().bind("group_id", groupId).bind("permission_id", permissionId))
+                .single(call().bind("group_id", groupId).bind("permission_id", permissionId))
                 .delete()
                 .changed();
     }
@@ -181,7 +180,7 @@ public class MemberGroupRepository {
                 JOIN member_group_permission mgp ON sp.id = mgp.permission_id
                 JOIN member_group_entry mge ON mgp.group_id = mge.group_id
                 WHERE mge.member_id = :member_id;""")
-                .single(Call.of().bind("member_id", memberId))
+                .single(call().bind("member_id", memberId))
                 .map(Permission.map())
                 .all();
     }

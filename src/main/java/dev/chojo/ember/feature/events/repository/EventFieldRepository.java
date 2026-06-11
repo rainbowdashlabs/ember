@@ -6,14 +6,15 @@
 package dev.chojo.ember.feature.events.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
-import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import jakarta.inject.Singleton;
 
 import java.util.List;
+
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 
 @Singleton
 public class EventFieldRepository {
@@ -22,30 +23,30 @@ public class EventFieldRepository {
             "id, event_id, name, field_type, config, value, position, overview, attendance_field_id, \"public\"";
 
     public List<EventField> findByEvent(int eventId) {
-        return Query.query("SELECT " + ALL_COLUMNS + " FROM event_field WHERE event_id = :event_id ORDER BY position;")
-                .single(Call.of().bind("event_id", eventId))
+        return query("SELECT " + ALL_COLUMNS + " FROM event_field WHERE event_id = :event_id ORDER BY position;")
+                .single(call().bind("event_id", eventId))
                 .map(EventField.map())
                 .all();
     }
 
     public List<EventField> findOverviewFieldsByEvents(List<Integer> eventIds) {
         if (eventIds.isEmpty()) return List.of();
-        return Query.query(
+        return query(
                         "SELECT " + ALL_COLUMNS
                                 + " FROM event_field WHERE event_id = ANY(:event_ids) AND overview ORDER BY event_id, position;")
-                .single(Call.of().bind("event_ids", eventIds, PostgreSqlTypes.INTEGER))
+                .single(call().bind("event_ids", eventIds, PostgreSqlTypes.INTEGER))
                 .map(EventField.map())
                 .all();
     }
 
     public List<String> findDistinctFieldNames(int stationId) {
-        return Query.query("""
+        return query("""
                         SELECT DISTINCT ef.name
                         FROM event_field ef
                         JOIN station_event se ON se.id = ef.event_id
                         WHERE se.station_id = :station_id
                         ORDER BY ef.name;""")
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(row -> row.getString("name"))
                 .all();
     }
@@ -60,12 +61,11 @@ public class EventFieldRepository {
             boolean overview,
             Integer attendanceFieldId,
             boolean isPublic) {
-        return Query.query(
+        return query(
                         "INSERT INTO event_field(event_id, name, field_type, config, value, position, overview, attendance_field_id, \"public\")"
                                 + " VALUES (:event_id, :name, :field_type, :config::jsonb, :value, :position, :overview, :attendance_field_id, :public)"
                                 + " RETURNING " + ALL_COLUMNS + ";")
-                .single(Call.of()
-                        .bind("event_id", eventId)
+                .single(call().bind("event_id", eventId)
                         .bind("name", name)
                         .bind("field_type", fieldType)
                         .bind("config", config.toJson())
@@ -80,8 +80,8 @@ public class EventFieldRepository {
     }
 
     public void deleteByEvent(int eventId) {
-        Query.query("DELETE FROM event_field WHERE event_id = :event_id;")
-                .single(Call.of().bind("event_id", eventId))
+        query("DELETE FROM event_field WHERE event_id = :event_id;")
+                .single(call().bind("event_id", eventId))
                 .delete();
     }
 

@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.storage.service;
 
-import de.chojo.sadu.queries.api.call.Call;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
@@ -22,6 +21,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
@@ -88,7 +88,7 @@ public class StorageReconciliationService {
                 FROM kb_file
                 WHERE station_id = :station_id AND file_size > 0;
                 """)
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(row -> new UsageResult(row.getLong("total_bytes"), row.getInt("file_count")))
                 .first()
                 .orElse(new UsageResult(0, 0));
@@ -103,7 +103,7 @@ public class StorageReconciliationService {
                 JOIN board b ON b.id = t.board_id
                 WHERE b.station_id = :station_id;
                 """)
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(row -> new UsageResult(row.getLong("total_bytes"), row.getInt("file_count")))
                 .first()
                 .orElse(new UsageResult(0, 0));
@@ -117,7 +117,7 @@ public class StorageReconciliationService {
                 JOIN station_page sp ON sp.id = pi.page_id
                 WHERE sp.station_id = :station_id;
                 """)
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(row -> new UsageResult(row.getLong("total_bytes"), row.getInt("file_count")))
                 .first()
                 .orElse(new UsageResult(0, 0));
@@ -135,7 +135,7 @@ public class StorageReconciliationService {
                 SELECT f.id FROM kb_file f
                 WHERE f.station_id = :station_id AND f.folder_id IS NULL AND f.file_type = 'IMAGE';
                 """)
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(row -> row.getInt("id"))
                 .all();
         // Also get folders with icons
@@ -143,7 +143,7 @@ public class StorageReconciliationService {
                 SELECT DISTINCT kff.id FROM kb_file kff
                 WHERE kff.station_id = :station_id AND kff.file_type = 'MARKDOWN';
                 """)
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(row -> row.getInt("id"))
                 .all();
 
@@ -157,7 +157,7 @@ public class StorageReconciliationService {
 
         // KB inline images are at data/images/kb-images/{fileId}-{imageId}
         var kbFileIds = query("SELECT id FROM kb_file WHERE station_id = :station_id;")
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(row -> row.getInt("id"))
                 .all();
         Path kbImagesDir = Path.of("data", "images", "kb-images");
@@ -183,7 +183,7 @@ public class StorageReconciliationService {
                 JOIN quiz_catalog qc ON qc.id = qq.catalog_id
                 WHERE qc.station_id = :station_id;
                 """)
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(row -> row.getInt("id"))
                 .all();
         for (int questionId : questionIds) {
@@ -196,7 +196,7 @@ public class StorageReconciliationService {
         var lostFoundIds = query("""
                 SELECT id FROM lost_and_found_item WHERE station_id = :station_id;
                 """)
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(row -> row.getInt("id"))
                 .all();
         for (int itemId : lostFoundIds) {
@@ -214,7 +214,7 @@ public class StorageReconciliationService {
                 SELECT sm.uid FROM station_member sm
                 WHERE sm.station_id = :station_id;
                 """)
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(row -> row.getString("uid"))
                 .all();
 

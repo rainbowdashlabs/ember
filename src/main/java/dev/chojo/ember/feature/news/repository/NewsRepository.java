@@ -5,8 +5,6 @@
  */
 package dev.chojo.ember.feature.news.repository;
 
-import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.news.entity.News;
@@ -17,6 +15,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
@@ -41,12 +41,11 @@ public class NewsRepository {
      * @return the newly created news entry
      */
     public News create(int stationId, String title, String contentMarkdown, String contentHtml, MemberIdentity author) {
-        return Query.query("""
+        return query("""
                             INSERT INTO news(station_id, title, content_markdown, content_html, author_station_uid, author_member_uid, published_at)
                             VALUES(:station_id, :title, :content_markdown, :content_html, :author_station_uid::uuid, :author_member_uid::uuid, :published_at)
                             RETURNING\s""" + NEWS_COLUMNS_BARE + ";")
-                .single(Call.of()
-                        .bind("station_id", stationId)
+                .single(call().bind("station_id", stationId)
                         .bind("title", title)
                         .bind("content_markdown", contentMarkdown)
                         .bind("content_html", contentHtml)
@@ -71,8 +70,8 @@ public class NewsRepository {
      * @return the news article, or empty if not found
      */
     public Optional<News> findById(int id) {
-        return Query.query("SELECT " + NEWS_COLUMNS + " FROM news n WHERE n.id = :id;")
-                .single(Call.of().bind("id", id))
+        return query("SELECT " + NEWS_COLUMNS + " FROM news n WHERE n.id = :id;")
+                .single(call().bind("id", id))
                 .map(News.map())
                 .first();
     }
@@ -86,11 +85,10 @@ public class NewsRepository {
      * @return list of news articles
      */
     public List<News> findByStation(int stationId, int offset, int limit) {
-        return Query.query(
+        return query(
                         "SELECT " + NEWS_COLUMNS
                                 + " FROM news n WHERE n.station_id = :station_id ORDER BY n.published_at DESC LIMIT :limit OFFSET :offset;")
-                .single(Call.of()
-                        .bind("station_id", stationId)
+                .single(call().bind("station_id", stationId)
                         .bind("limit", limit)
                         .bind("offset", offset))
                 .map(News.map())
@@ -108,14 +106,13 @@ public class NewsRepository {
      * @return list of visible news articles
      */
     public List<News> findVisibleForMember(int stationId, int memberId, int offset, int limit) {
-        return Query.query("SELECT " + NEWS_COLUMNS + " FROM news n"
+        return query("SELECT " + NEWS_COLUMNS + " FROM news n"
                         + " WHERE n.station_id = :station_id"
                         + " AND n.published_at IS NOT NULL"
                         + " AND check_restriction('news_restriction', 'news_id', 'news', 'id', n.id, :member_id, 'NEWS_MANAGER')"
                         + " ORDER BY n.published_at DESC"
                         + " LIMIT :limit OFFSET :offset;")
-                .single(Call.of()
-                        .bind("station_id", stationId)
+                .single(call().bind("station_id", stationId)
                         .bind("member_id", memberId)
                         .bind("limit", limit)
                         .bind("offset", offset))
@@ -133,11 +130,10 @@ public class NewsRepository {
      * @return {@code true} if a row was updated
      */
     public boolean update(int id, String title, String contentMarkdown, String contentHtml) {
-        return Query.query("""
+        return query("""
                             UPDATE news SET title = :title, content_markdown = :content_markdown, content_html = :content_html
                             WHERE id = :id;""")
-                .single(Call.of()
-                        .bind("id", id)
+                .single(call().bind("id", id)
                         .bind("title", title)
                         .bind("content_markdown", contentMarkdown)
                         .bind("content_html", contentHtml))
@@ -152,26 +148,25 @@ public class NewsRepository {
      * @return {@code true} if a row was deleted
      */
     public boolean delete(int id) {
-        return Query.query("DELETE FROM news WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        return query("DELETE FROM news WHERE id = :id;")
+                .single(call().bind("id", id))
                 .delete()
                 .changed();
     }
 
     public void updatePublicBlog(int id, boolean publicBlog) {
-        Query.query("UPDATE news SET public_blog = :public_blog WHERE id = :id;")
-                .single(Call.of().bind("id", id).bind("public_blog", publicBlog))
+        query("UPDATE news SET public_blog = :public_blog WHERE id = :id;")
+                .single(call().bind("id", id).bind("public_blog", publicBlog))
                 .update();
     }
 
     public List<News> findPublicBlogEntries(int stationId, int offset, int limit) {
-        return Query.query("SELECT " + NEWS_COLUMNS
+        return query("SELECT " + NEWS_COLUMNS
                         + " FROM news n WHERE n.station_id = :station_id"
                         + " AND n.public_blog = TRUE AND n.published_at IS NOT NULL"
                         + " AND NOT EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = n.id)"
                         + " ORDER BY n.published_at DESC LIMIT :limit OFFSET :offset;")
-                .single(Call.of()
-                        .bind("station_id", stationId)
+                .single(call().bind("station_id", stationId)
                         .bind("limit", limit)
                         .bind("offset", offset))
                 .map(News.map())
@@ -179,14 +174,14 @@ public class NewsRepository {
     }
 
     public boolean hasPublicBlogEntries(int stationId) {
-        return Query.query("""
+        return query("""
                         SELECT EXISTS(
                             SELECT 1 FROM news n
                             WHERE n.station_id = :station_id AND n.public_blog = TRUE
                             AND n.published_at IS NOT NULL
                             AND NOT EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = n.id)
                         ) AS exists;""")
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(row -> row.getBoolean("exists"))
                 .first()
                 .orElse(false);
@@ -204,12 +199,11 @@ public class NewsRepository {
      * @return the newly created comment
      */
     public NewsComment createComment(int newsId, Integer parentId, MemberIdentity author, String content) {
-        return Query.query("""
+        return query("""
                             INSERT INTO news_comment(news_id, parent_id, author_station_uid, author_member_uid, content)
                             VALUES(:news_id, :parent_id, :author_station_uid::uuid, :author_member_uid::uuid, :content)
                             RETURNING *;""")
-                .single(Call.of()
-                        .bind("news_id", newsId)
+                .single(call().bind("news_id", newsId)
                         .bind("parent_id", parentId)
                         .bind(
                                 "author_station_uid",
@@ -232,9 +226,9 @@ public class NewsRepository {
      * @return list of comments
      */
     public List<NewsComment> findCommentsByNews(int newsId) {
-        return Query.query(
+        return query(
                         "SELECT id, news_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at FROM news_comment WHERE news_id = :news_id ORDER BY created_at ASC;")
-                .single(Call.of().bind("news_id", newsId))
+                .single(call().bind("news_id", newsId))
                 .map(NewsComment.map())
                 .all();
     }
@@ -246,8 +240,8 @@ public class NewsRepository {
      * @return comment count
      */
     public int countComments(int newsId) {
-        return Query.query("SELECT count(*) AS cnt FROM news_comment WHERE news_id = :news_id;")
-                .single(Call.of().bind("news_id", newsId))
+        return query("SELECT count(*) AS cnt FROM news_comment WHERE news_id = :news_id;")
+                .single(call().bind("news_id", newsId))
                 .map(row -> row.getInt("cnt"))
                 .first()
                 .orElse(0);
@@ -260,9 +254,9 @@ public class NewsRepository {
      * @return the comment, or empty if not found
      */
     public Optional<NewsComment> findCommentById(int id) {
-        return Query.query(
+        return query(
                         "SELECT id, news_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at FROM news_comment WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .map(NewsComment.map())
                 .first();
     }
@@ -275,8 +269,8 @@ public class NewsRepository {
      * @return {@code true} if a row was updated
      */
     public boolean updateComment(int id, String content) {
-        return Query.query("UPDATE news_comment SET content = :content WHERE id = :id;")
-                .single(Call.of().bind("id", id).bind("content", content))
+        return query("UPDATE news_comment SET content = :content WHERE id = :id;")
+                .single(call().bind("id", id).bind("content", content))
                 .update()
                 .changed();
     }
@@ -290,13 +284,13 @@ public class NewsRepository {
     public boolean deleteComment(int id) {
         boolean hasChildren = hasCommentChildren(id);
         if (hasChildren) {
-            return Query.query("UPDATE news_comment SET deleted = TRUE, content = '' WHERE id = :id;")
-                    .single(Call.of().bind("id", id))
+            return query("UPDATE news_comment SET deleted = TRUE, content = '' WHERE id = :id;")
+                    .single(call().bind("id", id))
                     .update()
                     .changed();
         }
-        return Query.query("DELETE FROM news_comment WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        return query("DELETE FROM news_comment WHERE id = :id;")
+                .single(call().bind("id", id))
                 .delete()
                 .changed();
     }
@@ -308,8 +302,8 @@ public class NewsRepository {
      * @return {@code true} if the comment has children
      */
     public boolean hasCommentChildren(int id) {
-        return Query.query("SELECT EXISTS(SELECT 1 FROM news_comment WHERE parent_id = :id);")
-                .single(Call.of().bind("id", id))
+        return query("SELECT EXISTS(SELECT 1 FROM news_comment WHERE parent_id = :id);")
+                .single(call().bind("id", id))
                 .map(row -> row.getBoolean(1))
                 .first()
                 .orElse(false);
@@ -325,9 +319,9 @@ public class NewsRepository {
      */
     // Not yet exposed via routes — acknowledgement UI not implemented
     public void acknowledge(int newsId, int memberId) {
-        Query.query(
+        query(
                         "INSERT INTO news_acknowledgement(news_id, member_id) VALUES(:news_id, :member_id) ON CONFLICT DO NOTHING;")
-                .single(Call.of().bind("news_id", newsId).bind("member_id", memberId))
+                .single(call().bind("news_id", newsId).bind("member_id", memberId))
                 .insert();
     }
 
@@ -339,8 +333,8 @@ public class NewsRepository {
      * @return {@code true} if the member has acknowledged the article
      */
     public boolean isAcknowledged(int newsId, int memberId) {
-        return Query.query("SELECT 1 FROM news_acknowledgement WHERE news_id = :news_id AND member_id = :member_id;")
-                .single(Call.of().bind("news_id", newsId).bind("member_id", memberId))
+        return query("SELECT 1 FROM news_acknowledgement WHERE news_id = :news_id AND member_id = :member_id;")
+                .single(call().bind("news_id", newsId).bind("member_id", memberId))
                 .map(row -> true)
                 .first()
                 .isPresent();
@@ -354,13 +348,13 @@ public class NewsRepository {
      * @return number of unacknowledged news articles
      */
     public int countUnacknowledged(int stationId, int memberId) {
-        return Query.query("""
+        return query("""
                             SELECT count(*) AS cnt FROM news n
                             WHERE n.station_id = :station_id
                               AND n.published_at IS NOT NULL
                               AND NOT exists (SELECT 1 FROM news_acknowledgement na WHERE na.news_id = n.id AND na.member_id = :member_id)
                               AND check_restriction('news_restriction', 'news_id', 'news', 'id', n.id, :member_id, 'NEWS_MANAGER');""")
-                .single(Call.of().bind("station_id", stationId).bind("member_id", memberId))
+                .single(call().bind("station_id", stationId).bind("member_id", memberId))
                 .map(row -> row.getInt("cnt"))
                 .first()
                 .orElse(0);

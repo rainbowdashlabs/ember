@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.station.service;
 
 import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -30,6 +29,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
  * Imports station data from a previously exported JSON structure.
@@ -471,11 +473,7 @@ public class StationImportService {
     }
 
     private int insertReturningId(String sql, Call call) {
-        return Query.query(sql)
-                .single(call)
-                .map(row -> row.getInt("id"))
-                .first()
-                .orElseThrow();
+        return query(sql).single(call).map(row -> row.getInt("id")).first().orElseThrow();
     }
 
     // -- Per-table import methods --
@@ -512,8 +510,7 @@ public class StationImportService {
                 } else {
                     newId = insertReturningId(
                             "INSERT INTO station_member(station_id, account_id, display_name, former) VALUES(:station_id, :account_id, :display_name, :former) RETURNING id;",
-                            Call.of()
-                                    .bind("station_id", stationId)
+                            call().bind("station_id", stationId)
                                     .bind("account_id", accountId)
                                     .bind("display_name", displayName)
                                     .bind("former", former));
@@ -521,8 +518,7 @@ public class StationImportService {
             } else {
                 newId = insertReturningId(
                         "INSERT INTO station_member(station_id, display_name, former) VALUES(:station_id, :display_name, :former) RETURNING id;",
-                        Call.of()
-                                .bind("station_id", stationId)
+                        call().bind("station_id", stationId)
                                 .bind("display_name", displayName)
                                 .bind("former", former));
             }
@@ -589,8 +585,7 @@ public class StationImportService {
             int oldId = intVal(group, "id");
             int newId = insertReturningId(
                     "INSERT INTO member_group(station_id, name, color, position) VALUES(:station_id, :name, :color, :position) RETURNING id;",
-                    Call.of()
-                            .bind("station_id", stationId)
+                    call().bind("station_id", stationId)
                             .bind("name", str(group, "name", ""))
                             .bind("color", str(group, "color", null))
                             .bind("position", intVal(group, "position")));
@@ -607,9 +602,9 @@ public class StationImportService {
             int groupId = idMap.get("group", intVal(gm, "group_id"));
             int memberId = idMap.get("member", intVal(gm, "member_id"));
             if (groupId > 0 && memberId > 0) {
-                Query.query(
+                query(
                                 "INSERT INTO member_group_entry(group_id, member_id) VALUES(:group_id, :member_id) ON CONFLICT DO NOTHING;")
-                        .single(Call.of().bind("group_id", groupId).bind("member_id", memberId))
+                        .single(call().bind("group_id", groupId).bind("member_id", memberId))
                         .insert();
                 count++;
             }
@@ -624,8 +619,7 @@ public class StationImportService {
             int oldId = intVal(tag, "id");
             int newId = insertReturningId(
                     "INSERT INTO user_tag(station_id, name, color, visible, position) VALUES(:station_id, :name, :color, :visible, :position) RETURNING id;",
-                    Call.of()
-                            .bind("station_id", stationId)
+                    call().bind("station_id", stationId)
                             .bind("name", str(tag, "name", ""))
                             .bind("color", str(tag, "color", null))
                             .bind("visible", boolVal(tag, "visible"))
@@ -643,9 +637,9 @@ public class StationImportService {
             int tagId = idMap.get("tag", intVal(tm, "tag_id"));
             int memberId = idMap.get("member", intVal(tm, "member_id"));
             if (tagId > 0 && memberId > 0) {
-                Query.query(
+                query(
                                 "INSERT INTO user_tag_entry(tag_id, member_id) VALUES(:tag_id, :member_id) ON CONFLICT DO NOTHING;")
-                        .single(Call.of().bind("tag_id", tagId).bind("member_id", memberId))
+                        .single(call().bind("tag_id", tagId).bind("member_id", memberId))
                         .insert();
                 count++;
             }
@@ -675,8 +669,7 @@ public class StationImportService {
             int oldId = intVal(pf, "id");
             int newId = insertReturningId(
                     "INSERT INTO profile_field(station_id, name, field_type, config, position, scope, keep_on_archive) VALUES(:station_id, :name, :field_type, :config::jsonb, :position, :scope, :keep) RETURNING id;",
-                    Call.of()
-                            .bind("station_id", stationId)
+                    call().bind("station_id", stationId)
                             .bind("name", str(pf, "name", ""))
                             .bind("field_type", str(pf, "field_type", "text"))
                             .bind("config", str(pf, "config", "{}"))
@@ -696,10 +689,9 @@ public class StationImportService {
             int memberId = idMap.get("member", intVal(pfv, "member_id"));
             int fieldId = idMap.get("profileField", intVal(pfv, "field_id"));
             if (memberId > 0 && fieldId > 0) {
-                Query.query(
+                query(
                                 "INSERT INTO profile_field_value(member_id, field_id, value) VALUES(:member_id, :field_id, :value::JSONB) ON CONFLICT DO NOTHING;")
-                        .single(Call.of()
-                                .bind("member_id", memberId)
+                        .single(call().bind("member_id", memberId)
                                 .bind("field_id", fieldId)
                                 .bind("value", str(pfv, "value", "{}")))
                         .insert();
@@ -716,8 +708,7 @@ public class StationImportService {
             int oldId = intVal(cat, "id");
             int newId = insertReturningId(
                     "INSERT INTO event_category(station_id, name, position, public, max_shown_events) VALUES(:station_id, :name, :position, :public, :max_shown) RETURNING id;",
-                    Call.of()
-                            .bind("station_id", stationId)
+                    call().bind("station_id", stationId)
                             .bind("name", str(cat, "name", ""))
                             .bind("position", intVal(cat, "position"))
                             .bind("public", boolVal(cat, "public"))
@@ -736,7 +727,7 @@ public class StationImportService {
             int oldId = intVal(tmpl, "id");
             int newId = insertReturningId(
                     "INSERT INTO attendance_template(station_id, name) VALUES(:station_id, :name) RETURNING id;",
-                    Call.of().bind("station_id", stationId).bind("name", str(tmpl, "name", "")));
+                    call().bind("station_id", stationId).bind("name", str(tmpl, "name", "")));
             idMap.put("attendanceTemplate", oldId, newId);
         }
         return templates.size();
@@ -752,8 +743,7 @@ public class StationImportService {
             if (templateId > 0) {
                 int newId = insertReturningId(
                         "INSERT INTO attendance_template_field(template_id, name, field_type, config, position) VALUES(:template_id, :name, :field_type, :config::jsonb, :position) RETURNING id;",
-                        Call.of()
-                                .bind("template_id", templateId)
+                        call().bind("template_id", templateId)
                                 .bind("name", str(field, "name", ""))
                                 .bind("field_type", str(field, "field_type", ""))
                                 .bind("config", str(field, "config", "{}"))
@@ -773,9 +763,9 @@ public class StationImportService {
             int templateId = idMap.get("attendanceTemplate", intVal(item, "template_id"));
             int groupId = idMap.get("group", intVal(item, "group_id"));
             if (templateId > 0 && groupId > 0) {
-                Query.query(
+                query(
                                 "INSERT INTO attendance_template_group(template_id, group_id) VALUES(:tid, :gid) ON CONFLICT DO NOTHING;")
-                        .single(Call.of().bind("tid", templateId).bind("gid", groupId))
+                        .single(call().bind("tid", templateId).bind("gid", groupId))
                         .insert();
                 count++;
             }
@@ -794,8 +784,7 @@ public class StationImportService {
             if (templateId > 0) {
                 int newId = insertReturningId(
                         "INSERT INTO attendance_session(template_id, start_time, end_time, created_at, event_id, title) VALUES(:tid, :start::timestamp, :end::timestamp, :created::timestamp, :eid, :title) RETURNING id;",
-                        Call.of()
-                                .bind("tid", templateId)
+                        call().bind("tid", templateId)
                                 .bind("start", str(item, "start_time", ""))
                                 .bind("end", str(item, "end_time", ""))
                                 .bind("created", str(item, "created_at", ""))
@@ -816,10 +805,9 @@ public class StationImportService {
             int sessionId = idMap.get("attendanceSession", intVal(item, "session_id"));
             int fieldId = idMap.get("attendanceTemplateField", intVal(item, "field_id"));
             if (sessionId > 0 && fieldId > 0) {
-                Query.query(
-                                "INSERT INTO attendance_session_field(session_id, field_id, value) VALUES(:sid, :fid, :value::jsonb) ON CONFLICT DO NOTHING;")
-                        .single(Call.of()
-                                .bind("sid", sessionId)
+                query(
+                                "INSERT INTO attendance_session_field(session_id, field_id, value) VALUES(:sid, :fid, :value::JSONB) ON CONFLICT DO NOTHING;")
+                        .single(call().bind("sid", sessionId)
                                 .bind("fid", fieldId)
                                 .bind("value", str(item, "value", "{}")))
                         .insert();
@@ -837,10 +825,9 @@ public class StationImportService {
             int sessionId = idMap.get("attendanceSession", intVal(item, "session_id"));
             int memberId = idMap.get("member", intVal(item, "member_id"));
             if (sessionId > 0 && memberId > 0) {
-                Query.query(
-                                "INSERT INTO attendance_entry(session_id, member_id, check_in, check_out, status, source) VALUES(:sid, :mid, :cin::timestamp, :cout::timestamp, :status, :source) ON CONFLICT DO NOTHING;")
-                        .single(Call.of()
-                                .bind("sid", sessionId)
+                query(
+                                "INSERT INTO attendance_entry(session_id, member_id, check_in, check_out, status, source) VALUES(:sid, :mid, :cin::TIMESTAMP, :cout::TIMESTAMP, :status, :source) ON CONFLICT DO NOTHING;")
+                        .single(call().bind("sid", sessionId)
                                 .bind("mid", memberId)
                                 .bind("cin", str(item, "check_in", null))
                                 .bind("cout", str(item, "check_out", null))
@@ -862,8 +849,7 @@ public class StationImportService {
             Integer groupId = item.get("group_id") != null ? idMap.get("group", intVal(item, "group_id")) : null;
             int newId = insertReturningId(
                     "INSERT INTO attendance_report_preset(station_id, name, role_name, group_id, period, rounding) VALUES(:sid, :name, :role_name, :group_id, :period, :rounding) RETURNING id;",
-                    Call.of()
-                            .bind("sid", stationId)
+                    call().bind("sid", stationId)
                             .bind("name", str(item, "name", ""))
                             .bind("role_name", str(item, "role_name", null))
                             .bind("group_id", groupId)
@@ -887,8 +873,7 @@ public class StationImportService {
                     event.get("category_id") != null ? idMap.get("eventCategory", intVal(event, "category_id")) : null;
             int newId = insertReturningId(
                     "INSERT INTO station_event(station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, restriction_mode, public, registration_limit, cancelled, cancelled_at, cancel_reason, min_registrations, threshold_date) VALUES(:station_id, :name, :desc, :event_type, :dow, :start::timestamptz, :end::timestamptz, :tmpl, :reg, :deadline::timestamp, :confirm, :cat, :restriction_mode, :public, :reg_limit, :cancelled, :cancelled_at::timestamptz, :cancel_reason, :min_reg, :threshold_date::timestamptz) RETURNING id;",
-                    Call.of()
-                            .bind("station_id", stationId)
+                    call().bind("station_id", stationId)
                             .bind("name", str(event, "name", ""))
                             .bind("desc", str(event, "description", null))
                             .bind("event_type", str(event, "event_type", "ONE_TIME"))
@@ -926,8 +911,7 @@ public class StationImportService {
             int oldId = intVal(inv, "id");
             int newId = insertReturningId(
                     "INSERT INTO inventory(station_id, name, inventory_type, has_sizes) VALUES(:station_id, :name, :type, :has_sizes) RETURNING id;",
-                    Call.of()
-                            .bind("station_id", stationId)
+                    call().bind("station_id", stationId)
                             .bind("name", str(inv, "name", ""))
                             .bind("type", str(inv, "inventory_type", "INTERNAL"))
                             .bind("has_sizes", boolVal(inv, "has_sizes")));
@@ -946,8 +930,7 @@ public class StationImportService {
             if (inventoryId > 0) {
                 int newId = insertReturningId(
                         "INSERT INTO inventory_size(inventory_id, label, position, note) VALUES(:inv, :label, :pos, :note) RETURNING id;",
-                        Call.of()
-                                .bind("inv", inventoryId)
+                        call().bind("inv", inventoryId)
                                 .bind("label", str(size, "label", ""))
                                 .bind("pos", intVal(size, "position"))
                                 .bind("note", str(size, "note", "")));
@@ -971,8 +954,7 @@ public class StationImportService {
             if (inventoryId > 0) {
                 int newId = insertReturningId(
                         "INSERT INTO inventory_item(inventory_id, internal_id, name, size_id, metadata, assigned_to, lost_at, item_source) VALUES(:inv, :iid, :name, :sid, :meta::JSONB, :at, :lost_at::timestamp, :src) RETURNING id;",
-                        Call.of()
-                                .bind("inv", inventoryId)
+                        call().bind("inv", inventoryId)
                                 .bind("iid", str(item, "internal_id", null))
                                 .bind("name", str(item, "name", ""))
                                 .bind("sid", sizeId != null && sizeId > 0 ? sizeId : null)
@@ -998,8 +980,7 @@ public class StationImportService {
             }
             int newId = insertReturningId(
                     "INSERT INTO form(station_id, title, description, status, shuffle_questions, allow_edit, start_at, end_at, closed_at, created_by, created_at, updated_at, restriction_mode, forced) VALUES(:sid, :title, :desc, :status, :shuffle, :edit, :start_at::timestamp, :end_at::timestamp, :closed_at::timestamp, :by, :created_at::timestamp, :updated_at::timestamp, :restriction_mode, :forced) RETURNING id;",
-                    Call.of()
-                            .bind("sid", stationId)
+                    call().bind("sid", stationId)
                             .bind("title", str(form, "title", ""))
                             .bind("desc", str(form, "description", ""))
                             .bind("status", str(form, "status", "DRAFT"))
@@ -1028,8 +1009,7 @@ public class StationImportService {
             if (formId > 0) {
                 int newId = insertReturningId(
                         "INSERT INTO form_question(form_id, position, question_type, title, description, required, shuffle, config) VALUES(:fid, :pos, :qt, :title, :desc, :req, :shuf, :cfg::JSONB) RETURNING id;",
-                        Call.of()
-                                .bind("fid", formId)
+                        call().bind("fid", formId)
                                 .bind("pos", intVal(q, "position"))
                                 .bind("qt", str(q, "question_type", "TEXT"))
                                 .bind("title", str(q, "title", ""))
@@ -1054,10 +1034,9 @@ public class StationImportService {
             int memberId = idMap.get("member", intVal(ab, "member_id"));
             Integer createdBy = ab.get("created_by") != null ? idMap.get("member", intVal(ab, "created_by")) : null;
             if (memberId > 0) {
-                Query.query(
-                                "INSERT INTO member_absence(member_id, absent_from, absent_until, reason, created_at, created_by) VALUES(:member_id, :absent_from::date, :absent_until::date, :reason, :created_at::timestamptz, :created_by) ON CONFLICT DO NOTHING;")
-                        .single(Call.of()
-                                .bind("member_id", memberId)
+                query(
+                                "INSERT INTO member_absence(member_id, absent_from, absent_until, reason, created_at, created_by) VALUES(:member_id, :absent_from::DATE, :absent_until::DATE, :reason, :created_at::TIMESTAMPTZ, :created_by) ON CONFLICT DO NOTHING;")
+                        .single(call().bind("member_id", memberId)
                                 .bind("absent_from", str(ab, "absent_from", null))
                                 .bind("absent_until", str(ab, "absent_until", null))
                                 .bind("reason", str(ab, "reason", null))
@@ -1081,10 +1060,9 @@ public class StationImportService {
             int memberId = idMap.get("member", intVal(reg, "member_id"));
             Integer createdBy = reg.get("created_by") != null ? idMap.get("member", intVal(reg, "created_by")) : null;
             if (eventId > 0 && memberId > 0) {
-                Query.query(
-                                "INSERT INTO event_registration(event_id, member_id, event_date, status, created_by, created_at) VALUES(:event_id, :member_id, :event_date::date, :status, :created_by, :created_at::timestamptz) ON CONFLICT DO NOTHING;")
-                        .single(Call.of()
-                                .bind("event_id", eventId)
+                query(
+                                "INSERT INTO event_registration(event_id, member_id, event_date, status, created_by, created_at) VALUES(:event_id, :member_id, :event_date::DATE, :status, :created_by, :created_at::TIMESTAMPTZ) ON CONFLICT DO NOTHING;")
+                        .single(call().bind("event_id", eventId)
                                 .bind("member_id", memberId)
                                 .bind("event_date", str(reg, "event_date", null))
                                 .bind("status", str(reg, "status", "REGISTERED"))
@@ -1108,8 +1086,7 @@ public class StationImportService {
             if (eventId > 0) {
                 int newId = insertReturningId(
                         "INSERT INTO event_comment(event_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at) VALUES(:event_id, :parent_id, :author_station_uid::uuid, :author_member_uid::uuid, :content, :deleted, :created_at::timestamptz, :updated_at::timestamptz) RETURNING id;",
-                        Call.of()
-                                .bind("event_id", eventId)
+                        call().bind("event_id", eventId)
                                 .bind("parent_id", parentId != null && parentId > 0 ? parentId : null)
                                 .bind("author_station_uid", str(c, "author_station_uid", null))
                                 .bind("author_member_uid", str(c, "author_member_uid", null))
@@ -1136,8 +1113,7 @@ public class StationImportService {
                         : null;
                 int newId = insertReturningId(
                         "INSERT INTO event_field(event_id, name, value, position, field_type, config, overview, attendance_field_id, public) VALUES(:event_id, :name, :value, :position, :field_type, :config::jsonb, :overview, :attendance_field_id, :public) RETURNING id;",
-                        Call.of()
-                                .bind("event_id", eventId)
+                        call().bind("event_id", eventId)
                                 .bind("name", str(f, "name", ""))
                                 .bind("value", str(f, "value", ""))
                                 .bind("position", intVal(f, "position"))
@@ -1167,8 +1143,7 @@ public class StationImportService {
                     : null;
             int newId = insertReturningId(
                     "INSERT INTO event_template(station_id, name, title, description, category_id, event_type, requires_registration, registration_deadline_offset, requires_confirmation, restriction_mode, attendance_template_id, registration_limit) VALUES(:station_id, :name, :title, :desc, :cat, :event_type, :reg, :deadline_offset::interval, :confirm, :restriction_mode, :att_tmpl, :reg_limit) RETURNING id;",
-                    Call.of()
-                            .bind("station_id", stationId)
+                    call().bind("station_id", stationId)
                             .bind("name", str(tmpl, "name", ""))
                             .bind("title", str(tmpl, "title", null))
                             .bind("desc", str(tmpl, "description", null))
@@ -1205,10 +1180,9 @@ public class StationImportService {
     private int importEventBreaks(int stationId, Map<String, Object> data) {
         var breaks = (List<Map<String, Object>>) data.getOrDefault("eventBreaks", List.of());
         for (var br : breaks) {
-            Query.query(
-                            "INSERT INTO station_event_break(station_id, name, start_date, end_date) VALUES(:station_id, :name, :start_date::date, :end_date::date);")
-                    .single(Call.of()
-                            .bind("station_id", stationId)
+            query(
+                            "INSERT INTO station_event_break(station_id, name, start_date, end_date) VALUES(:station_id, :name, :start_date::DATE, :end_date::DATE);")
+                    .single(call().bind("station_id", stationId)
                             .bind("name", str(br, "name", ""))
                             .bind("start_date", str(br, "start_date", null))
                             .bind("end_date", str(br, "end_date", null)))
@@ -1226,8 +1200,7 @@ public class StationImportService {
             int oldId = intVal(n, "id");
             int newId = insertReturningId(
                     "INSERT INTO news(station_id, title, content_markdown, content_html, author_station_uid, author_member_uid, published_at, created_at, restriction_mode) VALUES(:station_id, :title, :content_markdown, :content_html, :author_station_uid::uuid, :author_member_uid::uuid, :published_at::timestamptz, :created_at::timestamptz, :restriction_mode) RETURNING id;",
-                    Call.of()
-                            .bind("station_id", stationId)
+                    call().bind("station_id", stationId)
                             .bind("title", str(n, "title", ""))
                             .bind("content_markdown", str(n, "content_markdown", ""))
                             .bind("content_html", str(n, "content_html", ""))
@@ -1252,8 +1225,7 @@ public class StationImportService {
             if (newsId > 0) {
                 int newId = insertReturningId(
                         "INSERT INTO news_comment(news_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at) VALUES(:news_id, :parent_id, :author_station_uid::uuid, :author_member_uid::uuid, :content, :deleted, :created_at::timestamptz) RETURNING id;",
-                        Call.of()
-                                .bind("news_id", newsId)
+                        call().bind("news_id", newsId)
                                 .bind("parent_id", parentId != null && parentId > 0 ? parentId : null)
                                 .bind("author_station_uid", str(c, "author_station_uid", null))
                                 .bind("author_member_uid", str(c, "author_member_uid", null))
@@ -1275,8 +1247,7 @@ public class StationImportService {
             int oldId = intVal(b, "id");
             int newId = insertReturningId(
                     "INSERT INTO board(station_id, uid, name, description, short_key, hide_done_after_days, ticket_counter, created_at) VALUES(:station_id, :uid::uuid, :name, :description, :short_key, :hide_done_after_days, :ticket_counter, :created_at::timestamptz) RETURNING id;",
-                    Call.of()
-                            .bind("station_id", stationId)
+                    call().bind("station_id", stationId)
                             .bind(
                                     "uid",
                                     str(b, "uid", java.util.UUID.randomUUID().toString()))
@@ -1300,8 +1271,7 @@ public class StationImportService {
             if (boardId > 0) {
                 int newId = insertReturningId(
                         "INSERT INTO board_lane(board_id, name, color, position) VALUES(:board_id, :name, :color, :position) RETURNING id;",
-                        Call.of()
-                                .bind("board_id", boardId)
+                        call().bind("board_id", boardId)
                                 .bind("name", str(lane, "name", ""))
                                 .bind("color", str(lane, "color", null))
                                 .bind("position", intVal(lane, "position")));
@@ -1321,8 +1291,8 @@ public class StationImportService {
                 int boardId = idMap.get("board", intVal(b, "id"));
                 int backlogLaneId = idMap.get("boardLane", intVal(b, "backlog_lane_id"));
                 if (boardId > 0 && backlogLaneId > 0) {
-                    Query.query("UPDATE board SET backlog_lane_id = :lane_id WHERE id = :board_id;")
-                            .single(Call.of().bind("lane_id", backlogLaneId).bind("board_id", boardId))
+                    query("UPDATE board SET backlog_lane_id = :lane_id WHERE id = :board_id;")
+                            .single(call().bind("lane_id", backlogLaneId).bind("board_id", boardId))
                             .update();
                 }
             }
@@ -1340,8 +1310,7 @@ public class StationImportService {
                 int oldId = intVal(f, "id");
                 int newId = insertReturningId(
                         "INSERT INTO board_field(board_id, name, field_type, config, position) VALUES(:board_id, :name, :field_type, :config::jsonb, :position) RETURNING id;",
-                        Call.of()
-                                .bind("board_id", boardId)
+                        call().bind("board_id", boardId)
                                 .bind("name", str(f, "name", ""))
                                 .bind("field_type", str(f, "field_type", "text"))
                                 .bind("config", str(f, "config", "{}"))
@@ -1362,8 +1331,7 @@ public class StationImportService {
             if (boardId > 0) {
                 int newId = insertReturningId(
                         "INSERT INTO board_label(board_id, name, color) VALUES(:board_id, :name, :color) RETURNING id;",
-                        Call.of()
-                                .bind("board_id", boardId)
+                        call().bind("board_id", boardId)
                                 .bind("name", str(l, "name", ""))
                                 .bind("color", str(l, "color", null)));
                 idMap.put("boardLabel", oldId, newId);
@@ -1382,8 +1350,7 @@ public class StationImportService {
             if (boardId > 0 && laneId > 0) {
                 int newId = insertReturningId(
                         "INSERT INTO board_ticket(board_id, lane_id, ticket_number, title, description, assignee_station_uid, assignee_member_uid, priority, due_date, position, creator_station_uid, creator_member_uid, created_at, updated_at, lane_entered_at) VALUES(:board_id, :lane_id, :ticket_number, :title, :description, :assignee_station_uid::uuid, :assignee_member_uid::uuid, :priority, :due_date::date, :position, :creator_station_uid::uuid, :creator_member_uid::uuid, :created_at::timestamptz, :updated_at::timestamptz, :lane_entered_at::timestamptz) RETURNING id;",
-                        Call.of()
-                                .bind("board_id", boardId)
+                        call().bind("board_id", boardId)
                                 .bind("lane_id", laneId)
                                 .bind("ticket_number", intVal(t, "ticket_number"))
                                 .bind("title", str(t, "title", ""))
@@ -1415,8 +1382,7 @@ public class StationImportService {
             if (ticketId > 0) {
                 int newId = insertReturningId(
                         "INSERT INTO board_ticket_comment(ticket_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at) VALUES(:ticket_id, :parent_id, :author_station_uid::uuid, :author_member_uid::uuid, :content, :deleted, :created_at::timestamptz, :updated_at::timestamptz) RETURNING id;",
-                        Call.of()
-                                .bind("ticket_id", ticketId)
+                        call().bind("ticket_id", ticketId)
                                 .bind("parent_id", parentId != null && parentId > 0 ? parentId : null)
                                 .bind("author_station_uid", str(c, "author_station_uid", null))
                                 .bind("author_member_uid", str(c, "author_member_uid", null))
@@ -1438,9 +1404,9 @@ public class StationImportService {
             int ticketId = idMap.get("boardTicket", intVal(l, "ticket_id"));
             int labelId = idMap.get("boardLabel", intVal(l, "label_id"));
             if (ticketId > 0 && labelId > 0) {
-                Query.query(
+                query(
                                 "INSERT INTO board_ticket_label(ticket_id, label_id) VALUES(:ticket_id, :label_id) ON CONFLICT DO NOTHING;")
-                        .single(Call.of().bind("ticket_id", ticketId).bind("label_id", labelId))
+                        .single(call().bind("ticket_id", ticketId).bind("label_id", labelId))
                         .insert();
                 count++;
             }
@@ -1455,10 +1421,9 @@ public class StationImportService {
         for (var item : items) {
             int ticketId = idMap.get("boardTicket", intVal(item, "ticket_id"));
             if (ticketId > 0) {
-                Query.query(
+                query(
                                 "INSERT INTO board_ticket_checklist_item(ticket_id, title, checked, position) VALUES(:ticket_id, :title, :checked, :position);")
-                        .single(Call.of()
-                                .bind("ticket_id", ticketId)
+                        .single(call().bind("ticket_id", ticketId)
                                 .bind("title", str(item, "title", ""))
                                 .bind("checked", boolVal(item, "checked"))
                                 .bind("position", intVal(item, "position")))
@@ -1477,10 +1442,9 @@ public class StationImportService {
             int ticketId = idMap.get("boardTicket", intVal(l, "ticket_id"));
             int linkedTicketId = idMap.get("boardTicket", intVal(l, "linked_ticket_id"));
             if (ticketId > 0 && linkedTicketId > 0) {
-                Query.query(
+                query(
                                 "INSERT INTO board_ticket_link(ticket_id, linked_ticket_id, link_type) VALUES(:ticket_id, :linked_ticket_id, :link_type) ON CONFLICT DO NOTHING;")
-                        .single(Call.of()
-                                .bind("ticket_id", ticketId)
+                        .single(call().bind("ticket_id", ticketId)
                                 .bind("linked_ticket_id", linkedTicketId)
                                 .bind("link_type", str(l, "link_type", "RELATED")))
                         .insert();
@@ -1497,10 +1461,9 @@ public class StationImportService {
         for (var w : weblinks) {
             int ticketId = idMap.get("boardTicket", intVal(w, "ticket_id"));
             if (ticketId > 0) {
-                Query.query(
+                query(
                                 "INSERT INTO board_ticket_weblink(ticket_id, url, title, position) VALUES(:ticket_id, :url, :title, :position);")
-                        .single(Call.of()
-                                .bind("ticket_id", ticketId)
+                        .single(call().bind("ticket_id", ticketId)
                                 .bind("url", str(w, "url", ""))
                                 .bind("title", str(w, "title", ""))
                                 .bind("position", intVal(w, "position")))
@@ -1520,10 +1483,9 @@ public class StationImportService {
             if (boardId > 0) {
                 Integer groupId = a.get("group_id") != null ? idMap.get("group", intVal(a, "group_id")) : null;
                 Integer tagId = a.get("tag_id") != null ? idMap.get("tag", intVal(a, "tag_id")) : null;
-                Query.query(
+                query(
                                 "INSERT INTO board_view_access(board_id, user_type, group_id, tag_id) VALUES(:board_id, :user_type, :group_id, :tag_id) ON CONFLICT DO NOTHING;")
-                        .single(Call.of()
-                                .bind("board_id", boardId)
+                        .single(call().bind("board_id", boardId)
                                 .bind("user_type", str(a, "user_type", null))
                                 .bind("group_id", groupId != null && groupId > 0 ? groupId : null)
                                 .bind("tag_id", tagId != null && tagId > 0 ? tagId : null))
@@ -1543,10 +1505,9 @@ public class StationImportService {
             if (boardId > 0) {
                 Integer groupId = a.get("group_id") != null ? idMap.get("group", intVal(a, "group_id")) : null;
                 Integer tagId = a.get("tag_id") != null ? idMap.get("tag", intVal(a, "tag_id")) : null;
-                Query.query(
+                query(
                                 "INSERT INTO board_edit_access(board_id, user_type, group_id, tag_id) VALUES(:board_id, :user_type, :group_id, :tag_id) ON CONFLICT DO NOTHING;")
-                        .single(Call.of()
-                                .bind("board_id", boardId)
+                        .single(call().bind("board_id", boardId)
                                 .bind("user_type", str(a, "user_type", null))
                                 .bind("group_id", groupId != null && groupId > 0 ? groupId : null)
                                 .bind("tag_id", tagId != null && tagId > 0 ? tagId : null))
@@ -1568,8 +1529,7 @@ public class StationImportService {
             Integer createdBy = item.get("created_by") != null ? idMap.get("member", intVal(item, "created_by")) : null;
             int newId = insertReturningId(
                     "INSERT INTO lost_and_found_item(station_id, description, found_at, claimed_by, claimed_at, created_by, created_at) VALUES(:station_id, :description, :found_at::date, :claimed_by, :claimed_at::timestamptz, :created_by, :created_at::timestamptz) RETURNING id;",
-                    Call.of()
-                            .bind("station_id", stationId)
+                    call().bind("station_id", stationId)
                             .bind("description", str(item, "description", ""))
                             .bind("found_at", str(item, "found_at", null))
                             .bind("claimed_by", claimedBy != null && claimedBy > 0 ? claimedBy : null)
@@ -1594,8 +1554,7 @@ public class StationImportService {
                     wl.get("join_group_id") != null ? idMap.get("group", intVal(wl, "join_group_id")) : null;
             int newId = insertReturningId(
                     "INSERT INTO waiting_list(station_id, name, description, scoring_formula, confirm_interval_days, visible_fields, testing_group_id, join_group_id, join_user_type, attendance_threshold, created_at) VALUES(:station_id, :name, :description, :scoring_formula, :confirm_interval_days, :visible_fields::jsonb, :testing_group_id, :join_group_id, :join_user_type, :attendance_threshold, :created_at::timestamp) RETURNING id;",
-                    Call.of()
-                            .bind("station_id", stationId)
+                    call().bind("station_id", stationId)
                             .bind("name", str(wl, "name", ""))
                             .bind("description", str(wl, "description", ""))
                             .bind("scoring_formula", str(wl, "scoring_formula", null))
@@ -1623,8 +1582,7 @@ public class StationImportService {
                 int oldId = intVal(f, "id");
                 int newId = insertReturningId(
                         "INSERT INTO waiting_list_field(list_id, name, field_type, config, required, position) VALUES(:list_id, :name, :field_type, :config::jsonb, :required, :position) RETURNING id;",
-                        Call.of()
-                                .bind("list_id", listId)
+                        call().bind("list_id", listId)
                                 .bind("name", str(f, "name", ""))
                                 .bind("field_type", str(f, "field_type", "text"))
                                 .bind("config", str(f, "config", "{}"))
@@ -1648,8 +1606,7 @@ public class StationImportService {
                 Integer memberId = e.get("member_id") != null ? idMap.get("member", intVal(e, "member_id")) : null;
                 int newId = insertReturningId(
                         "INSERT INTO waiting_list_entry(list_id, firstname, lastname, parent_name, email, access_token, status, confirmed_at, reminder_sent_at, created_at, notes, member_id, invited_at, testing_at, joined_at, withdrawn_at, attendance_count) VALUES(:list_id, :firstname, :lastname, :parent_name, :email, :access_token, :status, :confirmed_at::timestamp, :reminder_sent_at::timestamp, :created_at::timestamp, :notes, :member_id, :invited_at::timestamp, :testing_at::timestamp, :joined_at::timestamp, :withdrawn_at::timestamp, :attendance_count) RETURNING id;",
-                        Call.of()
-                                .bind("list_id", listId)
+                        call().bind("list_id", listId)
                                 .bind("firstname", str(e, "firstname", ""))
                                 .bind("lastname", str(e, "lastname", ""))
                                 .bind("parent_name", str(e, "parent_name", ""))
@@ -1688,8 +1645,7 @@ public class StationImportService {
             Integer updatedBy = n.get("updated_by") != null ? idMap.get("member", intVal(n, "updated_by")) : null;
             int newId = insertReturningId(
                     "INSERT INTO entity_note(entity_type, entity_id, station_id, content, updated_by, updated_at) VALUES(:entity_type, :entity_id, :station_id, :content, :updated_by, :updated_at::timestamptz) RETURNING id;",
-                    Call.of()
-                            .bind("entity_type", str(n, "entity_type", ""))
+                    call().bind("entity_type", str(n, "entity_type", ""))
                             .bind("entity_id", intVal(n, "entity_id"))
                             .bind("station_id", stationId)
                             .bind("content", str(n, "content", ""))
@@ -1708,10 +1664,9 @@ public class StationImportService {
             int noteId = idMap.get("entityNote", intVal(v, "note_id"));
             int authorId = idMap.get("member", intVal(v, "author_id"));
             if (noteId > 0 && authorId > 0) {
-                Query.query(
-                                "INSERT INTO entity_note_version(note_id, diff_patch, author_id, created_at) VALUES(:note_id, :diff_patch, :author_id, :created_at::timestamptz);")
-                        .single(Call.of()
-                                .bind("note_id", noteId)
+                query(
+                                "INSERT INTO entity_note_version(note_id, diff_patch, author_id, created_at) VALUES(:note_id, :diff_patch, :author_id, :created_at::TIMESTAMPTZ);")
+                        .single(call().bind("note_id", noteId)
                                 .bind("diff_patch", str(v, "diff_patch", ""))
                                 .bind("author_id", authorId)
                                 .bind("created_at", str(v, "created_at", null)))
@@ -1743,8 +1698,7 @@ public class StationImportService {
             if (memberId > 0 && inventoryId > 0) {
                 int newId = insertReturningId(
                         "INSERT INTO equipment_exchange_request(station_id, member_id, item_id, inventory_id, old_size_id, new_size_id, exchanged_item_id, status, reason, created_by, created_at, updated_at) VALUES(:station_id, :member_id, :item_id, :inventory_id, :old_size_id, :new_size_id, :exchanged_item_id, :status, :reason, :created_by, :created_at::timestamp, :updated_at::timestamp) RETURNING id;",
-                        Call.of()
-                                .bind("station_id", stationId)
+                        call().bind("station_id", stationId)
                                 .bind("member_id", memberId)
                                 .bind("item_id", itemId != null && itemId > 0 ? itemId : null)
                                 .bind("inventory_id", inventoryId)
@@ -1772,10 +1726,9 @@ public class StationImportService {
             int requestId = idMap.get("equipmentExchangeRequest", intVal(l, "request_id"));
             int changedBy = idMap.get("member", intVal(l, "changed_by"));
             if (requestId > 0 && changedBy > 0) {
-                Query.query(
-                                "INSERT INTO equipment_exchange_log(request_id, old_status, new_status, changed_by, changed_at, note) VALUES(:request_id, :old_status, :new_status, :changed_by, :changed_at::timestamp, :note);")
-                        .single(Call.of()
-                                .bind("request_id", requestId)
+                query(
+                                "INSERT INTO equipment_exchange_log(request_id, old_status, new_status, changed_by, changed_at, note) VALUES(:request_id, :old_status, :new_status, :changed_by, :changed_at::TIMESTAMP, :note);")
+                        .single(call().bind("request_id", requestId)
                                 .bind("old_status", str(l, "old_status", ""))
                                 .bind("new_status", str(l, "new_status", ""))
                                 .bind("changed_by", changedBy)
@@ -1797,10 +1750,9 @@ public class StationImportService {
             int memberId = idMap.get("member", intVal(p, "member_id"));
             Integer sizeId = p.get("size_id") != null ? idMap.get("inventorySize", intVal(p, "size_id")) : null;
             if (inventoryId > 0 && memberId > 0) {
-                Query.query(
-                                "INSERT INTO equipment_procurement(station_id, inventory_id, member_id, size_id, notes, requested_at, fulfilled_at) VALUES(:station_id, :inventory_id, :member_id, :size_id, :notes, :requested_at::timestamp, :fulfilled_at::timestamp);")
-                        .single(Call.of()
-                                .bind("station_id", stationId)
+                query(
+                                "INSERT INTO equipment_procurement(station_id, inventory_id, member_id, size_id, notes, requested_at, fulfilled_at) VALUES(:station_id, :inventory_id, :member_id, :size_id, :notes, :requested_at::TIMESTAMP, :fulfilled_at::TIMESTAMP);")
+                        .single(call().bind("station_id", stationId)
                                 .bind("inventory_id", inventoryId)
                                 .bind("member_id", memberId)
                                 .bind("size_id", sizeId != null && sizeId > 0 ? sizeId : null)
@@ -1827,8 +1779,7 @@ public class StationImportService {
             if (formId > 0 && memberId > 0 && submittedBy > 0) {
                 int newId = insertReturningId(
                         "INSERT INTO form_response(form_id, member_id, submitted_by, submitted_at, updated_at) VALUES(:form_id, :member_id, :submitted_by, :submitted_at::timestamp, :updated_at::timestamp) RETURNING id;",
-                        Call.of()
-                                .bind("form_id", formId)
+                        call().bind("form_id", formId)
                                 .bind("member_id", memberId)
                                 .bind("submitted_by", submittedBy)
                                 .bind("submitted_at", str(r, "submitted_at", null))
@@ -1847,10 +1798,9 @@ public class StationImportService {
             int responseId = idMap.get("formResponse", intVal(a, "response_id"));
             int questionId = idMap.get("formQuestion", intVal(a, "question_id"));
             if (responseId > 0 && questionId > 0) {
-                Query.query(
-                                "INSERT INTO form_answer(response_id, question_id, value) VALUES(:response_id, :question_id, :value::jsonb) ON CONFLICT DO NOTHING;")
-                        .single(Call.of()
-                                .bind("response_id", responseId)
+                query(
+                                "INSERT INTO form_answer(response_id, question_id, value) VALUES(:response_id, :question_id, :value::JSONB) ON CONFLICT DO NOTHING;")
+                        .single(call().bind("response_id", responseId)
                                 .bind("question_id", questionId)
                                 .bind("value", str(a, "value", "{}")))
                         .insert();
@@ -1870,10 +1820,9 @@ public class StationImportService {
                 Integer groupId = r.get("group_id") != null ? idMap.get("group", intVal(r, "group_id")) : null;
                 Integer tagId = r.get("tag_id") != null ? idMap.get("tag", intVal(r, "tag_id")) : null;
                 Integer memberId = r.get("member_id") != null ? idMap.get("member", intVal(r, "member_id")) : null;
-                Query.query(
+                query(
                                 "INSERT INTO form_restriction(form_id, user_type, group_id, tag_id, member_id) VALUES(:form_id, :user_type, :group_id, :tag_id, :member_id) ON CONFLICT DO NOTHING;")
-                        .single(Call.of()
-                                .bind("form_id", formId)
+                        .single(call().bind("form_id", formId)
                                 .bind("user_type", str(r, "user_type", null))
                                 .bind("group_id", groupId != null && groupId > 0 ? groupId : null)
                                 .bind("tag_id", tagId != null && tagId > 0 ? tagId : null)
@@ -1897,10 +1846,9 @@ public class StationImportService {
                 Integer groupId = r.get("group_id") != null ? idMap.get("group", intVal(r, "group_id")) : null;
                 Integer tagId = r.get("tag_id") != null ? idMap.get("tag", intVal(r, "tag_id")) : null;
                 Integer memberId = r.get("member_id") != null ? idMap.get("member", intVal(r, "member_id")) : null;
-                Query.query(
+                query(
                                 "INSERT INTO event_restriction(event_id, user_type, group_id, tag_id, member_id) VALUES(:event_id, :user_type, :group_id, :tag_id, :member_id) ON CONFLICT DO NOTHING;")
-                        .single(Call.of()
-                                .bind("event_id", eventId)
+                        .single(call().bind("event_id", eventId)
                                 .bind("user_type", str(r, "user_type", null))
                                 .bind("group_id", groupId != null && groupId > 0 ? groupId : null)
                                 .bind("tag_id", tagId != null && tagId > 0 ? tagId : null)
@@ -1919,7 +1867,7 @@ public class StationImportService {
             int oldId = intVal(l, "id");
             int newId = insertReturningId(
                     "INSERT INTO event_layout(station_id, name) VALUES(:station_id, :name) RETURNING id;",
-                    Call.of().bind("station_id", stationId).bind("name", str(l, "name", "")));
+                    call().bind("station_id", stationId).bind("name", str(l, "name", "")));
             idMap.put("eventLayout", oldId, newId);
         }
         return layouts.size();
@@ -1938,8 +1886,7 @@ public class StationImportService {
                 int oldId = intVal(f, "id");
                 int newId = insertReturningId(
                         "INSERT INTO event_layout_field(layout_id, name, field_type, config, position, overview, attendance_field_id) VALUES(:layout_id, :name, :field_type, :config::jsonb, :position, :overview, :attendance_field_id) RETURNING id;",
-                        Call.of()
-                                .bind("layout_id", layoutId)
+                        call().bind("layout_id", layoutId)
                                 .bind("name", str(f, "name", ""))
                                 .bind("field_type", str(f, "field_type", "string"))
                                 .bind("config", str(f, "config", "{}"))
@@ -1968,8 +1915,7 @@ public class StationImportService {
                 int oldId = intVal(f, "id");
                 int newId = insertReturningId(
                         "INSERT INTO event_template_field(template_id, name, field_type, config, position, overview, public, attendance_field_id) VALUES(:template_id, :name, :field_type, :config::jsonb, :position, :overview, :public, :attendance_field_id) RETURNING id;",
-                        Call.of()
-                                .bind("template_id", templateId)
+                        call().bind("template_id", templateId)
                                 .bind("name", str(f, "name", ""))
                                 .bind("field_type", str(f, "field_type", "string"))
                                 .bind("config", str(f, "config", "{}"))
@@ -1993,9 +1939,9 @@ public class StationImportService {
         for (var r : restrictions) {
             int templateId = idMap.get("eventTemplate", intVal(r, "template_id"));
             if (templateId > 0) {
-                Query.query(
+                query(
                                 "INSERT INTO event_template_restriction(template_id, user_type) VALUES(:template_id, :user_type) ON CONFLICT DO NOTHING;")
-                        .single(Call.of().bind("template_id", templateId).bind("user_type", str(r, "user_type", "")))
+                        .single(call().bind("template_id", templateId).bind("user_type", str(r, "user_type", "")))
                         .insert();
                 count++;
             }
@@ -2012,7 +1958,7 @@ public class StationImportService {
             int oldId = intVal(t, "id");
             int newId = insertReturningId(
                     "INSERT INTO kb_tag(station_id, name) VALUES(:station_id, :name) RETURNING id;",
-                    Call.of().bind("station_id", stationId).bind("name", str(t, "name", "")));
+                    call().bind("station_id", stationId).bind("name", str(t, "name", "")));
             idMap.put("kbTag", oldId, newId);
         }
         return tags.size();
@@ -2026,9 +1972,8 @@ public class StationImportService {
             int fileId = idMap.get("kbFile", intVal(ft, "file_id"));
             int tagId = idMap.get("kbTag", intVal(ft, "tag_id"));
             if (fileId > 0 && tagId > 0) {
-                Query.query(
-                                "INSERT INTO kb_file_tag(file_id, tag_id) VALUES(:file_id, :tag_id) ON CONFLICT DO NOTHING;")
-                        .single(Call.of().bind("file_id", fileId).bind("tag_id", tagId))
+                query("INSERT INTO kb_file_tag(file_id, tag_id) VALUES(:file_id, :tag_id) ON CONFLICT DO NOTHING;")
+                        .single(call().bind("file_id", fileId).bind("tag_id", tagId))
                         .insert();
                 count++;
             }
@@ -2044,9 +1989,9 @@ public class StationImportService {
             int folderId = idMap.get("kbFolder", intVal(ft, "folder_id"));
             int tagId = idMap.get("kbTag", intVal(ft, "tag_id"));
             if (folderId > 0 && tagId > 0) {
-                Query.query(
+                query(
                                 "INSERT INTO kb_folder_tag(folder_id, tag_id) VALUES(:folder_id, :tag_id) ON CONFLICT DO NOTHING;")
-                        .single(Call.of().bind("folder_id", folderId).bind("tag_id", tagId))
+                        .single(call().bind("folder_id", folderId).bind("tag_id", tagId))
                         .insert();
                 count++;
             }
@@ -2065,10 +2010,9 @@ public class StationImportService {
             Integer tagId = r.get("tag_id") != null ? idMap.get("tag", intVal(r, "tag_id")) : null;
             Integer memberId = r.get("member_id") != null ? idMap.get("member", intVal(r, "member_id")) : null;
             if ((folderId != null && folderId > 0) || (fileId != null && fileId > 0)) {
-                Query.query(
+                query(
                                 "INSERT INTO kb_access_restriction(folder_id, file_id, user_type, group_id, tag_id, member_id) VALUES(:folder_id, :file_id, :user_type, :group_id, :tag_id, :member_id) ON CONFLICT DO NOTHING;")
-                        .single(Call.of()
-                                .bind("folder_id", folderId != null && folderId > 0 ? folderId : null)
+                        .single(call().bind("folder_id", folderId != null && folderId > 0 ? folderId : null)
                                 .bind("file_id", fileId != null && fileId > 0 ? fileId : null)
                                 .bind("user_type", str(r, "user_type", null))
                                 .bind("group_id", groupId != null && groupId > 0 ? groupId : null)
@@ -2092,8 +2036,7 @@ public class StationImportService {
             if (fileId > 0) {
                 int newId = insertReturningId(
                         "INSERT INTO kb_comment(file_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at) VALUES(:file_id, :parent_id, :author_station_uid::uuid, :author_member_uid::uuid, :content, :deleted, :created_at::timestamptz, :updated_at::timestamptz) RETURNING id;",
-                        Call.of()
-                                .bind("file_id", fileId)
+                        call().bind("file_id", fileId)
                                 .bind("parent_id", parentId != null && parentId > 0 ? parentId : null)
                                 .bind("author_station_uid", str(c, "author_station_uid", null))
                                 .bind("author_member_uid", str(c, "author_member_uid", null))
@@ -2119,8 +2062,7 @@ public class StationImportService {
             if (memberId > 0 && checkedBy > 0) {
                 int newId = insertReturningId(
                         "INSERT INTO inventory_check(station_id, member_id, checked_by, checked_at) VALUES(:station_id, :member_id, :checked_by, :checked_at::timestamptz) RETURNING id;",
-                        Call.of()
-                                .bind("station_id", stationId)
+                        call().bind("station_id", stationId)
                                 .bind("member_id", memberId)
                                 .bind("checked_by", checkedBy)
                                 .bind("checked_at", str(c, "checked_at", null)));
@@ -2140,10 +2082,9 @@ public class StationImportService {
             Integer inventoryId =
                     i.get("inventory_id") != null ? idMap.get("inventory", intVal(i, "inventory_id")) : null;
             if (checkId > 0) {
-                Query.query(
+                query(
                                 "INSERT INTO inventory_check_item(check_id, item_id, inventory_id, result, note) VALUES(:check_id, :item_id, :inventory_id, :result, :note) ON CONFLICT DO NOTHING;")
-                        .single(Call.of()
-                                .bind("check_id", checkId)
+                        .single(call().bind("check_id", checkId)
                                 .bind("item_id", itemId != null && itemId > 0 ? itemId : null)
                                 .bind("inventory_id", inventoryId != null && inventoryId > 0 ? inventoryId : null)
                                 .bind("result", str(i, "result", ""))
@@ -2163,10 +2104,9 @@ public class StationImportService {
             int itemId = idMap.get("inventoryItem", intVal(h, "item_id"));
             Integer memberId = h.get("member_id") != null ? idMap.get("member", intVal(h, "member_id")) : null;
             if (itemId > 0) {
-                Query.query(
-                                "INSERT INTO inventory_item_history(item_id, member_id, member_name, given_out, returned) VALUES(:item_id, :member_id, :member_name, :given_out::timestamp, :returned::timestamp);")
-                        .single(Call.of()
-                                .bind("item_id", itemId)
+                query(
+                                "INSERT INTO inventory_item_history(item_id, member_id, member_name, given_out, returned) VALUES(:item_id, :member_id, :member_name, :given_out::TIMESTAMP, :returned::TIMESTAMP);")
+                        .single(call().bind("item_id", itemId)
                                 .bind("member_id", memberId != null && memberId > 0 ? memberId : null)
                                 .bind("member_name", str(h, "member_name", ""))
                                 .bind("given_out", str(h, "given_out", null))
@@ -2186,10 +2126,9 @@ public class StationImportService {
             int inventoryId = idMap.get("inventory", intVal(r, "inventory_id"));
             Integer groupId = r.get("group_id") != null ? idMap.get("group", intVal(r, "group_id")) : null;
             if (inventoryId > 0) {
-                Query.query(
+                query(
                                 "INSERT INTO inventory_requirement(inventory_id, user_type, group_id, quantity, position) VALUES(:inventory_id, :user_type, :group_id, :quantity, :position) ON CONFLICT DO NOTHING;")
-                        .single(Call.of()
-                                .bind("inventory_id", inventoryId)
+                        .single(call().bind("inventory_id", inventoryId)
                                 .bind("user_type", str(r, "user_type", null))
                                 .bind("group_id", groupId != null && groupId > 0 ? groupId : null)
                                 .bind("quantity", intVal(r, "quantity"))
@@ -2213,10 +2152,9 @@ public class StationImportService {
                 Integer groupId = r.get("group_id") != null ? idMap.get("group", intVal(r, "group_id")) : null;
                 Integer tagId = r.get("tag_id") != null ? idMap.get("tag", intVal(r, "tag_id")) : null;
                 Integer memberId = r.get("member_id") != null ? idMap.get("member", intVal(r, "member_id")) : null;
-                Query.query(
+                query(
                                 "INSERT INTO news_restriction(news_id, user_type, group_id, tag_id, member_id) VALUES(:news_id, :user_type, :group_id, :tag_id, :member_id) ON CONFLICT DO NOTHING;")
-                        .single(Call.of()
-                                .bind("news_id", newsId)
+                        .single(call().bind("news_id", newsId)
                                 .bind("user_type", str(r, "user_type", null))
                                 .bind("group_id", groupId != null && groupId > 0 ? groupId : null)
                                 .bind("tag_id", tagId != null && tagId > 0 ? tagId : null)
@@ -2237,10 +2175,9 @@ public class StationImportService {
         for (var s : settings) {
             int memberId = idMap.get("member", intVal(s, "member_id"));
             if (memberId > 0) {
-                Query.query(
+                query(
                                 "INSERT INTO user_settings(member_id, email_enabled, theme, dark_mode, feel) VALUES(:member_id, :email_enabled, :theme, :dark_mode, :feel) ON CONFLICT DO NOTHING;")
-                        .single(Call.of()
-                                .bind("member_id", memberId)
+                        .single(call().bind("member_id", memberId)
                                 .bind("email_enabled", boolVal(s, "email_enabled"))
                                 .bind("theme", str(s, "theme", "ember"))
                                 .bind("dark_mode", str(s, "dark_mode", "system"))
@@ -2259,10 +2196,9 @@ public class StationImportService {
         for (var s : settings) {
             int memberId = idMap.get("member", intVal(s, "member_id"));
             if (memberId > 0) {
-                Query.query(
+                query(
                                 "INSERT INTO user_notification_settings(member_id, notification_type, app_enabled, email_enabled, feed_enabled) VALUES(:member_id, :notification_type, :app_enabled, :email_enabled, :feed_enabled) ON CONFLICT DO NOTHING;")
-                        .single(Call.of()
-                                .bind("member_id", memberId)
+                        .single(call().bind("member_id", memberId)
                                 .bind("notification_type", str(s, "notification_type", ""))
                                 .bind("app_enabled", boolVal(s, "app_enabled"))
                                 .bind("email_enabled", boolVal(s, "email_enabled"))
@@ -2382,8 +2318,7 @@ public class StationImportService {
             Integer parentId = oldParentId != null ? idMap.get("kbFolder", oldParentId) : null;
             int newId = insertReturningId(
                     "INSERT INTO kb_folder(station_id, parent_id, name, description, position, restriction_mode) VALUES(:station_id, :parent_id, :name, :description, :position, :restriction_mode) RETURNING id;",
-                    Call.of()
-                            .bind("station_id", stationId)
+                    call().bind("station_id", stationId)
                             .bind("parent_id", parentId)
                             .bind("name", str(folder, "name", ""))
                             .bind("description", str(folder, "description", ""))
@@ -2403,8 +2338,7 @@ public class StationImportService {
             Integer folderId = oldFolderId != null ? idMap.get("kbFolder", oldFolderId) : null;
             int newId = insertReturningId(
                     "INSERT INTO kb_file(station_id, folder_id, name, description, file_type, position, restriction_mode) VALUES(:station_id, :folder_id, :name, :description, :file_type, :position, :restriction_mode) RETURNING id;",
-                    Call.of()
-                            .bind("station_id", stationId)
+                    call().bind("station_id", stationId)
                             .bind("folder_id", folderId)
                             .bind("name", str(file, "name", ""))
                             .bind("description", str(file, "description", ""))
@@ -2424,9 +2358,9 @@ public class StationImportService {
             Integer newFileId = idMap.get("kbFile", oldFileId);
             if (newFileId == null) continue;
             String text = (String) content.get("text_content");
-            Query.query(
+            query(
                             "INSERT INTO kb_file_content(file_id, text_content) VALUES(:file_id, :text_content) ON CONFLICT(file_id) DO UPDATE SET text_content = :text_content;")
-                    .single(Call.of().bind("file_id", newFileId).bind("text_content", text))
+                    .single(call().bind("file_id", newFileId).bind("text_content", text))
                     .insert();
         }
         return contents.size();
@@ -2439,10 +2373,9 @@ public class StationImportService {
             int oldFileId = intVal(version, "file_id");
             Integer newFileId = idMap.get("kbFile", oldFileId);
             if (newFileId == null) continue;
-            Query.query(
+            query(
                             "INSERT INTO kb_file_version(file_id, patch, is_full, version, created_at) VALUES(:file_id, :patch, :is_full, :version, now());")
-                    .single(Call.of()
-                            .bind("file_id", newFileId)
+                    .single(call().bind("file_id", newFileId)
                             .bind("patch", (String) version.get("patch"))
                             .bind("is_full", boolVal(version, "is_full"))
                             .bind("version", intVal(version, "version")))

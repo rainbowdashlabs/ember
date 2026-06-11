@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.comment.repository;
 
-import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.comment.entity.Comment;
@@ -14,6 +13,7 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
@@ -44,7 +44,7 @@ public class EventCommentRepository {
                     event_comment
                 WHERE event_id = :event_id
                 ORDER BY created_at;""")
-                .single(Call.of().bind("event_id", eventId))
+                .single(call().bind("event_id", eventId))
                 .map(Comment.map())
                 .all();
     }
@@ -68,7 +68,7 @@ public class EventCommentRepository {
                     updated_at
                 FROM
                     event_comment
-                WHERE id = :id;""").single(Call.of().bind("id", id)).map(Comment.map()).first();
+                WHERE id = :id;""").single(call().bind("id", id)).map(Comment.map()).first();
     }
 
     /**
@@ -89,8 +89,7 @@ public class EventCommentRepository {
                         VALUES
                             (:event_id, :parent_id, :author_station_uid::UUID, :author_member_uid::UUID, :content)
                         RETURNING id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at;""")
-                .single(Call.of()
-                        .bind("event_id", eventId)
+                .single(call().bind("event_id", eventId)
                         .bind("parent_id", parentId)
                         .bind(
                                 "author_station_uid",
@@ -115,7 +114,7 @@ public class EventCommentRepository {
      */
     public boolean update(int id, String content) {
         return query("UPDATE event_comment SET content = :content, updated_at = now() WHERE id = :id;")
-                .single(Call.of().bind("id", id).bind("content", content))
+                .single(call().bind("id", id).bind("content", content))
                 .update()
                 .changed();
     }
@@ -130,12 +129,12 @@ public class EventCommentRepository {
         boolean hasChildren = hasChildren(id);
         if (hasChildren) {
             return query("UPDATE event_comment SET deleted = TRUE, content = '' WHERE id = :id;")
-                    .single(Call.of().bind("id", id))
+                    .single(call().bind("id", id))
                     .update()
                     .changed();
         }
         return query("DELETE FROM event_comment WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .update()
                 .changed();
     }
@@ -148,7 +147,7 @@ public class EventCommentRepository {
      */
     public boolean hasChildren(int id) {
         return query("SELECT exists(SELECT 1 FROM event_comment WHERE parent_id = :id);")
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .map(row -> row.getBoolean(1))
                 .first()
                 .orElse(false);

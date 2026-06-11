@@ -65,12 +65,6 @@ import java.util.List;
 public class BoardTicketRoutes implements Routes {
     private final BoardTicketService ticketService;
     private final BoardService boardService;
-    private final FederatedBoardRepository federatedBoardRepository;
-    private final EventFederationRepository eventFederationRepository;
-    private final FederationRepository federationRepository;
-    private final StationRepository stationRepository;
-    private final StationMemberRepository stationMemberRepository;
-    private final AccountRepository accountRepository;
     private final MemberNameResolver memberNameResolver;
     private final MemberIdentityFactory memberIdentityFactory;
 
@@ -88,12 +82,6 @@ public class BoardTicketRoutes implements Routes {
             MemberIdentityFactory memberIdentityFactory) {
         this.ticketService = ticketService;
         this.boardService = boardService;
-        this.federatedBoardRepository = federatedBoardRepository;
-        this.eventFederationRepository = eventFederationRepository;
-        this.federationRepository = federationRepository;
-        this.stationRepository = stationRepository;
-        this.stationMemberRepository = stationMemberRepository;
-        this.accountRepository = accountRepository;
         this.memberNameResolver = memberNameResolver;
         this.memberIdentityFactory = memberIdentityFactory;
     }

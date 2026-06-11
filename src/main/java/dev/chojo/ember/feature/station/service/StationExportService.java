@@ -5,8 +5,7 @@
  */
 package dev.chojo.ember.feature.station.service;
 
-import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -22,6 +21,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
  * Exports station data for transfer to another Ember instance.
@@ -133,24 +135,19 @@ public class StationExportService {
         String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
         Instant expiresAt = Instant.now().plus(24, ChronoUnit.HOURS);
 
-        Query.query(
-                        "INSERT INTO transfer_token(station_id, token, expires_at) VALUES(:station_id, :token, :expires_at);")
-                .single(Call.of()
-                        .bind("station_id", stationId)
+        query("INSERT INTO transfer_token(station_id, token, expires_at) VALUES(:station_id, :token, :expires_at);")
+                .single(call().bind("station_id", stationId)
                         .bind("token", token)
-                        .bind(
-                                "expires_at",
-                                expiresAt,
-                                de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP))
+                        .bind("expires_at", expiresAt, StandardValueConverter.INSTANT_TIMESTAMP))
                 .insert();
 
         return token;
     }
 
     public Optional<Integer> validateToken(String token) {
-        return Query.query(
+        return query(
                         "SELECT station_id FROM transfer_token WHERE token = :token AND used = FALSE AND expires_at > now();")
-                .single(Call.of().bind("token", token))
+                .single(call().bind("token", token))
                 .map(row -> row.getInt("station_id"))
                 .first();
     }
@@ -158,15 +155,15 @@ public class StationExportService {
     // -- Version --
 
     public Optional<Integer> validateAndConsumeToken(String token) {
-        var result = Query.query(
+        var result = query(
                         "SELECT station_id FROM transfer_token WHERE token = :token AND used = FALSE AND expires_at > now();")
-                .single(Call.of().bind("token", token))
+                .single(call().bind("token", token))
                 .map(row -> row.getInt("station_id"))
                 .first();
 
         if (result.isPresent()) {
-            Query.query("UPDATE transfer_token SET used = TRUE WHERE token = :token;")
-                    .single(Call.of().bind("token", token))
+            query("UPDATE transfer_token SET used = TRUE WHERE token = :token;")
+                    .single(call().bind("token", token))
                     .update();
         }
 
@@ -832,8 +829,8 @@ public class StationExportService {
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> queryRows(String sql, int id, int offset, int limit) {
         String paginatedSql = sql + " OFFSET :offset LIMIT :limit";
-        var queryObj = Query.query(paginatedSql)
-                .single(Call.of().bind("id", id).bind("offset", offset).bind("limit", limit));
+        var queryObj = query(paginatedSql)
+                .single(call().bind("id", id).bind("offset", offset).bind("limit", limit));
         return (List<Map<String, Object>>) (List<?>) queryObj.map(row -> {
                     var meta = row.getMetaData();
                     var map = new LinkedHashMap<String, Object>();

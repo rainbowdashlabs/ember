@@ -91,7 +91,6 @@ public class EventRoutes implements Routes {
     private final AttendanceService attendanceService;
     private final EventExportService eventExportService;
     private final EventFederationService eventFederationService;
-    private final FederationService federationService;
     private final FederationRepository federationRepository;
     private final StationRepository stationRepository;
     private final MemberIdentityFactory memberIdentityFactory;
@@ -120,7 +119,6 @@ public class EventRoutes implements Routes {
         this.attendanceService = attendanceService;
         this.eventExportService = eventExportService;
         this.eventFederationService = eventFederationService;
-        this.federationService = federationService;
         this.federationRepository = federationRepository;
         this.stationRepository = stationRepository;
         this.memberIdentityFactory = memberIdentityFactory;
@@ -1585,7 +1583,7 @@ public class EventRoutes implements Routes {
                                 .orElse(null);
                         String stationName = stationRepository
                                 .findByUid(partnerStationUid)
-                                .map(s -> s.name())
+                                .map(Station::name)
                                 .orElse(null);
                         identity = new MemberIdentity(partnerStationUid, r.remoteMemberId())
                                 .withDisplay(cachedName, stationName, null, null);

@@ -46,7 +46,6 @@ public class LendingRoutes implements Routes {
     private final LendingService service;
     private final LendingRepository lendingRepository;
     private final StationRepository stationRepository;
-    private final FederationService federationService;
     private final InventoryRepository inventoryRepository;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
@@ -63,7 +62,6 @@ public class LendingRoutes implements Routes {
         this.service = service;
         this.lendingRepository = lendingRepository;
         this.stationRepository = stationRepository;
-        this.federationService = federationService;
         this.inventoryRepository = inventoryRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;

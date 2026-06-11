@@ -29,6 +29,7 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -93,7 +94,7 @@ public class InventoryCheckRoutes implements Routes {
             int memberId,
             String firstName,
             String lastName,
-            java.time.Instant lastCheckedAt,
+            Instant lastCheckedAt,
             String checkerFirstName,
             String checkerLastName,
             boolean locked,

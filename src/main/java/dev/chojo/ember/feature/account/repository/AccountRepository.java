@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.account.repository;
 
-import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import dev.chojo.ember.api.roles.InstanceUserType;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -21,6 +20,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
@@ -44,7 +44,7 @@ public class AccountRepository {
      */
     public Optional<Account> findById(int id) {
         return query("SELECT %s FROM account WHERE id = :id;", ACCOUNT_COLUMNS)
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .map(Account.map())
                 .first();
     }
@@ -57,7 +57,7 @@ public class AccountRepository {
      */
     public Optional<Account> findByEmail(String email) {
         return query("SELECT %s FROM account WHERE email = :email;", ACCOUNT_COLUMNS)
-                .single(Call.of().bind("email", email))
+                .single(call().bind("email", email))
                 .map(Account.map())
                 .first();
     }
@@ -90,8 +90,7 @@ public class AccountRepository {
                         VALUES
                             (:email, :first_name, :last_name)
                         RETURNING %s;""", ACCOUNT_COLUMNS)
-                .single(Call.of()
-                        .bind("email", email)
+                .single(call().bind("email", email)
                         .bind("first_name", firstName)
                         .bind("last_name", lastName))
                 .map(Account.map())
@@ -116,8 +115,7 @@ public class AccountRepository {
                 VALUES
                     (:email, :first_name, :last_name, :verified)
                 RETURNING %s;""", ACCOUNT_COLUMNS)
-                .single(Call.of()
-                        .bind("email", email)
+                .single(call().bind("email", email)
                         .bind("first_name", firstName)
                         .bind("last_name", lastName)
                         .bind("verified", emailVerified))
@@ -133,7 +131,7 @@ public class AccountRepository {
      */
     public boolean isAdministrator(int accountId) {
         return query("SELECT 1 FROM account WHERE id = :id AND instance_user_type = 'ADMINISTRATOR';")
-                .single(Call.of().bind("id", accountId))
+                .single(call().bind("id", accountId))
                 .map(row -> true)
                 .first()
                 .isPresent();
@@ -155,7 +153,7 @@ public class AccountRepository {
      */
     public boolean setInstanceUserType(int accountId, InstanceUserType userType) {
         return query("UPDATE account SET instance_user_type = :user_type WHERE id = :id;")
-                .single(Call.of().bind("user_type", userType).bind("id", accountId))
+                .single(call().bind("user_type", userType).bind("id", accountId))
                 .update()
                 .changed();
     }
@@ -177,8 +175,7 @@ public class AccountRepository {
                     first_name = :first_name,
                     last_name  = :last_name
                 WHERE id = :id;""")
-                .single(Call.of()
-                        .bind("email", email)
+                .single(call().bind("email", email)
                         .bind("first_name", firstName)
                         .bind("last_name", lastName)
                         .bind("id", id))
@@ -195,7 +192,7 @@ public class AccountRepository {
      */
     public boolean updateEmail(int id, String email) {
         return query("UPDATE account SET email = :email WHERE id = :id;")
-                .single(Call.of().bind("email", email).bind("id", id))
+                .single(call().bind("email", email).bind("id", id))
                 .update()
                 .changed();
     }
@@ -208,7 +205,7 @@ public class AccountRepository {
      */
     public boolean setEmailVerified(int id) {
         return query("""
-                UPDATE account SET email_verified = TRUE WHERE id = :id;""").single(Call.of().bind("id", id)).update().changed();
+                UPDATE account SET email_verified = TRUE WHERE id = :id;""").single(call().bind("id", id)).update().changed();
     }
 
     // -- Credentials --
@@ -221,7 +218,7 @@ public class AccountRepository {
      */
     public boolean delete(int id) {
         return query("""
-                DELETE FROM account WHERE id = :id;""").single(Call.of().bind("id", id)).delete().changed();
+                DELETE FROM account WHERE id = :id;""").single(call().bind("id", id)).delete().changed();
     }
 
     /**
@@ -239,7 +236,7 @@ public class AccountRepository {
                 FROM
                     account_credential
                 WHERE account_id = :id;""")
-                .single(Call.of().bind("id", accountId))
+                .single(call().bind("id", accountId))
                 .map(AccountCredential.map())
                 .first();
     }
@@ -254,7 +251,7 @@ public class AccountRepository {
     public InsertionResult createCredential(int accountId, String passwordHash) {
         return query("""
                 INSERT INTO account_credential(account_id, password_hash) VALUES(:account_id, :hash);""")
-                .single(Call.of().bind("account_id", accountId).bind("hash", passwordHash))
+                .single(call().bind("account_id", accountId).bind("hash", passwordHash))
                 .insert();
     }
 
@@ -266,11 +263,13 @@ public class AccountRepository {
      * @return {@code true} if the credential was updated
      */
     public boolean updateCredential(int accountId, String passwordHash) {
-        return query("UPDATE account_credential\n" + "SET\n"
-                        + "    password_hash         = :hash,\n"
-                        + "    force_password_change = FALSE\n"
-                        + "WHERE account_id = :id;")
-                .single(Call.of().bind("hash", passwordHash).bind("id", accountId))
+        return query("""
+                UPDATE account_credential
+                SET
+                    password_hash         = :hash,
+                    force_password_change = FALSE
+                WHERE account_id = :id;""")
+                .single(call().bind("hash", passwordHash).bind("id", accountId))
                 .update()
                 .changed();
     }
@@ -284,7 +283,7 @@ public class AccountRepository {
      */
     public boolean setForcePasswordChange(int accountId, boolean force) {
         return query("UPDATE account_credential SET force_password_change = :force WHERE account_id = :id;")
-                .single(Call.of().bind("force", force).bind("id", accountId))
+                .single(call().bind("force", force).bind("id", accountId))
                 .update()
                 .changed();
     }
@@ -299,7 +298,7 @@ public class AccountRepository {
      */
     public boolean deleteCredential(int accountId) {
         return query("DELETE FROM account_credential WHERE account_id = :id;")
-                .single(Call.of().bind("id", accountId))
+                .single(call().bind("id", accountId))
                 .delete()
                 .changed();
     }
@@ -312,7 +311,7 @@ public class AccountRepository {
      */
     public List<AccountExternalAuth> findExternalAuths(int accountId) {
         return query("SELECT id, account_id, provider, external_id FROM account_external_auth WHERE account_id = :id;")
-                .single(Call.of().bind("id", accountId))
+                .single(call().bind("id", accountId))
                 .map(AccountExternalAuth.map())
                 .all();
     }
@@ -335,7 +334,7 @@ public class AccountRepository {
                     account_external_auth
                 WHERE provider = :provider
                   AND external_id = :external_id;""")
-                .single(Call.of().bind("provider", provider).bind("external_id", externalId))
+                .single(call().bind("provider", provider).bind("external_id", externalId))
                 .map(AccountExternalAuth.map())
                 .first();
     }
@@ -355,8 +354,7 @@ public class AccountRepository {
                     account_external_auth(account_id, provider, external_id)
                 VALUES
                     (:account_id, :provider, :external_id);""")
-                .single(Call.of()
-                        .bind("account_id", accountId)
+                .single(call().bind("account_id", accountId)
                         .bind("provider", provider)
                         .bind("external_id", externalId))
                 .insert();
@@ -372,7 +370,7 @@ public class AccountRepository {
      */
     public boolean deleteExternalAuth(int id) {
         return query("DELETE FROM account_external_auth WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .delete()
                 .changed();
     }
@@ -396,7 +394,7 @@ public class AccountRepository {
                 FROM
                     account_token
                 WHERE token = :token;""")
-                .single(Call.of().bind("token", token))
+                .single(call().bind("token", token))
                 .map(AccountToken.map())
                 .first();
     }
@@ -432,8 +430,7 @@ public class AccountRepository {
                             account_token(account_id, token, token_type, metadata, expires_at)
                         VALUES
                             (:account_id, :token, :type, :metadata, :expires_at);""")
-                .single(Call.of()
-                        .bind("account_id", accountId)
+                .single(call().bind("account_id", accountId)
                         .bind("token", token)
                         .bind("type", tokenType)
                         .bind("metadata", metadata)
@@ -449,7 +446,7 @@ public class AccountRepository {
      */
     public boolean deleteToken(String token) {
         return query("DELETE FROM account_token WHERE token = :token;")
-                .single(Call.of().bind("token", token))
+                .single(call().bind("token", token))
                 .delete()
                 .changed();
     }
@@ -477,7 +474,7 @@ public class AccountRepository {
      */
     public boolean deleteTokensByAccountAndType(int accountId, TokenType tokenType) {
         return query("DELETE FROM account_token WHERE account_id = :account_id AND token_type = :type;")
-                .single(Call.of().bind("account_id", accountId).bind("type", tokenType))
+                .single(call().bind("account_id", accountId).bind("type", tokenType))
                 .delete()
                 .changed();
     }
@@ -502,7 +499,7 @@ public class AccountRepository {
                         FROM
                             account_session
                         WHERE token = :token;""")
-                .single(Call.of().bind("token", token))
+                .single(call().bind("token", token))
                 .map(AccountSession.map())
                 .first();
     }
@@ -528,7 +525,7 @@ public class AccountRepository {
                     account_session
                 WHERE account_id = :account_id
                 ORDER BY last_used_at DESC;""")
-                .single(Call.of().bind("account_id", accountId))
+                .single(call().bind("account_id", accountId))
                 .map(AccountSession.map())
                 .all();
     }
@@ -551,8 +548,7 @@ public class AccountRepository {
                     account_session(account_id, token, expires_at, user_agent, location)
                 VALUES
                     (:account_id, :token, :expires_at, :user_agent, :location);""")
-                .single(Call.of()
-                        .bind("account_id", accountId)
+                .single(call().bind("account_id", accountId)
                         .bind("token", token)
                         .bind("expires_at", expiresAt, INSTANT_TIMESTAMP)
                         .bind("user_agent", userAgent)
@@ -577,8 +573,7 @@ public class AccountRepository {
                     location     = coalesce(:location, location)
                 WHERE token = :token;
                 """)
-                .single(Call.of()
-                        .bind("user_agent", userAgent)
+                .single(call().bind("user_agent", userAgent)
                         .bind("location", location)
                         .bind("token", token))
                 .update()
@@ -600,8 +595,7 @@ public class AccountRepository {
                             token      = :new_token,
                             expires_at = :expires_at
                         WHERE token = :old_token;""")
-                .single(Call.of()
-                        .bind("new_token", newToken)
+                .single(call().bind("new_token", newToken)
                         .bind("expires_at", newExpiresAt, INSTANT_TIMESTAMP)
                         .bind("old_token", oldToken))
                 .update()
@@ -616,7 +610,7 @@ public class AccountRepository {
      */
     public boolean deleteSession(String token) {
         return query("DELETE FROM account_session WHERE token = :token;")
-                .single(Call.of().bind("token", token))
+                .single(call().bind("token", token))
                 .delete()
                 .changed();
     }
@@ -630,7 +624,7 @@ public class AccountRepository {
      */
     public boolean deleteSessionById(int id, int accountId) {
         return query("DELETE FROM account_session WHERE id = :id AND account_id = :account_id;")
-                .single(Call.of().bind("id", id).bind("account_id", accountId))
+                .single(call().bind("id", id).bind("account_id", accountId))
                 .delete()
                 .changed();
     }
@@ -643,7 +637,7 @@ public class AccountRepository {
      */
     public boolean deleteSessionsByAccount(int accountId) {
         return query("DELETE FROM account_session WHERE account_id = :account_id;")
-                .single(Call.of().bind("account_id", accountId))
+                .single(call().bind("account_id", accountId))
                 .delete()
                 .changed();
     }
@@ -688,8 +682,7 @@ public class AccountRepository {
                             gdpr_consent(account_id, consent_version, privacy_version, tos_version, ip_address, country, user_agent)
                         VALUES
                             (:account_id, :consent_version, :privacy_version, :tos_version, :ip_address, :country, :user_agent);""")
-                .single(Call.of()
-                        .bind("account_id", accountId)
+                .single(call().bind("account_id", accountId)
                         .bind("consent_version", consentVersion)
                         .bind("privacy_version", privacyVersion)
                         .bind("tos_version", tosVersion)
@@ -708,7 +701,7 @@ public class AccountRepository {
     public Optional<GdprConsent> findLatestConsent(int accountId) {
         return query("SELECT " + CONSENT_COLUMNS
                         + " FROM gdpr_consent WHERE account_id = :account_id ORDER BY consented_at DESC LIMIT 1;")
-                .single(Call.of().bind("account_id", accountId))
+                .single(call().bind("account_id", accountId))
                 .map(GdprConsent.map())
                 .first();
     }
@@ -722,7 +715,7 @@ public class AccountRepository {
     public List<GdprConsent> findAllConsents(int accountId) {
         return query("SELECT " + CONSENT_COLUMNS
                         + " FROM gdpr_consent WHERE account_id = :account_id ORDER BY consented_at DESC;")
-                .single(Call.of().bind("account_id", accountId))
+                .single(call().bind("account_id", accountId))
                 .map(GdprConsent.map())
                 .all();
     }

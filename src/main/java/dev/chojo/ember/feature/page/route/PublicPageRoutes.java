@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.page.route;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.service.PageService;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.Context;
 import io.javalin.http.NotFoundResponse;
@@ -77,7 +78,7 @@ public class PublicPageRoutes implements Routes {
             return stationRepository.resolveId(uid).orElseThrow(NotFoundResponse::new);
         } catch (IllegalArgumentException e) {
             // Not a UUID — try as public slug
-            return stationRepository.findBySlug(param).map(s -> s.id()).orElseThrow(NotFoundResponse::new);
+            return stationRepository.findBySlug(param).map(Station::id).orElseThrow(NotFoundResponse::new);
         }
     }
 

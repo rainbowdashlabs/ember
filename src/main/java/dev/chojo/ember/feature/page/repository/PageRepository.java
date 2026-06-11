@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.page.repository;
 
-import de.chojo.sadu.queries.api.call.Call;
 import dev.chojo.ember.feature.page.entity.CellConfig;
 import dev.chojo.ember.feature.page.entity.CellContentType;
 import dev.chojo.ember.feature.page.entity.PageCell;
@@ -21,6 +20,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
@@ -34,12 +34,11 @@ public class PageRepository {
                 INSERT INTO station_page(station_id, title, slug, parent_id, created_by)
                 VALUES(:station_id, :title, :slug, :parent_id, :created_by)
                 RETURNING *;""")
-                .single(Call.of()
-                            .bind("station_id", stationId)
-                            .bind("title", title)
-                            .bind("slug", slug)
-                            .bind("parent_id", parentId)
-                            .bind("created_by", createdBy))
+                .single(call().bind("station_id", stationId)
+                        .bind("title", title)
+                        .bind("slug", slug)
+                        .bind("parent_id", parentId)
+                        .bind("created_by", createdBy))
                 .map(StationPage.mapFlat())
                 .first()
                 .orElseThrow();
@@ -47,14 +46,14 @@ public class PageRepository {
 
     public Optional<StationPage> findById(int id) {
         return query("SELECT * FROM station_page WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .map(StationPage.mapFlat())
                 .first();
     }
 
     public Optional<StationPage> findBySlugAndStation(String slug, int stationId) {
         return query("SELECT * FROM station_page WHERE slug = :slug AND station_id = :station_id;")
-                .single(Call.of().bind("slug", slug).bind("station_id", stationId))
+                .single(call().bind("slug", slug).bind("station_id", stationId))
                 .map(StationPage.mapFlat())
                 .first();
     }
@@ -68,7 +67,7 @@ public class PageRepository {
                     WHERE station_id = :station_id
                       AND slug = :slug
                       AND parent_id IS NULL;""")
-                    .single(Call.of().bind("station_id", stationId).bind("slug", slug))
+                    .single(call().bind("station_id", stationId).bind("slug", slug))
                     .map(StationPage.mapFlat())
                     .first();
         }
@@ -79,17 +78,14 @@ public class PageRepository {
                 WHERE station_id = :station_id
                   AND slug = :slug
                   AND parent_id = :parent_id;""")
-                .single(Call.of()
-                            .bind("station_id", stationId)
-                            .bind("slug", slug)
-                            .bind("parent_id", parentId))
+                .single(call().bind("station_id", stationId).bind("slug", slug).bind("parent_id", parentId))
                 .map(StationPage.mapFlat())
                 .first();
     }
 
     public List<StationPage> findByStation(int stationId) {
         return query("SELECT * FROM station_page WHERE station_id = :station_id ORDER BY sort_order;")
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(StationPage.mapFlat())
                 .all();
     }
@@ -103,7 +99,7 @@ public class PageRepository {
                 WHERE station_id = :station_id
                   AND published
                 ORDER BY sort_order;""")
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(StationPage.mapFlat())
                 .all();
     }
@@ -120,42 +116,37 @@ public class PageRepository {
                     og_image_id      = :og_image_id,
                     updated_at       = :updated_at
                 WHERE id = :id;""")
-                .single(Call.of()
-                            .bind("id", id)
-                            .bind("title", title)
-                            .bind("slug", slug)
-                            .bind("parent_id", parentId)
-                            .bind("meta_description", metaDescription)
-                            .bind("og_image_id", ogImageId)
-                            .bind("updated_at", Instant.now(), INSTANT_TIMESTAMP))
+                .single(call().bind("id", id)
+                        .bind("title", title)
+                        .bind("slug", slug)
+                        .bind("parent_id", parentId)
+                        .bind("meta_description", metaDescription)
+                        .bind("og_image_id", ogImageId)
+                        .bind("updated_at", Instant.now(), INSTANT_TIMESTAMP))
                 .update()
                 .changed();
     }
 
     public boolean setPublished(int id, boolean published) {
         return query("UPDATE station_page SET published = :published, updated_at = :updated_at WHERE id = :id;")
-                .single(Call.of()
-                            .bind("id", id)
-                            .bind("published", published)
-                            .bind("updated_at", Instant.now(), INSTANT_TIMESTAMP))
+                .single(call().bind("id", id)
+                        .bind("published", published)
+                        .bind("updated_at", Instant.now(), INSTANT_TIMESTAMP))
                 .update()
                 .changed();
     }
 
     public boolean delete(int id) {
         return query("DELETE FROM station_page WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .delete()
                 .changed();
     }
 
     public boolean slugExists(int stationId, String slug, int excludePageId) {
         return query(
-                "SELECT 1 FROM station_page WHERE station_id = :station_id AND slug = :slug AND id != :exclude_id;")
-                .single(Call.of()
-                            .bind("station_id", stationId)
-                            .bind("slug", slug)
-                            .bind("exclude_id", excludePageId))
+                        "SELECT 1 FROM station_page WHERE station_id = :station_id AND slug = :slug AND id != :exclude_id;")
+                .single(call().bind("station_id", stationId).bind("slug", slug).bind("exclude_id", excludePageId))
                 .map(row -> true)
                 .first()
                 .isPresent();
@@ -163,7 +154,7 @@ public class PageRepository {
 
     public int countChildren(int parentId) {
         return query("SELECT count(*) AS cnt FROM station_page WHERE parent_id = :parent_id;")
-                .single(Call.of().bind("parent_id", parentId))
+                .single(call().bind("parent_id", parentId))
                 .map(row -> row.getInt("cnt"))
                 .first()
                 .orElse(0);
@@ -183,7 +174,7 @@ public class PageRepository {
 
     public List<PageRow> findRowsByPage(int pageId) {
         return query("SELECT id, page_id, sort_order FROM page_row WHERE page_id = :page_id ORDER BY sort_order;")
-                .single(Call.of().bind("page_id", pageId))
+                .single(call().bind("page_id", pageId))
                 .map(PageRow.mapFlat())
                 .all();
     }
@@ -202,20 +193,20 @@ public class PageRepository {
                     page_cell
                 WHERE row_id = :row_id
                 ORDER BY sort_order;""")
-                .single(Call.of().bind("row_id", rowId))
+                .single(call().bind("row_id", rowId))
                 .map(PageCell.map())
                 .all();
     }
 
     public void deleteRowsByPage(int pageId) {
         query("DELETE FROM page_row WHERE page_id = :page_id;")
-                .single(Call.of().bind("page_id", pageId))
+                .single(call().bind("page_id", pageId))
                 .delete();
     }
 
     public int insertRow(int pageId, int sortOrder) {
         return query("INSERT INTO page_row(page_id, sort_order) VALUES(:page_id, :sort_order) RETURNING id;")
-                .single(Call.of().bind("page_id", pageId).bind("sort_order", sortOrder))
+                .single(call().bind("page_id", pageId).bind("sort_order", sortOrder))
                 .map(row -> row.getInt("id"))
                 .first()
                 .orElseThrow();
@@ -234,20 +225,19 @@ public class PageRepository {
                     page_cell(row_id, sort_order, width_percent, content_type, content, config)
                 VALUES
                     (:row_id, :sort_order, :width_percent, :content_type, :content, :config::JSONB);""")
-                .single(Call.of()
-                            .bind("row_id", rowId)
-                            .bind("sort_order", sortOrder)
-                            .bind("width_percent", widthPercent)
-                            .bind("content_type", contentType)
-                            .bind("content", content)
-                            .bind("config", config.toJson()))
+                .single(call().bind("row_id", rowId)
+                        .bind("sort_order", sortOrder)
+                        .bind("width_percent", widthPercent)
+                        .bind("content_type", contentType)
+                        .bind("content", content)
+                        .bind("config", config.toJson()))
                 .insert();
     }
 
     public StationPage loadFullTree(StationPage page) {
         var rows = findRowsByPage(page.id()).stream()
-                                            .map(r -> r.withCells(findCellsByRow(r.id())))
-                                            .toList();
+                .map(r -> r.withCells(findCellsByRow(r.id())))
+                .toList();
         return page.withRows(rows);
     }
 
@@ -261,11 +251,10 @@ public class PageRepository {
                 VALUES
                     (:page_id, :file_name, :mime_type, :file_size)
                 RETURNING id, page_id, file_name, mime_type, file_size, uploaded_at;""")
-                .single(Call.of()
-                            .bind("page_id", pageId)
-                            .bind("file_name", fileName)
-                            .bind("mime_type", mimeType)
-                            .bind("file_size", fileSize))
+                .single(call().bind("page_id", pageId)
+                        .bind("file_name", fileName)
+                        .bind("mime_type", mimeType)
+                        .bind("file_size", fileSize))
                 .map(PageImage.map())
                 .first()
                 .orElseThrow();
@@ -283,7 +272,7 @@ public class PageRepository {
                 FROM
                     page_image
                 WHERE id = :id;""")
-                .single(Call.of().bind("id", imageId))
+                .single(call().bind("id", imageId))
                 .map(PageImage.map())
                 .first();
     }
@@ -300,14 +289,14 @@ public class PageRepository {
                 FROM
                     page_image
                 WHERE page_id = :page_id;""")
-                .single(Call.of().bind("page_id", pageId))
+                .single(call().bind("page_id", pageId))
                 .map(PageImage.map())
                 .all();
     }
 
     public boolean deleteImage(int imageId) {
         return query("DELETE FROM page_image WHERE id = :id;")
-                .single(Call.of().bind("id", imageId))
+                .single(call().bind("id", imageId))
                 .delete()
                 .changed();
     }
@@ -315,30 +304,30 @@ public class PageRepository {
     public Set<Integer> findReferencedImageIds(int pageId) {
         var rows = findRowsByPage(pageId);
         return rows.stream()
-                   .flatMap(r -> findCellsByRow(r.id()).stream())
-                   .filter(c -> c.contentType() == CellContentType.IMAGE)
-                   .map(c -> {
-                       try {
-                           return Integer.parseInt(c.content().trim());
-                       } catch (NumberFormatException e) {
-                           return null;
-                       }
-                   })
-                   .filter(Objects::nonNull)
-                   .collect(Collectors.toSet());
+                .flatMap(r -> findCellsByRow(r.id()).stream())
+                .filter(c -> c.contentType() == CellContentType.IMAGE)
+                .map(c -> {
+                    try {
+                        return Integer.parseInt(c.content().trim());
+                    } catch (NumberFormatException e) {
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
     }
 
     // --- Landing page ---
 
     public void setLandingPage(int stationId, Integer pageId) {
         query("UPDATE station SET landing_page_id = :page_id WHERE id = :station_id;")
-                .single(Call.of().bind("page_id", pageId).bind("station_id", stationId))
+                .single(call().bind("page_id", pageId).bind("station_id", stationId))
                 .update();
     }
 
     public Optional<Integer> getLandingPageId(int stationId) {
         return query("SELECT landing_page_id FROM station WHERE id = :id;")
-                .single(Call.of().bind("id", stationId))
+                .single(call().bind("id", stationId))
                 .map(row -> row.getObject("landing_page_id") != null ? row.getInt("landing_page_id") : null)
                 .first();
     }

@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.storage.repository;
 
-import de.chojo.sadu.queries.api.call.Call;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageUsage;
 import jakarta.inject.Singleton;
@@ -13,6 +12,7 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
@@ -28,7 +28,7 @@ public class StorageUsageRepository {
     public List<StorageUsage> findByStation(int stationId) {
         return query(
                         "SELECT station_id, category, total_bytes, file_count, updated_at FROM station_storage_usage WHERE station_id = :station_id;")
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(StorageUsage.map())
                 .all();
     }
@@ -39,7 +39,7 @@ public class StorageUsageRepository {
     public Optional<StorageUsage> findByStationAndCategory(int stationId, StorageCategory category) {
         return query(
                         "SELECT station_id, category, total_bytes, file_count, updated_at FROM station_storage_usage WHERE station_id = :station_id AND category = :category;")
-                .single(Call.of().bind("station_id", stationId).bind("category", category.name()))
+                .single(call().bind("station_id", stationId).bind("category", category.name()))
                 .map(StorageUsage.map())
                 .first();
     }
@@ -57,8 +57,7 @@ public class StorageUsageRepository {
                               file_count  = GREATEST(0, station_storage_usage.file_count + :files),
                               updated_at  = now();
                 """)
-                .single(Call.of()
-                        .bind("station_id", stationId)
+                .single(call().bind("station_id", stationId)
                         .bind("category", category.name())
                         .bind("bytes", bytesDelta)
                         .bind("files", fileCountDelta))
@@ -77,8 +76,7 @@ public class StorageUsageRepository {
                               file_count  = :files,
                               updated_at  = now();
                 """)
-                .single(Call.of()
-                        .bind("station_id", stationId)
+                .single(call().bind("station_id", stationId)
                         .bind("category", category.name())
                         .bind("bytes", totalBytes)
                         .bind("files", fileCount))
@@ -91,7 +89,7 @@ public class StorageUsageRepository {
     public long totalEnforcedBytes(int stationId) {
         return query(
                         "SELECT COALESCE(SUM(total_bytes), 0) AS total FROM station_storage_usage WHERE station_id = :station_id AND category != 'AVATARS';")
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(row -> row.getLong("total"))
                 .first()
                 .orElse(0L);
@@ -103,7 +101,7 @@ public class StorageUsageRepository {
     public long categoryBytes(int stationId, StorageCategory category) {
         return query(
                         "SELECT COALESCE(total_bytes, 0) AS total FROM station_storage_usage WHERE station_id = :station_id AND category = :category;")
-                .single(Call.of().bind("station_id", stationId).bind("category", category.name()))
+                .single(call().bind("station_id", stationId).bind("category", category.name()))
                 .map(row -> row.getLong("total"))
                 .first()
                 .orElse(0L);
@@ -115,7 +113,7 @@ public class StorageUsageRepository {
     public List<StorageUsage> findAll() {
         return query(
                         "SELECT station_id, category, total_bytes, file_count, updated_at FROM station_storage_usage ORDER BY station_id, category;")
-                .single(Call.of())
+                .single(call())
                 .map(StorageUsage.map())
                 .all();
     }
@@ -125,7 +123,7 @@ public class StorageUsageRepository {
      */
     public void deleteByStation(int stationId) {
         query("DELETE FROM station_storage_usage WHERE station_id = :station_id;")
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .delete();
     }
 }

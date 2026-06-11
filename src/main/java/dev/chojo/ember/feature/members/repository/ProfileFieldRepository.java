@@ -5,8 +5,6 @@
  */
 package dev.chojo.ember.feature.members.repository;
 
-import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
@@ -17,6 +15,9 @@ import jakarta.inject.Singleton;
 
 import java.util.List;
 import java.util.Optional;
+
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
  * Repository for profile field definitions and their values per member.
@@ -32,8 +33,8 @@ public class ProfileFieldRepository {
      * Finds a profile field definition by its identifier.
      */
     public Optional<ProfileField> findById(int id) {
-        return Query.query("SELECT " + COLUMNS + " FROM profile_field WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        return query("SELECT " + COLUMNS + " FROM profile_field WHERE id = :id;")
+                .single(call().bind("id", id))
                 .map(ProfileField.map())
                 .first();
     }
@@ -42,9 +43,9 @@ public class ProfileFieldRepository {
      * Finds all profile field definitions for a station, ordered by scope and position.
      */
     public List<ProfileField> findByStation(int stationId) {
-        return Query.query("SELECT " + COLUMNS
+        return query("SELECT " + COLUMNS
                         + " FROM profile_field WHERE station_id = :station_id ORDER BY scope, position;")
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(ProfileField.map())
                 .all();
     }
@@ -53,9 +54,9 @@ public class ProfileFieldRepository {
      * Finds profile field definitions for a station filtered by scope, ordered by position.
      */
     public List<ProfileField> findByStationAndScope(int stationId, ProfileFieldScope scope) {
-        return Query.query("SELECT " + COLUMNS
+        return query("SELECT " + COLUMNS
                         + " FROM profile_field WHERE station_id = :station_id AND scope = :scope ORDER BY position;")
-                .single(Call.of().bind("station_id", stationId).bind("scope", scope))
+                .single(call().bind("station_id", stationId).bind("scope", scope))
                 .map(ProfileField.map())
                 .all();
     }
@@ -70,12 +71,11 @@ public class ProfileFieldRepository {
             ProfileFieldConfig config,
             int position,
             ProfileFieldScope scope) {
-        return Query.query("""
+        return query("""
                             INSERT INTO profile_field(station_id, name, field_type, config, position, scope)
                             VALUES (:station_id, :name, :field_type, :config::JSONB, :position, :scope)
                             RETURNING\s""" + COLUMNS + ";")
-                .single(Call.of()
-                        .bind("station_id", stationId)
+                .single(call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("field_type", fieldType)
                         .bind("config", config.toJson())
@@ -96,7 +96,7 @@ public class ProfileFieldRepository {
             ProfileFieldConfig config,
             int position,
             boolean keepOnArchive) {
-        return Query.query("""
+        return query("""
                             UPDATE profile_field
                             SET
                                 name             = :name,
@@ -105,8 +105,7 @@ public class ProfileFieldRepository {
                                 position         = :position,
                                 keep_on_archive  = :keep_on_archive
                             WHERE id = :id;""")
-                .single(Call.of()
-                        .bind("name", name)
+                .single(call().bind("name", name)
                         .bind("field_type", fieldType)
                         .bind("config", config.toJson())
                         .bind("position", position)
@@ -120,8 +119,8 @@ public class ProfileFieldRepository {
      * Deletes a profile field definition and all associated values.
      */
     public boolean delete(int id) {
-        return Query.query("DELETE FROM profile_field WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        return query("DELETE FROM profile_field WHERE id = :id;")
+                .single(call().bind("id", id))
                 .delete()
                 .changed();
     }
@@ -132,8 +131,8 @@ public class ProfileFieldRepository {
      * Finds all profile field values for a member.
      */
     public List<ProfileFieldValue> findValues(int memberId) {
-        return Query.query("SELECT member_id, field_id, value FROM profile_field_value WHERE member_id = :member_id;")
-                .single(Call.of().bind("member_id", memberId))
+        return query("SELECT member_id, field_id, value FROM profile_field_value WHERE member_id = :member_id;")
+                .single(call().bind("member_id", memberId))
                 .map(ProfileFieldValue.map())
                 .all();
     }
@@ -142,7 +141,7 @@ public class ProfileFieldRepository {
      * Finds a specific profile field value for a member.
      */
     public Optional<ProfileFieldValue> findValue(int memberId, int fieldId) {
-        return Query.query("""
+        return query("""
                             SELECT
                                 member_id,
                                 field_id,
@@ -151,7 +150,7 @@ public class ProfileFieldRepository {
                                 profile_field_value
                             WHERE member_id = :member_id
                               AND field_id = :field_id;""")
-                .single(Call.of().bind("member_id", memberId).bind("field_id", fieldId))
+                .single(call().bind("member_id", memberId).bind("field_id", fieldId))
                 .map(ProfileFieldValue.map())
                 .first();
     }
@@ -160,7 +159,7 @@ public class ProfileFieldRepository {
      * Sets a profile field value for a member, inserting or updating as needed.
      */
     public InsertionResult setValue(int memberId, int fieldId, String value) {
-        return Query.query("""
+        return query("""
                             INSERT
                             INTO
                                 profile_field_value(member_id, field_id, value)
@@ -168,8 +167,7 @@ public class ProfileFieldRepository {
                                 (:member_id, :field_id, :value::JSONB)
                             ON CONFLICT (member_id, field_id) DO UPDATE SET
                                 value = excluded.value;""")
-                .single(Call.of()
-                        .bind("member_id", memberId)
+                .single(call().bind("member_id", memberId)
                         .bind("field_id", fieldId)
                         .bind("value", value))
                 .insert();
@@ -179,8 +177,8 @@ public class ProfileFieldRepository {
      * Deletes a specific profile field value for a member.
      */
     public boolean deleteValue(int memberId, int fieldId) {
-        return Query.query("DELETE FROM profile_field_value WHERE member_id = :member_id AND field_id = :field_id;")
-                .single(Call.of().bind("member_id", memberId).bind("field_id", fieldId))
+        return query("DELETE FROM profile_field_value WHERE member_id = :member_id AND field_id = :field_id;")
+                .single(call().bind("member_id", memberId).bind("field_id", fieldId))
                 .delete()
                 .changed();
     }
@@ -189,11 +187,11 @@ public class ProfileFieldRepository {
      * Delete all field values for a member where the field is NOT marked as keep_on_archive.
      */
     public void deleteNonArchivedValues(int memberId) {
-        Query.query("""
+        query("""
                 DELETE FROM profile_field_value
                 WHERE member_id = :member_id
                   AND field_id NOT IN (
                       SELECT id FROM profile_field WHERE keep_on_archive
-                  );""").single(Call.of().bind("member_id", memberId)).delete();
+                  );""").single(call().bind("member_id", memberId)).delete();
     }
 }

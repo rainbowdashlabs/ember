@@ -9,5 +9,5 @@ public enum ApplicationStatus {
     PENDING,
     ACCEPTED,
     DENIED,
-    UNVERIFIED;
+    UNVERIFIED
 }

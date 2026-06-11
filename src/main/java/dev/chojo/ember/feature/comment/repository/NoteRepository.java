@@ -5,8 +5,6 @@
  */
 package dev.chojo.ember.feature.comment.repository;
 
-import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.comment.entity.EntityNote;
 import dev.chojo.ember.feature.comment.entity.NoteEntityType;
 import dev.chojo.ember.feature.comment.entity.NoteVersion;
@@ -14,6 +12,9 @@ import jakarta.inject.Singleton;
 
 import java.util.List;
 import java.util.Optional;
+
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
  * Repository for managing entity notes and their version history.
@@ -29,9 +30,20 @@ public class NoteRepository {
      * @return the note, if found
      */
     public Optional<EntityNote> findNote(NoteEntityType entityType, int entityId) {
-        return Query.query("SELECT id, entity_type, entity_id, station_id, content, updated_by, updated_at"
-                        + " FROM entity_note WHERE entity_type = :entity_type AND entity_id = :entity_id;")
-                .single(Call.of().bind("entity_type", entityType).bind("entity_id", entityId))
+        return query("""
+                SELECT
+                    id,
+                    entity_type,
+                    entity_id,
+                    station_id,
+                    content,
+                    updated_by,
+                    updated_at
+                FROM
+                    entity_note
+                WHERE entity_type = :entity_type
+                  AND entity_id = :entity_id;""")
+                .single(call().bind("entity_type", entityType).bind("entity_id", entityId))
                 .map(EntityNote.map())
                 .first();
     }
@@ -48,13 +60,20 @@ public class NoteRepository {
      */
     public EntityNote createOrUpdate(
             NoteEntityType entityType, int entityId, int stationId, String content, int updatedBy) {
-        return Query.query("INSERT INTO entity_note (entity_type, entity_id, station_id, content, updated_by)"
-                        + " VALUES (:entity_type, :entity_id, :station_id, :content, :updated_by)"
-                        + " ON CONFLICT (entity_type, entity_id) DO UPDATE"
-                        + " SET content = :content, updated_by = :updated_by, updated_at = now()"
-                        + " RETURNING id, entity_type, entity_id, station_id, content, updated_by, updated_at;")
-                .single(Call.of()
-                        .bind("entity_type", entityType)
+        return query("""
+                INSERT
+                INTO
+                    entity_note
+                    (entity_type, entity_id, station_id, content, updated_by)
+                VALUES
+                    (:entity_type, :entity_id, :station_id, :content, :updated_by)
+                ON CONFLICT (entity_type, entity_id) DO UPDATE
+                    SET
+                        content    = :content,
+                        updated_by = :updated_by,
+                        updated_at = now()
+                RETURNING id, entity_type, entity_id, station_id, content, updated_by, updated_at;""")
+                .single(call().bind("entity_type", entityType)
                         .bind("entity_id", entityId)
                         .bind("station_id", stationId)
                         .bind("content", content)
@@ -71,9 +90,18 @@ public class NoteRepository {
      * @return the list of note versions
      */
     public List<NoteVersion> findVersions(int noteId) {
-        return Query.query("SELECT id, note_id, diff_patch, author_id, created_at"
-                        + " FROM entity_note_version WHERE note_id = :note_id ORDER BY created_at DESC;")
-                .single(Call.of().bind("note_id", noteId))
+        return query("""
+                SELECT
+                    id,
+                    note_id,
+                    diff_patch,
+                    author_id,
+                    created_at
+                FROM
+                    entity_note_version
+                WHERE note_id = :note_id
+                ORDER BY created_at DESC;""")
+                .single(call().bind("note_id", noteId))
                 .map(NoteVersion.map())
                 .all();
     }
@@ -86,10 +114,14 @@ public class NoteRepository {
      * @param authorId  the member ID who made the change
      */
     public void createVersion(int noteId, String diffPatch, int authorId) {
-        Query.query("INSERT INTO entity_note_version (note_id, diff_patch, author_id)"
-                        + " VALUES (:note_id, :diff_patch, :author_id);")
-                .single(Call.of()
-                        .bind("note_id", noteId)
+        query("""
+                INSERT
+                INTO
+                    entity_note_version
+                    (note_id, diff_patch, author_id)
+                VALUES
+                    (:note_id, :diff_patch, :author_id);""")
+                .single(call().bind("note_id", noteId)
                         .bind("diff_patch", diffPatch)
                         .bind("author_id", authorId))
                 .update();

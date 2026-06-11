@@ -5,8 +5,6 @@
  */
 package dev.chojo.ember.feature.inventory.repository;
 
-import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.inventory.entity.CheckDetail;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheck;
@@ -18,6 +16,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
@@ -37,12 +37,11 @@ public class InventoryCheckRepository {
      * @return the created check
      */
     public InventoryCheck createCheck(int stationId, int memberId, int checkedBy) {
-        return Query.query("""
+        return query("""
                             INSERT INTO inventory_check(station_id, member_id, checked_by)
                             VALUES (:station_id, :member_id, :checked_by)
                             RETURNING id, station_id, member_id, checked_by, checked_at;""")
-                .single(Call.of()
-                        .bind("station_id", stationId)
+                .single(call().bind("station_id", stationId)
                         .bind("member_id", memberId)
                         .bind("checked_by", checkedBy))
                 .map(InventoryCheck.map())
@@ -57,9 +56,9 @@ public class InventoryCheckRepository {
      * @return the latest check, or empty if no checks exist
      */
     public Optional<InventoryCheck> latestCheckForMember(int memberId) {
-        return Query.query(
+        return query(
                         "SELECT id, station_id, member_id, checked_by, checked_at FROM inventory_check WHERE member_id = :member_id ORDER BY checked_at DESC LIMIT 1;")
-                .single(Call.of().bind("member_id", memberId))
+                .single(call().bind("member_id", memberId))
                 .map(InventoryCheck.map())
                 .first();
     }
@@ -72,27 +71,49 @@ public class InventoryCheckRepository {
      * @return list of member check summaries
      */
     public List<MemberCheckSummary> checkOverview(int stationId) {
-        return Query.query("""
-                            SELECT sm.id AS member_id, a.first_name, a.last_name, sm.user_type,
-                                   lc.checked_at AS last_checked_at, lc.checked_by,
-                                   ca.first_name AS checker_first_name, ca.last_name AS checker_last_name,
-                                   (l.id IS NOT NULL) AS locked,
-                                   l.locked_by,
-                                   la.first_name AS locker_first_name, la.last_name AS locker_last_name
-                            FROM station_member sm
-                                JOIN account a ON a.id = sm.account_id
-                                LEFT JOIN LATERAL (
-                                    SELECT checked_at, checked_by FROM inventory_check
-                                    WHERE member_id = sm.id ORDER BY checked_at DESC LIMIT 1
-                                ) lc ON TRUE
-                                LEFT JOIN station_member csm ON csm.id = lc.checked_by
-                                LEFT JOIN account ca ON ca.id = csm.account_id
-                                LEFT JOIN inventory_check_lock l ON l.member_id = sm.id
-                                LEFT JOIN station_member lsm ON lsm.id = l.locked_by
-                                LEFT JOIN account la ON la.id = lsm.account_id
-                            WHERE sm.station_id = :station_id AND sm.former = FALSE
-                            ORDER BY lc.checked_at ASC NULLS FIRST;""")
-                .single(Call.of().bind("station_id", stationId))
+        return query("""
+                SELECT
+                    sm.id                AS member_id,
+                    a.first_name,
+                    a.last_name,
+                    sm.user_type,
+                    lc.checked_at        AS last_checked_at,
+                    lc.checked_by,
+                    ca.first_name        AS checker_first_name,
+                    ca.last_name         AS checker_last_name,
+                    ( l.id IS NOT NULL ) AS locked,
+                    l.locked_by,
+                    la.first_name        AS locker_first_name,
+                    la.last_name         AS locker_last_name
+                FROM
+                    station_member sm
+                        JOIN account a
+                        ON a.id = sm.account_id
+                        LEFT JOIN LATERAL (
+                        SELECT
+                            checked_at,
+                            checked_by
+                        FROM
+                            inventory_check
+                        WHERE member_id = sm.id
+                        ORDER BY checked_at DESC
+                        LIMIT 1
+                        ) lc
+                        ON TRUE
+                        LEFT JOIN station_member csm
+                        ON csm.id = lc.checked_by
+                        LEFT JOIN account ca
+                        ON ca.id = csm.account_id
+                        LEFT JOIN inventory_check_lock l
+                        ON l.member_id = sm.id
+                        LEFT JOIN station_member lsm
+                        ON lsm.id = l.locked_by
+                        LEFT JOIN account la
+                        ON la.id = lsm.account_id
+                WHERE sm.station_id = :station_id
+                  AND sm.former = FALSE
+                ORDER BY lc.checked_at ASC NULLS FIRST;""")
+                .single(call().bind("station_id", stationId))
                 .map(row -> new MemberCheckSummary(
                         row.getInt("member_id"),
                         row.getString("first_name"),
@@ -119,11 +140,11 @@ public class InventoryCheckRepository {
         if (check.isEmpty()) return Optional.empty();
         var items = findCheckItems(check.get().id());
         // Get checker name
-        var names = Query.query("""
+        var names = query("""
                                  SELECT a.first_name, a.last_name FROM station_member sm
                                      JOIN account a ON a.id = sm.account_id
                                  WHERE sm.id = :id;""")
-                .single(Call.of().bind("id", check.get().checkedBy()))
+                .single(call().bind("id", check.get().checkedBy()))
                 .map(row -> new String[] {row.getString("first_name"), row.getString("last_name")})
                 .first()
                 .orElse(new String[] {"", ""});
@@ -144,12 +165,11 @@ public class InventoryCheckRepository {
      */
     public InventoryCheckItem createCheckItem(
             int checkId, Integer itemId, Integer inventoryId, CheckResult result, String note) {
-        return Query.query("""
+        return query("""
                             INSERT INTO inventory_check_item(check_id, item_id, inventory_id, result, note)
                             VALUES (:check_id, :item_id, :inventory_id, :result, :note)
                             RETURNING id, check_id, item_id, inventory_id, result, note;""")
-                .single(Call.of()
-                        .bind("check_id", checkId)
+                .single(call().bind("check_id", checkId)
                         .bind("item_id", itemId)
                         .bind("inventory_id", inventoryId)
                         .bind("result", result)
@@ -166,9 +186,9 @@ public class InventoryCheckRepository {
      * @return list of check items
      */
     public List<InventoryCheckItem> findCheckItems(int checkId) {
-        return Query.query(
+        return query(
                         "SELECT id, check_id, item_id, inventory_id, result, note FROM inventory_check_item WHERE check_id = :check_id;")
-                .single(Call.of().bind("check_id", checkId))
+                .single(call().bind("check_id", checkId))
                 .map(InventoryCheckItem.map())
                 .all();
     }
@@ -185,13 +205,12 @@ public class InventoryCheckRepository {
      * @return the acquired lock, or empty if the member is already locked
      */
     public Optional<InventoryCheckLock> acquireLock(int stationId, int memberId, int lockedBy) {
-        return Query.query("""
+        return query("""
                             INSERT INTO inventory_check_lock(station_id, member_id, locked_by)
                             VALUES (:station_id, :member_id, :locked_by)
                             ON CONFLICT (member_id) DO NOTHING
                             RETURNING id, station_id, member_id, locked_by, locked_at;""")
-                .single(Call.of()
-                        .bind("station_id", stationId)
+                .single(call().bind("station_id", stationId)
                         .bind("member_id", memberId)
                         .bind("locked_by", lockedBy))
                 .map(InventoryCheckLock.map())
@@ -205,8 +224,8 @@ public class InventoryCheckRepository {
      * @return {@code true} if a lock was released
      */
     public boolean releaseLock(int memberId) {
-        return Query.query("DELETE FROM inventory_check_lock WHERE member_id = :member_id;")
-                .single(Call.of().bind("member_id", memberId))
+        return query("DELETE FROM inventory_check_lock WHERE member_id = :member_id;")
+                .single(call().bind("member_id", memberId))
                 .delete()
                 .changed();
     }
@@ -218,8 +237,8 @@ public class InventoryCheckRepository {
      * @return {@code true} if any locks were released
      */
     public boolean releaseLockByLocker(int lockedBy) {
-        return Query.query("DELETE FROM inventory_check_lock WHERE locked_by = :locked_by;")
-                .single(Call.of().bind("locked_by", lockedBy))
+        return query("DELETE FROM inventory_check_lock WHERE locked_by = :locked_by;")
+                .single(call().bind("locked_by", lockedBy))
                 .delete()
                 .changed();
     }
@@ -231,9 +250,9 @@ public class InventoryCheckRepository {
      * @return the lock, or empty if not locked
      */
     public Optional<InventoryCheckLock> findLock(int memberId) {
-        return Query.query(
+        return query(
                         "SELECT id, station_id, member_id, locked_by, locked_at FROM inventory_check_lock WHERE member_id = :member_id;")
-                .single(Call.of().bind("member_id", memberId))
+                .single(call().bind("member_id", memberId))
                 .map(InventoryCheckLock.map())
                 .first();
     }
@@ -244,8 +263,8 @@ public class InventoryCheckRepository {
      * @param maxMinutes the maximum lock age in minutes before automatic release
      */
     public void releaseExpiredLocks(int maxMinutes) {
-        Query.query("DELETE FROM inventory_check_lock WHERE locked_at < now() - INTERVAL '1 minute' * :minutes;")
-                .single(Call.of().bind("minutes", maxMinutes))
+        query("DELETE FROM inventory_check_lock WHERE locked_at < now() - INTERVAL '1 minute' * :minutes;")
+                .single(call().bind("minutes", maxMinutes))
                 .delete();
     }
 
@@ -261,7 +280,7 @@ public class InventoryCheckRepository {
     public Optional<Integer> nextUncheckedMember(int stationId, int excludeMemberId, boolean teamOnly) {
         String roleFilter =
                 teamOnly ? "AND sm.user_type IN ('TEAM','MANAGER','GUARDIAN')" : "AND sm.user_type = 'MEMBER'";
-        return Query.query("SELECT sm.id FROM station_member sm"
+        return query("SELECT sm.id FROM station_member sm"
                         + " LEFT JOIN inventory_check_lock l ON l.member_id = sm.id"
                         + " LEFT JOIN LATERAL ("
                         + "     SELECT checked_at FROM inventory_check WHERE member_id = sm.id ORDER BY checked_at DESC LIMIT 1"
@@ -274,7 +293,7 @@ public class InventoryCheckRepository {
                         + " " + roleFilter
                         + " ORDER BY lc.checked_at ASC NULLS FIRST"
                         + " LIMIT 1;")
-                .single(Call.of().bind("station_id", stationId).bind("exclude", excludeMemberId))
+                .single(call().bind("station_id", stationId).bind("exclude", excludeMemberId))
                 .map(row -> row.getInt("id"))
                 .first();
     }
