@@ -27,36 +27,33 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class PageRepository {
 
-    private static final String PAGE_COLUMNS =
-            "id, station_id, parent_id, title, slug, published, sort_order, meta_description, og_image_id, created_by, created_at, updated_at";
-
     // --- Page CRUD ---
 
     public StationPage create(int stationId, String title, String slug, Integer parentId, int createdBy) {
         return query("""
                 INSERT INTO station_page(station_id, title, slug, parent_id, created_by)
                 VALUES(:station_id, :title, :slug, :parent_id, :created_by)
-                RETURNING\s""" + PAGE_COLUMNS + ";")
+                RETURNING *;""")
                 .single(Call.of()
-                        .bind("station_id", stationId)
-                        .bind("title", title)
-                        .bind("slug", slug)
-                        .bind("parent_id", parentId)
-                        .bind("created_by", createdBy))
+                            .bind("station_id", stationId)
+                            .bind("title", title)
+                            .bind("slug", slug)
+                            .bind("parent_id", parentId)
+                            .bind("created_by", createdBy))
                 .map(StationPage.mapFlat())
                 .first()
                 .orElseThrow();
     }
 
     public Optional<StationPage> findById(int id) {
-        return query("SELECT %s FROM station_page WHERE id = :id;", PAGE_COLUMNS)
+        return query("SELECT * FROM station_page WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(StationPage.mapFlat())
                 .first();
     }
 
     public Optional<StationPage> findBySlugAndStation(String slug, int stationId) {
-        return query("SELECT %s FROM station_page WHERE slug = :slug AND station_id = :station_id;", PAGE_COLUMNS)
+        return query("SELECT * FROM station_page WHERE slug = :slug AND station_id = :station_id;")
                 .single(Call.of().bind("slug", slug).bind("station_id", stationId))
                 .map(StationPage.mapFlat())
                 .first();
@@ -64,26 +61,34 @@ public class PageRepository {
 
     public Optional<StationPage> findBySlugAndParent(int stationId, String slug, Integer parentId) {
         if (parentId == null) {
-            return query(
-                            "SELECT %s FROM station_page WHERE station_id = :station_id AND slug = :slug AND parent_id IS NULL;",
-                            PAGE_COLUMNS)
+            return query("""
+                    SELECT *
+                    FROM
+                        station_page
+                    WHERE station_id = :station_id
+                      AND slug = :slug
+                      AND parent_id IS NULL;""")
                     .single(Call.of().bind("station_id", stationId).bind("slug", slug))
                     .map(StationPage.mapFlat())
                     .first();
         }
-        return query(
-                        "SELECT %s FROM station_page WHERE station_id = :station_id AND slug = :slug AND parent_id = :parent_id;",
-                        PAGE_COLUMNS)
+        return query("""
+                SELECT *
+                FROM
+                    station_page
+                WHERE station_id = :station_id
+                  AND slug = :slug
+                  AND parent_id = :parent_id;""")
                 .single(Call.of()
-                        .bind("station_id", stationId)
-                        .bind("slug", slug)
-                        .bind("parent_id", parentId))
+                            .bind("station_id", stationId)
+                            .bind("slug", slug)
+                            .bind("parent_id", parentId))
                 .map(StationPage.mapFlat())
                 .first();
     }
 
     public List<StationPage> findByStation(int stationId) {
-        return query("SELECT %s FROM station_page WHERE station_id = :station_id ORDER BY sort_order;", PAGE_COLUMNS)
+        return query("SELECT * FROM station_page WHERE station_id = :station_id ORDER BY sort_order;")
                 .single(Call.of().bind("station_id", stationId))
                 .map(StationPage.mapFlat())
                 .all();
@@ -92,12 +97,12 @@ public class PageRepository {
     public List<StationPage> findPublishedByStation(int stationId) {
         return query("""
                 SELECT
-                    %s
+                    *
                 FROM
                     station_page
                 WHERE station_id = :station_id
                   AND published
-                ORDER BY sort_order;""", PAGE_COLUMNS)
+                ORDER BY sort_order;""")
                 .single(Call.of().bind("station_id", stationId))
                 .map(StationPage.mapFlat())
                 .all();
@@ -107,18 +112,22 @@ public class PageRepository {
             int id, String title, String slug, Integer parentId, String metaDescription, Integer ogImageId) {
         return query("""
                 UPDATE station_page
-                SET title = :title, slug = :slug, parent_id = :parent_id,
-                    meta_description = :meta_description, og_image_id = :og_image_id,
-                    updated_at = :updated_at
+                SET
+                    title            = :title,
+                    slug             = :slug,
+                    parent_id        = :parent_id,
+                    meta_description = :meta_description,
+                    og_image_id      = :og_image_id,
+                    updated_at       = :updated_at
                 WHERE id = :id;""")
                 .single(Call.of()
-                        .bind("id", id)
-                        .bind("title", title)
-                        .bind("slug", slug)
-                        .bind("parent_id", parentId)
-                        .bind("meta_description", metaDescription)
-                        .bind("og_image_id", ogImageId)
-                        .bind("updated_at", Instant.now(), INSTANT_TIMESTAMP))
+                            .bind("id", id)
+                            .bind("title", title)
+                            .bind("slug", slug)
+                            .bind("parent_id", parentId)
+                            .bind("meta_description", metaDescription)
+                            .bind("og_image_id", ogImageId)
+                            .bind("updated_at", Instant.now(), INSTANT_TIMESTAMP))
                 .update()
                 .changed();
     }
@@ -126,9 +135,9 @@ public class PageRepository {
     public boolean setPublished(int id, boolean published) {
         return query("UPDATE station_page SET published = :published, updated_at = :updated_at WHERE id = :id;")
                 .single(Call.of()
-                        .bind("id", id)
-                        .bind("published", published)
-                        .bind("updated_at", Instant.now(), INSTANT_TIMESTAMP))
+                            .bind("id", id)
+                            .bind("published", published)
+                            .bind("updated_at", Instant.now(), INSTANT_TIMESTAMP))
                 .update()
                 .changed();
     }
@@ -142,11 +151,11 @@ public class PageRepository {
 
     public boolean slugExists(int stationId, String slug, int excludePageId) {
         return query(
-                        "SELECT 1 FROM station_page WHERE station_id = :station_id AND slug = :slug AND id != :exclude_id;")
+                "SELECT 1 FROM station_page WHERE station_id = :station_id AND slug = :slug AND id != :exclude_id;")
                 .single(Call.of()
-                        .bind("station_id", stationId)
-                        .bind("slug", slug)
-                        .bind("exclude_id", excludePageId))
+                            .bind("station_id", stationId)
+                            .bind("slug", slug)
+                            .bind("exclude_id", excludePageId))
                 .map(row -> true)
                 .first()
                 .isPresent();
@@ -226,19 +235,19 @@ public class PageRepository {
                 VALUES
                     (:row_id, :sort_order, :width_percent, :content_type, :content, :config::JSONB);""")
                 .single(Call.of()
-                        .bind("row_id", rowId)
-                        .bind("sort_order", sortOrder)
-                        .bind("width_percent", widthPercent)
-                        .bind("content_type", contentType)
-                        .bind("content", content)
-                        .bind("config", config.toJson()))
+                            .bind("row_id", rowId)
+                            .bind("sort_order", sortOrder)
+                            .bind("width_percent", widthPercent)
+                            .bind("content_type", contentType)
+                            .bind("content", content)
+                            .bind("config", config.toJson()))
                 .insert();
     }
 
     public StationPage loadFullTree(StationPage page) {
         var rows = findRowsByPage(page.id()).stream()
-                .map(r -> r.withCells(findCellsByRow(r.id())))
-                .toList();
+                                            .map(r -> r.withCells(findCellsByRow(r.id())))
+                                            .toList();
         return page.withRows(rows);
     }
 
@@ -253,25 +262,44 @@ public class PageRepository {
                     (:page_id, :file_name, :mime_type, :file_size)
                 RETURNING id, page_id, file_name, mime_type, file_size, uploaded_at;""")
                 .single(Call.of()
-                        .bind("page_id", pageId)
-                        .bind("file_name", fileName)
-                        .bind("mime_type", mimeType)
-                        .bind("file_size", fileSize))
+                            .bind("page_id", pageId)
+                            .bind("file_name", fileName)
+                            .bind("mime_type", mimeType)
+                            .bind("file_size", fileSize))
                 .map(PageImage.map())
                 .first()
                 .orElseThrow();
     }
 
     public Optional<PageImage> findImage(int imageId) {
-        return query("SELECT id, page_id, file_name, mime_type, file_size, uploaded_at FROM page_image WHERE id = :id;")
+        return query("""
+                SELECT
+                    id,
+                    page_id,
+                    file_name,
+                    mime_type,
+                    file_size,
+                    uploaded_at
+                FROM
+                    page_image
+                WHERE id = :id;""")
                 .single(Call.of().bind("id", imageId))
                 .map(PageImage.map())
                 .first();
     }
 
     public List<PageImage> findImagesByPage(int pageId) {
-        return query(
-                        "SELECT id, page_id, file_name, mime_type, file_size, uploaded_at FROM page_image WHERE page_id = :page_id;")
+        return query("""
+                SELECT
+                    id,
+                    page_id,
+                    file_name,
+                    mime_type,
+                    file_size,
+                    uploaded_at
+                FROM
+                    page_image
+                WHERE page_id = :page_id;""")
                 .single(Call.of().bind("page_id", pageId))
                 .map(PageImage.map())
                 .all();
@@ -287,17 +315,17 @@ public class PageRepository {
     public Set<Integer> findReferencedImageIds(int pageId) {
         var rows = findRowsByPage(pageId);
         return rows.stream()
-                .flatMap(r -> findCellsByRow(r.id()).stream())
-                .filter(c -> c.contentType() == CellContentType.IMAGE)
-                .map(c -> {
-                    try {
-                        return Integer.parseInt(c.content().trim());
-                    } catch (NumberFormatException e) {
-                        return null;
-                    }
-                })
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+                   .flatMap(r -> findCellsByRow(r.id()).stream())
+                   .filter(c -> c.contentType() == CellContentType.IMAGE)
+                   .map(c -> {
+                       try {
+                           return Integer.parseInt(c.content().trim());
+                       } catch (NumberFormatException e) {
+                           return null;
+                       }
+                   })
+                   .filter(Objects::nonNull)
+                   .collect(Collectors.toSet());
     }
 
     // --- Landing page ---

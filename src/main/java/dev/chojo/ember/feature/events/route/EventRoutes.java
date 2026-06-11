@@ -884,8 +884,7 @@ public class EventRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         UserSession session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(StatusUpdateRequest.class);
-        var status = RegistrationStatus.valueOf(req.status());
-        if (status != RegistrationStatus.ACCEPTED && status != RegistrationStatus.DENIED) {
+        if (req.status() != RegistrationStatus.ACCEPTED && req.status() != RegistrationStatus.DENIED) {
             throw new BadRequestResponse("status must be ACCEPTED or DENIED");
         }
         var registration = eventService.findRegistrationById(id).orElseThrow(NotFoundResponse::new);
@@ -893,7 +892,7 @@ public class EventRoutes implements Routes {
         if (regEvent.stationId() != session.stationId()) {
             throw new ForbiddenResponse("Cannot access resources from another station");
         }
-        if (!eventService.updateRegistrationStatus(id, status)) {
+        if (!eventService.updateRegistrationStatus(id, req.status())) {
             throw new NotFoundResponse();
         }
         ctx.json(new MessageResponse("Status updated"));
@@ -1427,7 +1426,7 @@ public class EventRoutes implements Routes {
     @OpenApiName("EventRegisterRequest")
     public record RegisterRequest(String eventDate, Integer memberId) {}
 
-    public record StatusUpdateRequest(String status) {}
+    public record StatusUpdateRequest(RegistrationStatus status) {}
 
     public record EventRestrictions(
             List<String> userTypes,

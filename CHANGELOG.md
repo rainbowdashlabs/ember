@@ -4,6 +4,27 @@
 
 ### New Features
 
+#### Storage Monitoring & Quota System
+- **Per-station storage tracking** — tracks file storage usage across 5 categories: KB files, board attachments, page images, avatars, and other images
+- **Quota enforcement** — configurable per-category and total storage limits with rejection on exceed (HTTP 413)
+- **Quota presets** — reusable named profiles (e.g. Small, Standard, Premium) that can be applied to stations in bulk
+- **Per-station overrides** — stations can have custom quotas or use instance defaults from config
+- **Warning notifications** — domain event notifies station managers when usage crosses the configurable threshold (default 80%)
+- **Automatic reconciliation** — background job recalculates actual usage from DB and filesystem on startup and at configurable intervals
+- **Presentation compression** — lossless ZIP recompression of PPTX/ODP files, saving 10-30% for files above the threshold
+- **Admin dashboard** — storage overview with summary stats, stacked bar charts per station, category pie chart, sortable station table with status badges and preset assignment
+- **Station storage view** — read-only usage view for station managers with bar chart and per-category breakdown
+- **Preset management** — CRUD UI with size inputs (number + MiB/GiB/TiB dropdown), apply to multiple stations, delete with confirmation
+- **Config** — `storage` section in config.yaml with defaults for all quotas, compression, warning threshold, and reconciliation interval
+- **Help center** — help articles for both admin and station storage views
+
+#### Federation Version Broadcasting
+- **Startup broadcast** — on boot, pings all remote federation partners to exchange version information
+- **Version ping endpoint** — new `/remote/federation/ping` returns the current federation version hash
+- **Version backfill** — partners created before version tracking get updated on startup
+- **Version at creation** — new partners are created with the current federation version instead of placeholder '0'
+- **DTO tracking** — federation version hash now includes inner record DTOs from FederationRemoteRoutes, FederationRoutes, LendingRoutes, and BoardRoutes
+
 #### Public Pages (Layout Editor)
 - **Page builder** — stations can create public pages using a lightweight layout editor inspired by WordPress/Elementor
 - **Row-based layout** — pages are built from horizontal rows, each containing 1-4 columns with free-form percentage widths
@@ -99,6 +120,9 @@
 - **Environment variable reference** — hosting help page now documents all env vars organized by category: Database, API, Mailing, Auth, Theming, Tools, Frontend, Demo, and Docker/Compose — each with default value and beginner-friendly description
 
 ### Improvements
+- **Type-safe API responses** — replaced ~50 `Map.of()` API responses across routes, services, and export classes with typed Java records for compile-time safety
+- **CI retry** — test jobs (repository, service, other) retry once on failure; Docker push steps retry up to 3 times for transient registry errors
+- **CI coverage job** — no longer re-runs all tests; skips the default `test` task since coverage data is downloaded from artifacts
 - **FileInput component** — new reusable styled file picker component replacing raw `<input type="file">` elements across the knowledge base
 - **Frontend Docker image** — replaced `nixos/nix:latest` with `node:24-alpine` for dramatically faster builds (no nix-shell overhead)
 - **Inventory item status** — item detail now shows "Zugewiesen" (assigned) or "Verfügbar" (available) instead of generic "Aktiv"
@@ -113,6 +137,26 @@
 - **My Inventory tab visibility** — sidebar tab was always visible even when the user had no assigned inventory items
 
 ### Technical Changes
+
+#### Storage Monitoring Backend
+- **`StorageCategory` enum** — `KB_FILES`, `BOARD_ATTACHMENTS`, `PAGE_IMAGES`, `AVATARS`, `IMAGES`
+- **`StorageUsageRepository`** — delta updates, absolute sets, per-station/category queries
+- **`StorageQuotaPresetRepository`** — preset CRUD, apply-to-station, reset quotas, station preset name lookup
+- **`StorageQuotaService`** — quota checking, per-file/image size limits, delta tracking, warning threshold detection
+- **`StorageReconciliationService`** — filesystem walk + DB recalculation, runs on startup (1min delay) and at configured interval
+- **`PresentationCompressor`** — lossless ZIP recompression with `Deflater.BEST_COMPRESSION`
+- **`StorageRoutes`** — station usage, admin overview, preset CRUD, apply/reset, reconciliation triggers
+- **`StorageWarningEvent`** + handler — domain event notifying STATION_MANAGER role
+- **`SizeParser` utility** — parses "5G", "50M" etc. into bytes and formats back
+- **`Storage` config** — Ocular config element with env var overrides (`STORAGE_*`)
+- **DB migration** — `station_storage_usage`, `storage_quota_preset` tables; station quota columns + `storage_preset_id` FK
+
+#### Federation Version
+- **`FederationVersionBroadcaster`** — eager singleton, pings all remote partners 2min after startup
+- **`/remote/federation/ping`** — returns `VersionPingResponse` (typed record, not Map)
+- **`FederationVersionComputer`** — now tracks DTOs from `FederationRemoteRoutes`, `FederationRoutes`, `LendingRoutes`, `BoardRoutes`
+- **`FederationRepository.backfillPartnerVersions`** — updates all partners with version '0' on startup
+- **`FederationRepository.createPartner`** — sets `federation_version` to current version at creation time
 
 #### Sitemap
 - **Jackson XML serialization** — replaced manual XML string concatenation with typed records and Jackson `XmlMapper`

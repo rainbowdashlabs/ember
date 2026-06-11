@@ -270,11 +270,11 @@ public class FederationService {
     }
 
     public boolean suspendPartner(int partnerId) {
-        return repository.updatePartnerStatus(partnerId, "SUSPENDED");
+        return repository.updatePartnerStatus(partnerId, FederationPartner.FederationStatus.SUSPENDED);
     }
 
     public boolean resumePartner(int partnerId) {
-        return repository.updatePartnerStatus(partnerId, "ACTIVE");
+        return repository.updatePartnerStatus(partnerId, FederationPartner.FederationStatus.ACTIVE);
     }
 
     /**

@@ -6,16 +6,18 @@
 package dev.chojo.ember.feature.events.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventFederationShare;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
  * Repository for managing federated event sharing, registrations, and member name caching.
@@ -32,7 +34,7 @@ public class EventFederationRepository {
      * @return the share, if configured
      */
     public Optional<EventFederationShare> findShareByEvent(int eventId) {
-        return Query.query("SELECT id, event_id, scope FROM event_federation_share WHERE event_id = :event_id;")
+        return query("SELECT id, event_id, scope FROM event_federation_share WHERE event_id = :event_id;")
                 .single(Call.of().bind("event_id", eventId))
                 .map(EventFederationShare.map())
                 .first();
@@ -46,11 +48,11 @@ public class EventFederationRepository {
      * @return the created or updated share
      */
     public EventFederationShare setShare(int eventId, String scope) {
-        return Query.query("""
-                        INSERT INTO event_federation_share(event_id, scope)
-                        VALUES (:event_id, :scope)
-                        ON CONFLICT (event_id) DO UPDATE SET scope = :scope
-                        RETURNING id, event_id, scope;""")
+        return query("""
+                INSERT INTO event_federation_share(event_id, scope)
+                VALUES (:event_id, :scope)
+                ON CONFLICT (event_id) DO UPDATE SET scope = :scope
+                RETURNING id, event_id, scope;""")
                 .single(Call.of().bind("event_id", eventId).bind("scope", scope))
                 .map(EventFederationShare.map())
                 .first()
@@ -64,12 +66,16 @@ public class EventFederationRepository {
      * @param partnerIds the partner IDs to target
      */
     public void setShareTargets(int shareId, List<Integer> partnerIds) {
-        Query.query("DELETE FROM event_federation_share_target WHERE share_id = :share_id;")
+        query("DELETE FROM event_federation_share_target WHERE share_id = :share_id;")
                 .single(Call.of().bind("share_id", shareId))
                 .delete();
         for (int partnerId : partnerIds) {
-            Query.query(
-                            "INSERT INTO event_federation_share_target(share_id, partner_id) VALUES (:share_id, :partner_id);")
+            query("""
+                    INSERT
+                    INTO
+                        event_federation_share_target(share_id, partner_id)
+                    VALUES
+                        (:share_id, :partner_id);""")
                     .single(Call.of().bind("share_id", shareId).bind("partner_id", partnerId))
                     .insert();
         }
@@ -82,7 +88,7 @@ public class EventFederationRepository {
      * @return the list of partner IDs
      */
     public List<Integer> findShareTargets(int shareId) {
-        return Query.query("SELECT partner_id FROM event_federation_share_target WHERE share_id = :share_id;")
+        return query("SELECT partner_id FROM event_federation_share_target WHERE share_id = :share_id;")
                 .single(Call.of().bind("share_id", shareId))
                 .map(row -> row.getInt("partner_id"))
                 .all();
@@ -94,7 +100,7 @@ public class EventFederationRepository {
      * @param eventId the event ID
      */
     public void removeShare(int eventId) {
-        Query.query("DELETE FROM event_federation_share WHERE event_id = :event_id;")
+        query("DELETE FROM event_federation_share WHERE event_id = :event_id;")
                 .single(Call.of().bind("event_id", eventId))
                 .delete();
     }
@@ -110,15 +116,15 @@ public class EventFederationRepository {
      * @return the list of shared event IDs
      */
     public List<Integer> findSharedEventIds(int partnerId, int stationId) {
-        return Query.query("""
-                        SELECT efs.event_id
-                        FROM event_federation_share efs
-                            JOIN station_event se ON se.id = efs.event_id
-                        WHERE se.station_id = :station_id
-                          AND (efs.scope = 'ALL_PARTNERS'
-                               OR (efs.scope = 'SPECIFIC'
-                                   AND EXISTS (SELECT 1 FROM event_federation_share_target efst
-                                               WHERE efst.share_id = efs.id AND efst.partner_id = :partner_id)));""")
+        return query("""
+                SELECT efs.event_id
+                FROM event_federation_share efs
+                    JOIN station_event se ON se.id = efs.event_id
+                WHERE se.station_id = :station_id
+                  AND (efs.scope = 'ALL_PARTNERS'
+                       OR (efs.scope = 'SPECIFIC'
+                           AND exists (SELECT 1 FROM event_federation_share_target efst
+                                       WHERE efst.share_id = efs.id AND efst.partner_id = :partner_id)));""")
                 .single(Call.of().bind("station_id", stationId).bind("partner_id", partnerId))
                 .map(row -> row.getInt("event_id"))
                 .all();
@@ -137,10 +143,10 @@ public class EventFederationRepository {
      */
     public EventFederationRegistration createRegistration(
             int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
-        return Query.query("""
-                        INSERT INTO event_federation_registration(event_id, partner_id, remote_member_id, event_date)
-                        VALUES (:event_id, :partner_id, :remote_member_id::uuid, :event_date)
-                        RETURNING id, event_id, partner_id, remote_member_id, event_date, status, created_at;""")
+        return query("""
+                INSERT INTO event_federation_registration(event_id, partner_id, remote_member_id, event_date)
+                VALUES (:event_id, :partner_id, :remote_member_id::UUID, :event_date)
+                RETURNING id, event_id, partner_id, remote_member_id, event_date, status, created_at;""")
                 .single(Call.of()
                         .bind("event_id", eventId)
                         .bind("partner_id", partnerId)
@@ -158,8 +164,8 @@ public class EventFederationRepository {
      * @param status the new status
      * @return true if a row was updated
      */
-    public boolean updateRegistrationStatus(int id, String status) {
-        return Query.query("UPDATE event_federation_registration SET status = :status WHERE id = :id;")
+    public boolean updateRegistrationStatus(int id, RegistrationStatus status) {
+        return query("UPDATE event_federation_registration SET status = :status WHERE id = :id;")
                 .single(Call.of().bind("status", status).bind("id", id))
                 .update()
                 .changed();
@@ -172,8 +178,18 @@ public class EventFederationRepository {
      * @return the registration, if found
      */
     public Optional<EventFederationRegistration> findRegistrationById(int id) {
-        return Query.query(
-                        "SELECT id, event_id, partner_id, remote_member_id, event_date, status, created_at FROM event_federation_registration WHERE id = :id;")
+        return query("""
+                SELECT
+                    id,
+                    event_id,
+                    partner_id,
+                    remote_member_id,
+                    event_date,
+                    status,
+                    created_at
+                FROM
+                    event_federation_registration
+                WHERE id = :id;""")
                 .single(Call.of().bind("id", id))
                 .map(EventFederationRegistration.map())
                 .first();
@@ -188,14 +204,37 @@ public class EventFederationRepository {
      */
     public List<EventFederationRegistration> findRegistrations(int eventId, LocalDate eventDate) {
         if (eventDate == null) {
-            return Query.query(
-                            "SELECT id, event_id, partner_id, remote_member_id, event_date, status, created_at FROM event_federation_registration WHERE event_id = :event_id ORDER BY created_at;")
+            return query("""
+                    SELECT
+                        id,
+                        event_id,
+                        partner_id,
+                        remote_member_id,
+                        event_date,
+                        status,
+                        created_at
+                    FROM
+                        event_federation_registration
+                    WHERE event_id = :event_id
+                    ORDER BY created_at;""")
                     .single(Call.of().bind("event_id", eventId))
                     .map(EventFederationRegistration.map())
                     .all();
         }
-        return Query.query(
-                        "SELECT id, event_id, partner_id, remote_member_id, event_date, status, created_at FROM event_federation_registration WHERE event_id = :event_id AND event_date = :event_date ORDER BY created_at;")
+        return query("""
+                SELECT
+                    id,
+                    event_id,
+                    partner_id,
+                    remote_member_id,
+                    event_date,
+                    status,
+                    created_at
+                FROM
+                    event_federation_registration
+                WHERE event_id = :event_id
+                  AND event_date = :event_date
+                ORDER BY created_at;""")
                 .single(Call.of().bind("event_id", eventId).bind("event_date", eventDate))
                 .map(EventFederationRegistration.map())
                 .all();
@@ -208,16 +247,39 @@ public class EventFederationRepository {
      * @return the list of registrations
      */
     public List<EventFederationRegistration> findRegistrationsByRemoteMember(UUID remoteMemberId) {
-        return Query.query(
-                        "SELECT id, event_id, partner_id, remote_member_id, event_date, status, created_at FROM event_federation_registration WHERE remote_member_id = :remote_member_id::uuid ORDER BY event_date;")
+        return query("""
+                SELECT
+                    id,
+                    event_id,
+                    partner_id,
+                    remote_member_id,
+                    event_date,
+                    status,
+                    created_at
+                FROM
+                    event_federation_registration
+                WHERE remote_member_id = :remote_member_id::UUID
+                ORDER BY event_date;""")
                 .single(Call.of().bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
                 .map(EventFederationRegistration.map())
                 .all();
     }
 
     public List<EventFederationRegistration> findRegistrationsByPartner(int partnerId) {
-        return Query.query(
-                        "SELECT id, event_id, partner_id, remote_member_id, event_date, status, created_at FROM event_federation_registration WHERE partner_id = :partner_id ORDER BY event_date;")
+        return query("""
+
+                SELECT
+                            event_federation_registration.id,
+                            event_id,
+                            partner_id,
+                            remote_member_id,
+                            event_date,
+                            status,
+                            created_at
+                        FROM
+                            event_federation_registration
+                        WHERE partner_id = :partner_id
+                        ORDER BY event_date;""")
                 .single(Call.of().bind("partner_id", partnerId))
                 .map(EventFederationRegistration.map())
                 .all();
@@ -233,10 +295,14 @@ public class EventFederationRepository {
      * @return true if a row was deleted
      */
     public boolean deleteRegistration(int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
-        return Query.query("""
-                        DELETE FROM event_federation_registration
-                        WHERE event_id = :event_id AND partner_id = :partner_id
-                          AND remote_member_id = :remote_member_id::uuid AND event_date = :event_date;""")
+        return query("""
+                DELETE
+                FROM
+                    event_federation_registration
+                WHERE event_id = :event_id
+                  AND partner_id = :partner_id
+                  AND remote_member_id = :remote_member_id::UUID
+                  AND event_date = :event_date;""")
                 .single(Call.of()
                         .bind("event_id", eventId)
                         .bind("partner_id", partnerId)
@@ -256,10 +322,17 @@ public class EventFederationRepository {
      * @param displayName    the display name to cache
      */
     public void cacheName(int partnerId, UUID remoteMemberId, String displayName) {
-        Query.query("""
-                        INSERT INTO federation_member_name_cache(partner_id, remote_member_id, display_name)
-                        VALUES (:partner_id, :remote_member_id::uuid, :display_name)
-                        ON CONFLICT (partner_id, remote_member_id) DO UPDATE SET display_name = :display_name, cached_at = now();""")
+        query("""
+                INSERT
+                INTO
+                    federation_member_name_cache(partner_id, remote_member_id, display_name)
+                VALUES
+                    (:partner_id, :remote_member_id::UUID, :display_name)
+                ON CONFLICT (partner_id, remote_member_id)
+                    DO UPDATE
+                    SET
+                        display_name = :display_name,
+                        cached_at    = now();""")
                 .single(Call.of()
                         .bind("partner_id", partnerId)
                         .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING)
@@ -275,8 +348,13 @@ public class EventFederationRepository {
      * @return the display name, if cached
      */
     public Optional<String> getCachedName(int partnerId, UUID remoteMemberId) {
-        return Query.query(
-                        "SELECT display_name FROM federation_member_name_cache WHERE partner_id = :partner_id AND remote_member_id = :remote_member_id::uuid;")
+        return query("""
+                SELECT
+                    display_name
+                FROM
+                    federation_member_name_cache
+                WHERE partner_id = :partner_id
+                  AND remote_member_id = :remote_member_id::UUID;""")
                 .single(Call.of()
                         .bind("partner_id", partnerId)
                         .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
@@ -291,8 +369,12 @@ public class EventFederationRepository {
      * @param remoteMemberId the remote member UUID
      */
     public void invalidateName(int partnerId, UUID remoteMemberId) {
-        Query.query(
-                        "DELETE FROM federation_member_name_cache WHERE partner_id = :partner_id AND remote_member_id = :remote_member_id::uuid;")
+        query("""
+            DELETE
+            FROM
+                federation_member_name_cache
+            WHERE partner_id = :partner_id
+              AND remote_member_id = :remote_member_id::UUID;""")
                 .single(Call.of()
                         .bind("partner_id", partnerId)
                         .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))

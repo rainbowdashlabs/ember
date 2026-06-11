@@ -139,7 +139,7 @@ public class FederationRepository {
                 .rows();
     }
 
-    public boolean updatePartnerStatus(int id, String status) {
+    public boolean updatePartnerStatus(int id, FederationPartner.FederationStatus status) {
         return Query.query("UPDATE federation_partner SET status = :status, updated_at = now() WHERE id = :id;")
                 .single(Call.of().bind("id", id).bind("status", status))
                 .update()

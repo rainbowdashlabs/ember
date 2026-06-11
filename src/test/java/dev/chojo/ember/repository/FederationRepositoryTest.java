@@ -153,12 +153,12 @@ class FederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(7)
     void updatePartnerStatus() {
-        assertTrue(federationRepo.updatePartnerStatus(partnerId, "SUSPENDED"));
+        assertTrue(federationRepo.updatePartnerStatus(partnerId, FederationPartner.FederationStatus.SUSPENDED));
         var suspended = federationRepo.findPartnerById(partnerId).orElseThrow();
         assertEquals(FederationPartner.FederationStatus.SUSPENDED, suspended.status());
 
         // Restore to ACTIVE for subsequent tests
-        assertTrue(federationRepo.updatePartnerStatus(partnerId, "ACTIVE"));
+        assertTrue(federationRepo.updatePartnerStatus(partnerId, FederationPartner.FederationStatus.ACTIVE));
     }
 
     @Test

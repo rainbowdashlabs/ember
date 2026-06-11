@@ -202,16 +202,10 @@ public class ExchangeRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(UpdateStatusRequest.class);
-        if (request.status() == null || request.status().isBlank()) {
+        if (request.status() == null) {
             throw new BadRequestResponse("status is required");
         }
-        ExchangeStatus status;
-        try {
-            status = ExchangeStatus.valueOf(request.status());
-        } catch (IllegalArgumentException e) {
-            log.warn("Invalid exchange status: {}", request.status(), e);
-            throw new BadRequestResponse("Invalid status: " + request.status());
-        }
+        ExchangeStatus status = request.status();
         if (status == ExchangeStatus.EXCHANGED && request.exchangedItemId() == null) {
             // For EXCHANGED status, exchangedItemId is optional but recommended
         }
@@ -365,5 +359,5 @@ public class ExchangeRoutes implements Routes {
     public record CreateExchangeRequest(
             Integer memberId, Integer itemId, int inventoryId, Integer oldSizeId, Integer newSizeId, String reason) {}
 
-    public record UpdateStatusRequest(String status, String note, Integer exchangedItemId) {}
+    public record UpdateStatusRequest(ExchangeStatus status, String note, Integer exchangedItemId) {}
 }

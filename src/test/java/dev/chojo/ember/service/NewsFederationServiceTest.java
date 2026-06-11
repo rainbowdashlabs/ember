@@ -9,6 +9,7 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
@@ -392,12 +393,12 @@ class NewsFederationServiceTest extends RepositoryTestBase {
                 .orElseThrow();
 
         // Suspend stationA's partner record for stationC
-        federationRepo.updatePartnerStatus(reversePartner.id(), "SUSPENDED");
+        federationRepo.updatePartnerStatus(reversePartner.id(), FederationPartner.FederationStatus.SUSPENDED);
 
         assertThrows(IllegalArgumentException.class, () -> service.getFederatedNews(stationA.id(), stationC.uid(), 42));
 
         // Restore
-        federationRepo.updatePartnerStatus(reversePartner.id(), "ACTIVE");
+        federationRepo.updatePartnerStatus(reversePartner.id(), FederationPartner.FederationStatus.ACTIVE);
     }
 
     // -- Record types --
