@@ -24,7 +24,7 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import java.util.Map;
+import java.util.List;
 import java.util.UUID;
 
 @Singleton
@@ -125,7 +125,7 @@ public class FederationRoutes implements Routes {
         var station = stationRepository.findById(session.stationId()).orElseThrow(NotFoundResponse::new);
         // Station invite — includes token proving consent, auto-activates on accept
         var code = service.generateStationInvite(station.id(), station.uid());
-        ctx.json(Map.of("inviteCode", code));
+        ctx.json(new InviteResponse(code));
     }
 
     private void acceptInvite(Context ctx) {
@@ -226,7 +226,7 @@ public class FederationRoutes implements Routes {
             throw new ForbiddenResponse("This request is not for your station");
         }
         service.declinePairRequest(requestId);
-        ctx.json(Map.of("message", "Request declined"));
+        ctx.json(new MessageResponse("Request declined"));
     }
 
     private void getPartner(Context ctx) {
@@ -342,11 +342,7 @@ public class FederationRoutes implements Routes {
     // -- Info --
 
     private void getInfo(Context ctx) {
-        ctx.json(Map.of(
-                "federationVersion",
-                FederationService.FEDERATION_VERSION,
-                "supportedCapabilities",
-                service.getSupportedCapabilities()));
+        ctx.json(new FederationInfoResponse(FederationService.FEDERATION_VERSION, service.getSupportedCapabilities()));
     }
 
     // -- Records --
@@ -364,4 +360,10 @@ public class FederationRoutes implements Routes {
     public record PartnerResponse(FederationPartner partner, String partnerStationName) {}
 
     public record PairRequestResponse(int id, String stationName, String createdAt) {}
+
+    public record InviteResponse(String inviteCode) {}
+
+    public record MessageResponse(String message) {}
+
+    public record FederationInfoResponse(String federationVersion, List<CapabilityType> supportedCapabilities) {}
 }

@@ -348,9 +348,10 @@ class EventFederationServiceTest extends RepositoryTestBase {
         var items = service.browseFederatedEvents(stationB.id());
         assertFalse(items.isEmpty(), "Should find shared events");
         assertTrue(items.stream().anyMatch(item -> {
-            @SuppressWarnings("unchecked")
-            var eventMap = (Map<String, Object>) item.event();
-            return eventId == (int) eventMap.get("id");
+            if (item.event() instanceof EventFederationService.RemoteEventSummary re) {
+                return eventId == re.id();
+            }
+            return false;
         }));
     }
 
@@ -360,9 +361,10 @@ class EventFederationServiceTest extends RepositoryTestBase {
         service.removeShare(eventId);
         var items = service.browseFederatedEvents(stationB.id());
         assertTrue(items.stream().noneMatch(item -> {
-            @SuppressWarnings("unchecked")
-            var eventMap = (Map<String, Object>) item.event();
-            return eventId == (int) eventMap.get("id");
+            if (item.event() instanceof EventFederationService.RemoteEventSummary re) {
+                return eventId == re.id();
+            }
+            return false;
         }));
     }
 
@@ -372,8 +374,9 @@ class EventFederationServiceTest extends RepositoryTestBase {
         service.setShare(eventId, "ALL_PARTNERS", List.of());
         var result = service.getFederatedEvent(stationB.id(), stationA.uid(), eventId);
         assertNotNull(result);
-        assertEquals(eventId, result.get("id"));
-        assertEquals("Federated Event", result.get("name"));
+        var event = (EventFederationService.RemoteEventSummary) result;
+        assertEquals(eventId, event.id());
+        assertEquals("Federated Event", event.name());
     }
 
     @Test
@@ -453,7 +456,8 @@ class EventFederationServiceTest extends RepositoryTestBase {
         // stationA sees stationC as remote partner
         // getFederatedEvent(stationA.id(), stationC.uid(), eventId) should call HTTP
 
-        var remoteEvent = Map.of("id", (Object) eventId, "name", "Remote Event", "description", "desc");
+        var remoteEvent = new EventFederationService.RemoteEventSummary(
+                eventId, "Remote Event", "desc", "REGULAR", 1, "10:00", "12:00", false, false);
         when(httpClient.get(
                         eq("https://remote-event.example.com"),
                         eq("/remote/events/" + eventId),
@@ -464,8 +468,9 @@ class EventFederationServiceTest extends RepositoryTestBase {
 
         var result = service.getFederatedEvent(stationA.id(), stationC.uid(), eventId);
         assertNotNull(result);
-        assertEquals(eventId, result.get("id"));
-        assertEquals("Remote Event", result.get("name"));
+        var event = (EventFederationService.RemoteEventSummary) result;
+        assertEquals(eventId, event.id());
+        assertEquals("Remote Event", event.name());
 
         verify(httpClient)
                 .get(
@@ -503,9 +508,10 @@ class EventFederationServiceTest extends RepositoryTestBase {
         // The local partner (stationA) has the shared event
         assertTrue(
                 items.stream().anyMatch(i -> {
-                    @SuppressWarnings("unchecked")
-                    var eventMap = (Map<String, Object>) i.event();
-                    return eventId == (int) eventMap.get("id");
+                    if (i.event() instanceof EventFederationService.RemoteEventSummary re) {
+                        return eventId == re.id();
+                    }
+                    return false;
                 }),
                 "Should contain locally shared events from stationA");
     }

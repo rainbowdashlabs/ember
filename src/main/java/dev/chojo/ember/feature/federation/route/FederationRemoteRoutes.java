@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -125,7 +124,7 @@ public class FederationRemoteRoutes implements Routes {
         }
 
         repository.setWebhookUrl(partner.id(), req.webhookUrl());
-        ctx.status(HttpStatus.OK).json(Map.of("status", "registered", "webhookUrl", req.webhookUrl()));
+        ctx.status(HttpStatus.OK).json(new WebhookRegisterResponse("registered", req.webhookUrl()));
     }
 
     // -- Sync Polling --
@@ -170,14 +169,14 @@ public class FederationRemoteRoutes implements Routes {
 
         log.info("Federation: Station {} announced host change to {}", remoteStationUid, req.newHost());
 
-        ctx.json(Map.of("status", "ok"));
+        ctx.json(new StatusResponse("ok"));
     }
 
     private void onMemberNameChanged(Context ctx) {
         var partner = requireFederationPartner(ctx);
         var req = ctx.bodyAsClass(MemberNameChangedWebhook.class);
         eventFederationService.invalidateName(partner.id(), req.remoteMemberId());
-        ctx.json(Map.of("status", "ok"));
+        ctx.json(new StatusResponse("ok"));
     }
 
     // -- Version Ping --
@@ -202,4 +201,8 @@ public class FederationRemoteRoutes implements Routes {
             int stationId, String federationVersion, List<CapabilityType> capabilities, String publicKey) {}
 
     public record WebhookRegisterRequest(String webhookUrl) {}
+
+    public record WebhookRegisterResponse(String status, String webhookUrl) {}
+
+    public record StatusResponse(String status) {}
 }

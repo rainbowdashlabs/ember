@@ -34,7 +34,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -115,9 +114,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
             })
     private void getInfo(Context ctx) {
         var station = resolveStation(ctx);
-        ctx.json(Map.of(
-                "stationName", station.name(),
-                "stationUid", station.uid().toString()));
+        ctx.json(new PublicKbInfo(station.name(), station.uid().toString()));
     }
 
     @OpenApi(
@@ -201,8 +198,8 @@ public class PublicKnowledgeBaseRoutes implements Routes {
                 var content = kbService.getMarkdownContent(id).orElse("");
                 ctx.contentType("text/plain").result(content);
             }
-            case YOUTUBE -> ctx.json(Map.of("youtubeUrl", file.youtubeUrl() != null ? file.youtubeUrl() : ""));
-            case LINK -> ctx.json(Map.of("linkUrl", file.linkUrl() != null ? file.linkUrl() : ""));
+            case YOUTUBE -> ctx.json(new YoutubeContentResponse(file.youtubeUrl() != null ? file.youtubeUrl() : ""));
+            case LINK -> ctx.json(new LinkContentResponse(file.linkUrl() != null ? file.linkUrl() : ""));
             case PDF, IMAGE, OTHER -> {
                 var contentType = kbService.getFileContentType(id);
                 var content = kbService.getFileContent(id);
@@ -240,7 +237,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
 
         var markdown = kbService.getMarkdownContent(id).orElse("");
         var html = kbService.renderMarkdown(markdown);
-        ctx.json(Map.of("html", html, "markdown", markdown));
+        ctx.json(new MarkdownHtmlResponse(html, markdown));
     }
 
     @OpenApi(
@@ -262,7 +259,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
         ctx.json(results.stream()
                 .filter(r -> kbService.isPubliclyVisible(
                         station.publicKbMode(), null, r.file().id()))
-                .map(r -> Map.of("file", r.file(), "snippet", r.snippet()))
+                .map(r -> new SearchResultItem(r.file(), r.snippet()))
                 .toList());
     }
 
@@ -331,4 +328,14 @@ public class PublicKnowledgeBaseRoutes implements Routes {
     }
 
     public record PublicBrowseResponse(KbFolder currentFolder, List<KbFolder> folders, List<KbFile> files) {}
+
+    public record PublicKbInfo(String stationName, String stationUid) {}
+
+    public record YoutubeContentResponse(String youtubeUrl) {}
+
+    public record LinkContentResponse(String linkUrl) {}
+
+    public record MarkdownHtmlResponse(String html, String markdown) {}
+
+    public record SearchResultItem(KbFile file, String snippet) {}
 }

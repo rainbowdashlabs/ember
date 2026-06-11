@@ -316,7 +316,7 @@ public class TestProtocolService {
     }
 
     @SuppressWarnings("unchecked")
-    public Map<String, Object> getFederatedProtocol(int localStationId, UUID partnerStationUid, int protocolId) {
+    public FederatedProtocolDetail getFederatedProtocol(int localStationId, UUID partnerStationUid, int protocolId) {
         var partner = resolveActivePartner(localStationId, partnerStationUid);
         if (partner.isRemote()) {
             var result = federationHttpClient.get(
@@ -324,7 +324,7 @@ public class TestProtocolService {
                     "/remote/protocols/" + protocolId,
                     localStationId,
                     getPrivateKey(localStationId),
-                    Map.class);
+                    FederatedProtocolDetail.class);
             if (result == null) throw new IllegalStateException("Failed to fetch protocol from remote partner");
             return result;
         }
@@ -335,8 +335,11 @@ public class TestProtocolService {
         }
         var sections = findSections(protocolId);
         var items = findAllItemsByProtocol(protocolId);
-        return Map.of("protocol", protocol, "sections", sections, "items", items);
+        return new FederatedProtocolDetail(protocol, sections, items);
     }
+
+    public record FederatedProtocolDetail(
+            TestProtocol protocol, List<TestProtocolSection> sections, List<TestProtocolItem> items) {}
 
     public TestProtocol copyProtocol(int protocolId, int targetStationId) {
         var source = findProtocol(protocolId).orElseThrow();

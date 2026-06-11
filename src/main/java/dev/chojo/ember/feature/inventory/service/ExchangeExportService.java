@@ -158,7 +158,7 @@ public class ExchangeExportService {
             }
 
             // Build exchange columns (one per inventory, with old/new sizes)
-            var exchanges = new ArrayList<Map<String, String>>();
+            var exchanges = new ArrayList<SizeChange>();
             for (int invId : inventoryOrder) {
                 var sizeMap = inventorySizes.get(invId);
                 var matching = memberExchanges.stream()
@@ -169,9 +169,9 @@ public class ExchangeExportService {
                     String unisize = "de".equals(locale) ? "Einheitsgröße" : "One Size";
                     String oldSize = ex.oldSizeId() != null ? sizeMap.getOrDefault(ex.oldSizeId(), "?") : unisize;
                     String newSize = ex.newSizeId() != null ? sizeMap.getOrDefault(ex.newSizeId(), "?") : unisize;
-                    exchanges.add(Map.of("oldSize", oldSize, "newSize", newSize));
+                    exchanges.add(new SizeChange(oldSize, newSize));
                 } else {
-                    exchanges.add(Map.of("oldSize", "", "newSize", ""));
+                    exchanges.add(new SizeChange("", ""));
                 }
             }
 
@@ -244,4 +244,6 @@ public class ExchangeExportService {
                 logo != null ? new TypstCompiler.StationLogo(logo.data(), logo.contentType()) : null,
                 MAPPER);
     }
+
+    record SizeChange(String oldSize, String newSize) {}
 }

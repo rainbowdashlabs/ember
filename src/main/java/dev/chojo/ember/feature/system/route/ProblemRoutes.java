@@ -21,7 +21,6 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Singleton;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Admin-only routes for viewing and acknowledging application problems (errors/warnings).
@@ -75,6 +74,8 @@ public class ProblemRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    private record AcknowledgeResult(int acknowledged) {}
+
     @OpenApi(
             path = "/api/v1/admin/problems/acknowledge-all",
             methods = HttpMethod.POST,
@@ -84,6 +85,6 @@ public class ProblemRoutes implements Routes {
     private void acknowledgeAll(Context ctx) {
         var appender = ProblemLogAppender.instance();
         int count = appender != null ? appender.acknowledgeAll() : 0;
-        ctx.json(Map.of("acknowledged", count));
+        ctx.json(new AcknowledgeResult(count));
     }
 }

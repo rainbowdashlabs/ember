@@ -156,13 +156,13 @@ public class InventoryExportService {
             }
 
             // Build items per inventory column (each item: {label, lost})
-            var itemColumns = new ArrayList<List<Map<String, Object>>>();
+            var itemColumns = new ArrayList<List<ItemEntry>>();
             for (var inv : selectedInventories) {
                 var items = itemsByInventory.getOrDefault(inv.id(), List.of());
                 var memberItems = items.stream()
                         .filter(item -> item.assignedTo() != null && item.assignedTo() == memberId)
                         .toList();
-                var itemEntries = new ArrayList<Map<String, Object>>();
+                var itemEntries = new ArrayList<ItemEntry>();
                 for (var item : memberItems) {
                     var parts = new ArrayList<String>();
                     if (showName && item.name() != null) parts.add(item.name());
@@ -179,7 +179,7 @@ public class InventoryExportService {
                         }
                     }
                     String desc = parts.isEmpty() ? (item.name() != null ? item.name() : "–") : String.join(" ", parts);
-                    itemEntries.add(Map.of("label", desc, "lost", item.lostAt() != null));
+                    itemEntries.add(new ItemEntry(desc, item.lostAt() != null));
                 }
                 itemColumns.add(itemEntries);
             }
@@ -249,4 +249,6 @@ public class InventoryExportService {
                 logo != null ? new TypstCompiler.StationLogo(logo.data(), logo.contentType()) : null,
                 MAPPER);
     }
+
+    record ItemEntry(String label, boolean lost) {}
 }

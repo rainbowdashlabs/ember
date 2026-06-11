@@ -97,7 +97,7 @@ public class EventExportService {
         var expandedEvents = expandEvents(allEvents, from, to, breaks, zone);
 
         // Group events by category
-        var catGroups = new ArrayList<Map<String, Object>>();
+        var catGroups = new ArrayList<CategoryGroup>();
 
         for (var cat : eventCategories) {
             if (!categoryIds.isEmpty() && !categoryIds.contains(cat.id())) continue;
@@ -106,7 +106,7 @@ public class EventExportService {
                             == (e.event().categoryId() != null ? e.event().categoryId() : -1))
                     .toList();
             if (catEvents.isEmpty()) continue;
-            catGroups.add(Map.of("name", cat.name(), "events", buildEventRows(catEvents, columns, zone)));
+            catGroups.add(new CategoryGroup(cat.name(), buildEventRows(catEvents, columns, zone)));
         }
 
         // Uncategorized
@@ -115,7 +115,7 @@ public class EventExportService {
                     .filter(e -> e.event().categoryId() == null)
                     .toList();
             if (!uncategorized.isEmpty()) {
-                catGroups.add(Map.of("name", "", "events", buildEventRows(uncategorized, columns, zone)));
+                catGroups.add(new CategoryGroup("", buildEventRows(uncategorized, columns, zone)));
             }
         }
 
@@ -191,10 +191,9 @@ public class EventExportService {
         }
     }
 
-    private List<Map<String, Object>> buildEventRows(
-            List<ExpandedEvent> events, List<ExportColumn> columns, ZoneId zone) {
+    private List<EventRow> buildEventRows(List<ExpandedEvent> events, List<ExportColumn> columns, ZoneId zone) {
         boolean needsFields = columns.stream().anyMatch(c -> "field".equals(c.type()));
-        var rows = new ArrayList<Map<String, Object>>();
+        var rows = new ArrayList<EventRow>();
         for (var expanded : events) {
             var event = expanded.event();
             Map<String, String> fieldMap = Map.of();
@@ -214,7 +213,7 @@ public class EventExportService {
                     values.add(resolveBuiltinValue(event, expanded.date(), col.key(), zone));
                 }
             }
-            rows.add(Map.of("values", values));
+            rows.add(new EventRow(values));
         }
         return rows;
     }
@@ -266,4 +265,8 @@ public class EventExportService {
     public record ExportColumn(String type, String key, String fieldName, String label) {}
 
     private record ExpandedEvent(StationEvent event, LocalDate date) {}
+
+    record CategoryGroup(String name, List<EventRow> events) {}
+
+    record EventRow(List<String> values) {}
 }

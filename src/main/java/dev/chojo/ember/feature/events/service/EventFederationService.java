@@ -32,7 +32,6 @@ import org.slf4j.LoggerFactory;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -157,19 +156,19 @@ public class EventFederationService {
      * Queries local federation registrations directly and remote partners via HTTP.
      */
     @SuppressWarnings("unchecked")
-    public List<Map<String, Object>> findMyRegistrations(int stationId, List<UUID> memberUids) {
-        var result = new ArrayList<Map<String, Object>>();
+    public List<MyFederatedRegistration> findMyRegistrations(int stationId, List<UUID> memberUids) {
+        var result = new ArrayList<MyFederatedRegistration>();
 
         // Local registrations (stored on owning stations that are local partners)
         for (var uid : memberUids) {
             var regs = federationRepository.findRegistrationsByRemoteMember(uid);
             for (var reg : regs) {
-                result.add(Map.of(
-                        "eventId", reg.eventId(),
-                        "remoteMemberId", reg.remoteMemberId().toString(),
-                        "eventDate", reg.eventDate().toString(),
-                        "status", reg.status(),
-                        "partnerId", reg.partnerId()));
+                result.add(new MyFederatedRegistration(
+                        reg.eventId(),
+                        reg.remoteMemberId().toString(),
+                        reg.eventDate().toString(),
+                        reg.status(),
+                        reg.partnerId()));
             }
         }
 
@@ -182,19 +181,13 @@ public class EventFederationService {
                 var station = stationRepository.findById(stationId).orElse(null);
                 if (station == null) continue;
                 for (var uid : memberUids) {
-                    var remoteRegs = httpClient.get(
+                    var remoteRegs = httpClient.getList(
                             partner.remoteHost(),
                             "/remote/registrations/" + uid,
                             stationId,
                             station.federationPrivateKey(),
-                            List.class);
-                    if (remoteRegs != null) {
-                        for (var item : remoteRegs) {
-                            if (item instanceof Map<?, ?> map) {
-                                result.add((Map<String, Object>) map);
-                            }
-                        }
-                    }
+                            MyFederatedRegistration.class);
+                    result.addAll(remoteRegs);
                 }
             } catch (Exception e) {
                 // Remote partner unavailable — skip silently
@@ -353,8 +346,7 @@ public class EventFederationService {
      * Fetches a single federated event by partner station UUID and event ID.
      * Transparently handles local and remote partners.
      */
-    @SuppressWarnings("unchecked")
-    public Map<String, Object> getFederatedEvent(int localStationId, UUID partnerStationUid, int eventId) {
+    public Object getFederatedEvent(int localStationId, UUID partnerStationUid, int eventId) {
         var partner = partnerRepository
                 .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
@@ -370,7 +362,7 @@ public class EventFederationService {
                             .findById(localStationId)
                             .map(Station::federationPrivateKey)
                             .orElse(null),
-                    Map.class);
+                    RemoteEventSummary.class);
             if (result == null) throw new IllegalStateException("Failed to fetch event from remote partner");
             return result;
         }
@@ -392,17 +384,17 @@ public class EventFederationService {
                 .orElse("?");
     }
 
-    private Map<String, Object> toEventMap(StationEvent e) {
-        return Map.of(
-                "id", e.id(),
-                "name", e.name(),
-                "description", e.description() != null ? e.description() : "",
-                "eventType", e.eventType() != null ? e.eventType().name() : "",
-                "dayOfWeek", e.dayOfWeek() != null ? e.dayOfWeek() : 0,
-                "startTime", e.startTime() != null ? e.startTime().toString() : "",
-                "endTime", e.endTime() != null ? e.endTime().toString() : "",
-                "requiresRegistration", e.requiresRegistration(),
-                "requiresConfirmation", true);
+    private RemoteEventSummary toEventMap(StationEvent e) {
+        return new RemoteEventSummary(
+                e.id(),
+                e.name(),
+                e.description() != null ? e.description() : "",
+                e.eventType() != null ? e.eventType().name() : "",
+                e.dayOfWeek() != null ? e.dayOfWeek() : 0,
+                e.startTime() != null ? e.startTime().toString() : "",
+                e.endTime() != null ? e.endTime().toString() : "",
+                e.requiresRegistration(),
+                true);
     }
 
     private <T> List<T> collectResults(List<CompletableFuture<List<T>>> futures) {
@@ -422,6 +414,20 @@ public class EventFederationService {
         }
         return result;
     }
+
+    public record MyFederatedRegistration(
+            int eventId, String remoteMemberId, String eventDate, String status, int partnerId) {}
+
+    public record RemoteEventSummary(
+            int id,
+            String name,
+            String description,
+            String eventType,
+            int dayOfWeek,
+            String startTime,
+            String endTime,
+            boolean requiresRegistration,
+            boolean requiresConfirmation) {}
 
     public record FederatedEventItem(
             int partnerId, String partnerStationName, String partnerStationUid, Object event) {}

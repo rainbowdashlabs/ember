@@ -260,6 +260,8 @@ tasks {
                     "*.StorageReconciliationService*",
                     "*.PresentationCompressor*",
                     "*.StorageQuotaService*",
+                    // Federation version broadcaster (daemon thread, startup-only)
+                    "*.FederationVersionBroadcaster*",
                 )
                 limit {
                     counter = "LINE"

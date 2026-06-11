@@ -61,7 +61,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 import java.util.UUID;
@@ -435,7 +434,7 @@ public class BoardRoutes implements Routes {
         boolean isManager = session.permissions().contains(StationPermission.BOARD_MANAGER);
         boolean editable = session.member() != null
                 && boardService.canEdit(id, session.member().id(), isManager);
-        ctx.json(Map.of("canEdit", editable));
+        ctx.json(new CanEditResponse(editable));
     }
 
     @OpenApi(
@@ -797,7 +796,7 @@ public class BoardRoutes implements Routes {
         }
         federatedBoardService.setFederatedEditUserTypes(
                 id, req.editUserTypes() != null ? req.editUserTypes() : List.of());
-        ctx.status(HttpStatus.OK).json(Map.of("ok", true));
+        ctx.status(HttpStatus.OK).json(new OkResponse(true));
     }
 
     private static String randomColor() {
@@ -864,16 +863,16 @@ public class BoardRoutes implements Routes {
                     var partner = federationRepository.findPartnerById(bm.partnerId());
                     String uid =
                             partner.map(p -> p.partnerStationId().toString()).orElse("");
-                    return Map.of(
-                            "id", bm.id(),
-                            "memberId", bm.memberId(),
-                            "partnerId", bm.partnerId(),
-                            "partnerStationUid", uid,
-                            "remoteBoardUid", bm.remoteBoardUid().toString(),
-                            "remoteBoardName", bm.remoteBoardName(),
-                            "remoteBoardShortKey", bm.remoteBoardShortKey(),
-                            "shareMode", bm.shareMode().name(),
-                            "createdAt", bm.createdAt().toString());
+                    return new EnrichedBookmark(
+                            bm.id(),
+                            bm.memberId(),
+                            bm.partnerId(),
+                            uid,
+                            bm.remoteBoardUid().toString(),
+                            bm.remoteBoardName(),
+                            bm.remoteBoardShortKey(),
+                            bm.shareMode().name(),
+                            bm.createdAt().toString());
                 })
                 .toList();
         ctx.json(enriched);
@@ -1663,7 +1662,7 @@ public class BoardRoutes implements Routes {
         if (boardUid == null) throw new NotFoundResponse("Board not found: " + boardKey);
         var view = proxyService.getLocalViewOverride(partnerId, boardUid);
         var edit = proxyService.getLocalEditOverride(partnerId, boardUid);
-        ctx.json(Map.of("view", view, "edit", edit));
+        ctx.json(new AccessOverrideResponse(view, edit));
     }
 
     @OpenApi(
@@ -1949,7 +1948,7 @@ public class BoardRoutes implements Routes {
         requireRemoteView(boardId, partner);
         int ticketId = resolveRemoteTicketId(ctx, boardId);
         var localWatchers = ticketService.findWatchers(ticketId);
-        ctx.json(Map.of("local", localWatchers, "federated", List.of()));
+        ctx.json(new WatcherResponse(localWatchers, List.of()));
     }
 
     @OpenApi(
@@ -1965,7 +1964,7 @@ public class BoardRoutes implements Routes {
         requireRemoteView(boardId, partner);
         var mode = federatedBoardService.getShareMode(boardId, partner.id()).orElse(BoardShareMode.READ_ONLY);
         var editUserTypes = federatedBoardService.findFederatedEditUserTypes(boardId);
-        ctx.json(Map.of("shareMode", mode.name(), "editUserTypes", editUserTypes));
+        ctx.json(new RemoteAccessResponse(mode.name(), editUserTypes));
     }
 
     private void federatedRemoteGetMembers(Context ctx) {
@@ -2671,4 +2670,25 @@ public class BoardRoutes implements Routes {
     record RemoteBoardUnsharedWebhook(String boardUid) {}
 
     record RemoteShareModeChangedWebhook(String boardUid, String shareMode) {}
+
+    record CanEditResponse(boolean canEdit) {}
+
+    record OkResponse(boolean ok) {}
+
+    record EnrichedBookmark(
+            int id,
+            int memberId,
+            int partnerId,
+            String partnerStationUid,
+            String remoteBoardUid,
+            String remoteBoardName,
+            String remoteBoardShortKey,
+            String shareMode,
+            String createdAt) {}
+
+    record AccessOverrideResponse(AccessData view, AccessData edit) {}
+
+    record WatcherResponse(List<Integer> local, List<Object> federated) {}
+
+    record RemoteAccessResponse(String shareMode, List<String> editUserTypes) {}
 }

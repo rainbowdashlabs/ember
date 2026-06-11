@@ -55,7 +55,6 @@ import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -221,18 +220,15 @@ public class ApiServer {
             // Public endpoints
             config.routes.get(
                     API_PREFIX + "/public/config",
-                    ctx -> ctx.json(Map.of(
-                            "demoUrl",
+                    ctx -> ctx.json(new PublicConfigResponse(
                             apiConfig.demoUrl() != null ? apiConfig.demoUrl() : "",
-                            "demo",
                             demoConfig.enabled() || demoConfig.dev(),
-                            "version",
                             loadAppVersion())));
 
             // Public demo endpoints
             config.routes.get(
                     API_PREFIX + "/demo/status",
-                    ctx -> ctx.json(Map.of("demo", demoConfig.enabled(), "dev", demoConfig.dev())));
+                    ctx -> ctx.json(new DemoStatusResponse(demoConfig.enabled(), demoConfig.dev())));
 
             if (demoConfig.enabled() || demoConfig.dev()) {
                 config.routes.get(API_PREFIX + "/demo/accounts", this::handleDemoAccounts);
@@ -295,7 +291,7 @@ public class ApiServer {
             ctx.json(List.of());
             return;
         }
-        var stationGroups = new ArrayList<Map<String, Object>>();
+        var stationGroups = new ArrayList<DemoStationGroup>();
         for (var station : allStations) {
             var members = stationMemberRepository.findByStation(station.id());
             var accounts = new ArrayList<DemoAccount>();
@@ -325,10 +321,7 @@ public class ApiServer {
                 });
             }
             if (!accounts.isEmpty()) {
-                stationGroups.add(Map.of(
-                        "stationId", station.uid().toString(),
-                        "stationName", station.name(),
-                        "accounts", accounts));
+                stationGroups.add(new DemoStationGroup(station.uid().toString(), station.name(), accounts));
             }
         }
         // Always return flat list from the first station (primary)
@@ -623,4 +616,10 @@ public class ApiServer {
             List<String> groups,
             List<String> tags,
             boolean profileComplete) {}
+
+    public record PublicConfigResponse(String demoUrl, boolean demo, String version) {}
+
+    public record DemoStatusResponse(boolean demo, boolean dev) {}
+
+    public record DemoStationGroup(String stationId, String stationName, List<DemoAccount> accounts) {}
 }

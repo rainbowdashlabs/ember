@@ -419,6 +419,22 @@ class FederationRepositoryTest extends RepositoryTestBase {
     // -- Delete Partner --
 
     @Test
+    @Order(50)
+    void findAllActiveRemotePartnersEmpty() {
+        // No remote partners (all local), so should return empty
+        var remote = federationRepo.findAllActiveRemotePartners();
+        assertTrue(remote.isEmpty());
+    }
+
+    @Test
+    @Order(51)
+    void backfillPartnerVersions() {
+        // Partner was created with current version, so backfill should update 0 rows
+        int updated = federationRepo.backfillPartnerVersions("new-version");
+        assertEquals(0, updated);
+    }
+
+    @Test
     @Order(99)
     void deletePartner() {
         assertTrue(federationRepo.deletePartner(partnerId));

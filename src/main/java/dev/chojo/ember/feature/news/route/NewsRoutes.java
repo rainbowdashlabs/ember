@@ -42,7 +42,6 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -455,19 +454,12 @@ public class NewsRoutes implements Routes {
         if (news.stationId() != session.stationId()) throw new ForbiddenResponse();
         var share = newsFederationService.findShareByNews(id);
         if (share.isEmpty()) {
-            ctx.json(Map.of("shared", false));
+            ctx.json(new NewsFederationShareResponse(false, null, null, null));
             return;
         }
         var targets = newsFederationService.findShareTargets(share.get().id());
-        ctx.json(Map.of(
-                "shared",
-                true,
-                "scope",
-                share.get().scope(),
-                "visibilityRole",
-                share.get().visibilityRole(),
-                "partnerIds",
-                targets));
+        ctx.json(new NewsFederationShareResponse(
+                true, share.get().scope(), share.get().visibilityRole(), targets));
     }
 
     private void setFederationShare(Context ctx) {
@@ -481,13 +473,8 @@ public class NewsRoutes implements Routes {
                 req.scope(),
                 req.visibilityRole() != null ? req.visibilityRole() : "MEMBER",
                 req.partnerIds() != null ? req.partnerIds() : List.of());
-        ctx.json(Map.of(
-                "shared",
-                true,
-                "scope",
-                req.scope(),
-                "visibilityRole",
-                req.visibilityRole() != null ? req.visibilityRole() : "MEMBER"));
+        ctx.json(new NewsFederationShareResponse(
+                true, req.scope(), req.visibilityRole() != null ? req.visibilityRole() : "MEMBER", null));
     }
 
     private void removeFederationShare(Context ctx) {
@@ -513,20 +500,13 @@ public class NewsRoutes implements Routes {
                     var authorResolved = n.author() != null ? memberNameResolver.resolveDisplay(n.author()) : null;
                     String authorName =
                             authorResolved != null && authorResolved.name() != null ? authorResolved.name() : "";
-                    return Map.of(
-                            "id",
-                            (Object) n.id(),
-                            "title",
+                    return new RemoteNewsSummary(
+                            n.id(),
                             n.title(),
-                            "contentHtml",
                             n.contentHtml() != null ? n.contentHtml() : "",
-                            "authorName",
                             authorName,
-                            "publishedAt",
                             n.publishedAt() != null ? n.publishedAt().toString() : "",
-                            "commentCount",
                             newsService.countComments(n.id()),
-                            "visibilityRole",
                             visibilityRole);
                 })
                 .toList();
@@ -544,22 +524,14 @@ public class NewsRoutes implements Routes {
         var authorResolved = news.author() != null ? memberNameResolver.resolveDisplay(news.author()) : null;
         String authorName = authorResolved != null && authorResolved.name() != null ? authorResolved.name() : "";
         String visibilityRole = newsFederationService.findVisibilityRole(newsId).orElse("MEMBER");
-        ctx.json(Map.of(
-                "id",
+        ctx.json(new RemoteNewsDetail(
                 news.id(),
-                "title",
                 news.title(),
-                "contentMarkdown",
                 news.contentMarkdown() != null ? news.contentMarkdown() : "",
-                "contentHtml",
                 news.contentHtml() != null ? news.contentHtml() : "",
-                "authorName",
                 authorName,
-                "publishedAt",
                 news.publishedAt() != null ? news.publishedAt().toString() : "",
-                "commentCount",
                 newsService.countComments(newsId),
-                "visibilityRole",
                 visibilityRole));
     }
 
@@ -823,6 +795,28 @@ public class NewsRoutes implements Routes {
             String content,
             boolean deleted,
             Instant createdAt) {}
+
+    public record NewsFederationShareResponse(
+            boolean shared, String scope, String visibilityRole, List<Integer> partnerIds) {}
+
+    public record RemoteNewsSummary(
+            int id,
+            String title,
+            String contentHtml,
+            String authorName,
+            String publishedAt,
+            int commentCount,
+            String visibilityRole) {}
+
+    public record RemoteNewsDetail(
+            int id,
+            String title,
+            String contentMarkdown,
+            String contentHtml,
+            String authorName,
+            String publishedAt,
+            int commentCount,
+            String visibilityRole) {}
 
     /**
      * Request body for setting news federation sharing.

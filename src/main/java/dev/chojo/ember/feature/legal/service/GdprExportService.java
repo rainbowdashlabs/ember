@@ -158,22 +158,18 @@ public class GdprExportService {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private void addKbFiles(ZipOutputStream zip, int memberId) throws IOException {
         // Find KB files created by this member
         var files = Query.query(
                         "SELECT kf.id, kf.name, kf.file_type FROM kb_file kf JOIN kb_file_version kfv ON kfv.file_id = kf.id WHERE kfv.version = 1 AND kfv.created_by = :member_id")
                 .single(Call.of().bind("member_id", memberId))
-                .map(row -> Map.of(
-                        "id", row.getInt("id"),
-                        "name", row.getString("name"),
-                        "fileType", (Object) row.getString("file_type")))
+                .map(row -> new KbFileEntry(row.getInt("id"), row.getString("name"), row.getString("file_type")))
                 .all();
 
         for (var file : files) {
-            int fileId = (int) file.get("id");
-            String name = (String) file.get("name");
-            String fileType = (String) file.get("fileType");
+            int fileId = file.id();
+            String name = file.name();
+            String fileType = file.fileType();
             String safeName = name.replaceAll("[^a-zA-Z0-9äöüÄÖÜß._\\- ]", "_");
 
             if ("MARKDOWN".equals(fileType) || "TEXT".equals(fileType)) {
@@ -466,4 +462,6 @@ public class GdprExportService {
                 })
                 .all();
     }
+
+    record KbFileEntry(int id, String name, String fileType) {}
 }

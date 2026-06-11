@@ -134,7 +134,7 @@ public class AttendanceExportService {
             fieldMap.put(sf.fieldId(), sf.value());
         }
 
-        var fieldList = new ArrayList<Map<String, String>>();
+        var fieldList = new ArrayList<NameValue>();
         for (var tf : templateFields) {
             String rawValue = fieldMap.get(tf.id());
             if (rawValue == null || rawValue.isBlank()) continue;
@@ -145,7 +145,7 @@ public class AttendanceExportService {
                 displayValue = formatFieldValue(rawValue);
             }
             if (displayValue.isBlank()) continue;
-            fieldList.add(Map.of("name", tf.name(), "value", displayValue));
+            fieldList.add(new NameValue(tf.name(), displayValue));
         }
         data.put("fields", fieldList);
 
@@ -156,7 +156,7 @@ public class AttendanceExportService {
         }
 
         // Build grouped sections
-        var sections = new ArrayList<Map<String, Object>>();
+        var sections = new ArrayList<Section>();
         Set<Integer> assignedMemberIds = new HashSet<>();
 
         for (var tg : templateGroups) {
@@ -171,7 +171,7 @@ public class AttendanceExportService {
                 assignedMemberIds.add(member.id());
             }
             if (!sectionEntries.isEmpty()) {
-                sections.add(Map.of("name", group.get().name(), "entries", sectionEntries));
+                sections.add(new Section(group.get().name(), sectionEntries));
             }
         }
 
@@ -183,15 +183,15 @@ public class AttendanceExportService {
             }
         }
         if (!ungroupedEntries.isEmpty()) {
-            sections.add(Map.of("name", "Sonstige", "entries", ungroupedEntries));
+            sections.add(new Section("Sonstige", ungroupedEntries));
         }
 
         data.put("sections", sections);
 
         // Flat entries list for summary counts
-        var allEntries = new ArrayList<Map<String, String>>();
+        var allEntries = new ArrayList<StatusEntry>();
         for (var entry : entries) {
-            allEntries.add(Map.of("status", entry.status().name()));
+            allEntries.add(new StatusEntry(entry.status().name()));
         }
         data.put("entries", allEntries);
 
@@ -282,4 +282,10 @@ public class AttendanceExportService {
                 logo != null ? new TypstCompiler.StationLogo(logo.data(), logo.contentType()) : null,
                 MAPPER);
     }
+
+    record NameValue(String name, String value) {}
+
+    record Section(String name, List<Map<String, String>> entries) {}
+
+    record StatusEntry(String status) {}
 }

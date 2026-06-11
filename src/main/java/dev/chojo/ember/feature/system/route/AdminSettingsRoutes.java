@@ -366,7 +366,7 @@ public class AdminSettingsRoutes implements Routes {
         String type = ctx.pathParam("type");
         Path dir = legalDir(type);
         if (dir == null) {
-            ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("error", "Invalid legal document type: " + type));
+            ctx.status(HttpStatus.BAD_REQUEST).json(new ErrorResponse("Invalid legal document type: " + type));
             return;
         }
         var doc = documentService.getDocument(dir, "de");
@@ -378,7 +378,7 @@ public class AdminSettingsRoutes implements Routes {
         String locale = ctx.pathParam("locale");
         Path dir = legalDir(type);
         if (dir == null) {
-            ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("error", "Invalid legal document type: " + type));
+            ctx.status(HttpStatus.BAD_REQUEST).json(new ErrorResponse("Invalid legal document type: " + type));
             return;
         }
         var doc = documentService.getDocument(dir, locale);
@@ -389,7 +389,7 @@ public class AdminSettingsRoutes implements Routes {
         String type = ctx.pathParam("type");
         Path dir = legalDir(type);
         if (dir == null) {
-            ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("error", "Invalid legal document type: " + type));
+            ctx.status(HttpStatus.BAD_REQUEST).json(new ErrorResponse("Invalid legal document type: " + type));
             return;
         }
         List<String> locales = new ArrayList<>();
@@ -418,7 +418,7 @@ public class AdminSettingsRoutes implements Routes {
         String type = ctx.pathParam("type");
         Path dir = legalDir(type);
         if (dir == null) {
-            ctx.status(HttpStatus.BAD_REQUEST).json(Map.of("error", "Invalid legal document type: " + type));
+            ctx.status(HttpStatus.BAD_REQUEST).json(new ErrorResponse("Invalid legal document type: " + type));
             return;
         }
         var request = ctx.bodyAsClass(LegalDocumentRequest.class);
@@ -571,4 +571,6 @@ public class AdminSettingsRoutes implements Routes {
 
     public record PublicThemeResponse(
             String defaultTheme, String defaultFeel, boolean lockFeel, boolean forcePrideFlag) {}
+
+    private record ErrorResponse(String error) {}
 }
