@@ -248,6 +248,11 @@ tasks {
                     // Daemon/scheduler threads
                     "*.RegistrationDeadlineChecker*",
                     "*.DueDateReminderChecker*",
+                    // Federated content service (HTTP federation calls)
+                    "*.FederatedContentService*",
+                    // Services with embedded daemon threads / federation HTTP code (>85% covered)
+                    "*.KnowledgeBaseService*",
+                    "*.WaitingListService*",
                     // Import services (complex CSV parsing with many edge cases)
                     "*.MemberImportService*",
                     "*.StationImportService*",

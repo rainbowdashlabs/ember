@@ -720,6 +720,22 @@ class WaitingListServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    void submitPublicRegistrationListNotFoundThrows() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.submitPublicRegistration(99999, "A", "", "a@a.com", List.of(), Map.of(), ""));
+    }
+
+    @Test
+    void findPublicFieldsByListReturnsOnlyPublic() {
+        var pub = service.createField(listId, "PubF2", "TEXT", WaitingListFieldConfig.parse("{}"), 10, false, true);
+        var priv = service.createField(listId, "PrivF2", "TEXT", WaitingListFieldConfig.parse("{}"), 11, false, false);
+        var pubFields = service.findPublicFieldsByList(listId);
+        assertTrue(pubFields.stream().anyMatch(f -> f.id() == pub.id()));
+        assertFalse(pubFields.stream().anyMatch(f -> f.id() == priv.id()));
+    }
+
+    @Test
     void approveNonPendingThrows() {
         var entry = service.createEntry(listId, "NotPending", "", guardians("", "np@test.com"), Map.of(), "");
         assertThrows(IllegalStateException.class, () -> service.approvePendingEntry(entry.id()));
