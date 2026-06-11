@@ -1048,6 +1048,11 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/stationview/manage/ImportHelp.vue')
                 },
                 {
+                    path: 'manage/storage',
+                    name: 'help-station-storage',
+                    component: () => import('@/views/helpcenter/stationview/manage/StorageHelp.vue')
+                },
+                {
                     path: 'federate',
                     name: 'help-station-federation',
                     component: () => import('@/views/helpcenter/stationview/manage/FederationHelp.vue')
@@ -1675,6 +1680,11 @@ const router = createRouter({
                     path: 'problem-reports',
                     name: 'help-admin-problem-reports',
                     redirect: { name: 'help-admin-problems' }
+                },
+                {
+                    path: 'storage',
+                    name: 'help-admin-storage',
+                    component: () => import('@/views/helpcenter/adminview/StorageHelp.vue')
                 },
                 {
                     path: ':pathMatch(.*)*',
