@@ -116,14 +116,24 @@ public class FederationRepository {
     }
 
     /**
-     * Sets the federation version for all local partners (no remote_host) that have an outdated version.
-     * Local partners always run the same code, so their version is always the current one.
+     * Returns all active remote partners (across all stations) for version broadcasting.
      */
-    public int backfillLocalPartnerVersions(String currentVersion) {
+    public List<FederationPartner> findAllActiveRemotePartners() {
+        return Query.query("SELECT * FROM federation_partner WHERE status = 'ACTIVE' AND remote_host IS NOT NULL;")
+                .single(Call.of())
+                .map(FederationPartner.map())
+                .all();
+    }
+
+    /**
+     * Sets the federation version for all partners that still have the placeholder '0' version.
+     * This handles partners created before the version was set at creation time.
+     */
+    public int backfillPartnerVersions(String currentVersion) {
         return Query.query("""
                         UPDATE federation_partner
                         SET federation_version = :version, updated_at = now()
-                        WHERE remote_host IS NULL AND federation_version != :version;""")
+                        WHERE federation_version = '0';""")
                 .single(Call.of().bind("version", currentVersion))
                 .update()
                 .rows();

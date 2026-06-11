@@ -71,6 +71,9 @@ public class FederationRemoteRoutes implements Routes {
 
         // Host change announcement (signature required)
         routes.post(base + "/announce", this::announceHostChange);
+
+        // Version ping (signature required) — returns current version, also updates caller's version via header
+        routes.get(base + "/federation/ping", this::versionPing);
     }
 
     // -- Handshake --
@@ -177,7 +180,16 @@ public class FederationRemoteRoutes implements Routes {
         ctx.json(Map.of("status", "ok"));
     }
 
+    // -- Version Ping --
+
+    private void versionPing(Context ctx) {
+        requireFederationPartner(ctx);
+        ctx.json(new VersionPingResponse(FederationService.FEDERATION_VERSION));
+    }
+
     // -- Request/Response Records --
+
+    public record VersionPingResponse(String version) {}
 
     public record MemberNameChangedWebhook(UUID remoteMemberId) {}
 

@@ -69,6 +69,7 @@ import dev.chojo.ember.feature.events.service.EventThresholdChecker;
 import dev.chojo.ember.feature.federation.route.FederationRemoteRoutes;
 import dev.chojo.ember.feature.federation.route.FederationRoutes;
 import dev.chojo.ember.feature.federation.route.LendingRoutes;
+import dev.chojo.ember.feature.federation.service.FederationVersionBroadcaster;
 import dev.chojo.ember.feature.feed.route.FeedTokenRoutes;
 import dev.chojo.ember.feature.feed.route.UserFeedRoutes;
 import dev.chojo.ember.feature.form.route.FormRoutes;
@@ -245,6 +246,7 @@ public class EmberModule extends AbstractModule {
         bind(EventThresholdChecker.class).asEagerSingleton();
         bind(EventReminderChecker.class).asEagerSingleton();
         bind(StorageReconciliationService.class).asEagerSingleton();
+        bind(FederationVersionBroadcaster.class).asEagerSingleton();
     }
 
     @Provides

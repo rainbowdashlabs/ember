@@ -47,8 +47,8 @@ public class StorageReconciliationService {
             return t;
         });
         int intervalHours = storageConfig.reconciliationIntervalHours();
-        // Run immediately on startup to backfill usage data, then repeat at the configured interval
-        scheduler.scheduleWithFixedDelay(this::reconcileAll, 0, intervalHours, TimeUnit.HOURS);
+        // Short delay to let QueryConfiguration initialize, then repeat at the configured interval
+        scheduler.scheduleWithFixedDelay(this::reconcileAll, 1, intervalHours * 60L, TimeUnit.MINUTES);
     }
 
     /**
