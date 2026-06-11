@@ -14,7 +14,6 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
@@ -26,24 +25,34 @@ const {loaded} = useSession()
 
 const loading = ref(true)
 const error = ref('')
-const success = ref('')
 const saving = ref(false)
+const saved = ref(false)
+const initialized = ref(false)
 
 const discoveryVisibility = ref('NONE')
 const discoveryDescription = ref('')
 const publicKbMode = ref('OFF')
 const publicCalendarEnabled = ref(false)
+const publicPagesEnabled = ref(false)
+const publicWaitlistEnabled = ref(false)
+const publicBlogEnabled = ref(false)
+const publicSlug = ref('')
 const stationId = ref('')
 const stationName = ref('')
 
 const publicKbEnabled = computed(() => publicKbMode.value !== 'OFF')
+const stationIdentifier = computed(() => publicSlug.value || stationId.value)
 const publicKbUrl = computed(() => {
-  if (!stationId.value) return ''
-  return `${window.location.origin}/public/station/${stationId.value}/knowledge`
+  if (!stationIdentifier.value) return ''
+  return `${window.location.origin}/public/station/${stationIdentifier.value}/knowledge`
 })
 const publicCalendarUrl = computed(() => {
-  if (!stationId.value) return ''
-  return `${window.location.origin}/public/station/${stationId.value}/calendar`
+  if (!stationIdentifier.value) return ''
+  return `${window.location.origin}/public/station/${stationIdentifier.value}/calendar`
+})
+const publicPagesUrl = computed(() => {
+  if (!stationIdentifier.value) return ''
+  return `${window.location.origin}/public/station/${stationIdentifier.value}/page`
 })
 
 function togglePublicKb() {
@@ -61,6 +70,12 @@ async function loadSettings() {
     discoveryDescription.value = info.discoveryDescription ?? ''
     publicKbMode.value = info.publicKbMode ?? 'OFF'
     publicCalendarEnabled.value = info.publicCalendarEnabled ?? false
+    publicPagesEnabled.value = info.publicPagesEnabled ?? false
+    publicWaitlistEnabled.value = info.publicWaitlistEnabled ?? false
+    publicBlogEnabled.value = info.publicBlogEnabled ?? false
+    publicSlug.value = info.publicSlug ?? ''
+    // Mark initialized after all values are set so watchers don't trigger on load
+    setTimeout(() => { initialized.value = true }, 50)
   } catch {
     error.value = t('common.error')
   } finally {
@@ -68,10 +83,12 @@ async function loadSettings() {
   }
 }
 
-async function saveSettings() {
+let saveTimer: ReturnType<typeof setTimeout> | null = null
+
+async function save() {
   saving.value = true
+  saved.value = false
   error.value = ''
-  success.value = ''
   try {
     await stationManage.updateStationName({
       name: stationName.value,
@@ -79,15 +96,36 @@ async function saveSettings() {
       discoveryDescription: discoveryDescription.value || null,
       publicKbMode: publicKbMode.value,
       publicCalendarEnabled: publicCalendarEnabled.value,
+      publicPagesEnabled: publicPagesEnabled.value,
+      publicWaitlistEnabled: publicWaitlistEnabled.value,
+      publicBlogEnabled: publicBlogEnabled.value,
+      publicSlug: publicSlug.value || null,
     })
-    success.value = t('stationManage.saved')
-    setTimeout(() => { success.value = '' }, 3000)
-  } catch {
-    error.value = t('common.error')
+    saved.value = true
+    setTimeout(() => { saved.value = false }, 2000)
+  } catch (e: any) {
+    const msg = e?.response?.data?.message
+    if (msg === 'Slug is already in use') {
+      error.value = t('stationManage.publicSlug.taken')
+    } else {
+      error.value = t('common.error')
+    }
   } finally {
     saving.value = false
   }
 }
+
+function debouncedSave() {
+  if (!initialized.value) return
+  if (saveTimer) clearTimeout(saveTimer)
+  saveTimer = setTimeout(save, 600)
+}
+
+// Watch all form fields for changes
+watch(
+    [discoveryVisibility, discoveryDescription, publicKbMode, publicCalendarEnabled, publicPagesEnabled, publicWaitlistEnabled, publicBlogEnabled, publicSlug],
+    debouncedSave,
+)
 
 onMounted(() => { if (loaded.value) loadSettings() })
 watch(loaded, (v) => { if (v) loadSettings() })
@@ -95,10 +133,21 @@ watch(loaded, (v) => { if (v) loadSettings() })
 
 <template>
   <ViewContent>
-    <SectionHeader class="mb-4">{{ t('discovery.settings.title') }}</SectionHeader>
+    <div class="flex items-center justify-between mb-4">
+      <SectionHeader>{{ t('discovery.settings.title') }}</SectionHeader>
+      <Transition name="fade">
+        <MutedText v-if="saving" size="sm" class="flex items-center gap-1">
+          <font-awesome-icon :icon="['fas', 'spinner']" spin class="h-3 w-3"/>
+          {{ t('common.saving') }}
+        </MutedText>
+        <MutedText v-else-if="saved" size="sm" class="flex items-center gap-1 text-success">
+          <font-awesome-icon :icon="['fas', 'check']" class="h-3 w-3"/>
+          {{ t('common.saved') }}
+        </MutedText>
+      </Transition>
+    </div>
 
     <Alert v-if="error" variant="error" class="mb-2">{{ error }}</Alert>
-    <Alert v-if="success" variant="success" class="mb-2">{{ success }}</Alert>
 
     <Spinner v-if="loading" />
 
@@ -156,10 +205,58 @@ watch(loaded, (v) => { if (v) loadSettings() })
           </div>
         </NeutralContainer>
 
-        <PrimaryButton :disabled="saving" @click="saveSettings">
-          {{ saving ? t('common.loading') : t('stationManage.save') }}
-        </PrimaryButton>
+        <NeutralContainer class="space-y-4">
+          <SubHeader>{{ t('stationManage.publicPages.title') }}</SubHeader>
+          <MutedText size="sm">{{ t('stationManage.publicPages.hint') }}</MutedText>
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium">{{ t('stationManage.publicPages.enabled') }}</span>
+            <ToggleInput v-model="publicPagesEnabled"/>
+          </div>
+          <div v-if="publicPagesEnabled" class="space-y-1">
+            <FieldLabel>{{ t('stationManage.publicPages.publicUrl') }}</FieldLabel>
+            <code class="block rounded bg-bg-light-accent dark:bg-bg-dark-accent px-3 py-2 text-sm break-all select-all">{{ publicPagesUrl }}</code>
+          </div>
+        </NeutralContainer>
+
+        <NeutralContainer class="space-y-4">
+          <SubHeader>{{ t('helpCenter.federation.publicWaitlistTitle') }}</SubHeader>
+          <MutedText size="sm">{{ t('helpCenter.federation.publicWaitlistText') }}</MutedText>
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium">{{ t('waitingList.isPublic') }}</span>
+            <ToggleInput v-model="publicWaitlistEnabled"/>
+          </div>
+        </NeutralContainer>
+
+        <NeutralContainer class="space-y-4">
+          <SubHeader>{{ t('helpCenter.federation.publicBlogTitle') }}</SubHeader>
+          <MutedText size="sm">{{ t('helpCenter.federation.publicBlogText') }}</MutedText>
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium">{{ t('helpCenter.federation.publicBlogTitle') }}</span>
+            <ToggleInput v-model="publicBlogEnabled"/>
+          </div>
+        </NeutralContainer>
+
+        <NeutralContainer class="space-y-4">
+          <SubHeader>{{ t('stationManage.publicSlug.title') }}</SubHeader>
+          <MutedText size="sm">{{ t('stationManage.publicSlug.hint') }}</MutedText>
+          <div class="space-y-1">
+            <FieldLabel>{{ t('stationManage.publicSlug.slug') }}</FieldLabel>
+            <TextInput v-model="publicSlug" :placeholder="t('stationManage.publicSlug.placeholder')"/>
+            <MutedText v-if="publicSlug" size="sm">
+              {{ `${window.location.origin}/public/station/${publicSlug}` }}
+            </MutedText>
+          </div>
+        </NeutralContainer>
       </div>
     </template>
   </ViewContent>
 </template>
+
+<style scoped>
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
+</style>

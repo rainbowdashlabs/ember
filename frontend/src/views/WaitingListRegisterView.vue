@@ -22,7 +22,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import type { WaitingListInviteInfo } from '@/api/types'
+import type { GuardianInput, WaitingListInviteInfo } from '@/api/types'
 import { parseFieldConfig } from '@/api/types'
 import { waitingList } from '@/api'
 
@@ -40,7 +40,7 @@ const accessToken = ref('')
 // Form fields
 const firstname = ref('')
 const lastname = ref('')
-const guardians = ref<{ name: string; email: string; phone: string }[]>([{ name: '', email: '', phone: '' }])
+const guardians = ref<GuardianInput[]>([{ firstname: '', lastname: '', email: '', phone: '' }])
 const notes = ref('')
 const fieldValues = ref<Map<number, string>>(new Map())
 
@@ -88,7 +88,7 @@ async function loadInviteInfo() {
 }
 
 function addGuardian() {
-  guardians.value = [...guardians.value, { name: '', email: '', phone: '' }]
+  guardians.value = [...guardians.value, { firstname: '', lastname: '', email: '', phone: '' }]
 }
 
 function removeGuardian(index: number) {
@@ -124,7 +124,7 @@ async function submit() {
       inviteCode: code.value,
       firstname: firstname.value.trim(),
       lastname: lastname.value.trim(),
-      guardians: guardians.value.map(g => ({ name: g.name.trim(), email: g.email.trim(), phone: g.phone.trim() })),
+      guardians: guardians.value.map(g => ({ firstname: g.firstname.trim(), lastname: g.lastname.trim(), email: g.email.trim(), phone: g.phone.trim() })),
       notes: notes.value.trim(),
       values,
     })
@@ -182,7 +182,8 @@ onMounted(loadInviteInfo)
                 <span class="text-sm font-medium">{{ t('waitingList.guardian') }} {{ i + 1 }}</span>
                 <DeleteButton v-if="guardians.length > 1" @click="removeGuardian(i)" />
               </div>
-              <TextInput v-model="g.name" :placeholder="t('waitingList.guardianNamePlaceholder')" />
+              <TextInput v-model="g.firstname" :placeholder="t('waitingList.firstnamePlaceholder')" />
+              <TextInput v-model="g.lastname" :placeholder="t('waitingList.lastnamePlaceholder')" />
               <TextInput v-model="g.email" :placeholder="t('waitingList.guardianEmailPlaceholder')" />
               <TextInput v-model="g.phone" :placeholder="t('waitingList.guardianPhonePlaceholder')" />
             </div>

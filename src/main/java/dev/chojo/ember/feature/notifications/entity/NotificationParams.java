@@ -72,4 +72,6 @@ public sealed interface NotificationParams {
 
     record ProcedureItemCheckedParams(String procedureName, String itemTitle, String checkedByName)
             implements NotificationParams {}
+
+    record WaitlistPublicRegistration(String childName, String listName) implements NotificationParams {}
 }

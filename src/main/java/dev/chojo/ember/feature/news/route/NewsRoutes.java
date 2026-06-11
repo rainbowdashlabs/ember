@@ -132,6 +132,10 @@ public class NewsRoutes implements Routes {
         routes.post(prefix + "/remote/news/{newsId}/comments", this::remoteCreateComment);
         routes.put(prefix + "/remote/news/comments/{commentId}", this::remoteUpdateComment);
         routes.delete(prefix + "/remote/news/comments/{commentId}", this::remoteDeleteComment);
+
+        // Public blog
+        routes.get(prefix + "/public/station/{stationUid}/blog", this::publicBlogList);
+        routes.get(prefix + "/public/station/{stationUid}/blog/{blogId}", this::publicBlogDetail);
     }
 
     @OpenApi(
@@ -205,7 +209,11 @@ public class NewsRoutes implements Routes {
                 request.groupIds() != null ? request.groupIds() : List.of(),
                 request.tagIds() != null ? request.tagIds() : List.of(),
                 request.memberIds() != null ? request.memberIds() : List.of());
-        ctx.status(HttpStatus.CREATED).json(toResponse(news, true));
+        if (request.publicBlog() != null) {
+            newsService.updatePublicBlog(news.id(), request.publicBlog());
+        }
+        var result = newsService.findById(news.id()).orElse(news);
+        ctx.status(HttpStatus.CREATED).json(toResponse(result, true));
     }
 
     @OpenApi(
@@ -237,9 +245,17 @@ public class NewsRoutes implements Routes {
                         request.groupIds() != null ? request.groupIds() : List.of(),
                         request.tagIds() != null ? request.tagIds() : List.of(),
                         request.memberIds() != null ? request.memberIds() : List.of())
-                .ifPresentOrElse(updated -> ctx.json(toResponse(updated, true)), () -> {
-                    throw new NotFoundResponse();
-                });
+                .ifPresentOrElse(
+                        updated -> {
+                            if (request.publicBlog() != null) {
+                                newsService.updatePublicBlog(updated.id(), request.publicBlog());
+                            }
+                            var result = newsService.findById(updated.id()).orElse(updated);
+                            ctx.json(toResponse(result, true));
+                        },
+                        () -> {
+                            throw new NotFoundResponse();
+                        });
     }
 
     @OpenApi(
@@ -302,7 +318,8 @@ public class NewsRoutes implements Routes {
                 groupIds,
                 tagIds,
                 memberIds,
-                commentCount);
+                commentCount,
+                news.publicBlog());
     }
 
     // -- Comments --
@@ -766,7 +783,8 @@ public class NewsRoutes implements Routes {
             List<String> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
-            List<Integer> memberIds) {}
+            List<Integer> memberIds,
+            Boolean publicBlog) {}
 
     /**
      * API response representing a news article with resolved author information.
@@ -785,7 +803,8 @@ public class NewsRoutes implements Routes {
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds,
-            int commentCount) {}
+            int commentCount,
+            boolean publicBlog) {}
 
     /**
      * Request body for creating or updating a comment.
@@ -825,4 +844,57 @@ public class NewsRoutes implements Routes {
      * Request body for deleting a comment from a remote federated partner.
      */
     public record RemoteNewsCommentDeleteRequest(UUID remoteMemberUid) {}
+
+    // --- Public Blog ---
+
+    private int resolvePublicStation(Context ctx) {
+        String param = ctx.pathParam("stationUid");
+        try {
+            return stationRepository
+                    .findByUid(UUID.fromString(param))
+                    .orElseThrow(NotFoundResponse::new)
+                    .id();
+        } catch (IllegalArgumentException e) {
+            return stationRepository
+                    .findBySlug(param)
+                    .orElseThrow(NotFoundResponse::new)
+                    .id();
+        }
+    }
+
+    private void publicBlogList(Context ctx) {
+        int stationId = resolvePublicStation(ctx);
+        var station = stationRepository.findById(stationId).orElseThrow(NotFoundResponse::new);
+        if (!station.publicBlogEnabled()) throw new NotFoundResponse();
+        int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
+        int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(20);
+        var entries = newsService.findPublicBlogEntries(stationId, offset, limit);
+        ctx.json(entries.stream()
+                .map(n -> new PublicBlogEntry(
+                        n.id(),
+                        n.title(),
+                        n.contentHtml(),
+                        n.author() != null
+                                ? memberNameResolver.resolveDisplay(n.author()).name()
+                                : "",
+                        n.publishedAt()))
+                .toList());
+    }
+
+    private void publicBlogDetail(Context ctx) {
+        int stationId = resolvePublicStation(ctx);
+        var station = stationRepository.findById(stationId).orElseThrow(NotFoundResponse::new);
+        if (!station.publicBlogEnabled()) throw new NotFoundResponse();
+        int blogId = ctx.pathParamAsClass("blogId", Integer.class).get();
+        var news = newsService.findById(blogId).orElseThrow(NotFoundResponse::new);
+        if (news.stationId() != stationId || !news.publicBlog() || news.publishedAt() == null || news.restricted()) {
+            throw new NotFoundResponse();
+        }
+        var authorName = news.author() != null
+                ? memberNameResolver.resolveDisplay(news.author()).name()
+                : "";
+        ctx.json(new PublicBlogEntry(news.id(), news.title(), news.contentHtml(), authorName, news.publishedAt()));
+    }
+
+    public record PublicBlogEntry(int id, String title, String contentHtml, String authorName, Instant publishedAt) {}
 }

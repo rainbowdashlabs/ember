@@ -70,7 +70,7 @@ const {t} = useI18n()
               <div class="flex items-center gap-2 mb-1">
                 <span class="text-xs font-mono px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">ERROR</span>
                 <span class="text-xs font-mono text-(--text-muted)">MailService</span>
-                <span class="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-[var(--bg-accent)]">3x</span>
+                <BaseBadge bg-class="bg-[var(--bg-accent)]">3x</BaseBadge>
               </div>
               <p class="text-sm font-medium truncate">MailSendException: Connection refused to smtp.example.com:587</p>
               <p class="text-xs text-(--text-muted)">12.05.2026, 14:32 — 12.05.2026, 16:10</p>

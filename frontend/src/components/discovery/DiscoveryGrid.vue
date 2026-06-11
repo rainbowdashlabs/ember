@@ -60,7 +60,7 @@ function logoUrl(station: DiscoveryEntry): string {
           {{ t('discovery.getCode') }}
         </SecondaryButton>
         <router-link v-if="station.hasPublicKb || station.hasPublicCalendar"
-                     :to="{name: 'public-station', params: {stationUid: station.stationUid}}"
+                     :to="{name: 'public-station', params: {stationUid: station.publicSlug ?? station.stationUid}}"
                      class="text-sm text-[var(--link)] hover:underline flex items-center gap-1">
           <font-awesome-icon :icon="['fas', 'globe']"/>
           {{ t('discovery.viewStation') }}

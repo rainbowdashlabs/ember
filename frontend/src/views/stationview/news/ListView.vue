@@ -61,6 +61,7 @@ interface UnifiedNewsItem {
   publishedAt?: string
   commentCount: number
   restricted?: boolean
+  publicBlog?: boolean
   // federated only
   stationName?: string
   stationUid?: string
@@ -79,6 +80,7 @@ const allNews = computed<UnifiedNewsItem[]>(() => {
     publishedAt: e.publishedAt,
     commentCount: e.commentCount,
     restricted: e.restricted,
+    publicBlog: e.publicBlog,
     localEntry: e,
   }))
   const federated: UnifiedNewsItem[] = federatedNews.value.map(fn => ({
@@ -212,6 +214,7 @@ onUnmounted(() => {
                   <router-link v-if="item.kind === 'local'" :to="{name: 'news-detail', params: {id: item.id}}" class="hover:text-primary hover:underline">{{ item.title }}</router-link>
                   <span v-else>{{ item.title }}</span>
                   <font-awesome-icon v-if="item.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/>
+                  <SuccessBadge v-if="item.publicBlog" class="ml-1">{{ t('news.publicBlogBadge') }}</SuccessBadge>
                   <StationBadge v-if="item.kind === 'federated'" :station-name="item.stationName!" class="ml-1"/>
                 </SubHeader>
                 <p class="text-xs text-(--text-muted)">

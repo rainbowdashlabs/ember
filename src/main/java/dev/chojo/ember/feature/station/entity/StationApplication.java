@@ -34,7 +34,7 @@ public record StationApplication(
         String stationName,
         String introduction,
         String verificationToken,
-        String status,
+        ApplicationStatus status,
         String denyReason,
         Instant createdAt,
         Instant resolvedAt) {
@@ -52,7 +52,7 @@ public record StationApplication(
                 row.getString("station_name"),
                 row.getString("introduction"),
                 row.getString("verification_token"),
-                row.getString("status"),
+                row.getEnum("status", ApplicationStatus.class),
                 row.getString("deny_reason"),
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.get("resolved_at", INSTANT_TIMESTAMP));

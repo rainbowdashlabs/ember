@@ -1,0 +1,168 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: ember_demo_db
+    environment:
+      POSTGRES_DB: ember
+      POSTGRES_USER: ember
+      POSTGRES_PASSWORD: ember
+    volumes:
+      - demo-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ember"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - default
+
+  # --- latest (demo.ember-panel.de) ---
+
+  ember:
+    container_name: ember_demo
+    image: ghcr.io/rainbowdashlabs/ember-backend:latest
+    labels:
+      traefik.enable: true
+      traefik.http.routers.demo_ember.rule: "Host(`demo.ember-panel.de`) && PathPrefix(`/api`)"
+      traefik.http.routers.demo_ember.entrypoints: https
+      traefik.http.routers.demo_ember.tls: true
+      traefik.http.routers.demo_ember.tls.certresolver: cloudflare
+      traefik.http.services.demo_ember.loadbalancer.server.port: "8080"
+      com.centurylinklabs.watchtower.enable: true
+    volumes:
+      - ./config:/app/config
+    environment:
+      DB_HOST: ember_demo_db
+      DB_PORT: "5432"
+      DB_USER: ember
+      DB_PASSWORD: ember
+      DB_DATABASE: ember
+      DB_SCHEMA: ember_schema
+      DEMO_ENABLED: "true"
+      DEMO_IDLERESETMINUTES: "15"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - traefik
+      - default
+
+  ember_frontend:
+    container_name: ember_demo_frontend
+    image: ghcr.io/rainbowdashlabs/ember-frontend:latest
+    labels:
+      traefik.enable: true
+      traefik.http.routers.demo_ember_web.rule: "Host(`demo.ember-panel.de`)"
+      traefik.http.routers.demo_ember_web.entrypoints: https
+      traefik.http.routers.demo_ember_web.tls: true
+      traefik.http.routers.demo_ember_web.tls.certresolver: cloudflare
+      traefik.http.routers.demo_ember_web.priority: "1"
+      traefik.http.services.demo_ember_web.loadbalancer.server.port: "3000"
+      com.centurylinklabs.watchtower.enable: true
+    depends_on:
+      - ember
+    networks:
+      - traefik
+
+  # --- dev (dev.ember-panel.de) ---
+
+  ember_dev:
+    container_name: ember_demo_dev
+    image: ghcr.io/rainbowdashlabs/ember-backend:dev
+    labels:
+      traefik.enable: true
+      traefik.http.routers.demo_dev_ember.rule: "Host(`dev.ember-panel.de`) && PathPrefix(`/api`)"
+      traefik.http.routers.demo_dev_ember.entrypoints: https
+      traefik.http.routers.demo_dev_ember.tls: true
+      traefik.http.routers.demo_dev_ember.tls.certresolver: cloudflare
+      traefik.http.services.demo_dev_ember.loadbalancer.server.port: "8080"
+      com.centurylinklabs.watchtower.enable: true
+    volumes:
+      - ./config_dev:/app/config
+    environment:
+      DB_HOST: ember_demo_db
+      DB_PORT: "5432"
+      DB_USER: ember
+      DB_PASSWORD: ember
+      DB_DATABASE: ember
+      DB_SCHEMA: ember_schema_dev
+      DEMO_ENABLED: "true"
+      DEMO_IDLERESETMINUTES: "15"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - traefik
+      - default
+
+  ember_dev_frontend:
+    container_name: ember_demo_dev_frontend
+    image: ghcr.io/rainbowdashlabs/ember-frontend:dev
+    labels:
+      traefik.enable: true
+      traefik.http.routers.demo_dev_ember_web.rule: "Host(`dev.ember-panel.de`)"
+      traefik.http.routers.demo_dev_ember_web.entrypoints: https
+      traefik.http.routers.demo_dev_ember_web.tls: true
+      traefik.http.routers.demo_dev_ember_web.tls.certresolver: cloudflare
+      traefik.http.routers.demo_dev_ember_web.priority: "1"
+      traefik.http.services.demo_dev_ember_web.loadbalancer.server.port: "3000"
+      com.centurylinklabs.watchtower.enable: true
+    depends_on:
+      - ember_dev
+    networks:
+      - traefik
+
+  # --- snapshot (snapshot.ember-panel.de) ---
+
+  ember_snapshot:
+    container_name: ember_demo_snapshot
+    image: ghcr.io/rainbowdashlabs/ember-backend:snapshot
+    labels:
+      traefik.enable: true
+      traefik.http.routers.demo_snapshot_ember.rule: "Host(`snapshot.ember-panel.de`) && PathPrefix(`/api`)"
+      traefik.http.routers.demo_snapshot_ember.entrypoints: https
+      traefik.http.routers.demo_snapshot_ember.tls: true
+      traefik.http.routers.demo_snapshot_ember.tls.certresolver: cloudflare
+      traefik.http.services.demo_snapshot_ember.loadbalancer.server.port: "8080"
+      com.centurylinklabs.watchtower.enable: true
+    volumes:
+      - ./config_snapshot:/app/config
+    environment:
+      DB_HOST: ember_demo_db
+      DB_PORT: "5432"
+      DB_USER: ember
+      DB_PASSWORD: ember
+      DB_DATABASE: ember
+      DB_SCHEMA: ember_schema_snapshot
+      DEMO_ENABLED: "true"
+      DEMO_IDLERESETMINUTES: "15"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - traefik
+      - default
+
+  ember_snapshot_frontend:
+    container_name: ember_demo_snapshot_frontend
+    image: ghcr.io/rainbowdashlabs/ember-frontend:snapshot
+    labels:
+      traefik.enable: true
+      traefik.http.routers.demo_snapshot_ember_web.rule: "Host(`snapshot.ember-panel.de`)"
+      traefik.http.routers.demo_snapshot_ember_web.entrypoints: https
+      traefik.http.routers.demo_snapshot_ember_web.tls: true
+      traefik.http.routers.demo_snapshot_ember_web.tls.certresolver: cloudflare
+      traefik.http.routers.demo_snapshot_ember_web.priority: "1"
+      traefik.http.services.demo_snapshot_ember_web.loadbalancer.server.port: "3000"
+      com.centurylinklabs.watchtower.enable: true
+    depends_on:
+      - ember_snapshot
+    networks:
+      - traefik
+
+networks:
+  traefik:
+    external: true
+
+volumes:
+  demo-data:

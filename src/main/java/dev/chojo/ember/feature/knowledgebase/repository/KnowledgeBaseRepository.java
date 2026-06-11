@@ -420,6 +420,14 @@ public class KnowledgeBaseRepository {
                 .all();
     }
 
+    public List<KbFile> findAllFiles(int stationId) {
+        return Query.query(
+                        "SELECT " + FILE_COLUMNS + " FROM kb_file f WHERE f.station_id = :station_id ORDER BY f.name;")
+                .single(Call.of().bind("station_id", stationId))
+                .map(KbFile.map())
+                .all();
+    }
+
     public List<KbFile> findFilesByTag(int stationId, String tagName) {
         return Query.query(
                         "SELECT " + FILE_COLUMNS

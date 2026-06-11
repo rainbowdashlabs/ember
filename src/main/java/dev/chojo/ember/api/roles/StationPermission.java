@@ -328,6 +328,16 @@ public enum StationPermission implements RouteRole {
     BOARD_MANAGER(BOARD_FEDERATE),
 
     /**
+     * Allows creating and editing public pages.
+     */
+    PAGE_EDIT,
+
+    /**
+     * Allows publishing/unpublishing and deleting public pages, and setting the landing page.
+     */
+    PAGE_MANAGER(PAGE_EDIT),
+
+    /**
      * Allows reading procedures assigned to the member.
      */
     PROCEDURE_READ,
@@ -416,6 +426,7 @@ public enum StationPermission implements RouteRole {
             LOST_AND_FOUND_MANAGER,
             MEMBER_MANAGER,
             NEWS_MANAGER,
+            PAGE_MANAGER,
             POLL_MANAGER,
             PROCEDURE_MANAGER,
             PROTOCOL_MANAGER,

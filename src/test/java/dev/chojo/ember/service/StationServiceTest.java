@@ -343,6 +343,34 @@ class StationServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(50)
+    void updatePublicWaitlistEnabled() {
+        service.updatePublicWaitlistEnabled(stationId, true);
+        assertTrue(stationRepo.findById(stationId).orElseThrow().publicWaitlistEnabled());
+        service.updatePublicWaitlistEnabled(stationId, false);
+        assertFalse(stationRepo.findById(stationId).orElseThrow().publicWaitlistEnabled());
+    }
+
+    @Test
+    @Order(51)
+    void updatePublicBlogEnabled() {
+        service.updatePublicBlogEnabled(stationId, true);
+        assertTrue(stationRepo.findById(stationId).orElseThrow().publicBlogEnabled());
+        service.updatePublicBlogEnabled(stationId, false);
+        assertFalse(stationRepo.findById(stationId).orElseThrow().publicBlogEnabled());
+    }
+
+    @Test
+    @Order(54)
+    void updatePublicSlugDuplicateThrows() {
+        var other = stationRepo.create("Other Station");
+        service.updatePublicSlug(other.id(), "taken-slug-" + java.util.UUID.randomUUID());
+        var slug = stationRepo.findById(other.id()).orElseThrow().publicSlug();
+        assertThrows(IllegalArgumentException.class, () -> service.updatePublicSlug(stationId, slug));
+        stationRepo.delete(other.id());
+    }
+
+    @Test
     @Order(99)
     void delete() {
         assertTrue(service.delete(stationId));

@@ -786,4 +786,22 @@ class DomainEventHandlerTest {
                         any(NotificationData.class),
                         eq(MEMBER_ID));
     }
+
+    @Test
+    void waitlistPublicRegistrationHandlerNotifiesWaitlistEditRole() {
+        var handler = new dev.chojo.ember.event.handlers.WaitlistPublicRegistrationHandler(notificationService);
+        var event = new dev.chojo.ember.event.events.WaitlistPublicRegistration(
+                STATION_ID, "Max Müller", "Warteliste 2026");
+
+        assertEquals(dev.chojo.ember.event.events.WaitlistPublicRegistration.class, handler.eventType());
+
+        handler.handle(event);
+
+        verify(notificationService)
+                .notifyMembersWithRole(
+                        eq(STATION_ID),
+                        eq("WAITLIST_EDIT"),
+                        eq(NotificationType.WAITLIST_PUBLIC_REGISTRATION),
+                        any(NotificationData.class));
+    }
 }

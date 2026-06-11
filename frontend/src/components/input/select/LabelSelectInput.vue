@@ -53,10 +53,10 @@ onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
             :class="{ 'opacity-50 pointer-events-none': disabled }"
             @click.stop="open = !open"
         >
-            <span v-for="label in selected" :key="label.id" class="text-xs px-2 py-0.5 rounded-full inline-flex items-center gap-1" :style="{ backgroundColor: label.color, color: contrastTextColor(label.color) }">
+            <BaseBadge v-for="label in selected" :key="label.id" bg-class="" class="inline-flex items-center gap-1" :style="{ backgroundColor: label.color, color: contrastTextColor(label.color) }">
                 {{ label.name }}
                 <span class="opacity-70 cursor-pointer" @click.stop="toggle(label.id)">x</span>
-            </span>
+            </BaseBadge>
             <span v-if="selected.length === 0" class="text-sm text-(--text-muted)">Labels...</span>
         </div>
         <div v-if="open" class="absolute z-20 mt-1 w-full rounded-theme border border-[var(--border)] bg-[var(--bg)] shadow-lg overflow-hidden max-h-48 overflow-y-auto">

@@ -17,6 +17,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type { WaitingList, WaitingListField, MemberGroup } from '@/api/types'
+import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import { ref, computed } from 'vue'
 import { waitingList as waitingListApi } from '@/api'
 
@@ -46,6 +47,7 @@ const editConfirmInterval = ref(0)
 const editTestingGroupId = ref<number | null>(null)
 const editJoinGroupId = ref<number | null>(null)
 const editAttendanceThreshold = ref(5)
+const editIsPublic = ref(false)
 const saving = ref(false)
 
 function startEditing() {
@@ -56,6 +58,7 @@ function startEditing() {
   editTestingGroupId.value = props.list.testingGroupId ?? null
   editJoinGroupId.value = props.list.joinGroupId ?? null
   editAttendanceThreshold.value = props.list.attendanceThreshold ?? 5
+  editIsPublic.value = props.list.isPublic ?? false
   editing.value = true
 }
 
@@ -75,6 +78,7 @@ async function saveEditing() {
       testingGroupId: editTestingGroupId.value,
       joinGroupId: editJoinGroupId.value,
       attendanceThreshold: editAttendanceThreshold.value,
+      isPublic: editIsPublic.value,
     })
     editing.value = false
     emit('updated', updated)
@@ -132,6 +136,11 @@ function groupName(groupId: number | null | undefined): string {
           <span class="text-(--text-muted)">{{ t('waitingList.attendanceThreshold') }}:</span>
           <span class="ml-1 font-medium">{{ list.attendanceThreshold }}</span>
         </div>
+        <div class="text-sm">
+          <span class="text-(--text-muted)">{{ t('waitingList.isPublic') }}:</span>
+          <span v-if="list.isPublic" class="ml-1 font-medium text-success">{{ t('common.yes') }}</span>
+          <span v-else class="ml-1 font-medium text-(--text-muted)">{{ t('common.no') }}</span>
+        </div>
       </div>
     </template>
 
@@ -174,6 +183,13 @@ function groupName(groupId: number | null | undefined): string {
             <FieldLabel>{{ t('waitingList.attendanceThreshold') }}</FieldLabel>
             <NumberInput v-model="editAttendanceThreshold" />
           </div>
+        </div>
+        <div class="flex items-center justify-between">
+          <div>
+            <FieldLabel>{{ t('waitingList.isPublic') }}</FieldLabel>
+            <p class="text-xs text-(--text-muted)">{{ t('waitingList.isPublicHint') }}</p>
+          </div>
+          <ToggleInput v-model="editIsPublic" />
         </div>
         <div class="flex justify-end gap-2">
           <SecondaryButton @click="cancelEditing">{{ t('common.cancel') }}</SecondaryButton>

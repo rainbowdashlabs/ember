@@ -73,6 +73,17 @@ for (const file of vueFiles) {
         }
     }
 
+    // ── Rule 3b: No <span> with rounded-full + px- (text badges) — use Badge components instead ──
+    // Only flags spans that look like text badges (have padding like px-2), not simple color dots
+    if (!isInsideDir(file, 'badge')) {
+        for (let i = 0; i < templateLines.length; i++) {
+            const line = templateLines[i]
+            if (/<span\b[^>]*\brounded-full\b[^>]*\bpx-/.test(line) || /<span\b[^>]*\bpx-[^>]*\brounded-full\b/.test(line)) {
+                error(CAT_RAW_ELEMENTS, file, templateStartLine + i, `<span> with rounded-full + padding — use a Badge component (PrimaryBadge, SuccessBadge, etc.) instead.`)
+            }
+        }
+    }
+
     // ── Rule 4: No more than 6 class arguments per element outside components/ ──
     if (!isInsideComponents(file)) {
         for (let i = 0; i < templateLines.length; i++) {
@@ -105,6 +116,15 @@ for (const file of vueFiles) {
         error(file, 0, `View has ${lineCount} lines (max 500). Split into smaller components.`, CAT_FILE_SIZE)
     } else if (lineCount > 300) {
         warn(file, 0, `Component has ${lineCount} lines. Consider splitting.`, CAT_FILE_SIZE)
+    }
+    // ── Rule 6b: No inline object type literals in ref<> — use named types ──
+    const scriptContent = content.substring(0, content.indexOf('<template>') >= 0 ? content.indexOf('<template>') : content.length)
+    const scriptLines = scriptContent.split('\n')
+    for (let i = 0; i < scriptLines.length; i++) {
+        const line = scriptLines[i]
+        if (/ref<\{[^}]+\}/.test(line) && !line.includes('Record<')) {
+            warn('Inline type', file, i + 1, `Inline object type in ref<> — use a named interface/type instead.`)
+        }
     }
 }
 

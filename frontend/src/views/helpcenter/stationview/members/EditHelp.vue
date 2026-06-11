@@ -88,16 +88,16 @@ const dummySelected = new Set([1])
         <div class="space-y-2">
           <SubHeader>{{ t('memberGroups.title') }}</SubHeader>
           <div class="flex flex-wrap gap-2">
-            <span class="text-xs rounded-full bg-secondary/10 text-secondary px-3 py-1">Anfänger</span>
-            <span class="text-xs rounded-full bg-secondary/10 text-secondary px-3 py-1 opacity-50">Fortgeschrittene</span>
+            <SecondaryBadge>Anfänger</SecondaryBadge>
+            <SecondaryBadge class="opacity-50">Fortgeschrittene</SecondaryBadge>
           </div>
         </div>
 
         <div class="space-y-2">
           <SubHeader>{{ t('userTags.title') }}</SubHeader>
           <div class="flex flex-wrap gap-2">
-            <span class="text-xs rounded-full bg-info/10 text-info px-3 py-1">Ersthelfer</span>
-            <span class="text-xs rounded-full bg-info/10 text-info px-3 py-1 opacity-50">Fahrer</span>
+            <InfoBadge>Ersthelfer</InfoBadge>
+            <InfoBadge class="opacity-50">Fahrer</InfoBadge>
           </div>
         </div>
       </NeutralContainer>

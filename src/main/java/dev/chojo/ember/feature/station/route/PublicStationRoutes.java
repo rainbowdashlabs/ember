@@ -8,9 +8,12 @@ package dev.chojo.ember.feature.station.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.feature.news.service.NewsService;
+import dev.chojo.ember.feature.page.service.PageService;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationService;
-import io.javalin.http.BadRequestResponse;
+import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
 import io.javalin.http.Context;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
@@ -29,11 +32,22 @@ import java.util.UUID;
 public class PublicStationRoutes implements Routes {
     private final StationRepository stationRepository;
     private final StationService stationService;
+    private final PageService pageService;
+    private final WaitingListService waitingListService;
+    private final NewsService newsService;
 
     @Inject
-    public PublicStationRoutes(StationRepository stationRepository, StationService stationService) {
+    public PublicStationRoutes(
+            StationRepository stationRepository,
+            StationService stationService,
+            PageService pageService,
+            WaitingListService waitingListService,
+            NewsService newsService) {
         this.stationRepository = stationRepository;
         this.stationService = stationService;
+        this.pageService = pageService;
+        this.waitingListService = waitingListService;
+        this.newsService = newsService;
     }
 
     @Override
@@ -53,23 +67,22 @@ public class PublicStationRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getInfo(Context ctx) {
-        String uidParam = ctx.pathParam("stationUid");
-        UUID uid;
-        try {
-            uid = UUID.fromString(uidParam);
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("Invalid station ID");
-        }
-        var station = stationRepository.findByUid(uid).orElseThrow(NotFoundResponse::new);
+        var station = resolveStation(ctx);
 
         boolean hasPublicKb = station.publicKbMode() != PublicKbMode.OFF;
         boolean hasPublicCalendar = station.publicCalendarEnabled();
+        boolean hasPublicPages = station.publicPagesEnabled() && pageService.hasPublishedPages(station.id());
+        boolean hasPublicWaitlist =
+                station.publicWaitlistEnabled() && waitingListService.hasPublicWaitlists(station.id());
+        boolean hasPublicBlog = station.publicBlogEnabled() && newsService.hasPublicBlogEntries(station.id());
 
-        if (!hasPublicKb && !hasPublicCalendar) {
+        if (!hasPublicKb && !hasPublicCalendar && !hasPublicPages && !hasPublicWaitlist && !hasPublicBlog) {
             throw new NotFoundResponse();
         }
 
         boolean hasLogo = stationService.getLogo(station.id()).isPresent();
+        String landingPageSlug =
+                hasPublicPages ? pageService.getLandingPageSlug(station.id()).orElse(null) : null;
 
         ctx.json(new PublicStationInfo(
                 station.uid().toString(),
@@ -77,7 +90,15 @@ public class PublicStationRoutes implements Routes {
                 station.discoveryDescription(),
                 hasLogo,
                 hasPublicKb,
-                hasPublicCalendar));
+                hasPublicCalendar,
+                hasPublicPages,
+                hasPublicWaitlist,
+                hasPublicBlog,
+                landingPageSlug,
+                station.publicSlug(),
+                station.defaultTheme(),
+                station.defaultFeel() != null ? station.defaultFeel().name() : null,
+                station.customThemeColors()));
     }
 
     public record PublicStationInfo(
@@ -86,5 +107,24 @@ public class PublicStationRoutes implements Routes {
             String description,
             boolean hasLogo,
             boolean hasPublicKb,
-            boolean hasPublicCalendar) {}
+            boolean hasPublicCalendar,
+            boolean hasPublicPages,
+            boolean hasPublicWaitlist,
+            boolean hasPublicBlog,
+            String landingPageSlug,
+            String publicSlug,
+            String defaultTheme,
+            String defaultFeel,
+            String customThemeColors) {}
+
+    private Station resolveStation(Context ctx) {
+        String param = ctx.pathParam("stationUid");
+        try {
+            UUID uid = UUID.fromString(param);
+            return stationRepository.findByUid(uid).orElseThrow(NotFoundResponse::new);
+        } catch (IllegalArgumentException e) {
+            // Not a UUID — try as public slug
+            return stationRepository.findBySlug(param).orElseThrow(NotFoundResponse::new);
+        }
+    }
 }

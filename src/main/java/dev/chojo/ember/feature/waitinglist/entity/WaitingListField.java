@@ -14,7 +14,8 @@ public record WaitingListField(
         WaitingListFieldType fieldType,
         WaitingListFieldConfig config,
         int position,
-        boolean required) {
+        boolean required,
+        boolean isPublic) {
 
     public static RowMapping<WaitingListField> map() {
         return row -> new WaitingListField(
@@ -24,6 +25,7 @@ public record WaitingListField(
                 WaitingListFieldType.valueOf(row.getString("field_type")),
                 WaitingListFieldConfig.parse(row.getString("config")),
                 row.getInt("position"),
-                row.getBoolean("required"));
+                row.getBoolean("required"),
+                row.getBoolean("public"));
     }
 }

@@ -229,6 +229,8 @@ const GROUP_ICONS: Record<string, string[]> = {
   PROTOCOL_MANAGER: ['fas', 'clipboard-list'],
   BOARD_MANAGER: ['fas', 'table-columns'],
   KNOWLEDGE_MANAGER: ['fas', 'book'],
+  PAGE_MANAGER: ['fas', 'file-lines'],
+  PROCEDURE_MANAGER: ['fas', 'list-check'],
   STATION_MANAGER: ['fas', 'gear'],
   NEWS_FEDERATE: ['fas', 'share-nodes'],
 }

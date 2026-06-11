@@ -31,7 +31,7 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
-import type { WaitingListEntryWithScore, WaitingListField } from '@/api/types'
+import type { GuardianInput, WaitingListEntryWithScore, WaitingListField } from '@/api/types'
 import { waitingList } from '@/api'
 
 const { t } = useI18n()
@@ -51,7 +51,7 @@ const saving = ref(false)
 // Edit form
 const editFirstname = ref('')
 const editLastname = ref('')
-const editGuardians = ref<{ name: string; email: string; phone: string }[]>([])
+const editGuardians = ref<GuardianInput[]>([])
 const editNotes = ref('')
 const editValues = ref<Map<number, string>>(new Map())
 const editingCreatedAt = ref(false)
@@ -77,8 +77,8 @@ async function loadData() {
     editFirstname.value = found.entry.firstname
     editLastname.value = found.entry.lastname
     editGuardians.value = found.guardians.length > 0
-      ? found.guardians.map(g => ({ name: g.name, email: g.email, phone: g.phone }))
-      : [{ name: found.entry.parentName || '', email: found.entry.email || '', phone: '' }]
+      ? found.guardians.map(g => ({ firstname: g.firstname, lastname: g.lastname, email: g.email, phone: g.phone }))
+      : [{ firstname: '', lastname: '', email: found.entry.email || '', phone: '' }]
     editNotes.value = found.entry.notes ?? ''
 
     const valMap = new Map<number, string>()
@@ -126,7 +126,7 @@ function parseConfig(configStr: string | undefined | null): Record<string, unkno
 }
 
 function addGuardian() {
-  editGuardians.value = [...editGuardians.value, { name: '', email: '', phone: '' }]
+  editGuardians.value = [...editGuardians.value, { firstname: '', lastname: '', email: '', phone: '' }]
 }
 
 function removeGuardian(index: number) {
@@ -149,7 +149,7 @@ async function save() {
     await waitingList.updateEntry(listId.value, entryId.value, {
       firstname: editFirstname.value.trim(),
       lastname: editLastname.value.trim(),
-      guardians: editGuardians.value.map(g => ({ name: g.name.trim(), email: g.email.trim(), phone: g.phone.trim() })),
+      guardians: editGuardians.value.map(g => ({ firstname: g.firstname.trim(), lastname: g.lastname.trim(), email: g.email.trim(), phone: g.phone.trim() })),
       notes: editNotes.value.trim(),
       values,
     })
@@ -268,8 +268,9 @@ onMounted(loadData)
                 <span class="text-sm font-medium">{{ t('waitingList.guardian') }} {{ i + 1 }}</span>
                 <DeleteButton v-if="editGuardians.length > 1" @click="removeGuardian(i)" />
               </div>
-              <div class="grid gap-2 sm:grid-cols-3">
-                <TextInput v-model="g.name" :placeholder="t('waitingList.guardianNamePlaceholder')" />
+              <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                <TextInput v-model="g.firstname" :placeholder="t('waitingList.firstnamePlaceholder')" />
+                <TextInput v-model="g.lastname" :placeholder="t('waitingList.lastnamePlaceholder')" />
                 <TextInput v-model="g.email" :placeholder="t('waitingList.guardianEmailPlaceholder')" />
                 <TextInput v-model="g.phone" :placeholder="t('waitingList.guardianPhonePlaceholder')" />
               </div>

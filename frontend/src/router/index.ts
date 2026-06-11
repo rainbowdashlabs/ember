@@ -95,6 +95,11 @@ const router = createRouter({
             component: () => import('@/views/WaitingListStatusView.vue'),
         },
         {
+            path: '/public/waitlist/verify/:token',
+            name: 'waitlist-verify',
+            component: () => import('@/views/public/PublicWaitlistVerifyView.vue'),
+        },
+        {
             path: '/privacy',
             name: 'privacy',
             component: () => import('@/views/PrivacyPolicyView.vue'),
@@ -218,22 +223,22 @@ const router = createRouter({
                     component: MembersConfigView,
                 },
                 {
-                    path: 'manage/federation',
+                    path: 'federate',
                     name: 'station-federation',
                     component: () => import('@/views/stationview/manage/FederationView.vue'),
                 },
                 {
-                    path: 'manage/federation/settings',
+                    path: 'federate/settings',
                     name: 'station-federation-settings',
                     component: () => import('@/views/stationview/manage/FederationSettingsView.vue'),
                 },
                 {
-                    path: 'manage/federation/:id',
+                    path: 'federate/:id',
                     name: 'station-federation-partner',
                     component: () => import('@/views/stationview/manage/FederationPartnerView.vue'),
                 },
                 {
-                    path: 'manage/discovery',
+                    path: 'federate/discovery',
                     name: 'station-discovery',
                     component: () => import('@/views/stationview/manage/DiscoveryView.vue'),
                 },
@@ -577,6 +582,17 @@ const router = createRouter({
                     path: 'knowledge/file/:id/versions',
                     name: 'kb-versions',
                     component: () => import('@/views/stationview/knowledge/KbVersionsView.vue'),
+                },
+                // Public Pages
+                {
+                    path: 'pages',
+                    name: 'pages-list',
+                    component: () => import('@/views/stationview/pages/PagesListView.vue'),
+                },
+                {
+                    path: 'pages/:id',
+                    name: 'page-editor',
+                    component: () => import('@/views/stationview/pages/PageEditorView.vue'),
                 },
                 // Quiz
                 {
@@ -1022,22 +1038,22 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/stationview/manage/ImportHelp.vue')
                 },
                 {
-                    path: 'manage/federation',
+                    path: 'federate',
                     name: 'help-station-federation',
                     component: () => import('@/views/helpcenter/stationview/manage/FederationHelp.vue')
                 },
                 {
-                    path: 'manage/federation/settings',
+                    path: 'federate/settings',
                     name: 'help-station-federation-settings',
                     component: () => import('@/views/helpcenter/stationview/manage/FederationSettingsHelp.vue')
                 },
                 {
-                    path: 'manage/federation/:id',
+                    path: 'federate/:id',
                     name: 'help-station-federation-partner',
                     component: () => import('@/views/helpcenter/stationview/manage/FederationPartnerHelp.vue')
                 },
                 {
-                    path: 'manage/discovery',
+                    path: 'federate/discovery',
                     name: 'help-station-discovery',
                     component: () => import('@/views/helpcenter/stationview/manage/DiscoveryHelp.vue')
                 },
@@ -1470,6 +1486,17 @@ const router = createRouter({
                     name: 'help-kb-versions',
                     component: () => import('@/views/helpcenter/stationview/knowledge/VersionsHelp.vue')
                 },
+                // Public Pages
+                {
+                    path: 'pages',
+                    name: 'help-pages',
+                    component: () => import('@/views/helpcenter/stationview/pages/PagesHelp.vue')
+                },
+                {
+                    path: 'pages/:id',
+                    name: 'help-page-editor',
+                    component: () => import('@/views/helpcenter/stationview/pages/PageEditorHelp.vue')
+                },
                 // Boards
                 {
                     path: 'federation/boards',
@@ -1654,7 +1681,7 @@ const router = createRouter({
                 {
                     path: '',
                     name: 'public-station',
-                    redirect: to => ({name: 'public-station-calendar', params: to.params}),
+                    component: () => import('@/views/public/PublicStationIndexRedirect.vue'),
                 },
                 {
                     path: 'calendar',
@@ -1670,6 +1697,26 @@ const router = createRouter({
                     path: 'knowledge/file/:id',
                     name: 'public-kb-file',
                     component: () => import('@/views/public/PublicKbFileView.vue'),
+                },
+                {
+                    path: 'page/:slug(.*)',
+                    name: 'public-page',
+                    component: () => import('@/views/public/PublicPageView.vue'),
+                },
+                {
+                    path: 'waitlist',
+                    name: 'public-waitlist',
+                    component: () => import('@/views/public/PublicWaitlistView.vue'),
+                },
+                {
+                    path: 'blog',
+                    name: 'public-blog',
+                    component: () => import('@/views/public/PublicBlogView.vue'),
+                },
+                {
+                    path: 'blog/:blogId',
+                    name: 'public-blog-detail',
+                    component: () => import('@/views/public/PublicBlogDetailView.vue'),
                 },
             ],
         },
@@ -1693,7 +1740,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-    const publicRoutes = ['home', 'login', 'requirements', 'forgot-password', 'set-password', 'reset-password', 'apply', 'apply-verify', 'waitlist-register', 'waitlist-status', 'style', 'privacy', 'terms', 'imprint', 'patch-notes', 'not-found']
+    const publicRoutes = ['home', 'login', 'requirements', 'forgot-password', 'set-password', 'reset-password', 'apply', 'apply-verify', 'waitlist-register', 'waitlist-status', 'waitlist-verify', 'style', 'privacy', 'terms', 'imprint', 'patch-notes', 'not-found']
     if (publicRoutes.includes(to.name as string)) {
         return true
     }

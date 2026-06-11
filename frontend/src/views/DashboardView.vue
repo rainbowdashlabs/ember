@@ -322,9 +322,9 @@ async function handleLogout() {
         <SidebarLink v-for="bm in bookmarkedBoards" :key="`fed-${bm.id}`" :icon="['fas', 'table-columns']" :name="`fed-board-${bm.id}`" :to="`/station/federation/boards/${bm.partnerStationUid}/${bm.remoteBoardShortKey}`" :active="route.path.startsWith(`/station/federation/boards/${bm.partnerStationUid}/${bm.remoteBoardShortKey}`)" @navigate="close">
           <span class="flex items-center gap-1.5">
             {{ bm.remoteBoardName }}
-            <span class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold bg-secondary/70 border border-secondary/30 text-white shrink-0">
+            <SecondaryBadge class="shrink-0">
               <font-awesome-icon :icon="['fas', 'arrow-right-arrow-left']" class="w-2.5 h-2.5" />
-            </span>
+            </SecondaryBadge>
           </span>
         </SidebarLink>
         <SidebarLink :icon="['fas', 'globe']" name="federated-boards" to="/station/federation/boards" @navigate="close">
@@ -343,6 +343,8 @@ async function handleLogout() {
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.KNOWLEDGE_BASE)" :icon="['fas', 'book-open']" :label="t('sidebar.knowledgeBase')" prefix="/station/knowledge" to="/station/knowledge" name="kb-browse" @navigate="close"/>
 
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="hasPermission(StationPermission.PAGE_EDIT)" :icon="['fas', 'file-lines']" :label="t('sidebar.pages')" prefix="/station/pages" to="/station/pages" name="pages-list" @navigate="close"/>
+
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isManager()" :icon="['fas', 'gears']" :label="t('sidebar.manage')" prefix="/station/manage" :to="manageDefaultRoute" name="station-manage" @navigate="close">
         <SidebarLink v-if="hasPermission(StationPermission.STATION_LOOK_AND_FEEL)" :icon="['fas', 'palette']" name="station-theme" to="/station/manage/theme" @navigate="close">
           {{ t('sidebar.stationTheme') }}
@@ -358,11 +360,11 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="canManageFederation()" :badge="counts.federationRequests" :icon="['fas', 'arrow-right-arrow-left']" :label="t('sidebar.federation')" :prefix="['/station/manage/federation', '/station/manage/discovery']" to="/station/manage/federation" name="station-federation" @navigate="close">
-        <SidebarLink :badge="counts.federationRequests" :icon="['fas', 'gear']" name="station-federation-settings" to="/station/manage/federation/settings" @navigate="close">
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="canManageFederation()" :badge="counts.federationRequests" :icon="['fas', 'arrow-right-arrow-left']" :label="t('sidebar.federation')" :prefix="['/station/federate', '/station/federate/discovery']" to="/station/federate" name="station-federation" @navigate="close">
+        <SidebarLink :badge="counts.federationRequests" :icon="['fas', 'gear']" name="station-federation-settings" to="/station/federate/settings" @navigate="close">
           {{ t('sidebar.federationSettings') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'compass']" name="station-discovery" to="/station/manage/discovery" @navigate="close">
+        <SidebarLink :icon="['fas', 'compass']" name="station-discovery" to="/station/federate/discovery" @navigate="close">
           {{ t('sidebar.discovery') }}
         </SidebarLink>
       </SidebarGroup>

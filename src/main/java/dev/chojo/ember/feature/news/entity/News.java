@@ -37,7 +37,8 @@ public record News(
         Instant publishedAt,
         Instant createdAt,
         RestrictionMode restrictionMode,
-        boolean restricted) {
+        boolean restricted,
+        boolean publicBlog) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -59,7 +60,8 @@ public record News(
                     row.get("published_at", INSTANT_TIMESTAMP),
                     row.get("created_at", INSTANT_TIMESTAMP),
                     RestrictionMode.valueOf(row.getString("restriction_mode")),
-                    row.getBoolean("restricted"));
+                    row.getBoolean("restricted"),
+                    row.getBoolean("public_blog"));
         };
     }
 }

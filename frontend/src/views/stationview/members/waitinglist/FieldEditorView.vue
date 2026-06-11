@@ -45,6 +45,7 @@ const editingField = ref<WaitingListField | null>(null)
 const fieldName = ref('')
 const fieldType = ref('TEXT')
 const fieldRequired = ref(false)
+const fieldPublic = ref(true)
 const fieldEnumOptions = ref('')
 const savingField = ref(false)
 
@@ -93,6 +94,7 @@ function openAddField() {
   fieldName.value = ''
   fieldType.value = 'TEXT'
   fieldRequired.value = false
+  fieldPublic.value = true
   fieldEnumOptions.value = ''
   showFieldModal.value = true
 }
@@ -102,6 +104,7 @@ function openEditField(field: WaitingListField) {
   fieldName.value = field.name
   fieldType.value = field.fieldType
   fieldRequired.value = field.required
+  fieldPublic.value = field.isPublic ?? true
   const config = parseConfig(field.config)
   fieldEnumOptions.value = Array.isArray(config.options) ? config.options.join(', ') : ''
   showFieldModal.value = true
@@ -131,6 +134,7 @@ async function saveField() {
       config: buildConfig(),
       position: editingField.value?.position ?? fields.value.length,
       required: fieldRequired.value,
+      isPublic: fieldPublic.value,
     }
     if (editingField.value) {
       await waitingList.updateField(listId.value, editingField.value.id, data)
@@ -182,6 +186,7 @@ async function moveField(index: number, direction: -1 | 1) {
         config: fieldA.config ?? '{}',
         position: fieldB.position,
         required: fieldA.required,
+        isPublic: fieldA.isPublic,
       }),
       waitingList.updateField(listId.value, fieldB.id, {
         name: fieldB.name,
@@ -189,6 +194,7 @@ async function moveField(index: number, direction: -1 | 1) {
         config: fieldB.config ?? '{}',
         position: fieldA.position,
         required: fieldB.required,
+        isPublic: fieldB.isPublic,
       }),
     ])
     fields.value = await waitingList.listFields(listId.value)
@@ -253,8 +259,8 @@ onMounted(loadData)
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
                   <span class="font-medium">{{ field.name }}</span>
-                  <span class="text-xs bg-secondary/15 text-secondary rounded-full px-2 py-0.5">{{ fieldTypeLabel(field.fieldType) }}</span>
-                  <span v-if="field.required" class="text-xs bg-primary/15 text-primary rounded-full px-2 py-0.5">{{ t('waitingList.required') }}</span>
+                  <SecondaryBadge>{{ fieldTypeLabel(field.fieldType) }}</SecondaryBadge>
+                  <PrimaryBadge v-if="field.required">{{ t('waitingList.required') }}</PrimaryBadge>
                 </div>
                 <MutedText tag="div" class="mt-1" v-if="field.fieldType === 'ENUM'">
                   {{ t('waitingList.options') }}: {{ parseConfig(field.config).options ? (parseConfig(field.config).options as string[]).join(', ') : '-' }}
@@ -292,6 +298,10 @@ onMounted(loadData)
           <div class="flex items-center gap-2">
             <ToggleInput v-model="fieldRequired" />
             <label class="text-sm font-medium">{{ t('waitingList.required') }}</label>
+          </div>
+          <div class="flex items-center gap-2">
+            <ToggleInput v-model="fieldPublic" />
+            <label class="text-sm font-medium">{{ t('waitingList.fieldPublic') }}</label>
           </div>
           <div class="flex justify-end gap-2">
             <SecondaryButton @click="showFieldModal = false">{{ t('common.cancel') }}</SecondaryButton>

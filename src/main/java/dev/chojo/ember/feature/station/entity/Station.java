@@ -41,7 +41,12 @@ public record Station(
         DiscoveryVisibility discoveryVisibility,
         String discoveryDescription,
         boolean discoveryShowKb,
-        boolean publicCalendarEnabled) {
+        boolean publicCalendarEnabled,
+        Integer landingPageId,
+        boolean publicPagesEnabled,
+        String publicSlug,
+        boolean publicWaitlistEnabled,
+        boolean publicBlogEnabled) {
     public static RowMapping<Station> map() {
         return row -> new Station(
                 row.getInt("id"),
@@ -60,6 +65,11 @@ public record Station(
                 DiscoveryVisibility.valueOf(row.getString("discovery_visibility")),
                 row.getString("discovery_description"),
                 row.getBoolean("discovery_show_kb"),
-                row.getBoolean("public_calendar_enabled"));
+                row.getBoolean("public_calendar_enabled"),
+                row.getObject("landing_page_id") != null ? row.getInt("landing_page_id") : null,
+                row.getBoolean("public_pages_enabled"),
+                row.getString("public_slug"),
+                row.getBoolean("public_waitlist_enabled"),
+                row.getBoolean("public_blog_enabled"));
     }
 }

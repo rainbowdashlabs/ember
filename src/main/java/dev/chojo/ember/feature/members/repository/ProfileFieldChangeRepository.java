@@ -179,7 +179,7 @@ public class ProfileFieldChangeRepository {
                             JOIN station_member sm ON sm.id = c.member_id
                             JOIN account ma ON ma.id = sm.account_id
                             WHERE sm.station_id = :station_id
-                              AND c.requires_acknowledgement = TRUE
+                              AND c.requires_acknowledgement
                               AND NOT exists (
                                   SELECT 1 FROM profile_field_change_acknowledgement ack
                                   WHERE ack.change_id = c.id AND ack.acknowledged_by = :acknowledged_by
@@ -203,7 +203,7 @@ public class ProfileFieldChangeRepository {
                             SELECT c.id
                             FROM profile_field_change c
                             WHERE c.member_id = :member_id
-                              AND c.requires_acknowledgement = TRUE
+                              AND c.requires_acknowledgement
                               AND NOT exists (
                                   SELECT 1 FROM profile_field_change_acknowledgement ack
                                   WHERE ack.change_id = c.id AND ack.acknowledged_by = :acknowledged_by
@@ -277,7 +277,7 @@ public class ProfileFieldChangeRepository {
                         SELECT count(*) AS cnt FROM profile_field_change c
                         JOIN station_member sm ON sm.id = c.member_id
                         WHERE sm.station_id = :station_id
-                          AND c.requires_acknowledgement = TRUE
+                          AND c.requires_acknowledgement
                           AND NOT exists (
                               SELECT 1 FROM profile_field_change_acknowledgement ack
                               WHERE ack.change_id = c.id AND ack.acknowledged_by = :acknowledged_by

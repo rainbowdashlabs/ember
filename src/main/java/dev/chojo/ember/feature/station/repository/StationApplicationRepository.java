@@ -6,12 +6,15 @@
 package dev.chojo.ember.feature.station.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
+import dev.chojo.ember.feature.station.entity.ApplicationStatus;
 import dev.chojo.ember.feature.station.entity.StationApplication;
 import jakarta.inject.Singleton;
 
 import java.util.List;
 import java.util.Optional;
+
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
  * Repository for station application CRUD and lifecycle operations.
@@ -37,10 +40,13 @@ public class StationApplicationRepository {
             String stationName,
             String introduction,
             String verificationToken) {
-        return Query.query("""
-                            INSERT INTO station_application(first_name, last_name, email, station_name, introduction, verification_token)
-                            VALUES (:first_name, :last_name, :email, :station_name, :introduction, :verification_token)
-                            RETURNING id, first_name, last_name, email, station_name, introduction, verification_token, status, deny_reason, created_at, resolved_at;""")
+        return query("""
+                INSERT
+                INTO
+                    station_application(first_name, last_name, email, station_name, introduction, verification_token)
+                VALUES
+                    (:first_name, :last_name, :email, :station_name, :introduction, :verification_token)
+                RETURNING id, first_name, last_name, email, station_name, introduction, verification_token, status, deny_reason, created_at, resolved_at;""")
                 .single(Call.of()
                         .bind("first_name", firstName)
                         .bind("last_name", lastName)
@@ -60,8 +66,22 @@ public class StationApplicationRepository {
      * @return the application, or empty if not found
      */
     public Optional<StationApplication> findById(int id) {
-        return Query.query(
-                        "SELECT id, first_name, last_name, email, station_name, introduction, verification_token, status, deny_reason, created_at, resolved_at FROM station_application WHERE id = :id;")
+        return query("""
+                        SELECT
+                            id,
+                            first_name,
+                            last_name,
+                            email,
+                            station_name,
+                            introduction,
+                            verification_token,
+                            status,
+                            deny_reason,
+                            created_at,
+                            resolved_at
+                        FROM
+                            station_application
+                        WHERE id = :id;""")
                 .single(Call.of().bind("id", id))
                 .map(StationApplication.map())
                 .first();
@@ -70,13 +90,29 @@ public class StationApplicationRepository {
     /**
      * Finds all applications with the given status, ordered by creation date.
      *
-     * @param status the status to filter by (e.g., "pending", "accepted", "denied")
+     * @param status the status to filter by
      * @return a list of matching applications
      */
-    public List<StationApplication> findByStatus(String status) {
-        return Query.query(
-                        "SELECT id, first_name, last_name, email, station_name, introduction, verification_token, status, deny_reason, created_at, resolved_at FROM station_application WHERE status = :status ORDER BY created_at;")
-                .single(Call.of().bind("status", status))
+    public List<StationApplication> findByStatus(ApplicationStatus status) {
+        return query("""
+                        SELECT
+                            id,
+                            first_name,
+                            last_name,
+                            email,
+                            station_name,
+                            introduction,
+                            verification_token,
+                            status,
+                            deny_reason,
+                            created_at,
+                            resolved_at
+                        FROM
+                            station_application
+                        WHERE status = :status
+                        ORDER BY created_at;
+                        """)
+                .single(call().bind("status", status))
                 .map(StationApplication.map())
                 .all();
     }
@@ -87,11 +123,22 @@ public class StationApplicationRepository {
      * @return a list of all applications
      */
     public List<StationApplication> findAll() {
-        return Query.query(
-                        "SELECT id, first_name, last_name, email, station_name, introduction, verification_token, status, deny_reason, created_at, resolved_at FROM station_application ORDER BY created_at DESC;")
-                .single()
-                .map(StationApplication.map())
-                .all();
+        return query("""
+                        SELECT
+                            id,
+                            first_name,
+                            last_name,
+                            email,
+                            station_name,
+                            introduction,
+                            verification_token,
+                            status,
+                            deny_reason,
+                            created_at,
+                            resolved_at
+                        FROM
+                            station_application
+                        ORDER BY created_at DESC;""").single().map(StationApplication.map()).all();
     }
 
     /**
@@ -101,8 +148,22 @@ public class StationApplicationRepository {
      * @return the application, or empty if not found
      */
     public Optional<StationApplication> findByToken(String token) {
-        return Query.query(
-                        "SELECT id, first_name, last_name, email, station_name, introduction, verification_token, status, deny_reason, created_at, resolved_at FROM station_application WHERE verification_token = :token;")
+        return query("""
+                        SELECT
+                            id,
+                            first_name,
+                            last_name,
+                            email,
+                            station_name,
+                            introduction,
+                            verification_token,
+                            status,
+                            deny_reason,
+                            created_at,
+                            resolved_at
+                        FROM
+                            station_application
+                        WHERE verification_token = :token;""")
                 .single(Call.of().bind("token", token))
                 .map(StationApplication.map())
                 .first();
@@ -115,11 +176,13 @@ public class StationApplicationRepository {
      * @return {@code true} if the application was successfully verified
      */
     public boolean verify(int id) {
-        return Query.query(
-                        "UPDATE station_application SET status = 'pending', verification_token = NULL WHERE id = :id AND status = 'unverified';")
-                .single(Call.of().bind("id", id))
-                .update()
-                .changed();
+        return query("""
+                        UPDATE station_application
+                        SET
+                            status             = 'PENDING',
+                            verification_token = NULL
+                        WHERE id = :id
+                          AND status = 'UNVERIFIED';""").single(Call.of().bind("id", id)).update().changed();
     }
 
     /**
@@ -129,11 +192,13 @@ public class StationApplicationRepository {
      * @return {@code true} if the application was successfully accepted
      */
     public boolean accept(int id) {
-        return Query.query(
-                        "UPDATE station_application SET status = 'accepted', resolved_at = now() WHERE id = :id AND status = 'pending';")
-                .single(Call.of().bind("id", id))
-                .update()
-                .changed();
+        return query("""
+                        UPDATE station_application
+                        SET
+                            status      = 'ACCEPTED',
+                            resolved_at = now()
+                        WHERE id = :id
+                          AND status = 'PENDING';""").single(Call.of().bind("id", id)).update().changed();
     }
 
     /**
@@ -144,8 +209,14 @@ public class StationApplicationRepository {
      * @return {@code true} if the application was successfully denied
      */
     public boolean deny(int id, String reason) {
-        return Query.query(
-                        "UPDATE station_application SET status = 'denied', deny_reason = :reason, resolved_at = now() WHERE id = :id AND status = 'pending';")
+        return query("""
+                        UPDATE station_application
+                        SET
+                            status      = 'DENIED',
+                            deny_reason = :reason,
+                            resolved_at = now()
+                        WHERE id = :id
+                          AND status = 'PENDING';""")
                 .single(Call.of().bind("id", id).bind("reason", reason))
                 .update()
                 .changed();

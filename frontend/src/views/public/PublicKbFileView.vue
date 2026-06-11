@@ -4,9 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, computed, onMounted} from 'vue'
+import {ref, computed, onMounted, inject} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter, useRoute} from 'vue-router'
+import type {Ref} from 'vue'
+import type {PublicStationInfo as DiscoveryStationInfo} from '@/api/discovery'
 import Spinner from '@/components/feedback/Spinner.vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -24,7 +26,8 @@ const {t} = useI18n()
 const router = useRouter()
 const route = useRoute()
 
-const stationUid = computed(() => route.params.stationUid as string)
+const publicStation = inject<Ref<DiscoveryStationInfo | null>>('publicStation')
+const stationUid = computed(() => publicStation?.value?.stationUid ?? route.params.stationUid as string)
 const fileId = computed(() => Number(route.params.id))
 
 const loading = ref(true)

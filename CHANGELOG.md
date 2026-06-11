@@ -4,6 +4,59 @@
 
 ### New Features
 
+#### Public Pages (Layout Editor)
+- **Page builder** — stations can create public pages using a lightweight layout editor inspired by WordPress/Elementor
+- **Row-based layout** — pages are built from horizontal rows, each containing 1-4 columns with free-form percentage widths
+- **Content types** — cells support rich markdown (WYSIWYG TipTap editor), images (upload with fit/sizing), and videos (YouTube embeds or direct URLs)
+- **Responsive design** — horizontal rows automatically stack vertically on mobile
+- **Page hierarchy** — pages support up to 3 levels of nesting with nested URL paths (e.g., `/page/about/team`)
+- **Landing page** — one page can be designated as the station landing page, shown first in the sidebar
+- **Station slug** — stations get a human-readable URL slug (auto-generated from name, editable) as alternative to UUID
+- **SEO metadata** — per-page meta description and OG image, with auto-generation from content
+- **Markdown rendering** — server-side commonmark rendering for public pages
+- **Station theming** — public pages display the station's configured theme (colors, feel)
+- **Image management** — per-page image upload (max 5 MB), orphaned images auto-cleaned on save
+- **Copy/cut/paste** — clipboard for rows and cells with paste buttons between rows
+- **Column controls** — visual column split buttons, swap button between columns, free-form resize handles
+- **Move up/down** — row reordering via buttons
+- **Preview mode** — toggle between edit and preview in the editor
+- **Page duplication** — duplicate pages with full row/cell tree
+- **Publish/unpublish** — PAGE_MANAGER permission for publishing, unpublished parents hide children
+- **Help center** — article explaining page management
+- **Demo data** — 4 sample pages (Willkommen, Über uns, Unser Team, Ausrüstung, Mitmachen) with hierarchy
+
+#### Station Public URL
+- **Public slug** — stations have a customizable URL slug (e.g., `/public/station/jugendfeuerwehr-musterstadt`)
+- **Auto-generated** — slugs created from station name on creation, with dedup
+- **UUID redirect** — UUID-based URLs automatically redirect to the slug version
+- **Discovery links** — station discovery uses slugs for cleaner URLs
+- **Settings UI** — editable slug in federation settings with duplicate detection
+
+#### Public Waitlist Registration
+- **Public waitlists** — per-waitlist `isPublic` toggle allows external registration without login
+- **Per-field visibility** — each waitlist field can be marked as public or hidden from the registration form
+- **Email verification** — registrants receive a verification email; token expires after 24 hours
+- **Pending approval** — verified registrations get `PENDING` status, requiring WAITLIST_EDIT approval
+- **Approve/reject** — expandable pending entries in the waitlist detail view with approve/reject actions showing full registration details
+- **Notifications** — WAITLIST_EDIT users are notified when a new public registration arrives
+- **Station toggle** — `publicWaitlistEnabled` station setting controls whether public waitlists are available
+- **Public registration page** — list selection, form with public fields, guardian inputs, and email verification flow
+- **Verification page** — standalone page at `/public/waitlist/verify/{token}` confirming email
+- **Public sidebar** — waitlist link in the public station sidebar when enabled
+- **Guardian name split** — guardians now have separate firstname + lastname fields for direct account conversion
+
+#### Public Blog
+- **Blog entries** — news articles can be flagged as blog posts via a toggle in the editor
+- **Blog badge** — blog entries show a "Blog" badge in the internal news list
+- **Public blog page** — blog list with title, excerpt, author, and date; detail view with full HTML content
+- **Landing fallback** — blog becomes the default landing page when no custom page is set
+- **Station toggle** — `publicBlogEnabled` setting controls whether the blog is available
+- **Public sidebar** — blog link appears after landing page, before calendar
+
+#### Station Settings UX
+- **Reactive save** — federation settings now auto-save on change (debounced 600ms) instead of requiring a save button
+- **Save indicator** — shows "Speichern…" spinner and "Gespeichert" checkmark
+
 #### Knowledge Base: Presentation Support
 - **Presentation uploads** — upload PowerPoint (.pptx, .ppt) and OpenDocument (.odp) presentations to the knowledge base
 - **Automatic PDF conversion** — presentations are converted to PDF server-side via LibreOffice headless for in-browser viewing
@@ -60,6 +113,52 @@
 - **My Inventory tab visibility** — sidebar tab was always visible even when the user had no assigned inventory items
 
 ### Technical Changes
+
+#### Sitemap
+- **Jackson XML serialization** — replaced manual XML string concatenation with typed records and Jackson `XmlMapper`
+- **`lastmod` dates** — KB files and pages include W3C Datetime `lastmod` from `updatedAt`; index URLs derive `lastmod` from their most recent child
+- **Caffeine caching** — sitemap responses cached in-memory for 6 hours
+
+#### Station Applications
+- **Enum status** — `StationApplication.status` changed from raw string to `ApplicationStatus` enum
+- **DB migration** — existing lowercase status values normalized to uppercase
+
+#### Public Waitlist Backend
+- **PENDING status** — new `WaitingListEntryStatus.PENDING` for entries awaiting approval
+- **Verification tokens** — `waitlist_verification_token` table with 24h expiry
+- **Domain event** — `WaitlistPublicRegistration` event + handler for WAITLIST_EDIT notifications
+- **Email template** — verification email in DE/EN
+
+#### Guardian Schema
+- **Name split** — `waiting_list_entry_guardian.name` replaced with `firstname` + `lastname` for direct account creation
+- **`GuardianInput` type** — extracted from inline object types in frontend for type safety
+
+#### Badge Convention
+- **Lint rule** — error-level rule flags `<span>` with `rounded-full` + padding; must use Badge components
+- **Refactored** — 54 violations converted to PrimaryBadge, SecondaryBadge, SuccessBadge, etc.
+- **Inline type rule** — warning-level rule flags `ref<{ ... }>` patterns that should use named types
+
+#### Bug Fixes
+- **AccountRepository.setEmailVerified** — missing `= TRUE` in SET clause
+- **EventCommentRepository.delete** — missing `= TRUE` in soft-delete SET clause
+- **WaitingListFieldConfig deserialization** — `FieldRequest.config` changed to `String` to match frontend JSON contract
+
+#### Federation Routes
+- **Route restructure** — federation management moved from `/station/manage/federation` to `/station/federate` to fix sidebar prefix overlap
+
+#### Help Center
+- **Roles page** — rewritten to use correct "Benutzertypen & Berechtigungen" terminology
+- **Federation page** — added missing i18n keys (shared5-7, dummy content keys)
+- **FormLabel component** — extracted repeated label pattern into reusable component
+- **Page editor help** — dedicated help center page for page editor route
+
+#### Demo Service Refactoring
+- **DemoService split** — reduced from 2180 to 679 lines by extracting 4 new seeders:
+  - `DemoMemberSeeder` (643 lines) — groups, profile fields, users, tags
+  - `DemoEventSeeder` (684 lines) — categories, events, attendance, templates
+  - `DemoNewsSeeder` (214 lines) — news articles with comments
+  - `DemoPageSeeder` (174 lines) — public pages with hierarchy
+- **Parallel seeding** — member seeding runs first, all other seeders run in parallel
 
 #### Frontend Architecture
 - **`useCanonical` composable** — reusable canonical URL + `og:url` injection from `NUXT_PUBLIC_SITE_URL`

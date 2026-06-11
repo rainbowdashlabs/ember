@@ -81,6 +81,8 @@ export const StationPermission = {
     PROCEDURE_READ: 'PROCEDURE_READ',
     PROCEDURE_EDIT: 'PROCEDURE_EDIT',
     PROCEDURE_MANAGER: 'PROCEDURE_MANAGER',
+    PAGE_EDIT: 'PAGE_EDIT',
+    PAGE_MANAGER: 'PAGE_MANAGER',
     KNOWLEDGE_EDIT: 'KNOWLEDGE_EDIT',
     KNOWLEDGE_FEDERATE: 'KNOWLEDGE_FEDERATE',
     KNOWLEDGE_MANAGER: 'KNOWLEDGE_MANAGER',
@@ -659,6 +661,8 @@ export interface StationManageInfo {
     discoveryDescription?: string | null
     discoveryShowKb?: boolean
     publicCalendarEnabled?: boolean
+    publicPagesEnabled?: boolean
+    publicSlug?: string | null
 }
 
 export interface UpdateStationNameRequest {
@@ -675,6 +679,8 @@ export interface UpdateStationNameRequest {
     discoveryDescription?: string | null
     discoveryShowKb?: boolean
     publicCalendarEnabled?: boolean
+    publicPagesEnabled?: boolean
+    publicSlug?: string | null
 }
 
 // -- Stations --
@@ -1270,6 +1276,7 @@ export interface NewsEntry {
     memberIds: number[]
     commentCount: number
     restricted?: boolean
+    publicBlog?: boolean
 }
 
 export interface NewsRequest {
@@ -1280,6 +1287,15 @@ export interface NewsRequest {
     groupIds: number[]
     tagIds: number[]
     memberIds: number[]
+    publicBlog?: boolean
+}
+
+export interface PublicBlogEntry {
+    id: number
+    title: string
+    contentHtml: string
+    authorName: string
+    publishedAt: string
 }
 
 export interface NewsComment {
@@ -1465,6 +1481,7 @@ export interface ClaimLostAndFoundRequest {
 // -- Waiting List --
 
 export const WaitingListEntryStatus = {
+    PENDING: 'PENDING',
     WAITING: 'WAITING',
     INVITED: 'INVITED',
     TESTING: 'TESTING',
@@ -1496,6 +1513,7 @@ export interface WaitingList {
     testingGroupId?: number | null
     joinGroupId?: number | null
     attendanceThreshold: number
+    isPublic: boolean
 }
 
 export interface WaitingListField {
@@ -1506,6 +1524,7 @@ export interface WaitingListField {
     config: string
     position: number
     required: boolean
+    isPublic: boolean
 }
 
 export interface WaitingListInvite {
@@ -1548,7 +1567,8 @@ export interface WaitingListEntryValue {
 export interface WaitingListEntryGuardian {
     id: number
     entryId: number
-    name: string
+    firstname: string
+    lastname: string
     email: string
     phone: string
     position: number
@@ -1580,6 +1600,25 @@ export interface WaitingListPublicStatus {
 }
 
 export interface WaitingListInviteInfo {
+    listName: string
+    listDescription: string
+    fields: WaitingListField[]
+}
+
+export interface GuardianInput {
+    firstname: string
+    lastname: string
+    email: string
+    phone: string
+}
+
+export interface PublicWaitlistSummary {
+    id: number
+    name: string
+    description: string
+}
+
+export interface PublicWaitlistFormResponse {
     listName: string
     listDescription: string
     fields: WaitingListField[]

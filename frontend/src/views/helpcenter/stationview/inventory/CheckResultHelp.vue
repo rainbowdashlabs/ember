@@ -47,9 +47,9 @@ const {t} = useI18n()
             <div class="font-medium text-sm">Helm <span class="font-normal text-(--text-muted)">[M]</span></div>
             <div class="text-xs text-(--text-muted)">Helme &middot; INV-0001</div>
           </div>
-          <span class="inline-block self-start rounded-full px-2.5 py-0.5 text-xs font-medium bg-success/15 text-success">
+          <SuccessBadge class="self-start">
             {{ t('inventory.check.resultConfirmed') }}
-          </span>
+          </SuccessBadge>
         </div>
       </NeutralContainer>
 
@@ -59,9 +59,9 @@ const {t} = useI18n()
             <div class="font-medium text-sm">Jacke <span class="font-normal text-(--text-muted)">[L]</span></div>
             <div class="text-xs text-(--text-muted)">Jacken &middot; INV-0015</div>
           </div>
-          <span class="inline-block self-start rounded-full px-2.5 py-0.5 text-xs font-medium bg-error/15 text-error">
+          <ErrorBadge class="self-start">
             {{ t('inventory.check.resultLost') }}
-          </span>
+          </ErrorBadge>
         </div>
         <MutedText tag="p" size="sm" class="mt-1">Konnte nicht gefunden werden</MutedText>
       </NeutralContainer>
@@ -72,9 +72,9 @@ const {t} = useI18n()
             <div class="font-medium text-sm">Stiefel <span class="font-normal text-(--text-muted)">[42]</span></div>
             <div class="text-xs text-(--text-muted)">Stiefel &middot; INV-0030</div>
           </div>
-          <span class="inline-block self-start rounded-full px-2.5 py-0.5 text-xs font-medium bg-info/15 text-info-accent">
+          <InfoBadge class="self-start">
             {{ t('inventory.check.resultNotInPossession') }}
-          </span>
+          </InfoBadge>
         </div>
       </NeutralContainer>
     </div>

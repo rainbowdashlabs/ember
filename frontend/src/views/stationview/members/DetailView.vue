@@ -402,19 +402,19 @@ onMounted(loadData)
           <NeutralContainer v-if="memberPermissions.length > 0" class="space-y-3">
             <SubHeader class="text-sm">{{ t('memberDetail.permissions') }}</SubHeader>
             <div class="flex flex-wrap gap-2">
-              <span v-for="p in memberPermissions" :key="p.id" class="text-xs rounded-full bg-primary/10 text-primary px-3 py-1">{{ t(`permissions.${p.permission}.label`) }}</span>
+              <PrimaryBadge v-for="p in memberPermissions" :key="p.id">{{ t(`permissions.${p.permission}.label`) }}</PrimaryBadge>
             </div>
           </NeutralContainer>
           <NeutralContainer v-if="memberGroupList.length > 0" class="space-y-3">
             <SubHeader class="text-sm">{{ t('memberDetail.groups') }}</SubHeader>
             <div class="flex flex-wrap gap-2">
-              <span v-for="g in memberGroupList" :key="g.id" class="text-xs rounded-full bg-secondary/10 text-secondary px-3 py-1">{{ g.name }}</span>
+              <SecondaryBadge v-for="g in memberGroupList" :key="g.id">{{ g.name }}</SecondaryBadge>
             </div>
           </NeutralContainer>
           <NeutralContainer v-if="memberTagList.length > 0" class="space-y-3">
             <SubHeader class="text-sm">{{ t('memberDetail.tags') }}</SubHeader>
             <div class="flex flex-wrap gap-2">
-              <span v-for="tag in memberTagList" :key="tag.id" class="text-xs rounded-full bg-info/10 text-info px-3 py-1">{{ tag.name }}</span>
+              <InfoBadge v-for="tag in memberTagList" :key="tag.id">{{ tag.name }}</InfoBadge>
             </div>
           </NeutralContainer>
         </template>

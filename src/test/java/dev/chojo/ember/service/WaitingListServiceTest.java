@@ -32,7 +32,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     private int listId;
 
     private static List<GuardianInput> guardians(String name, String email) {
-        return List.of(new GuardianInput(name, email, ""));
+        return List.of(new GuardianInput(name, "", email, ""));
     }
 
     @BeforeAll
@@ -49,19 +49,20 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 accountRepo,
                 emailService,
                 notificationService,
-                passwordHasher);
+                passwordHasher,
+                new dev.chojo.ember.event.DomainEventBus(java.util.Set.of()));
         station = stationRepo.create("WaitlistStation");
     }
 
     @BeforeEach
     void createList() {
-        var list = service.create(station.id(), "Test " + UUID.randomUUID(), "", null, 180, null, null, 5);
+        var list = service.create(station.id(), "Test " + UUID.randomUUID(), "", null, 180, null, null, 5, false);
         listId = list.id();
     }
 
     @Test
     void createAndFindList() {
-        var list = service.create(station.id(), "New List", "Description", "[age] * 2", 90, null, null, 5);
+        var list = service.create(station.id(), "New List", "Description", "[age] * 2", 90, null, null, 5, false);
         var found = service.findById(list.id());
         assertTrue(found.isPresent());
         assertEquals("New List", found.get().name());
@@ -70,7 +71,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void updateList() {
-        var updated = service.update(listId, "Updated", "New desc", "[a]", 60, null, null, 5);
+        var updated = service.update(listId, "Updated", "New desc", "[a]", 60, null, null, 5, false);
         assertTrue(updated.isPresent());
         assertEquals("Updated", updated.get().name());
     }
@@ -83,14 +84,14 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void fieldCrud() {
-        var field = service.createField(listId, "Name", "TEXT", WaitingListFieldConfig.parse("{}"), 0, true);
+        var field = service.createField(listId, "Name", "TEXT", WaitingListFieldConfig.parse("{}"), 0, true, true);
         assertNotNull(field);
 
         var fields = service.findFieldsByList(listId);
         assertEquals(1, fields.size());
 
-        var updated =
-                service.updateField(field.id(), "Full Name", "TEXT", WaitingListFieldConfig.parse("{}"), 0, false);
+        var updated = service.updateField(
+                field.id(), "Full Name", "TEXT", WaitingListFieldConfig.parse("{}"), 0, false, true);
         assertTrue(updated.isPresent());
         assertEquals("Full Name", updated.get().name());
 
@@ -112,7 +113,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void registerViaInvite() {
         var invite = service.createInvite(listId, 1, null);
-        var field = service.createField(listId, "Age", "NUMBER", WaitingListFieldConfig.parse("{}"), 0, true);
+        var field = service.createField(listId, "Age", "NUMBER", WaitingListFieldConfig.parse("{}"), 0, true, true);
 
         var entry = service.registerViaInvite(
                 invite.code(),
@@ -188,8 +189,10 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void scoreEvaluation() {
-        var ageField = service.createField(listId, "Alter", "NUMBER", WaitingListFieldConfig.parse("{}"), 0, true);
-        var expField = service.createField(listId, "Erfahrung", "ENUM", WaitingListFieldConfig.parse("{}"), 1, true);
+        var ageField =
+                service.createField(listId, "Alter", "NUMBER", WaitingListFieldConfig.parse("{}"), 0, true, true);
+        var expField =
+                service.createField(listId, "Erfahrung", "ENUM", WaitingListFieldConfig.parse("{}"), 1, true, true);
         var list = service.update(
                         listId,
                         "Scored",
@@ -198,7 +201,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
                         180,
                         null,
                         null,
-                        5)
+                        5,
+                        false)
                 .orElseThrow();
 
         var entry = service.createEntry(
@@ -263,7 +267,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void updateEntryWithFieldValues() {
-        var field = service.createField(listId, "Score", "NUMBER", WaitingListFieldConfig.parse("{}"), 0, false);
+        var field = service.createField(listId, "Score", "NUMBER", WaitingListFieldConfig.parse("{}"), 0, false, true);
         var entry = service.createEntry(listId, "A", "B", guardians("", "e@test.com"), Map.of(field.id(), "5"), "");
         service.updateEntry(entry.id(), "A", "B", guardians("", "e@test.com"), "", Map.of(field.id(), "10"));
         var values = service.findEntryValues(entry.id());
@@ -303,7 +307,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void inviteEntryLifecycle() {
-        var list = service.create(station.id(), "Invite Lifecycle", "", null, 180, null, null, 5);
+        var list = service.create(station.id(), "Invite Lifecycle", "", null, 180, null, null, 5, false);
         var entry = service.createEntry(
                 list.id(), "InviteeFirst", "InviteeLast", guardians("Parent", "invite@test.com"), Map.of(), "");
 
@@ -344,7 +348,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void withdrawEntry() {
-        var list = service.create(station.id(), "Withdraw Test", "", null, 180, null, null, 5);
+        var list = service.create(station.id(), "Withdraw Test", "", null, 180, null, null, 5, false);
         var entry = service.createEntry(list.id(), "Withdrawer", "", guardians("", "wd@test.com"), Map.of(), "");
         service.withdrawEntry(entry.id());
         assertTrue(service.findEntryById(entry.id()).isEmpty());
@@ -374,8 +378,9 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void scoreEvaluationWithAgeFunction() {
-        var dobField = service.createField(listId, "Geburtsdatum", "DATE", WaitingListFieldConfig.parse("{}"), 0, true);
-        var list = service.update(listId, "AgeScored", "", "age([Geburtsdatum])", 180, null, null, 5)
+        var dobField =
+                service.createField(listId, "Geburtsdatum", "DATE", WaitingListFieldConfig.parse("{}"), 0, true, true);
+        var list = service.update(listId, "AgeScored", "", "age([Geburtsdatum])", 180, null, null, 5, false)
                 .orElseThrow();
 
         var entry = service.createEntry(
@@ -389,7 +394,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void scoreEvaluationWithWaitingTime() {
-        var list = service.update(listId, "WaitScored", "", "wartezeit_tage", 180, null, null, 5)
+        var list = service.update(listId, "WaitScored", "", "wartezeit_tage", 180, null, null, 5, false)
                 .orElseThrow();
 
         var entry = service.createEntry(listId, "Max", "", guardians("", "test@test.com"), Map.of(), "");
@@ -401,7 +406,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void withdrawInvitedEntryDeletesMember() {
-        var list = service.create(station.id(), "Withdraw Invited", "", null, 180, null, null, 5);
+        var list = service.create(station.id(), "Withdraw Invited", "", null, 180, null, null, 5, false);
         var entry = service.createEntry(
                 list.id(), "InvToWithdraw", "Last", guardians("Parent", "invwd@test.com"), Map.of(), "");
         var invited = service.inviteEntry(entry.id());
@@ -417,8 +422,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 "GuardianTest",
                 "Last",
                 List.of(
-                        new GuardianInput("Parent1", "p1@test.com", "123"),
-                        new GuardianInput("Parent2", "p2@test.com", "")),
+                        new GuardianInput("Parent1", "", "p1@test.com", "123"),
+                        new GuardianInput("Parent2", "", "p2@test.com", "")),
                 Map.of(),
                 "");
         var guardians = service.findGuardiansByEntry(entry.id());
@@ -430,9 +435,9 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void findGuardiansByList() {
         service.createEntry(
-                listId, "ListGuardian1", "", List.of(new GuardianInput("G1", "lg1@test.com", "")), Map.of(), "");
+                listId, "ListGuardian1", "", List.of(new GuardianInput("G1", "", "lg1@test.com", "")), Map.of(), "");
         service.createEntry(
-                listId, "ListGuardian2", "", List.of(new GuardianInput("G2", "lg2@test.com", "")), Map.of(), "");
+                listId, "ListGuardian2", "", List.of(new GuardianInput("G2", "", "lg2@test.com", "")), Map.of(), "");
         var guardians = service.findGuardiansByList(listId);
         assertTrue(guardians.size() >= 2);
     }
@@ -469,7 +474,15 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var testingGroup = memberGroupRepo.create(station.id(), "WL Testing Group");
         var joinGroup = memberGroupRepo.create(station.id(), "WL Join Group");
         var list = service.create(
-                station.id(), "GroupTest " + UUID.randomUUID(), "", null, 180, testingGroup.id(), joinGroup.id(), 5);
+                station.id(),
+                "GroupTest " + UUID.randomUUID(),
+                "",
+                null,
+                180,
+                testingGroup.id(),
+                joinGroup.id(),
+                5,
+                false);
         var entry = service.createEntry(
                 list.id(), "InviteeFirst2", "InviteeLast2", guardians("Parent", "inv2@test.com"), Map.of(), "");
 
@@ -493,12 +506,14 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void moveToJoinedCreatesGuardianAccounts() {
-        var list = service.create(station.id(), "GuardianAcct " + UUID.randomUUID(), "", null, 180, null, null, 5);
+        var list =
+                service.create(station.id(), "GuardianAcct " + UUID.randomUUID(), "", null, 180, null, null, 5, false);
         var entry = service.createEntry(
                 list.id(),
                 "Child",
                 "Name",
-                List.of(new GuardianInput("Max Mustermann", "guardian-new-" + UUID.randomUUID() + "@test.com", "123")),
+                List.of(new GuardianInput(
+                        "Max", "Mustermann", "guardian-new-" + UUID.randomUUID() + "@test.com", "123")),
                 Map.of(),
                 "");
 
@@ -515,12 +530,13 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var existingAccount = accountRepo.create("existing-guardian@test.com", "Existing", "Guardian");
         var existingMember = stationMemberRepo.create(station.id(), existingAccount.id());
 
-        var list = service.create(station.id(), "ExistGuardian " + UUID.randomUUID(), "", null, 180, null, null, 5);
+        var list =
+                service.create(station.id(), "ExistGuardian " + UUID.randomUUID(), "", null, 180, null, null, 5, false);
         var entry = service.createEntry(
                 list.id(),
                 "Child2",
                 "Name",
-                List.of(new GuardianInput("Existing Guardian", "existing-guardian@test.com", "")),
+                List.of(new GuardianInput("Existing", "Guardian", "existing-guardian@test.com", "")),
                 Map.of(),
                 "");
 
@@ -536,9 +552,10 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void moveToJoinedGuardianWithBlankEmail() {
-        var list = service.create(station.id(), "BlankGuardian " + UUID.randomUUID(), "", null, 180, null, null, 5);
+        var list =
+                service.create(station.id(), "BlankGuardian " + UUID.randomUUID(), "", null, 180, null, null, 5, false);
         var entry = service.createEntry(
-                list.id(), "Child3", "Name", List.of(new GuardianInput("NoEmail Guardian", "", "")), Map.of(), "");
+                list.id(), "Child3", "Name", List.of(new GuardianInput("NoEmail", "Guardian", "", "")), Map.of(), "");
 
         var invited = service.inviteEntry(entry.id());
         var testing = service.moveToTesting(invited.id());
@@ -556,8 +573,9 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void scoreEvaluationWithInvalidDateField() {
         // age() function with an invalid date string — should not throw, age = 0
-        var dobField = service.createField(listId, "BadDate", "DATE", WaitingListFieldConfig.parse("{}"), 0, false);
-        var list = service.update(listId, "BadDateScored", "", "age([BadDate])", 180, null, null, 5)
+        var dobField =
+                service.createField(listId, "BadDate", "DATE", WaitingListFieldConfig.parse("{}"), 0, false, true);
+        var list = service.update(listId, "BadDateScored", "", "age([BadDate])", 180, null, null, 5, false)
                 .orElseThrow();
         var entry = service.createEntry(
                 listId, "A", "", guardians("", "t@t.com"), Map.of(dobField.id(), "\"not-a-date\""), "");
@@ -570,12 +588,162 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void moveToJoinedWithNullMemberId() {
         // Create an entry in TESTING status that has no linked member (null memberId)
-        var list = service.create(station.id(), "NullMember " + UUID.randomUUID(), "", null, 180, null, null, 5);
+        var list = service.create(station.id(), "NullMember " + UUID.randomUUID(), "", null, 180, null, null, 5, false);
         var entry = service.createEntry(list.id(), "NoMem", "X", guardians("", "nomem@test.com"), Map.of(), "");
         // Manually set to TESTING status
         service.updateEntryStatus(entry.id(), WaitingListEntryStatus.TESTING);
         // entry.memberId() is null since we didn't go through inviteEntry
         var joined = service.moveToJoined(entry.id());
         assertEquals(WaitingListEntryStatus.JOINED, joined.status());
+    }
+
+    // --- Public waitlist tests ---
+
+    @Test
+    void findPublicByStation() {
+        // listId is created with isPublic=false in @BeforeEach
+        var publicList =
+                service.create(station.id(), "Public " + UUID.randomUUID(), "", null, 180, null, null, 5, true);
+        var publicLists = service.findPublicByStation(station.id());
+        assertTrue(publicLists.stream().anyMatch(l -> l.id() == publicList.id()));
+        assertTrue(publicLists.stream().noneMatch(l -> l.id() == listId));
+    }
+
+    @Test
+    void hasPublicWaitlists() {
+        // Use a fresh station so no prior public lists interfere
+        var freshStation = stationRepo.create("HasPublicTest " + UUID.randomUUID());
+        assertFalse(service.hasPublicWaitlists(freshStation.id()));
+        service.create(freshStation.id(), "PublicHas " + UUID.randomUUID(), "", null, 180, null, null, 5, true);
+        assertTrue(service.hasPublicWaitlists(freshStation.id()));
+    }
+
+    @Test
+    void findPublicFieldsByList() {
+        var publicField =
+                service.createField(listId, "PubField", "TEXT", WaitingListFieldConfig.parse("{}"), 0, false, true);
+        var privateField =
+                service.createField(listId, "PrivField", "TEXT", WaitingListFieldConfig.parse("{}"), 1, false, false);
+        var publicFields = service.findPublicFieldsByList(listId);
+        assertTrue(publicFields.stream().anyMatch(f -> f.id() == publicField.id()));
+        assertTrue(publicFields.stream().noneMatch(f -> f.id() == privateField.id()));
+    }
+
+    @Test
+    void submitAndVerifyPublicRegistration() {
+        var publicList =
+                service.create(station.id(), "PubReg " + UUID.randomUUID(), "", null, 180, null, null, 5, true);
+        service.createField(publicList.id(), "Age", "NUMBER", WaitingListFieldConfig.parse("{}"), 0, true, true);
+
+        service.submitPublicRegistration(
+                publicList.id(),
+                "TestChild",
+                "Last",
+                "verify-test@test.com",
+                List.of(new GuardianInput("Parent", "Last", "parent@test.com", "")),
+                Map.of(),
+                "notes");
+
+        // Retrieve the token from the repository (via the verification table)
+        var token = waitingListRepo.findPublicByStation(station.id()).stream()
+                .flatMap(l -> {
+                    // We know a token was created — find it
+                    return java.util.stream.Stream.empty();
+                })
+                .findFirst();
+
+        // Verify via the DB directly
+        var tokens = de.chojo.sadu.queries.api.query.Query.query(
+                        "SELECT token FROM waitlist_verification_token WHERE list_id = :list_id")
+                .single(de.chojo.sadu.queries.api.call.Call.of().bind("list_id", publicList.id()))
+                .map(row -> row.getString("token"))
+                .all();
+        assertFalse(tokens.isEmpty());
+
+        boolean verified = service.verifyPublicRegistration(tokens.getFirst());
+        assertTrue(verified);
+
+        // Entry should exist with PENDING status
+        var entries = service.findEntriesByStatus(publicList.id(), WaitingListEntryStatus.PENDING);
+        assertEquals(1, entries.size());
+        assertEquals("TestChild", entries.getFirst().firstname());
+    }
+
+    @Test
+    void approvePendingEntry() {
+        var publicList =
+                service.create(station.id(), "Approve " + UUID.randomUUID(), "", null, 180, null, null, 5, true);
+        // Create a PENDING entry directly
+        var entry = waitingListRepo.createEntryWithStatus(
+                publicList.id(),
+                "Pending",
+                "Child",
+                "",
+                "pending@test.com",
+                UUID.randomUUID().toString(),
+                "",
+                WaitingListEntryStatus.PENDING);
+
+        var approved = service.approvePendingEntry(entry.id());
+        assertEquals(WaitingListEntryStatus.WAITING, approved.status());
+    }
+
+    @Test
+    void rejectPendingEntry() {
+        var publicList =
+                service.create(station.id(), "Reject " + UUID.randomUUID(), "", null, 180, null, null, 5, true);
+        var entry = waitingListRepo.createEntryWithStatus(
+                publicList.id(),
+                "Reject",
+                "Child",
+                "",
+                "reject@test.com",
+                UUID.randomUUID().toString(),
+                "",
+                WaitingListEntryStatus.PENDING);
+
+        service.rejectPendingEntry(entry.id());
+        assertTrue(service.findEntryById(entry.id()).isEmpty());
+    }
+
+    @Test
+    void submitPublicRegistrationNonPublicListThrows() {
+        // listId is not public
+        assertThrows(
+                IllegalStateException.class,
+                () -> service.submitPublicRegistration(listId, "Test", "", "t@t.com", List.of(), Map.of(), ""));
+    }
+
+    @Test
+    void verifyPublicRegistrationInvalidToken() {
+        assertFalse(service.verifyPublicRegistration("nonexistent-token"));
+    }
+
+    @Test
+    void submitPublicRegistrationListNotFoundThrows() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.submitPublicRegistration(99999, "A", "", "a@a.com", List.of(), Map.of(), ""));
+    }
+
+    @Test
+    void findPublicFieldsByListReturnsOnlyPublic() {
+        var pub = service.createField(listId, "PubF2", "TEXT", WaitingListFieldConfig.parse("{}"), 10, false, true);
+        var priv = service.createField(listId, "PrivF2", "TEXT", WaitingListFieldConfig.parse("{}"), 11, false, false);
+        var pubFields = service.findPublicFieldsByList(listId);
+        assertTrue(pubFields.stream().anyMatch(f -> f.id() == pub.id()));
+        assertFalse(pubFields.stream().anyMatch(f -> f.id() == priv.id()));
+    }
+
+    @Test
+    void approveNonPendingThrows() {
+        var entry = service.createEntry(listId, "NotPending", "", guardians("", "np@test.com"), Map.of(), "");
+        assertThrows(IllegalStateException.class, () -> service.approvePendingEntry(entry.id()));
+    }
+
+    @Test
+    void rejectNonPendingThrows() {
+        var entry = service.createEntry(listId, "NotPending2", "", guardians("", "np2@test.com"), Map.of(), "");
+        assertThrows(IllegalStateException.class, () -> service.rejectPendingEntry(entry.id()));
     }
 }

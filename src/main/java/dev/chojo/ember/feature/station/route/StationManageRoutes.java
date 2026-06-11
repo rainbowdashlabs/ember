@@ -156,7 +156,11 @@ public class StationManageRoutes implements Routes {
                 station.discoveryVisibility(),
                 station.discoveryDescription(),
                 station.discoveryShowKb(),
-                station.publicCalendarEnabled());
+                station.publicCalendarEnabled(),
+                station.publicPagesEnabled(),
+                station.publicSlug(),
+                station.publicWaitlistEnabled(),
+                station.publicBlogEnabled());
     }
 
     @OpenApi(
@@ -209,6 +213,23 @@ public class StationManageRoutes implements Routes {
         }
         if (request.publicCalendarEnabled() != null) {
             stationService.updatePublicCalendarEnabled(session.stationId(), request.publicCalendarEnabled());
+        }
+        if (request.publicPagesEnabled() != null) {
+            stationService.updatePublicPagesEnabled(session.stationId(), request.publicPagesEnabled());
+        }
+        if (request.publicWaitlistEnabled() != null) {
+            stationService.updatePublicWaitlistEnabled(session.stationId(), request.publicWaitlistEnabled());
+        }
+        if (request.publicBlogEnabled() != null) {
+            stationService.updatePublicBlogEnabled(session.stationId(), request.publicBlogEnabled());
+        }
+        if (request.publicSlug() != null) {
+            try {
+                stationService.updatePublicSlug(
+                        session.stationId(), request.publicSlug().isBlank() ? null : request.publicSlug());
+            } catch (IllegalArgumentException e) {
+                throw new BadRequestResponse(e.getMessage());
+            }
         }
         stationService
                 .update(session.stationId(), request.name())
@@ -557,7 +578,11 @@ public class StationManageRoutes implements Routes {
             DiscoveryVisibility discoveryVisibility,
             String discoveryDescription,
             Boolean discoveryShowKb,
-            Boolean publicCalendarEnabled) {}
+            Boolean publicCalendarEnabled,
+            Boolean publicPagesEnabled,
+            String publicSlug,
+            Boolean publicWaitlistEnabled,
+            Boolean publicBlogEnabled) {}
 
     // -- Station deletion --
 
@@ -589,7 +614,11 @@ public class StationManageRoutes implements Routes {
             DiscoveryVisibility discoveryVisibility,
             String discoveryDescription,
             boolean discoveryShowKb,
-            boolean publicCalendarEnabled) {}
+            boolean publicCalendarEnabled,
+            boolean publicPagesEnabled,
+            String publicSlug,
+            boolean publicWaitlistEnabled,
+            boolean publicBlogEnabled) {}
 
     /**
      * Response containing the station's mail configuration and current usage statistics.

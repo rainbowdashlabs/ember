@@ -4,16 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-const route = useRoute()
+import PublicStationIndexRedirect from '~/views/public/PublicStationIndexRedirect'
 
 definePageMeta({
   layout: 'public-station',
   name: 'public-station',
 })
-
-navigateTo(`/public/station/${route.params.stationUid}/calendar`, {replace: true})
 </script>
 
 <template>
-  <div />
+  <PublicStationIndexRedirect />
 </template>

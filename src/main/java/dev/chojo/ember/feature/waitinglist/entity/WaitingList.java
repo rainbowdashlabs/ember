@@ -26,7 +26,8 @@ public record WaitingList(
         Integer testingGroupId,
         Integer joinGroupId,
         String joinUserType,
-        int attendanceThreshold) {
+        int attendanceThreshold,
+        boolean isPublic) {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -43,7 +44,8 @@ public record WaitingList(
                 row.getObject("testing_group_id", Integer.class),
                 row.getObject("join_group_id", Integer.class),
                 row.getString("join_user_type"),
-                row.getInt("attendance_threshold"));
+                row.getInt("attendance_threshold"),
+                row.getBoolean("public"));
     }
 
     private static List<Integer> parseVisibleFields(String json) {

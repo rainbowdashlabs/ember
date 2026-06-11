@@ -51,27 +51,47 @@ public class DemoWaitingListSeeder {
         // Create the "Gäste" group for testing-phase members
         var gaesteGroup = memberGroupRepository.create(stationId, "Gäste");
 
+        // --- Jugendfeuerwehr waitlist ---
         var list = waitingListRepository.create(
                 stationId,
-                "Warteliste 2026",
-                "Warteliste für neue Mitglieder im Jahr 2026",
+                "Jugendfeuerwehr",
+                "Warteliste für neue Mitglieder der Jugendfeuerwehr (10–18 Jahre). Melde dich an und wir laden dich zu einer Schnupperübung ein.",
                 "[Alter] * (\"[Erfahrung]\" == \"fortgeschritten\" ? 2 : 1)",
                 180,
                 gaesteGroup.id(),
                 joinGroupId,
-                5);
+                5,
+                true);
 
         var nameField = waitingListRepository.createField(
-                list.id(), "Vorname", "TEXT", WaitingListFieldConfig.parse("{}"), 0, true);
+                list.id(), "Vorname", "TEXT", WaitingListFieldConfig.parse("{}"), 0, true, true);
         var ageField = waitingListRepository.createField(
-                list.id(), "Alter", "NUMBER", WaitingListFieldConfig.parse("{}"), 1, true);
+                list.id(), "Alter", "NUMBER", WaitingListFieldConfig.parse("{}"), 1, true, true);
         var expField = waitingListRepository.createField(
                 list.id(),
                 "Erfahrung",
                 "ENUM",
-                WaitingListFieldConfig.parse("{\"options\":[\"anfaenger\",\"fortgeschritten\"]}"),
+                WaitingListFieldConfig.parse("{\"options\":[\"Anfänger\",\"Fortgeschritten\"]}"),
                 2,
+                true,
                 true);
+
+        // --- Kinderfeuerwehr waitlist ---
+        var kinderList = waitingListRepository.create(
+                stationId,
+                "Kinderfeuerwehr",
+                "Warteliste für die Kinderfeuerwehr (6–10 Jahre). Spielerisch die Feuerwehr kennenlernen!",
+                null,
+                365,
+                null,
+                null,
+                0,
+                true);
+        waitingListRepository.createField(
+                kinderList.id(), "Name des Kindes", "TEXT", WaitingListFieldConfig.parse("{}"), 0, true, true);
+        waitingListRepository.createField(
+                kinderList.id(), "Geburtsdatum", "DATE", WaitingListFieldConfig.parse("{}"), 1, true, true);
+        waitingListRepository.createInvite(kinderList.id(), "demo-kinder-invite", 10, null);
 
         // Create invite codes
         waitingListRepository.createInvite(list.id(), "demo-invite-active", 5, null);
@@ -82,9 +102,8 @@ public class DemoWaitingListSeeder {
         record Kid(
                 String firstname,
                 String lastname,
-                String parentName,
+                String parentFirstname,
                 String email,
-                String vorname,
                 String alter,
                 String erfahrung,
                 WaitingListEntryStatus status) {}
@@ -92,57 +111,60 @@ public class DemoWaitingListSeeder {
                 new Kid(
                         "Max",
                         "Müller",
-                        "Sabine Müller",
+                        "Sabine",
                         "sabine@example.com",
-                        "Max",
                         "8",
-                        "fortgeschritten",
+                        "Fortgeschritten",
                         WaitingListEntryStatus.WAITING),
                 new Kid(
                         "Lena",
                         "Fischer",
-                        "Thomas Fischer",
+                        "Thomas",
                         "thomas@example.com",
-                        "Lena",
                         "7",
-                        "anfaenger",
+                        "Anfänger",
                         WaitingListEntryStatus.WAITING),
                 new Kid(
                         "Tim",
                         "Bauer",
-                        "Maria Bauer",
+                        "Maria",
                         "maria@example.com",
-                        "Tim",
                         "10",
-                        "fortgeschritten",
+                        "Fortgeschritten",
                         WaitingListEntryStatus.TESTING),
-                new Kid(
-                        "Anna",
-                        "Klein",
-                        "Heike Klein",
-                        "heike@example.com",
-                        "Anna",
-                        "9",
-                        "anfaenger",
-                        WaitingListEntryStatus.TESTING),
+                new Kid("Anna", "Klein", "Heike", "heike@example.com", "9", "Anfänger", WaitingListEntryStatus.TESTING),
                 new Kid(
                         "Sophie",
                         "Wagner",
-                        "Klaus Wagner",
+                        "Klaus",
                         "klaus@example.com",
-                        "Sophie",
                         "6",
-                        "anfaenger",
+                        "Anfänger",
                         WaitingListEntryStatus.JOINED),
                 new Kid(
                         "Felix",
                         "Schmidt",
-                        "Petra Schmidt",
+                        "Petra",
                         "petra@example.com",
-                        "Felix",
                         "9",
-                        "fortgeschritten",
-                        WaitingListEntryStatus.WITHDRAWN));
+                        "Fortgeschritten",
+                        WaitingListEntryStatus.WITHDRAWN),
+                new Kid(
+                        "Jonas",
+                        "Lehmann",
+                        "Andrea",
+                        "andrea@example.com",
+                        "8",
+                        "Anfänger",
+                        WaitingListEntryStatus.PENDING),
+                new Kid(
+                        "Mia",
+                        "Hoffmann",
+                        "Carsten",
+                        "carsten@example.com",
+                        "7",
+                        "Anfänger",
+                        WaitingListEntryStatus.PENDING));
 
         // Collect testing member IDs to add attendance later
         var testingMemberIds = new ArrayList<Integer>();
@@ -152,23 +174,30 @@ public class DemoWaitingListSeeder {
                     list.id(),
                     kid.firstname,
                     kid.lastname,
-                    kid.parentName,
+                    kid.parentFirstname + " " + kid.lastname,
                     kid.email,
                     UUID.randomUUID().toString(),
                     "");
-            waitingListRepository.upsertEntryValue(entry.id(), nameField.id(), "\"" + kid.vorname + "\"");
+            waitingListRepository.upsertEntryValue(entry.id(), nameField.id(), "\"" + kid.firstname + "\"");
             waitingListRepository.upsertEntryValue(entry.id(), ageField.id(), kid.alter);
             waitingListRepository.upsertEntryValue(entry.id(), expField.id(), "\"" + kid.erfahrung + "\"");
 
             waitingListRepository.createGuardian(
-                    entry.id(), kid.parentName, kid.email, "+49 170 " + (1000000 + entry.id()), 0);
+                    entry.id(), kid.parentFirstname, kid.lastname, kid.email, "+49 170 " + (1000000 + entry.id()), 0);
             if (entry.id() % 2 == 0) {
                 waitingListRepository.createGuardian(
                         entry.id(),
-                        "Zweit-EB " + kid.lastname,
+                        "Zweit-EB",
+                        kid.lastname,
                         "zweit-" + kid.email,
                         "+49 171 " + (2000000 + entry.id()),
                         1);
+            }
+
+            // PENDING entries just need their status set (from public registration)
+            if (kid.status == WaitingListEntryStatus.PENDING) {
+                waitingListRepository.updateEntryStatus(entry.id(), WaitingListEntryStatus.PENDING);
+                continue;
             }
 
             // For entries that progressed beyond WAITING, create a linked member

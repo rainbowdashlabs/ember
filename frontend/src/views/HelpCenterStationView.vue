@@ -168,10 +168,10 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
           {{ t('helpCenter.themeManage.sidebarLabel') }}
         </SidebarLink>
         <SidebarExpandableLink :icon="['fas', 'arrow-right-arrow-left']" name="help-station-federation"
-                               to="/helpcenter/station/manage/federation" @navigate="close">
+                               to="/helpcenter/station/federate" @navigate="close">
           <template #label>{{ t('helpCenter.federation.sidebarLabel') }}</template>
           <SidebarLink :icon="['fas', 'sliders']" name="help-station-federation-partner"
-                       to="/helpcenter/station/manage/federation/0" @navigate="close">
+                       to="/helpcenter/station/federate/0" @navigate="close">
             {{ t('helpCenter.federationPartner.sidebarLabel') }}
           </SidebarLink>
         </SidebarExpandableLink>
@@ -479,6 +479,9 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
           {{ t('helpCenter.kbVersions.sidebarLabel') }}
         </SidebarLink>
       </SidebarGroup>
+
+      <SidebarGroup :icon="['fas', 'file-lines']" :label="t('sidebar.pages')" prefix="/helpcenter/station/pages"
+                    to="/helpcenter/station/pages" name="help-pages" @navigate="close"/>
       </template>
     </template>
 

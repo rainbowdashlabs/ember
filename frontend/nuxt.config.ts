@@ -3,8 +3,6 @@ export default defineNuxtConfig({
 
   srcDir: 'src/',
 
-  modules: ['@nuxtjs/sitemap'],
-
   site: {
     url: process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3000',
   },
@@ -12,14 +10,6 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       googleSiteVerification: process.env.NUXT_PUBLIC_GOOGLE_SITE_VERIFICATION || '',
-    },
-  },
-
-  sitemap: {
-    sources: ['/api/__sitemap'],
-    defaults: {
-      changefreq: 'weekly',
-      priority: 0.5,
     },
   },
 
@@ -36,6 +26,8 @@ export default defineNuxtConfig({
     '/station/**': {ssr: false},
     '/admin/**': {ssr: false},
     '/style': {ssr: false},
+    '/sitemap.xml': {proxy: 'http://localhost:8080/sitemap.xml'},
+    '/sitemap-station-**': {proxy: 'http://localhost:8080/sitemap-station-**'},
     '/api/**': {proxy: 'http://localhost:8080/api/**'},
   },
 
@@ -45,6 +37,8 @@ export default defineNuxtConfig({
     ],
     plugins: ['../server/plugins/theme-script.ts'],
     devProxy: {
+      '/sitemap.xml': {target: 'http://localhost:8080', changeOrigin: true},
+      '/sitemap-station-': {target: 'http://localhost:8080', changeOrigin: true},
       '/api': {target: 'http://localhost:8080', changeOrigin: true},
       '/docs': {target: 'http://localhost:8080', changeOrigin: true},
       '/swagger-ui': {target: 'http://localhost:8080', changeOrigin: true},
@@ -71,6 +65,8 @@ export default defineNuxtConfig({
     },
     server: {
       proxy: {
+        '/sitemap.xml': 'http://localhost:8080',
+        '/sitemap-station-': 'http://localhost:8080',
         '/api': 'http://localhost:8080',
         '/docs': 'http://localhost:8080',
         '/swagger-ui': 'http://localhost:8080',

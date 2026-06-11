@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.events.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
@@ -23,6 +22,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
@@ -46,7 +46,7 @@ public class EventRepository {
      * @return the list of station events
      */
     public List<StationEvent> findByStation(int stationId) {
-        return Query.query("SELECT " + EVENT_COLUMNS
+        return query("SELECT " + EVENT_COLUMNS
                         + " FROM station_event e WHERE e.station_id = :station_id ORDER BY e.event_type, e.name;")
                 .single(Call.of().bind("station_id", stationId))
                 .map(StationEvent.map())
@@ -62,7 +62,7 @@ public class EventRepository {
      * @return the filtered list of station events
      */
     public List<StationEvent> findByStationForMember(int stationId, int memberId) {
-        return Query.query("SELECT " + EVENT_COLUMNS + " FROM station_event e"
+        return query("SELECT " + EVENT_COLUMNS + " FROM station_event e"
                         + " WHERE e.station_id = :station_id"
                         + " AND check_restriction('event_restriction', 'event_id', 'station_event', 'id', e.id, :member_id, 'EVENT_MANAGER')"
                         + " ORDER BY e.event_type, e.name;")
@@ -90,7 +90,7 @@ public class EventRepository {
         if (memberId != null) call = call.bind("member_id", memberId);
         if (categoryId != null) call = call.bind("category_id", categoryId);
         if (requiresRegistration != null) call = call.bind("requires_registration", requiresRegistration);
-        return Query.query(sql.toString()).single(call).map(StationEvent.map()).all();
+        return query(sql.toString()).single(call).map(StationEvent.map()).all();
     }
 
     /**
@@ -100,7 +100,7 @@ public class EventRepository {
      * @return the event, if found
      */
     public Optional<StationEvent> findById(int id) {
-        return Query.query("SELECT " + EVENT_COLUMNS + " FROM station_event e WHERE e.id = :id;")
+        return query("SELECT " + EVENT_COLUMNS + " FROM station_event e WHERE e.id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(StationEvent.map())
                 .first();
@@ -140,10 +140,10 @@ public class EventRepository {
             Integer minRegistrations,
             Instant thresholdDate,
             Integer registrationCloseDays) {
-        return Query.query("""
-                            INSERT INTO station_event(station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, registration_limit, min_registrations, threshold_date, registration_close_days)
-                            VALUES (:station_id, :name, :description, :event_type, :day_of_week, :start_time, :end_time, :template_id, :requires_registration, :registration_deadline, :requires_confirmation, :category_id, :registration_limit, :min_registrations, :threshold_date, :registration_close_days)
-                            RETURNING\s""" + EVENT_COLUMNS_BARE + ";")
+        return query("""
+                INSERT INTO station_event(station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, registration_limit, min_registrations, threshold_date, registration_close_days)
+                VALUES (:station_id, :name, :description, :event_type, :day_of_week, :start_time, :end_time, :template_id, :requires_registration, :registration_deadline, :requires_confirmation, :category_id, :registration_limit, :min_registrations, :threshold_date, :registration_close_days)
+                RETURNING\s""" + EVENT_COLUMNS_BARE + ";")
                 .single(Call.of()
                         .bind("station_id", stationId)
                         .bind("name", name)
@@ -201,17 +201,17 @@ public class EventRepository {
             Integer minRegistrations,
             Instant thresholdDate,
             Integer registrationCloseDays) {
-        return Query.query("""
-                            UPDATE station_event SET
-                                name = :name, description = :description, event_type = :event_type,
-                                day_of_week = :day_of_week,
-                                start_time = :start_time, end_time = :end_time, template_id = :template_id,
-                                requires_registration = :requires_registration, registration_deadline = :registration_deadline,
-                                requires_confirmation = :requires_confirmation, category_id = :category_id,
-                                "public" = :public, registration_limit = :registration_limit,
-                                min_registrations = :min_registrations, threshold_date = :threshold_date,
-                                registration_close_days = :registration_close_days
-                            WHERE id = :id;""")
+        return query("""
+                UPDATE station_event SET
+                    name = :name, description = :description, event_type = :event_type,
+                    day_of_week = :day_of_week,
+                    start_time = :start_time, end_time = :end_time, template_id = :template_id,
+                    requires_registration = :requires_registration, registration_deadline = :registration_deadline,
+                    requires_confirmation = :requires_confirmation, category_id = :category_id,
+                    public = :public, registration_limit = :registration_limit,
+                    min_registrations = :min_registrations, threshold_date = :threshold_date,
+                    registration_close_days = :registration_close_days
+                WHERE id = :id;""")
                 .single(Call.of()
                         .bind("name", name)
                         .bind("description", description)
@@ -241,7 +241,7 @@ public class EventRepository {
      * @return true if a row was deleted
      */
     public boolean delete(int id) {
-        return Query.query("DELETE FROM station_event WHERE id = :id;")
+        return query("DELETE FROM station_event WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .delete()
                 .changed();
@@ -256,7 +256,7 @@ public class EventRepository {
      * @return the list of event breaks
      */
     public List<EventBreak> findBreaksByStation(int stationId) {
-        return Query.query(
+        return query(
                         "SELECT id, station_id, name, start_date, end_date FROM station_event_break WHERE station_id = :station_id ORDER BY start_date;")
                 .single(Call.of().bind("station_id", stationId))
                 .map(EventBreak.map())
@@ -270,7 +270,7 @@ public class EventRepository {
      * @return the break, if found
      */
     public Optional<EventBreak> findBreakById(int id) {
-        return Query.query("SELECT id, station_id, name, start_date, end_date FROM station_event_break WHERE id = :id;")
+        return query("SELECT id, station_id, name, start_date, end_date FROM station_event_break WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(EventBreak.map())
                 .first();
@@ -286,10 +286,10 @@ public class EventRepository {
      * @return the created break
      */
     public EventBreak createBreak(int stationId, String name, LocalDate startDate, LocalDate endDate) {
-        return Query.query("""
-                            INSERT INTO station_event_break(station_id, name, start_date, end_date)
-                            VALUES (:station_id, :name, :start_date, :end_date)
-                            RETURNING id, station_id, name, start_date, end_date;""")
+        return query("""
+                INSERT INTO station_event_break(station_id, name, start_date, end_date)
+                VALUES (:station_id, :name, :start_date, :end_date)
+                RETURNING id, station_id, name, start_date, end_date;""")
                 .single(Call.of()
                         .bind("station_id", stationId)
                         .bind("name", name)
@@ -310,7 +310,7 @@ public class EventRepository {
      * @return true if a row was updated
      */
     public boolean updateBreak(int id, String name, LocalDate startDate, LocalDate endDate) {
-        return Query.query(
+        return query(
                         "UPDATE station_event_break SET name = :name, start_date = :start_date, end_date = :end_date WHERE id = :id;")
                 .single(Call.of()
                         .bind("name", name)
@@ -328,7 +328,7 @@ public class EventRepository {
      * @return true if a row was deleted
      */
     public boolean deleteBreak(int id) {
-        return Query.query("DELETE FROM station_event_break WHERE id = :id;")
+        return query("DELETE FROM station_event_break WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .delete()
                 .changed();
@@ -343,16 +343,16 @@ public class EventRepository {
      * @return the list of event categories
      */
     public Optional<EventCategory> findCategoryById(int id) {
-        return Query.query(
-                        "SELECT id, station_id, name, position, max_shown_events, \"public\" FROM event_category WHERE id = :id;")
+        return query(
+                        "SELECT id, station_id, name, position, max_shown_events, public FROM event_category WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(EventCategory.map())
                 .first();
     }
 
     public List<EventCategory> findCategoriesByStation(int stationId) {
-        return Query.query(
-                        "SELECT id, station_id, name, position, max_shown_events, \"public\" FROM event_category WHERE station_id = :station_id ORDER BY position;")
+        return query(
+                        "SELECT id, station_id, name, position, max_shown_events, public FROM event_category WHERE station_id = :station_id ORDER BY position;")
                 .single(Call.of().bind("station_id", stationId))
                 .map(EventCategory.map())
                 .all();
@@ -367,8 +367,8 @@ public class EventRepository {
      * @return the created category
      */
     public EventCategory createCategory(int stationId, String name, int position) {
-        return Query.query(
-                        "INSERT INTO event_category(station_id, name, position) VALUES(:station_id, :name, :position) RETURNING id, station_id, name, position, max_shown_events, \"public\";")
+        return query(
+                        "INSERT INTO event_category(station_id, name, position) VALUES(:station_id, :name, :position) RETURNING id, station_id, name, position, max_shown_events, public;")
                 .single(Call.of()
                         .bind("station_id", stationId)
                         .bind("name", name)
@@ -387,8 +387,8 @@ public class EventRepository {
      * @return true if a row was updated
      */
     public boolean updateCategory(int id, String name, int position, Integer maxShownEvents, boolean isPublic) {
-        return Query.query(
-                        "UPDATE event_category SET name = :name, position = :position, max_shown_events = :max_shown_events, \"public\" = :public WHERE id = :id;")
+        return query(
+                        "UPDATE event_category SET name = :name, position = :position, max_shown_events = :max_shown_events, public = :public WHERE id = :id;")
                 .single(Call.of()
                         .bind("name", name)
                         .bind("position", position)
@@ -406,7 +406,7 @@ public class EventRepository {
      * @return true if a row was deleted
      */
     public boolean deleteCategory(int id) {
-        return Query.query("DELETE FROM event_category WHERE id = :id;")
+        return query("DELETE FROM event_category WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .delete()
                 .changed();
@@ -414,7 +414,7 @@ public class EventRepository {
 
     public void reorderCategories(List<Integer> orderedIds) {
         for (int i = 0; i < orderedIds.size(); i++) {
-            Query.query("UPDATE event_category SET position = :position WHERE id = :id;")
+            query("UPDATE event_category SET position = :position WHERE id = :id;")
                     .single(Call.of().bind("position", i).bind("id", orderedIds.get(i)))
                     .update();
         }
@@ -428,7 +428,7 @@ public class EventRepository {
      * @return true if the date is within a break
      */
     public boolean isDateInBreak(int stationId, LocalDate date) {
-        return Query.query(
+        return query(
                         "SELECT 1 FROM station_event_break WHERE station_id = :station_id AND start_date <= :date AND end_date >= :date LIMIT 1;")
                 .single(Call.of().bind("station_id", stationId).bind("date", date))
                 .map(row -> true)
@@ -446,7 +446,7 @@ public class EventRepository {
      * @return true if a row was updated
      */
     public boolean updateRestrictionMode(int eventId, RestrictionMode mode) {
-        return Query.query("UPDATE station_event SET restriction_mode = :mode WHERE id = :id;")
+        return query("UPDATE station_event SET restriction_mode = :mode WHERE id = :id;")
                 .single(Call.of().bind("mode", mode.name()).bind("id", eventId))
                 .update()
                 .changed();
@@ -461,8 +461,7 @@ public class EventRepository {
      * @return the list of field defaults
      */
     public List<EventFieldDefault> findFieldDefaults(int eventId) {
-        return Query.query(
-                        "SELECT event_id, field_id, source, value FROM event_field_default WHERE event_id = :event_id;")
+        return query("SELECT event_id, field_id, source, value FROM event_field_default WHERE event_id = :event_id;")
                 .single(Call.of().bind("event_id", eventId))
                 .map(EventFieldDefault.map())
                 .all();
@@ -475,11 +474,11 @@ public class EventRepository {
      * @param defaults the new field default configurations
      */
     public void setFieldDefaults(int eventId, List<EventFieldDefault> defaults) {
-        Query.query("DELETE FROM event_field_default WHERE event_id = :event_id;")
+        query("DELETE FROM event_field_default WHERE event_id = :event_id;")
                 .single(Call.of().bind("event_id", eventId))
                 .delete();
         for (var def : defaults) {
-            Query.query(
+            query(
                             "INSERT INTO event_field_default(event_id, field_id, source, value) VALUES(:event_id, :field_id, :source, :value);")
                     .single(Call.of()
                             .bind("event_id", eventId)
@@ -500,7 +499,7 @@ public class EventRepository {
      * @return the list of registrations
      */
     public List<EventRegistration> findRegistrations(int eventId, LocalDate eventDate) {
-        return Query.query(
+        return query(
                         "SELECT id, event_id, member_id, event_date, status, created_at, created_by FROM event_registration WHERE event_id = :event_id AND event_date = :event_date ORDER BY created_at;")
                 .single(Call.of().bind("event_id", eventId).bind("event_date", eventDate))
                 .map(EventRegistration.map())
@@ -514,7 +513,7 @@ public class EventRepository {
      * @return the list of registrations
      */
     public List<EventRegistration> findAllRegistrations(int eventId) {
-        return Query.query(
+        return query(
                         "SELECT id, event_id, member_id, event_date, status, created_at, created_by FROM event_registration WHERE event_id = :event_id ORDER BY event_date DESC, status, created_at;")
                 .single(Call.of().bind("event_id", eventId))
                 .map(EventRegistration.map())
@@ -524,17 +523,17 @@ public class EventRepository {
     public record ExpiredDeadlineEvent(int eventId, int stationId, String name, int pendingCount) {}
 
     public List<ExpiredDeadlineEvent> findOneTimeEventsWithExpiredDeadline() {
-        return Query.query("""
-                        SELECT e.id AS event_id, e.station_id, e.name, COUNT(er.id) AS pending_count
-                        FROM station_event e
-                        JOIN event_registration er ON er.event_id = e.id AND er.status = 'PENDING'
-                        WHERE e.requires_registration = TRUE
-                          AND e.event_type = 'ONE_TIME'
-                          AND e.registration_deadline IS NOT NULL
-                          AND e.registration_deadline < NOW()
-                          AND e.deadline_notified = FALSE
-                          AND e.cancelled = FALSE
-                        GROUP BY e.id, e.station_id, e.name;""")
+        return query("""
+                SELECT e.id AS event_id, e.station_id, e.name, count(er.id) AS pending_count
+                FROM station_event e
+                JOIN event_registration er ON er.event_id = e.id AND er.status = 'PENDING'
+                WHERE e.requires_registration
+                  AND e.event_type = 'ONE_TIME'
+                  AND e.registration_deadline IS NOT NULL
+                  AND e.registration_deadline < now()
+                  AND e.deadline_notified = FALSE
+                  AND e.cancelled = FALSE
+                GROUP BY e.id, e.station_id, e.name;""")
                 .single(Call.of())
                 .map(row -> new ExpiredDeadlineEvent(
                         row.getInt("event_id"),
@@ -545,30 +544,33 @@ public class EventRepository {
     }
 
     public List<StationEvent> findRecurringEventsWithCloseDays() {
-        return Query.query("SELECT " + EVENT_COLUMNS
-                        + " FROM station_event e"
-                        + " WHERE e.requires_registration = TRUE"
-                        + " AND e.registration_close_days IS NOT NULL"
-                        + " AND e.event_type != 'ONE_TIME'"
-                        + " AND e.cancelled = FALSE;")
+        return query("""
+                SELECT
+                    %s
+                FROM
+                    station_event e
+                WHERE e.requires_registration
+                  AND e.registration_close_days IS NOT NULL
+                  AND e.event_type != 'ONE_TIME'
+                  AND e.cancelled = FALSE;""", EVENT_COLUMNS)
                 .single(Call.of())
                 .map(StationEvent.map())
                 .all();
     }
 
     public List<EventRegistration> findPendingRegistrationsForDate(int eventId, LocalDate eventDate) {
-        return Query.query("""
-                        SELECT id, event_id, member_id, event_date, status, created_at, created_by
-                        FROM event_registration
-                        WHERE event_id = :event_id AND event_date = :event_date AND status = 'PENDING'
-                        ORDER BY created_at;""")
+        return query("""
+                SELECT id, event_id, member_id, event_date, status, created_at, created_by
+                FROM event_registration
+                WHERE event_id = :event_id AND event_date = :event_date AND status = 'PENDING'
+                ORDER BY created_at;""")
                 .single(Call.of().bind("event_id", eventId).bind("event_date", eventDate))
                 .map(EventRegistration.map())
                 .all();
     }
 
     public void markDeadlineNotified(int eventId) {
-        Query.query("UPDATE station_event SET deadline_notified = TRUE WHERE id = :id;")
+        query("UPDATE station_event SET deadline_notified = TRUE WHERE id = :id;")
                 .single(Call.of().bind("id", eventId))
                 .update();
     }
@@ -580,22 +582,22 @@ public class EventRepository {
      * @return the list of pending registrations
      */
     public List<EventRegistration> findPendingRegistrations(int eventId) {
-        return Query.query("""
-                            SELECT id, event_id, member_id, event_date, status, created_at, created_by
-                            FROM event_registration WHERE event_id = :event_id AND status = 'PENDING'
-                            ORDER BY created_at;""")
+        return query("""
+                SELECT id, event_id, member_id, event_date, status, created_at, created_by
+                FROM event_registration WHERE event_id = :event_id AND status = 'PENDING'
+                ORDER BY created_at;""")
                 .single(Call.of().bind("event_id", eventId))
                 .map(EventRegistration.map())
                 .all();
     }
 
     public List<EventRegistration> findPendingRegistrationsByStation(int stationId) {
-        return Query.query("""
-                            SELECT er.id, er.event_id, er.member_id, er.event_date, er.status, er.created_at, er.created_by
-                            FROM event_registration er
-                                JOIN station_event se ON er.event_id = se.id
-                            WHERE se.station_id = :station_id AND er.status = 'PENDING'
-                            ORDER BY er.event_date, er.created_at;""")
+        return query("""
+                SELECT er.id, er.event_id, er.member_id, er.event_date, er.status, er.created_at, er.created_by
+                FROM event_registration er
+                    JOIN station_event se ON er.event_id = se.id
+                WHERE se.station_id = :station_id AND er.status = 'PENDING'
+                ORDER BY er.event_date, er.created_at;""")
                 .single(Call.of().bind("station_id", stationId))
                 .map(EventRegistration.map())
                 .all();
@@ -608,8 +610,8 @@ public class EventRepository {
      * @return the list of registrations
      */
     public List<EventRegistration> findRegistrationsByMember(int memberId) {
-        return Query.query(
-                        "SELECT id, event_id, member_id, event_date, status, created_at, created_by FROM event_registration WHERE member_id = :member_id AND (event_date IS NULL OR event_date >= CURRENT_DATE) ORDER BY event_date;")
+        return query(
+                        "SELECT id, event_id, member_id, event_date, status, created_at, created_by FROM event_registration WHERE member_id = :member_id AND (event_date IS NULL OR event_date >= current_date) ORDER BY event_date;")
                 .single(Call.of().bind("member_id", memberId))
                 .map(EventRegistration.map())
                 .all();
@@ -640,11 +642,11 @@ public class EventRepository {
      */
     public EventRegistration createRegistration(
             int eventId, int memberId, LocalDate eventDate, RegistrationStatus status, Integer createdBy) {
-        return Query.query("""
-                            INSERT INTO event_registration(event_id, member_id, event_date, status, created_by)
-                            VALUES (:event_id, :member_id, :event_date, :status, :created_by)
-                            ON CONFLICT (event_id, member_id, event_date) DO UPDATE SET status = :status, created_at = now(), created_by = :created_by
-                            RETURNING id, event_id, member_id, event_date, status, created_at, created_by;""")
+        return query("""
+                INSERT INTO event_registration(event_id, member_id, event_date, status, created_by)
+                VALUES (:event_id, :member_id, :event_date, :status, :created_by)
+                ON CONFLICT (event_id, member_id, event_date) DO UPDATE SET status = :status, created_at = now(), created_by = :created_by
+                RETURNING id, event_id, member_id, event_date, status, created_at, created_by;""")
                 .single(Call.of()
                         .bind("event_id", eventId)
                         .bind("member_id", memberId)
@@ -660,13 +662,13 @@ public class EventRepository {
      * Returns registration counts by status for all events of a station on their relevant dates.
      */
     public List<RegistrationCount> findRegistrationCounts(int stationId) {
-        return Query.query("""
-                            SELECT er.event_id, er.event_date, er.status, count(*) AS count
-                            FROM event_registration er
-                            JOIN station_event se ON se.id = er.event_id
-                            WHERE se.station_id = :station_id
-                            GROUP BY er.event_id, er.event_date, er.status
-                            ORDER BY er.event_id, er.event_date;""")
+        return query("""
+                SELECT er.event_id, er.event_date, er.status, count(*) AS count
+                FROM event_registration er
+                JOIN station_event se ON se.id = er.event_id
+                WHERE se.station_id = :station_id
+                GROUP BY er.event_id, er.event_date, er.status
+                ORDER BY er.event_id, er.event_date;""")
                 .single(Call.of().bind("station_id", stationId))
                 .map(row -> new RegistrationCount(
                         row.getInt("event_id"),
@@ -680,29 +682,29 @@ public class EventRepository {
      * Find declined member IDs for a specific event and date.
      */
     public List<Integer> findDeclinedMemberIds(int eventId, LocalDate eventDate) {
-        return Query.query("""
-                            SELECT member_id FROM event_registration
-                            WHERE event_id = :event_id AND event_date = :event_date AND status = 'DECLINED';""")
+        return query("""
+                SELECT member_id FROM event_registration
+                WHERE event_id = :event_id AND event_date = :event_date AND status = 'DECLINED';""")
                 .single(Call.of().bind("event_id", eventId).bind("event_date", eventDate))
                 .map(row -> row.getInt("member_id"))
                 .all();
     }
 
     public List<MemberRegistrationStats> findRegistrationStatsByEvent(int eventId, Integer categoryId, int months) {
-        return Query.query("""
-                        SELECT er.member_id,
-                               count(*)                                              AS registered,
-                               count(*) FILTER (WHERE er.status = 'ACCEPTED')        AS accepted,
-                               count(*) FILTER (WHERE er.status = 'DENIED')          AS denied,
-                               count(*) FILTER (WHERE er.status = 'DECLINED')        AS declined,
-                               max(er.event_date) FILTER (WHERE er.status = 'DENIED') AS last_denied
-                        FROM event_registration er
-                        JOIN station_event se ON se.id = er.event_id
-                        WHERE se.station_id = (SELECT station_id FROM station_event WHERE id = :event_id)
-                          AND (:category_id IS NULL OR se.category_id = :category_id)
-                          AND er.event_date >= (current_date - make_interval(months => :months))
-                          AND er.member_id IN (SELECT member_id FROM event_registration WHERE event_id = :event_id)
-                        GROUP BY er.member_id;""")
+        return query("""
+                SELECT er.member_id,
+                       count(*)                                              AS registered,
+                       count(*) FILTER (WHERE er.status = 'ACCEPTED')        AS accepted,
+                       count(*) FILTER (WHERE er.status = 'DENIED')          AS denied,
+                       count(*) FILTER (WHERE er.status = 'DECLINED')        AS declined,
+                       max(er.event_date) FILTER (WHERE er.status = 'DENIED') AS last_denied
+                FROM event_registration er
+                JOIN station_event se ON se.id = er.event_id
+                WHERE se.station_id = (SELECT station_id FROM station_event WHERE id = :event_id)
+                  AND (:category_id IS NULL OR se.category_id = :category_id)
+                  AND er.event_date >= (current_date - make_interval(months => :months))
+                  AND er.member_id IN (SELECT member_id FROM event_registration WHERE event_id = :event_id)
+                GROUP BY er.member_id;""")
                 .single(Call.of()
                         .bind("event_id", eventId)
                         .bind("category_id", categoryId)
@@ -719,7 +721,7 @@ public class EventRepository {
      * @return true if a row was updated
      */
     public boolean updateRegistrationStatus(int id, RegistrationStatus status) {
-        return Query.query("UPDATE event_registration SET status = :status WHERE id = :id;")
+        return query("UPDATE event_registration SET status = :status WHERE id = :id;")
                 .single(Call.of().bind("status", status.name()).bind("id", id))
                 .update()
                 .changed();
@@ -732,7 +734,7 @@ public class EventRepository {
      * @return true if a row was deleted
      */
     public boolean deleteRegistration(int id) {
-        return Query.query("DELETE FROM event_registration WHERE id = :id;")
+        return query("DELETE FROM event_registration WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .delete()
                 .changed();
@@ -745,7 +747,7 @@ public class EventRepository {
      * @return the registration, if found
      */
     public Optional<EventRegistration> findRegistrationById(int id) {
-        return Query.query(
+        return query(
                         "SELECT id, event_id, member_id, event_date, status, created_at, created_by FROM event_registration WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(EventRegistration.map())
@@ -762,8 +764,8 @@ public class EventRepository {
      * @return true if a row was updated
      */
     public boolean cancelEvent(int id, String reason) {
-        return Query.query(
-                        "UPDATE station_event SET cancelled = TRUE, cancelled_at = NOW(), cancel_reason = :reason WHERE id = :id;")
+        return query(
+                        "UPDATE station_event SET cancelled = TRUE, cancelled_at = now(), cancel_reason = :reason WHERE id = :id;")
                 .single(Call.of().bind("id", id).bind("reason", reason))
                 .update()
                 .changed();
@@ -776,14 +778,14 @@ public class EventRepository {
      * @return the list of events to auto-cancel
      */
     public List<StationEvent> findAutoCancel() {
-        return Query.query("SELECT " + EVENT_COLUMNS + """
-                         FROM station_event e
-                        WHERE e.cancelled = FALSE
-                          AND e.min_registrations IS NOT NULL
-                          AND e.threshold_date IS NOT NULL
-                          AND e.threshold_date <= NOW()
-                          AND (SELECT COUNT(*) FROM event_registration er
-                               WHERE er.event_id = e.id AND er.status = 'ACCEPTED') < e.min_registrations;""")
+        return query("SELECT " + EVENT_COLUMNS + """
+                 FROM station_event e
+                WHERE e.cancelled = FALSE
+                  AND e.min_registrations IS NOT NULL
+                  AND e.threshold_date IS NOT NULL
+                  AND e.threshold_date <= now()
+                  AND (SELECT count(*) FROM event_registration er
+                       WHERE er.event_id = e.id AND er.status = 'ACCEPTED') < e.min_registrations;""")
                 .single(Call.of())
                 .map(StationEvent.map())
                 .all();
@@ -796,7 +798,7 @@ public class EventRepository {
      * @return true if a row was updated
      */
     public boolean setThresholdNotified(int eventId) {
-        return Query.query("UPDATE station_event SET threshold_notified = TRUE WHERE id = :id;")
+        return query("UPDATE station_event SET threshold_notified = TRUE WHERE id = :id;")
                 .single(Call.of().bind("id", eventId))
                 .update()
                 .changed();
@@ -809,8 +811,7 @@ public class EventRepository {
      * @return the count of accepted registrations
      */
     public int countAcceptedRegistrations(int eventId) {
-        return Query.query(
-                        "SELECT COUNT(*) AS cnt FROM event_registration WHERE event_id = :id AND status = 'ACCEPTED';")
+        return query("SELECT count(*) AS cnt FROM event_registration WHERE event_id = :id AND status = 'ACCEPTED';")
                 .single(Call.of().bind("id", eventId))
                 .map(row -> row.getInt("cnt"))
                 .first()
@@ -824,7 +825,7 @@ public class EventRepository {
      * @return the list of member IDs
      */
     public List<Integer> findRegisteredMemberIds(int eventId) {
-        return Query.query(
+        return query(
                         "SELECT member_id FROM event_registration WHERE event_id = :id AND status IN ('PENDING', 'ACCEPTED');")
                 .single(Call.of().bind("id", eventId))
                 .map(row -> row.getInt("member_id"))
@@ -834,18 +835,18 @@ public class EventRepository {
     // --- Reminders ---
 
     public List<Integer> findReminderDays(int eventId) {
-        return Query.query("SELECT days_before FROM event_reminder WHERE event_id = :event_id ORDER BY days_before;")
+        return query("SELECT days_before FROM event_reminder WHERE event_id = :event_id ORDER BY days_before;")
                 .single(Call.of().bind("event_id", eventId))
                 .map(row -> row.getInt("days_before"))
                 .all();
     }
 
     public void replaceReminders(int eventId, List<Integer> daysBefore) {
-        Query.query("DELETE FROM event_reminder WHERE event_id = :event_id;")
+        query("DELETE FROM event_reminder WHERE event_id = :event_id;")
                 .single(Call.of().bind("event_id", eventId))
                 .delete();
         for (int days : daysBefore) {
-            Query.query(
+            query(
                             "INSERT INTO event_reminder(event_id, days_before) VALUES(:event_id, :days_before) ON CONFLICT DO NOTHING;")
                     .single(Call.of().bind("event_id", eventId).bind("days_before", days))
                     .insert();
@@ -853,16 +854,16 @@ public class EventRepository {
     }
 
     public List<StationEvent> findEventsWithReminders() {
-        return Query.query("""
-                        SELECT DISTINCT se.* FROM station_event se
-                        JOIN event_reminder er ON er.event_id = se.id
-                        WHERE se.cancelled = FALSE;""").single(Call.of()).map(StationEvent.map()).all();
+        return query("""
+                SELECT DISTINCT se.* FROM station_event se
+                JOIN event_reminder er ON er.event_id = se.id
+                WHERE se.cancelled = FALSE;""").single(Call.of()).map(StationEvent.map()).all();
     }
 
     public boolean isReminderSent(int eventId, LocalDate eventDate, int daysBefore) {
-        return Query.query("""
-                        SELECT 1 FROM event_reminder_sent
-                        WHERE event_id = :event_id AND event_date = :event_date AND days_before = :days_before;""")
+        return query("""
+                SELECT 1 FROM event_reminder_sent
+                WHERE event_id = :event_id AND event_date = :event_date AND days_before = :days_before;""")
                 .single(Call.of()
                         .bind("event_id", eventId)
                         .bind("event_date", eventDate)
@@ -873,9 +874,9 @@ public class EventRepository {
     }
 
     public void markReminderSent(int eventId, LocalDate eventDate, int daysBefore) {
-        Query.query("""
-                        INSERT INTO event_reminder_sent(event_id, event_date, days_before)
-                        VALUES(:event_id, :event_date, :days_before) ON CONFLICT DO NOTHING;""")
+        query("""
+                INSERT INTO event_reminder_sent(event_id, event_date, days_before)
+                VALUES(:event_id, :event_date, :days_before) ON CONFLICT DO NOTHING;""")
                 .single(Call.of()
                         .bind("event_id", eventId)
                         .bind("event_date", eventDate)
@@ -884,10 +885,10 @@ public class EventRepository {
     }
 
     public int countPendingRegistrations(int stationId) {
-        return Query.query("""
-                        SELECT count(*) AS cnt FROM event_registration er
-                        JOIN station_event se ON er.event_id = se.id
-                        WHERE se.station_id = :station_id AND er.status = 'PENDING';""")
+        return query("""
+                SELECT count(*) AS cnt FROM event_registration er
+                JOIN station_event se ON er.event_id = se.id
+                WHERE se.station_id = :station_id AND er.status = 'PENDING';""")
                 .single(Call.of().bind("station_id", stationId))
                 .map(row -> row.getInt("cnt"))
                 .first()

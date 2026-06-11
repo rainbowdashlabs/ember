@@ -175,6 +175,13 @@ public class KnowledgeBaseService {
         return repository.findFiles(stationId, folderId);
     }
 
+    public List<KbFile> findAllPublicFiles(int stationId, PublicKbMode mode) {
+        if (mode == PublicKbMode.OFF) return List.of();
+        return repository.findAllFiles(stationId).stream()
+                .filter(f -> isPubliclyVisible(mode, null, f.id()))
+                .toList();
+    }
+
     public Optional<KbFile> findFile(int id) {
         return repository.findFileById(id);
     }
