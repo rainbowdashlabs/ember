@@ -115,7 +115,7 @@ jobs:
           path: build/jacoco
           merge-multiple: true
       - name: Verify coverage thresholds
-        run: ./gradlew --build-cache jacocoCoverageCheck -x testRepositories -x testServices -x testOther
+        run: ./gradlew --build-cache jacocoCoverageCheck -x test -x testRepositories -x testServices -x testOther
 
   verify-javadoc:
     runs-on: ubuntu-latest
