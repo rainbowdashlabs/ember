@@ -450,13 +450,15 @@ public class WaitingListRepository {
                 .all();
     }
 
-    public WaitingListEntryGuardian createGuardian(int entryId, String name, String email, String phone, int position) {
+    public WaitingListEntryGuardian createGuardian(
+            int entryId, String firstname, String lastname, String email, String phone, int position) {
         return Query.query("""
-                        INSERT INTO waiting_list_entry_guardian (entry_id, name, email, phone, position)
-                        VALUES (:entry_id, :name, :email, :phone, :position) RETURNING *;""")
+                        INSERT INTO waiting_list_entry_guardian (entry_id, firstname, lastname, email, phone, position)
+                        VALUES (:entry_id, :firstname, :lastname, :email, :phone, :position) RETURNING *;""")
                 .single(Call.of()
                         .bind("entry_id", entryId)
-                        .bind("name", name)
+                        .bind("firstname", firstname)
+                        .bind("lastname", lastname)
                         .bind("email", email)
                         .bind("phone", phone)
                         .bind("position", position))

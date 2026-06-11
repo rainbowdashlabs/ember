@@ -32,7 +32,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     private int listId;
 
     private static List<GuardianInput> guardians(String name, String email) {
-        return List.of(new GuardianInput(name, email, ""));
+        return List.of(new GuardianInput(name, "", email, ""));
     }
 
     @BeforeAll
@@ -422,8 +422,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 "GuardianTest",
                 "Last",
                 List.of(
-                        new GuardianInput("Parent1", "p1@test.com", "123"),
-                        new GuardianInput("Parent2", "p2@test.com", "")),
+                        new GuardianInput("Parent1", "", "p1@test.com", "123"),
+                        new GuardianInput("Parent2", "", "p2@test.com", "")),
                 Map.of(),
                 "");
         var guardians = service.findGuardiansByEntry(entry.id());
@@ -435,9 +435,9 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void findGuardiansByList() {
         service.createEntry(
-                listId, "ListGuardian1", "", List.of(new GuardianInput("G1", "lg1@test.com", "")), Map.of(), "");
+                listId, "ListGuardian1", "", List.of(new GuardianInput("G1", "", "lg1@test.com", "")), Map.of(), "");
         service.createEntry(
-                listId, "ListGuardian2", "", List.of(new GuardianInput("G2", "lg2@test.com", "")), Map.of(), "");
+                listId, "ListGuardian2", "", List.of(new GuardianInput("G2", "", "lg2@test.com", "")), Map.of(), "");
         var guardians = service.findGuardiansByList(listId);
         assertTrue(guardians.size() >= 2);
     }
@@ -512,7 +512,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 list.id(),
                 "Child",
                 "Name",
-                List.of(new GuardianInput("Max Mustermann", "guardian-new-" + UUID.randomUUID() + "@test.com", "123")),
+                List.of(new GuardianInput(
+                        "Max", "Mustermann", "guardian-new-" + UUID.randomUUID() + "@test.com", "123")),
                 Map.of(),
                 "");
 
@@ -535,7 +536,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 list.id(),
                 "Child2",
                 "Name",
-                List.of(new GuardianInput("Existing Guardian", "existing-guardian@test.com", "")),
+                List.of(new GuardianInput("Existing", "Guardian", "existing-guardian@test.com", "")),
                 Map.of(),
                 "");
 
@@ -554,7 +555,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var list =
                 service.create(station.id(), "BlankGuardian " + UUID.randomUUID(), "", null, 180, null, null, 5, false);
         var entry = service.createEntry(
-                list.id(), "Child3", "Name", List.of(new GuardianInput("NoEmail Guardian", "", "")), Map.of(), "");
+                list.id(), "Child3", "Name", List.of(new GuardianInput("NoEmail", "Guardian", "", "")), Map.of(), "");
 
         var invited = service.inviteEntry(entry.id());
         var testing = service.moveToTesting(invited.id());

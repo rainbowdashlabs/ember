@@ -7,13 +7,19 @@ package dev.chojo.ember.feature.waitinglist.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
-public record WaitingListEntryGuardian(int id, int entryId, String name, String email, String phone, int position) {
+public record WaitingListEntryGuardian(
+        int id, int entryId, String firstname, String lastname, String email, String phone, int position) {
+
+    public String fullName() {
+        return lastname != null && !lastname.isBlank() ? firstname + " " + lastname : firstname;
+    }
 
     public static RowMapping<WaitingListEntryGuardian> map() {
         return row -> new WaitingListEntryGuardian(
                 row.getInt("id"),
                 row.getInt("entry_id"),
-                row.getString("name"),
+                row.getString("firstname"),
+                row.getString("lastname"),
                 row.getString("email"),
                 row.getString("phone"),
                 row.getInt("position"));

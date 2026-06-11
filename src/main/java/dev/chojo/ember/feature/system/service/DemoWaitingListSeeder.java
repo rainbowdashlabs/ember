@@ -102,9 +102,8 @@ public class DemoWaitingListSeeder {
         record Kid(
                 String firstname,
                 String lastname,
-                String parentName,
+                String parentFirstname,
                 String email,
-                String vorname,
                 String alter,
                 String erfahrung,
                 WaitingListEntryStatus status) {}
@@ -112,74 +111,59 @@ public class DemoWaitingListSeeder {
                 new Kid(
                         "Max",
                         "Müller",
-                        "Sabine Müller",
+                        "Sabine",
                         "sabine@example.com",
-                        "Max",
                         "8",
-                        "fortgeschritten",
+                        "Fortgeschritten",
                         WaitingListEntryStatus.WAITING),
                 new Kid(
                         "Lena",
                         "Fischer",
-                        "Thomas Fischer",
+                        "Thomas",
                         "thomas@example.com",
-                        "Lena",
                         "7",
-                        "anfaenger",
+                        "Anfänger",
                         WaitingListEntryStatus.WAITING),
                 new Kid(
                         "Tim",
                         "Bauer",
-                        "Maria Bauer",
+                        "Maria",
                         "maria@example.com",
-                        "Tim",
                         "10",
-                        "fortgeschritten",
+                        "Fortgeschritten",
                         WaitingListEntryStatus.TESTING),
-                new Kid(
-                        "Anna",
-                        "Klein",
-                        "Heike Klein",
-                        "heike@example.com",
-                        "Anna",
-                        "9",
-                        "anfaenger",
-                        WaitingListEntryStatus.TESTING),
+                new Kid("Anna", "Klein", "Heike", "heike@example.com", "9", "Anfänger", WaitingListEntryStatus.TESTING),
                 new Kid(
                         "Sophie",
                         "Wagner",
-                        "Klaus Wagner",
+                        "Klaus",
                         "klaus@example.com",
-                        "Sophie",
                         "6",
-                        "anfaenger",
+                        "Anfänger",
                         WaitingListEntryStatus.JOINED),
                 new Kid(
                         "Felix",
                         "Schmidt",
-                        "Petra Schmidt",
+                        "Petra",
                         "petra@example.com",
-                        "Felix",
                         "9",
-                        "fortgeschritten",
+                        "Fortgeschritten",
                         WaitingListEntryStatus.WITHDRAWN),
                 new Kid(
                         "Jonas",
                         "Lehmann",
-                        "Andrea Lehmann",
+                        "Andrea",
                         "andrea@example.com",
-                        "Jonas",
                         "8",
-                        "anfaenger",
+                        "Anfänger",
                         WaitingListEntryStatus.PENDING),
                 new Kid(
                         "Mia",
                         "Hoffmann",
-                        "Carsten Hoffmann",
+                        "Carsten",
                         "carsten@example.com",
-                        "Mia",
                         "7",
-                        "anfaenger",
+                        "Anfänger",
                         WaitingListEntryStatus.PENDING));
 
         // Collect testing member IDs to add attendance later
@@ -190,20 +174,21 @@ public class DemoWaitingListSeeder {
                     list.id(),
                     kid.firstname,
                     kid.lastname,
-                    kid.parentName,
+                    kid.parentFirstname + " " + kid.lastname,
                     kid.email,
                     UUID.randomUUID().toString(),
                     "");
-            waitingListRepository.upsertEntryValue(entry.id(), nameField.id(), "\"" + kid.vorname + "\"");
+            waitingListRepository.upsertEntryValue(entry.id(), nameField.id(), "\"" + kid.firstname + "\"");
             waitingListRepository.upsertEntryValue(entry.id(), ageField.id(), kid.alter);
             waitingListRepository.upsertEntryValue(entry.id(), expField.id(), "\"" + kid.erfahrung + "\"");
 
             waitingListRepository.createGuardian(
-                    entry.id(), kid.parentName, kid.email, "+49 170 " + (1000000 + entry.id()), 0);
+                    entry.id(), kid.parentFirstname, kid.lastname, kid.email, "+49 170 " + (1000000 + entry.id()), 0);
             if (entry.id() % 2 == 0) {
                 waitingListRepository.createGuardian(
                         entry.id(),
-                        "Zweit-EB " + kid.lastname,
+                        "Zweit-EB",
+                        kid.lastname,
                         "zweit-" + kid.email,
                         "+49 171 " + (2000000 + entry.id()),
                         1);

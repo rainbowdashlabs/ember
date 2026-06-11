@@ -664,21 +664,22 @@ public class WaitingListRoutes implements Routes {
             double score,
             List<WaitingListEntryGuardian> guardians) {}
 
-    public record GuardianRequest(String name, String email, String phone) {}
+    public record GuardianRequest(String firstname, String lastname, String email, String phone) {}
 
     private static List<WaitingListService.GuardianInput> resolveGuardians(
             List<GuardianRequest> guardians, String parentName, String email) {
         if (guardians != null && !guardians.isEmpty()) {
             return guardians.stream()
                     .map(g -> new WaitingListService.GuardianInput(
-                            g.name() != null ? g.name() : "",
+                            g.firstname() != null ? g.firstname() : "",
+                            g.lastname() != null ? g.lastname() : "",
                             g.email() != null ? g.email() : "",
                             g.phone() != null ? g.phone() : ""))
                     .toList();
         }
         if ((parentName != null && !parentName.isBlank()) || (email != null && !email.isBlank())) {
             return List.of(new WaitingListService.GuardianInput(
-                    parentName != null ? parentName : "", email != null ? email : "", ""));
+                    parentName != null ? parentName : "", "", email != null ? email : "", ""));
         }
         return List.of();
     }
@@ -733,7 +734,8 @@ public class WaitingListRoutes implements Routes {
         var guardianInputs = request.guardians() != null
                 ? request.guardians().stream()
                         .map(g -> new WaitingListService.GuardianInput(
-                                g.name() != null ? g.name() : "",
+                                g.firstname() != null ? g.firstname() : "",
+                                g.lastname() != null ? g.lastname() : "",
                                 g.email() != null ? g.email() : "",
                                 g.phone() != null ? g.phone() : ""))
                         .toList()

@@ -5,6 +5,7 @@
  */
 import client from './client'
 import type {
+    GuardianInput,
     PublicWaitlistFormResponse,
     PublicWaitlistSummary,
     WaitingList,
@@ -110,12 +111,12 @@ export async function listEntries(listId: number): Promise<WaitingListEntryWithS
     return res.data
 }
 
-export async function createEntry(listId: number, data: { firstname: string; lastname?: string; guardians?: { name: string; email: string; phone: string }[]; values?: Record<number, string>; notes?: string }): Promise<WaitingListEntry> {
+export async function createEntry(listId: number, data: { firstname: string; lastname?: string; guardians?: GuardianInput[]; values?: Record<number, string>; notes?: string }): Promise<WaitingListEntry> {
     const res = await client.post<WaitingListEntry>(`/waiting-lists/${listId}/entries`, data)
     return res.data
 }
 
-export async function updateEntry(listId: number, entryId: number, data: { firstname: string; lastname?: string; guardians?: { name: string; email: string; phone: string }[]; values?: Record<number, string>; notes?: string }): Promise<WaitingListEntry> {
+export async function updateEntry(listId: number, entryId: number, data: { firstname: string; lastname?: string; guardians?: GuardianInput[]; values?: Record<number, string>; notes?: string }): Promise<WaitingListEntry> {
     const res = await client.put<WaitingListEntry>(`/waiting-lists/${listId}/entries/${entryId}`, data)
     return res.data
 }
@@ -157,7 +158,7 @@ export async function getInviteInfo(code: string): Promise<WaitingListInviteInfo
     return res.data
 }
 
-export async function register(data: { inviteCode: string; firstname: string; lastname?: string; guardians?: { name: string; email: string; phone: string }[]; values?: Record<number, string>; notes?: string }): Promise<{ accessToken: string }> {
+export async function register(data: { inviteCode: string; firstname: string; lastname?: string; guardians?: GuardianInput[]; values?: Record<number, string>; notes?: string }): Promise<{ accessToken: string }> {
     const res = await client.post<{ accessToken: string }>('/public/waiting-list/register', data)
     return res.data
 }
@@ -202,7 +203,7 @@ export async function submitPublicRegistration(stationUid: string, listId: numbe
     firstname: string
     lastname?: string
     email: string
-    guardians?: { name: string; email: string; phone: string }[]
+    guardians?: GuardianInput[]
     values?: Record<number, string>
     notes?: string
 }): Promise<{ status: string }> {

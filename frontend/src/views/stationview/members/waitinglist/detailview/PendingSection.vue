@@ -72,7 +72,7 @@ function toggle(id: number) {
           <div v-if="item.guardians.length > 0">
             <span class="font-medium">{{ t('waitingList.guardians') }}:</span>
             <span v-for="(g, gi) in item.guardians" :key="gi">
-              {{ g.name }}<template v-if="g.email"> ({{ g.email }})</template><template v-if="g.phone">, {{ g.phone }}</template><template v-if="gi < item.guardians.length - 1">; </template>
+              {{ g.firstname }} {{ g.lastname }}<template v-if="g.email"> ({{ g.email }})</template><template v-if="g.phone">, {{ g.phone }}</template><template v-if="gi < item.guardians.length - 1">; </template>
             </span>
           </div>
           <div v-for="val in item.values" :key="val.fieldId" class="text-(--text-muted)">

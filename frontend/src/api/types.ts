@@ -1567,7 +1567,8 @@ export interface WaitingListEntryValue {
 export interface WaitingListEntryGuardian {
     id: number
     entryId: number
-    name: string
+    firstname: string
+    lastname: string
     email: string
     phone: string
     position: number
@@ -1602,6 +1603,13 @@ export interface WaitingListInviteInfo {
     listName: string
     listDescription: string
     fields: WaitingListField[]
+}
+
+export interface GuardianInput {
+    firstname: string
+    lastname: string
+    email: string
+    phone: string
 }
 
 export interface PublicWaitlistSummary {

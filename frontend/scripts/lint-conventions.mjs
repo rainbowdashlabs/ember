@@ -117,6 +117,15 @@ for (const file of vueFiles) {
     } else if (lineCount > 300) {
         warn(file, 0, `Component has ${lineCount} lines. Consider splitting.`, CAT_FILE_SIZE)
     }
+    // ── Rule 6b: No inline object type literals in ref<> — use named types ──
+    const scriptContent = content.substring(0, content.indexOf('<template>') >= 0 ? content.indexOf('<template>') : content.length)
+    const scriptLines = scriptContent.split('\n')
+    for (let i = 0; i < scriptLines.length; i++) {
+        const line = scriptLines[i]
+        if (/ref<\{[^}]+\}/.test(line) && !line.includes('Record<')) {
+            warn('Inline type', file, i + 1, `Inline object type in ref<> — use a named interface/type instead.`)
+        }
+    }
 }
 
 // ── Rule 7: Code repetition ──────────────────────────────────────────

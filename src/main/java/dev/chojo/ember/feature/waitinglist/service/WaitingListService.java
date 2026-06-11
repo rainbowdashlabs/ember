@@ -56,7 +56,7 @@ import java.util.regex.Pattern;
 public class WaitingListService {
     private static final Logger log = LoggerFactory.getLogger(WaitingListService.class);
 
-    public record GuardianInput(String name, String email, String phone) {}
+    public record GuardianInput(String firstname, String lastname, String email, String phone) {}
 
     private static final ObjectMapper JSON = new ObjectMapper();
 
@@ -230,8 +230,9 @@ public class WaitingListService {
             throw new IllegalStateException("Invite code has expired");
         }
 
-        String parentName =
-                guardians != null && !guardians.isEmpty() ? guardians.getFirst().name() : "";
+        String parentName = guardians != null && !guardians.isEmpty()
+                ? (guardians.getFirst().firstname() + " " + guardians.getFirst().lastname()).trim()
+                : "";
         String email =
                 guardians != null && !guardians.isEmpty() ? guardians.getFirst().email() : "";
 
@@ -259,7 +260,7 @@ public class WaitingListService {
                 if (g.email() != null && !g.email().isBlank()) {
                     emailService.sendWaitlistRegistrationEmail(
                             g.email(),
-                            g.name().isBlank() ? displayName : g.name(),
+                            g.firstname().isBlank() ? displayName : g.firstname(),
                             accessToken,
                             stationName,
                             "de",
@@ -324,8 +325,9 @@ public class WaitingListService {
             List<GuardianInput> guardians,
             Map<Integer, String> fieldValues,
             String notes) {
-        String parentName =
-                guardians != null && !guardians.isEmpty() ? guardians.getFirst().name() : "";
+        String parentName = guardians != null && !guardians.isEmpty()
+                ? (guardians.getFirst().firstname() + " " + guardians.getFirst().lastname()).trim()
+                : "";
         String email =
                 guardians != null && !guardians.isEmpty() ? guardians.getFirst().email() : "";
         String accessToken = UUID.randomUUID().toString();
@@ -347,8 +349,9 @@ public class WaitingListService {
             List<GuardianInput> guardians,
             String notes,
             Map<Integer, String> fieldValues) {
-        String parentName =
-                guardians != null && !guardians.isEmpty() ? guardians.getFirst().name() : "";
+        String parentName = guardians != null && !guardians.isEmpty()
+                ? (guardians.getFirst().firstname() + " " + guardians.getFirst().lastname()).trim()
+                : "";
         String email =
                 guardians != null && !guardians.isEmpty() ? guardians.getFirst().email() : "";
         repository.updateEntry(entryId, firstname, lastname, parentName, email, notes != null ? notes : "");
@@ -417,7 +420,7 @@ public class WaitingListService {
                 if (!g.email().isBlank()) {
                     emailService.sendWaitlistRegistrationEmail(
                             g.email(),
-                            g.name().isBlank() ? entry.fullName() : g.name(),
+                            g.firstname().isBlank() ? entry.fullName() : g.fullName(),
                             entry.accessToken(),
                             stationName,
                             "de",
@@ -630,7 +633,8 @@ public class WaitingListService {
             var g = guardians.get(i);
             repository.createGuardian(
                     entryId,
-                    g.name() != null ? g.name() : "",
+                    g.firstname() != null ? g.firstname() : "",
+                    g.lastname() != null ? g.lastname() : "",
                     g.email() != null ? g.email() : "",
                     g.phone() != null ? g.phone() : "",
                     i);
@@ -658,12 +662,8 @@ public class WaitingListService {
                 }
             }
 
-            String[] parts = guardian.name().split(" ", 2);
-            String firstName = parts[0];
-            String lastName = parts.length > 1 ? parts[1] : "";
-
             var account = existingAccount.orElseGet(
-                    () -> accountRepository.create(guardian.email(), firstName, lastName, true));
+                    () -> accountRepository.create(guardian.email(), guardian.firstname(), guardian.lastname(), true));
             if (existingAccount.isEmpty()) {
                 String password = generatePassword();
                 accountRepository.createCredential(account.id(), passwordHasher.hash(password));
@@ -754,8 +754,9 @@ public class WaitingListService {
             return false;
         }
 
-        String parentName =
-                guardians != null && !guardians.isEmpty() ? guardians.getFirst().name() : "";
+        String parentName = guardians != null && !guardians.isEmpty()
+                ? (guardians.getFirst().firstname() + " " + guardians.getFirst().lastname()).trim()
+                : "";
         String accessToken = UUID.randomUUID().toString();
         var entry = repository.createEntryWithStatus(
                 verification.listId(),
@@ -802,7 +803,7 @@ public class WaitingListService {
         for (var g : guardians) {
             if (g.email() != null && !g.email().isBlank()) {
                 emailService.sendWaitlistRegistrationEmail(
-                        g.email(), g.name(), entry.accessToken(), stationName, "de", stationId);
+                        g.email(), g.fullName(), entry.accessToken(), stationName, "de", stationId);
             }
         }
         if (guardians.isEmpty() && entry.email() != null && !entry.email().isBlank()) {

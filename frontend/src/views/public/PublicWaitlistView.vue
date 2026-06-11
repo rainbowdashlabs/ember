@@ -11,6 +11,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import DeleteButton from '@/components/button/DeleteButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
@@ -23,7 +24,7 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import type {PublicWaitlistSummary, PublicWaitlistFormResponse, WaitingListField} from '@/api/types'
+import type {GuardianInput, PublicWaitlistSummary, PublicWaitlistFormResponse, WaitingListField} from '@/api/types'
 import {waitingList} from '@/api'
 
 const {t} = useI18n()
@@ -42,12 +43,18 @@ const firstname = ref('')
 const lastname = ref('')
 const email = ref('')
 const notes = ref('')
-const guardianName = ref('')
-const guardianEmail = ref('')
-const guardianPhone = ref('')
+const guardians = ref<GuardianInput[]>([{firstname: '', lastname: '', email: '', phone: ''}])
 const fieldValues = ref<Record<number, string>>({})
 const submitting = ref(false)
 const submitted = ref(false)
+
+function addGuardian() {
+  guardians.value = [...guardians.value, {firstname: '', lastname: '', email: '', phone: ''}]
+}
+
+function removeGuardian(index: number) {
+  guardians.value = guardians.value.filter((_, i) => i !== index)
+}
 
 async function loadLists() {
   loading.value = true
@@ -105,9 +112,9 @@ async function submit() {
   submitting.value = true
   error.value = ''
   try {
-    const guardians = guardianName.value.trim()
-        ? [{name: guardianName.value.trim(), email: guardianEmail.value.trim(), phone: guardianPhone.value.trim()}]
-        : []
+    const guardianData = guardians.value
+        .filter(g => g.firstname.trim() || g.email.trim())
+        .map(g => ({firstname: g.firstname.trim(), lastname: g.lastname.trim(), email: g.email.trim(), phone: g.phone.trim()}))
     const values: Record<number, string> = {}
     for (const [k, v] of Object.entries(fieldValues.value)) {
       if (v) values[Number(k)] = JSON.stringify(v)
@@ -116,7 +123,7 @@ async function submit() {
       firstname: firstname.value.trim(),
       lastname: lastname.value.trim(),
       email: email.value.trim(),
-      guardians,
+      guardians: guardianData,
       values,
       notes: notes.value.trim() || undefined,
     })
@@ -172,11 +179,14 @@ onMounted(loadLists)
       <!-- Registration form -->
       <Spinner v-if="loadingForm" size="lg"/>
       <template v-if="form && !loadingForm">
-        <NeutralContainer v-if="lists.length > 1" class="flex items-center justify-between">
-          <SubHeader>{{ form.listName }}</SubHeader>
-          <SecondaryButton size="sm" @click="form = null; selectedListId = null">
-            {{ t('waitingList.back') }}
-          </SecondaryButton>
+        <NeutralContainer class="space-y-2">
+          <div class="flex items-center justify-between">
+            <SubHeader>{{ form.listName }}</SubHeader>
+            <SecondaryButton v-if="lists.length > 1" size="sm" @click="form = null; selectedListId = null">
+              {{ t('waitingList.back') }}
+            </SecondaryButton>
+          </div>
+          <p v-if="form.listDescription" class="text-sm text-(--text-muted)">{{ form.listDescription }}</p>
         </NeutralContainer>
 
         <NeutralContainer class="space-y-4">
@@ -196,23 +206,22 @@ onMounted(loadLists)
             <p class="text-xs text-(--text-muted)">{{ t('waitingList.publicRegistration.emailHint') }}</p>
           </div>
 
-          <!-- Guardian -->
+          <!-- Guardians -->
           <div class="space-y-3">
-            <SubHeader>{{ t('waitingList.guardian') }}</SubHeader>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div class="space-y-1">
-                <FormLabel>{{ t('waitingList.firstname') }}</FormLabel>
-                <TextInput v-model="guardianName" :placeholder="t('waitingList.guardianNamePlaceholder')"/>
+            <SubHeader>{{ t('waitingList.guardians') }}</SubHeader>
+            <NeutralContainer v-for="(g, i) in guardians" :key="i" class="space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium">{{ t('waitingList.guardian') }} {{ i + 1 }}</span>
+                <DeleteButton v-if="guardians.length > 1" @click="removeGuardian(i)"/>
               </div>
-              <div class="space-y-1">
-                <FormLabel>{{ t('waitingList.email') }}</FormLabel>
-                <TextInput v-model="guardianEmail" :placeholder="t('waitingList.guardianEmailPlaceholder')"/>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                <TextInput v-model="g.firstname" :placeholder="t('waitingList.firstnamePlaceholder')"/>
+                <TextInput v-model="g.lastname" :placeholder="t('waitingList.lastnamePlaceholder')"/>
+                <TextInput v-model="g.email" :placeholder="t('waitingList.guardianEmailPlaceholder')"/>
+                <TextInput v-model="g.phone" :placeholder="t('waitingList.guardianPhonePlaceholder')"/>
               </div>
-              <div class="space-y-1">
-                <FormLabel>{{ t('waitingList.register.parentNamePlaceholder') }}</FormLabel>
-                <TextInput v-model="guardianPhone" :placeholder="t('waitingList.guardianPhonePlaceholder')"/>
-              </div>
-            </div>
+            </NeutralContainer>
+            <SecondaryButton :icon="['fas', 'plus']" @click="addGuardian">{{ t('waitingList.addGuardian') }}</SecondaryButton>
           </div>
 
           <!-- Custom fields -->

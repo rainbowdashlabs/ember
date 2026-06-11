@@ -105,3 +105,18 @@ ALTER TABLE ember_schema.news ADD COLUMN public_blog BOOLEAN NOT NULL DEFAULT FA
 ALTER TABLE ember_schema.station ADD COLUMN public_blog_enabled BOOLEAN NOT NULL DEFAULT FALSE;
 
 CREATE INDEX idx_news_public_blog ON ember_schema.news (station_id, public_blog) WHERE public_blog = TRUE AND published_at IS NOT NULL;
+
+-- Guardian name split: replace single name column with firstname + lastname
+ALTER TABLE ember_schema.waiting_list_entry_guardian ADD COLUMN firstname TEXT NOT NULL DEFAULT '';
+ALTER TABLE ember_schema.waiting_list_entry_guardian ADD COLUMN lastname TEXT NOT NULL DEFAULT '';
+
+-- Migrate: split existing name into firstname (first word) and lastname (rest)
+UPDATE ember_schema.waiting_list_entry_guardian
+SET firstname = split_part(name, ' ', 1),
+    lastname  = CASE
+        WHEN position(' ' IN name) > 0 THEN substring(name FROM position(' ' IN name) + 1)
+        ELSE ''
+    END
+WHERE name != '';
+
+ALTER TABLE ember_schema.waiting_list_entry_guardian DROP COLUMN name;
