@@ -484,9 +484,12 @@ class BoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(84)
     void createAndFindAttachments() {
-        var att = boardTicketRepo.createAttachment(ticketId1, "file.txt", "file.txt", "text/plain", 100, member.id());
+        var uploader = memberIdentityFactory.local(station.id(), member.id());
+        var att = boardTicketRepo.createAttachment(ticketId1, "file.txt", "file.txt", "text/plain", 100, uploader);
         assertNotNull(att);
         assertEquals("file.txt", att.originalName());
+        assertEquals(uploader.stationUid(), att.uploaderStationUid());
+        assertEquals(uploader.memberUid(), att.uploaderMemberUid());
         var atts = boardTicketRepo.findAttachments(ticketId1);
         assertEquals(1, atts.size());
         assertTrue(boardTicketRepo.findAttachmentById(att.id()).isPresent());

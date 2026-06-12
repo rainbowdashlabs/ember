@@ -109,6 +109,9 @@ tasks {
         testLogging {
             events("passed", "skipped", "failed")
         }
+        filter {
+            excludeTestsMatching("dev.chojo.ember.tracking.*")
+        }
         maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
     }
 
@@ -144,6 +147,7 @@ tasks {
         filter {
             excludeTestsMatching("dev.chojo.ember.repository.*")
             excludeTestsMatching("dev.chojo.ember.service.*")
+            excludeTestsMatching("dev.chojo.ember.tracking.*")
         }
         maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
     }
@@ -162,6 +166,26 @@ tasks {
         )
     }
 
+    register<JavaExec>("refreshDataTracking") {
+        group = "build"
+        description = "Refreshes src/main/resources/data_tracking.json from the live DB schema (testcontainer)." +
+            " Editing of the tracking entries themselves happens via the /admin/data-tracking dev panel."
+        dependsOn("compileTestJava")
+        mainClass = "dev.chojo.ember.tracking.DataTrackingRefreshCli"
+        classpath = sourceSets.test.get().runtimeClasspath
+    }
+
+    register<Test>("testTracking") {
+        group = "verification"
+        description = "Runs data tracking verification tests"
+        testClassesDirs = sourceSets.test.get().output.classesDirs
+        classpath = sourceSets.test.get().runtimeClasspath
+        useJUnitPlatform { excludeTags("locale") }
+        testLogging { events("passed", "skipped", "failed") }
+        filter { includeTestsMatching("dev.chojo.ember.tracking.*") }
+        maxParallelForks = 1
+    }
+
     register("verifyJavadoc") {
         group = "verification"
         description = "Verifies Javadoc generation succeeds"
@@ -171,13 +195,13 @@ tasks {
     register("verify") {
         group = "verification"
         description = "Runs all verification tasks in parallel"
-        dependsOn("testRepositories", "testServices", "testOther", "jacocoCoverageCheck", "verifyJavadoc", "checkLicenseBackend", "checkLicenseFrontend")
+        dependsOn("testRepositories", "testServices", "testTracking", "testOther", "jacocoCoverageCheck", "verifyJavadoc", "checkLicenseBackend", "checkLicenseFrontend")
     }
 
     register<JacocoReport>("jacocoFullReport") {
         group = "verification"
         description = "Merged coverage report from all test tasks"
-        dependsOn("test", "testRepositories", "testServices", "testOther")
+        dependsOn("test", "testRepositories", "testServices", "testTracking", "testOther")
         executionData(
             fileTree("build/jacoco") { include("*.exec") }
         )
@@ -192,7 +216,7 @@ tasks {
     register<JacocoCoverageVerification>("jacocoCoverageCheck") {
         group = "verification"
         description = "Enforces 80% line coverage for services and repositories"
-        dependsOn("test", "testRepositories", "testServices", "testOther")
+        dependsOn("test", "testRepositories", "testServices", "testTracking", "testOther")
         executionData(
             fileTree("build/jacoco") { include("*.exec") }
         )

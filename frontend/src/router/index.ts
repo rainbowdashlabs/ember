@@ -859,6 +859,14 @@ const router = createRouter({
                     name: 'admin-api-status-detail',
                     component: () => import('@/views/adminview/AdminApiStatusDetailView.vue'),
                 },
+                {
+                    // Dev-only inspector for data_tracking.json. The backend route is gated by
+                    // Demo.dev(); the frontend page additionally checks import.meta.env.DEV to
+                    // hide the UI from production bundles.
+                    path: 'data-tracking',
+                    name: 'admin-data-tracking',
+                    component: () => import('@/views/adminview/DataTrackingView.vue'),
+                },
             ],
         },
         {
@@ -1685,6 +1693,11 @@ const router = createRouter({
                     path: 'storage',
                     name: 'help-admin-storage',
                     component: () => import('@/views/helpcenter/adminview/StorageHelp.vue')
+                },
+                {
+                    path: 'data-tracking',
+                    name: 'help-admin-data-tracking',
+                    component: () => import('@/views/helpcenter/adminview/DataTrackingHelp.vue')
                 },
                 {
                     path: ':pathMatch(.*)*',

@@ -37,7 +37,7 @@ class StationExportServiceTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void setup() {
-        exportService = new StationExportService(stationRepo);
+        exportService = new StationExportService();
 
         var station = stationRepo.create("Export Test Station");
         stationId = station.id();
@@ -74,20 +74,22 @@ class StationExportServiceTest extends RepositoryTestBase {
     @Order(3)
     @SuppressWarnings("unchecked")
     void exportTableContainsMembers() {
-        var data = exportService.exportTable(stationId, "members", 0, 500);
+        var data = exportService.exportTable(stationId, "station_member", 0, 500);
 
-        var members = (List<Map<String, Object>>) data.get("members");
+        var members = (List<Map<String, Object>>) data.get("station_member");
         assertFalse(members.isEmpty());
+        // account_id is in ignoredColumns — the importer matches via account_email lookup instead.
         assertNull(members.getFirst().get("account_id"));
+        assertEquals("export-test@example.com", members.getFirst().get("account_email"));
     }
 
     @Test
     @Order(4)
     @SuppressWarnings("unchecked")
     void exportTableContainsGroups() {
-        var data = exportService.exportTable(stationId, "groups", 0, 500);
+        var data = exportService.exportTable(stationId, "member_group", 0, 500);
 
-        var groups = (List<Map<String, Object>>) data.get("groups");
+        var groups = (List<Map<String, Object>>) data.get("member_group");
         assertFalse(groups.isEmpty());
         assertEquals("Anfänger", groups.getFirst().get("name"));
     }
@@ -96,9 +98,9 @@ class StationExportServiceTest extends RepositoryTestBase {
     @Order(5)
     @SuppressWarnings("unchecked")
     void exportTableContainsProfileFields() {
-        var data = exportService.exportTable(stationId, "profileFields", 0, 500);
+        var data = exportService.exportTable(stationId, "profile_field", 0, 500);
 
-        var fields = (List<Map<String, Object>>) data.get("profileFields");
+        var fields = (List<Map<String, Object>>) data.get("profile_field");
         assertFalse(fields.isEmpty());
         assertEquals("Telefon", fields.getFirst().get("name"));
     }
@@ -108,14 +110,39 @@ class StationExportServiceTest extends RepositoryTestBase {
     @SuppressWarnings("unchecked")
     void paginationWorks() {
         // Export with limit 1 should return exactly 1 member
-        var page1 = exportService.exportTable(stationId, "members", 0, 1);
-        var members1 = (List<Map<String, Object>>) page1.get("members");
+        var page1 = exportService.exportTable(stationId, "station_member", 0, 1);
+        var members1 = (List<Map<String, Object>>) page1.get("station_member");
         assertEquals(1, members1.size());
 
         // Page 2 with offset 1 should be empty (only 1 member)
-        var page2 = exportService.exportTable(stationId, "members", 1, 1);
-        var members2 = (List<Map<String, Object>>) page2.get("members");
+        var page2 = exportService.exportTable(stationId, "station_member", 1, 1);
+        var members2 = (List<Map<String, Object>>) page2.get("station_member");
         assertTrue(members2.isEmpty());
+    }
+
+    @Test
+    @Order(10)
+    @SuppressWarnings("unchecked")
+    void exportTableContainsAccountsThroughCustomScope() {
+        var data = exportService.exportTable(stationId, "account", 0, 500);
+
+        var accounts = (List<Map<String, Object>>) data.get("account");
+        assertFalse(accounts.isEmpty());
+        assertEquals("export-test@example.com", accounts.getFirst().get("email"));
+        assertEquals("Max", accounts.getFirst().get("first_name"));
+    }
+
+    @Test
+    @Order(11)
+    @SuppressWarnings("unchecked")
+    void exportTableContainsDisabledModulesAsFlatList() {
+        stationRepo.setDisabledModules(
+                stationId, java.util.Set.of(dev.chojo.ember.feature.station.entity.StationModule.LOST_AND_FOUND));
+        var data = exportService.exportTable(stationId, "station_disabled_module", 0, 500);
+
+        var modules = (List<Object>) data.get("station_disabled_module");
+        assertFalse(modules.isEmpty());
+        assertEquals("LOST_AND_FOUND", modules.getFirst());
     }
 
     @Test

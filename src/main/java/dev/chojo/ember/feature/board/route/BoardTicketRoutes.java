@@ -833,7 +833,8 @@ public class BoardTicketRoutes implements Routes {
                     file.filename(),
                     file.contentType(),
                     data,
-                    session.member().id());
+                    memberIdentityFactory.local(
+                            session.stationId(), session.member().id()));
             ctx.status(HttpStatus.CREATED).json(att);
         } catch (IOException e) {
             throw new InternalServerErrorResponse("Failed to read uploaded file");

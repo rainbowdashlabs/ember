@@ -73,6 +73,34 @@ jobs:
           name: jacoco-services
           path: build/jacoco/testServices.exec
 
+  verify-test-tracking:
+    runs-on: ubuntu-latest
+    name: Verify Data Tracking
+    needs: verify-build-backend
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      # Tracking tests enforce that data_tracking.json is in sync with the live PG schema —
+      # every DB table is tracked, no stale entries, table hashes match the live columns/FKs,
+      # no UNVERIFIED statuses remain, RETAIN strategies carry a legal basis, etc. They use a
+      # testcontainer to spin up PostgreSQL.
+      - name: Run data tracking tests
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 15
+          max_attempts: 2
+          command: ./gradlew --build-cache testTracking
+      - name: Upload coverage data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-tracking
+          path: build/jacoco/testTracking.exec
+
   verify-test-other:
     runs-on: ubuntu-latest
     name: Verify Other Tests
@@ -100,7 +128,7 @@ jobs:
   verify-coverage:
     runs-on: ubuntu-latest
     name: Verify Coverage
-    needs: [verify-test-repositories, verify-test-services, verify-test-other]
+    needs: [verify-test-repositories, verify-test-services, verify-test-tracking, verify-test-other]
     steps:
       - uses: actions/checkout@v6
       - name: Set up JDK
@@ -115,7 +143,7 @@ jobs:
           path: build/jacoco
           merge-multiple: true
       - name: Verify coverage thresholds
-        run: ./gradlew --build-cache jacocoCoverageCheck -x test -x testRepositories -x testServices -x testOther
+        run: ./gradlew --build-cache jacocoCoverageCheck -x test -x testRepositories -x testServices -x testTracking -x testOther
 
   verify-javadoc:
     runs-on: ubuntu-latest

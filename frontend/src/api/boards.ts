@@ -558,7 +558,9 @@ export interface BoardTicketAttachment {
     originalName: string
     contentType: string
     sizeBytes: number
-    uploadedBy: number
+    /** Federation-safe author identity: station UUID + member UUID within that station. */
+    uploaderStationUid: string
+    uploaderMemberUid: string
     createdAt: string
 }
 

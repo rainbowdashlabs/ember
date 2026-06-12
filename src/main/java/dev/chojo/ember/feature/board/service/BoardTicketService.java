@@ -435,7 +435,7 @@ public class BoardTicketService {
     }
 
     public BoardTicketAttachment uploadAttachment(
-            int ticketId, String originalName, String contentType, byte[] data, int uploadedBy) {
+            int ticketId, String originalName, String contentType, byte[] data, MemberIdentity uploader) {
         String filename = UUID.randomUUID() + "_" + originalName.replaceAll("[^a-zA-Z0-9._-]", "_");
         var dir = ATTACHMENT_DIR.resolve(String.valueOf(ticketId));
         try {
@@ -444,8 +444,7 @@ public class BoardTicketService {
         } catch (IOException e) {
             throw new RuntimeException("Failed to store attachment", e);
         }
-        return ticketRepository.createAttachment(
-                ticketId, filename, originalName, contentType, data.length, uploadedBy);
+        return ticketRepository.createAttachment(ticketId, filename, originalName, contentType, data.length, uploader);
     }
 
     public boolean deleteAttachment(int id) {

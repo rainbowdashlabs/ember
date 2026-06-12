@@ -586,7 +586,12 @@ class BoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(84)
     void ticketAttachments() {
-        var att = ticketService.uploadAttachment(ticketId1, "test.txt", "text/plain", "hello".getBytes(), member.id());
+        var att = ticketService.uploadAttachment(
+                ticketId1,
+                "test.txt",
+                "text/plain",
+                "hello".getBytes(),
+                memberIdentityFactory.local(station.id(), member.id()));
         assertNotNull(att);
         assertEquals(1, ticketService.findAttachments(ticketId1).size());
         assertTrue(ticketService.findAttachmentById(att.id()).isPresent());
@@ -765,8 +770,12 @@ class BoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(892)
     void attachmentPathResolution() {
-        var att =
-                ticketService.uploadAttachment(ticketId1, "pathtest.txt", "text/plain", "data".getBytes(), member.id());
+        var att = ticketService.uploadAttachment(
+                ticketId1,
+                "pathtest.txt",
+                "text/plain",
+                "data".getBytes(),
+                memberIdentityFactory.local(station.id(), member.id()));
         var path = ticketService.getAttachmentPath(att);
         assertNotNull(path);
         assertTrue(path.toString().contains("pathtest.txt"));

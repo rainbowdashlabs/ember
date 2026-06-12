@@ -545,17 +545,26 @@ public class BoardTicketRepository {
     }
 
     public BoardTicketAttachment createAttachment(
-            int ticketId, String filename, String originalName, String contentType, long sizeBytes, int uploadedBy) {
+            int ticketId,
+            String filename,
+            String originalName,
+            String contentType,
+            long sizeBytes,
+            MemberIdentity uploader) {
         return query("""
-                        INSERT INTO board_ticket_attachment(ticket_id, filename, original_name, content_type, size_bytes, uploaded_by)
-                        VALUES (:ticket_id, :filename, :original_name, :content_type, :size_bytes, :uploaded_by)
+                        INSERT INTO board_ticket_attachment(
+                            ticket_id, filename, original_name, content_type, size_bytes,
+                            uploader_station_uid, uploader_member_uid)
+                        VALUES (:ticket_id, :filename, :original_name, :content_type, :size_bytes,
+                            :uploader_station_uid::uuid, :uploader_member_uid::uuid)
                         RETURNING *;""")
                 .single(call().bind("ticket_id", ticketId)
                         .bind("filename", filename)
                         .bind("original_name", originalName)
                         .bind("content_type", contentType)
                         .bind("size_bytes", sizeBytes)
-                        .bind("uploaded_by", uploadedBy))
+                        .bind("uploader_station_uid", uploader.stationUid(), StandardValueConverter.UUID_STRING)
+                        .bind("uploader_member_uid", uploader.memberUid(), StandardValueConverter.UUID_STRING))
                 .map(BoardTicketAttachment.map())
                 .first()
                 .orElseThrow();

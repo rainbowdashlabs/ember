@@ -183,3 +183,60 @@ COMMENT ON COLUMN ember_schema.station.storage_per_file_bytes IS 'Maximum bytes 
 COMMENT ON COLUMN ember_schema.station.storage_per_image_bytes IS 'Maximum bytes per image upload override (NULL = use instance default)';
 COMMENT ON COLUMN ember_schema.station.storage_warning_sent IS 'Whether the storage warning notification has been sent for this station';
 COMMENT ON COLUMN ember_schema.station.storage_preset_id IS 'Last applied storage quota preset (NULL if using defaults or manually configured)';
+
+-- ---------------------------------------------------------------------------
+-- Federated uploader identity for board ticket attachments
+--
+-- Federated board members from another station can attach files, but the
+-- previous schema referenced the local station_member table by id. Replace
+-- the local FK with the (station_uid, member_uid) pair used by every other
+-- federated board column (board_ticket.creator_*, board_ticket_comment.author_*,
+-- board_ticket_transition.actor_*, board_ticket_watcher.watcher_*).
+-- ---------------------------------------------------------------------------
+ALTER TABLE ember_schema.board_ticket_attachment
+    ADD COLUMN uploader_station_uid UUID,
+    ADD COLUMN uploader_member_uid  UUID;
+
+-- Backfill from the existing local FK so historical rows keep their author.
+UPDATE ember_schema.board_ticket_attachment a
+SET uploader_station_uid = s.uid,
+    uploader_member_uid  = sm.uid
+FROM ember_schema.station_member sm
+         JOIN ember_schema.station s ON s.id = sm.station_id
+WHERE sm.id = a.uploaded_by;
+
+ALTER TABLE ember_schema.board_ticket_attachment
+    ALTER COLUMN uploader_station_uid SET NOT NULL,
+    ALTER COLUMN uploader_member_uid  SET NOT NULL,
+    DROP COLUMN uploaded_by;
+
+COMMENT ON COLUMN ember_schema.board_ticket_attachment.uploader_station_uid
+    IS 'UUID of the station the uploader belongs to. Together with uploader_member_uid this identifies the author, including federated members from other stations.';
+COMMENT ON COLUMN ember_schema.board_ticket_attachment.uploader_member_uid
+    IS 'UUID of the uploading member within their station. Federation-safe author identity.';
+
+-- ---------------------------------------------------------------------------
+-- Missing FKs on quiz_test_attempt
+--
+-- member_id and graded_by were declared as plain INT columns. Without FKs to
+-- station_member, deleting a member leaves orphan rows with dangling integer
+-- ids — a GDPR/data-integrity problem.
+--   member_id  → CASCADE: the member's attempts are part of their personal data
+--   graded_by  → SET NULL: the attempt is preserved but the grader reference
+--                is severed (graders are reviewers, not subjects)
+-- ---------------------------------------------------------------------------
+
+-- Clean up any pre-existing orphans before we add the constraints (defensive).
+UPDATE ember_schema.quiz_test_attempt
+SET graded_by = NULL
+WHERE graded_by IS NOT NULL
+  AND graded_by NOT IN (SELECT id FROM ember_schema.station_member);
+
+DELETE FROM ember_schema.quiz_test_attempt
+WHERE member_id NOT IN (SELECT id FROM ember_schema.station_member);
+
+ALTER TABLE ember_schema.quiz_test_attempt
+    ADD CONSTRAINT fk_quiz_test_attempt_member
+        FOREIGN KEY (member_id) REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    ADD CONSTRAINT fk_quiz_test_attempt_grader
+        FOREIGN KEY (graded_by) REFERENCES ember_schema.station_member (id) ON DELETE SET NULL;
