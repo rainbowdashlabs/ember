@@ -54,6 +54,10 @@ const pageTitle = computed(() => {
                      to="/helpcenter/admin/api-status" @navigate="close">
           {{ t('helpCenter.adminApiStatus.sidebarLabel') }}
         </SidebarLink>
+        <SidebarLink :icon="['fas', 'rss']" name="help-admin-feed-metrics"
+                     to="/helpcenter/admin/feed-metrics" @navigate="close">
+          {{ t('helpCenter.adminFeedMetrics.sidebarLabel') }}
+        </SidebarLink>
         <SidebarLink :icon="['fas', 'triangle-exclamation']" name="help-admin-problems"
                      to="/helpcenter/admin/problems" @navigate="close">
           {{ t('helpCenter.adminProblems.sidebarLabel') }}

@@ -17,6 +17,7 @@ import {use} from 'echarts/core'
 import {CanvasRenderer} from 'echarts/renderers'
 import {BarChart, LineChart} from 'echarts/charts'
 import {DataZoomComponent, GridComponent, LegendComponent, TooltipComponent} from 'echarts/components'
+import HelpCenterHint from '@/components/help/HelpCenterHint.vue'
 import {feedMetrics} from '@/api'
 import type {FeedMetricDaily, FeedUserAgentStat} from '@/api/feedMetrics'
 
@@ -172,8 +173,15 @@ const volumeChartOption = computed(() => ({
 
 <template>
   <ViewContent>
-    <PageHeader>{{ t('feedMetrics.title') }}</PageHeader>
-    <MutedText tag="p" size="sm">{{ t('feedMetrics.subtitle') }}</MutedText>
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <PageHeader>{{ t('feedMetrics.title') }}</PageHeader>
+        <MutedText tag="p" size="sm">{{ t('feedMetrics.subtitle') }}</MutedText>
+      </div>
+      <HelpCenterHint :to="{name: 'help-admin-feed-metrics'}">
+        {{ t('feedMetrics.help') }}
+      </HelpCenterHint>
+    </div>
 
     <Spinner v-if="loading"/>
     <template v-else>

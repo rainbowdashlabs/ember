@@ -1685,6 +1685,11 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/adminview/ApiStatusDetailHelp.vue')
                 },
                 {
+                    path: 'feed-metrics',
+                    name: 'help-admin-feed-metrics',
+                    component: () => import('@/views/helpcenter/adminview/FeedMetricsHelp.vue')
+                },
+                {
                     path: 'problems',
                     name: 'help-admin-problems',
                     component: () => import('@/views/helpcenter/adminview/ProblemsHelp.vue')
