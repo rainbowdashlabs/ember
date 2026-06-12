@@ -11,8 +11,10 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ErrorButton from '@/components/button/ErrorButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import Modal from '@/components/feedback/Modal.vue'
 import {feedToken} from '@/api'
 import type {FeedTokenResponse} from '@/api/feedToken'
 import {buildFeedUrl} from '@/api/feedToken'
@@ -23,6 +25,8 @@ const token = ref<FeedTokenResponse | null>(null)
 const loading = ref(true)
 const error = ref('')
 const copied = ref('')
+const regenerateConfirmOpen = ref(false)
+const revokeConfirmOpen = ref(false)
 
 async function loadToken() {
   loading.value = true
@@ -39,14 +43,16 @@ async function createToken() {
   } catch { error.value = t('common.error') }
 }
 
-async function regenerateToken() {
+async function confirmRegenerate() {
+  regenerateConfirmOpen.value = false
   error.value = ''
   try {
     token.value = await feedToken.regenerateFeedToken()
   } catch { error.value = t('common.error') }
 }
 
-async function revokeToken() {
+async function confirmRevoke() {
+  revokeConfirmOpen.value = false
   error.value = ''
   try {
     await feedToken.revokeFeedToken()
@@ -89,8 +95,8 @@ onMounted(loadToken)
         </div>
 
         <div class="flex items-center gap-2">
-          <SecondaryButton :icon="['fas', 'rotate']" @click="regenerateToken">{{ t('userSettings.feedRegenerate') }}</SecondaryButton>
-          <DeleteButton @click="revokeToken"/>
+          <SecondaryButton :icon="['fas', 'rotate']" @click="regenerateConfirmOpen = true">{{ t('userSettings.feedRegenerate') }}</SecondaryButton>
+          <DeleteButton @click="revokeConfirmOpen = true"/>
         </div>
       </template>
 
@@ -98,5 +104,29 @@ onMounted(loadToken)
         <PrimaryButton :icon="['fas', 'rss']" @click="createToken">{{ t('userSettings.feedCreate') }}</PrimaryButton>
       </template>
     </template>
+
+    <!-- Rotating the token immediately breaks every subscribed reader (Thunderbird, Apple
+         Calendar, …) — confirm before discarding the existing token. -->
+    <Modal v-model="regenerateConfirmOpen">
+      <div class="space-y-4">
+        <SubHeader>{{ t('userSettings.feedRegenerateConfirmTitle') }}</SubHeader>
+        <p class="text-sm">{{ t('userSettings.feedRegenerateConfirmBody') }}</p>
+        <div class="flex justify-end gap-2">
+          <SecondaryButton @click="regenerateConfirmOpen = false">{{ t('common.cancel') }}</SecondaryButton>
+          <ErrorButton :icon="['fas', 'rotate']" @click="confirmRegenerate">{{ t('userSettings.feedRegenerate') }}</ErrorButton>
+        </div>
+      </div>
+    </Modal>
+
+    <Modal v-model="revokeConfirmOpen">
+      <div class="space-y-4">
+        <SubHeader>{{ t('userSettings.feedRevokeConfirmTitle') }}</SubHeader>
+        <p class="text-sm">{{ t('userSettings.feedRevokeConfirmBody') }}</p>
+        <div class="flex justify-end gap-2">
+          <SecondaryButton @click="revokeConfirmOpen = false">{{ t('common.cancel') }}</SecondaryButton>
+          <ErrorButton :icon="['fas', 'trash']" @click="confirmRevoke">{{ t('userSettings.feedRevokeConfirm') }}</ErrorButton>
+        </div>
+      </div>
+    </Modal>
   </NeutralContainer>
 </template>

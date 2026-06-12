@@ -120,6 +120,18 @@ public class UserFeedRoutes implements Routes {
     }
 
     /**
+     * Applies the cross-cutting privacy headers used by every public feed endpoint:
+     * {@code Referrer-Policy: no-referrer} so the feed token never leaks via {@code Referer}
+     * to embedded image hosts or reader proxies, and {@code X-Robots-Tag: noindex} so leaked
+     * URLs cannot be picked up by search engines. Safe to call before any conditional 304 or
+     * 429 short-circuit so the headers stick on every response status.
+     */
+    private static void applyPrivacyHeaders(Context ctx) {
+        ctx.header("Referrer-Policy", "no-referrer");
+        ctx.header("X-Robots-Tag", "noindex");
+    }
+
+    /**
      * Enforces the per-token rate limit. On excess emits a {@code 429} with {@code Retry-After}
      * and returns {@code true} so the caller can short-circuit. The image endpoint is
      * intentionally exempt — see {@link FeedRateLimiter}.
@@ -166,6 +178,7 @@ public class UserFeedRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void icalFeed(Context ctx) {
+        applyPrivacyHeaders(ctx);
         var member = resolveToken(ctx);
         if (rateLimit(ctx)) return;
         tokenService.recordIcalPoll(member.id());
@@ -287,6 +300,7 @@ public class UserFeedRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void lostAndFoundImage(Context ctx) {
+        applyPrivacyHeaders(ctx);
         var member = resolveToken(ctx);
         int itemId = ctx.pathParamAsClass("id", Integer.class).get();
 
@@ -302,13 +316,8 @@ public class UserFeedRoutes implements Routes {
                 .read(ImageCategory.LOST_AND_FOUND, String.valueOf(itemId), size)
                 .orElseThrow(NotFoundResponse::new);
 
-        // Privacy: never let the token leak to image hosts via Referer (we serve it ourselves
-        // today, but feed readers may proxy through other origins). noindex protects against
-        // accidental indexing of leaked token URLs.
         ctx.contentType(image.contentType());
         ctx.header("Cache-Control", "public, max-age=86400");
-        ctx.header("Referrer-Policy", "no-referrer");
-        ctx.header("X-Robots-Tag", "noindex");
         ctx.result(image.data());
     }
 
@@ -343,6 +352,7 @@ public class UserFeedRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void rssFeed(Context ctx) {
+        applyPrivacyHeaders(ctx);
         String token = ctx.pathParam("token");
         var member = resolveToken(ctx);
         if (rateLimit(ctx)) return;
@@ -386,6 +396,7 @@ public class UserFeedRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void atomFeed(Context ctx) {
+        applyPrivacyHeaders(ctx);
         String token = ctx.pathParam("token");
         var member = resolveToken(ctx);
         if (rateLimit(ctx)) return;
