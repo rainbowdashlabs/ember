@@ -48,6 +48,8 @@
     "count": "Anzahl",
     "entity": "Zu",
     "event": "Termin",
+    "start": "Beginn",
+    "end": "Ende",
     "field": "Feld",
     "group": "Gruppe",
     "list": "Liste",

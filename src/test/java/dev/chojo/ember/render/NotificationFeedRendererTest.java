@@ -29,11 +29,22 @@ class NotificationFeedRendererTest {
     private NotificationService notificationService;
     private NotificationFeedRenderer renderer;
 
+    private dev.chojo.ember.feature.events.service.EventService eventService;
+    private dev.chojo.ember.feature.events.service.EventFieldService eventFieldService;
+
     @BeforeEach
     void setup() {
         notificationService = mock(NotificationService.class);
+        eventService = mock(dev.chojo.ember.feature.events.service.EventService.class);
+        eventFieldService = mock(dev.chojo.ember.feature.events.service.EventFieldService.class);
+        // No-ops by default; event-context tests stub these when needed.
+        when(eventService.findById(org.mockito.ArgumentMatchers.anyInt())).thenReturn(java.util.Optional.empty());
+        when(eventFieldService.findByEvent(org.mockito.ArgumentMatchers.anyInt()))
+                .thenReturn(java.util.List.of());
+        // Return a localised label that's distinguishable from the raw enum name so tests
+        // can verify both labels make it into the SyndEntry categories.
         when(notificationService.resolveCategory(any(), any()))
-                .thenAnswer(inv -> ((NotificationType) inv.getArgument(1)).name());
+                .thenAnswer(inv -> "loc:" + ((NotificationType) inv.getArgument(1)).name());
         when(notificationService.resolveMessage(any(), any())).thenReturn("MESSAGE");
         when(notificationService.resolveFeedBody(any(), any())).thenReturn("PLAINBODY");
         // Mirror NotificationService: echo the key, applying {name} placeholder substitution
@@ -42,7 +53,7 @@ class NotificationFeedRendererTest {
         when(notificationService.resolveLocalized(any(), any(), any(), any())).thenAnswer(inv -> inv.getArgument(2));
         // No deep link by default — renderer must fall back to the dashboard.
         when(notificationService.resolveNotificationUrl(any(), any())).thenReturn(null);
-        renderer = new NotificationFeedRenderer(notificationService);
+        renderer = new NotificationFeedRenderer(notificationService, eventService, eventFieldService);
     }
 
     private NotificationFeedRenderer.RenderContext richCtx() {
@@ -91,13 +102,16 @@ class NotificationFeedRendererTest {
     }
 
     @Test
-    void categoryAlwaysCarriesNotificationType() {
+    void categoryCarriesLocalisedLabelAndStableEnumName() {
         var n = notification(
                 5, NotificationType.STORAGE_WARNING, new NotificationParams.StorageWarning(91, "9.1 GB", "10 GB"));
         var entry = renderer.render(n, richCtx());
-        var categories = entry.getCategories();
-        assertEquals(1, categories.size());
-        assertEquals("STORAGE_WARNING", categories.getFirst().getName());
+        var names = entry.getCategories().stream().map(c -> c.getName()).toList();
+        // Both the localised label (what humans see) and the raw enum name (for scripted
+        // filters across locales) are exposed.
+        assertEquals(2, names.size());
+        assertTrue(names.contains("loc:STORAGE_WARNING"), "Localised label missing: " + names);
+        assertTrue(names.contains("STORAGE_WARNING"), "Stable enum-name fallback missing: " + names);
     }
 
     @Test
@@ -160,6 +174,83 @@ class NotificationFeedRendererTest {
         var html = entry.getDescription().getValue();
         assertTrue(html.contains("\u2713 ACCEPTED"), "Description should contain check-mark + ACCEPTED");
         assertTrue(html.contains("Probe"));
+    }
+
+    @Test
+    void newEventBodyIncludesEventTimesAndCustomFieldValues() {
+        // The event the notification refers to.
+        var start = Instant.parse("2027-09-15T17:00:00Z");
+        var end = Instant.parse("2027-09-15T19:00:00Z");
+        var event = stubEvent(42, start, end);
+        when(eventService.findById(42)).thenReturn(java.util.Optional.of(event));
+        when(eventFieldService.findByEvent(42))
+                .thenReturn(java.util.List.of(
+                        new dev.chojo.ember.feature.events.entity.EventField(
+                                1,
+                                42,
+                                "Treffpunkt",
+                                dev.chojo.ember.feature.events.entity.EventFieldType.STRING,
+                                dev.chojo.ember.feature.events.entity.EventFieldConfig.parse("{}"),
+                                "Marktplatz",
+                                0,
+                                true,
+                                null,
+                                true),
+                        new dev.chojo.ember.feature.events.entity.EventField(
+                                2,
+                                42,
+                                "Empty",
+                                dev.chojo.ember.feature.events.entity.EventFieldType.STRING,
+                                dev.chojo.ember.feature.events.entity.EventFieldConfig.parse("{}"),
+                                "",
+                                1,
+                                false,
+                                null,
+                                false)));
+
+        var n = notification(
+                20,
+                NotificationType.NEW_EVENT,
+                new NotificationParams.NewEvent("Probe", "Konzertprobe"),
+                new NotificationData.NotificationLink("event-detail", java.util.Map.of("id", 42)));
+        var entry = renderer.render(n, richCtx());
+        var html = entry.getDescription().getValue();
+        // Custom field with a value is rendered; empty field is skipped.
+        assertTrue(html.contains("Treffpunkt"), "Field name should be rendered");
+        assertTrue(html.contains("Marktplatz"), "Field value should be rendered");
+        assertFalse(html.contains(">Empty<"), "Blank field should be skipped");
+        // Start + end labels show up. The mocked resolveLocalized echoes keys back, which
+        // triggers the renderer's fallback to the capitalised display labels.
+        assertTrue(html.contains("Start"), "Start label should be present");
+        assertTrue(html.contains("End"), "End label should be present");
+    }
+
+    private static dev.chojo.ember.feature.events.entity.StationEvent stubEvent(int id, Instant start, Instant end) {
+        return new dev.chojo.ember.feature.events.entity.StationEvent(
+                id,
+                1,
+                "Probe",
+                "Konzert",
+                dev.chojo.ember.feature.events.entity.StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                end,
+                null,
+                false,
+                null,
+                false,
+                null,
+                dev.chojo.ember.feature.restriction.RestrictionMode.AND,
+                false,
+                null,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                false,
+                null);
     }
 
     @Test

@@ -40,10 +40,17 @@ import java.util.Map;
 @Singleton
 public class NotificationFeedRenderer {
     private final NotificationService notificationService;
+    private final dev.chojo.ember.feature.events.service.EventService eventService;
+    private final dev.chojo.ember.feature.events.service.EventFieldService eventFieldService;
 
     @Inject
-    public NotificationFeedRenderer(NotificationService notificationService) {
+    public NotificationFeedRenderer(
+            NotificationService notificationService,
+            dev.chojo.ember.feature.events.service.EventService eventService,
+            dev.chojo.ember.feature.events.service.EventFieldService eventFieldService) {
         this.notificationService = notificationService;
+        this.eventService = eventService;
+        this.eventFieldService = eventFieldService;
     }
 
     /**
@@ -77,8 +84,12 @@ public class NotificationFeedRenderer {
         String author = resolveAuthor(notification);
         if (author != null) entry.setAuthor(author);
 
-        // Categories let users filter by notification type.
-        entry.setCategories(List.of(category(notification.type())));
+        // Categories let users filter by notification type. We expose two categories so
+        // readers cover both audiences: the localised label (what humans see in the UI) and
+        // the raw enum name (stable identifier scripts can match on across locales).
+        entry.setCategories(List.of(
+                category(notificationService.resolveCategory(ctx.locale(), notification.type())),
+                category(notification.type().name())));
 
         // Plain-text fallback for readers that strip HTML.
         SyndContent plain = new SyndContentImpl();
@@ -196,6 +207,7 @@ public class NotificationFeedRenderer {
             case NEW_EVENT -> {
                 if (params instanceof NotificationParams.NewEvent(String title, String eventDescription)) {
                     if (notBlank(eventDescription)) details.put(title, eventDescription);
+                    enrichWithEventContext(details, notification, ctx);
                 }
             }
             case NEW_EVENTS_BATCH -> {
@@ -214,12 +226,14 @@ public class NotificationFeedRenderer {
                     putIfPresent(details, label(ctx, "status", "Status"), statusWithSymbol(status.name()));
                     putIfPresent(details, label(ctx, "event", "Event"), eventName);
                     putIfPresent(details, "Preview", eventDescription);
+                    enrichWithEventContext(details, notification, ctx);
                 }
             }
             case EVENT_CANCELLED -> {
                 if (params instanceof NotificationParams.EventCancelled(String eventName, String reason)) {
                     putIfPresent(details, label(ctx, "event", "Event"), eventName);
                     putIfPresent(details, label(ctx, "reason"), reason);
+                    enrichWithEventContext(details, notification, ctx);
                 }
             }
             case EVENT_REMINDER -> {
@@ -229,6 +243,7 @@ public class NotificationFeedRenderer {
                     putIfPresent(details, label(ctx, "event", "Event"), eventName);
                     putIfPresent(details, label(ctx, "eventDate"), eventDate);
                     details.put(label(ctx, "daysBefore"), String.valueOf(daysBefore));
+                    enrichWithEventContext(details, notification, ctx);
                 }
             }
             case EXCHANGE_NEW_REQUEST -> {
@@ -385,6 +400,54 @@ public class NotificationFeedRenderer {
         return details;
     }
 
+    /**
+     * Loads the event referenced by a notification's {@code link.routeParams().id} and
+     * appends its start/end time and every non-empty custom field value to the details
+     * block. Silently skips when the id is missing or the event has been deleted —
+     * notification feeds should never fail because of a stale reference.
+     */
+    private void enrichWithEventContext(Map<String, String> details, Notification notification, RenderContext ctx) {
+        Integer eventId = extractEventId(notification);
+        if (eventId == null) return;
+        try {
+            var event = eventService.findById(eventId).orElse(null);
+            if (event == null) return;
+            if (event.startTime() != null) {
+                details.put(label(ctx, "start", "Start"), formatInstant(event.startTime(), ctx.locale()));
+            }
+            if (event.endTime() != null) {
+                details.put(label(ctx, "end", "End"), formatInstant(event.endTime(), ctx.locale()));
+            }
+            // Custom event fields — skip blank values, skip LOCATION (already a separate
+            // detail concept in the iCal world; surfacing the raw value here is fine).
+            for (var field : eventFieldService.findByEvent(eventId)) {
+                if (field.value() == null || field.value().isBlank()) continue;
+                details.put(field.name(), field.value().trim());
+            }
+        } catch (Exception ignored) {
+            // Telemetry-grade enrichment: never block a feed render on a side-effect failure.
+        }
+    }
+
+    private static Integer extractEventId(Notification notification) {
+        var link = notification.data().link();
+        if (link == null || link.routeParams() == null) return null;
+        Object raw = link.routeParams().get("id");
+        if (raw == null) return null;
+        try {
+            return raw instanceof Number n ? n.intValue() : Integer.parseInt(raw.toString());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static String formatInstant(java.time.Instant instant, String locale) {
+        var fmt = java.time.format.DateTimeFormatter.ofLocalizedDateTime(java.time.format.FormatStyle.SHORT)
+                .withLocale(java.util.Locale.forLanguageTag(locale))
+                .withZone(java.time.ZoneId.systemDefault());
+        return fmt.format(instant);
+    }
+
     // -- author / category --
 
     /**
@@ -405,9 +468,9 @@ public class NotificationFeedRenderer {
         };
     }
 
-    private static SyndCategory category(NotificationType type) {
+    private static SyndCategory category(String name) {
         var c = new SyndCategoryImpl();
-        c.setName(type.name());
+        c.setName(name);
         return c;
     }
 

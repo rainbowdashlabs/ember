@@ -48,6 +48,8 @@
     "count": "Count",
     "entity": "On",
     "event": "Event",
+    "start": "Starts",
+    "end": "Ends",
     "field": "Field",
     "group": "Group",
     "list": "List",
