@@ -860,6 +860,11 @@ const router = createRouter({
                     component: () => import('@/views/adminview/AdminApiStatusDetailView.vue'),
                 },
                 {
+                    path: 'feed-metrics',
+                    name: 'admin-feed-metrics',
+                    component: () => import('@/views/adminview/AdminFeedMetricsView.vue'),
+                },
+                {
                     // Dev-only inspector for data_tracking.json. The backend route is gated by
                     // Demo.dev(); the frontend page additionally checks import.meta.env.DEV to
                     // hide the UI from production bundles.
