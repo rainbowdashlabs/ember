@@ -14,11 +14,11 @@ import com.rometools.rome.feed.synd.SyndFeedImpl;
 import com.rometools.rome.io.SyndFeedOutput;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.entity.EventCategory;
-import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
-import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventService;
+import dev.chojo.ember.feature.feed.render.IcalEventRenderer;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -40,25 +40,15 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import net.fortuna.ical4j.model.Calendar;
-import net.fortuna.ical4j.model.component.VEvent;
-import net.fortuna.ical4j.model.property.Categories;
-import net.fortuna.ical4j.model.property.Description;
 import net.fortuna.ical4j.model.property.ProdId;
-import net.fortuna.ical4j.model.property.RRule;
-import net.fortuna.ical4j.model.property.Uid;
 import net.fortuna.ical4j.model.property.XProperty;
 import net.fortuna.ical4j.model.property.immutable.ImmutableCalScale;
 import net.fortuna.ical4j.model.property.immutable.ImmutableVersion;
 
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -72,6 +62,8 @@ public class UserFeedRoutes implements Routes {
     private final StationMemberRepository memberRepository;
     private final StationRepository stationRepository;
     private final EmailService emailService;
+    private final AccountRepository accountRepository;
+    private final IcalEventRenderer icalRenderer;
 
     @Inject
     public UserFeedRoutes(
@@ -80,13 +72,17 @@ public class UserFeedRoutes implements Routes {
             NotificationService notificationService,
             StationMemberRepository memberRepository,
             StationRepository stationRepository,
-            EmailService emailService) {
+            EmailService emailService,
+            AccountRepository accountRepository,
+            IcalEventRenderer icalRenderer) {
         this.tokenService = tokenService;
         this.eventService = eventService;
         this.notificationService = notificationService;
         this.memberRepository = memberRepository;
         this.stationRepository = stationRepository;
         this.emailService = emailService;
+        this.accountRepository = accountRepository;
+        this.icalRenderer = icalRenderer;
     }
 
     @Override
@@ -130,30 +126,57 @@ public class UserFeedRoutes implements Routes {
         tokenService.recordIcalPoll(member.id());
         var station = stationRepository.findById(member.stationId()).orElseThrow(NotFoundResponse::new);
         String locale = notificationService.resolveLocale(station.locale());
+        boolean verbose = !"0".equals(ctx.queryParam("verbose"));
 
         var categories = eventService.findCategoriesByStation(station.id());
         var categoryMap = new HashMap<Integer, EventCategory>();
         for (var cat : categories) categoryMap.put(cat.id(), cat);
 
-        var registrations = eventService.findRegistrationsByMember(member.id());
-        var declinedEventIds = registrations.stream()
-                .filter(r -> r.status() == RegistrationStatus.DECLINED || r.status() == RegistrationStatus.DENIED)
-                .map(EventRegistration::eventId)
-                .collect(Collectors.toSet());
-        var registeredEventIds = registrations.stream()
-                .filter(r -> r.status() == RegistrationStatus.ACCEPTED || r.status() == RegistrationStatus.PENDING)
-                .map(EventRegistration::eventId)
-                .collect(Collectors.toSet());
-        var memberStatusByEvent = new HashMap<Integer, RegistrationStatus>();
-        for (var r : registrations) memberStatusByEvent.put(r.eventId(), r.status());
+        // Collect the owner's registrations and every managed member's registrations in one query.
+        var managedMembers = memberRepository.findManaged(member.id());
+        var memberIds = new ArrayList<Integer>(managedMembers.size() + 1);
+        memberIds.add(member.id());
+        for (var m : managedMembers) memberIds.add(m.id());
 
-        var now = Instant.now();
+        var allRegistrations = eventService.findRegistrationsByMembers(memberIds);
+        var ownerStatusByEvent = new HashMap<Integer, RegistrationStatus>();
+        var ownerRegistered = new java.util.HashSet<Integer>();
+        var managedByEvent = new HashMap<Integer, List<IcalEventRenderer.ManagedRegistration>>();
+        var managedNameById = new HashMap<Integer, String>();
+        for (var managed : managedMembers) {
+            managedNameById.put(managed.id(), resolveMemberDisplayName(managed));
+        }
+
+        for (var reg : allRegistrations) {
+            if (reg.memberId() == member.id()) {
+                ownerStatusByEvent.put(reg.eventId(), reg.status());
+                if (reg.status() == RegistrationStatus.ACCEPTED || reg.status() == RegistrationStatus.PENDING) {
+                    ownerRegistered.add(reg.eventId());
+                }
+            } else {
+                String name = managedNameById.getOrDefault(reg.memberId(), "Member #" + reg.memberId());
+                managedByEvent
+                        .computeIfAbsent(reg.eventId(), k -> new ArrayList<>())
+                        .add(new IcalEventRenderer.ManagedRegistration(name, reg.status()));
+            }
+        }
+        // Stable per-event order so the rendered description is deterministic.
+        for (var list : managedByEvent.values()) {
+            list.sort(java.util.Comparator.comparing(IcalEventRenderer.ManagedRegistration::memberName));
+        }
+
+        var renderCtx = new IcalEventRenderer.Context(
+                station,
+                locale,
+                emailService.getBaseUrl(),
+                verbose,
+                categoryMap,
+                ownerStatusByEvent,
+                ownerRegistered,
+                managedByEvent);
+
         var events = eventService.findByStation(station.id()).stream()
-                .filter(e -> !declinedEventIds.contains(e.id()))
-                .filter(e -> !(e.requiresRegistration()
-                        && e.registrationDeadline() != null
-                        && e.registrationDeadline().isBefore(now)
-                        && !registeredEventIds.contains(e.id())))
+                .filter(e -> icalRenderer.isVisibleForFeed(e, renderCtx))
                 .toList();
 
         var calendar = new Calendar();
@@ -162,7 +185,7 @@ public class UserFeedRoutes implements Routes {
         calendar.add(ImmutableCalScale.GREGORIAN);
         calendar.add(new XProperty("X-WR-CALNAME", station.name()));
         for (var event : events) {
-            calendar.add(buildVEvent(event, categoryMap, memberStatusByEvent, locale));
+            calendar.add(icalRenderer.render(event, renderCtx));
         }
 
         ctx.contentType("text/calendar; charset=utf-8");
@@ -170,103 +193,19 @@ public class UserFeedRoutes implements Routes {
         ctx.result(calendar.toString());
     }
 
-    private VEvent buildVEvent(
-            StationEvent event,
-            Map<Integer, EventCategory> categoryMap,
-            Map<Integer, RegistrationStatus> memberStatusByEvent,
-            String locale) {
-        var start = event.startTime() != null ? event.startTime() : Instant.now();
-        var end = event.endTime() != null ? event.endTime() : start;
-        var vevent = new VEvent(start, end, event.name());
-        vevent.add(new Uid("event-" + event.id() + "@ember"));
-
-        if (event.categoryId() != null) {
-            var cat = categoryMap.get(event.categoryId());
-            if (cat != null) vevent.add(new Categories(cat.name()));
+    private String resolveMemberDisplayName(StationMember member) {
+        if (member.displayName() != null && !member.displayName().isBlank()) {
+            return member.displayName();
         }
-
-        // Build a human-readable, localised description with event metadata so calendar clients
-        // (which only show name + description in compact views) carry the same info as the web UI.
-        String description = buildIcalDescription(event, categoryMap, memberStatusByEvent, locale);
-        if (!description.isBlank()) vevent.add(new Description(description));
-
-        if (event.isRecurring() && event.dayOfWeek() != null) {
-            String[] days = {"", "MO", "TU", "WE", "TH", "FR", "SA", "SU"};
-            String day = days[event.dayOfWeek()];
-            String rrule =
-                    switch (event.eventType()) {
-                        case RECURRING -> "FREQ=WEEKLY;BYDAY=" + day;
-                        case MONTHLY_FIRST -> "FREQ=MONTHLY;BYDAY=1" + day;
-                        case QUARTERLY -> "FREQ=MONTHLY;INTERVAL=3;BYDAY=1" + day;
-                        case YEARLY -> "FREQ=YEARLY";
-                        default -> null;
-                    };
-            if (rrule != null) vevent.add(new RRule<>(rrule));
-        }
-        return vevent;
-    }
-
-    private String buildIcalDescription(
-            StationEvent event,
-            Map<Integer, EventCategory> categoryMap,
-            Map<Integer, RegistrationStatus> memberStatusByEvent,
-            String locale) {
-        var sb = new StringBuilder();
-
-        // Free-text description first so it leads the body when present.
-        if (event.description() != null && !event.description().isBlank()) {
-            sb.append(event.description().trim()).append("\n\n");
-        }
-
-        if (event.categoryId() != null) {
-            var cat = categoryMap.get(event.categoryId());
-            if (cat != null) {
-                appendIcalLine(sb, locale, "label.category", cat.name());
+        if (member.accountId() != null) {
+            var account = accountRepository.findById(member.accountId()).orElse(null);
+            if (account != null
+                    && account.fullName() != null
+                    && !account.fullName().isBlank()) {
+                return account.fullName();
             }
         }
-
-        String typeLabel = notificationService.resolveLocalized(
-                locale, "ical", "eventType." + event.eventType().name(), null);
-        appendIcalLine(sb, locale, "label.eventType", typeLabel);
-
-        if (event.cancelled()) {
-            String cancelled =
-                    event.cancelReason() != null && !event.cancelReason().isBlank()
-                            ? notificationService.resolveLocalized(
-                                    locale, "ical", "cancelledWithReason", Map.of("reason", event.cancelReason()))
-                            : notificationService.resolveLocalized(locale, "ical", "cancelled", null);
-            sb.append(cancelled).append("\n");
-        }
-
-        if (event.requiresRegistration()) {
-            sb.append(notificationService.resolveLocalized(locale, "ical", "registrationRequired", null))
-                    .append("\n");
-            if (event.registrationDeadline() != null) {
-                appendIcalLine(sb, locale, "label.deadline", formatInstant(event.registrationDeadline(), locale));
-            }
-            if (event.registrationLimit() != null) {
-                appendIcalLine(
-                        sb, locale, "label.limit", event.registrationLimit().toString());
-            }
-            var status = memberStatusByEvent.get(event.id());
-            String statusLabel = notificationService.resolveLocalized(
-                    locale, "ical", "status." + (status != null ? status.name() : "NONE"), null);
-            appendIcalLine(sb, locale, "label.status", statusLabel);
-        }
-
-        return sb.toString().stripTrailing();
-    }
-
-    private void appendIcalLine(StringBuilder sb, String locale, String labelKey, String value) {
-        String label = notificationService.resolveLocalized(locale, "ical", labelKey, null);
-        sb.append(label).append(": ").append(value).append("\n");
-    }
-
-    private String formatInstant(Instant instant, String locale) {
-        var fmt = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
-                .withLocale(Locale.forLanguageTag(locale))
-                .withZone(ZoneId.systemDefault());
-        return fmt.format(instant);
+        return "Member #" + member.id();
     }
 
     // -- RSS --
