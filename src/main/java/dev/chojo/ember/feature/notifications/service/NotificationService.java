@@ -104,8 +104,20 @@ public class NotificationService {
      * @return the created notification, or {@code null} if app notifications are disabled
      */
     public Notification notify(int memberId, NotificationType type, NotificationData data) {
+        requireLink(type, data);
         if (!isAppEnabled(memberId, type)) return null;
         return notificationRepository.create(memberId, type, data);
+    }
+
+    /**
+     * Defensive guard: every persisted notification must carry a {@link NotificationData.NotificationLink}
+     * so the in-app view, email digest, and feed renderer all have a navigable target. This
+     * fails fast in tests if a future handler forgets to attach one.
+     */
+    private static void requireLink(NotificationType type, NotificationData data) {
+        if (data == null || data.link() == null) {
+            throw new IllegalArgumentException("Notification " + type + " requires a NotificationLink; got " + data);
+        }
     }
 
     /**
@@ -116,6 +128,7 @@ public class NotificationService {
      * @param data     localized message data
      */
     public void notifyIfAbsent(int memberId, NotificationType type, NotificationData data) {
+        requireLink(type, data);
         if (!isAppEnabled(memberId, type)) return;
         if (!notificationRepository.exists(memberId, type, data.toJson())) {
             notificationRepository.create(memberId, type, data);
@@ -142,6 +155,7 @@ public class NotificationService {
      * @param excludeMemberId member ID to exclude (e.g. the action initiator)
      */
     public void notifyStation(int stationId, NotificationType type, NotificationData data, int excludeMemberId) {
+        requireLink(type, data);
         var members = stationMemberRepository.findByStation(stationId);
         for (var member : members) {
             if (member.id() == excludeMemberId) continue;
@@ -174,6 +188,7 @@ public class NotificationService {
      */
     public void notifyMembersWithRole(
             int stationId, String permissionName, NotificationType type, NotificationData data, int excludeMemberId) {
+        requireLink(type, data);
         var permission = StationPermission.valueOf(permissionName);
         var members = stationMemberRepository.findMembersWithPermission(stationId, permission);
         for (var member : members) {
@@ -191,6 +206,7 @@ public class NotificationService {
      * @param data      localized message data
      */
     public void notifyMembers(Collection<Integer> memberIds, NotificationType type, NotificationData data) {
+        requireLink(type, data);
         for (int memberId : memberIds) {
             if (!isAppEnabled(memberId, type)) continue;
             notificationRepository.create(memberId, type, data);
@@ -208,6 +224,7 @@ public class NotificationService {
      */
     public void notifyMembersIfAbsent(
             Collection<Integer> memberIds, NotificationType type, NotificationData data, int excludeMemberId) {
+        requireLink(type, data);
         String dataJson = data.toJson();
         for (int memberId : memberIds) {
             if (memberId == excludeMemberId) continue;
