@@ -445,9 +445,14 @@ public class NotificationService {
                         ? "<img src=\"" + logoApiUrl + "\" alt=\"\" style=\"height:40px;border-radius:4px\">"
                         : "");
 
-        String subject = locale.equals("de")
-                ? stationName + ": " + eligible.size() + " neue Benachrichtigungen"
-                : stationName + ": " + eligible.size() + " new notifications";
+        // Subject text is pluralised via dedicated i18n keys (digest.subject.one / .other)
+        // so the singular form reads correctly across locales.
+        String subjectKey = eligible.size() == 1 ? "subject.one" : "subject.other";
+        String subject = resolveLocalized(
+                locale,
+                "digest",
+                subjectKey,
+                Map.of("stationName", stationName, "count", String.valueOf(eligible.size())));
         String body = emailService.loadTemplate("notification-digest.html", locale, vars);
         emailService.queueStationEmail(stationId, account.email(), subject, body);
         return true;
@@ -492,8 +497,19 @@ public class NotificationService {
     public String resolveMessage(String locale, Notification n) {
         var templates = LOCALIZER.get("notifications", locale, "message");
         String localeKey = n.type().localeKey();
-        String template = templates.get(localeKey);
         var params = n.data().paramsAsMap();
+
+        // Pluralisation: when the params carry an integer "count"/"daysBefore"/"pendingCount",
+        // prefer the .one / .other variant of the localeKey when defined. Languages like German
+        // and English need different surface text for n=1 vs n=other.
+        Integer count = extractCountParam(params);
+        String template = null;
+        if (count != null) {
+            String pluralKey = localeKey + (count == 1 ? ".one" : ".other");
+            template = templates.get(pluralKey);
+        }
+        if (template == null) template = templates.get(localeKey);
+
         if (template == null) {
             if (params.isEmpty()) return localeKey;
             var sb = new StringBuilder();
@@ -508,6 +524,27 @@ public class NotificationService {
         }
         return template;
     }
+
+    /**
+     * Picks the first integer-valued count-like param ({@code count}, {@code daysBefore},
+     * {@code pendingCount}) so {@link #resolveMessage} can route to the right plural variant.
+     * Returns {@code null} when no recognised count param is present or parseable.
+     */
+    private static Integer extractCountParam(Map<String, String> params) {
+        for (String key : COUNT_PARAMS) {
+            String value = params.get(key);
+            if (value == null) continue;
+            try {
+                return Integer.parseInt(value);
+            } catch (NumberFormatException ignored) {
+                // Fall through and try the next candidate.
+            }
+        }
+        return null;
+    }
+
+    /** Param keys that drive pluralisation in {@link #resolveMessage}. */
+    private static final java.util.List<String> COUNT_PARAMS = java.util.List.of("count", "daysBefore", "pendingCount");
 
     /**
      * Returns a short detail string (e.g. news preview, denial reason) when the notification type carries one.

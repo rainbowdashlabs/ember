@@ -593,8 +593,9 @@ class NotificationServiceTest extends RepositoryTestBase {
     void resolveCategoryReturnsLocalisedLabelAndFallsBackToEnumName() {
         assertEquals("Neuigkeit", service.resolveCategory("de", NotificationType.NEW_NEWS));
         assertEquals("News", service.resolveCategory("en", NotificationType.NEW_NEWS));
-        // STORAGE_WARNING has no category translation — falls back to the enum name.
-        assertEquals("STORAGE_WARNING", service.resolveCategory("de", NotificationType.STORAGE_WARNING));
+        // STORAGE_WARNING was added in the i18n completion pass — verify it's now localised.
+        assertEquals("Speicherwarnung", service.resolveCategory("de", NotificationType.STORAGE_WARNING));
+        assertEquals("Storage Warning", service.resolveCategory("en", NotificationType.STORAGE_WARNING));
     }
 
     @Test
@@ -850,6 +851,42 @@ class NotificationServiceTest extends RepositoryTestBase {
         // resolveDetail returns null for NEW_FORM, so body is just the headline
         var nfBody = service.resolveFeedBody("en", nfNotif);
         assertFalse(nfBody.isBlank());
+    }
+
+    @Test
+    @Order(108)
+    void resolveMessagePicksPluralVariantBasedOnCount() {
+        // newEventsBatch is the canonical pluralised type — the bundle defines .one and .other.
+        var one =
+                notificationWith(NotificationType.NEW_EVENTS_BATCH, new NotificationParams.NewEventsBatch(1, "A"), 50);
+        var many = notificationWith(
+                NotificationType.NEW_EVENTS_BATCH, new NotificationParams.NewEventsBatch(3, "A, B, C"), 51);
+        // EN
+        var enOne = service.resolveMessage("en", one);
+        var enMany = service.resolveMessage("en", many);
+        assertTrue(enOne.contains("1 new event"), "Singular variant should win when count == 1");
+        assertFalse(enOne.contains("events were"), "Singular variant should not use plural noun");
+        assertTrue(enMany.contains("3 new events"));
+        // DE
+        var deOne = service.resolveMessage("de", one);
+        assertTrue(deOne.startsWith("Ein neuer Termin"), "DE singular variant: " + deOne);
+    }
+
+    @Test
+    @Order(108)
+    void resolveMessageFallsBackToSingularKeyWhenNoPluralDefined() {
+        // newEvent has no .one/.other split — the lookup must still hit the bare key.
+        var notif =
+                notificationWith(NotificationType.NEW_EVENT, new NotificationParams.NewEvent("Probe", "Konzert"), 52);
+        var msg = service.resolveMessage("en", notif);
+        assertTrue(msg.contains("Probe"));
+    }
+
+    private dev.chojo.ember.feature.notifications.entity.Notification notificationWith(
+            NotificationType type, NotificationParams params, int id) {
+        var data = NotificationData.of(params, new NotificationData.NotificationLink("dashboard-overview"));
+        return new dev.chojo.ember.feature.notifications.entity.Notification(
+                id, member1.id(), type, data, java.time.Instant.now(), null);
     }
 
     @Test
