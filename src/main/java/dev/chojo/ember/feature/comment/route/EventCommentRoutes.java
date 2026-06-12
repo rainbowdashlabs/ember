@@ -97,6 +97,14 @@ public class EventCommentRoutes implements Routes {
                 session.stationId(), session.member().id());
         String eventName =
                 eventService.findById(eventId).map(StationEvent::name).orElse("");
+        java.time.LocalDate eventDate = null;
+        if (request.eventDate() != null && !request.eventDate().isBlank()) {
+            try {
+                eventDate = java.time.LocalDate.parse(request.eventDate());
+            } catch (Exception e) {
+                throw new BadRequestResponse("eventDate must be ISO yyyy-MM-dd");
+            }
+        }
         var comment = commentService.create(
                 session.stationId(),
                 eventId,
@@ -104,7 +112,8 @@ public class EventCommentRoutes implements Routes {
                 author,
                 session.account().fullName().trim(),
                 request.content(),
-                eventName);
+                eventName,
+                eventDate);
         ctx.status(HttpStatus.CREATED).json(toResponse(comment));
     }
 
@@ -187,7 +196,7 @@ public class EventCommentRoutes implements Routes {
     /**
      * Request body for creating a comment.
      */
-    public record CreateCommentRequest(Integer parentId, String content) {}
+    public record CreateCommentRequest(Integer parentId, String content, String eventDate) {}
 
     /**
      * Request body for updating a comment.

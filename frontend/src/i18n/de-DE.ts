@@ -4349,6 +4349,7 @@ volumes:
         registrationCloseDaysHint: 'Offene Anmeldungen werden automatisch abgelehnt, wenn die Frist abgelaufen ist.',
         cancelled: 'Abgesagt',
         cancelledAt: 'Abgesagt am',
+        focusedOccurrence: 'Dieser Aufruf bezieht sich auf den Termin am {date}.',
     },
     eventEdit: {
         reminders: 'Erinnerungen',

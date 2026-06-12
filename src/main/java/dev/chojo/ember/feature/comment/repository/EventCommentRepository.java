@@ -10,6 +10,7 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import jakarta.inject.Singleton;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,12 +40,61 @@ public class EventCommentRepository {
                     content,
                     deleted,
                     created_at,
-                    updated_at
+                    updated_at,
+                    event_date
                 FROM
                     event_comment
                 WHERE event_id = :event_id
                 ORDER BY created_at;""")
                 .single(call().bind("event_id", eventId))
+                .map(Comment.map())
+                .all();
+    }
+
+    /**
+     * Finds comments scoped to a specific occurrence of a recurring event. When
+     * {@code eventDate} is {@code null}, returns only whole-event comments (event_date IS
+     * NULL); when set, returns comments matching that occurrence date.
+     */
+    public List<Comment> findByEventAndDate(int eventId, LocalDate eventDate) {
+        if (eventDate == null) {
+            return query("""
+                    SELECT
+                        id,
+                        parent_id,
+                        author_station_uid,
+                        author_member_uid,
+                        content,
+                        deleted,
+                        created_at,
+                        updated_at,
+                        event_date
+                    FROM
+                        event_comment
+                    WHERE event_id = :event_id
+                      AND event_date IS NULL
+                    ORDER BY created_at;""")
+                    .single(call().bind("event_id", eventId))
+                    .map(Comment.map())
+                    .all();
+        }
+        return query("""
+                SELECT
+                    id,
+                    parent_id,
+                    author_station_uid,
+                    author_member_uid,
+                    content,
+                    deleted,
+                    created_at,
+                    updated_at,
+                    event_date
+                FROM
+                    event_comment
+                WHERE event_id = :event_id
+                  AND event_date = :event_date
+                ORDER BY created_at;""")
+                .single(call().bind("event_id", eventId).bind("event_date", eventDate))
                 .map(Comment.map())
                 .all();
     }
@@ -65,7 +115,8 @@ public class EventCommentRepository {
                     content,
                     deleted,
                     created_at,
-                    updated_at
+                    updated_at,
+                    event_date
                 FROM
                     event_comment
                 WHERE id = :id;""").single(call().bind("id", id)).map(Comment.map()).first();
@@ -80,15 +131,15 @@ public class EventCommentRepository {
      * @param content  the comment text
      * @return the created comment
      */
-    public Comment create(int eventId, Integer parentId, MemberIdentity author, String content) {
+    public Comment create(int eventId, Integer parentId, MemberIdentity author, String content, LocalDate eventDate) {
         return query("""
                 INSERT
                         INTO
                             event_comment
-                            (event_id, parent_id, author_station_uid, author_member_uid, content)
+                            (event_id, parent_id, author_station_uid, author_member_uid, content, event_date)
                         VALUES
-                            (:event_id, :parent_id, :author_station_uid::UUID, :author_member_uid::UUID, :content)
-                        RETURNING id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at;""")
+                            (:event_id, :parent_id, :author_station_uid::UUID, :author_member_uid::UUID, :content, :event_date)
+                        RETURNING id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at, event_date;""")
                 .single(call().bind("event_id", eventId)
                         .bind("parent_id", parentId)
                         .bind(
@@ -99,7 +150,8 @@ public class EventCommentRepository {
                                 "author_member_uid",
                                 author != null ? author.memberUid() : null,
                                 StandardValueConverter.UUID_STRING)
-                        .bind("content", content))
+                        .bind("content", content)
+                        .bind("event_date", eventDate))
                 .map(Comment.map())
                 .first()
                 .orElseThrow();

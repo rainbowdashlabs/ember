@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:610deea9a7692608fff565f2c78d0fdf0aa044db42f73ac7e37d7e9f44a73143",
-  "generatedAt" : "2026-06-12T18:19:15Z",
+  "schemaHash" : "sha256:12340b1b6d841ffa7064b2272bfad0548d8f7d74388e704a8b514aafd447b174",
+  "generatedAt" : "2026-06-12T20:09:39Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -2635,7 +2635,7 @@
     "event_comment" : {
       "feature" : "events",
       "scope" : "STATION",
-      "tableHash" : "sha256:438b85d958e72b92ebf41e0d583e1a8ffbce5a4f99ae61bee5355b68ed080b4d",
+      "tableHash" : "sha256:5e9e6b9ae89a049f5005dcdeecdebcbea967cec0cd02207e4231d1fc260b53b3",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -2688,6 +2688,12 @@
         "type" : "uuid",
         "nullable" : true,
         "verified" : true
+      }, {
+        "name" : "event_date",
+        "type" : "date",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "For comments on a specific occurrence of a recurring event. NULL for one-time events or for whole-event-level comments."
       } ],
       "foreignKeys" : [ {
         "column" : "event_id",

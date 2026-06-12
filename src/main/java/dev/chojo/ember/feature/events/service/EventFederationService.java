@@ -476,7 +476,10 @@ public class EventFederationService {
             Integer parentId,
             String content) {
         var author = new MemberIdentity(partner.partnerStationId(), remoteMemberUid);
-        var comment = commentRepository.create(eventId, parentId, author, content);
+        // Federation comments are not date-scoped yet — the remote side hasn't been taught
+        // the column. Treat them as whole-event comments (event_date = null) until the
+        // federation payload carries it.
+        var comment = commentRepository.create(eventId, parentId, author, content, null);
         federationRepository.cacheName(partner.id(), remoteMemberUid, displayName);
         return toCommentResponse(comment);
     }
@@ -555,7 +558,10 @@ public class EventFederationService {
             return FederatedCommentResult.ofSingle(result);
         }
         var author = new MemberIdentity(partner.partnerStationId(), memberUid);
-        var comment = commentRepository.create(eventId, parentId, author, content);
+        // Federation comments are not date-scoped yet — the remote side hasn't been taught
+        // the column. Treat them as whole-event comments (event_date = null) until the
+        // federation payload carries it.
+        var comment = commentRepository.create(eventId, parentId, author, content, null);
         federationRepository.cacheName(partner.id(), memberUid, displayName);
         return FederatedCommentResult.ofSingle(toCommentResponse(comment));
     }

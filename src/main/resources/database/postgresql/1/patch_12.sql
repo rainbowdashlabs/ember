@@ -41,3 +41,14 @@ CREATE INDEX idx_feed_user_agent_stat_last_seen ON ember_schema.feed_user_agent_
 COMMENT ON TABLE ember_schema.feed_user_agent_stat IS 'Global aggregate of feed reader User-Agents. No per-token attribution by design.';
 COMMENT ON COLUMN ember_schema.feed_user_agent_stat.ua_hash IS 'First 8 bytes of SHA-256(ua_string) as 16-char hex.';
 COMMENT ON COLUMN ember_schema.feed_user_agent_stat.ua_string IS 'Verbatim User-Agent header (truncated by the application before insert).';
+
+-- Date-aware event comments for recurring events. Comments on one-time events keep
+-- event_date = NULL; comments on a specific occurrence of a recurring event carry the
+-- ISO date so threads stay scoped to the right week/month/etc. instead of merging across
+-- every occurrence.
+ALTER TABLE ember_schema.event_comment
+    ADD COLUMN event_date DATE;
+
+CREATE INDEX idx_event_comment_event_date ON ember_schema.event_comment (event_id, event_date);
+
+COMMENT ON COLUMN ember_schema.event_comment.event_date IS 'For comments on a specific occurrence of a recurring event. NULL for one-time events or for whole-event-level comments.';

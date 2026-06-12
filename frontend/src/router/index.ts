@@ -448,6 +448,13 @@ const router = createRouter({
                     component: () => import('@/views/stationview/events/EventDetailView.vue'),
                 },
                 {
+                    // Date-aware deep link for recurring events: opens the detail view
+                    // pre-focused on a specific occurrence (notifications, feed entries).
+                    path: 'events/:id/:date',
+                    name: 'event-detail-date',
+                    component: () => import('@/views/stationview/events/EventDetailView.vue'),
+                },
+                {
                     path: 'events/new',
                     name: 'event-new',
                     component: () => import('@/views/stationview/events/EventEditView.vue'),

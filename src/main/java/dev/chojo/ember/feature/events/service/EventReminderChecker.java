@@ -75,8 +75,16 @@ public class EventReminderChecker {
                                     NotificationType.EVENT_REMINDER,
                                     NotificationData.of(
                                             new NotificationParams.EventReminder(event.name(), daysBefore, dateStr),
+                                            // event-detail-date carries the occurrence date as
+                                            // a path segment so the deep link points at the
+                                            // right instance for recurring events.
                                             new NotificationData.NotificationLink(
-                                                    "event-detail", Map.of("id", String.valueOf(event.id())))));
+                                                    "event-detail-date",
+                                                    Map.of(
+                                                            "id",
+                                                            String.valueOf(event.id()),
+                                                            "date",
+                                                            occurrence.toString()))));
                             log.info(
                                     "Sent {} reminder(s) for event '{}' (id={}) on {} — {} days before",
                                     targetIds.size(),

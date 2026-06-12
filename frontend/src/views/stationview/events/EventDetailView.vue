@@ -42,6 +42,15 @@ const {canManageEvents, canManageAttendance, isGuardian, sessionInfo} = useSessi
 const eventId = computed(() => Number(route.params.id))
 const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
 
+// Optional ISO date from the route — present on `/station/events/:id/:date` for deep
+// links into a specific occurrence of a recurring event. The view uses it to surface a
+// banner ("Occurrence on …") so the user knows which date the notification was about.
+const focusedDate = computed(() => {
+  const raw = Array.isArray(route.params.date) ? route.params.date[0] : route.params.date
+  if (!raw) return null
+  return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : null
+})
+
 const event = ref<StationEvent | null>(null)
 const categories = ref<EventCategory[]>([])
 const templates = ref<AttendanceTemplate[]>([])
@@ -188,6 +197,13 @@ onMounted(loadData)
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading && event">
+        <!-- Deep link from a notification or feed entry into a specific occurrence of a
+             recurring event — show which date we're focusing so the user has the right
+             context. -->
+        <Alert v-if="focusedDate && isRecurringEvent(event.eventType)" variant="info">
+          {{ t('events.focusedOccurrence', {date: focusedDate}) }}
+        </Alert>
+
         <Alert v-if="event.cancelled" variant="error">
           <span class="font-bold">{{ t('events.cancelled') }}</span>
           <span v-if="event.cancelReason"> — {{ event.cancelReason }}</span>

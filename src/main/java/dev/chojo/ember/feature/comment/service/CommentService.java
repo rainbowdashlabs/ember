@@ -91,8 +91,9 @@ public class CommentService {
             MemberIdentity author,
             String authorName,
             String content,
-            String entityTitle) {
-        var comment = commentRepository.create(eventId, parentId, author, content);
+            String entityTitle,
+            java.time.LocalDate eventDate) {
+        var comment = commentRepository.create(eventId, parentId, author, content, eventDate);
 
         // Resolve author to local member ID (null if federated / not on this station)
         Integer authorMemberId = resolveLocalMemberId(stationId, author);

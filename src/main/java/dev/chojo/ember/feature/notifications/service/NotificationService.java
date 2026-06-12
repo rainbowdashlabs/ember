@@ -49,6 +49,9 @@ public class NotificationService {
             Map.entry("events-registrations", "/station/events/registrations"),
             Map.entry("events-upcoming", "/station/events/upcoming"),
             Map.entry("event-detail", "/station/events/{id}"),
+            // Date-aware variant for recurring events so the user lands on the right
+            // occurrence (e.g. weekly events on 2026-06-12 vs 2026-06-19).
+            Map.entry("event-detail-date", "/station/events/{id}/{date}"),
             Map.entry("inventory-exchanges", "/station/inventory/exchanges"),
             Map.entry("inventory-procurement", "/station/inventory/procurement"),
             Map.entry("members-detail", "/station/members/detail/{id}"),
