@@ -33,6 +33,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -675,6 +676,17 @@ public class EventService {
      */
     public List<EventRegistration> findRegistrationsByMember(int memberId) {
         return eventRepository.findRegistrationsByMember(memberId);
+    }
+
+    /**
+     * Retrieves upcoming registrations for any member in the given collection in one query.
+     * Used by the personal iCal feed to load owner + managed-member registrations together.
+     *
+     * @param memberIds the member IDs to fetch registrations for
+     * @return the list of registrations
+     */
+    public List<EventRegistration> findRegistrationsByMembers(Collection<Integer> memberIds) {
+        return eventRepository.findRegistrationsByMembers(memberIds);
     }
 
     /**

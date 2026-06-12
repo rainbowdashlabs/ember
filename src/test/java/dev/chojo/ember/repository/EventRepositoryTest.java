@@ -1191,6 +1191,56 @@ class EventRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(144)
+    void findRegistrationsByMembersEmpty() {
+        assertTrue(eventRepo.findRegistrationsByMembers(List.of()).isEmpty());
+    }
+
+    @Test
+    @Order(145)
+    void findRegistrationsByMembersUnknown() {
+        assertTrue(eventRepo.findRegistrationsByMembers(List.of(99999, 99998)).isEmpty());
+    }
+
+    @Test
+    @Order(146)
+    void findRegistrationsByMembersAggregates() {
+        var account2 = accountRepo.create("evt-bulk-2@test.com", "Bulk", "Two");
+        var member2 = stationMemberRepo.create(station.id(), account2.id());
+        var event = eventRepo.create(
+                station.id(),
+                "Bulk Registrations",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.parse("2027-09-15T09:00:00Z"),
+                Instant.parse("2027-09-15T12:00:00Z"),
+                null,
+                true,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        var date = LocalDate.of(2027, 9, 15);
+        eventRepo.createRegistration(event.id(), member.id(), date, RegistrationStatus.ACCEPTED, null);
+        eventRepo.createRegistration(event.id(), member2.id(), date, RegistrationStatus.PENDING, null);
+
+        var regs = eventRepo.findRegistrationsByMembers(List.of(member.id(), member2.id()));
+        assertEquals(2, regs.size());
+        // Subset query still works
+        var owner = eventRepo.findRegistrationsByMembers(List.of(member.id()));
+        assertEquals(1, owner.size());
+        assertEquals(member.id(), owner.getFirst().memberId());
+
+        eventRepo.delete(event.id());
+        stationMemberRepo.delete(member2.id());
+        accountRepo.delete(account2.id());
+    }
+
+    @Test
     @Order(143)
     void findPendingRegistrationsForDate() {
         var event = eventRepo.create(

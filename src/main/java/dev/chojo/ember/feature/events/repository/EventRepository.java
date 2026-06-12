@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
@@ -18,6 +19,7 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -601,6 +603,34 @@ public class EventRepository {
         return query(
                         "SELECT id, event_id, member_id, event_date, status, created_at, created_by FROM event_registration WHERE member_id = :member_id AND (event_date IS NULL OR event_date >= current_date) ORDER BY event_date;")
                 .single(call().bind("member_id", memberId))
+                .map(EventRegistration.map())
+                .all();
+    }
+
+    /**
+     * Retrieves upcoming registrations for any member in the given collection in a single query,
+     * avoiding N+1 lookups when fanning out across a guardian and their managed members.
+     *
+     * @param memberIds the member IDs to fetch registrations for
+     * @return the list of registrations, ordered by event date
+     */
+    public List<EventRegistration> findRegistrationsByMembers(Collection<Integer> memberIds) {
+        if (memberIds.isEmpty()) return List.of();
+        return query("""
+                SELECT
+                    id,
+                    event_id,
+                    member_id,
+                    event_date,
+                    status,
+                    created_at,
+                    created_by
+                FROM
+                    event_registration
+                WHERE member_id = ANY ( :member_ids )
+                  AND ( event_date IS NULL OR event_date >= current_date )
+                ORDER BY event_date;""")
+                .single(call().bind("member_ids", List.copyOf(memberIds), PostgreSqlTypes.INTEGER))
                 .map(EventRegistration.map())
                 .all();
     }
