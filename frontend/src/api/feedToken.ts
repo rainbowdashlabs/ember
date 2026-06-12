@@ -47,8 +47,27 @@ export async function getFeedStatus(): Promise<FeedStatusResponse> {
     return res.data
 }
 
-export function buildFeedUrl(token: string, type: 'ical' | 'rss' | 'atom'): string {
+/**
+ * Verbosity preset that maps to the backend's `?verbose` / `?images` query parameters:
+ * - `rich` — full body, embedded imagery, MediaRSS thumbnails (default)
+ * - `compact` — headline + deep link only, still keeps imagery for readers that surface it
+ * - `minimal` — headline + link only, no inline images or MediaRSS modules
+ *
+ * The backend treats missing params as "rich", so we only emit the params that override
+ * the default. Concept document: see `.concept/feeds.md` §5.
+ */
+export type FeedPreset = 'rich' | 'compact' | 'minimal'
+
+export function buildFeedUrl(token: string, type: 'ical' | 'rss' | 'atom', preset: FeedPreset = 'rich'): string {
     const base = client.defaults.baseURL ?? ''
     const file = type === 'ical' ? 'events.ics' : type === 'rss' ? 'notifications.rss' : 'notifications.atom'
-    return `${window.location.origin}${base}/public/feed/${token}/${file}`
+    const url = `${window.location.origin}${base}/public/feed/${token}/${file}`
+    if (preset === 'rich') return url
+    const params = new URLSearchParams()
+    if (preset === 'compact') params.set('verbose', '0')
+    if (preset === 'minimal') {
+        params.set('verbose', '0')
+        params.set('images', '0')
+    }
+    return `${url}?${params.toString()}`
 }
