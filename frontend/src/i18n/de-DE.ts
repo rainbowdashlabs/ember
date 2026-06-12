@@ -7423,6 +7423,7 @@ volumes:
         typeEnum: 'Auswahl',
         typeUrl: 'URL',
         typeTextarea: 'Langtext',
+        typeLocation: 'Ort',
         typeMember: 'Mitglied',
         typeMemberList: 'Mitgliederliste',
         typeMemberOfGroup: 'Mitglied aus Gruppe',

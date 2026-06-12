@@ -17,6 +17,12 @@ public enum EventFieldType {
     ENUM,
     URL,
     TEXTAREA,
+    /**
+     * Free-text field whose value is treated as the event's location. The personal iCal
+     * feed picks the first {@code LOCATION} field with a non-empty value to populate the
+     * iCal {@code LOCATION} property, which clients render as a tap-to-navigate link.
+     */
+    LOCATION,
     MEMBER,
     MEMBER_LIST,
     MEMBER_OF_GROUP,

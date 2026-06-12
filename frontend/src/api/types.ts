@@ -395,6 +395,7 @@ export const EventFieldTypes = {
     ENUM: 'ENUM',
     URL: 'URL',
     TEXTAREA: 'TEXTAREA',
+    LOCATION: 'LOCATION',
     MEMBER: 'MEMBER',
     MEMBER_LIST: 'MEMBER_LIST',
     MEMBER_OF_GROUP: 'MEMBER_OF_GROUP',
