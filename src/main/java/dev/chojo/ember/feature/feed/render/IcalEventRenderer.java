@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.feed.render;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventFieldService;
@@ -29,10 +30,12 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Builds RFC-5545 {@link VEvent}s for the personal iCal feed.
@@ -77,7 +80,7 @@ public class IcalEventRenderer {
             boolean verbose,
             Map<Integer, EventCategory> categoryMap,
             Map<Integer, RegistrationStatus> ownerStatusByEvent,
-            java.util.Set<Integer> ownerRegisteredEvents,
+            Set<Integer> ownerRegisteredEvents,
             Map<Integer, List<ManagedRegistration>> managedStatusByEvent) {}
 
     /**
@@ -337,7 +340,7 @@ public class IcalEventRenderer {
      * of truth for which statuses are considered active.
      */
     public static Map<Integer, RegistrationStatus> buildOwnerStatusMap(
-            java.util.Collection<dev.chojo.ember.feature.events.entity.EventRegistration> ownerRegistrations) {
+            Collection<EventRegistration> ownerRegistrations) {
         var map = new LinkedHashMap<Integer, RegistrationStatus>();
         for (var r : ownerRegistrations) map.put(r.eventId(), r.status());
         return map;

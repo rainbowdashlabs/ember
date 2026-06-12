@@ -239,7 +239,7 @@ public class NotificationService {
     }
 
     /** Returns the latest notification id + created_at for the given member, for feed cache invalidation. */
-    public dev.chojo.ember.feature.notifications.repository.NotificationRepository.Stamp findMaxStamp(int memberId) {
+    public NotificationRepository.Stamp findMaxStamp(int memberId) {
         return notificationRepository.findMaxStamp(memberId);
     }
 
@@ -566,15 +566,20 @@ public class NotificationService {
                 }
             }
             case BOARD_TICKET_UPDATE -> {
-                if (params instanceof NotificationParams.BoardTicketUpdate p) {
-                    if (notBlank(p.changeDescription())) lines.add(p.changeDescription());
-                    if (notBlank(p.ticketKey())) lines.add(feedKv(locale, "ticketKey", p.ticketKey()));
-                    if (notBlank(p.boardName())) lines.add(feedKv(locale, "board", p.boardName()));
+                if (params
+                        instanceof
+                        NotificationParams.BoardTicketUpdate(
+                                String boardName,
+                                String ticketKey,
+                                String changeDescription)) {
+                    if (notBlank(changeDescription)) lines.add(changeDescription);
+                    if (notBlank(ticketKey)) lines.add(feedKv(locale, "ticketKey", ticketKey));
+                    if (notBlank(boardName)) lines.add(feedKv(locale, "board", boardName));
                 }
             }
             case LOST_AND_FOUND_NEW -> {
-                if (params instanceof NotificationParams.LostAndFoundNew p && notBlank(p.description())) {
-                    lines.add(p.description());
+                if (params instanceof NotificationParams.LostAndFoundNew(String description) && notBlank(description)) {
+                    lines.add(description);
                 }
             }
             case LENDING_NEW_REQUEST -> {
@@ -594,10 +599,15 @@ public class NotificationService {
                 }
             }
             case STORAGE_WARNING -> {
-                if (params instanceof NotificationParams.StorageWarning p) {
-                    lines.add(feedKv(locale, "usedPercent", p.usedPercent() + "%"));
-                    if (notBlank(p.usedFormatted())) lines.add(feedKv(locale, "used", p.usedFormatted()));
-                    if (notBlank(p.quotaFormatted())) lines.add(feedKv(locale, "quota", p.quotaFormatted()));
+                if (params
+                        instanceof
+                        NotificationParams.StorageWarning(
+                                int usedPercent,
+                                String usedFormatted,
+                                String quotaFormatted)) {
+                    lines.add(feedKv(locale, "usedPercent", usedPercent + "%"));
+                    if (notBlank(usedFormatted)) lines.add(feedKv(locale, "used", usedFormatted));
+                    if (notBlank(quotaFormatted)) lines.add(feedKv(locale, "quota", quotaFormatted));
                 }
             }
             default -> {

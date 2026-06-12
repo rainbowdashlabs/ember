@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.feed.FeedFingerprint;
 import dev.chojo.ember.feature.feed.FeedRateLimiter;
 import dev.chojo.ember.feature.feed.render.IcalEventRenderer;
 import dev.chojo.ember.feature.feed.render.NotificationFeedRenderer;
+import dev.chojo.ember.feature.feed.service.FeedMetricsService;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
 import dev.chojo.ember.feature.mail.service.EmailService;
@@ -90,6 +91,7 @@ public class UserFeedRoutes implements Routes {
     private final ImageService imageService;
     private final NotificationFeedRenderer notificationRenderer;
     private final FeedRateLimiter rateLimiter;
+    private final FeedMetricsService metricsService;
 
     @Inject
     public UserFeedRoutes(
@@ -104,7 +106,8 @@ public class UserFeedRoutes implements Routes {
             LostAndFoundService lostAndFoundService,
             ImageService imageService,
             NotificationFeedRenderer notificationRenderer,
-            FeedRateLimiter rateLimiter) {
+            FeedRateLimiter rateLimiter,
+            FeedMetricsService metricsService) {
         this.tokenService = tokenService;
         this.eventService = eventService;
         this.notificationService = notificationService;
@@ -117,6 +120,16 @@ public class UserFeedRoutes implements Routes {
         this.imageService = imageService;
         this.notificationRenderer = notificationRenderer;
         this.rateLimiter = rateLimiter;
+        this.metricsService = metricsService;
+    }
+
+    /**
+     * Records a finished feed render to the metrics service. Should be called from a
+     * {@code finally} so 429 / 304 / 500 paths all get accounted for.
+     */
+    private void recordMetric(Context ctx, String type, long startNanos, int entries) {
+        long durationMs = (System.nanoTime() - startNanos) / 1_000_000L;
+        metricsService.recordRender(type, ctx.status().getCode(), durationMs, entries, ctx.header("User-Agent"));
     }
 
     /**
@@ -179,8 +192,18 @@ public class UserFeedRoutes implements Routes {
             })
     private void icalFeed(Context ctx) {
         applyPrivacyHeaders(ctx);
-        var member = resolveToken(ctx);
-        if (rateLimit(ctx)) return;
+        long start = System.nanoTime();
+        int entryCount = 0;
+        try {
+            var member = resolveToken(ctx);
+            if (rateLimit(ctx)) return;
+            entryCount = doIcalFeed(ctx, member);
+        } finally {
+            recordMetric(ctx, "ics", start, entryCount);
+        }
+    }
+
+    private int doIcalFeed(Context ctx, StationMember member) {
         tokenService.recordIcalPoll(member.id());
         var station = stationRepository.findById(member.stationId()).orElseThrow(NotFoundResponse::new);
         String locale = notificationService.resolveLocale(station.locale());
@@ -200,7 +223,7 @@ public class UserFeedRoutes implements Routes {
         var regLatest = eventService.findMaxRegistrationCreatedAt(allMemberIds);
         var lastModified = eventLatest.isAfter(regLatest) ? eventLatest : regLatest;
         var fp = FeedFingerprint.compute(lastModified, "ics", station.id(), locale, verbose);
-        if (FeedFingerprint.handleConditional(ctx, fp)) return;
+        if (FeedFingerprint.handleConditional(ctx, fp)) return 0;
 
         var categories = eventService.findCategoriesByStation(station.id());
         var categoryMap = new HashMap<Integer, EventCategory>();
@@ -280,6 +303,7 @@ public class UserFeedRoutes implements Routes {
         ctx.contentType("text/calendar; charset=utf-8");
         ctx.header("Cache-Control", "public, max-age=3600");
         ctx.result(calendar.toString());
+        return events.size();
     }
 
     // -- Token-scoped lost-and-found image (for feed reader embedding) --
@@ -353,31 +377,16 @@ public class UserFeedRoutes implements Routes {
             })
     private void rssFeed(Context ctx) {
         applyPrivacyHeaders(ctx);
-        String token = ctx.pathParam("token");
-        var member = resolveToken(ctx);
-        if (rateLimit(ctx)) return;
-        tokenService.recordNotificationPoll(member.id());
-        var station = stationRepository.findById(member.stationId()).orElseThrow(NotFoundResponse::new);
-        String locale = notificationService.resolveLocale(station.locale());
-        String baseUrl = emailService.getBaseUrl();
-        boolean verbose = !"0".equals(ctx.queryParam("verbose"));
-        boolean images = !"0".equals(ctx.queryParam("images"));
-
-        var stamp = notificationService.findMaxStamp(member.id());
-        var fp = FeedFingerprint.compute(stamp.maxCreatedAt(), "rss", stamp.maxId(), locale, verbose, images);
-        if (FeedFingerprint.handleConditional(ctx, fp)) return;
-
-        var notifications = getFeedNotifications(member);
-
-        SyndFeed feed = new SyndFeedImpl();
-        feed.setFeedType("rss_2.0");
-        feed.setTitle(localizedFeedTitle(locale, station));
-        feed.setDescription(notificationService.resolveLocalized(locale, "feed", "description", null));
-        feed.setLanguage(locale);
-        feed.setLink(baseUrl + "/station/dashboard/overview");
-        feed.setEntries(buildSyndEntries(notifications, locale, baseUrl, token, verbose, images));
-
-        outputFeed(ctx, feed, "application/rss+xml; charset=utf-8");
+        long start = System.nanoTime();
+        int entryCount = 0;
+        try {
+            String token = ctx.pathParam("token");
+            var member = resolveToken(ctx);
+            if (rateLimit(ctx)) return;
+            entryCount = doSyndFeed(ctx, member, token, "rss_2.0", "application/rss+xml; charset=utf-8");
+        } finally {
+            recordMetric(ctx, "rss", start, entryCount);
+        }
     }
 
     // -- Atom --
@@ -397,9 +406,19 @@ public class UserFeedRoutes implements Routes {
             })
     private void atomFeed(Context ctx) {
         applyPrivacyHeaders(ctx);
-        String token = ctx.pathParam("token");
-        var member = resolveToken(ctx);
-        if (rateLimit(ctx)) return;
+        long start = System.nanoTime();
+        int entryCount = 0;
+        try {
+            String token = ctx.pathParam("token");
+            var member = resolveToken(ctx);
+            if (rateLimit(ctx)) return;
+            entryCount = doSyndFeed(ctx, member, token, "atom_1.0", "application/atom+xml; charset=utf-8");
+        } finally {
+            recordMetric(ctx, "atom", start, entryCount);
+        }
+    }
+
+    private int doSyndFeed(Context ctx, StationMember member, String token, String feedType, String contentType) {
         tokenService.recordNotificationPoll(member.id());
         var station = stationRepository.findById(member.stationId()).orElseThrow(NotFoundResponse::new);
         String locale = notificationService.resolveLocale(station.locale());
@@ -408,22 +427,27 @@ public class UserFeedRoutes implements Routes {
         boolean images = !"0".equals(ctx.queryParam("images"));
 
         var stamp = notificationService.findMaxStamp(member.id());
-        var fp = FeedFingerprint.compute(stamp.maxCreatedAt(), "atom", stamp.maxId(), locale, verbose, images);
-        if (FeedFingerprint.handleConditional(ctx, fp)) return;
+        // Fingerprint discriminates rss vs atom so a reader switching feeds gets a fresh body.
+        var fp = FeedFingerprint.compute(stamp.maxCreatedAt(), feedType, stamp.maxId(), locale, verbose, images);
+        if (FeedFingerprint.handleConditional(ctx, fp)) return 0;
 
         var notifications = getFeedNotifications(member);
 
         SyndFeed feed = new SyndFeedImpl();
-        feed.setFeedType("atom_1.0");
+        feed.setFeedType(feedType);
         feed.setTitle(localizedFeedTitle(locale, station));
         feed.setDescription(notificationService.resolveLocalized(locale, "feed", "description", null));
         feed.setLanguage(locale);
-        // Atom requires an alternate link, plus a stable self-identifying URI per-feed.
         feed.setLink(baseUrl + "/station/dashboard/overview");
-        feed.setUri("urn:ember:notifications:" + member.id());
-        feed.setEntries(buildSyndEntries(notifications, locale, baseUrl, token, verbose, images));
+        // Atom requires a stable self-identifying URI per-feed; harmless for RSS.
+        if ("atom_1.0".equals(feedType)) {
+            feed.setUri("urn:ember:notifications:" + member.id());
+        }
+        var entries = buildSyndEntries(notifications, locale, baseUrl, token, verbose, images);
+        feed.setEntries(entries);
 
-        outputFeed(ctx, feed, "application/atom+xml; charset=utf-8");
+        outputFeed(ctx, feed, contentType);
+        return entries.size();
     }
 
     private String localizedFeedTitle(String locale, Station station) {

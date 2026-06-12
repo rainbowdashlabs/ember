@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:fafae81420f16075c75472af540793295d7cba755f6f0f77ae975c7d7d54afc1",
-  "generatedAt" : "2026-06-12T17:32:06Z",
+  "schemaHash" : "sha256:610deea9a7692608fff565f2c78d0fdf0aa044db42f73ac7e37d7e9f44a73143",
+  "generatedAt" : "2026-06-12T18:19:15Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -5113,6 +5113,131 @@
         "reason" : "Federation metadata, no personal data"
       },
       "description" : "Specific partners a quiz share is targeted to."
+    },
+    "feed_metric_daily" : {
+      "feature" : "feed",
+      "scope" : "INSTANCE",
+      "tableHash" : "sha256:67b2e99ec2ad7366c3e9dfcfdacde0759a88ffc8d7fd6a6c2614f7989bf292fc",
+      "columns" : [ {
+        "name" : "day",
+        "type" : "date",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "type",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Feed kind: ics, rss, atom."
+      }, {
+        "name" : "status",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "HTTP status code of the response (200, 304, 429, 500, …)."
+      }, {
+        "name" : "count",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "total_duration_ms",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "total_entries",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Sum of entries rendered across the requests in this row."
+      }, {
+        "name" : "bucket_lt_50",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "bucket_lt_200",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "bucket_lt_1000",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "bucket_lt_5000",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "bucket_gte_5000",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true
+      } ],
+      "foreignKeys" : [ ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Global aggregate, no station data"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "No personal data — aggregate counters and histogram buckets only"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "No personal data — aggregate counters and histogram buckets only"
+      },
+      "description" : "Daily rollup of feed render volume, duration histogram, and entry counts. Pruned by configurable retention."
+    },
+    "feed_user_agent_stat" : {
+      "feature" : "feed",
+      "scope" : "INSTANCE",
+      "tableHash" : "sha256:03567959a953f6c2e94f229d68c4d24bf445efa74c4c5a067c20c8d286306475",
+      "columns" : [ {
+        "name" : "ua_hash",
+        "type" : "bpchar",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "First 8 bytes of SHA-256(ua_string) as 16-char hex."
+      }, {
+        "name" : "ua_string",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Verbatim User-Agent header (truncated by the application before insert)."
+      }, {
+        "name" : "request_count",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "first_seen",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "last_seen",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true
+      } ],
+      "foreignKeys" : [ ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Global aggregate, no station data"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "No per-token attribution by design — UA string is global aggregate only"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "No per-token attribution by design — UA string is global aggregate only"
+      },
+      "description" : "Global aggregate of feed reader User-Agents. No per-token attribution by design."
     },
     "form" : {
       "feature" : "forms",

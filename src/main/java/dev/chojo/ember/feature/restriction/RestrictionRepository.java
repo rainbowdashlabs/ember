@@ -18,6 +18,7 @@ import jakarta.inject.Singleton;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -103,19 +104,19 @@ public class RestrictionRepository {
 
         var groupIds = restrictions.stream()
                 .map(Restriction::groupId)
-                .filter(integer -> integer != null)
+                .filter(Objects::nonNull)
                 .toList();
         var tagIds = restrictions.stream()
                 .map(Restriction::tagId)
-                .filter(integer -> integer != null)
+                .filter(Objects::nonNull)
                 .toList();
         var userTypes = restrictions.stream()
                 .map(Restriction::userType)
-                .filter(s -> s != null)
+                .filter(Objects::nonNull)
                 .toList();
         var memberIds = restrictions.stream()
                 .map(Restriction::memberId)
-                .filter(integer -> integer != null)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toCollection(HashSet::new));
 
         if (!groupIds.isEmpty()) {

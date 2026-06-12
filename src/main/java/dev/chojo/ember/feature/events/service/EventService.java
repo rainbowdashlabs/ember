@@ -690,12 +690,12 @@ public class EventService {
     }
 
     /** Returns the most recent station-event modification time, for feed cache invalidation. */
-    public java.time.Instant findMaxEventUpdatedAt(int stationId) {
+    public Instant findMaxEventUpdatedAt(int stationId) {
         return eventRepository.findMaxEventUpdatedAt(stationId);
     }
 
     /** Returns the most recent registration time across the given members, for feed cache invalidation. */
-    public java.time.Instant findMaxRegistrationCreatedAt(Collection<Integer> memberIds) {
+    public Instant findMaxRegistrationCreatedAt(Collection<Integer> memberIds) {
         return eventRepository.findMaxRegistrationCreatedAt(memberIds);
     }
 

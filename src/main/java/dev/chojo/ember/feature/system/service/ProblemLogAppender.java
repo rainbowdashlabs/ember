@@ -178,7 +178,7 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
             this.distinctMessages.add(message);
         }
 
-        void addOccurrence(String message, Instant timestamp) {
+        synchronized void addOccurrence(String message, Instant timestamp) {
             count++;
             if (timestamp.isAfter(lastOccurrence)) {
                 lastOccurrence = timestamp;

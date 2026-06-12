@@ -181,175 +181,204 @@ public class NotificationFeedRenderer {
                 }
             }
             case NEWS_COMMENT -> {
-                if (params instanceof NotificationParams.NewsComment p) {
-                    putIfPresent(details, label(ctx, "by"), p.author());
-                    putIfPresent(details, label(ctx, "newsTitle", "News"), p.newsTitle());
-                    if (notBlank(p.preview())) details.put("Preview", p.preview());
+                if (params instanceof NotificationParams.NewsComment(String newsTitle, String author, String preview)) {
+                    putIfPresent(details, label(ctx, "by"), author);
+                    putIfPresent(details, label(ctx, "newsTitle", "News"), newsTitle);
+                    if (notBlank(preview)) details.put("Preview", preview);
                 }
             }
             case COMMENT_MENTION -> {
-                if (params instanceof NotificationParams.CommentMention p) {
-                    putIfPresent(details, label(ctx, "by"), p.author());
-                    putIfPresent(details, label(ctx, "entity", "Entity"), p.entityTitle());
+                if (params instanceof NotificationParams.CommentMention(String entityTitle, String author)) {
+                    putIfPresent(details, label(ctx, "by"), author);
+                    putIfPresent(details, label(ctx, "entity", "Entity"), entityTitle);
                 }
             }
             case NEW_EVENT -> {
-                if (params instanceof NotificationParams.NewEvent p) {
-                    if (notBlank(p.eventDescription())) details.put(p.title(), p.eventDescription());
+                if (params instanceof NotificationParams.NewEvent(String title, String eventDescription)) {
+                    if (notBlank(eventDescription)) details.put(title, eventDescription);
                 }
             }
             case NEW_EVENTS_BATCH -> {
-                if (params instanceof NotificationParams.NewEventsBatch p) {
-                    details.put(label(ctx, "count", "Count"), String.valueOf(p.count()));
-                    putIfPresent(details, label(ctx, "events"), p.eventPreview());
+                if (params instanceof NotificationParams.NewEventsBatch(int count, String eventPreview)) {
+                    details.put(label(ctx, "count", "Count"), String.valueOf(count));
+                    putIfPresent(details, label(ctx, "events"), eventPreview);
                 }
             }
             case EVENT_REGISTRATION_STATUS -> {
-                if (params instanceof NotificationParams.EventRegistrationStatus p) {
-                    putIfPresent(
-                            details,
-                            label(ctx, "status", "Status"),
-                            statusWithSymbol(p.status().name()));
-                    putIfPresent(details, label(ctx, "event", "Event"), p.eventName());
-                    putIfPresent(details, "Preview", p.eventDescription());
+                if (params
+                        instanceof
+                        NotificationParams.EventRegistrationStatus(
+                                String eventName,
+                                dev.chojo.ember.feature.events.entity.RegistrationStatus status,
+                                String eventDescription)) {
+                    putIfPresent(details, label(ctx, "status", "Status"), statusWithSymbol(status.name()));
+                    putIfPresent(details, label(ctx, "event", "Event"), eventName);
+                    putIfPresent(details, "Preview", eventDescription);
                 }
             }
             case EVENT_CANCELLED -> {
-                if (params instanceof NotificationParams.EventCancelled p) {
-                    putIfPresent(details, label(ctx, "event", "Event"), p.eventName());
-                    putIfPresent(details, label(ctx, "reason"), p.reason());
+                if (params instanceof NotificationParams.EventCancelled(String eventName, String reason)) {
+                    putIfPresent(details, label(ctx, "event", "Event"), eventName);
+                    putIfPresent(details, label(ctx, "reason"), reason);
                 }
             }
             case EVENT_REMINDER -> {
-                if (params instanceof NotificationParams.EventReminder p) {
-                    putIfPresent(details, label(ctx, "event", "Event"), p.eventName());
-                    putIfPresent(details, label(ctx, "eventDate"), p.eventDate());
-                    details.put(label(ctx, "daysBefore"), String.valueOf(p.daysBefore()));
+                if (params
+                        instanceof
+                        NotificationParams.EventReminder(String eventName, int daysBefore, String eventDate)) {
+                    putIfPresent(details, label(ctx, "event", "Event"), eventName);
+                    putIfPresent(details, label(ctx, "eventDate"), eventDate);
+                    details.put(label(ctx, "daysBefore"), String.valueOf(daysBefore));
                 }
             }
             case EXCHANGE_NEW_REQUEST -> {
-                if (params instanceof NotificationParams.ExchangeNewRequest p) {
-                    putIfPresent(details, label(ctx, "by"), p.memberName());
-                    putIfPresent(details, "Inventory", p.inventoryName());
-                    putIfPresent(details, label(ctx, "reason"), p.reason());
+                if (params
+                        instanceof
+                        NotificationParams.ExchangeNewRequest(String memberName, String inventoryName, String reason)) {
+                    putIfPresent(details, label(ctx, "by"), memberName);
+                    putIfPresent(details, "Inventory", inventoryName);
+                    putIfPresent(details, label(ctx, "reason"), reason);
                 }
             }
             case EXCHANGE_STATUS_CHANGE -> {
-                if (params instanceof NotificationParams.ExchangeStatusChange p) {
-                    putIfPresent(
-                            details,
-                            label(ctx, "status", "Status"),
-                            statusWithSymbol(p.status().name()));
-                    putIfPresent(details, "Inventory", p.inventoryName());
-                    putIfPresent(details, label(ctx, "reason"), p.reason());
+                if (params
+                        instanceof
+                        NotificationParams.ExchangeStatusChange(
+                                dev.chojo.ember.feature.inventory.entity.ExchangeStatus status,
+                                String inventoryName,
+                                String reason)) {
+                    putIfPresent(details, label(ctx, "status", "Status"), statusWithSymbol(status.name()));
+                    putIfPresent(details, "Inventory", inventoryName);
+                    putIfPresent(details, label(ctx, "reason"), reason);
                 }
             }
             case LOST_AND_FOUND_NEW -> {
-                if (params instanceof NotificationParams.LostAndFoundNew p) {
-                    putIfPresent(details, "Description", p.description());
+                if (params instanceof NotificationParams.LostAndFoundNew(String description)) {
+                    putIfPresent(details, "Description", description);
                 }
             }
             case LOST_AND_FOUND_CLAIMED -> {
-                if (params instanceof NotificationParams.LostAndFoundClaimed p) {
-                    putIfPresent(details, label(ctx, "by"), p.name());
-                    putIfPresent(details, "Description", p.description());
+                if (params instanceof NotificationParams.LostAndFoundClaimed(String name, String description)) {
+                    putIfPresent(details, label(ctx, "by"), name);
+                    putIfPresent(details, "Description", description);
                 }
             }
             case LENDING_NEW_REQUEST -> {
-                if (params instanceof NotificationParams.LendingNewRequest p) {
-                    putIfPresent(details, label(ctx, "station", "Station"), p.stationName());
-                    putIfPresent(details, label(ctx, "itemSummary"), p.itemSummary());
+                if (params instanceof NotificationParams.LendingNewRequest(String stationName, String itemSummary)) {
+                    putIfPresent(details, label(ctx, "station", "Station"), stationName);
+                    putIfPresent(details, label(ctx, "itemSummary"), itemSummary);
                 }
             }
             case LENDING_STATUS_CHANGE -> {
-                if (params instanceof NotificationParams.LendingStatusChange p) {
-                    putIfPresent(
-                            details, label(ctx, "status", "Status"), p.status().name());
-                    putIfPresent(details, label(ctx, "station", "Station"), p.stationName());
+                if (params
+                        instanceof
+                        NotificationParams.LendingStatusChange(
+                                String stationName,
+                                dev.chojo.ember.feature.federation.entity.LendingStatus status)) {
+                    putIfPresent(details, label(ctx, "status", "Status"), status.name());
+                    putIfPresent(details, label(ctx, "station", "Station"), stationName);
                 }
             }
             case LENDING_NEW_MESSAGE -> {
-                if (params instanceof NotificationParams.LendingNewMessage p) {
-                    putIfPresent(details, label(ctx, "by"), p.senderName());
-                    putIfPresent(details, label(ctx, "station", "Station"), p.stationName());
+                if (params instanceof NotificationParams.LendingNewMessage(String stationName, String senderName)) {
+                    putIfPresent(details, label(ctx, "by"), senderName);
+                    putIfPresent(details, label(ctx, "station", "Station"), stationName);
                 }
             }
             case BOARD_TICKET_UPDATE -> {
-                if (params instanceof NotificationParams.BoardTicketUpdate p) {
-                    putIfPresent(details, label(ctx, "ticketKey"), p.ticketKey());
-                    putIfPresent(details, label(ctx, "board"), p.boardName());
-                    putIfPresent(details, "Change", p.changeDescription());
+                if (params
+                        instanceof
+                        NotificationParams.BoardTicketUpdate(
+                                String boardName,
+                                String ticketKey,
+                                String changeDescription)) {
+                    putIfPresent(details, label(ctx, "ticketKey"), ticketKey);
+                    putIfPresent(details, label(ctx, "board"), boardName);
+                    putIfPresent(details, "Change", changeDescription);
                 }
             }
             case STORAGE_WARNING -> {
-                if (params instanceof NotificationParams.StorageWarning p) {
-                    details.put(label(ctx, "usedPercent"), p.usedPercent() + "%");
-                    putIfPresent(details, label(ctx, "used"), p.usedFormatted());
-                    putIfPresent(details, label(ctx, "quota"), p.quotaFormatted());
+                if (params
+                        instanceof
+                        NotificationParams.StorageWarning(
+                                int usedPercent,
+                                String usedFormatted,
+                                String quotaFormatted)) {
+                    details.put(label(ctx, "usedPercent"), usedPercent + "%");
+                    putIfPresent(details, label(ctx, "used"), usedFormatted);
+                    putIfPresent(details, label(ctx, "quota"), quotaFormatted);
                 }
             }
             case REGISTRATION_DEADLINE_EXPIRED -> {
-                if (params instanceof NotificationParams.RegistrationDeadlineExpired p) {
-                    putIfPresent(details, label(ctx, "event", "Event"), p.eventName());
-                    details.put(label(ctx, "pendingCount"), String.valueOf(p.pendingCount()));
+                if (params
+                        instanceof NotificationParams.RegistrationDeadlineExpired(String eventName, int pendingCount)) {
+                    putIfPresent(details, label(ctx, "event", "Event"), eventName);
+                    details.put(label(ctx, "pendingCount"), String.valueOf(pendingCount));
                 }
             }
             case WAITLIST_NEW_ENTRY -> {
-                if (params instanceof NotificationParams.WaitlistNewEntry p) {
-                    putIfPresent(details, label(ctx, "child", "Child"), p.childName());
-                    putIfPresent(details, label(ctx, "list", "List"), p.listName());
+                if (params instanceof NotificationParams.WaitlistNewEntry(String childName, String listName)) {
+                    putIfPresent(details, label(ctx, "child", "Child"), childName);
+                    putIfPresent(details, label(ctx, "list", "List"), listName);
                 }
             }
             case WAITLIST_PUBLIC_REGISTRATION -> {
-                if (params instanceof NotificationParams.WaitlistPublicRegistration p) {
-                    putIfPresent(details, label(ctx, "child", "Child"), p.childName());
-                    putIfPresent(details, label(ctx, "list", "List"), p.listName());
+                if (params
+                        instanceof NotificationParams.WaitlistPublicRegistration(String childName, String listName)) {
+                    putIfPresent(details, label(ctx, "child", "Child"), childName);
+                    putIfPresent(details, label(ctx, "list", "List"), listName);
                 }
             }
             case MEMBER_ADDED_TO_GROUP -> {
-                if (params instanceof NotificationParams.MemberAddedToGroup p) {
-                    putIfPresent(details, label(ctx, "group", "Group"), p.groupName());
+                if (params instanceof NotificationParams.MemberAddedToGroup(String groupName)) {
+                    putIfPresent(details, label(ctx, "group", "Group"), groupName);
                 }
             }
             case PROFILE_FIELD_CHANGED -> {
-                if (params instanceof NotificationParams.ProfileFieldChanged p) {
-                    putIfPresent(details, label(ctx, "member", "Member"), p.memberName());
-                    putIfPresent(details, label(ctx, "field", "Field"), p.fieldName());
+                if (params instanceof NotificationParams.ProfileFieldChanged(String memberName, String fieldName)) {
+                    putIfPresent(details, label(ctx, "member", "Member"), memberName);
+                    putIfPresent(details, label(ctx, "field", "Field"), fieldName);
                 }
             }
             case PROCUREMENT_REQUESTED, PROCUREMENT_FULFILLED -> {
-                if (params instanceof NotificationParams.ProcurementRequested p) {
-                    putIfPresent(details, "Inventory", p.inventoryName());
-                } else if (params instanceof NotificationParams.ProcurementFulfilled p) {
-                    putIfPresent(details, "Inventory", p.inventoryName());
+                if (params instanceof NotificationParams.ProcurementRequested(String name)) {
+                    putIfPresent(details, "Inventory", name);
+                } else if (params instanceof NotificationParams.ProcurementFulfilled(String inventoryName)) {
+                    putIfPresent(details, "Inventory", inventoryName);
                 }
             }
             case NEW_FORM -> {
-                if (params instanceof NotificationParams.NewForm p) {
-                    putIfPresent(details, "Title", p.title());
+                if (params instanceof NotificationParams.NewForm(String title)) {
+                    putIfPresent(details, "Title", title);
                 }
             }
             case PROCEDURE_ASSIGNED -> {
-                if (params instanceof NotificationParams.ProcedureAssigned p) {
-                    putIfPresent(details, label(ctx, "procedure", "Procedure"), p.procedureName());
-                    putIfPresent(details, label(ctx, "by"), p.assignedByName());
+                if (params
+                        instanceof NotificationParams.ProcedureAssigned(String procedureName, String assignedByName)) {
+                    putIfPresent(details, label(ctx, "procedure", "Procedure"), procedureName);
+                    putIfPresent(details, label(ctx, "by"), assignedByName);
                 }
             }
             case PROCEDURE_RESOLVED -> {
-                if (params instanceof NotificationParams.ProcedureResolvedParams p) {
-                    putIfPresent(details, label(ctx, "procedure", "Procedure"), p.procedureName());
+                if (params instanceof NotificationParams.ProcedureResolvedParams(String procedureName)) {
+                    putIfPresent(details, label(ctx, "procedure", "Procedure"), procedureName);
                 }
             }
             case PROCEDURE_REOPENED -> {
-                if (params instanceof NotificationParams.ProcedureReopenedParams p) {
-                    putIfPresent(details, label(ctx, "procedure", "Procedure"), p.procedureName());
+                if (params instanceof NotificationParams.ProcedureReopenedParams(String procedureName)) {
+                    putIfPresent(details, label(ctx, "procedure", "Procedure"), procedureName);
                 }
             }
             case PROCEDURE_ITEM_CHECKED -> {
-                if (params instanceof NotificationParams.ProcedureItemCheckedParams p) {
-                    putIfPresent(details, label(ctx, "procedure", "Procedure"), p.procedureName());
-                    putIfPresent(details, label(ctx, "item"), p.itemTitle());
-                    putIfPresent(details, label(ctx, "by"), p.checkedByName());
+                if (params
+                        instanceof
+                        NotificationParams.ProcedureItemCheckedParams(
+                                String procedureName,
+                                String itemTitle,
+                                String checkedByName)) {
+                    putIfPresent(details, label(ctx, "procedure", "Procedure"), procedureName);
+                    putIfPresent(details, label(ctx, "item"), itemTitle);
+                    putIfPresent(details, label(ctx, "by"), checkedByName);
                 }
             }
         }
@@ -404,7 +433,7 @@ public class NotificationFeedRenderer {
 
     private static String resolveImageAlt(Notification notification) {
         var params = notification.data().params();
-        if (params instanceof NotificationParams.LostAndFoundNew p) return p.description();
+        if (params instanceof NotificationParams.LostAndFoundNew(String description)) return description;
         if (params instanceof NotificationParams.LostAndFoundClaimed p) return p.description();
         return "";
     }

@@ -24,6 +24,7 @@ import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
+import dev.chojo.ember.conf.file.elements.Metrics;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.handlers.BoardTicketChangedHandler;
@@ -71,8 +72,10 @@ import dev.chojo.ember.feature.federation.route.FederationRemoteRoutes;
 import dev.chojo.ember.feature.federation.route.FederationRoutes;
 import dev.chojo.ember.feature.federation.route.LendingRoutes;
 import dev.chojo.ember.feature.federation.service.FederationVersionBroadcaster;
+import dev.chojo.ember.feature.feed.route.FeedMetricsRoutes;
 import dev.chojo.ember.feature.feed.route.FeedTokenRoutes;
 import dev.chojo.ember.feature.feed.route.UserFeedRoutes;
+import dev.chojo.ember.feature.feed.service.FeedMetricsService;
 import dev.chojo.ember.feature.form.route.FormRoutes;
 import dev.chojo.ember.feature.inventory.route.ExchangeRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryCheckRoutes;
@@ -203,6 +206,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(DiscoveryRoutes.class);
         routesBinder.addBinding().to(FeedTokenRoutes.class);
         routesBinder.addBinding().to(UserFeedRoutes.class);
+        routesBinder.addBinding().to(FeedMetricsRoutes.class);
         routesBinder.addBinding().to(EventCommentRoutes.class);
         routesBinder.addBinding().to(NoteRoutes.class);
         routesBinder.addBinding().to(BoardRoutes.class);
@@ -251,6 +255,7 @@ public class EmberModule extends AbstractModule {
         bind(EventReminderChecker.class).asEagerSingleton();
         bind(StorageReconciliationService.class).asEagerSingleton();
         bind(FederationVersionBroadcaster.class).asEagerSingleton();
+        bind(FeedMetricsService.class).asEagerSingleton();
     }
 
     @Provides
@@ -302,6 +307,12 @@ public class EmberModule extends AbstractModule {
     @Singleton
     Storage storage(File config) {
         return config.storage();
+    }
+
+    @Provides
+    @Singleton
+    Metrics metrics(File config) {
+        return config.metrics();
     }
 
     @Provides

@@ -573,7 +573,7 @@ public class StationImportService {
             this.currentTable = table;
         }
 
-        void completeTable() {
+        synchronized void completeTable() {
             this.completedTables++;
         }
 
