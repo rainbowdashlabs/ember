@@ -238,6 +238,11 @@ public class NotificationService {
         return notificationRepository.findAll(memberId);
     }
 
+    /** Returns the latest notification id + created_at for the given member, for feed cache invalidation. */
+    public dev.chojo.ember.feature.notifications.repository.NotificationRepository.Stamp findMaxStamp(int memberId) {
+        return notificationRepository.findMaxStamp(memberId);
+    }
+
     public Map<NotificationType, NotificationSetting> getNotificationSettings(int memberId) {
         return notificationSettingsRepository.findByMemberAsMap(memberId);
     }

@@ -211,7 +211,8 @@ public class EventRepository {
                     requires_confirmation = :requires_confirmation, category_id = :category_id,
                     public = :public, registration_limit = :registration_limit,
                     min_registrations = :min_registrations, threshold_date = :threshold_date,
-                    registration_close_days = :registration_close_days
+                    registration_close_days = :registration_close_days,
+                    updated_at = now()
                 WHERE id = :id;""")
                 .single(call().bind("name", name)
                         .bind("description", description)
@@ -440,7 +441,7 @@ public class EventRepository {
      * @return true if a row was updated
      */
     public boolean updateRestrictionMode(int eventId, RestrictionMode mode) {
-        return query("UPDATE station_event SET restriction_mode = :mode WHERE id = :id;")
+        return query("UPDATE station_event SET restriction_mode = :mode, updated_at = now() WHERE id = :id;")
                 .single(call().bind("mode", mode).bind("id", eventId))
                 .update()
                 .changed();
@@ -560,7 +561,7 @@ public class EventRepository {
     }
 
     public void markDeadlineNotified(int eventId) {
-        query("UPDATE station_event SET deadline_notified = TRUE WHERE id = :id;")
+        query("UPDATE station_event SET deadline_notified = TRUE, updated_at = now() WHERE id = :id;")
                 .single(call().bind("id", eventId))
                 .update();
     }
@@ -633,6 +634,33 @@ public class EventRepository {
                 .single(call().bind("member_ids", List.copyOf(memberIds), PostgreSqlTypes.INTEGER))
                 .map(EventRegistration.map())
                 .all();
+    }
+
+    /**
+     * Returns the most recent {@code updated_at} across all events of a station, or
+     * {@link Instant#EPOCH} when the station has no events. Used to derive feed ETags so the
+     * cached iCal feed picks up event mutations.
+     */
+    public Instant findMaxEventUpdatedAt(int stationId) {
+        return query("SELECT max(updated_at) AS m FROM station_event WHERE station_id = :station_id;")
+                .single(call().bind("station_id", stationId))
+                .map(row -> row.get("m", INSTANT_TIMESTAMP))
+                .first()
+                .orElse(Instant.EPOCH);
+    }
+
+    /**
+     * Returns the most recent {@code created_at} across the given members' registrations.
+     * The registration upsert bumps {@code created_at} on every status change, so this acts as
+     * a freshness signal for the iCal feed's per-member visibility filtering.
+     */
+    public Instant findMaxRegistrationCreatedAt(Collection<Integer> memberIds) {
+        if (memberIds.isEmpty()) return Instant.EPOCH;
+        return query("SELECT max(created_at) AS m FROM event_registration WHERE member_id = ANY(:member_ids);")
+                .single(call().bind("member_ids", List.copyOf(memberIds), PostgreSqlTypes.INTEGER))
+                .map(row -> row.get("m", INSTANT_TIMESTAMP))
+                .first()
+                .orElse(Instant.EPOCH);
     }
 
     /**
@@ -781,7 +809,7 @@ public class EventRepository {
      */
     public boolean cancelEvent(int id, String reason) {
         return query(
-                        "UPDATE station_event SET cancelled = TRUE, cancelled_at = now(), cancel_reason = :reason WHERE id = :id;")
+                        "UPDATE station_event SET cancelled = TRUE, cancelled_at = now(), cancel_reason = :reason, updated_at = now() WHERE id = :id;")
                 .single(call().bind("id", id).bind("reason", reason))
                 .update()
                 .changed();
@@ -814,7 +842,7 @@ public class EventRepository {
      * @return true if a row was updated
      */
     public boolean setThresholdNotified(int eventId) {
-        return query("UPDATE station_event SET threshold_notified = TRUE WHERE id = :id;")
+        return query("UPDATE station_event SET threshold_notified = TRUE, updated_at = now() WHERE id = :id;")
                 .single(call().bind("id", eventId))
                 .update()
                 .changed();
@@ -862,8 +890,13 @@ public class EventRepository {
                 .single(call().bind("event_id", eventId))
                 .delete();
         for (int days : daysBefore) {
-            query(
-                            "INSERT INTO event_reminder(event_id, days_before) VALUES(:event_id, :days_before) ON CONFLICT DO NOTHING;")
+            query("""
+                    INSERT
+                    INTO
+                        event_reminder(event_id, days_before)
+                    VALUES
+                        (:event_id, :days_before)
+                    ON CONFLICT DO NOTHING;""")
                     .single(call().bind("event_id", eventId).bind("days_before", days))
                     .insert();
         }
@@ -878,8 +911,13 @@ public class EventRepository {
 
     public boolean isReminderSent(int eventId, LocalDate eventDate, int daysBefore) {
         return query("""
-                SELECT 1 FROM event_reminder_sent
-                WHERE event_id = :event_id AND event_date = :event_date AND days_before = :days_before;""")
+                SELECT
+                    1
+                FROM
+                    event_reminder_sent
+                WHERE event_id = :event_id
+                  AND event_date = :event_date
+                  AND days_before = :days_before;""")
                 .single(call().bind("event_id", eventId)
                         .bind("event_date", eventDate)
                         .bind("days_before", daysBefore))

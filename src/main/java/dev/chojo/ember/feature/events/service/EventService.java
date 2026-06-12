@@ -689,6 +689,16 @@ public class EventService {
         return eventRepository.findRegistrationsByMembers(memberIds);
     }
 
+    /** Returns the most recent station-event modification time, for feed cache invalidation. */
+    public java.time.Instant findMaxEventUpdatedAt(int stationId) {
+        return eventRepository.findMaxEventUpdatedAt(stationId);
+    }
+
+    /** Returns the most recent registration time across the given members, for feed cache invalidation. */
+    public java.time.Instant findMaxRegistrationCreatedAt(Collection<Integer> memberIds) {
+        return eventRepository.findMaxRegistrationCreatedAt(memberIds);
+    }
+
     /**
      * Registers a member for an event. If {@code autoAccept} is true, the registration is immediately accepted.
      *

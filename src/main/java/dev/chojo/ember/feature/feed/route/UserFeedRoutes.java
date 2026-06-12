@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.service.EventService;
+import dev.chojo.ember.feature.feed.FeedFingerprint;
 import dev.chojo.ember.feature.feed.render.IcalEventRenderer;
 import dev.chojo.ember.feature.feed.render.NotificationFeedRenderer;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
@@ -135,6 +136,22 @@ public class UserFeedRoutes implements Routes {
         var station = stationRepository.findById(member.stationId()).orElseThrow(NotFoundResponse::new);
         String locale = notificationService.resolveLocale(station.locale());
         boolean verbose = !"0".equals(ctx.queryParam("verbose"));
+
+        // Conditional GET: cheaper than re-rendering an unchanged calendar. The fingerprint
+        // covers event mutations (max station_event.updated_at) and registration changes
+        // across the owner + their managed members (max event_registration.created_at, which
+        // the upsert bumps on every status change).
+        var managedIds = memberRepository.findManaged(member.id()).stream()
+                .map(StationMember::id)
+                .toList();
+        var allMemberIds = new ArrayList<Integer>(managedIds.size() + 1);
+        allMemberIds.add(member.id());
+        allMemberIds.addAll(managedIds);
+        var eventLatest = eventService.findMaxEventUpdatedAt(station.id());
+        var regLatest = eventService.findMaxRegistrationCreatedAt(allMemberIds);
+        var lastModified = eventLatest.isAfter(regLatest) ? eventLatest : regLatest;
+        var fp = FeedFingerprint.compute(lastModified, "ics", station.id(), locale, verbose);
+        if (FeedFingerprint.handleConditional(ctx, fp)) return;
 
         var categories = eventService.findCategoriesByStation(station.id());
         var categoryMap = new HashMap<Integer, EventCategory>();
@@ -279,11 +296,16 @@ public class UserFeedRoutes implements Routes {
         var member = resolveToken(ctx);
         tokenService.recordNotificationPoll(member.id());
         var station = stationRepository.findById(member.stationId()).orElseThrow(NotFoundResponse::new);
-        var notifications = getFeedNotifications(member);
         String locale = notificationService.resolveLocale(station.locale());
         String baseUrl = emailService.getBaseUrl();
         boolean verbose = !"0".equals(ctx.queryParam("verbose"));
         boolean images = !"0".equals(ctx.queryParam("images"));
+
+        var stamp = notificationService.findMaxStamp(member.id());
+        var fp = FeedFingerprint.compute(stamp.maxCreatedAt(), "rss", stamp.maxId(), locale, verbose, images);
+        if (FeedFingerprint.handleConditional(ctx, fp)) return;
+
+        var notifications = getFeedNotifications(member);
 
         SyndFeed feed = new SyndFeedImpl();
         feed.setFeedType("rss_2.0");
@@ -316,11 +338,16 @@ public class UserFeedRoutes implements Routes {
         var member = resolveToken(ctx);
         tokenService.recordNotificationPoll(member.id());
         var station = stationRepository.findById(member.stationId()).orElseThrow(NotFoundResponse::new);
-        var notifications = getFeedNotifications(member);
         String locale = notificationService.resolveLocale(station.locale());
         String baseUrl = emailService.getBaseUrl();
         boolean verbose = !"0".equals(ctx.queryParam("verbose"));
         boolean images = !"0".equals(ctx.queryParam("images"));
+
+        var stamp = notificationService.findMaxStamp(member.id());
+        var fp = FeedFingerprint.compute(stamp.maxCreatedAt(), "atom", stamp.maxId(), locale, verbose, images);
+        if (FeedFingerprint.handleConditional(ctx, fp)) return;
+
+        var notifications = getFeedNotifications(member);
 
         SyndFeed feed = new SyndFeedImpl();
         feed.setFeedType("atom_1.0");

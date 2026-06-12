@@ -1267,4 +1267,68 @@ class EventRepositoryTest extends RepositoryTestBase {
         assertEquals(member.id(), pending.getFirst().memberId());
         eventRepo.delete(event.id());
     }
+
+    @Test
+    @Order(150)
+    void findMaxEventUpdatedAtForEmptyStationReturnsEpoch() {
+        var emptyStation = stationRepo.create("Empty For Max");
+        try {
+            assertEquals(Instant.EPOCH, eventRepo.findMaxEventUpdatedAt(emptyStation.id()));
+        } finally {
+            stationRepo.delete(emptyStation.id());
+        }
+    }
+
+    @Test
+    @Order(151)
+    void findMaxRegistrationCreatedAtIsEpochForEmptyMembers() {
+        assertEquals(Instant.EPOCH, eventRepo.findMaxRegistrationCreatedAt(List.of()));
+        assertEquals(Instant.EPOCH, eventRepo.findMaxRegistrationCreatedAt(List.of(99999)));
+    }
+
+    @Test
+    @Order(152)
+    void findMaxStampsAdvanceAfterMutations() {
+        var freshStation = stationRepo.create("Fresh Max Tracking");
+        var acc = accountRepo.create("max-track@test.com", "Max", "Track");
+        var member = stationMemberRepo.create(freshStation.id(), acc.id());
+        try {
+            var initial = eventRepo.findMaxEventUpdatedAt(freshStation.id());
+            assertEquals(Instant.EPOCH, initial);
+
+            var event = eventRepo.create(
+                    freshStation.id(),
+                    "Tracked",
+                    "",
+                    StationEvent.EventType.ONE_TIME,
+                    null,
+                    Instant.parse("2027-10-10T09:00:00Z"),
+                    Instant.parse("2027-10-10T11:00:00Z"),
+                    null,
+                    true,
+                    null,
+                    false,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null);
+            var afterCreate = eventRepo.findMaxEventUpdatedAt(freshStation.id());
+            assertTrue(afterCreate.isAfter(Instant.EPOCH), "create should bump the max updated_at");
+
+            // Registration upsert bumps created_at; max should reflect that.
+            var regBefore = eventRepo.findMaxRegistrationCreatedAt(List.of(member.id()));
+            assertEquals(Instant.EPOCH, regBefore);
+            eventRepo.createRegistration(
+                    event.id(), member.id(), LocalDate.of(2027, 10, 10), RegistrationStatus.PENDING, null);
+            var regAfter = eventRepo.findMaxRegistrationCreatedAt(List.of(member.id()));
+            assertTrue(regAfter.isAfter(Instant.EPOCH), "registration insert should bump the stamp");
+
+            eventRepo.delete(event.id());
+        } finally {
+            stationMemberRepo.delete(member.id());
+            accountRepo.delete(acc.id());
+            stationRepo.delete(freshStation.id());
+        }
+    }
 }

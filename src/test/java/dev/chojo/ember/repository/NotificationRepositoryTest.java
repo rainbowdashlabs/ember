@@ -133,4 +133,40 @@ class NotificationRepositoryTest extends RepositoryTestBase {
         // Should not throw
         notificationRepo.deleteOldAcknowledged();
     }
+
+    @Test
+    @Order(20)
+    void findMaxStampForMemberWithoutNotificationsReturnsZeroAndEpoch() {
+        var freshAcc = accountRepo.create("stamp-empty@test.com", "Stamp", "Empty");
+        var freshMember = stationMemberRepo.create(station.id(), freshAcc.id());
+        try {
+            var stamp = notificationRepo.findMaxStamp(freshMember.id());
+            assertEquals(0, stamp.maxId());
+            assertEquals(java.time.Instant.EPOCH, stamp.maxCreatedAt());
+        } finally {
+            stationMemberRepo.delete(freshMember.id());
+            accountRepo.delete(freshAcc.id());
+        }
+    }
+
+    @Test
+    @Order(21)
+    void findMaxStampAdvancesAfterInsert() {
+        var freshAcc = accountRepo.create("stamp-fresh@test.com", "Stamp", "Fresh");
+        var freshMember = stationMemberRepo.create(station.id(), freshAcc.id());
+        try {
+            var n = notificationRepo.create(
+                    freshMember.id(),
+                    dev.chojo.ember.feature.notifications.entity.NotificationType.MEMBER_ADDED_TO_GROUP,
+                    dev.chojo.ember.feature.notifications.entity.NotificationData.of(
+                            new dev.chojo.ember.feature.notifications.entity.NotificationParams.MemberAddedToGroup(
+                                    "Alpha")));
+            var stamp = notificationRepo.findMaxStamp(freshMember.id());
+            assertEquals(n.id(), stamp.maxId());
+            assertTrue(stamp.maxCreatedAt().isAfter(java.time.Instant.EPOCH));
+        } finally {
+            stationMemberRepo.delete(freshMember.id());
+            accountRepo.delete(freshAcc.id());
+        }
+    }
 }
