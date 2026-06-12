@@ -20,7 +20,10 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.feed.render.IcalEventRenderer;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
+import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.media.service.ImageCategory;
+import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.entity.Notification;
@@ -64,6 +67,8 @@ public class UserFeedRoutes implements Routes {
     private final EmailService emailService;
     private final AccountRepository accountRepository;
     private final IcalEventRenderer icalRenderer;
+    private final LostAndFoundService lostAndFoundService;
+    private final ImageService imageService;
 
     @Inject
     public UserFeedRoutes(
@@ -74,7 +79,9 @@ public class UserFeedRoutes implements Routes {
             StationRepository stationRepository,
             EmailService emailService,
             AccountRepository accountRepository,
-            IcalEventRenderer icalRenderer) {
+            IcalEventRenderer icalRenderer,
+            LostAndFoundService lostAndFoundService,
+            ImageService imageService) {
         this.tokenService = tokenService;
         this.eventService = eventService;
         this.notificationService = notificationService;
@@ -83,6 +90,8 @@ public class UserFeedRoutes implements Routes {
         this.emailService = emailService;
         this.accountRepository = accountRepository;
         this.icalRenderer = icalRenderer;
+        this.lostAndFoundService = lostAndFoundService;
+        this.imageService = imageService;
     }
 
     @Override
@@ -90,6 +99,7 @@ public class UserFeedRoutes implements Routes {
         routes.get(prefix + "/public/feed/{token}/events.ics", this::icalFeed);
         routes.get(prefix + "/public/feed/{token}/notifications.rss", this::rssFeed);
         routes.get(prefix + "/public/feed/{token}/notifications.atom", this::atomFeed);
+        routes.get(prefix + "/public/feed/{token}/lost-and-found/{id}/image", this::lostAndFoundImage);
     }
 
     private StationMember resolveToken(Context ctx) {
@@ -191,6 +201,49 @@ public class UserFeedRoutes implements Routes {
         ctx.contentType("text/calendar; charset=utf-8");
         ctx.header("Cache-Control", "public, max-age=3600");
         ctx.result(calendar.toString());
+    }
+
+    // -- Token-scoped lost-and-found image (for feed reader embedding) --
+
+    @OpenApi(
+            path = "/api/v1/public/feed/{token}/lost-and-found/{id}/image",
+            methods = HttpMethod.GET,
+            summary = "Get a lost-and-found image scoped to a feed token",
+            tags = {"User Feed"},
+            pathParams = {
+                @OpenApiParam(name = "token", type = String.class, required = true),
+                @OpenApiParam(name = "id", type = Integer.class, required = true)
+            },
+            responses = {
+                @OpenApiResponse(
+                        status = "200",
+                        description = "Image. Cache-Control: public, max-age=86400. Referrer-Policy: no-referrer."),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void lostAndFoundImage(Context ctx) {
+        var member = resolveToken(ctx);
+        int itemId = ctx.pathParamAsClass("id", Integer.class).get();
+
+        // Cross-station items must look identical to missing items so token holders cannot probe
+        // for the existence of foreign images.
+        var item = lostAndFoundService.findById(itemId).orElseThrow(NotFoundResponse::new);
+        if (item.stationId() != member.stationId()) {
+            throw new NotFoundResponse();
+        }
+
+        int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
+        var image = imageService
+                .read(ImageCategory.LOST_AND_FOUND, String.valueOf(itemId), size)
+                .orElseThrow(NotFoundResponse::new);
+
+        // Privacy: never let the token leak to image hosts via Referer (we serve it ourselves
+        // today, but feed readers may proxy through other origins). noindex protects against
+        // accidental indexing of leaked token URLs.
+        ctx.contentType(image.contentType());
+        ctx.header("Cache-Control", "public, max-age=86400");
+        ctx.header("Referrer-Policy", "no-referrer");
+        ctx.header("X-Robots-Tag", "noindex");
+        ctx.result(image.data());
     }
 
     private String resolveMemberDisplayName(StationMember member) {
