@@ -102,20 +102,20 @@ public class RestrictionRepository {
         if (restrictions.isEmpty()) return Set.of();
 
         var groupIds = restrictions.stream()
-                .filter(r -> r.groupId() != null)
                 .map(Restriction::groupId)
+                .filter(integer -> integer != null)
                 .toList();
         var tagIds = restrictions.stream()
-                .filter(r -> r.tagId() != null)
                 .map(Restriction::tagId)
+                .filter(integer -> integer != null)
                 .toList();
         var userTypes = restrictions.stream()
-                .filter(r -> r.userType() != null)
                 .map(Restriction::userType)
+                .filter(s -> s != null)
                 .toList();
         var memberIds = restrictions.stream()
-                .filter(r -> r.memberId() != null)
                 .map(Restriction::memberId)
+                .filter(integer -> integer != null)
                 .collect(Collectors.toCollection(HashSet::new));
 
         if (!groupIds.isEmpty()) {

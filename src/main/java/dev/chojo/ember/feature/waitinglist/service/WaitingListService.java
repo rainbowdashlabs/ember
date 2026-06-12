@@ -779,10 +779,7 @@ public class WaitingListService {
 
         repository.deleteVerificationToken(verification.id());
 
-        var list = repository.findById(verification.listId()).orElse(null);
-        if (list != null) {
-            eventBus.publish(new WaitlistPublicRegistration(list.stationId(), entry.fullName(), list.name()));
-        }
+        repository.findById(verification.listId()).ifPresent(list -> eventBus.publish(new WaitlistPublicRegistration(list.stationId(), entry.fullName(), list.name())));
 
         return true;
     }

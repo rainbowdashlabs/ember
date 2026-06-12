@@ -162,13 +162,10 @@ public class PageService {
         boolean changed = pageRepository.setPublished(pageId, published);
         if (changed && !published) {
             // Auto-unset landing page if this page is being unpublished
-            var page = pageRepository.findById(pageId).orElse(null);
-            if (page != null) {
-                pageRepository
-                        .getLandingPageId(page.stationId())
-                        .filter(id -> id == pageId)
-                        .ifPresent(id -> pageRepository.setLandingPage(page.stationId(), null));
-            }
+            pageRepository.findById(pageId).ifPresent(page -> pageRepository
+                    .getLandingPageId(page.stationId())
+                    .filter(id -> id == pageId)
+                    .ifPresent(id -> pageRepository.setLandingPage(page.stationId(), null)));
         }
         return changed;
     }

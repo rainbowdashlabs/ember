@@ -669,13 +669,10 @@ public class EventService {
 
     public boolean updateRegistrationStatus(int id, RegistrationStatus status) {
         if (!eventRepository.updateRegistrationStatus(id, status)) return false;
-        var registration = eventRepository.findRegistrationById(id).orElse(null);
-        if (registration != null) {
-            eventRepository
-                    .findById(registration.eventId())
-                    .ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
-                            event.stationId(), event.id(), event.name(), registration.memberId(), status)));
-        }
+        eventRepository.findRegistrationById(id).ifPresent(registration -> eventRepository
+                .findById(registration.eventId())
+                .ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
+                        event.stationId(), event.id(), event.name(), registration.memberId(), status))));
         return true;
     }
 

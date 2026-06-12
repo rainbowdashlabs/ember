@@ -24,9 +24,11 @@ import tools.jackson.databind.json.JsonMapper;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -83,7 +85,7 @@ public class GdprExportService {
     public Map<String, Object> exportAccountData(int accountId) {
         var data = new LinkedHashMap<String, Object>();
         data.put("exportType", "GDPR/DSGVO Data Export");
-        data.put("exportedAt", java.time.Instant.now().toString());
+        data.put("exportedAt", Instant.now().toString());
 
         accountRepository.findById(accountId).ifPresent(account -> {
             var accountData = new LinkedHashMap<String, Object>();
@@ -147,8 +149,7 @@ public class GdprExportService {
     /** Looks up a member by id and returns their metadata-driven export. */
     public Map<String, Object> exportMemberData(int memberId) {
         var member = stationMemberRepository.findById(memberId);
-        if (member.isEmpty()) return Map.of();
-        return exportMemberData(member.get());
+        return member.map(this::exportMemberData).orElseGet(Map::of);
     }
 
     /**
@@ -177,7 +178,7 @@ public class GdprExportService {
         return data;
     }
 
-    private java.util.Optional<String> lookupStationName(int stationId) {
+    private Optional<String> lookupStationName(int stationId) {
         return query("SELECT name FROM station WHERE id = :id;")
                 .single(call().bind("id", stationId))
                 .map(row -> row.getString("name"))
