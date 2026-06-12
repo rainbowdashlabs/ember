@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.feed.FeedFingerprint;
+import dev.chojo.ember.feature.feed.FeedRateLimiter;
 import dev.chojo.ember.feature.feed.render.IcalEventRenderer;
 import dev.chojo.ember.feature.feed.render.NotificationFeedRenderer;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
@@ -49,6 +50,8 @@ import net.fortuna.ical4j.model.property.immutable.ImmutableVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -63,6 +66,18 @@ import java.util.stream.Collectors;
 public class UserFeedRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(UserFeedRoutes.class);
 
+    /** Past iCal window: keep the last week of cancelled or recently-finished events visible. */
+    private static final Duration ICAL_WINDOW_PAST = Duration.ofDays(7);
+
+    /** Forward iCal window: cover annual events without unbounded growth on long-running stations. */
+    private static final Duration ICAL_WINDOW_FUTURE = Duration.ofDays(365);
+
+    /**
+     * Maximum number of notification entries rendered per RSS/Atom feed. Matches what readers
+     * typically surface and keeps the feed payload bounded for noisy stations.
+     */
+    private static final int NOTIFICATION_FEED_CAP = 100;
+
     private final FeedTokenService tokenService;
     private final EventService eventService;
     private final NotificationService notificationService;
@@ -74,6 +89,7 @@ public class UserFeedRoutes implements Routes {
     private final LostAndFoundService lostAndFoundService;
     private final ImageService imageService;
     private final NotificationFeedRenderer notificationRenderer;
+    private final FeedRateLimiter rateLimiter;
 
     @Inject
     public UserFeedRoutes(
@@ -87,7 +103,8 @@ public class UserFeedRoutes implements Routes {
             IcalEventRenderer icalRenderer,
             LostAndFoundService lostAndFoundService,
             ImageService imageService,
-            NotificationFeedRenderer notificationRenderer) {
+            NotificationFeedRenderer notificationRenderer,
+            FeedRateLimiter rateLimiter) {
         this.tokenService = tokenService;
         this.eventService = eventService;
         this.notificationService = notificationService;
@@ -99,6 +116,24 @@ public class UserFeedRoutes implements Routes {
         this.lostAndFoundService = lostAndFoundService;
         this.imageService = imageService;
         this.notificationRenderer = notificationRenderer;
+        this.rateLimiter = rateLimiter;
+    }
+
+    /**
+     * Enforces the per-token rate limit. On excess emits a {@code 429} with {@code Retry-After}
+     * and returns {@code true} so the caller can short-circuit. The image endpoint is
+     * intentionally exempt — see {@link FeedRateLimiter}.
+     */
+    private boolean rateLimit(Context ctx) {
+        String token = ctx.pathParam("token");
+        return rateLimiter
+                .tryAcquire(token)
+                .map(retryAfter -> {
+                    ctx.status(429);
+                    ctx.header("Retry-After", String.valueOf(retryAfter));
+                    return true;
+                })
+                .orElse(false);
     }
 
     @Override
@@ -132,6 +167,7 @@ public class UserFeedRoutes implements Routes {
             })
     private void icalFeed(Context ctx) {
         var member = resolveToken(ctx);
+        if (rateLimit(ctx)) return;
         tokenService.recordIcalPoll(member.id());
         var station = stationRepository.findById(member.stationId()).orElseThrow(NotFoundResponse::new);
         String locale = notificationService.resolveLocale(station.locale());
@@ -200,7 +236,17 @@ public class UserFeedRoutes implements Routes {
                 ownerRegistered,
                 managedByEvent);
 
+        // Body size cap: restrict events to a -7d/+365d window around now so feeds stay small
+        // for stations with thousands of historical entries. Recurring events use their anchor
+        // start time; their RRULE expands across the window in the client.
+        var icalNow = Instant.now();
+        var windowStart = icalNow.minus(ICAL_WINDOW_PAST);
+        var windowEnd = icalNow.plus(ICAL_WINDOW_FUTURE);
         var events = eventService.findByStation(station.id()).stream()
+                .filter(e -> e.isRecurring()
+                        || (e.startTime() != null
+                                && !e.startTime().isBefore(windowStart)
+                                && !e.startTime().isAfter(windowEnd)))
                 .filter(e -> icalRenderer.isVisibleForFeed(e, renderCtx))
                 .toList();
 
@@ -210,7 +256,12 @@ public class UserFeedRoutes implements Routes {
         calendar.add(ImmutableCalScale.GREGORIAN);
         calendar.add(new XProperty("X-WR-CALNAME", station.name()));
         for (var event : events) {
-            calendar.add(icalRenderer.render(event, renderCtx));
+            // Isolate each VEVENT: a malformed event must never tank the whole calendar.
+            try {
+                calendar.add(icalRenderer.render(event, renderCtx));
+            } catch (Exception e) {
+                log.warn("Failed to render event {} for ical feed", event.id(), e);
+            }
         }
 
         ctx.contentType("text/calendar; charset=utf-8");
@@ -294,6 +345,7 @@ public class UserFeedRoutes implements Routes {
     private void rssFeed(Context ctx) {
         String token = ctx.pathParam("token");
         var member = resolveToken(ctx);
+        if (rateLimit(ctx)) return;
         tokenService.recordNotificationPoll(member.id());
         var station = stationRepository.findById(member.stationId()).orElseThrow(NotFoundResponse::new);
         String locale = notificationService.resolveLocale(station.locale());
@@ -336,6 +388,7 @@ public class UserFeedRoutes implements Routes {
     private void atomFeed(Context ctx) {
         String token = ctx.pathParam("token");
         var member = resolveToken(ctx);
+        if (rateLimit(ctx)) return;
         tokenService.recordNotificationPoll(member.id());
         var station = stationRepository.findById(member.stationId()).orElseThrow(NotFoundResponse::new);
         String locale = notificationService.resolveLocale(station.locale());
@@ -408,8 +461,12 @@ public class UserFeedRoutes implements Routes {
                 })
                 .collect(Collectors.toSet());
 
+        // Cap the entry count so a noisy station can't blow up the feed payload. findAll
+        // already orders by created_at desc and caps at 50 today; we apply our own ceiling
+        // explicitly so the cap stays correct if the underlying query loosens later.
         return notificationService.findAll(member.id()).stream()
                 .filter(n -> enabledTypes.contains(n.type()))
+                .limit(NOTIFICATION_FEED_CAP)
                 .toList();
     }
 }
