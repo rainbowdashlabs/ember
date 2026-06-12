@@ -7,7 +7,7 @@
 import MailingHelp from '~/views/helpcenter/adminview/MailingHelp'
 
 definePageMeta({
-  layout: 'helpcenter',
+  layout: 'helpcenter-admin',
   name: 'help-admin-mailing',
 })
 </script>

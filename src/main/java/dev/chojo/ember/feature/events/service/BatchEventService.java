@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.EventsBatchCreated;
 import dev.chojo.ember.feature.events.entity.BatchRequest;
 import dev.chojo.ember.feature.events.entity.BatchRow;
 import dev.chojo.ember.feature.events.entity.EventLayoutField;
@@ -29,17 +31,20 @@ public class BatchEventService {
     private final EventFieldService eventFieldService;
     private final EventLayoutService eventLayoutService;
     private final EventRepository eventRepository;
+    private final DomainEventBus eventBus;
 
     @Inject
     public BatchEventService(
             EventService eventService,
             EventFieldService eventFieldService,
             EventLayoutService eventLayoutService,
-            EventRepository eventRepository) {
+            EventRepository eventRepository,
+            DomainEventBus eventBus) {
         this.eventService = eventService;
         this.eventFieldService = eventFieldService;
         this.eventLayoutService = eventLayoutService;
         this.eventRepository = eventRepository;
+        this.eventBus = eventBus;
     }
 
     public List<StationEvent> createBatch(int stationId, BatchRequest request) {
@@ -51,7 +56,9 @@ public class BatchEventService {
             Instant endTime = row.endTime();
             String eventName = row.name() != null ? row.name() : request.name();
 
-            var event = eventService.create(
+            // Use createWithoutEvent to suppress per-row EventCreated fan-out — we emit one
+            // aggregate EventsBatchCreated below so users get a single notification.
+            var event = eventService.createWithoutEvent(
                     stationId,
                     eventName,
                     request.description(),
@@ -92,6 +99,9 @@ public class BatchEventService {
                     .toList();
             eventFieldService.replaceFields(event.id(), fieldEntries);
             created.add(event);
+        }
+        if (!created.isEmpty()) {
+            eventBus.publish(new EventsBatchCreated(stationId, List.copyOf(created)));
         }
         return created;
     }

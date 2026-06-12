@@ -7,7 +7,7 @@
 import DataTrackingHelp from '~/views/helpcenter/adminview/DataTrackingHelp'
 
 definePageMeta({
-  layout: 'helpcenter',
+  layout: 'helpcenter-admin',
   name: 'help-admin-data-tracking',
 })
 </script>

@@ -145,7 +145,7 @@ public class EventService {
             Integer minRegistrations,
             Instant thresholdDate,
             Integer registrationCloseDays) {
-        var event = eventRepository.create(
+        var event = createWithoutEvent(
                 stationId,
                 name,
                 description,
@@ -164,6 +164,47 @@ public class EventService {
                 registrationCloseDays);
         eventBus.publish(new EventCreated(stationId, event));
         return event;
+    }
+
+    /**
+     * Persists a new event without publishing any domain event. Reserved for callers that
+     * aggregate their own domain event (e.g. {@code BatchEventService} emitting
+     * {@link dev.chojo.ember.event.events.EventsBatchCreated} once at the end).
+     */
+    public StationEvent createWithoutEvent(
+            int stationId,
+            String name,
+            String description,
+            StationEvent.EventType eventType,
+            Integer dayOfWeek,
+            Instant startTime,
+            Instant endTime,
+            Integer templateId,
+            boolean requiresRegistration,
+            Instant registrationDeadline,
+            boolean requiresConfirmation,
+            Integer categoryId,
+            Integer registrationLimit,
+            Integer minRegistrations,
+            Instant thresholdDate,
+            Integer registrationCloseDays) {
+        return eventRepository.create(
+                stationId,
+                name,
+                description,
+                eventType,
+                dayOfWeek,
+                startTime,
+                endTime,
+                templateId,
+                requiresRegistration,
+                registrationDeadline,
+                requiresConfirmation,
+                categoryId,
+                registrationLimit,
+                minRegistrations,
+                thresholdDate,
+                registrationCloseDays);
     }
 
     /**

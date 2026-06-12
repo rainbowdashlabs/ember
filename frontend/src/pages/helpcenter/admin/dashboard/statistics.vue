@@ -7,7 +7,7 @@
 import StatisticsHelp from '~/views/helpcenter/adminview/StatisticsHelp'
 
 definePageMeta({
-  layout: 'helpcenter',
+  layout: 'helpcenter-admin',
   name: 'help-admin-statistics',
 })
 </script>

@@ -7,7 +7,7 @@
 import StationsModuleOverviewHelp from '~/views/helpcenter/adminview/StationsModuleOverviewHelp'
 
 definePageMeta({
-  layout: 'helpcenter',
+  layout: 'helpcenter-admin',
   name: 'help-admin-stations-module-overview',
 })
 </script>

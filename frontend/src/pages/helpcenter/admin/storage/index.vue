@@ -7,7 +7,7 @@
 import StorageHelp from '~/views/helpcenter/adminview/StorageHelp'
 
 definePageMeta({
-  layout: 'helpcenter',
+  layout: 'helpcenter-admin',
   name: 'help-admin-storage',
 })
 </script>

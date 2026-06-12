@@ -7,7 +7,7 @@
 import SettingsHelp from '~/views/helpcenter/adminview/SettingsHelp'
 
 definePageMeta({
-  layout: 'helpcenter',
+  layout: 'helpcenter-admin',
   name: 'help-admin-settings',
 })
 </script>

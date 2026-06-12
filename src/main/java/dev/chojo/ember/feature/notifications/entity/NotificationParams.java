@@ -25,6 +25,12 @@ public sealed interface NotificationParams {
 
     record NewEvent(String title, String eventDescription) implements NotificationParams {}
 
+    /**
+     * Aggregated notification for bulk event creation. Carries the total count and a short
+     * comma-separated preview of the first few event names so the feed body can summarise.
+     */
+    record NewEventsBatch(int count, String eventPreview) implements NotificationParams {}
+
     record EventRegistrationStatus(String eventName, RegistrationStatus status, String eventDescription)
             implements NotificationParams {}
 

@@ -530,6 +530,135 @@ class NotificationServiceTest extends RepositoryTestBase {
         userSettingsRepo.updateEmailEnabled(member2.id(), false);
     }
 
+    // -- Localisation / feed body resolvers --
+
+    @Test
+    @Order(100)
+    void resolveLocaleHandlesGermanEnglishAndNull() {
+        assertEquals("de", service.resolveLocale("de-DE"));
+        assertEquals("de", service.resolveLocale("de"));
+        assertEquals("en", service.resolveLocale("en-US"));
+        assertEquals("en", service.resolveLocale(null));
+        assertEquals("en", service.resolveLocale("fr-FR"));
+    }
+
+    @Test
+    @Order(101)
+    void resolveLocalizedSubstitutesParamsAndFallsBackToKey() {
+        String body = service.resolveLocalized("de", "feed", "title", Map.of("stationName", "Demo"));
+        assertTrue(body.contains("Demo"));
+
+        // Unknown key returns the key itself.
+        assertEquals("missing.key", service.resolveLocalized("de", "feed", "missing.key", null));
+    }
+
+    @Test
+    @Order(102)
+    void resolveCategoryReturnsLocalisedLabelAndFallsBackToEnumName() {
+        assertEquals("Neuigkeit", service.resolveCategory("de", NotificationType.NEW_NEWS));
+        assertEquals("News", service.resolveCategory("en", NotificationType.NEW_NEWS));
+        // STORAGE_WARNING has no category translation — falls back to the enum name.
+        assertEquals("STORAGE_WARNING", service.resolveCategory("de", NotificationType.STORAGE_WARNING));
+    }
+
+    @Test
+    @Order(103)
+    void resolveMessageSubstitutesParamsAndFallsBackToJoinedParams() {
+        var data = NotificationData.of(new NotificationParams.NewEvent("Sprechstunde", "Etwas Beschreibung"));
+        var notif = new dev.chojo.ember.feature.notifications.entity.Notification(
+                1, member1.id(), NotificationType.NEW_EVENT, data, java.time.Instant.now(), null);
+        String msg = service.resolveMessage("de", notif);
+        assertTrue(msg.contains("Sprechstunde"));
+
+        // Type without translation: STORAGE_WARNING — should join params.
+        var storageData = NotificationData.of(new NotificationParams.StorageWarning(95, "9.5 GB", "10 GB"));
+        var storageNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
+                2, member1.id(), NotificationType.STORAGE_WARNING, storageData, java.time.Instant.now(), null);
+        String storageMsg = service.resolveMessage("de", storageNotif);
+        assertTrue(storageMsg.contains("95"));
+    }
+
+    @Test
+    @Order(104)
+    void resolveDetailReturnsTypeSpecificStringOrNull() {
+        var data = NotificationData.of(new NotificationParams.NewNews("Titel", "Autor", "Preview"));
+        var notif = new dev.chojo.ember.feature.notifications.entity.Notification(
+                3, member1.id(), NotificationType.NEW_NEWS, data, java.time.Instant.now(), null);
+        assertEquals("Preview", service.resolveDetail(notif));
+
+        var none = NotificationData.of(new NotificationParams.MemberAddedToGroup("Alpha"));
+        var noneNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
+                4, member1.id(), NotificationType.MEMBER_ADDED_TO_GROUP, none, java.time.Instant.now(), null);
+        assertNull(service.resolveDetail(noneNotif));
+    }
+
+    @Test
+    @Order(105)
+    void resolveFeedBodyRendersRichTypeSpecificMultiLineBody() {
+        // NEW_EVENT — message + eventDescription
+        var ne = NotificationData.of(new NotificationParams.NewEvent("Probe", "Wir üben für das Konzert"));
+        var neNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
+                10, member1.id(), NotificationType.NEW_EVENT, ne, java.time.Instant.now(), null);
+        String neBody = service.resolveFeedBody("de", neNotif);
+        assertTrue(neBody.contains("Probe"));
+        assertTrue(neBody.contains("Wir üben"));
+
+        // NEW_EVENTS_BATCH — count + preview as labeled line
+        var batchData = NotificationData.of(new NotificationParams.NewEventsBatch(3, "A, B, C"));
+        var batchNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
+                11, member1.id(), NotificationType.NEW_EVENTS_BATCH, batchData, java.time.Instant.now(), null);
+        String batchBody = service.resolveFeedBody("de", batchNotif);
+        assertTrue(batchBody.contains("3"));
+        assertTrue(batchBody.contains("A, B, C"));
+        assertTrue(batchBody.contains("Termine"));
+
+        // BOARD_TICKET_UPDATE — change description + ticket key + board labels
+        var btu = NotificationData.of(
+                new NotificationParams.BoardTicketUpdate("Vorstand", "VORSTAND-12", "Status changed"));
+        var btuNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
+                12, member1.id(), NotificationType.BOARD_TICKET_UPDATE, btu, java.time.Instant.now(), null);
+        String btuBody = service.resolveFeedBody("en", btuNotif);
+        assertTrue(btuBody.contains("VORSTAND-12"));
+        assertTrue(btuBody.contains("Vorstand"));
+
+        // STORAGE_WARNING — labelled lines for usedPercent/used/quota
+        var sw = NotificationData.of(new NotificationParams.StorageWarning(91, "9.1 GB", "10 GB"));
+        var swNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
+                13, member1.id(), NotificationType.STORAGE_WARNING, sw, java.time.Instant.now(), null);
+        String swBody = service.resolveFeedBody("en", swNotif);
+        assertTrue(swBody.contains("91"));
+        assertTrue(swBody.contains("9.1 GB"));
+        assertTrue(swBody.contains("10 GB"));
+
+        // REGISTRATION_DEADLINE_EXPIRED — labelled pendingCount
+        var rde = NotificationData.of(new NotificationParams.RegistrationDeadlineExpired("Probe", 5));
+        var rdeNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
+                14, member1.id(), NotificationType.REGISTRATION_DEADLINE_EXPIRED, rde, java.time.Instant.now(), null);
+        String rdeBody = service.resolveFeedBody("en", rdeNotif);
+        assertTrue(rdeBody.contains("5"));
+    }
+
+    @Test
+    @Order(106)
+    void resolveNotificationUrlHandlesMissingLinkUnknownRouteAndKnownRoute() {
+        var noLink = NotificationData.of(new NotificationParams.MemberAddedToGroup("Alpha"));
+        assertNull(service.resolveNotificationUrl("https://ember.example.com", noLink));
+
+        var unknown = NotificationData.of(
+                new NotificationParams.MemberAddedToGroup("Alpha"),
+                new NotificationData.NotificationLink("bogus-route"));
+        assertEquals(
+                "https://ember.example.com/station/dashboard/overview",
+                service.resolveNotificationUrl("https://ember.example.com", unknown));
+
+        var known = NotificationData.of(
+                new NotificationParams.NewEvent("Probe", ""),
+                new NotificationData.NotificationLink("event-detail", Map.of("id", 42)));
+        assertEquals(
+                "https://ember.example.com/station/events/42",
+                service.resolveNotificationUrl("https://ember.example.com", known));
+    }
+
     // -- Helper --
 
     private static void invokeProcessDigest(NotificationService svc) {

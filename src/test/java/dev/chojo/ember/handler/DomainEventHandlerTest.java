@@ -14,6 +14,7 @@ import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.EventCreated;
 import dev.chojo.ember.event.events.EventDeleted;
 import dev.chojo.ember.event.events.EventRegistrationStatusChanged;
+import dev.chojo.ember.event.events.EventsBatchCreated;
 import dev.chojo.ember.event.events.ExchangeRequested;
 import dev.chojo.ember.event.events.ExchangeStatusChanged;
 import dev.chojo.ember.event.events.FormDeleted;
@@ -35,6 +36,7 @@ import dev.chojo.ember.event.handlers.CommentDeletedHandler;
 import dev.chojo.ember.event.handlers.EventCreatedHandler;
 import dev.chojo.ember.event.handlers.EventDeletedHandler;
 import dev.chojo.ember.event.handlers.EventRegistrationStatusHandler;
+import dev.chojo.ember.event.handlers.EventsBatchCreatedHandler;
 import dev.chojo.ember.event.handlers.ExchangeRequestedHandler;
 import dev.chojo.ember.event.handlers.ExchangeStatusChangedHandler;
 import dev.chojo.ember.event.handlers.FormDeletedHandler;
@@ -222,6 +224,73 @@ class DomainEventHandlerTest {
         handler.handle(new EventDeleted(STATION_ID, 42, "Übungsabend"));
 
         verify(notificationService).deleteByTypeContaining(eq(NotificationType.NEW_EVENT), anyString());
+    }
+
+    // -- EventsBatchCreatedHandler --
+
+    @Test
+    void eventsBatchCreatedEmitsSingleAggregateNotification() {
+        var handler = new EventsBatchCreatedHandler(notificationService);
+        assertEquals(EventsBatchCreated.class, handler.eventType());
+
+        var events = List.of(
+                stationEvent(1, "Probe 1"),
+                stationEvent(2, "Probe 2"),
+                stationEvent(3, "Probe 3"),
+                stationEvent(4, "Probe 4"));
+        handler.handle(new EventsBatchCreated(STATION_ID, events));
+
+        verify(notificationService)
+                .notifyStation(eq(STATION_ID), eq(NotificationType.NEW_EVENTS_BATCH), argThat(data -> {
+                    var map = data.paramsAsMap();
+                    // preview shows the first 3 event names plus an ellipsis marker for the rest
+                    String preview = map.get("eventPreview");
+                    return "4".equals(map.get("count"))
+                            && preview != null
+                            && preview.contains("Probe 1")
+                            && preview.contains("Probe 2")
+                            && preview.contains("Probe 3")
+                            && preview.contains("…")
+                            && !preview.contains("Probe 4");
+                }));
+    }
+
+    @Test
+    void eventsBatchCreatedDoesNothingForEmptyBatch() {
+        var handler = new EventsBatchCreatedHandler(notificationService);
+
+        handler.handle(new EventsBatchCreated(STATION_ID, List.of()));
+
+        verify(notificationService, never())
+                .notifyStation(anyInt(), eq(NotificationType.NEW_EVENTS_BATCH), any(NotificationData.class));
+    }
+
+    private StationEvent stationEvent(int id, String name) {
+        return new StationEvent(
+                id,
+                STATION_ID,
+                name,
+                "",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now(),
+                Instant.now().plusSeconds(3600),
+                null,
+                false,
+                null,
+                false,
+                null,
+                RestrictionMode.OR,
+                false,
+                null,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                false,
+                null);
     }
 
     // -- EventRegistrationStatusHandler --

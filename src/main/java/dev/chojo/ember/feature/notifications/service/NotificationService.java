@@ -48,6 +48,7 @@ public class NotificationService {
             Map.entry("news-list", "/station/news"),
             Map.entry("events-registrations", "/station/events/registrations"),
             Map.entry("events-upcoming", "/station/events/upcoming"),
+            Map.entry("event-detail", "/station/events/{id}"),
             Map.entry("inventory-exchanges", "/station/inventory/exchanges"),
             Map.entry("inventory-procurement", "/station/inventory/procurement"),
             Map.entry("members-detail", "/station/members/detail/{id}"),
@@ -368,7 +369,7 @@ public class NotificationService {
         if (eligible.isEmpty()) return false;
 
         String stationName = station.name();
-        String locale = station.locale() != null && station.locale().startsWith("de") ? "de" : "en";
+        String locale = resolveLocale(station.locale());
         String logoApiUrl = stationRepository.findLogo(stationId).isPresent()
                 ? emailService.getBaseUrl() + "/api/v1/stations/" + stationId + "/logo"
                 : null;
@@ -430,7 +431,43 @@ public class NotificationService {
         return true;
     }
 
-    private String resolveMessage(String locale, Notification n) {
+    /**
+     * Normalizes a station locale string ({@code de-DE}, {@code en-US}, …) to the short codes
+     * ({@code de}/{@code en}) used by the bundled translation files.
+     */
+    public String resolveLocale(String stationLocale) {
+        return stationLocale != null && stationLocale.startsWith("de") ? "de" : "en";
+    }
+
+    /**
+     * Returns a localized string from a section of the {@code notifications} bundle, with optional
+     * {@code {param}} substitutions. Falls back to {@code key} when no translation is configured.
+     */
+    public String resolveLocalized(String locale, String section, String key, Map<String, String> params) {
+        var entries = LOCALIZER.get("notifications", locale, section);
+        String value = entries.getOrDefault(key, key);
+        if (params != null) {
+            for (var e : params.entrySet()) {
+                value = value.replace("{" + e.getKey() + "}", e.getValue());
+            }
+        }
+        return value;
+    }
+
+    /**
+     * Resolves the localized category label for a notification type, e.g. "Neuigkeit" for NEW_NEWS.
+     * Falls back to the enum name when no translation is configured.
+     */
+    public String resolveCategory(String locale, NotificationType type) {
+        var labels = LOCALIZER.get("notifications", locale, "category");
+        return labels.getOrDefault(type.name(), type.name());
+    }
+
+    /**
+     * Resolves the localized message body for a notification, substituting any {param} placeholders.
+     * Falls back to joining the params with em-dashes (or to the locale key) when no template exists.
+     */
+    public String resolveMessage(String locale, Notification n) {
         var templates = LOCALIZER.get("notifications", locale, "message");
         String localeKey = n.type().localeKey();
         String template = templates.get(localeKey);
@@ -450,7 +487,10 @@ public class NotificationService {
         return template;
     }
 
-    private String resolveDetail(Notification n) {
+    /**
+     * Returns a short detail string (e.g. news preview, denial reason) when the notification type carries one.
+     */
+    public String resolveDetail(Notification n) {
         var params = n.data().params();
         if (params == null) return null;
         return switch (n.type()) {
@@ -466,7 +506,116 @@ public class NotificationService {
         };
     }
 
-    private String resolveNotificationUrl(String baseUrl, NotificationData data) {
+    /**
+     * Resolves a rich, localised multi-line body for syndication feeds. The first line is always
+     * the localised headline ({@link #resolveMessage}); subsequent lines surface the most useful
+     * params for each notification type (descriptions, previews, status, counts, etc.) so users
+     * understand the change without opening the app.
+     */
+    public String resolveFeedBody(String locale, Notification n) {
+        var lines = new ArrayList<String>();
+        lines.add(resolveMessage(locale, n));
+
+        var params = n.data().params();
+        switch (n.type()) {
+            case NEW_NEWS -> {
+                if (params instanceof NotificationParams.NewNews p && notBlank(p.preview())) lines.add(p.preview());
+            }
+            case NEWS_COMMENT -> {
+                if (params instanceof NotificationParams.NewsComment p && notBlank(p.preview())) lines.add(p.preview());
+            }
+            case NEW_EVENT -> {
+                if (params instanceof NotificationParams.NewEvent p && notBlank(p.eventDescription())) {
+                    lines.add(p.eventDescription());
+                }
+            }
+            case NEW_EVENTS_BATCH -> {
+                if (params instanceof NotificationParams.NewEventsBatch p && notBlank(p.eventPreview())) {
+                    lines.add(feedKv(locale, "events", p.eventPreview()));
+                }
+            }
+            case EVENT_REGISTRATION_STATUS -> {
+                if (params instanceof NotificationParams.EventRegistrationStatus p && notBlank(p.eventDescription())) {
+                    lines.add(p.eventDescription());
+                }
+            }
+            case EVENT_CANCELLED -> {
+                if (params instanceof NotificationParams.EventCancelled p && notBlank(p.reason())) {
+                    lines.add(feedKv(locale, "reason", p.reason()));
+                }
+            }
+            case EVENT_REMINDER -> {
+                if (params instanceof NotificationParams.EventReminder p) {
+                    if (notBlank(p.eventDate())) lines.add(feedKv(locale, "eventDate", p.eventDate()));
+                    lines.add(feedKv(locale, "daysBefore", String.valueOf(p.daysBefore())));
+                }
+            }
+            case EXCHANGE_NEW_REQUEST -> {
+                if (params instanceof NotificationParams.ExchangeNewRequest p && notBlank(p.reason())) {
+                    lines.add(feedKv(locale, "reason", p.reason()));
+                }
+            }
+            case EXCHANGE_STATUS_CHANGE -> {
+                if (params instanceof NotificationParams.ExchangeStatusChange p && notBlank(p.reason())) {
+                    lines.add(feedKv(locale, "reason", p.reason()));
+                }
+            }
+            case BOARD_TICKET_UPDATE -> {
+                if (params instanceof NotificationParams.BoardTicketUpdate p) {
+                    if (notBlank(p.changeDescription())) lines.add(p.changeDescription());
+                    if (notBlank(p.ticketKey())) lines.add(feedKv(locale, "ticketKey", p.ticketKey()));
+                    if (notBlank(p.boardName())) lines.add(feedKv(locale, "board", p.boardName()));
+                }
+            }
+            case LOST_AND_FOUND_NEW -> {
+                if (params instanceof NotificationParams.LostAndFoundNew p && notBlank(p.description())) {
+                    lines.add(p.description());
+                }
+            }
+            case LENDING_NEW_REQUEST -> {
+                if (params instanceof NotificationParams.LendingNewRequest p && notBlank(p.itemSummary())) {
+                    lines.add(feedKv(locale, "itemSummary", p.itemSummary()));
+                }
+            }
+            case PROCEDURE_ITEM_CHECKED -> {
+                if (params instanceof NotificationParams.ProcedureItemCheckedParams p) {
+                    if (notBlank(p.itemTitle())) lines.add(feedKv(locale, "item", p.itemTitle()));
+                    if (notBlank(p.checkedByName())) lines.add(feedKv(locale, "by", p.checkedByName()));
+                }
+            }
+            case REGISTRATION_DEADLINE_EXPIRED -> {
+                if (params instanceof NotificationParams.RegistrationDeadlineExpired p) {
+                    lines.add(feedKv(locale, "pendingCount", String.valueOf(p.pendingCount())));
+                }
+            }
+            case STORAGE_WARNING -> {
+                if (params instanceof NotificationParams.StorageWarning p) {
+                    lines.add(feedKv(locale, "usedPercent", p.usedPercent() + "%"));
+                    if (notBlank(p.usedFormatted())) lines.add(feedKv(locale, "used", p.usedFormatted()));
+                    if (notBlank(p.quotaFormatted())) lines.add(feedKv(locale, "quota", p.quotaFormatted()));
+                }
+            }
+            default -> {
+                String detail = resolveDetail(n);
+                if (notBlank(detail)) lines.add(detail);
+            }
+        }
+        return String.join("\n", lines);
+    }
+
+    private String feedKv(String locale, String labelKey, String value) {
+        return resolveLocalized(locale, "feedLabel", labelKey, null) + ": " + value;
+    }
+
+    private static boolean notBlank(String s) {
+        return s != null && !s.isBlank();
+    }
+
+    /**
+     * Resolves the deep link URL for a notification's target entity, or {@code null} when the
+     * notification has no associated link. Unknown routes fall back to the dashboard.
+     */
+    public String resolveNotificationUrl(String baseUrl, NotificationData data) {
         if (data.link() == null) return null;
         String route = data.link().route();
         String pathTemplate = ROUTE_PATHS.get(route);

@@ -34,6 +34,7 @@ import dev.chojo.ember.event.handlers.EventCancelledHandler;
 import dev.chojo.ember.event.handlers.EventCreatedHandler;
 import dev.chojo.ember.event.handlers.EventDeletedHandler;
 import dev.chojo.ember.event.handlers.EventRegistrationStatusHandler;
+import dev.chojo.ember.event.handlers.EventsBatchCreatedHandler;
 import dev.chojo.ember.event.handlers.ExchangeRequestedHandler;
 import dev.chojo.ember.event.handlers.ExchangeStatusChangedHandler;
 import dev.chojo.ember.event.handlers.FormDeletedHandler;
@@ -216,6 +217,7 @@ public class EmberModule extends AbstractModule {
         // Domain event handlers
         Multibinder<DomainEventHandler<?>> eventBinder = Multibinder.newSetBinder(binder(), new TypeLiteral<>() {});
         eventBinder.addBinding().to(EventCreatedHandler.class);
+        eventBinder.addBinding().to(EventsBatchCreatedHandler.class);
         eventBinder.addBinding().to(EventDeletedHandler.class);
         eventBinder.addBinding().to(EventRegistrationStatusHandler.class);
         eventBinder.addBinding().to(NewsCreatedHandler.class);
