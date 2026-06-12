@@ -24,47 +24,70 @@ class FeedRateLimiterTest {
     }
 
     @Test
-    void secondAcquireWithinWindowReportsRetryAfter() {
+    void initialBurstAdmitsCapacityThenRejects() {
+        // Burst capacity = 10. The first 10 acquires drain the bucket; the 11th is 429-ed
+        // because no token has refilled yet (refill = 5/min = 1/12s).
         var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
         var limiter = new FeedRateLimiter(clock);
-        assertTrue(limiter.tryAcquire("t").isEmpty());
-
-        // 30s later, still inside the 60s window → rejected with positive Retry-After.
-        clock.advanceSeconds(30);
+        for (int i = 0; i < FeedRateLimiter.BURST_CAPACITY; i++) {
+            assertTrue(limiter.tryAcquire("t").isEmpty(), "Admission " + (i + 1) + " should pass");
+        }
         var retry = limiter.tryAcquire("t");
-        assertTrue(retry.isPresent());
+        assertTrue(retry.isPresent(), "11th request immediately after a burst should be rate-limited");
         assertTrue(retry.get() > 0);
-        assertTrue(retry.get() <= 60);
+        assertTrue(retry.get() <= 12, "Retry-After should be within one refill interval");
     }
 
     @Test
-    void acquireAfterWindowIsAllowed() {
+    void slotsRefillAtTheConfiguredRate() {
         var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
         var limiter = new FeedRateLimiter(clock);
-        assertTrue(limiter.tryAcquire("t").isEmpty());
+        // Drain the burst.
+        for (int i = 0; i < FeedRateLimiter.BURST_CAPACITY; i++) {
+            assertTrue(limiter.tryAcquire("t").isEmpty());
+        }
+        assertTrue(limiter.tryAcquire("t").isPresent());
 
-        // > 60s later — window has passed.
-        clock.advanceSeconds(61);
-        assertTrue(limiter.tryAcquire("t").isEmpty());
+        // One refill interval later (60s / 5 = 12s), exactly one slot has refilled.
+        clock.advanceSeconds(12);
+        assertTrue(limiter.tryAcquire("t").isEmpty(), "A token should have refilled after one interval");
+        assertTrue(limiter.tryAcquire("t").isPresent(), "But only one — the bucket is empty again");
+    }
+
+    @Test
+    void longIdleRefillsUpToCapacityNotBeyond() {
+        var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
+        var limiter = new FeedRateLimiter(clock);
+        // Drain.
+        for (int i = 0; i < FeedRateLimiter.BURST_CAPACITY; i++) limiter.tryAcquire("t");
+        // Wait long enough to refill 100× capacity worth of time — the bucket should still
+        // cap at BURST_CAPACITY.
+        clock.advanceSeconds(60 * 100);
+        for (int i = 0; i < FeedRateLimiter.BURST_CAPACITY; i++) {
+            assertTrue(limiter.tryAcquire("t").isEmpty(), "Refilled burst slot " + (i + 1));
+        }
+        assertTrue(limiter.tryAcquire("t").isPresent(), "Bucket should not exceed capacity even after a long idle");
     }
 
     @Test
     void differentTokensHaveSeparateBuckets() {
         var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
         var limiter = new FeedRateLimiter(clock);
-        assertTrue(limiter.tryAcquire("a").isEmpty());
-        assertTrue(limiter.tryAcquire("b").isEmpty());
-
-        clock.advanceSeconds(5);
+        // Exhaust token "a" entirely.
+        for (int i = 0; i < FeedRateLimiter.BURST_CAPACITY; i++)
+            assertTrue(limiter.tryAcquire("a").isEmpty());
         assertTrue(limiter.tryAcquire("a").isPresent());
+        // Token "b" still has the full burst.
+        for (int i = 0; i < FeedRateLimiter.BURST_CAPACITY; i++)
+            assertTrue(limiter.tryAcquire("b").isEmpty());
         assertTrue(limiter.tryAcquire("b").isPresent());
     }
 
     @Test
-    void concurrentRequestsResolveExactlyOneAdmission() throws Exception {
+    void concurrentRequestsRespectTheBucketCap() throws Exception {
         var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
         var limiter = new FeedRateLimiter(clock);
-        int threads = 32;
+        int threads = 64;
         var ready = new java.util.concurrent.CountDownLatch(threads);
         var go = new java.util.concurrent.CountDownLatch(1);
         var admitted = new java.util.concurrent.atomic.AtomicInteger();
@@ -86,7 +109,10 @@ class FeedRateLimiterTest {
         } finally {
             pool.shutdownNow();
         }
-        assertEquals(1, admitted.get(), "Exactly one concurrent request should pass through the bucket");
+        assertEquals(
+                FeedRateLimiter.BURST_CAPACITY,
+                admitted.get(),
+                "Exactly the burst capacity should be admitted under contention");
     }
 
     // -- helpers --
