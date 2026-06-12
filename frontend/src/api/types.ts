@@ -1833,6 +1833,8 @@ export interface Comment {
     deleted?: boolean
     createdAt: string
     updatedAt?: string | null
+    /** ISO yyyy-MM-dd for date-scoped comments on recurring events; null otherwise. */
+    eventDate?: string | null
 }
 
 export interface EntityNote {

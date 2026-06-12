@@ -1851,9 +1851,25 @@ public class EventRoutes implements Routes {
         if (req.content() == null || req.content().isBlank()) {
             throw new BadRequestResponse("content is required");
         }
+        // Older peers will omit eventDate entirely; Jackson maps that to null. New peers
+        // include an ISO date for date-scoped comments on recurring events.
+        java.time.LocalDate eventDate = null;
+        if (req.eventDate() != null && !req.eventDate().isBlank()) {
+            try {
+                eventDate = java.time.LocalDate.parse(req.eventDate());
+            } catch (Exception e) {
+                throw new BadRequestResponse("eventDate must be ISO yyyy-MM-dd");
+            }
+        }
         ctx.status(HttpStatus.CREATED)
                 .json(eventFederationService.createRemoteComment(
-                        partner, eventId, req.remoteMemberUid(), req.displayName(), req.parentId(), req.content()));
+                        partner,
+                        eventId,
+                        req.remoteMemberUid(),
+                        req.displayName(),
+                        req.parentId(),
+                        req.content(),
+                        eventDate));
     }
 
     private void remoteUpdateComment(Context ctx) {
@@ -1877,7 +1893,8 @@ public class EventRoutes implements Routes {
         }
     }
 
-    public record RemoteCommentRequest(UUID remoteMemberUid, String displayName, Integer parentId, String content) {}
+    public record RemoteCommentRequest(
+            UUID remoteMemberUid, String displayName, Integer parentId, String content, String eventDate) {}
 
     public record RemoteCommentUpdateRequest(UUID remoteMemberUid, String content) {}
 
@@ -1918,6 +1935,14 @@ public class EventRoutes implements Routes {
         if (req.content() == null || req.content().isBlank()) {
             throw new BadRequestResponse("content is required");
         }
+        java.time.LocalDate eventDate = null;
+        if (req.eventDate() != null && !req.eventDate().isBlank()) {
+            try {
+                eventDate = java.time.LocalDate.parse(req.eventDate());
+            } catch (Exception e) {
+                throw new BadRequestResponse("eventDate must be ISO yyyy-MM-dd");
+            }
+        }
         var result = eventFederationService.createFederatedComment(
                 session.stationId(),
                 partnerUid,
@@ -1925,7 +1950,8 @@ public class EventRoutes implements Routes {
                 session.member().uid(),
                 session.account().fullName().trim(),
                 req.parentId(),
-                req.content());
+                req.content(),
+                eventDate);
         switch (result) {
             case EventFederationService.FederatedCommentResult.SingleResult r ->
                 ctx.status(HttpStatus.CREATED).json(r.comment());

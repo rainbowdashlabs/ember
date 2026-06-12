@@ -373,4 +373,24 @@ class CommentServiceTest extends RepositoryTestBase {
         assertTrue(comments.isEmpty());
         eventRepo.delete(event2.id());
     }
+
+    @Test
+    @Order(22)
+    void findByEventAndDateScopesToOccurrence() {
+        var date = java.time.LocalDate.of(2027, 6, 1);
+        // Whole-event comment + same-event occurrence comment.
+        service.create(station.id(), eventId, null, identity1, "Alice", "Whole event", "Test Event", null);
+        service.create(station.id(), eventId, null, identity1, "Alice", "On June 1", "Test Event", date);
+
+        // Whole-event filter only returns the eventDate=null comment.
+        var whole = service.findByEventAndDate(eventId, null);
+        assertTrue(whole.stream().anyMatch(c -> "Whole event".equals(c.content())));
+        assertTrue(whole.stream().noneMatch(c -> "On June 1".equals(c.content())));
+
+        // Date filter only returns the occurrence comment.
+        var june = service.findByEventAndDate(eventId, date);
+        assertEquals(1, june.size());
+        assertEquals("On June 1", june.getFirst().content());
+        assertEquals(date, june.getFirst().eventDate());
+    }
 }

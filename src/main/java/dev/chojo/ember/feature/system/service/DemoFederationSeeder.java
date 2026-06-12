@@ -509,13 +509,15 @@ public class DemoFederationSeeder {
                 .findFirst()
                 .orElse(null);
         if (reversePartnerForEvents != null) {
+            // fedEvent is a one-off federation demo event — null eventDate (whole-event).
             var fc1 = eventFederationService.createRemoteComment(
                     reversePartnerForEvents,
                     fedEvent.id(),
                     primaryAdmin.uid(),
                     primaryAdminName,
                     null,
-                    "Wir kommen mit 6 Leuten! Brauchen wir eigene Schläuche?");
+                    "Wir kommen mit 6 Leuten! Brauchen wir eigene Schläuche?",
+                    null);
             // Local reply from partner station member
             commentService.create(
                     partnerStation.id(),
@@ -532,7 +534,8 @@ public class DemoFederationSeeder {
                     primaryAdmin.uid(),
                     primaryAdminName,
                     null,
-                    "Gibt es eine Lageskizze vorab?");
+                    "Gibt es eine Lageskizze vorab?",
+                    null);
         }
         log.info("Demo: Added event comments (local + federated)");
 

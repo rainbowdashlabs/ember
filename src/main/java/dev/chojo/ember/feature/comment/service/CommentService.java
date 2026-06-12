@@ -63,6 +63,15 @@ public class CommentService {
     }
 
     /**
+     * Finds comments scoped to a specific occurrence of a recurring event. {@code null}
+     * returns only whole-event comments (event_date IS NULL); a non-null date returns
+     * comments stamped with exactly that occurrence.
+     */
+    public List<Comment> findByEventAndDate(int eventId, java.time.LocalDate eventDate) {
+        return commentRepository.findByEventAndDate(eventId, eventDate);
+    }
+
+    /**
      * Finds a comment by its ID.
      *
      * @param id the comment ID

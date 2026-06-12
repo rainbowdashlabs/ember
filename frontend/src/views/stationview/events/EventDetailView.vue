@@ -296,7 +296,7 @@ onMounted(loadData)
           </NeutralContainer>
 
           <NeutralContainer>
-            <CommentSection :event-id="eventId"/>
+            <CommentSection :event-id="eventId" :event-date="focusedDate"/>
           </NeutralContainer>
         </template>
 

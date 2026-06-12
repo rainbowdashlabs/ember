@@ -439,9 +439,10 @@ public class EventFederationService {
      * Converts a comment to an enriched response with federated author information.
      */
     public EventCommentRoutes.CommentResponse toCommentResponse(Comment comment) {
+        String eventDate = comment.eventDate() != null ? comment.eventDate().toString() : null;
         if (comment.deleted()) {
             return new EventCommentRoutes.CommentResponse(
-                    comment.id(), comment.parentId(), null, null, "", true, comment.createdAt(), null);
+                    comment.id(), comment.parentId(), null, null, "", true, comment.createdAt(), null, eventDate);
         }
         var resolved = memberNameResolver.resolveDisplay(comment.author());
         String displayName = resolved.name() != null ? resolved.name() : "";
@@ -453,7 +454,8 @@ public class EventFederationService {
                 comment.content(),
                 false,
                 comment.createdAt(),
-                comment.updatedAt());
+                comment.updatedAt(),
+                eventDate);
     }
 
     /**
@@ -474,12 +476,10 @@ public class EventFederationService {
             UUID remoteMemberUid,
             String displayName,
             Integer parentId,
-            String content) {
+            String content,
+            java.time.LocalDate eventDate) {
         var author = new MemberIdentity(partner.partnerStationId(), remoteMemberUid);
-        // Federation comments are not date-scoped yet — the remote side hasn't been taught
-        // the column. Treat them as whole-event comments (event_date = null) until the
-        // federation payload carries it.
-        var comment = commentRepository.create(eventId, parentId, author, content, null);
+        var comment = commentRepository.create(eventId, parentId, author, content, eventDate);
         federationRepository.cacheName(partner.id(), remoteMemberUid, displayName);
         return toCommentResponse(comment);
     }
@@ -541,12 +541,17 @@ public class EventFederationService {
             UUID memberUid,
             String displayName,
             Integer parentId,
-            String content) {
+            String content,
+            java.time.LocalDate eventDate) {
         var partner = resolveActivePartner(stationId, partnerStationUid);
         var station = stationRepository.findById(stationId).orElseThrow();
         if (partner.isRemote()) {
             var body = new RemoteCommentRequest(
-                    memberUid.toString(), displayName, parentId != null ? parentId : 0, content);
+                    memberUid.toString(),
+                    displayName,
+                    parentId != null ? parentId : 0,
+                    content,
+                    eventDate != null ? eventDate.toString() : null);
             var result = httpClient.post(
                     partner.remoteHost(),
                     "/remote/events/" + eventId + "/comments",
@@ -558,10 +563,7 @@ public class EventFederationService {
             return FederatedCommentResult.ofSingle(result);
         }
         var author = new MemberIdentity(partner.partnerStationId(), memberUid);
-        // Federation comments are not date-scoped yet — the remote side hasn't been taught
-        // the column. Treat them as whole-event comments (event_date = null) until the
-        // federation payload carries it.
-        var comment = commentRepository.create(eventId, parentId, author, content, null);
+        var comment = commentRepository.create(eventId, parentId, author, content, eventDate);
         federationRepository.cacheName(partner.id(), memberUid, displayName);
         return FederatedCommentResult.ofSingle(toCommentResponse(comment));
     }
@@ -642,7 +644,14 @@ public class EventFederationService {
         record SingleResult(EventCommentRoutes.CommentResponse comment) implements FederatedCommentResult {}
     }
 
-    private record RemoteCommentRequest(String remoteMemberUid, String displayName, int parentId, String content) {}
+    /**
+     * Payload for {@code POST /remote/events/{eventId}/comments}. {@code eventDate} is the
+     * occurrence date for date-scoped comments on recurring events; {@code null} for
+     * one-time events or whole-event comments. Older peers that omit the field continue to
+     * work — Jackson maps the absent property to {@code null} on the receiving side.
+     */
+    private record RemoteCommentRequest(
+            String remoteMemberUid, String displayName, int parentId, String content, String eventDate) {}
 
     private record RemoteCommentUpdateRequest(String remoteMemberUid, String content) {}
 
