@@ -1,5 +1,79 @@
 # Changelog
 
+## v26.7.1
+
+### New Features
+
+#### Personal Feed Overhaul (iCal, Atom, RSS)
+
+The biggest piece of this release: every member's personal calendar and notification feed got a top-to-bottom rewrite so feed readers like Thunderbird, Apple Calendar, NetNewsWire, Feedly, and Reeder finally surface the same context that the web UI does — and stations can monitor exactly how their feeds are being consumed.
+
+- **Guardian-aware visibility** — the iCal feed now hides events only when *every* relevant registration is `DECLINED`/`DENIED`. A guardian whose child is going still sees the event; a member who declined themselves but whose managed members are going still sees it. Events with expired registration deadlines and no active registrations are dropped to keep the calendar clean.
+- **Rich iCal event descriptions** — every VEVENT now carries category, recurrence label, registration deadline/limit/status, custom event field values, per-managed-member registration breakdown, accepted-count over limit, station-timezone-aware timestamps, and a trailing web link. Cancelled events get a localised `[Cancelled]` prefix in `SUMMARY` plus the standard `STATUS:CANCELLED` so clients strikethrough or hide them; every event also emits the RFC-5545 `URL` property for one-tap web open.
+- **New `LOCATION` event field type** — a dedicated `EventFieldType.LOCATION` variant that feeds the standard iCal `LOCATION` property so phones and calendar apps turn it into a tap-to-navigate map link.
+- **Rich notification feed entries** — RSS/Atom entries now carry a semantic HTML body (definition list, status badges with Unicode markers `✓ ✗ … ↶`, action button at WCAG 2.5.5 tap-target size), a plain-text fallback for readers that strip HTML, the notification's actor as the entry author, the notification type as the entry category for filtering, and an embedded image with meaningful alt text where applicable.
+- **Embedded lost-and-found images** — new token-scoped `/public/feed/{token}/lost-and-found/{id}/image` route lets unauthenticated feed readers fetch images without exposing the rest of the API. Cross-station requests look identical to missing items so the token can't be used to probe foreign stations. MediaRSS `<media:thumbnail>` is emitted alongside the inline `<img>` for readers that render previews.
+- **Atom is the recommended format** — Atom is featured prominently in the user-facing feed settings with a "Recommended" badge and an inline explainer covering author, categories, and MediaRSS thumbnails. RSS collapses into a `<details>` "emergency fallback" for clients that don't speak Atom. iCal gets its own featured card explaining the calendar-subscription use case.
+- **Verbosity presets** — three radio buttons on the feed settings page (Rich / Compact / Minimal) rewrite the copied URL with the matching `verbose` / `images` query parameters. The selection persists in `localStorage`; no backend round-trip. Rich is the default.
+- **Conditional GET (ETag + If-Modified-Since)** — every feed endpoint computes a short SHA-256 fingerprint over the freshness inputs (event/registration/notification mutation times, locale, query params) and answers a matching `If-None-Match` or `If-Modified-Since` with `304 Not Modified`. Aggressive pollers (Thunderbird default ~100 min, RSS-Bridge much shorter) drop to near-zero bandwidth on unchanged feeds.
+- **Leaky-bucket rate limiting** — feed endpoints now enforce a per-token leaky bucket with 10-request burst capacity and 5/minute sustained refill. Realistic burst traffic passes cleanly while runaway readers get a `429` with `Retry-After`. The token-scoped image endpoint is intentionally exempt. The bucket is implemented in a new reusable `dev.chojo.ember.util.LeakyBucket` utility so future features can drop in the same shape.
+- **Body size caps** — RSS/Atom truncates to the last 100 notifications; iCal limits non-recurring events to a `[now − 7 days, now + 1 year]` window, keeping payloads bounded even on noisy stations.
+- **Privacy hardening** — `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex` are emitted on every response (200, 304, 429, 404) so the feed token can never leak via `Referer` and leaked URLs can't be picked up by search engines. The "Regenerate token" and "Revoke token" buttons now show a confirmation modal that warns the action breaks every subscribed reader on the spot.
+- **Per-entry failure isolation** — one malformed notification or event no longer 500s the entire feed. Failures are logged and skipped; the rest of the feed renders.
+- **Accessibility** — feed HTML uses semantic `<dl>/<dt>/<dd>`, `lang` + `dir="auto"` for proper screen-reader pronunciation, persistent `text-decoration:underline` on links (most readers strip `:hover`), 44px tap targets on action buttons, and Unicode status symbols so meaning survives monochrome rendering and colour-blindness. WCAG AA contrast budget documented in the concept.
+
+#### Notification Pipeline Improvements
+
+- **Aggregate batch event notifications** — bulk-created events now produce one `NEW_EVENTS_BATCH` notification per recipient instead of one per row. A new `EventsBatchCreated` domain event drives the aggregation; `BatchEventService` publishes it after the bulk create.
+- **Complete i18n coverage** — every `NotificationType` now has a localised category label and message in both bundles (English and German). Previously 12 of 29 types were falling back to bare keys.
+- **Plural-split messages** — `newEventsBatch`, `eventReminder`, and `registrationDeadlineExpired` now route to `.one` / `.other` variants based on integer count/daysBefore/pendingCount params so the singular form reads correctly across locales. The email digest subject ("X new notifications") uses the same mechanism.
+- **Required notification links** — every public `notify*` method on `NotificationService` now enforces that the `NotificationData` carries a `NotificationLink`. A future handler that forgets one fails fast with `IllegalArgumentException` instead of producing a notification that can't be opened.
+
+#### Recurring-Event Date Context
+
+Reminders for recurring events used to deep-link to `/station/events/{id}` regardless of which occurrence the reminder was about. Comments on recurring events merged across every occurrence. Both are now occurrence-aware end-to-end.
+
+- **Date-aware deep links** — new `event-detail-date` route template (`/station/events/{id}/{date}`) carries the occurrence date as a path segment. `EventReminderChecker` emits the date so weekly reminders land on the right week. The frontend route accepts the optional `:date` param and the detail view shows an info banner ("This view focuses on the occurrence on …") for recurring events.
+- **Per-occurrence comment threads** — `event_comment` gains a nullable `event_date` column. One-time events and whole-event comments keep `event_date = NULL`; comments on a specific occurrence of a recurring event carry the ISO date. `CommentSection.vue` honours the focused date — list filters and new comments stay scoped to that occurrence. The `/events/{id}/comments` GET endpoint accepts an optional `?date=` query parameter for filtering.
+- **Federation parity** — the `RemoteCommentRequest` payload across federation now carries `eventDate`. Older peers that omit it map to `null` (whole-event comment) on the receiver, preserving backwards compatibility.
+
+#### Feed Telemetry (Admin)
+
+A new admin observability panel under "Monitoring → Feed-Telemetrie" charts feed usage and performance.
+
+- **Persisted daily metrics** — new `feed_metric_daily` table stores one row per `(day, type, status)` with request count, total/total entries, and a five-bucket duration histogram (<50ms, 50–200ms, 200ms–1s, 1–5s, ≥5s). Upserted on every feed render.
+- **Global user-agent aggregate** — new `feed_user_agent_stat` table tracks distinct reader user-agents with request counts and first/last-seen timestamps. **No per-token attribution by design** — a station admin with DB access cannot derive which member uses which reader.
+- **Async, non-blocking writes** — telemetry persists on a dedicated executor so a slow DB never delays a feed render. All writes are best-effort with logged warnings on failure.
+- **Configurable retention** — new top-level `metrics` config block with two windows: `requestStatsRetentionDays` (default 3, applies to the existing `api_request_log`) and `feedStatsRetentionDays` (default 90, applies to the new feed tables). A daily prune job enforces both.
+- **Admin dashboard** — four summary cards (total requests, fully rendered, 304 cache hits, average render duration), three ECharts diagrams (requests-by-type line chart, latency histogram bar chart with green→red colour coding, daily volume bar chart), a status-code breakdown table, and the global reader leaderboard.
+- **Help center article** — full article explaining every chart, the histogram bucket colour code, the relevant HTTP status codes (200/304/429/500), and the user-agent leaderboard's privacy posture.
+
+#### Helpers and Reusable Components
+
+- **`LeakyBucket` utility** — extracted from the feed rate limiter into `dev.chojo.ember.util.LeakyBucket` so future features that need per-key rate limiting can reuse it.
+- **`HelpCenterHint` Vue component** — small standalone affordance using the animated ember mascot (FAQ variant with auto-blink + gaze) linking to a named help-center route. Used in the feed settings card and the admin Feed Metrics panel; can be dropped in anywhere.
+
+### Improvements
+
+- **Bulk-friendly registration lookups** — new `EventRepository.findRegistrationsByMembers(Collection<Integer>)` loads an owner's + their managed members' registrations in one query instead of N. Cuts query count on the iCal feed for guardian accounts.
+- **Event modification timestamp** — `station_event.updated_at` column + tracking through every UPDATE statement so the iCal ETag invalidates on any event edit.
+- **`StationEvent` URL property in iCal** — explicit RFC-5545 `URL` property in every VEVENT for one-tap "open on website" in calendar clients.
+
+### Frontend
+
+- **`helpcenter-admin` layout** — the admin section pages now use a dedicated layout instead of the generic `helpcenter` layout, decoupling the two sidebars.
+
+### Internal / Infrastructure
+
+- **Schema migrations** — patch_11 adds `station_event.updated_at`. patch_12 introduces `feed_metric_daily`, `feed_user_agent_stat`, and `event_comment.event_date`.
+- **rome-modules dependency** — pulled in for MediaRSS support on RSS/Atom feeds.
+- **Test infrastructure** — new `UserFeedRoutesIntegrationTest` exercises the route handlers end-to-end (conditional GET roundtrips, rate-limit short-circuit, privacy headers on every status path) via a hand-rolled `RecordingContext` Javalin stub. `LeakyBucketTest` covers the algorithm in isolation. `FeedFingerprintTest`, `FeedRateLimiterTest`, `IcalEventRendererTest`, `NotificationFeedRendererTest`, and `FeedMetricsRepositoryTest` round out the new feed surface. Existing `NotificationServiceTest` gained pluralisation coverage and the `notifyRejectsDataWithoutLink` regression for the link guard.
+- **Concept document** — `.concept/feeds.md` captures the design rationale (visibility truth table, accessibility template, latency histogram buckets, privacy posture, retention defaults, …) for future maintenance.
+
+### Bug fixes
+
+- **Notification feed coverage** — every `NotificationType` switch branch in `NotificationService.resolveDetail` and `resolveFeedBody` is now exercised by tests; previously several types fell through to default rendering at runtime.
+
 ## v26.7.0
 
 ### New Features
