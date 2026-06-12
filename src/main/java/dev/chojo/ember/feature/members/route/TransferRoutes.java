@@ -96,7 +96,8 @@ public class TransferRoutes implements Routes {
     private void tokenListTables(Context ctx) {
         String token = ctx.pathParam("token");
         exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
-        ctx.json(new TablesResponse(StationExportService.TABLE_ORDER));
+        ctx.json(new TablesResponse(
+                exportService.getTableOrder(), exportService.getSchemaHash(), exportService.getAppVersion()));
     }
 
     @OpenApi(
@@ -121,7 +122,7 @@ public class TransferRoutes implements Routes {
         int stationId =
                 exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
         String table = ctx.pathParam("table");
-        if (!StationExportService.TABLE_ORDER.contains(table)) {
+        if (!exportService.getTableOrder().contains(table)) {
             throw new BadRequestResponse("Unknown table: " + table);
         }
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
@@ -186,7 +187,7 @@ public class TransferRoutes implements Routes {
 
     public record TokenResponse(String token, String version) {}
 
-    public record TablesResponse(List<String> tables) {}
+    public record TablesResponse(List<String> tables, String schemaHash, String appVersion) {}
 
     @OpenApiName("TransferImportRequest")
     public record ImportRequest(String sourceUrl, String token) {}

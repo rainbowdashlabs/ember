@@ -128,11 +128,13 @@ class GdprExportServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(11)
-    void exportAccountDataContainsSessions() {
+    void exportAccountDataContainsSessionsViaAccountTables() {
         var data = gdprService.exportAccountData(account.id());
         @SuppressWarnings("unchecked")
-        var sessions = (List<Map<String, Object>>) data.get("sessions");
-        assertNotNull(sessions);
+        var tables = (Map<String, List<Map<String, Object>>>) data.get("accountTables");
+        assertNotNull(tables);
+        var sessions = tables.get("account_session");
+        assertNotNull(sessions, "account_session should be in accountTables for an ACCOUNT_ID identity");
         assertFalse(sessions.isEmpty());
         assertTrue(sessions.stream().anyMatch(s -> "Mozilla/5.0 Test Agent".equals(s.get("user_agent"))));
     }
@@ -153,24 +155,25 @@ class GdprExportServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(20)
-    void exportMemberDataContainsProfileFields() {
+    void exportMemberDataContainsProfileFieldValues() {
         var data = gdprService.exportMemberData(member.id());
         @SuppressWarnings("unchecked")
-        var fields = (List<Map<String, Object>>) data.get("profileFields");
-        assertNotNull(fields);
-        assertFalse(fields.isEmpty());
-        assertTrue(fields.stream().anyMatch(f -> "Telefon".equals(f.get("name"))));
+        var tables = (Map<String, List<Map<String, Object>>>) data.get("memberTables");
+        assertNotNull(tables);
+        var values = tables.get("profile_field_value");
+        assertNotNull(values, "profile_field_value should be in memberTables");
+        assertFalse(values.isEmpty());
     }
 
     @Test
     @Order(21)
-    void exportMemberDataContainsGroups() {
+    void exportMemberDataContainsGroupMembership() {
         var data = gdprService.exportMemberData(member.id());
         @SuppressWarnings("unchecked")
-        var groups = (List<Map<String, Object>>) data.get("groups");
+        var tables = (Map<String, List<Map<String, Object>>>) data.get("memberTables");
+        var groups = tables.get("member_group_entry");
         assertNotNull(groups);
         assertFalse(groups.isEmpty());
-        assertTrue(groups.stream().anyMatch(g -> "Anfänger".equals(g.get("name"))));
     }
 
     @Test
@@ -178,7 +181,8 @@ class GdprExportServiceTest extends RepositoryTestBase {
     void exportMemberDataContainsAttendance() {
         var data = gdprService.exportMemberData(member.id());
         @SuppressWarnings("unchecked")
-        var attendance = (List<Map<String, Object>>) data.get("attendance");
+        var tables = (Map<String, List<Map<String, Object>>>) data.get("memberTables");
+        var attendance = tables.get("attendance_entry");
         assertNotNull(attendance);
         assertFalse(attendance.isEmpty());
         assertTrue(attendance.stream().anyMatch(a -> "PRESENT".equals(a.get("status"))));
@@ -189,10 +193,10 @@ class GdprExportServiceTest extends RepositoryTestBase {
     void exportMemberDataContainsEventRegistrations() {
         var data = gdprService.exportMemberData(member.id());
         @SuppressWarnings("unchecked")
-        var regs = (List<Map<String, Object>>) data.get("eventRegistrations");
+        var tables = (Map<String, List<Map<String, Object>>>) data.get("memberTables");
+        var regs = tables.get("event_registration");
         assertNotNull(regs);
         assertFalse(regs.isEmpty());
-        assertTrue(regs.stream().anyMatch(r -> "Test Event".equals(r.get("event_name"))));
     }
 
     @Test
@@ -200,7 +204,8 @@ class GdprExportServiceTest extends RepositoryTestBase {
     void exportMemberDataContainsAbsences() {
         var data = gdprService.exportMemberData(member.id());
         @SuppressWarnings("unchecked")
-        var absences = (List<Map<String, Object>>) data.get("absences");
+        var tables = (Map<String, List<Map<String, Object>>>) data.get("memberTables");
+        var absences = tables.get("member_absence");
         assertNotNull(absences);
         assertFalse(absences.isEmpty());
         assertTrue(absences.stream().anyMatch(a -> "Urlaub".equals(a.get("reason"))));
@@ -226,35 +231,14 @@ class GdprExportServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(40)
-    void exportMemberDataContainsAllExpectedKeys() {
+    void exportMemberDataContainsExpectedEnvelopeKeys() {
         var data = gdprService.exportMemberData(member.id());
-        var expectedKeys = List.of(
-                "memberId",
-                "stationId",
-                "former",
-                "stationName",
-                "userType",
-                "permissions",
-                "profileFields",
-                "groups",
-                "tags",
-                "managedBy",
-                "manages",
-                "attendance",
-                "eventRegistrations",
-                "absences",
-                "inventoryItems",
-                "inventoryHistory",
-                "exchangeRequests",
-                "procurementRequests",
-                "formResponses",
-                "notifications",
-                "newsAuthored",
-                "newsComments",
-                "profileFieldChanges",
-                "notificationSettings");
-        for (var key : expectedKeys) {
-            assertTrue(data.containsKey(key), "Missing key: " + key);
+        // After the metadata-driven rewrite the envelope is:
+        //   memberId, stationId, former, stationName, memberTables, memberUidTables
+        // The actual per-table payload lives under memberTables (keyed by DB table name) and
+        // is driven by gdprExport.identityColumns in data_tracking.json.
+        for (var key : List.of("memberId", "stationId", "former", "memberTables", "memberUidTables")) {
+            assertTrue(data.containsKey(key), "Missing envelope key: " + key);
         }
     }
 }

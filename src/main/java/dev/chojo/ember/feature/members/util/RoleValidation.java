@@ -39,8 +39,7 @@ public final class RoleValidation {
 
             // Only check newly added permissions — existing are fine
             if (!currentIds.contains(permissionId) && !callerPermissions.contains(perm.permission())) {
-                throw new ForbiddenResponse("Cannot grant permission you do not have: "
-                        + perm.permission().name());
+                throw new ForbiddenResponse("Cannot grant permission you do not have: " + perm.permission());
             }
         }
     }

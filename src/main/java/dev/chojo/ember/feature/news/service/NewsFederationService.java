@@ -45,8 +45,6 @@ public class NewsFederationService {
     private final FederationHttpClient httpClient;
     private final StationRepository stationRepository;
     private final NewsService newsService;
-    private final StationMemberRepository stationMemberRepository;
-    private final AccountRepository accountRepository;
     private final EventFederationRepository eventFederationRepository;
     private final MemberNameResolver memberNameResolver;
 
@@ -68,8 +66,6 @@ public class NewsFederationService {
         this.httpClient = httpClient;
         this.stationRepository = stationRepository;
         this.newsService = newsService;
-        this.stationMemberRepository = stationMemberRepository;
-        this.accountRepository = accountRepository;
         this.eventFederationRepository = eventFederationRepository;
         this.memberNameResolver = memberNameResolver;
     }

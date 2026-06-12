@@ -73,19 +73,20 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
     void anonymizeMemberRemovesPersonalData() {
         service.anonymizeMember(member.id());
 
-        var updated = stationMemberRepo.findById(member.id()).orElseThrow();
-        assertTrue(updated.former());
-        assertNull(updated.accountId());
+        // station_member.id is declared DELETE_EXPLICIT in data_tracking.json; the engine now
+        // honours that — the row is gone after anonymisation. CASCADE FKs on the station_member
+        // table take care of dependent rows (groups, tags, etc.).
+        assertTrue(stationMemberRepo.findById(member.id()).isEmpty());
     }
 
     @Test
     @Order(11)
     void anonymizedMemberHasNoRolesOrGroups() {
-        // Profile field values deleted
+        // Profile field values deleted (FK CASCADE from station_member)
         var values = profileFieldRepo.findValues(member.id());
         assertTrue(values.isEmpty());
 
-        // Group memberships removed
+        // Group memberships removed (FK CASCADE)
         var groups = memberGroupRepo.findGroupsForMember(member.id());
         assertTrue(groups.isEmpty());
     }
@@ -100,10 +101,10 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
 
         service.deleteAccount(acc2.id());
 
-        // Account should be gone
+        // Account should be gone — engine deletes via DELETE_EXPLICIT on account.id and CASCADE
+        // takes out account_credential / account_session / account_external_auth / saved_filter.
         assertTrue(accountRepo.findById(acc2.id()).isEmpty());
-        // Member should be marked former
-        var m = stationMemberRepo.findById(member2.id()).orElseThrow();
-        assertTrue(m.former());
+        // The membership row is also gone (DELETE_EXPLICIT on station_member.id).
+        assertTrue(stationMemberRepo.findById(member2.id()).isEmpty());
     }
 }

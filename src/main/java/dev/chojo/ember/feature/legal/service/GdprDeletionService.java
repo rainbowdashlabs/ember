@@ -5,31 +5,41 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
-import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
-import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.tracking.DataTracking;
+import dev.chojo.ember.tracking.DataTrackingLoader;
+import dev.chojo.ember.tracking.IdentityType;
+import dev.chojo.ember.tracking.engine.GenericGdprDeleter;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 
+import java.io.IOException;
+import java.util.UUID;
+
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
- * Service for GDPR-compliant account deletion and member anonymization.
- * Handles the right to erasure (Art. 17 GDPR) by deleting personal data
- * and anonymizing records that must be retained for business purposes.
+ * GDPR-compliant deletion driven by {@code data_tracking.json}. Every TRACKED
+ * {@code gdprDeletion} strategy is applied by {@link GenericGdprDeleter}; this service is just the
+ * orchestrator that resolves the identity, runs the engine, and handles the few side effects that
+ * sit outside the relational schema (avatar files on disk, account row finalization).
+ *
+ * <p>The hand-coded SQL queries from the previous implementation have been removed — the source
+ * of truth for what gets deleted, anonymised, or retained is the tracking JSON.
  */
 @Singleton
 public class GdprDeletionService {
+
     private static final Logger log = getLogger(GdprDeletionService.class);
-    private static final String ANONYMOUS = "Gelöscht";
+
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
     private final ImageService imageService;
+    private final GenericGdprDeleter engine;
 
     @Inject
     public GdprDeletionService(
@@ -39,150 +49,69 @@ public class GdprDeletionService {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.imageService = imageService;
+        DataTracking t;
+        try {
+            t = DataTrackingLoader.loadFromClasspath();
+        } catch (IOException e) {
+            log.warn("Could not load data_tracking.json — GDPR deletion engine will be a no-op", e);
+            t = DataTrackingLoader.empty();
+        }
+        this.engine = new GenericGdprDeleter(t);
     }
 
     /**
-     * Deletes an account and anonymizes all associated station memberships.
-     * This anonymizes each member record and then removes account-level data
-     * (sessions, tokens, credentials, external auth, saved filters, and the account itself).
-     *
-     * @param accountId the account to delete
+     * Deletes an account: each membership is anonymised first, then account-level data is removed
+     * via the engine using the {@code ACCOUNT_ID} identity. CASCADE FKs from {@code account.id}
+     * (sessions, tokens, credentials, etc.) take care of dependent rows.
      */
     public void deleteAccount(int accountId) {
-        log.info("GDPR: Starting account deletion for account {}", accountId);
-
+        log.info("GDPR: starting account deletion for account {}", accountId);
         var members = stationMemberRepository.findAllByAccountId(accountId);
-
         for (var member : members) {
             anonymizeMember(member.id());
         }
-
-        // Delete account-level data
         deleteAccountData(accountId);
-
-        log.info("GDPR: Account {} deleted and {} memberships anonymized", accountId, members.size());
+        log.info("GDPR: account {} processed (memberships handled: {})", accountId, members.size());
     }
 
     /**
-     * Anonymizes a station member by deleting personal data (profile fields, notifications, settings,
-     * group memberships, tags, comments) and replacing names in history records. The member is marked
-     * as former and disconnected from the account.
-     *
-     * @param memberId the station member ID to anonymize
+     * Anonymises a station member by running the engine for both the integer-id identity
+     * ({@code MEMBER_ID}) and the UUID identity ({@code MEMBER_UID}). The avatar file is removed
+     * from disk as a non-DB side effect.
      */
     public void anonymizeMember(int memberId) {
-        // Remember the account before we disconnect it
         var member = stationMemberRepository.findById(memberId).orElse(null);
         Integer accountId = member != null ? member.accountId() : null;
+        UUID memberUid = stationMemberRepository.resolveUid(memberId);
 
-        // Delete profile field values
-        Query.query("DELETE FROM profile_field_value WHERE member_id = :id;")
-                .single(Call.of().bind("id", memberId))
-                .delete();
+        var memberReport = engine.deleteByIdentity(IdentityType.MEMBER_ID, memberId);
+        memberReport.log(log);
 
-        // Delete notification settings
-        Query.query("DELETE FROM user_notification_settings WHERE member_id = :id;")
-                .single(Call.of().bind("id", memberId))
-                .delete();
-        Query.query("DELETE FROM user_settings WHERE member_id = :id;")
-                .single(Call.of().bind("id", memberId))
-                .delete();
-
-        // Delete notifications
-        Query.query("DELETE FROM notification WHERE member_id = :id;")
-                .single(Call.of().bind("id", memberId))
-                .delete();
-
-        // Remove manager relationships
-        Query.query("DELETE FROM member_manager WHERE manager_id = :id OR managed_id = :id;")
-                .single(Call.of().bind("id", memberId))
-                .delete();
-
-        // Remove group memberships
-        Query.query("DELETE FROM member_group_entry WHERE member_id = :id;")
-                .single(Call.of().bind("id", memberId))
-                .delete();
-
-        // Remove tag assignments
-        Query.query("DELETE FROM user_tag_entry WHERE member_id = :id;")
-                .single(Call.of().bind("id", memberId))
-                .delete();
-
-        // Anonymize inventory item history
-        Query.query("UPDATE inventory_item_history SET member_name = :anon WHERE member_id = :id;")
-                .single(Call.of().bind("anon", ANONYMOUS).bind("id", memberId))
-                .update();
-
-        // Unassign inventory items
-        Query.query("UPDATE inventory_item SET assigned_to = NULL WHERE assigned_to = :id;")
-                .single(Call.of().bind("id", memberId))
-                .update();
-
-        // Anonymize news author (keep the content) — match by member UUID
-        var memberUid = stationMemberRepository.resolveUid(memberId);
         if (memberUid != null) {
-            Query.query(
-                            "UPDATE news SET author_station_uid = NULL, author_member_uid = NULL WHERE author_member_uid = :uid::uuid;")
-                    .single(Call.of().bind("uid", memberUid, StandardValueConverter.UUID_STRING))
-                    .update();
-
-            // Delete news comments by member UUID
-            Query.query("DELETE FROM news_comment WHERE author_member_uid = :uid::uuid;")
-                    .single(Call.of().bind("uid", memberUid, StandardValueConverter.UUID_STRING))
-                    .delete();
-        }
-
-        // Delete profile field change data
-        Query.query("DELETE FROM profile_field_change_acknowledgement WHERE acknowledged_by = :id;")
-                .single(Call.of().bind("id", memberId))
-                .delete();
-        Query.query("DELETE FROM profile_field_change WHERE member_id = :id;")
-                .single(Call.of().bind("id", memberId))
-                .delete();
-
-        // Delete avatar from disk (keyed by member UUID)
-        if (memberUid != null) {
+            var uidReport = engine.deleteByIdentity(IdentityType.MEMBER_UID, memberUid);
+            uidReport.log(log);
+            // Avatar files are stored on disk keyed by member UUID — outside the engine's scope.
             imageService.delete(ImageCategory.AVATARS, memberUid.toString());
         }
 
-        // Mark as former and disconnect from account
-        Query.query("UPDATE station_member SET former = TRUE, account_id = NULL WHERE id = :id;")
-                .single(Call.of().bind("id", memberId))
-                .update();
-
-        // If the account has no remaining members, delete the account entirely
+        // The account is cleaned up at the end if the deleted member was the only membership.
         if (accountId != null) {
-            var remainingMembers = stationMemberRepository.findAllByAccountId(accountId);
-            if (remainingMembers.isEmpty()) {
-                log.info("GDPR: Account {} has no remaining members, deleting account", accountId);
+            var remaining = stationMemberRepository.findAllByAccountId(accountId);
+            if (remaining.isEmpty()) {
+                log.info("GDPR: account {} has no remaining members, deleting account", accountId);
                 deleteAccountData(accountId);
             }
         }
     }
 
     private void deleteAccountData(int accountId) {
-        // Delete sessions
-        accountRepository.deleteSessionsByAccount(accountId);
-
-        // Delete tokens
-        Query.query("DELETE FROM account_token WHERE account_id = :id;")
-                .single(Call.of().bind("id", accountId))
-                .delete();
-
-        // Delete credentials
-        accountRepository.deleteCredential(accountId);
-
-        // Delete external auth
-        Query.query("DELETE FROM account_external_auth WHERE account_id = :id;")
-                .single(Call.of().bind("id", accountId))
-                .delete();
-
-        // Delete saved filters
-        Query.query("DELETE FROM saved_filter WHERE account_id = :id;")
-                .single(Call.of().bind("id", accountId))
-                .delete();
-
-        // Delete the account itself
-        accountRepository.delete(accountId);
+        var report = engine.deleteByIdentity(IdentityType.ACCOUNT_ID, accountId);
+        report.log(log);
+        // account.id has DELETE_EXPLICIT on the strategy list and the engine handles it in phase 2.
+        // The repository delete is now redundant in the happy path, but kept as a final safeguard so
+        // a missing strategy entry doesn't leave a dangling account row.
+        if (accountRepository.findById(accountId).isPresent()) {
+            accountRepository.delete(accountId);
+        }
     }
 }

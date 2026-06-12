@@ -5,13 +5,13 @@
  */
 package dev.chojo.ember.feature.station.repository;
 
-import de.chojo.sadu.queries.api.call.Call;
 import dev.chojo.ember.feature.station.entity.StationMailConfig;
 import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
 import java.util.Optional;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
@@ -28,7 +28,7 @@ public class StationMailConfigRepository {
      */
     public Optional<StationMailConfig> findByStation(int stationId) {
         return query("SELECT * FROM station_mail_config WHERE station_id = :station_id;")
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(StationMailConfig.map())
                 .first();
     }
@@ -68,8 +68,7 @@ public class StationMailConfigRepository {
                         monthly_limit  = :monthly_limit,
                         updated_at     = now()
                 RETURNING *;""")
-                .single(Call.of()
-                        .bind("station_id", config.stationId())
+                .single(call().bind("station_id", config.stationId())
                         .bind("provider", config.provider())
                         .bind("smtp_host", config.smtpHost())
                         .bind("smtp_port", config.smtpPort())
@@ -95,7 +94,7 @@ public class StationMailConfigRepository {
      */
     public void delete(int stationId) {
         query("DELETE FROM station_mail_config WHERE station_id = :station_id;")
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .delete();
     }
 
@@ -110,7 +109,7 @@ public class StationMailConfigRepository {
      */
     public int getDailyCount(int stationId, LocalDate day) {
         return query("SELECT count FROM station_email_count WHERE station_id = :station_id AND day = :day;")
-                .single(Call.of().bind("station_id", stationId).bind("day", day))
+                .single(call().bind("station_id", stationId).bind("day", day))
                 .map(row -> row.getInt("count"))
                 .first()
                 .orElse(0);
@@ -134,8 +133,7 @@ public class StationMailConfigRepository {
                 WHERE station_id = :station_id
                   AND day >= :first
                   AND day <= :last;""")
-                .single(Call.of()
-                        .bind("station_id", stationId)
+                .single(call().bind("station_id", stationId)
                         .bind("first", firstDay)
                         .bind("last", lastDay))
                 .map(row -> row.getInt(1))
@@ -157,9 +155,7 @@ public class StationMailConfigRepository {
                 VALUES
                     (:station_id, :day, 1)
                 ON CONFLICT (station_id, day) DO UPDATE SET
-                    count = station_email_count.count + 1;""")
-                .single(Call.of().bind("station_id", stationId).bind("day", day))
-                .insert();
+                    count = station_email_count.count + 1;""").single(call().bind("station_id", stationId).bind("day", day)).insert();
     }
 
     /**
@@ -169,7 +165,7 @@ public class StationMailConfigRepository {
      */
     public void cleanupOldCounts(int keepDays) {
         query("DELETE FROM station_email_count WHERE day < :cutoff;")
-                .single(Call.of().bind("cutoff", LocalDate.now().minusDays(keepDays)))
+                .single(call().bind("cutoff", LocalDate.now().minusDays(keepDays)))
                 .delete();
     }
 }

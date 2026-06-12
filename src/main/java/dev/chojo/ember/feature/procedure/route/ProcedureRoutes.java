@@ -10,7 +10,11 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.procedure.entity.Procedure;
+import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
 import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
+import dev.chojo.ember.feature.procedure.entity.ProcedureTemplate;
+import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -232,7 +236,7 @@ public class ProcedureRoutes implements Routes {
 
         // Filter private items for non-EDIT users
         if (!session.hasPermission(StationPermission.PROCEDURE_EDIT)) {
-            items = items.stream().filter(i -> i.isPublic()).toList();
+            items = items.stream().filter(ProcedureItem::isPublic).toList();
         }
 
         ctx.json(new ProcedureDetail(procedure, items, deps, assigneeIds, assignees));
@@ -403,9 +407,7 @@ public class ProcedureRoutes implements Routes {
     public record TemplateRequest(String name, String description) {}
 
     public record TemplateDetail(
-            dev.chojo.ember.feature.procedure.entity.ProcedureTemplate template,
-            List<dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem> items,
-            List<int[]> dependencies) {}
+            ProcedureTemplate template, List<ProcedureTemplateItem> items, List<int[]> dependencies) {}
 
     public record ItemRequest(String title, String description, boolean isPublic, boolean userAssigned, int position) {}
 
@@ -428,8 +430,8 @@ public class ProcedureRoutes implements Routes {
     public record PatchItemRequest(Boolean checked, String note) {}
 
     public record ProcedureDetail(
-            dev.chojo.ember.feature.procedure.entity.Procedure procedure,
-            List<dev.chojo.ember.feature.procedure.entity.ProcedureItem> items,
+            Procedure procedure,
+            List<ProcedureItem> items,
             List<int[]> dependencies,
             List<Integer> assigneeIds,
             List<MemberIdentity> assignees) {}

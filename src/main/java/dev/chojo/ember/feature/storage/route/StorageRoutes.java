@@ -23,6 +23,7 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +36,6 @@ public class StorageRoutes implements Routes {
     private final StorageQuotaPresetRepository presetRepository;
     private final StationRepository stationRepository;
     private final StorageReconciliationService reconciliationService;
-    private final Storage storageConfig;
 
     @Inject
     public StorageRoutes(
@@ -50,7 +50,6 @@ public class StorageRoutes implements Routes {
         this.presetRepository = presetRepository;
         this.stationRepository = stationRepository;
         this.reconciliationService = reconciliationService;
-        this.storageConfig = storageConfig;
     }
 
     @Override
@@ -126,7 +125,7 @@ public class StorageRoutes implements Routes {
         Map<Integer, List<StorageUsage>> usageByStation = new HashMap<>();
         for (var usage : allUsage) {
             usageByStation
-                    .computeIfAbsent(usage.stationId(), k -> new java.util.ArrayList<>())
+                    .computeIfAbsent(usage.stationId(), k -> new ArrayList<>())
                     .add(usage);
         }
 

@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.station.repository;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
@@ -22,6 +21,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
@@ -47,7 +47,7 @@ public class StationRepository {
      */
     public UUID resolveUid(int stationId) {
         return uidCache.get(stationId, id -> query("SELECT uid FROM station WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .map(row -> row.get("uid", StandardValueConverter.UUID_STRING))
                 .first()
                 .orElse(null));
@@ -60,7 +60,7 @@ public class StationRepository {
         var cached = idCache.getIfPresent(uid);
         if (cached != null) return Optional.of(cached);
         return query("SELECT id FROM station WHERE uid = :uid::UUID;")
-                .single(Call.of().bind("uid", uid, StandardValueConverter.UUID_STRING))
+                .single(call().bind("uid", uid, StandardValueConverter.UUID_STRING))
                 .map(row -> row.getInt("id"))
                 .first()
                 .map(id -> {
@@ -87,7 +87,7 @@ public class StationRepository {
      */
     public Optional<Station> findById(int id) {
         return query("SELECT %s FROM station WHERE id = :id;", STATION_COLUMNS)
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .map(Station.map())
                 .first();
     }
@@ -100,7 +100,7 @@ public class StationRepository {
      */
     public Optional<Station> findByUid(UUID uid) {
         return query("SELECT %s FROM station WHERE uid = :uid::UUID;", STATION_COLUMNS)
-                .single(Call.of().bind("uid", uid, StandardValueConverter.UUID_STRING))
+                .single(call().bind("uid", uid, StandardValueConverter.UUID_STRING))
                 .map(Station.map())
                 .first();
     }
@@ -110,7 +110,7 @@ public class StationRepository {
      */
     public Optional<Station> findBySlug(String slug) {
         return query("SELECT %s FROM station WHERE public_slug = :slug;", STATION_COLUMNS)
-                .single(Call.of().bind("slug", slug))
+                .single(call().bind("slug", slug))
                 .map(Station.map())
                 .first();
     }
@@ -120,7 +120,7 @@ public class StationRepository {
      */
     public boolean updatePublicSlug(int id, String slug) {
         return query("UPDATE station SET public_slug = :slug WHERE id = :id;")
-                .single(Call.of().bind("slug", slug).bind("id", id))
+                .single(call().bind("slug", slug).bind("id", id))
                 .update()
                 .changed();
     }
@@ -145,7 +145,7 @@ public class StationRepository {
      */
     public Station create(String name) {
         return query("INSERT INTO station(name) VALUES(:name) RETURNING %s;", STATION_COLUMNS)
-                .single(Call.of().bind("name", name))
+                .single(call().bind("name", name))
                 .map(Station.map())
                 .first()
                 .orElseThrow();
@@ -153,7 +153,7 @@ public class StationRepository {
 
     public Station create(String name, UUID uid) {
         return query("INSERT INTO station(name, uid) VALUES(:name, :uid::UUID) RETURNING %s;", STATION_COLUMNS)
-                .single(Call.of().bind("name", name).bind("uid", uid, StandardValueConverter.UUID_STRING))
+                .single(call().bind("name", name).bind("uid", uid, StandardValueConverter.UUID_STRING))
                 .map(Station.map())
                 .first()
                 .orElseThrow();
@@ -168,7 +168,7 @@ public class StationRepository {
      */
     public boolean update(int id, String name) {
         return query("UPDATE station SET name = :name WHERE id = :id;")
-                .single(Call.of().bind("name", name).bind("id", id))
+                .single(call().bind("name", name).bind("id", id))
                 .update()
                 .changed();
     }
@@ -182,7 +182,7 @@ public class StationRepository {
      */
     public boolean updateTimezone(int id, String timezone) {
         return query("UPDATE station SET timezone = :timezone WHERE id = :id;")
-                .single(Call.of().bind("timezone", timezone).bind("id", id))
+                .single(call().bind("timezone", timezone).bind("id", id))
                 .update()
                 .changed();
     }
@@ -196,49 +196,49 @@ public class StationRepository {
      */
     public boolean updateLocale(int id, String locale) {
         return query("UPDATE station SET locale = :locale WHERE id = :id;")
-                .single(Call.of().bind("locale", locale).bind("id", id))
+                .single(call().bind("locale", locale).bind("id", id))
                 .update()
                 .changed();
     }
 
     public boolean updatePublicKbMode(int id, PublicKbMode mode) {
         return query("UPDATE station SET public_kb_mode = :mode WHERE id = :id;")
-                .single(Call.of().bind("mode", mode.name()).bind("id", id))
+                .single(call().bind("mode", mode).bind("id", id))
                 .update()
                 .changed();
     }
 
     public boolean updatePublicCalendarEnabled(int id, boolean enabled) {
         return query("UPDATE station SET public_calendar_enabled = :enabled WHERE id = :id;")
-                .single(Call.of().bind("enabled", enabled).bind("id", id))
+                .single(call().bind("enabled", enabled).bind("id", id))
                 .update()
                 .changed();
     }
 
     public boolean updatePublicPagesEnabled(int id, boolean enabled) {
         return query("UPDATE station SET public_pages_enabled = :enabled WHERE id = :id;")
-                .single(Call.of().bind("enabled", enabled).bind("id", id))
+                .single(call().bind("enabled", enabled).bind("id", id))
                 .update()
                 .changed();
     }
 
     public boolean updatePublicWaitlistEnabled(int id, boolean enabled) {
         return query("UPDATE station SET public_waitlist_enabled = :enabled WHERE id = :id;")
-                .single(Call.of().bind("enabled", enabled).bind("id", id))
+                .single(call().bind("enabled", enabled).bind("id", id))
                 .update()
                 .changed();
     }
 
     public boolean updatePublicBlogEnabled(int id, boolean enabled) {
         return query("UPDATE station SET public_blog_enabled = :enabled WHERE id = :id;")
-                .single(Call.of().bind("enabled", enabled).bind("id", id))
+                .single(call().bind("enabled", enabled).bind("id", id))
                 .update()
                 .changed();
     }
 
     public boolean updateFederationPrivateKey(int id, String privateKey) {
         return query("UPDATE station SET federation_private_key = :key WHERE id = :id;")
-                .single(Call.of().bind("key", privateKey).bind("id", id))
+                .single(call().bind("key", privateKey).bind("id", id))
                 .update()
                 .changed();
     }
@@ -259,8 +259,7 @@ public class StationRepository {
                     default_feel        = :default_feel,
                     allow_user_feel     = :allow_user_feel
                 WHERE id = :id;""")
-                .single(Call.of()
-                        .bind("id", id)
+                .single(call().bind("id", id)
                         .bind("default_theme", defaultTheme)
                         .bind("allow_user_theme", allowUserTheme)
                         .bind("custom_theme_colors", customThemeColors)
@@ -278,7 +277,7 @@ public class StationRepository {
      */
     public boolean setOwner(int stationId, Integer ownerMemberId) {
         return query("UPDATE station SET owner_member_id = :owner WHERE id = :id;")
-                .single(Call.of().bind("owner", ownerMemberId).bind("id", stationId))
+                .single(call().bind("owner", ownerMemberId).bind("id", stationId))
                 .update()
                 .changed();
     }
@@ -291,7 +290,7 @@ public class StationRepository {
      */
     public boolean delete(int id) {
         return query("DELETE FROM station WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .delete()
                 .changed();
     }
@@ -304,7 +303,7 @@ public class StationRepository {
      */
     public Optional<StationLogo> findLogo(int id) {
         return query("SELECT logo, logo_content_type FROM station WHERE id = :id AND logo IS NOT NULL;")
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .map(row -> new StationLogo(row.getBytes("logo"), row.getString("logo_content_type")))
                 .first();
     }
@@ -319,8 +318,7 @@ public class StationRepository {
      */
     public boolean updateLogo(int id, byte[] logo, String contentType) {
         return query("UPDATE station SET logo = :logo, logo_content_type = :content_type WHERE id = :id;")
-                .single(Call.of()
-                        .bind("logo", logo)
+                .single(call().bind("logo", logo)
                         .bind("content_type", contentType)
                         .bind("id", id))
                 .update()
@@ -335,7 +333,7 @@ public class StationRepository {
      */
     public boolean deleteLogo(int id) {
         return query("UPDATE station SET logo = NULL, logo_content_type = NULL WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .update()
                 .changed();
     }
@@ -348,7 +346,7 @@ public class StationRepository {
      */
     public Set<StationModule> findDisabledModules(int stationId) {
         return Set.copyOf(query("SELECT module FROM station_disabled_module WHERE station_id = :station_id;")
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(row -> row.getEnum("module", StationModule.class))
                 .all());
     }
@@ -360,7 +358,7 @@ public class StationRepository {
      */
     public void setDisabledModules(int stationId, Set<StationModule> modules) {
         query("DELETE FROM station_disabled_module WHERE station_id = :station_id;")
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .delete();
         for (StationModule module : modules) {
             query("""
@@ -370,7 +368,7 @@ public class StationRepository {
                     VALUES
                         (:station_id, :module)
                     ON CONFLICT DO NOTHING;""")
-                    .single(Call.of().bind("station_id", stationId).bind("module", module))
+                    .single(call().bind("station_id", stationId).bind("module", module))
                     .insert();
         }
     }
@@ -380,8 +378,7 @@ public class StationRepository {
      */
     public void updateUid(int id, UUID uid) {
         query("UPDATE station SET uid = :uid::UUID WHERE id = :id;")
-                .single(Call.of()
-                        .bind("uid", uid, StandardValueConverter.UUID_STRING)
+                .single(call().bind("uid", uid, StandardValueConverter.UUID_STRING)
                         .bind("id", id))
                 .update();
     }
@@ -397,8 +394,7 @@ public class StationRepository {
                     discovery_description = :description,
                     discovery_show_kb     = :show_kb
                 WHERE id = :id;""")
-                .single(Call.of()
-                        .bind("id", id)
+                .single(call().bind("id", id)
                         .bind("visibility", visibility)
                         .bind("description", description)
                         .bind("show_kb", showKb))
@@ -418,7 +414,7 @@ public class StationRepository {
                 WHERE id != :exclude_id
                   AND ( public_calendar_enabled OR public_kb_mode != 'OFF' OR public_pages_enabled )
                 ORDER BY name;""", STATION_COLUMNS)
-                .single(Call.of().bind("exclude_id", excludeStationId))
+                .single(call().bind("exclude_id", excludeStationId))
                 .map(Station.map())
                 .all();
     }
@@ -432,8 +428,7 @@ public class StationRepository {
                 WHERE id != :exclude_id
                   AND discovery_visibility IN (:vis_a, :vis_b)
                 ORDER BY name;""", STATION_COLUMNS)
-                .single(Call.of()
-                        .bind("exclude_id", excludeStationId)
+                .single(call().bind("exclude_id", excludeStationId)
                         .bind("vis_a", visA)
                         .bind("vis_b", visB))
                 .map(Station.map())

@@ -5,8 +5,6 @@
  */
 package dev.chojo.ember.feature.board.service;
 
-import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.BoardTicketChanged;
 import jakarta.inject.Inject;
@@ -18,6 +16,8 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
  * Periodically checks for board tickets with due dates that are today or overdue.
@@ -73,7 +73,7 @@ public class DueDateReminderChecker {
             int assignedMemberId) {}
 
     private List<OverdueTicket> findOverdueTickets() {
-        return Query.query("""
+        return query("""
                         SELECT b.station_id, b.id AS board_id, t.id AS ticket_id,
                                b.name AS board_name, b.short_key || '-' || t.ticket_number AS ticket_key,
                                t.due_date::text AS due_date, sm.id AS assigned_member_id
@@ -89,7 +89,7 @@ public class DueDateReminderChecker {
                               WHERE bl.board_id = t.board_id
                               ORDER BY bl.position DESC LIMIT 1
                           );""")
-                .single(Call.of())
+                .single()
                 .map(row -> new OverdueTicket(
                         row.getInt("station_id"),
                         row.getInt("board_id"),

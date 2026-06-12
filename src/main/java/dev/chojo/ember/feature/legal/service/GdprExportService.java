@@ -5,12 +5,14 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
-import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.tracking.DataTracking;
+import dev.chojo.ember.tracking.DataTrackingLoader;
+import dev.chojo.ember.tracking.IdentityType;
+import dev.chojo.ember.tracking.engine.GenericGdprExporter;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -22,24 +24,38 @@ import tools.jackson.databind.json.JsonMapper;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
+
 /**
- * Service for exporting all personal data associated with an account or station member
- * in compliance with GDPR/DSGVO data portability requirements (Art. 20 GDPR).
+ * Exports all personal data associated with an account or station member in compliance with
+ * GDPR/DSGVO data portability requirements (Art. 20 GDPR).
+ *
+ * <p>The bulk of the export is generated from {@code data_tracking.json}: every TRACKED
+ * {@code gdprExport} entry whose {@code identityColumns} match the requested identity becomes a
+ * query produced by {@link GenericGdprExporter}. The resulting JSON is keyed by DB table name.
+ * The previous hand-coded queries with descriptive section names have been replaced — the source
+ * of truth for what gets exported is now {@code data_tracking.json}.
  */
 @Singleton
 public class GdprExportService {
+
     private static final Logger log = LoggerFactory.getLogger(GdprExportService.class);
     private static final ObjectMapper MAPPER = JsonMapper.builder().build();
+
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
     private final KbFileStorageService kbFileStorageService;
+    private final GenericGdprExporter engine;
 
     @Inject
     public GdprExportService(
@@ -49,21 +65,28 @@ public class GdprExportService {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.kbFileStorageService = kbFileStorageService;
+        DataTracking t;
+        try {
+            t = DataTrackingLoader.loadFromClasspath();
+        } catch (IOException e) {
+            log.warn("Could not load data_tracking.json — GDPR export will be empty", e);
+            t = DataTrackingLoader.empty();
+        }
+        this.engine = new GenericGdprExporter(t);
     }
 
     /**
-     * Exports all personal data for an account including account info, sessions, consent records,
-     * saved filters, and all station membership data.
+     * Exports all personal data attached to {@code accountId}.
      *
-     * @param accountId the account to export data for
-     * @return a structured map of all personal data suitable for JSON serialization
+     * <p>Result shape: {@code account} (basic profile), {@code accountTables} (every TRACKED row
+     * whose {@code identityColumns} match {@code ACCOUNT_ID}), and {@code stationMemberships}
+     * (one nested member-export per station this account belongs to).
      */
     public Map<String, Object> exportAccountData(int accountId) {
         var data = new LinkedHashMap<String, Object>();
         data.put("exportType", "GDPR/DSGVO Data Export");
-        data.put("exportedAt", java.time.Instant.now().toString());
+        data.put("exportedAt", Instant.now().toString());
 
-        // Account info
         accountRepository.findById(accountId).ifPresent(account -> {
             var accountData = new LinkedHashMap<String, Object>();
             accountData.put("id", account.id());
@@ -74,28 +97,11 @@ public class GdprExportService {
             data.put("account", accountData);
         });
 
-        // Sessions
-        data.put(
-                "sessions",
-                queryRows(
-                        "SELECT id, created_at, user_agent, last_used_at, expires_at, location FROM account_session WHERE account_id = :id",
-                        accountId));
+        // Metadata-driven: every TRACKED gdprExport entry whose identityColumns reference
+        // ACCOUNT_ID is queried by GenericGdprExporter.
+        data.put("accountTables", engine.exportByIdentity(IdentityType.ACCOUNT_ID, accountId));
 
-        // GDPR consent records
-        data.put(
-                "consentRecords",
-                queryRows(
-                        "SELECT consent_version, ip_address, country, user_agent, consented_at FROM gdpr_consent WHERE account_id = :id ORDER BY consented_at DESC",
-                        accountId));
-
-        // Saved filters
-        data.put(
-                "savedFilters",
-                queryRows(
-                        "SELECT table_type, name, filter_data, position FROM saved_filter WHERE account_id = :id",
-                        accountId));
-
-        // Station memberships
+        // Per-station member data.
         var memberships = stationMemberRepository.findAllByAccountId(accountId);
         var stationDataList = new ArrayList<Map<String, Object>>();
         for (var member : memberships) {
@@ -106,24 +112,17 @@ public class GdprExportService {
         return data;
     }
 
-    /**
-     * Exports all personal data as a ZIP archive containing:
-     * - data.json (machine-readable data)
-     * - data.pdf (human-readable summary via Typst)
-     * - files/kb/* (KB files created by this user)
-     */
+    /** ZIP archive containing {@code data.json}, an optional {@code data.pdf}, and the user's KB files. */
     public byte[] exportAccountDataAsZip(int accountId, String locale) {
         var data = exportAccountData(accountId);
 
         try (var baos = new ByteArrayOutputStream();
                 var zip = new ZipOutputStream(baos)) {
 
-            // 1. data.json
             zip.putNextEntry(new ZipEntry("data.json"));
             zip.write(MAPPER.writeValueAsBytes(data));
             zip.closeEntry();
 
-            // 2. data.pdf (best effort — skip if Typst fails)
             try {
                 byte[] pdf = generatePdf(data, locale);
                 if (pdf != null) {
@@ -135,7 +134,6 @@ public class GdprExportService {
                 log.warn("Failed to generate GDPR export PDF, skipping", e);
             }
 
-            // 3. User's KB files
             var memberships = stationMemberRepository.findAllByAccountId(accountId);
             for (var member : memberships) {
                 addKbFiles(zip, member.id());
@@ -146,6 +144,45 @@ public class GdprExportService {
         } catch (IOException e) {
             throw new RuntimeException("Failed to create GDPR export ZIP", e);
         }
+    }
+
+    /** Looks up a member by id and returns their metadata-driven export. */
+    public Map<String, Object> exportMemberData(int memberId) {
+        var member = stationMemberRepository.findById(memberId);
+        return member.map(this::exportMemberData).orElseGet(Map::of);
+    }
+
+    /**
+     * Returns the member's data as {@code memberId}, {@code stationId}, {@code former}, plus a
+     * {@code memberTables} map (rows where {@code MEMBER_ID} matches) and a {@code memberUidTables}
+     * map (rows where {@code MEMBER_UID} matches — used by federation-aware columns like
+     * {@code news.author_member_uid}). Empty maps when no TRACKED row references the member.
+     */
+    private Map<String, Object> exportMemberData(StationMember member) {
+        int mid = member.id();
+        var data = new LinkedHashMap<String, Object>();
+        data.put("memberId", mid);
+        data.put("stationId", member.stationId());
+        data.put("former", member.former());
+        lookupStationName(member.stationId()).ifPresent(s -> data.put("stationName", s));
+
+        // Tables matching by integer member_id (most of the per-member data).
+        data.put("memberTables", engine.exportByIdentity(IdentityType.MEMBER_ID, mid));
+
+        // Tables matching by member UUID — federation-aware columns like news.author_member_uid or
+        // board_ticket.creator_member_uid carry the UUID instead of the int id.
+        UUID memberUid = stationMemberRepository.resolveUid(mid);
+        data.put(
+                "memberUidTables",
+                memberUid == null ? Map.of() : engine.exportByIdentity(IdentityType.MEMBER_UID, memberUid));
+        return data;
+    }
+
+    private Optional<String> lookupStationName(int stationId) {
+        return query("SELECT name FROM station WHERE id = :id;")
+                .single(call().bind("id", stationId))
+                .map(row -> row.getString("name"))
+                .first();
     }
 
     private byte[] generatePdf(Map<String, Object> data, String locale) {
@@ -160,9 +197,13 @@ public class GdprExportService {
 
     private void addKbFiles(ZipOutputStream zip, int memberId) throws IOException {
         // Find KB files created by this member
-        var files = Query.query(
-                        "SELECT kf.id, kf.name, kf.file_type FROM kb_file kf JOIN kb_file_version kfv ON kfv.file_id = kf.id WHERE kfv.version = 1 AND kfv.created_by = :member_id")
-                .single(Call.of().bind("member_id", memberId))
+        var files = query("""
+                SELECT kf.id, kf.name, kf.file_type
+                FROM kb_file kf
+                JOIN kb_file_version kfv ON kfv.file_id = kf.id
+                WHERE kfv.version = 1 AND kfv.created_by = :member_id;
+                """)
+                .single(call().bind("member_id", memberId))
                 .map(row -> new KbFileEntry(row.getInt("id"), row.getString("name"), row.getString("file_type")))
                 .all();
 
@@ -173,19 +214,17 @@ public class GdprExportService {
             String safeName = name.replaceAll("[^a-zA-Z0-9äöüÄÖÜß._\\- ]", "_");
 
             if ("MARKDOWN".equals(fileType) || "TEXT".equals(fileType)) {
-                // Get text content from DB
-                var textOpt = Query.query("SELECT text_content FROM kb_file_content WHERE file_id = :id")
-                        .single(Call.of().bind("id", fileId))
+                var textOpt = query("SELECT text_content FROM kb_file_content WHERE file_id = :id;")
+                        .single(call().bind("id", fileId))
                         .map(row -> row.getString("text_content"))
                         .first();
-                if (textOpt.isPresent() && textOpt.get() != null) {
+                if (textOpt.isPresent()) {
                     String ext = "MARKDOWN".equals(fileType) ? ".md" : ".txt";
                     zip.putNextEntry(new ZipEntry("files/kb/" + safeName + ext));
                     zip.write(textOpt.get().getBytes(StandardCharsets.UTF_8));
                     zip.closeEntry();
                 }
             } else {
-                // Get binary content from disk
                 var fileDataOpt = kbFileStorageService.read(fileId);
                 if (fileDataOpt.isPresent()) {
                     String ext =
@@ -200,267 +239,6 @@ public class GdprExportService {
                 }
             }
         }
-    }
-
-    /**
-     * Exports all personal data for a specific station member by member ID.
-     *
-     * @param memberId the station member ID to export data for
-     * @return a structured map of the member's data, or an empty map if not found
-     */
-    public Map<String, Object> exportMemberData(int memberId) {
-        var member = stationMemberRepository.findById(memberId);
-        if (member.isEmpty()) return Map.of();
-        return exportMemberData(member.get());
-    }
-
-    /**
-     * Exports all personal data for a station member including roles, profile fields, groups, tags,
-     * manager relationships, attendance, events, absences, inventory, forms, notifications, and news.
-     *
-     * @param member the station member entity to export data for
-     * @return a structured map of all member-related personal data
-     */
-    private Map<String, Object> exportMemberData(StationMember member) {
-        int mid = member.id();
-        var data = new LinkedHashMap<String, Object>();
-        data.put("memberId", mid);
-        data.put("stationId", member.stationId());
-        data.put("former", member.former());
-
-        // Station name
-        var stationName = queryRows("SELECT name FROM station WHERE id = :id", member.stationId());
-        if (!stationName.isEmpty()) {
-            data.put("stationName", stationName.getFirst().get("name"));
-        }
-
-        // User type and permissions
-        data.put("userType", queryRows("SELECT user_type FROM station_member WHERE id = :id", mid));
-        data.put(
-                "permissions",
-                queryRows(
-                        "SELECT sp.name AS permission FROM station_member_permission smp JOIN station_permission sp ON sp.id = smp.permission_id WHERE smp.member_id = :id",
-                        mid));
-
-        // Profile field values
-        data.put("profileFields", queryRows("""
-                SELECT pf.name, pfv.value
-                FROM profile_field_value pfv
-                JOIN profile_field pf ON pf.id = pfv.field_id
-                WHERE pfv.member_id = :id""", mid));
-
-        // Group memberships
-        data.put("groups", queryRows("""
-                SELECT mg.name
-                FROM member_group_entry mge
-                JOIN member_group mg ON mg.id = mge.group_id
-                WHERE mge.member_id = :id""", mid));
-
-        // Tags
-        data.put("tags", queryRows("""
-                SELECT ut.name
-                FROM user_tag_entry ute
-                JOIN user_tag ut ON ut.id = ute.tag_id
-                WHERE ute.member_id = :id""", mid));
-
-        // Manager relationships
-        data.put("managedBy", queryRows("""
-                SELECT sm.id AS manager_member_id
-                FROM member_manager mm
-                JOIN station_member sm ON sm.id = mm.manager_id
-                WHERE mm.managed_id = :id""", mid));
-        data.put("manages", queryRows("""
-                SELECT sm.id AS managed_member_id
-                FROM member_manager mm
-                JOIN station_member sm ON sm.id = mm.managed_id
-                WHERE mm.manager_id = :id""", mid));
-
-        // Attendance
-        data.put("attendance", queryRows("""
-                SELECT ae.status, ae.check_in, ae.check_out, ae.source,
-                       asess.title, asess.start_time, asess.end_time
-                FROM attendance_entry ae
-                JOIN attendance_session asess ON asess.id = ae.session_id
-                WHERE ae.member_id = :id
-                ORDER BY asess.start_time DESC""", mid));
-
-        // Event registrations
-        data.put("eventRegistrations", queryRows("""
-                SELECT se.name AS event_name, er.event_date, er.status, er.created_at, er.created_by
-                FROM event_registration er
-                JOIN station_event se ON se.id = er.event_id
-                WHERE er.member_id = :id
-                ORDER BY er.event_date DESC""", mid));
-
-        // Absences
-        data.put("absences", queryRows("""
-                SELECT absent_from, absent_until, reason, created_at, created_by
-                FROM member_absence
-                WHERE member_id = :id
-                ORDER BY created_at DESC""", mid));
-
-        // Inventory items assigned
-        data.put("inventoryItems", queryRows("""
-                SELECT ii.internal_id, ii.name, ii.metadata, i.name AS inventory_name, ii.lost_at
-                FROM inventory_item ii
-                JOIN inventory i ON i.id = ii.inventory_id
-                WHERE ii.assigned_to = :id""", mid));
-
-        // Inventory item history
-        data.put("inventoryHistory", queryRows("""
-                SELECT ii.name AS item_name, iih.given_out, iih.returned
-                FROM inventory_item_history iih
-                JOIN inventory_item ii ON ii.id = iih.item_id
-                WHERE iih.member_id = :id
-                ORDER BY iih.given_out DESC""", mid));
-
-        // Exchange requests
-        data.put("exchangeRequests", queryRows("""
-                SELECT i.name AS inventory_name, eer.status, eer.reason, eer.created_at, eer.updated_at
-                FROM equipment_exchange_request eer
-                JOIN inventory i ON i.id = eer.inventory_id
-                WHERE eer.member_id = :id
-                ORDER BY eer.created_at DESC""", mid));
-
-        // Procurement requests
-        data.put("procurementRequests", queryRows("""
-                SELECT i.name AS inventory_name, ep.notes, ep.requested_at, ep.fulfilled_at
-                FROM equipment_procurement ep
-                JOIN inventory i ON i.id = ep.inventory_id
-                WHERE ep.member_id = :id
-                ORDER BY ep.requested_at DESC""", mid));
-
-        // Form responses with answers
-        var formResponses = queryRows("""
-                SELECT fr.id AS response_id, f.title AS form_title, f.description AS form_description,
-                       fr.submitted_at, fr.updated_at, fr.submitted_by
-                FROM form_response fr
-                JOIN form f ON f.id = fr.form_id
-                WHERE fr.member_id = :id
-                ORDER BY fr.submitted_at DESC""", mid);
-        for (var response : formResponses) {
-            var responseId = (Number) response.get("response_id");
-            if (responseId != null) {
-                response.put("answers", queryRows("""
-                        SELECT fq.title AS question, fq.question_type AS type, fa.value
-                        FROM form_answer fa
-                        JOIN form_question fq ON fq.id = fa.question_id
-                        WHERE fa.response_id = :id
-                        ORDER BY fq.position""", responseId.intValue()));
-            }
-        }
-        data.put("formResponses", formResponses);
-
-        // Notifications
-        data.put("notifications", queryRows("""
-                SELECT type, data, created_at, acknowledged_at
-                FROM notification
-                WHERE member_id = :id
-                ORDER BY created_at DESC""", mid));
-
-        // News authored — match by member UUID
-        var memberUid = stationMemberRepository.resolveUid(mid);
-        if (memberUid != null) {
-            data.put(
-                    "newsAuthored",
-                    Query.query("""
-                    SELECT title, published_at, created_at
-                    FROM news
-                    WHERE author_member_uid = :uid::uuid
-                    ORDER BY created_at DESC""")
-                            .single(Call.of()
-                                    .bind(
-                                            "uid",
-                                            memberUid,
-                                            de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING))
-                            .map(row -> {
-                                var meta = row.getMetaData();
-                                var map = new LinkedHashMap<String, Object>();
-                                for (int i = 1; i <= meta.getColumnCount(); i++) {
-                                    map.put(meta.getColumnLabel(i), row.getObject(i));
-                                }
-                                return (Map<String, Object>) map;
-                            })
-                            .all());
-
-            // News comments
-            data.put(
-                    "newsComments",
-                    Query.query("""
-                    SELECT n.title AS news_title, nc.content, nc.created_at
-                    FROM news_comment nc
-                    JOIN news n ON n.id = nc.news_id
-                    WHERE nc.author_member_uid = :uid::uuid
-                    ORDER BY nc.created_at DESC""")
-                            .single(Call.of()
-                                    .bind(
-                                            "uid",
-                                            memberUid,
-                                            de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING))
-                            .map(row -> {
-                                var meta = row.getMetaData();
-                                var map = new LinkedHashMap<String, Object>();
-                                for (int i = 1; i <= meta.getColumnCount(); i++) {
-                                    map.put(meta.getColumnLabel(i), row.getObject(i));
-                                }
-                                return (Map<String, Object>) map;
-                            })
-                            .all());
-        } else {
-            data.put("newsAuthored", List.of());
-            data.put("newsComments", List.of());
-        }
-
-        // Profile field changes (as subject)
-        data.put("profileFieldChanges", queryRows("""
-                SELECT pf.name AS field_name, pfc.old_value, pfc.new_value, pfc.changed_at, pfc.changed_by
-                FROM profile_field_change pfc
-                JOIN profile_field pf ON pf.id = pfc.field_id
-                WHERE pfc.member_id = :id
-                ORDER BY pfc.changed_at DESC""", mid));
-
-        // Notification settings
-        data.put("notificationSettings", queryRows("""
-                SELECT notification_type, app_enabled, email_enabled
-                FROM user_notification_settings
-                WHERE member_id = :id""", mid));
-
-        return data;
-    }
-
-    private Object parseJsonValue(String raw) {
-        if (raw == null) return null;
-        // Strip surrounding quotes from JSON strings: "\"value\"" -> "value"
-        if (raw.startsWith("\"") && raw.endsWith("\"")) {
-            return raw.substring(1, raw.length() - 1);
-        }
-        // Try to parse as structured JSON, otherwise return as-is
-        try {
-            return MAPPER.readValue(raw, Object.class);
-        } catch (Exception e) {
-            return raw;
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> queryRows(String sql, int id) {
-        return (List<Map<String, Object>>) (List<?>) Query.query(sql)
-                .single(Call.of().bind("id", id))
-                .map(row -> {
-                    var meta = row.getMetaData();
-                    var map = new LinkedHashMap<String, Object>();
-                    for (int i = 1; i <= meta.getColumnCount(); i++) {
-                        String typeName = meta.getColumnTypeName(i);
-                        if ("jsonb".equals(typeName) || "json".equals(typeName)) {
-                            String raw = row.getString(i);
-                            map.put(meta.getColumnLabel(i), parseJsonValue(raw));
-                        } else {
-                            map.put(meta.getColumnLabel(i), row.getObject(i));
-                        }
-                    }
-                    return map;
-                })
-                .all();
     }
 
     record KbFileEntry(int id, String name, String fileType) {}

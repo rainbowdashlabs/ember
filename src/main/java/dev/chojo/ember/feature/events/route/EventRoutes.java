@@ -91,7 +91,6 @@ public class EventRoutes implements Routes {
     private final AttendanceService attendanceService;
     private final EventExportService eventExportService;
     private final EventFederationService eventFederationService;
-    private final FederationService federationService;
     private final FederationRepository federationRepository;
     private final StationRepository stationRepository;
     private final MemberIdentityFactory memberIdentityFactory;
@@ -120,7 +119,6 @@ public class EventRoutes implements Routes {
         this.attendanceService = attendanceService;
         this.eventExportService = eventExportService;
         this.eventFederationService = eventFederationService;
-        this.federationService = federationService;
         this.federationRepository = federationRepository;
         this.stationRepository = stationRepository;
         this.memberIdentityFactory = memberIdentityFactory;
@@ -884,8 +882,7 @@ public class EventRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         UserSession session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(StatusUpdateRequest.class);
-        var status = RegistrationStatus.valueOf(req.status());
-        if (status != RegistrationStatus.ACCEPTED && status != RegistrationStatus.DENIED) {
+        if (req.status() != RegistrationStatus.ACCEPTED && req.status() != RegistrationStatus.DENIED) {
             throw new BadRequestResponse("status must be ACCEPTED or DENIED");
         }
         var registration = eventService.findRegistrationById(id).orElseThrow(NotFoundResponse::new);
@@ -893,7 +890,7 @@ public class EventRoutes implements Routes {
         if (regEvent.stationId() != session.stationId()) {
             throw new ForbiddenResponse("Cannot access resources from another station");
         }
-        if (!eventService.updateRegistrationStatus(id, status)) {
+        if (!eventService.updateRegistrationStatus(id, req.status())) {
             throw new NotFoundResponse();
         }
         ctx.json(new MessageResponse("Status updated"));
@@ -1427,7 +1424,7 @@ public class EventRoutes implements Routes {
     @OpenApiName("EventRegisterRequest")
     public record RegisterRequest(String eventDate, Integer memberId) {}
 
-    public record StatusUpdateRequest(String status) {}
+    public record StatusUpdateRequest(RegistrationStatus status) {}
 
     public record EventRestrictions(
             List<String> userTypes,
@@ -1586,7 +1583,7 @@ public class EventRoutes implements Routes {
                                 .orElse(null);
                         String stationName = stationRepository
                                 .findByUid(partnerStationUid)
-                                .map(s -> s.name())
+                                .map(Station::name)
                                 .orElse(null);
                         identity = new MemberIdentity(partnerStationUid, r.remoteMemberId())
                                 .withDisplay(cachedName, stationName, null, null);

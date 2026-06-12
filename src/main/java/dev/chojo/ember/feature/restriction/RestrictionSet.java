@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.restriction;
 
 import java.util.List;
+import java.util.Objects;
 
 import static dev.chojo.ember.feature.restriction.RestrictionMode.OR;
 
@@ -40,15 +41,15 @@ public record RestrictionSet(List<Restriction> restrictions, RestrictionMode mod
 
         var userTypeRestrictions = restrictions.stream()
                 .map(Restriction::userType)
-                .filter(ut -> ut != null)
+                .filter(Objects::nonNull)
                 .toList();
         var groupRestrictions = restrictions.stream()
                 .map(Restriction::groupId)
-                .filter(id -> id != null)
+                .filter(Objects::nonNull)
                 .toList();
         var tagRestrictions = restrictions.stream()
                 .map(Restriction::tagId)
-                .filter(id -> id != null)
+                .filter(Objects::nonNull)
                 .toList();
 
         if (mode == OR) {
@@ -75,28 +76,28 @@ public record RestrictionSet(List<Restriction> restrictions, RestrictionMode mod
     public List<String> userTypes() {
         return restrictions.stream()
                 .map(Restriction::userType)
-                .filter(ut -> ut != null)
+                .filter(Objects::nonNull)
                 .toList();
     }
 
     public List<Integer> groupIds() {
         return restrictions.stream()
                 .map(Restriction::groupId)
-                .filter(id -> id != null)
+                .filter(Objects::nonNull)
                 .toList();
     }
 
     public List<Integer> tagIds() {
         return restrictions.stream()
                 .map(Restriction::tagId)
-                .filter(id -> id != null)
+                .filter(Objects::nonNull)
                 .toList();
     }
 
     public List<Integer> memberIds() {
         return restrictions.stream()
                 .map(Restriction::memberId)
-                .filter(id -> id != null)
+                .filter(Objects::nonNull)
                 .toList();
     }
 }

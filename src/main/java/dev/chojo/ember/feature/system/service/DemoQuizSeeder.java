@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -573,8 +574,8 @@ public class DemoQuizSeeder {
                 test.description(),
                 test.timeLimit(),
                 test.shuffle(),
-                Instant.now().minus(7, java.time.temporal.ChronoUnit.DAYS),
-                Instant.now().plus(30, java.time.temporal.ChronoUnit.DAYS));
+                Instant.now().minus(7, ChronoUnit.DAYS),
+                Instant.now().plus(30, ChronoUnit.DAYS));
         quizService.activateTest(test.id());
 
         // -- Test 2: Draft test (not yet active) --
@@ -680,8 +681,8 @@ public class DemoQuizSeeder {
                 showcaseTest.description(),
                 showcaseTest.timeLimit(),
                 showcaseTest.shuffle(),
-                Instant.now().minus(3, java.time.temporal.ChronoUnit.DAYS),
-                Instant.now().plus(60, java.time.temporal.ChronoUnit.DAYS));
+                Instant.now().minus(3, ChronoUnit.DAYS),
+                Instant.now().plus(60, ChronoUnit.DAYS));
         quizService.activateTest(showcaseTest.id());
 
         // -- Demo attempts for the main test --

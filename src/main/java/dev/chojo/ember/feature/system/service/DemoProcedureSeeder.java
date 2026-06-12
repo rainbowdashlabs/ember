@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.procedure.entity.Procedure;
 import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
 import dev.chojo.ember.feature.procedure.repository.ProcedureRepository;
@@ -133,20 +134,20 @@ public class DemoProcedureSeeder {
         var completedProc = createFromTemplate(
                 stationId,
                 onboarding.id(),
-                "Einführung: " + anfaenger.get(0).displayName(),
+                "Einführung: " + anfaenger.getFirst().displayName(),
                 null,
                 true,
                 admin.id(),
                 null);
-        repo.addAssignee(completedProc.id(), anfaenger.get(0).id());
+        repo.addAssignee(completedProc.id(), anfaenger.getFirst().id());
         // Check all items
         var items1 = repo.findItems(completedProc.id());
         for (var item : items1) {
             repo.checkItem(
                     item.id(),
                     item.userAssigned()
-                            ? anfaenger.get(0).id()
-                            : betreuer.get(0).id());
+                            ? anfaenger.getFirst().id()
+                            : betreuer.getFirst().id());
         }
         // Resolve it
         repo.resolveProcedure(completedProc.id());
@@ -162,7 +163,7 @@ public class DemoProcedureSeeder {
                 Instant.now().plus(14, ChronoUnit.DAYS));
         repo.addAssignee(inProgressProc.id(), anfaenger.get(1).id());
         if (!betreuer.isEmpty()) {
-            repo.addAssignee(inProgressProc.id(), betreuer.get(0).id());
+            repo.addAssignee(inProgressProc.id(), betreuer.getFirst().id());
         }
         // Check first 3 items (forms, payment, attestation)
         var items2 = repo.findItems(inProgressProc.id());
@@ -194,7 +195,7 @@ public class DemoProcedureSeeder {
         repo.createItem(
                 overdueProc.id(), "Kosten abrechnen", "Rechnung an den Förderverein weiterleiten.", true, false, 3);
         // Check first item
-        repo.checkItem(adHocItem1.id(), betreuer.get(0).id());
+        repo.checkItem(adHocItem1.id(), betreuer.getFirst().id());
 
         // === Procedure 4: Private procedure (internal task, not visible to members) ===
         var privateProc = repo.createProcedure(
@@ -213,7 +214,7 @@ public class DemoProcedureSeeder {
         repo.createItem(privateProc.id(), "Bericht an KFV senden", null, false, false, 4);
     }
 
-    private dev.chojo.ember.feature.procedure.entity.Procedure createFromTemplate(
+    private Procedure createFromTemplate(
             int stationId,
             int templateId,
             String name,

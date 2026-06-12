@@ -13,6 +13,7 @@ import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.event.events.NewsCreated;
 import dev.chojo.ember.event.events.NewsDeleted;
+import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.MentionType;
@@ -99,7 +100,7 @@ public class NewsService {
                         .findById(memberId)
                         .filter(m -> m.accountId() != null)
                         .flatMap(m -> accountRepository.findById(m.accountId()))
-                        .map(a -> a.fullName()))
+                        .map(Account::fullName))
                 .orElse("");
     }
 

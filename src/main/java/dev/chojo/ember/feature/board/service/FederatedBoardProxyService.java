@@ -61,6 +61,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 /**
  * Partner station service that discovers federated boards, proxies requests to owning stations,
@@ -797,7 +798,7 @@ public class FederatedBoardProxyService {
             String displayName) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
-            var body = new java.util.HashMap<String, Object>();
+            var body = new HashMap<String, Object>();
             if (remoteMemberUid != null) body.put("remoteMemberUid", remoteMemberUid.toString());
             if (displayName != null) body.put("displayName", displayName);
             remoteDelete(
@@ -914,7 +915,7 @@ public class FederatedBoardProxyService {
         if (requiredRoleName == null || requiredRoleName.equals("USER")) return true; // USER = everyone
         var memberRoles = memberService.findPermissions(memberId).stream()
                 .map(Permission::permission)
-                .collect(java.util.stream.Collectors.toSet());
+                .collect(Collectors.toSet());
         var expanded = StationPermission.expand(memberRoles);
         try {
             return expanded.contains(StationPermission.valueOf(requiredRoleName));
@@ -1139,7 +1140,7 @@ public class FederatedBoardProxyService {
             var memberTagIds = tagService.findTagsForMember(memberId).stream()
                     .map(UserTag::id)
                     .toList();
-            if (memberTagIds.stream().anyMatch(access.tagIds()::contains)) return true;
+            return memberTagIds.stream().anyMatch(access.tagIds()::contains);
         }
         return false;
     }

@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventFederationShare;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -204,7 +205,7 @@ public class EventFederationService {
      * @param status the new status
      * @return true if a row was updated
      */
-    public boolean updateRegistrationStatus(int id, String status) {
+    public boolean updateRegistrationStatus(int id, RegistrationStatus status) {
         return federationRepository.updateRegistrationStatus(id, status);
     }
 

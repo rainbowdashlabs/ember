@@ -5,14 +5,15 @@
  */
 package dev.chojo.ember.feature.members.repository;
 
-import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import jakarta.inject.Singleton;
 
 import java.util.List;
 import java.util.Optional;
+
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
  * Repository for managing user tags and their member assignments.
@@ -28,11 +29,11 @@ public class UserTagRepository {
      * @return the created tag
      */
     public UserTag create(int stationId, String name) {
-        return Query.query("""
+        return query("""
                         INSERT INTO user_tag(station_id, name, position)
                         VALUES(:station_id, :name, COALESCE((SELECT MAX(position) + 1 FROM user_tag WHERE station_id = :station_id), 0))
                         RETURNING *;""")
-                .single(Call.of().bind("station_id", stationId).bind("name", name))
+                .single(call().bind("station_id", stationId).bind("name", name))
                 .map(UserTag.map())
                 .first()
                 .orElseThrow();
@@ -42,8 +43,8 @@ public class UserTagRepository {
      * Finds a tag by its identifier.
      */
     public Optional<UserTag> findById(int id) {
-        return Query.query("SELECT * FROM user_tag WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        return query("SELECT * FROM user_tag WHERE id = :id;")
+                .single(call().bind("id", id))
                 .map(UserTag.map())
                 .first();
     }
@@ -52,8 +53,8 @@ public class UserTagRepository {
      * Finds all tags for a station, ordered by name.
      */
     public List<UserTag> findByStation(int stationId) {
-        return Query.query("SELECT * FROM user_tag WHERE station_id = :station_id ORDER BY position DESC, name;")
-                .single(Call.of().bind("station_id", stationId))
+        return query("SELECT * FROM user_tag WHERE station_id = :station_id ORDER BY position DESC, name;")
+                .single(call().bind("station_id", stationId))
                 .map(UserTag.map())
                 .all();
     }
@@ -62,10 +63,15 @@ public class UserTagRepository {
      * Updates a tag's name, color, visibility, and position.
      */
     public boolean update(int id, String name, String color, boolean visible, int position) {
-        return Query.query(
-                        "UPDATE user_tag SET name = :name, color = :color, visible = :visible, position = :position WHERE id = :id;")
-                .single(Call.of()
-                        .bind("id", id)
+        return query("""
+                UPDATE user_tag
+                SET
+                    name     = :name,
+                    color    = :color,
+                    visible  = :visible,
+                    position = :position
+                WHERE id = :id;""")
+                .single(call().bind("id", id)
                         .bind("name", name)
                         .bind("color", color)
                         .bind("visible", visible)
@@ -78,8 +84,8 @@ public class UserTagRepository {
      * Deletes a tag by its identifier.
      */
     public boolean delete(int id) {
-        return Query.query("DELETE FROM user_tag WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        return query("DELETE FROM user_tag WHERE id = :id;")
+                .single(call().bind("id", id))
                 .delete()
                 .changed();
     }
@@ -90,11 +96,11 @@ public class UserTagRepository {
      * Finds all members assigned to a tag.
      */
     public List<StationMember> findMembers(int tagId) {
-        return Query.query("""
-                            SELECT sm.*
-                            FROM station_member sm JOIN user_tag_entry ute ON sm.id = ute.member_id
-                            WHERE ute.tag_id = :tag_id;""")
-                .single(Call.of().bind("tag_id", tagId))
+        return query("""
+                SELECT sm.*
+                FROM station_member sm JOIN user_tag_entry ute ON sm.id = ute.member_id
+                WHERE ute.tag_id = :tag_id;""")
+                .single(call().bind("tag_id", tagId))
                 .map(StationMember.map())
                 .all();
     }
@@ -103,11 +109,11 @@ public class UserTagRepository {
      * Finds all tags assigned to a specific member.
      */
     public List<UserTag> findTagsForMember(int memberId) {
-        return Query.query("""
-                            SELECT ut.* FROM user_tag ut
-                            JOIN user_tag_entry ute ON ut.id = ute.tag_id
-                            WHERE ute.member_id = :member_id;""")
-                .single(Call.of().bind("member_id", memberId))
+        return query("""
+                SELECT ut.* FROM user_tag ut
+                JOIN user_tag_entry ute ON ut.id = ute.tag_id
+                WHERE ute.member_id = :member_id;""")
+                .single(call().bind("member_id", memberId))
                 .map(UserTag.map())
                 .all();
     }
@@ -116,8 +122,8 @@ public class UserTagRepository {
      * Adds a member to a tag, ignoring duplicates.
      */
     public void addMember(int tagId, int memberId) {
-        Query.query("INSERT INTO user_tag_entry(tag_id, member_id) VALUES(:tag_id, :member_id) ON CONFLICT DO NOTHING;")
-                .single(Call.of().bind("tag_id", tagId).bind("member_id", memberId))
+        query("INSERT INTO user_tag_entry(tag_id, member_id) VALUES(:tag_id, :member_id) ON CONFLICT DO NOTHING;")
+                .single(call().bind("tag_id", tagId).bind("member_id", memberId))
                 .insert();
     }
 
@@ -125,8 +131,8 @@ public class UserTagRepository {
      * Removes a member from a tag.
      */
     public boolean removeMember(int tagId, int memberId) {
-        return Query.query("DELETE FROM user_tag_entry WHERE tag_id = :tag_id AND member_id = :member_id;")
-                .single(Call.of().bind("tag_id", tagId).bind("member_id", memberId))
+        return query("DELETE FROM user_tag_entry WHERE tag_id = :tag_id AND member_id = :member_id;")
+                .single(call().bind("tag_id", tagId).bind("member_id", memberId))
                 .delete()
                 .changed();
     }
@@ -135,8 +141,8 @@ public class UserTagRepository {
      * Replaces all member assignments for a tag with the given member IDs.
      */
     public void setMembers(int tagId, List<Integer> memberIds) {
-        Query.query("DELETE FROM user_tag_entry WHERE tag_id = :tag_id;")
-                .single(Call.of().bind("tag_id", tagId))
+        query("DELETE FROM user_tag_entry WHERE tag_id = :tag_id;")
+                .single(call().bind("tag_id", tagId))
                 .delete();
         for (int memberId : memberIds) {
             addMember(tagId, memberId);

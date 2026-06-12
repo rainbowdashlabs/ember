@@ -5,8 +5,6 @@
  */
 package dev.chojo.ember.feature.notifications.repository;
 
-import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -15,6 +13,8 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.util.List;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
@@ -32,11 +32,11 @@ public class NotificationRepository {
      * @return the persisted notification
      */
     public Notification create(int memberId, NotificationType type, NotificationData data) {
-        return Query.query("""
+        return query("""
                             INSERT INTO notification(member_id, type, data)
                             VALUES(:member_id, :type, :data::JSONB)
                             RETURNING *;""")
-                .single(Call.of().bind("member_id", memberId).bind("type", type).bind("data", data.toJson()))
+                .single(call().bind("member_id", memberId).bind("type", type).bind("data", data.toJson()))
                 .map(Notification.map())
                 .first()
                 .orElseThrow();
@@ -51,13 +51,13 @@ public class NotificationRepository {
      * @return {@code true} if a matching unacknowledged notification exists
      */
     public boolean exists(int memberId, NotificationType type, String dataJson) {
-        return Query.query("""
+        return query("""
                             SELECT 1 FROM notification
                             WHERE member_id = :member_id
                               AND type = :type
                               AND data = :data::JSONB
                               AND acknowledged_at IS NULL;""")
-                .single(Call.of().bind("member_id", memberId).bind("type", type).bind("data", dataJson))
+                .single(call().bind("member_id", memberId).bind("type", type).bind("data", dataJson))
                 .map(row -> true)
                 .first()
                 .orElse(false);
@@ -70,9 +70,9 @@ public class NotificationRepository {
      * @return list of unacknowledged notifications
      */
     public List<Notification> findUnacknowledged(int memberId) {
-        return Query.query(
+        return query(
                         "SELECT * FROM notification WHERE member_id = :member_id AND acknowledged_at IS NULL ORDER BY created_at DESC;")
-                .single(Call.of().bind("member_id", memberId))
+                .single(call().bind("member_id", memberId))
                 .map(Notification.map())
                 .all();
     }
@@ -84,8 +84,8 @@ public class NotificationRepository {
      * @return list of notifications
      */
     public List<Notification> findAll(int memberId) {
-        return Query.query("SELECT * FROM notification WHERE member_id = :member_id ORDER BY created_at DESC LIMIT 50;")
-                .single(Call.of().bind("member_id", memberId))
+        return query("SELECT * FROM notification WHERE member_id = :member_id ORDER BY created_at DESC LIMIT 50;")
+                .single(call().bind("member_id", memberId))
                 .map(Notification.map())
                 .all();
     }
@@ -97,9 +97,9 @@ public class NotificationRepository {
      * @return count of unacknowledged notifications
      */
     public int countUnacknowledged(int memberId) {
-        return Query.query(
+        return query(
                         "SELECT count(*) AS cnt FROM notification WHERE member_id = :member_id AND acknowledged_at IS NULL;")
-                .single(Call.of().bind("member_id", memberId))
+                .single(call().bind("member_id", memberId))
                 .map(row -> row.getInt("cnt"))
                 .first()
                 .orElse(0);
@@ -113,12 +113,9 @@ public class NotificationRepository {
      * @return {@code true} if the notification was acknowledged
      */
     public boolean acknowledge(int id, int memberId) {
-        return Query.query(
+        return query(
                         "UPDATE notification SET acknowledged_at = :now WHERE id = :id AND member_id = :member_id AND acknowledged_at IS NULL;")
-                .single(Call.of()
-                        .bind("id", id)
-                        .bind("member_id", memberId)
-                        .bind("now", Instant.now(), INSTANT_TIMESTAMP))
+                .single(call().bind("id", id).bind("member_id", memberId).bind("now", Instant.now(), INSTANT_TIMESTAMP))
                 .update()
                 .changed();
     }
@@ -130,9 +127,9 @@ public class NotificationRepository {
      * @return the number of notifications acknowledged
      */
     public int acknowledgeAll(int memberId) {
-        return Query.query(
+        return query(
                         "UPDATE notification SET acknowledged_at = :now WHERE member_id = :member_id AND acknowledged_at IS NULL;")
-                .single(Call.of().bind("member_id", memberId).bind("now", Instant.now(), INSTANT_TIMESTAMP))
+                .single(call().bind("member_id", memberId).bind("now", Instant.now(), INSTANT_TIMESTAMP))
                 .update()
                 .rows();
     }
@@ -146,12 +143,12 @@ public class NotificationRepository {
      * @return the number of notifications deleted
      */
     public int deleteByTypeContaining(NotificationType type, String partialDataJson) {
-        return Query.query("""
+        return query("""
                             DELETE FROM notification
                             WHERE type = :type
                               AND data @> :partial::JSONB
                               AND acknowledged_at IS NULL;""")
-                .single(Call.of().bind("type", type).bind("partial", partialDataJson))
+                .single(call().bind("type", type).bind("partial", partialDataJson))
                 .delete()
                 .rows();
     }
@@ -160,7 +157,7 @@ public class NotificationRepository {
      * Deletes acknowledged notifications older than 30 days.
      */
     public void deleteOldAcknowledged() {
-        Query.query(
+        query(
                         "DELETE FROM notification WHERE acknowledged_at IS NOT NULL AND acknowledged_at < now() - INTERVAL '30 days';")
                 .single()
                 .delete();
@@ -172,7 +169,7 @@ public class NotificationRepository {
      * @return list of unemailed notifications, ordered by member and creation time
      */
     public List<Notification> findUnemailed() {
-        return Query.query("""
+        return query("""
                 SELECT * FROM notification
                 WHERE emailed_at IS NULL
                 ORDER BY member_id, created_at;""").single().map(Notification.map()).all();
@@ -187,8 +184,8 @@ public class NotificationRepository {
         if (ids.isEmpty()) return;
         var now = Instant.now();
         for (int id : ids) {
-            Query.query("UPDATE notification SET emailed_at = :now WHERE id = :id;")
-                    .single(Call.of().bind("now", now, INSTANT_TIMESTAMP).bind("id", id))
+            query("UPDATE notification SET emailed_at = :now WHERE id = :id;")
+                    .single(call().bind("now", now, INSTANT_TIMESTAMP).bind("id", id))
                     .update();
         }
     }

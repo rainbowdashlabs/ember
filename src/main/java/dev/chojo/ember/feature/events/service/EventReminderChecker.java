@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -95,7 +96,7 @@ public class EventReminderChecker {
 
     private List<LocalDate> computeOccurrences(StationEvent event, LocalDate today, List<Integer> reminderDays) {
         int maxDays = reminderDays.stream().mapToInt(Integer::intValue).max().orElse(0);
-        var result = new java.util.ArrayList<LocalDate>();
+        var result = new ArrayList<LocalDate>();
 
         if (event.eventType() == StationEvent.EventType.ONE_TIME) {
             if (event.startTime() != null) {

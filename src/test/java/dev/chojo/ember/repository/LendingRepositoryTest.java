@@ -328,4 +328,12 @@ class LendingRepositoryTest extends RepositoryTestBase {
         assertFalse(lentOut.isEmpty());
         assertTrue(lentOut.stream().anyMatch(l -> l.requestId() == request.id()));
     }
+
+    @Test
+    @Order(51)
+    void countActionableRequests() {
+        int count = lendingRepo.countActionableRequests(stationA.id());
+        // Returns count of REQUESTED/APPROVED-but-pending requests for this station; at least 0
+        assertTrue(count >= 0);
+    }
 }

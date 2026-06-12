@@ -12,7 +12,6 @@ import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.MailSettings;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.conf.file.elements.Theming;
-import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.legal.service.LegalDocumentService;
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
@@ -60,11 +59,7 @@ public class AdminSettingsRoutes implements Routes {
     private final LegalDocumentService documentService;
 
     @Inject
-    public AdminSettingsRoutes(
-            ApplicationSettingRepository settingRepository,
-            ImageService imageService,
-            Conf conf,
-            ConsentService consentService) {
+    public AdminSettingsRoutes(ApplicationSettingRepository settingRepository, ImageService imageService, Conf conf) {
         this.settingRepository = settingRepository;
         this.imageService = imageService;
         this.conf = conf;

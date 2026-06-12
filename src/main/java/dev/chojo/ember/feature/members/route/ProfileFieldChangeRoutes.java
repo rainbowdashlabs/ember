@@ -25,6 +25,7 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -116,11 +117,7 @@ public class ProfileFieldChangeRoutes implements Routes {
     }
 
     public record EnrichedMemberChangeSummary(
-            int memberId,
-            String memberName,
-            int pendingCount,
-            java.time.Instant latestChange,
-            MemberIdentity identity) {}
+            int memberId, String memberName, int pendingCount, Instant latestChange, MemberIdentity identity) {}
 
     @OpenApi(
             path = "/api/v1/station-members/{memberId}/profile-changes",

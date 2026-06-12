@@ -4,6 +4,27 @@
 
 ### New Features
 
+#### Storage Monitoring & Quota System
+- **Per-station storage tracking** — tracks file storage usage across 5 categories: KB files, board attachments, page images, avatars, and other images
+- **Quota enforcement** — configurable per-category and total storage limits with rejection on exceed (HTTP 413)
+- **Quota presets** — reusable named profiles (e.g. Small, Standard, Premium) that can be applied to stations in bulk
+- **Per-station overrides** — stations can have custom quotas or use instance defaults from config
+- **Warning notifications** — domain event notifies station managers when usage crosses the configurable threshold (default 80%)
+- **Automatic reconciliation** — background job recalculates actual usage from DB and filesystem on startup and at configurable intervals
+- **Presentation compression** — lossless ZIP recompression of PPTX/ODP files, saving 10-30% for files above the threshold
+- **Admin dashboard** — storage overview with summary stats, stacked bar charts per station, category pie chart, sortable station table with status badges and preset assignment
+- **Station storage view** — read-only usage view for station managers with bar chart and per-category breakdown
+- **Preset management** — CRUD UI with size inputs (number + MiB/GiB/TiB dropdown), apply to multiple stations, delete with confirmation
+- **Config** — `storage` section in config.yaml with defaults for all quotas, compression, warning threshold, and reconciliation interval
+- **Help center** — help articles for both admin and station storage views
+
+#### Federation Version Broadcasting
+- **Startup broadcast** — on boot, pings all remote federation partners to exchange version information
+- **Version ping endpoint** — new `/remote/federation/ping` returns the current federation version hash
+- **Version backfill** — partners created before version tracking get updated on startup
+- **Version at creation** — new partners are created with the current federation version instead of placeholder '0'
+- **DTO tracking** — federation version hash now includes inner record DTOs from FederationRemoteRoutes, FederationRoutes, LendingRoutes, and BoardRoutes
+
 #### Public Pages (Layout Editor)
 - **Page builder** — stations can create public pages using a lightweight layout editor inspired by WordPress/Elementor
 - **Row-based layout** — pages are built from horizontal rows, each containing 1-4 columns with free-form percentage widths
@@ -95,10 +116,27 @@
 - **Google Search Console** — optional `NUXT_PUBLIC_GOOGLE_SITE_VERIFICATION` env var for site verification
 - **Help center SEO** — `HelpArticle` component auto-generates meta description and OG tags from article title/subtitle for all 142 help pages
 
+#### Data Tracking System
+- **`data_tracking.json`** — single source of truth for every DB table tracked in station transfer, GDPR export, and GDPR deletion. Stores per-column verification flags, FK metadata, lookups, output shape, custom scope paths, and PG `COMMENT ON TABLE`/`COMMENT ON COLUMN` text (descriptions excluded from the hash so editing comments doesn't invalidate verification)
+- **Metadata-driven station export/import** — `GenericTableExporter` and `GenericTableImporter` generate SELECT/INSERT queries dynamically from the tracking metadata. `StationExportService` and `StationImportService` are now thin orchestrators with no per-table SQL
+- **Topological table order** — `TableOrder` derives the export/import order from FK dependencies (skipping `SET NULL` FKs to break cycles); no hand-coded `TABLE_ORDER` list
+- **Custom scope support** — tables reached via an incoming FK (e.g. `account` through `station_member.account_id`) declare a `customScope` in tracking and the engine emits an `IN (SELECT … FROM viaTable WHERE …)` filter
+- **FK-flattened lookups** — `lookups` array on `TableEntry` adds joined fields like `account_email` to exported rows; the importer resolves them back to local FK ids
+- **Output shape per table** — `SINGLE` for one-row-per-station tables (`station`), `FLAT` for enum-only tables (`station_disabled_module`); the wire format is keyed by DB table name
+- **Account migration** — accounts/credentials transfer via `customScope` through `station_member`; existing target accounts (matched by email) are linked as-is, new accounts are created with `force_password_change=TRUE`
+- **Federation state transfer** — every federation table (`federation_partner`, capability, share configs across boards/inventory/KB/protocol/quiz, event/news federation) now transfers with the station; the private key column transfers too so partners keep recognising the station post-migration
+- **Metadata-driven GDPR export** — `GenericGdprExporter` builds queries from `gdprExport.identityColumns` matching the requested identity type (`ACCOUNT_ID`/`MEMBER_ID`/`MEMBER_UID`). `GdprExportService` shrank from ~470 hand-coded lines to a thin orchestrator; output keyed by DB table name (`accountTables`, `memberTables`, `memberUidTables`)
+- **Metadata-driven GDPR deletion** — `GenericGdprDeleter` honours each `gdprDeletion` strategy (`DELETE_EXPLICIT`, `NULL`, `ANONYMIZE` with type-derived sentinels — zero-UUID, `"Gelöscht"`, NULL for nullable int — and `CASCADE`/`RETAIN`/`RETAIN_UNLINKED`/`NOT_APPLICABLE` no-ops with audit logs). UPDATEs run before DELETEs across all tables; DELETEs in reverse-topological order
+- **Dev-mode admin panel** — `/admin/data-tracking` view available only when `Demo.dev()` is true (frontend tree-shakes via `import.meta.env.DEV`). Color-coded status badges, summary dashboard, search by table name / column name / description, batch status changes, per-column verified toggles, multi-select dropdowns for `ignoredColumns`, fully editable GDPR deletion strategies, foreign-key chips with key icons, dangling-reference audit banner that flags MEMBER_ID identity columns without an FK to `station_member`, CASCADE chip warnings when the FK parent's effective strategy isn't actually a deletion
+- **Federated uploader for board attachments** — `board_ticket_attachment.uploaded_by INT REFERENCES station_member` replaced with `uploader_station_uid UUID` + `uploader_member_uid UUID`; matches the federated identity pattern already used on `board_ticket.creator_*`, `board_ticket_comment.author_*`, `board_ticket_transition.actor_*`, `board_ticket_watcher.watcher_*`. Federated members from partner stations can now attach files
+
 #### Documentation
 - **Environment variable reference** — hosting help page now documents all env vars organized by category: Database, API, Mailing, Auth, Theming, Tools, Frontend, Demo, and Docker/Compose — each with default value and beginner-friendly description
 
 ### Improvements
+- **Type-safe API responses** — replaced ~50 `Map.of()` API responses across routes, services, and export classes with typed Java records for compile-time safety
+- **CI retry** — test jobs (repository, service, other) retry once on failure; Docker push steps retry up to 3 times for transient registry errors
+- **CI coverage job** — no longer re-runs all tests; skips the default `test` task since coverage data is downloaded from artifacts
 - **FileInput component** — new reusable styled file picker component replacing raw `<input type="file">` elements across the knowledge base
 - **Frontend Docker image** — replaced `nixos/nix:latest` with `node:24-alpine` for dramatically faster builds (no nix-shell overhead)
 - **Inventory item status** — item detail now shows "Zugewiesen" (assigned) or "Verfügbar" (available) instead of generic "Aktiv"
@@ -111,8 +149,44 @@
 - **Inventory item assigned user** — assigned user was not shown on the item detail page; lookup relied on history entries instead of the direct assignment
 - **Permission picker rollback** — unchecking a parent permission (e.g. LOST_AND_FOUND_MANAGE) discarded previously selected child permissions (e.g. LOST_AND_FOUND_CREATE) instead of restoring them
 - **My Inventory tab visibility** — sidebar tab was always visible even when the user had no assigned inventory items
+- **Orphaned quiz attempt rows** — `quiz_test_attempt.member_id` and `graded_by` were bare INT columns without FKs, so deleting a member left dangling references. Both now FK to `station_member.id` with `CASCADE` and `SET NULL` respectively
 
 ### Technical Changes
+
+#### Data Tracking Backend
+- **`DataTracking` records** — `TableEntry`, `ColumnEntry`, `ForeignKey`, `Lookup`, `CustomScope`, `TransferContext`, `GdprExportContext`, `GdprDeletionContext`, `DeletionStrategy`, `IdentityColumn` with `Status`/`Strategy`/`IdentityType`/`OutputShape`/`Scope` enums
+- **`SchemaReader`** — reads PG `information_schema` plus `obj_description` / `col_description` for table+column comments; emits `RawTable` / `RawColumn` / `RawForeignKey`
+- **`HashComputer`** — deterministic SHA-256 over columns + FKs; descriptions intentionally excluded
+- **`DataTrackingRefresher`** — merges live schema into `data_tracking.json`, refreshing descriptions on every run and preserving verification flags
+- **`StationScopeResolver`** — BFS over the FK graph to find the join chain from any table to a `station_id` column; handles the `station` table itself via `id`, skips `SET NULL` FKs
+- **`TableOrder.topological`** — Kahn's algorithm over `dependsOn`, breaks cycles via `SET NULL` skipping, leftover nodes appended alphabetically for stable output
+- **`GenericTableExporter`** + **`GenericTableImporter`** + **`GenericGdprExporter`** + **`GenericGdprDeleter`** — engine classes driving the four major flows
+- **`DataTrackingAdminService`** — dev-mode only service backing the admin panel, file-path-configurable for tests
+- **`DataTrackingRoutes`** — handlers registered only when `Demo.dev()` is true
+- **Engine wiring** — `StationExportService`/`StationImportService` dropped ~2400 lines of hand-coded SQL; `GdprExportService` dropped ~470 lines; `GdprDeletionService` dropped ~100 lines. Public API preserved on each
+- **DB migration** — `board_ticket_attachment` `uploaded_by` → `uploader_station_uid` + `uploader_member_uid` UUID pair with data backfill; missing FKs on `quiz_test_attempt.member_id` (CASCADE) and `graded_by` (SET NULL) added with defensive orphan cleanup
+- **Metadata drift fixes** — `entity_note`, `entity_note_version`, `inventory_item`, `profile_field_change_acknowledgement` identity-column names corrected to match real schema; stale entries removed on `form_answer`, `waiting_list_entry_guardian`, `waiting_list_entry_value`, `waiting_list_invite`, `kb_file`
+- **CLI cleanup** — removed `DataTrackingReviewer`/`Prompter`/`ReviewCli`/`BackfillCli`/`TransferMetadataBackfillCli` and their gradle tasks; the dev admin panel covers their use cases. Kept `refreshDataTracking` since the frontend can't read live PG schema
+
+#### Storage Monitoring Backend
+- **`StorageCategory` enum** — `KB_FILES`, `BOARD_ATTACHMENTS`, `PAGE_IMAGES`, `AVATARS`, `IMAGES`
+- **`StorageUsageRepository`** — delta updates, absolute sets, per-station/category queries
+- **`StorageQuotaPresetRepository`** — preset CRUD, apply-to-station, reset quotas, station preset name lookup
+- **`StorageQuotaService`** — quota checking, per-file/image size limits, delta tracking, warning threshold detection
+- **`StorageReconciliationService`** — filesystem walk + DB recalculation, runs on startup (1min delay) and at configured interval
+- **`PresentationCompressor`** — lossless ZIP recompression with `Deflater.BEST_COMPRESSION`
+- **`StorageRoutes`** — station usage, admin overview, preset CRUD, apply/reset, reconciliation triggers
+- **`StorageWarningEvent`** + handler — domain event notifying STATION_MANAGER role
+- **`SizeParser` utility** — parses "5G", "50M" etc. into bytes and formats back
+- **`Storage` config** — Ocular config element with env var overrides (`STORAGE_*`)
+- **DB migration** — `station_storage_usage`, `storage_quota_preset` tables; station quota columns + `storage_preset_id` FK
+
+#### Federation Version
+- **`FederationVersionBroadcaster`** — eager singleton, pings all remote partners 2min after startup
+- **`/remote/federation/ping`** — returns `VersionPingResponse` (typed record, not Map)
+- **`FederationVersionComputer`** — now tracks DTOs from `FederationRemoteRoutes`, `FederationRoutes`, `LendingRoutes`, `BoardRoutes`
+- **`FederationRepository.backfillPartnerVersions`** — updates all partners with version '0' on startup
+- **`FederationRepository.createPartner`** — sets `federation_version` to current version at creation time
 
 #### Sitemap
 - **Jackson XML serialization** — replaced manual XML string concatenation with typed records and Jackson `XmlMapper`

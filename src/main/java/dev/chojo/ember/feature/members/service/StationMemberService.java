@@ -27,7 +27,6 @@ import java.util.UUID;
 @Singleton
 public class StationMemberService {
     private final StationMemberRepository memberRepository;
-    private final StationRepository stationRepository;
     private final AccountRepository accountRepository;
     private final AuthService authService;
 
@@ -38,7 +37,6 @@ public class StationMemberService {
             AccountRepository accountRepository,
             AuthService authService) {
         this.memberRepository = memberRepository;
-        this.stationRepository = stationRepository;
         this.accountRepository = accountRepository;
         this.authService = authService;
     }

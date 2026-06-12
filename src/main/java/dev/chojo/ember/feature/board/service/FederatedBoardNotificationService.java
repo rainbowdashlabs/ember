@@ -28,16 +28,6 @@ public class FederatedBoardNotificationService {
         this.federatedBoardService = federatedBoardService;
     }
 
-    /**
-     * Placeholder for federated watcher notifications.
-     * Watchers are stored inline in board_ticket_watcher
-     * and notifications are handled via the domain event system.
-     */
-    public void notifyFederatedWatchers(int ticketId, int boardId, String ticketKey, String changeDescription) {
-        // No-op: federated watchers are now stored inline in board_ticket_watcher
-        // and notified via the standard domain event / notification system.
-    }
-
     public void notifyMention(int partnerId, int boardId, int ticketId, String ticketKey, UUID remoteMemberId) {
         if (!isFullMode(boardId, partnerId)) return;
         webhookService.fireEventToPartner(

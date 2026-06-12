@@ -57,6 +57,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -88,7 +89,6 @@ public class KnowledgeBaseRoutes implements Routes {
     private final DomainEventBus eventBus;
     private final MemberNameResolver memberNameResolver;
     private final MemberIdentityFactory memberIdentityFactory;
-    private final StationMemberService stationMemberService;
 
     @Inject
     public KnowledgeBaseRoutes(
@@ -121,7 +121,6 @@ public class KnowledgeBaseRoutes implements Routes {
         this.eventBus = eventBus;
         this.memberNameResolver = memberNameResolver;
         this.memberIdentityFactory = memberIdentityFactory;
-        this.stationMemberService = stationMemberService;
     }
 
     private String resolveFolderPath(Integer folderId) {
@@ -820,19 +819,19 @@ public class KnowledgeBaseRoutes implements Routes {
     private RestrictionResponse toRestrictionResponse(List<KbAccessRestriction> restrictions) {
         var userTypes = restrictions.stream()
                 .map(KbAccessRestriction::userType)
-                .filter(ut -> ut != null)
+                .filter(Objects::nonNull)
                 .toList();
         var groupIds = restrictions.stream()
                 .map(KbAccessRestriction::groupId)
-                .filter(integer -> integer != null)
+                .filter(Objects::nonNull)
                 .toList();
         var tagIds = restrictions.stream()
                 .map(KbAccessRestriction::tagId)
-                .filter(integer -> integer != null)
+                .filter(Objects::nonNull)
                 .toList();
         var memberIds = restrictions.stream()
                 .map(KbAccessRestriction::memberId)
-                .filter(integer -> integer != null)
+                .filter(Objects::nonNull)
                 .toList();
         return new RestrictionResponse(userTypes, groupIds, tagIds, memberIds);
     }
@@ -1139,7 +1138,7 @@ public class KnowledgeBaseRoutes implements Routes {
         var shares = federationRepository.findKbShares(partner.stationId());
         var sharedFileIds = shares.stream()
                 .map(FederationShare::fileId)
-                .filter(integer -> integer != null)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         ctx.json(results.stream()
                 .filter(r -> sharedFileIds.contains(r.file().id()))

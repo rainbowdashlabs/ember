@@ -451,7 +451,8 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
                 null,
                 memberIdentityFactory.local(station.id(), member.id()));
         reset(webhookService);
-        notificationService.notifyFederatedWatchers(ticket2.id(), boardId, "FTB-2", "change");
+        // notifyFederatedWatchers was a no-op placeholder and has been removed; federated watcher
+        // notifications now flow through the domain event system.
         verifyNoInteractions(webhookService);
         ticketService.deleteTicket(ticket2.id());
     }

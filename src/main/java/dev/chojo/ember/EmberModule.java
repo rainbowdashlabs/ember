@@ -112,6 +112,7 @@ import dev.chojo.ember.feature.storage.service.StorageReconciliationService;
 import dev.chojo.ember.feature.system.route.AdminSettingsRoutes;
 import dev.chojo.ember.feature.system.route.ApiStatusRoutes;
 import dev.chojo.ember.feature.system.route.DataRoutes;
+import dev.chojo.ember.feature.system.route.DataTrackingRoutes;
 import dev.chojo.ember.feature.system.route.ProblemReportRoutes;
 import dev.chojo.ember.feature.system.route.ProblemRoutes;
 import dev.chojo.ember.feature.system.route.RequirementsRoutes;
@@ -182,6 +183,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(LostAndFoundRoutes.class);
         routesBinder.addBinding().to(TransferRoutes.class);
         routesBinder.addBinding().to(AdminSettingsRoutes.class);
+        routesBinder.addBinding().to(DataTrackingRoutes.class);
         routesBinder.addBinding().to(ProblemRoutes.class);
         routesBinder.addBinding().to(ProblemReportRoutes.class);
         routesBinder.addBinding().to(ApiStatusRoutes.class);

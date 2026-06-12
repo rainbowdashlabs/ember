@@ -39,8 +39,12 @@ import org.slf4j.LoggerFactory;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 @Singleton
 public class WaitingListRoutes implements Routes {
@@ -453,11 +457,9 @@ public class WaitingListRoutes implements Routes {
         var list = service.findById(listId).orElseThrow(NotFoundResponse::new);
         var fields = service.findFieldsByList(listId);
         var allGuardians = service.findGuardiansByList(listId);
-        var guardianMap = new java.util.HashMap<Integer, List<WaitingListEntryGuardian>>();
+        var guardianMap = new HashMap<Integer, List<WaitingListEntryGuardian>>();
         for (var g : allGuardians) {
-            guardianMap
-                    .computeIfAbsent(g.entryId(), k -> new java.util.ArrayList<>())
-                    .add(g);
+            guardianMap.computeIfAbsent(g.entryId(), k -> new ArrayList<>()).add(g);
         }
         var result = entries.stream()
                 .map(entry -> {
@@ -692,9 +694,9 @@ public class WaitingListRoutes implements Routes {
                 .findBySlug(stationUid)
                 .or(() -> {
                     try {
-                        return stationRepository.findByUid(java.util.UUID.fromString(stationUid));
+                        return stationRepository.findByUid(UUID.fromString(stationUid));
                     } catch (IllegalArgumentException e) {
-                        return java.util.Optional.empty();
+                        return Optional.empty();
                     }
                 })
                 .orElseThrow(NotFoundResponse::new);

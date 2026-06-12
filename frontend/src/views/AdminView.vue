@@ -23,6 +23,10 @@ const route = useRoute()
 const router = useRouter()
 const {loaded, load, fullName, clear} = useSession()
 
+// Dev-mode-only inspector tools are only visible when the dev server is running
+// (production bundles tree-shake the branch out via Vite's import.meta.env).
+const isDev = import.meta.env.DEV
+
 onMounted(() => {
   if (!loaded.value) {
     load()
@@ -101,6 +105,23 @@ async function handleLogout() {
         </SidebarLink>
         <SidebarLink :icon="['fas', 'chart-line']" name="admin-api-status" to="/admin/api-status" @navigate="close">
           {{ t('sidebar.apiStatus') }}
+        </SidebarLink>
+      </SidebarGroup>
+
+      <SidebarGroup
+          v-if="isDev"
+          :icon="['fas', 'code']"
+          :label="t('sidebar.devTools')"
+          prefix="/admin/dev"
+          group-key="dev"
+      >
+        <SidebarLink
+            :icon="['fas', 'database']"
+            name="admin-data-tracking"
+            to="/admin/data-tracking"
+            @navigate="close"
+        >
+          {{ t('sidebar.dataTracking') }}
         </SidebarLink>
       </SidebarGroup>
     </template>

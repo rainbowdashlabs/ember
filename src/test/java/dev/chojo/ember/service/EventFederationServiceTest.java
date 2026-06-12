@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
 import dev.chojo.ember.feature.comment.service.CommentService;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.service.EventFederationService;
@@ -252,7 +253,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Order(13)
     void updateRegistrationStatus() {
         var reg = service.registerFederated(eventId, partnerId, REMOTE_MEMBER_3, LocalDate.of(2026, 7, 3));
-        boolean updated = service.updateRegistrationStatus(reg.id(), "ACCEPTED");
+        boolean updated = service.updateRegistrationStatus(reg.id(), RegistrationStatus.ACCEPTED);
         assertTrue(updated);
         var found = service.findRegistrationById(reg.id()).orElseThrow();
         assertEquals("ACCEPTED", found.status());

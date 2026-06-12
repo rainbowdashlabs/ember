@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.system.service;
 
 import de.chojo.sadu.postgresql.databases.PostgreSql;
-import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.updater.QueryReplacement;
 import de.chojo.sadu.updater.SqlUpdater;
 import dev.chojo.ember.api.roles.InstanceUserType;
@@ -53,6 +52,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
+
+import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
  * Service for managing the demo environment including database reset, demo data seeding
@@ -256,8 +257,8 @@ public class DemoService {
 
     private void wipeDatabase() {
         String schema = databaseConfig.schema();
-        Query.query("DROP SCHEMA IF EXISTS " + schema + " CASCADE;").single().delete();
-        Query.query("CREATE SCHEMA " + schema + ";").single().insert();
+        query("DROP SCHEMA IF EXISTS " + schema + " CASCADE;").single().delete();
+        query("CREATE SCHEMA " + schema + ";").single().insert();
         try {
             SqlUpdater.builder(dataSource, PostgreSql.get())
                     .setReplacements(new QueryReplacement("ember_schema", schema))

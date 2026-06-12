@@ -156,10 +156,6 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
         private final long id;
         private final String level;
         private final String logger;
-        private final String stacktrace;
-        private final String exceptionClass;
-        private final String exceptionMessage;
-        private final Instant firstOccurrence;
         private final List<String> distinctMessages = Collections.synchronizedList(new ArrayList<>());
         private volatile Instant lastOccurrence;
         private volatile int count;
@@ -177,10 +173,6 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
             this.id = id;
             this.level = level;
             this.logger = logger;
-            this.stacktrace = stacktrace;
-            this.exceptionClass = exceptionClass;
-            this.exceptionMessage = exceptionMessage;
-            this.firstOccurrence = timestamp;
             this.lastOccurrence = timestamp;
             this.count = 1;
             this.distinctMessages.add(message);

@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.storage.service;
 
-import de.chojo.sadu.queries.api.call.Call;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.StorageWarningEvent;
@@ -20,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
@@ -157,7 +157,7 @@ public class StorageQuotaService {
                        storage_per_image_bytes
                 FROM station WHERE id = :id;
                 """)
-                .single(Call.of().bind("id", stationId))
+                .single(call().bind("id", stationId))
                 .map(StationStorageQuota.map())
                 .first()
                 .orElse(new StationStorageQuota(stationId, null, null, null, null, null, null, null));
@@ -197,7 +197,7 @@ public class StorageQuotaService {
 
     private boolean isWarningSent(int stationId) {
         return query("SELECT storage_warning_sent FROM station WHERE id = :id;")
-                .single(Call.of().bind("id", stationId))
+                .single(call().bind("id", stationId))
                 .map(row -> row.getBoolean("storage_warning_sent"))
                 .first()
                 .orElse(false);
@@ -205,7 +205,7 @@ public class StorageQuotaService {
 
     private void setWarningSent(int stationId, boolean sent) {
         query("UPDATE station SET storage_warning_sent = :sent WHERE id = :id;")
-                .single(Call.of().bind("sent", sent).bind("id", stationId))
+                .single(call().bind("sent", sent).bind("id", stationId))
                 .update();
     }
 
@@ -233,8 +233,7 @@ public class StorageQuotaService {
                     storage_preset_id = NULL
                 WHERE id = :id;
                 """)
-                .single(Call.of()
-                        .bind("id", stationId)
+                .single(call().bind("id", stationId)
                         .bind("total", totalBytes)
                         .bind("kb", kbBytes)
                         .bind("board", boardBytes)

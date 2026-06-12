@@ -5,13 +5,15 @@
  */
 package dev.chojo.ember.api.roles;
 
+import io.javalin.security.RouteRole;
+
 import java.util.EnumSet;
 import java.util.Set;
 
 /**
  * The permissions that are granted to the instance administrator.
  */
-public enum InstancePermission implements io.javalin.security.RouteRole {
+public enum InstancePermission implements RouteRole {
     ADMINISTRATOR;
 
     private final InstancePermission[] children;

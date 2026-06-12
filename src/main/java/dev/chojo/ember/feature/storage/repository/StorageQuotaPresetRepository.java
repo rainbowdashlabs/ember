@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.storage.repository;
 
-import de.chojo.sadu.queries.api.call.Call;
 import dev.chojo.ember.feature.storage.entity.StorageQuotaPreset;
 import jakarta.inject.Singleton;
 
@@ -14,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
@@ -25,14 +25,14 @@ public class StorageQuotaPresetRepository {
 
     public List<StorageQuotaPreset> findAll() {
         return query("SELECT %s FROM storage_quota_preset ORDER BY name;".formatted(PRESET_COLUMNS))
-                .single(Call.of())
+                .single(call())
                 .map(StorageQuotaPreset.map())
                 .all();
     }
 
     public Optional<StorageQuotaPreset> findById(int id) {
         return query("SELECT %s FROM storage_quota_preset WHERE id = :id;".formatted(PRESET_COLUMNS))
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .map(StorageQuotaPreset.map())
                 .first();
     }
@@ -44,8 +44,7 @@ public class StorageQuotaPresetRepository {
                 VALUES (:name, :total, :kb, :board, :images, :pages, :per_file, :per_image)
                 RETURNING %s;
                 """.formatted(PRESET_COLUMNS))
-                .single(Call.of()
-                        .bind("name", name)
+                .single(call().bind("name", name)
                         .bind("total", total)
                         .bind("kb", kb)
                         .bind("board", board)
@@ -75,8 +74,7 @@ public class StorageQuotaPresetRepository {
                 WHERE id = :id
                 RETURNING %s;
                 """.formatted(PRESET_COLUMNS))
-                .single(Call.of()
-                        .bind("id", id)
+                .single(call().bind("id", id)
                         .bind("name", name)
                         .bind("total", total)
                         .bind("kb", kb)
@@ -92,7 +90,7 @@ public class StorageQuotaPresetRepository {
 
     public void delete(int id) {
         query("DELETE FROM storage_quota_preset WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+                .single(call().bind("id", id))
                 .delete();
     }
 
@@ -114,7 +112,7 @@ public class StorageQuotaPresetRepository {
                 FROM storage_quota_preset p
                 WHERE station.id = :station_id AND p.id = :preset_id;
                 """)
-                .single(Call.of().bind("station_id", stationId).bind("preset_id", presetId))
+                .single(call().bind("station_id", stationId).bind("preset_id", presetId))
                 .update();
     }
 
@@ -128,7 +126,7 @@ public class StorageQuotaPresetRepository {
                 FROM station s
                 JOIN storage_quota_preset p ON p.id = s.storage_preset_id;
                 """)
-                .single(Call.of())
+                .single(call())
                 .map(row -> Map.entry(row.getInt("station_id"), row.getString("preset_name")))
                 .all()
                 .forEach(e -> result.put(e.getKey(), e.getValue()));
@@ -150,6 +148,6 @@ public class StorageQuotaPresetRepository {
                     storage_per_image_bytes = NULL,
                     storage_preset_id = NULL
                 WHERE id = :station_id;
-                """).single(Call.of().bind("station_id", stationId)).update();
+                """).single(call().bind("station_id", stationId)).update();
     }
 }

@@ -33,6 +33,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,6 +43,16 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * End-to-end station transfer test driving the metadata-driven engines:
+ * {@link StationExportService} produces a bundle keyed by DB table names, and
+ * {@link StationImportService} consumes it via {@code GenericTableImporter} +
+ * {@code TableOrder}.
+ *
+ * <p>Each test that consumes a round-trip bundle deletes the source-side station before
+ * the import to simulate cross-instance reality (the testcontainer DB is shared between
+ * source and target).
+ */
 @Tag("database")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class StationTransferTest extends RepositoryTestBase {
@@ -51,29 +62,31 @@ class StationTransferTest extends RepositoryTestBase {
     private static Map<String, Object> exportedData;
 
     // Track source IDs for verification
-    private static int sourceMember1Id;
-    private static int sourceMember2Id;
-    private static int sourceMember3Id;
+    private static int sourceManagerId;
+    private static int sourceTrainerId;
+    private static int sourceChildId;
 
+    /** Collects every wire entry the exporter produces for {@code stationId} into a single Map. */
     private static Map<String, Object> exportAllTables(int stationId) {
-        var merged = new HashMap<String, Object>();
-        for (String table : StationExportService.TABLE_ORDER) {
+        Map<String, Object> bundle = new LinkedHashMap<>();
+        for (String table : exportService.getTableOrder()) {
             try {
-                var page = exportService.exportTable(stationId, table, 0, 10000);
-                merged.putAll(page);
+                var page = exportService.exportTable(stationId, table, 0, 10_000);
+                Object payload = page.get(table);
+                if (payload != null) bundle.put(table, payload);
             } catch (Exception e) {
                 throw new RuntimeException("Failed to export table: " + table, e);
             }
         }
-        return merged;
+        return bundle;
     }
 
     // ==================== Setup with rich demo data ====================
 
     @BeforeAll
     static void setup() {
-        exportService = new StationExportService(stationRepo);
-        importService = new StationImportService(stationRepo, stationMemberRepo, accountRepo);
+        exportService = new StationExportService();
+        importService = new StationImportService(stationRepo, accountRepo, exportService);
 
         // Create station with full settings
         var station = stationRepo.create("Jugendfeuerwehr Musterstadt");
@@ -83,26 +96,21 @@ class StationTransferTest extends RepositoryTestBase {
         stationRepo.setDisabledModules(sourceStationId, Set.of(StationModule.LOST_AND_FOUND));
 
         // --- Accounts & Members ---
-        // Manager with full account
         var managerAccount = accountRepo.create("manager@jf-musterstadt.de", "Thomas", "Müller", true);
         var manager = stationMemberRepo.create(sourceStationId, managerAccount.id());
-        sourceMember1Id = manager.id();
+        sourceManagerId = manager.id();
 
-        // Team member (trainer)
         var trainerAccount = accountRepo.create("trainer@jf-musterstadt.de", "Sandra", "Weber", true);
         var trainer = stationMemberRepo.create(sourceStationId, trainerAccount.id());
-        sourceMember2Id = trainer.id();
+        sourceTrainerId = trainer.id();
 
-        // Guardian with child
         var guardianAccount = accountRepo.create("eltern@jf-musterstadt.de", "Maria", "Schmidt", true);
         var guardian = stationMemberRepo.create(sourceStationId, guardianAccount.id());
 
-        // Regular member (child)
         var childAccount = accountRepo.create("kind@jf-musterstadt.de", "Luca", "Schmidt", true);
         var child = stationMemberRepo.create(sourceStationId, childAccount.id());
-        sourceMember3Id = child.id();
+        sourceChildId = child.id();
 
-        // Former member (no account link needed)
         var formerAccount = accountRepo.create("ehemalig@jf-musterstadt.de", "Max", "Alt", true);
         var former = stationMemberRepo.create(sourceStationId, formerAccount.id());
 
@@ -314,229 +322,248 @@ class StationTransferTest extends RepositoryTestBase {
     void exportContainsAllSections() {
         exportedData = exportAllTables(sourceStationId);
 
+        // Wire keys are real DB table names produced by GenericTableExporter
         assertNotNull(exportedData.get("station"));
-        assertNotNull(exportedData.get("members"));
-        assertNotNull(exportedData.get("memberUserTypes"));
-        assertNotNull(exportedData.get("groups"));
-        assertNotNull(exportedData.get("groupMembers"));
-        assertNotNull(exportedData.get("tags"));
-        assertNotNull(exportedData.get("tagMembers"));
-        assertNotNull(exportedData.get("managerRelations"));
-        assertNotNull(exportedData.get("profileFields"));
-        assertNotNull(exportedData.get("profileFieldValues"));
-        assertNotNull(exportedData.get("eventCategories"));
-        assertNotNull(exportedData.get("events"));
-        assertNotNull(exportedData.get("attendanceTemplates"));
-        assertNotNull(exportedData.get("attendanceTemplateFields"));
-        assertNotNull(exportedData.get("inventories"));
-        assertNotNull(exportedData.get("inventorySizes"));
-        assertNotNull(exportedData.get("inventoryItems"));
-        assertNotNull(exportedData.get("forms"));
-        assertNotNull(exportedData.get("formQuestions"));
-        assertNotNull(exportedData.get("disabledModules"));
+        assertNotNull(exportedData.get("station_member"));
+        assertNotNull(exportedData.get("member_group"));
+        assertNotNull(exportedData.get("member_group_entry"));
+        assertNotNull(exportedData.get("user_tag"));
+        assertNotNull(exportedData.get("user_tag_entry"));
+        assertNotNull(exportedData.get("member_manager"));
+        assertNotNull(exportedData.get("profile_field"));
+        assertNotNull(exportedData.get("profile_field_value"));
+        assertNotNull(exportedData.get("event_category"));
+        assertNotNull(exportedData.get("station_event"));
+        assertNotNull(exportedData.get("attendance_template"));
+        assertNotNull(exportedData.get("attendance_template_field"));
+        assertNotNull(exportedData.get("inventory"));
+        assertNotNull(exportedData.get("inventory_size"));
+        assertNotNull(exportedData.get("inventory_item"));
+        assertNotNull(exportedData.get("form"));
+        assertNotNull(exportedData.get("form_question"));
+        assertNotNull(exportedData.get("station_disabled_module"));
+        // account is a TRACKED custom-scope table reachable through station_member
+        assertNotNull(exportedData.get("account"));
     }
 
     @SuppressWarnings("unchecked")
     @Test
     @Order(11)
     void exportHasCorrectCounts() {
-        assertEquals(5, ((List<?>) exportedData.get("members")).size());
-        assertEquals(2, ((List<?>) exportedData.get("groups")).size());
-        assertEquals(3, ((List<?>) exportedData.get("groupMembers")).size());
-        assertEquals(2, ((List<?>) exportedData.get("tags")).size());
-        assertEquals(3, ((List<?>) exportedData.get("tagMembers")).size());
-        assertEquals(1, ((List<?>) exportedData.get("managerRelations")).size());
-        assertEquals(3, ((List<?>) exportedData.get("profileFields")).size());
-        assertEquals(4, ((List<?>) exportedData.get("profileFieldValues")).size());
-        assertEquals(2, ((List<?>) exportedData.get("eventCategories")).size());
-        assertEquals(3, ((List<?>) exportedData.get("events")).size());
-        assertEquals(2, ((List<?>) exportedData.get("attendanceTemplates")).size());
-        assertEquals(3, ((List<?>) exportedData.get("attendanceTemplateFields")).size());
-        assertEquals(2, ((List<?>) exportedData.get("inventories")).size());
-        assertEquals(5, ((List<?>) exportedData.get("inventorySizes")).size());
-        assertEquals(5, ((List<?>) exportedData.get("inventoryItems")).size());
-        assertEquals(1, ((List<?>) exportedData.get("forms")).size());
-        assertEquals(3, ((List<?>) exportedData.get("formQuestions")).size());
-        assertTrue(((List<?>) exportedData.get("disabledModules")).contains("LOST_AND_FOUND"));
+        assertEquals(5, ((List<?>) exportedData.get("station_member")).size());
+        assertEquals(2, ((List<?>) exportedData.get("member_group")).size());
+        assertEquals(3, ((List<?>) exportedData.get("member_group_entry")).size());
+        assertEquals(2, ((List<?>) exportedData.get("user_tag")).size());
+        assertEquals(3, ((List<?>) exportedData.get("user_tag_entry")).size());
+        assertEquals(1, ((List<?>) exportedData.get("member_manager")).size());
+        assertEquals(3, ((List<?>) exportedData.get("profile_field")).size());
+        assertEquals(4, ((List<?>) exportedData.get("profile_field_value")).size());
+        assertEquals(2, ((List<?>) exportedData.get("event_category")).size());
+        assertEquals(3, ((List<?>) exportedData.get("station_event")).size());
+        assertEquals(2, ((List<?>) exportedData.get("attendance_template")).size());
+        assertEquals(3, ((List<?>) exportedData.get("attendance_template_field")).size());
+        assertEquals(2, ((List<?>) exportedData.get("inventory")).size());
+        assertEquals(5, ((List<?>) exportedData.get("inventory_size")).size());
+        assertEquals(5, ((List<?>) exportedData.get("inventory_item")).size());
+        assertEquals(1, ((List<?>) exportedData.get("form")).size());
+        assertEquals(3, ((List<?>) exportedData.get("form_question")).size());
+        // station_disabled_module is a FLAT list of enum names
+        assertTrue(((List<?>) exportedData.get("station_disabled_module")).contains("LOST_AND_FOUND"));
+        // accounts: 5 members → 5 referenced accounts (customScope through station_member)
+        assertEquals(5, ((List<?>) exportedData.get("account")).size());
     }
 
     @SuppressWarnings("unchecked")
     @Test
     @Order(12)
     void exportMembersIncludeAccountData() {
-        var members = (List<Map<String, Object>>) exportedData.get("members");
+        var members = (List<Map<String, Object>>) exportedData.get("station_member");
         var manager = members.stream()
                 .filter(m -> "manager@jf-musterstadt.de".equals(m.get("account_email")))
                 .findFirst();
         assertTrue(manager.isPresent());
         assertEquals("Thomas", manager.get().get("account_first_name"));
         assertEquals("Müller", manager.get().get("account_last_name"));
+        // user_type comes inline on the station_member row now (the legacy memberUserTypes wire is gone)
+        assertEquals("MANAGER", manager.get().get("user_type"));
     }
 
     @Test
     @Order(15)
     void paginationWorks() {
-        var page1 = exportService.exportTable(sourceStationId, "members", 0, 2);
-        assertEquals(2, ((List<?>) page1.get("members")).size());
+        var page1 = exportService.exportTable(sourceStationId, "station_member", 0, 2);
+        assertEquals(2, ((List<?>) page1.get("station_member")).size());
 
-        var page2 = exportService.exportTable(sourceStationId, "members", 2, 2);
-        assertEquals(2, ((List<?>) page2.get("members")).size());
+        var page2 = exportService.exportTable(sourceStationId, "station_member", 2, 2);
+        assertEquals(2, ((List<?>) page2.get("station_member")).size());
 
-        var page3 = exportService.exportTable(sourceStationId, "members", 4, 2);
-        assertEquals(1, ((List<?>) page3.get("members")).size());
+        var page3 = exportService.exportTable(sourceStationId, "station_member", 4, 2);
+        assertEquals(1, ((List<?>) page3.get("station_member")).size());
 
-        var page4 = exportService.exportTable(sourceStationId, "members", 5, 2);
-        assertTrue(((List<?>) page4.get("members")).isEmpty());
+        var page4 = exportService.exportTable(sourceStationId, "station_member", 5, 2);
+        assertTrue(((List<?>) page4.get("station_member")).isEmpty());
     }
 
-    // ==================== Import into new station ====================
+    // ==================== Import into a new station ====================
 
     @Test
     @Order(20)
     void importCreatesNewStationWithAllData() {
-        var result = importService.importStation(exportedData);
+        // Snapshot the bundle, then remove source-side data so the import is the sole creator
+        // (the testcontainer DB is shared between source and target).
+        var bundle = new HashMap<>(exportedData);
+        stationRepo.delete(sourceStationId); // cascades members, groups, etc.
+        for (String email : List.of(
+                "manager@jf-musterstadt.de",
+                "trainer@jf-musterstadt.de",
+                "eltern@jf-musterstadt.de",
+                "kind@jf-musterstadt.de",
+                "ehemalig@jf-musterstadt.de")) {
+            accountRepo.findByEmail(email).ifPresent(a -> accountRepo.delete(a.id()));
+        }
+
+        var result = importService.importStation(bundle);
 
         assertTrue(result.stationId() > 0);
         assertNotEquals(sourceStationId, result.stationId());
         assertEquals("Jugendfeuerwehr Musterstadt", result.stationName());
 
-        var imported = stationRepo.findById(result.stationId());
-        assertTrue(imported.isPresent());
-        assertEquals("Europe/Berlin", imported.get().timezone());
-        assertEquals("de-DE", imported.get().locale());
+        var imported = stationRepo.findById(result.stationId()).orElseThrow();
+        assertEquals("Europe/Berlin", imported.timezone());
+        assertEquals("de-DE", imported.locale());
 
-        // Members — 5 created (account linking creates accounts for those with emails)
         var importedMembers = stationMemberRepo.findByStation(result.stationId());
         assertEquals(5, importedMembers.size());
 
-        // Groups
         var importedGroups = memberGroupRepo.findByStation(result.stationId());
         assertEquals(2, importedGroups.size());
         var groupNames = importedGroups.stream().map(MemberGroup::name).sorted().toList();
         assertEquals(List.of("Anfänger", "Fortgeschrittene"), groupNames);
 
-        // Tags
         var importedTags = userTagRepo.findByStation(result.stationId());
         assertEquals(2, importedTags.size());
 
-        // Profile fields
         var importedFields = profileFieldRepo.findByStation(result.stationId());
         assertEquals(3, importedFields.size());
         var fieldNames =
                 importedFields.stream().map(ProfileField::name).sorted().toList();
         assertEquals(List.of("Geburtstag", "Notizen", "Telefon"), fieldNames);
 
-        // Events
         var importedEvents = eventRepo.findByStation(result.stationId());
         assertEquals(3, importedEvents.size());
 
-        // Inventories
         var importedInventories = inventoryRepo.findByStation(result.stationId());
         assertEquals(2, importedInventories.size());
 
-        // Disabled modules
         assertTrue(stationRepo.findDisabledModules(result.stationId()).contains(StationModule.LOST_AND_FOUND));
 
-        // Owner — should be set to the imported manager member
-        var importedStation = stationRepo.findById(result.stationId()).orElseThrow();
-        assertNotNull(importedStation.ownerMemberId(), "Station owner should be set after import");
+        // Owner is assigned to the first imported MANAGER after all tables land.
+        assertNotNull(imported.ownerMemberId(), "Station owner should be set after import");
+
+        // PKs were remapped — source member ids should not match any target member id.
+        var importedMemberIds = importedMembers.stream().map(m -> m.id()).toList();
+        assertTrue(importedMemberIds.stream().noneMatch(id -> id == sourceManagerId));
+        assertTrue(importedMemberIds.stream().noneMatch(id -> id == sourceTrainerId));
+        assertTrue(importedMemberIds.stream().noneMatch(id -> id == sourceChildId));
 
         stationRepo.delete(result.stationId());
     }
 
     // ==================== Account linking ====================
 
-    @SuppressWarnings("unchecked")
     @Test
     @Order(30)
     void importLinksExistingAccountsByEmail() {
-        // Pre-create an account with an email that matches one in the export
-        var preExisting = accountRepo.create("trainer@jf-musterstadt.de-import", "Sandra", "Weber", true);
-        // This email won't match — let's use exact match instead
-        accountRepo.delete(preExisting.id());
+        // Pre-create an account on the target with a known name and credential
+        String email = "linked-import@example.com";
+        var existingAccount = accountRepo.create(email, "Existing", "User", true);
+        accountRepo.createCredential(existingAccount.id(), "$bcrypt$target-original");
 
-        // Create account with matching email (simulating a user who already registered on the target instance)
-        var existingAccount = accountRepo.create("reimport-test@example.com", "Existing", "User", true);
+        // Build a minimal synthetic bundle whose account entry uses the same email but a
+        // different name + hash — the import path must NOT overwrite the existing account.
+        Map<String, Object> bundle = new LinkedHashMap<>();
+        bundle.put("station", Map.of("name", "Link-Test Station"));
+        bundle.put(
+                "account",
+                List.of(Map.of(
+                        "email", email,
+                        "first_name", "Attacker",
+                        "last_name", "Override")));
+        bundle.put(
+                "account_credential",
+                List.of(Map.of("account_email", email, "password_hash", "$bcrypt$source-override")));
+        // A member referencing the same email via account_email lookup
+        bundle.put(
+                "station_member",
+                List.of(Map.of(
+                        "id", 9999,
+                        "display_name", "Linked Member",
+                        "former", false,
+                        "user_type", "MEMBER",
+                        "account_email", email,
+                        "account_first_name", "Existing",
+                        "account_last_name", "User")));
 
-        // Build custom export data with a member having that email
-        var customData = new HashMap<>(exportedData);
-        var members = new ArrayList<>((List<Map<String, Object>>) customData.get("members"));
-        members.add(Map.of(
-                "id", 9999,
-                "display_name", "Reimport User",
-                "former", false,
-                "account_email", "reimport-test@example.com",
-                "account_first_name", "Attacker",
-                "account_last_name", "Name"));
-        customData.put("members", members);
+        var result = importService.importStation(bundle);
 
-        var result = importService.importStation(customData);
-
-        // Find the imported member linked to the existing account
-        var linkedMember = stationMemberRepo.findByStationAndAccount(result.stationId(), existingAccount.id());
-        assertTrue(linkedMember.isPresent(), "Member should be linked to existing account");
-
-        // Verify the existing account was NOT overwritten (name should remain unchanged)
+        // The pre-existing account is reused: name & credential remain unchanged
         var account = accountRepo.findById(existingAccount.id()).orElseThrow();
-        assertEquals("Existing", account.firstName(), "Account name should not be overwritten");
-        assertEquals("User", account.lastName(), "Account last name should not be overwritten");
+        assertEquals("Existing", account.firstName(), "account name must not be overwritten");
+        assertEquals("User", account.lastName(), "account last name must not be overwritten");
+        var cred = accountRepo.findCredential(existingAccount.id()).orElseThrow();
+        assertEquals("$bcrypt$target-original", cred.passwordHash(), "existing credential must be preserved");
+
+        // The station_member row resolves the FK back to the existing account via account_email lookup
+        var linkedMember = stationMemberRepo.findByStationAndAccount(result.stationId(), existingAccount.id());
+        assertTrue(linkedMember.isPresent(), "member should be linked to existing account");
 
         stationRepo.delete(result.stationId());
         accountRepo.delete(existingAccount.id());
     }
 
-    // ==================== Import into existing station ====================
+    // ==================== Import into an existing station ====================
 
     @Test
     @Order(35)
     void importIntoExistingStationAddsData() {
-        // Create a target station with one existing member
+        // Set up a target station with one local member
         var targetStation = stationRepo.create("Target Station");
-        var targetAccount = accountRepo.create("target-owner@test.com", "Owner", "User", true);
-        var targetMember = stationMemberRepo.create(targetStation.id(), targetAccount.id());
-
-        // Verify station starts with 1 member
+        var targetAccount = accountRepo.create("target-owner@example.com", "Owner", "User", true);
+        stationMemberRepo.create(targetStation.id(), targetAccount.id());
         assertEquals(1, stationMemberRepo.findByStation(targetStation.id()).size());
 
-        // Import the exported data into the existing station
-        // (using importStation which is the sync version — async is for remote imports)
-        var idMap = new StationImportService.IdRemapper();
-        // We simulate what startRemoteImportInto does synchronously
-        for (String table : List.of(
-                "disabledModules",
-                "members",
-                "memberUserTypes",
-                "memberPermissions",
-                "groups",
-                "groupMembers",
-                "tags",
-                "tagMembers",
-                "managerRelations",
-                "profileFields",
-                "profileFieldValues",
-                "eventCategories",
-                "attendanceTemplates",
-                "attendanceTemplateFields",
-                "events",
-                "inventories",
-                "inventorySizes",
-                "inventoryItems",
-                "forms",
-                "formQuestions")) {
-            importService.importSingleTableForTest(targetStation.id(), table, exportedData, idMap);
-        }
+        // Re-snapshot the source bundle (the earlier round-trip deleted the source station, so seed again)
+        var freshSourceStation = stationRepo.create("Source Station 2");
+        var newAccount = accountRepo.create("merge-source@example.com", "Merge", "Source", true);
+        stationMemberRepo.create(freshSourceStation.id(), newAccount.id());
+        memberGroupRepo.create(freshSourceStation.id(), "Imported Group A");
+        memberGroupRepo.create(freshSourceStation.id(), "Imported Group B");
 
-        // Now the target station should have 1 original + 5 imported = 6 members
+        var bundle = new ArrayList<>(exportService.getTableOrder())
+                .stream()
+                        .map(t -> Map.entry(t, exportService.exportTable(freshSourceStation.id(), t, 0, 10_000)))
+                        .collect(java.util.stream.Collectors.toMap(
+                                java.util.Map.Entry::getKey, e -> e.getValue().get(e.getKey())));
+
+        // Remove source-side artefacts so the import has to recreate everything on the target
+        stationRepo.delete(freshSourceStation.id());
+        accountRepo.findByEmail("merge-source@example.com").ifPresent(a -> accountRepo.delete(a.id()));
+
+        // Merge into the existing target station
+        importService.importStationInto(targetStation.id(), bundle);
+
+        // Target now has the original owner + the imported member, and the two new groups
         var allMembers = stationMemberRepo.findByStation(targetStation.id());
-        assertEquals(6, allMembers.size());
-
-        // Groups and events should be imported
-        assertEquals(2, memberGroupRepo.findByStation(targetStation.id()).size());
-        assertEquals(3, eventRepo.findByStation(targetStation.id()).size());
-        assertEquals(2, inventoryRepo.findByStation(targetStation.id()).size());
+        assertEquals(2, allMembers.size());
+        var groupNames = memberGroupRepo.findByStation(targetStation.id()).stream()
+                .map(MemberGroup::name)
+                .sorted()
+                .toList();
+        assertEquals(List.of("Imported Group A", "Imported Group B"), groupNames);
 
         stationRepo.delete(targetStation.id());
         accountRepo.delete(targetAccount.id());
+        accountRepo.findByEmail("merge-source@example.com").ifPresent(a -> accountRepo.delete(a.id()));
     }
 
     // ==================== Edge cases ====================

@@ -5,8 +5,6 @@
  */
 package dev.chojo.ember.feature.form.repository;
 
-import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
@@ -21,6 +19,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
@@ -43,9 +43,9 @@ public class FormRepository {
      * @return list of forms belonging to the station
      */
     public List<Form> findByStation(int stationId) {
-        return Query.query("SELECT " + FORM_COLUMNS
+        return query("SELECT " + FORM_COLUMNS
                         + " FROM form f WHERE f.station_id = :station_id ORDER BY f.created_at DESC;")
-                .single(Call.of().bind("station_id", stationId))
+                .single(call().bind("station_id", stationId))
                 .map(Form.map())
                 .all();
     }
@@ -59,11 +59,11 @@ public class FormRepository {
      * @return the filtered list of forms
      */
     public List<Form> findByStationForMember(int stationId, int memberId) {
-        return Query.query("SELECT " + FORM_COLUMNS + " FROM form f"
+        return query("SELECT " + FORM_COLUMNS + " FROM form f"
                         + " WHERE f.station_id = :station_id"
                         + " AND check_restriction('form_restriction', 'form_id', 'form', 'id', f.id, :member_id, 'POLL_MANAGER')"
                         + " ORDER BY f.created_at DESC;")
-                .single(Call.of().bind("station_id", stationId).bind("member_id", memberId))
+                .single(call().bind("station_id", stationId).bind("member_id", memberId))
                 .map(Form.map())
                 .all();
     }
@@ -75,19 +75,19 @@ public class FormRepository {
      * @return the form, or empty if not found
      */
     public Optional<Form> findById(int id) {
-        return Query.query("SELECT " + FORM_COLUMNS + " FROM form f WHERE f.id = :id;")
-                .single(Call.of().bind("id", id))
+        return query("SELECT " + FORM_COLUMNS + " FROM form f WHERE f.id = :id;")
+                .single(call().bind("id", id))
                 .map(Form.map())
                 .first();
     }
 
     public List<Form> findForcedPending(int stationId, int memberId) {
-        return Query.query("SELECT " + FORM_COLUMNS
+        return query("SELECT " + FORM_COLUMNS
                         + " FROM form f WHERE f.station_id = :station_id AND f.forced = true AND f.status = 'OPEN'"
                         + " AND (f.start_at IS NULL OR f.start_at <= now()) AND (f.end_at IS NULL OR f.end_at >= now())"
                         + " AND NOT EXISTS (SELECT 1 FROM form_response fr WHERE fr.form_id = f.id AND fr.member_id = :member_id)"
                         + " ORDER BY f.title;")
-                .single(Call.of().bind("station_id", stationId).bind("member_id", memberId))
+                .single(call().bind("station_id", stationId).bind("member_id", memberId))
                 .map(Form.map())
                 .all();
     }
@@ -114,12 +114,11 @@ public class FormRepository {
             Instant startAt,
             Instant endAt,
             int createdBy) {
-        return Query.query("""
+        return query("""
                             INSERT INTO form(station_id, title, description, shuffle_questions, allow_edit, start_at, end_at, created_by)
                             VALUES (:station_id, :title, :description, :shuffle_questions, :allow_edit, :start_at, :end_at, :created_by)
                             RETURNING\s""" + FORM_COLUMNS_BARE + ";")
-                .single(Call.of()
-                        .bind("station_id", stationId)
+                .single(call().bind("station_id", stationId)
                         .bind("title", title)
                         .bind("description", description)
                         .bind("shuffle_questions", shuffleQuestions)
@@ -152,14 +151,13 @@ public class FormRepository {
             boolean allowEdit,
             Instant startAt,
             Instant endAt) {
-        return Query.query("""
+        return query("""
                             UPDATE form
                             SET title = :title, description = :description,
                                 shuffle_questions = :shuffle_questions, allow_edit = :allow_edit,
                                 start_at = :start_at, end_at = :end_at, updated_at = now()
                             WHERE id = :id;""")
-                .single(Call.of()
-                        .bind("id", id)
+                .single(call().bind("id", id)
                         .bind("title", title)
                         .bind("description", description)
                         .bind("shuffle_questions", shuffleQuestions)
@@ -177,8 +175,8 @@ public class FormRepository {
      * @return {@code true} if a row was deleted
      */
     public boolean delete(int id) {
-        return Query.query("DELETE FROM form WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        return query("DELETE FROM form WHERE id = :id;")
+                .single(call().bind("id", id))
                 .delete()
                 .changed();
     }
@@ -191,9 +189,14 @@ public class FormRepository {
      * @return {@code true} if a row was updated
      */
     public boolean updateStatus(int id, Form.FormStatus status) {
-        return Query.query(
-                        "UPDATE form SET status = :status, closed_at = CASE WHEN :status = 'CLOSED' THEN now() ELSE closed_at END, updated_at = now() WHERE id = :id;")
-                .single(Call.of().bind("id", id).bind("status", status.name()))
+        return query("""
+                            UPDATE form
+                            SET
+                                status     = :status,
+                                closed_at  = CASE WHEN :status = 'CLOSED' THEN now() ELSE closed_at END,
+                                updated_at = now()
+                            WHERE id = :id;""")
+                .single(call().bind("id", id).bind("status", status))
                 .update()
                 .changed();
     }
@@ -207,8 +210,8 @@ public class FormRepository {
      * @return list of questions
      */
     public List<FormQuestion> findQuestions(int formId) {
-        return Query.query("SELECT * FROM form_question WHERE form_id = :form_id ORDER BY position;")
-                .single(Call.of().bind("form_id", formId))
+        return query("SELECT * FROM form_question WHERE form_id = :form_id ORDER BY position;")
+                .single(call().bind("form_id", formId))
                 .map(FormQuestion.map())
                 .all();
     }
@@ -235,12 +238,11 @@ public class FormRepository {
             boolean required,
             boolean shuffle,
             FormQuestionConfig config) {
-        return Query.query("""
+        return query("""
                             INSERT INTO form_question(form_id, position, question_type, title, description, required, shuffle, config)
                             VALUES (:form_id, :position, :question_type, :title, :description, :required, :shuffle, :config::JSONB)
                             RETURNING *;""")
-                .single(Call.of()
-                        .bind("form_id", formId)
+                .single(call().bind("form_id", formId)
                         .bind("position", position)
                         .bind("question_type", formQuestionType.name())
                         .bind("title", title)
@@ -273,13 +275,12 @@ public class FormRepository {
             boolean shuffle,
             FormQuestionConfig config,
             int position) {
-        return Query.query("""
+        return query("""
                             UPDATE form_question
                             SET title = :title, description = :description, required = :required,
                                 shuffle = :shuffle, config = :config::JSONB, position = :position
                             WHERE id = :id;""")
-                .single(Call.of()
-                        .bind("id", id)
+                .single(call().bind("id", id)
                         .bind("title", title)
                         .bind("description", description)
                         .bind("required", required)
@@ -297,8 +298,8 @@ public class FormRepository {
      * @return {@code true} if a row was deleted
      */
     public boolean deleteQuestion(int id) {
-        return Query.query("DELETE FROM form_question WHERE id = :id;")
-                .single(Call.of().bind("id", id))
+        return query("DELETE FROM form_question WHERE id = :id;")
+                .single(call().bind("id", id))
                 .delete()
                 .changed();
     }
@@ -309,8 +310,8 @@ public class FormRepository {
      * @param formId the form ID
      */
     public void deleteQuestionsByForm(int formId) {
-        Query.query("DELETE FROM form_question WHERE form_id = :form_id;")
-                .single(Call.of().bind("form_id", formId))
+        query("DELETE FROM form_question WHERE form_id = :form_id;")
+                .single(call().bind("form_id", formId))
                 .delete();
     }
 
@@ -323,8 +324,8 @@ public class FormRepository {
      * @return list of responses
      */
     public List<FormResponse> findResponses(int formId) {
-        return Query.query("SELECT * FROM form_response WHERE form_id = :form_id ORDER BY submitted_at;")
-                .single(Call.of().bind("form_id", formId))
+        return query("SELECT * FROM form_response WHERE form_id = :form_id ORDER BY submitted_at;")
+                .single(call().bind("form_id", formId))
                 .map(FormResponse.map())
                 .all();
     }
@@ -337,8 +338,8 @@ public class FormRepository {
      * @return the response, or empty if the member has not responded
      */
     public Optional<FormResponse> findResponse(int formId, int memberId) {
-        return Query.query("SELECT * FROM form_response WHERE form_id = :form_id AND member_id = :member_id;")
-                .single(Call.of().bind("form_id", formId).bind("member_id", memberId))
+        return query("SELECT * FROM form_response WHERE form_id = :form_id AND member_id = :member_id;")
+                .single(call().bind("form_id", formId).bind("member_id", memberId))
                 .map(FormResponse.map())
                 .first();
     }
@@ -352,13 +353,19 @@ public class FormRepository {
      * @return the created or updated response
      */
     public FormResponse createResponse(int formId, int memberId, int submittedBy) {
-        return Query.query("""
-                            INSERT INTO form_response(form_id, member_id, submitted_by)
-                            VALUES (:form_id, :member_id, :submitted_by)
-                            ON CONFLICT (form_id, member_id) DO UPDATE SET submitted_by = :submitted_by, updated_at = now()
+        return query("""
+                            INSERT
+                            INTO
+                                form_response(form_id, member_id, submitted_by)
+                            VALUES
+                                (:form_id, :member_id, :submitted_by)
+                            ON CONFLICT (form_id, member_id)
+                                DO UPDATE
+                                SET
+                                    submitted_by = :submitted_by,
+                                    updated_at   = now()
                             RETURNING *;""")
-                .single(Call.of()
-                        .bind("form_id", formId)
+                .single(call().bind("form_id", formId)
                         .bind("member_id", memberId)
                         .bind("submitted_by", submittedBy))
                 .map(FormResponse.map())
@@ -373,8 +380,8 @@ public class FormRepository {
      * @return {@code true} if a row was deleted
      */
     public boolean deleteResponse(int responseId) {
-        return Query.query("DELETE FROM form_response WHERE id = :id;")
-                .single(Call.of().bind("id", responseId))
+        return query("DELETE FROM form_response WHERE id = :id;")
+                .single(call().bind("id", responseId))
                 .delete()
                 .changed();
     }
@@ -386,8 +393,8 @@ public class FormRepository {
      * @return the response count
      */
     public int countResponses(int formId) {
-        return Query.query("SELECT count(*) AS cnt FROM form_response WHERE form_id = :form_id;")
-                .single(Call.of().bind("form_id", formId))
+        return query("SELECT count(*) AS cnt FROM form_response WHERE form_id = :form_id;")
+                .single(call().bind("form_id", formId))
                 .map(row -> row.getInt("cnt"))
                 .first()
                 .orElse(0);
@@ -401,8 +408,8 @@ public class FormRepository {
      * @return {@code true} if the member has responded
      */
     public boolean hasResponded(int formId, int memberId) {
-        return Query.query("SELECT 1 FROM form_response WHERE form_id = :form_id AND member_id = :member_id;")
-                .single(Call.of().bind("form_id", formId).bind("member_id", memberId))
+        return query("SELECT 1 FROM form_response WHERE form_id = :form_id AND member_id = :member_id;")
+                .single(call().bind("form_id", formId).bind("member_id", memberId))
                 .map(row -> true)
                 .first()
                 .isPresent();
@@ -417,8 +424,8 @@ public class FormRepository {
      * @return list of answers
      */
     public List<FormAnswer> findAnswers(int responseId) {
-        return Query.query("SELECT * FROM form_answer WHERE response_id = :response_id;")
-                .single(Call.of().bind("response_id", responseId))
+        return query("SELECT * FROM form_answer WHERE response_id = :response_id;")
+                .single(call().bind("response_id", responseId))
                 .map(FormAnswer.map())
                 .all();
     }
@@ -430,8 +437,8 @@ public class FormRepository {
      * @return list of answers from all respondents
      */
     public List<FormAnswer> findAllAnswersForQuestion(int questionId) {
-        return Query.query("SELECT * FROM form_answer WHERE question_id = :question_id;")
-                .single(Call.of().bind("question_id", questionId))
+        return query("SELECT * FROM form_answer WHERE question_id = :question_id;")
+                .single(call().bind("question_id", questionId))
                 .map(FormAnswer.map())
                 .all();
     }
@@ -444,12 +451,11 @@ public class FormRepository {
      * @param value      the answer value as a JSON string
      */
     public void upsertAnswer(int responseId, int questionId, FormAnswerValue value) {
-        Query.query("""
+        query("""
                      INSERT INTO form_answer(response_id, question_id, value)
                      VALUES (:response_id, :question_id, :value::JSONB)
                      ON CONFLICT (response_id, question_id) DO UPDATE SET value = :value::JSONB;""")
-                .single(Call.of()
-                        .bind("response_id", responseId)
+                .single(call().bind("response_id", responseId)
                         .bind("question_id", questionId)
                         .bind("value", value.toJson()))
                 .insert();
@@ -465,8 +471,8 @@ public class FormRepository {
      * @return {@code true} if a row was updated
      */
     public boolean updateRestrictionMode(int formId, RestrictionMode mode) {
-        return Query.query("UPDATE form SET restriction_mode = :mode WHERE id = :id;")
-                .single(Call.of().bind("mode", mode.name()).bind("id", formId))
+        return query("UPDATE form SET restriction_mode = :mode WHERE id = :id;")
+                .single(call().bind("mode", mode.name()).bind("id", formId))
                 .update()
                 .changed();
     }

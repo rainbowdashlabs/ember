@@ -5,8 +5,6 @@
  */
 package dev.chojo.ember.feature.statistics.route;
 
-import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.roles.InstancePermission;
@@ -22,6 +20,9 @@ import jakarta.inject.Singleton;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
  * Routes for station and system-wide statistics including member counts,
@@ -97,8 +98,8 @@ public class StatisticsRoutes implements Routes {
     }
 
     private int queryInt(String sql, int stationId) {
-        return Query.query(sql)
-                .single(Call.of().bind("sid", stationId))
+        return query(sql)
+                .single(call().bind("sid", stationId))
                 .map(row -> row.getInt(1))
                 .first()
                 .orElse(0);
@@ -106,8 +107,8 @@ public class StatisticsRoutes implements Routes {
 
     private Map<String, Integer> queryMap(String sql, int stationId) {
         var map = new LinkedHashMap<String, Integer>();
-        Query.query(sql)
-                .single(Call.of().bind("sid", stationId))
+        query(sql)
+                .single(call().bind("sid", stationId))
                 .map(row -> new String[] {row.getString(1), String.valueOf(row.getInt(2))})
                 .all()
                 .forEach(r -> map.put(r[0], Integer.parseInt(r[1])));
@@ -164,11 +165,11 @@ public class StatisticsRoutes implements Routes {
     }
 
     private int globalInt(String sql) {
-        return Query.query(sql).single().map(row -> row.getInt(1)).first().orElse(0);
+        return query(sql).single().map(row -> row.getInt(1)).first().orElse(0);
     }
 
     private List<Map<String, Object>> globalMapList(String sql) {
-        return Query.query(sql)
+        return query(sql)
                 .single()
                 .map(row -> {
                     Map<String, Object> m = new LinkedHashMap<>();
@@ -182,8 +183,8 @@ public class StatisticsRoutes implements Routes {
     }
 
     private List<Map<String, Object>> queryMapList(String sql, int stationId) {
-        return Query.query(sql)
-                .single(Call.of().bind("sid", stationId))
+        return query(sql)
+                .single(call().bind("sid", stationId))
                 .map(row -> {
                     Map<String, Object> m = new LinkedHashMap<>();
                     var meta = row.getMetaData();

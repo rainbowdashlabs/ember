@@ -48,6 +48,7 @@ export * as comments from './comments'
 export * as storage from './storage'
 export * as storageMonitoring from './storageMonitoring'
 export * as util from './util'
+export * as dataTracking from './dataTracking'
 export * as data from './data'
 
 export {default as client} from './client'

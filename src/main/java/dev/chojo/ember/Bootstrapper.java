@@ -82,7 +82,7 @@ public class Bootstrapper {
     void main() {
         var conf = new Conf();
         var injector = Guice.createInjector(new EmberModule(conf));
-        // Eagerly initialize the query configuration so Query.query(...) works globally
+        // Eagerly initialize the query configuration so query(...) works globally
         injector.getInstance(QueryConfiguration.class);
         // Initialize domain event bus (registers all handlers)
         injector.getInstance(DomainEventBus.class);

@@ -5,8 +5,6 @@
  */
 package dev.chojo.ember.feature.system.service;
 
-import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +15,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
  * Captures API request timings and status codes asynchronously.
@@ -61,12 +62,11 @@ public class ApiRequestLogger {
         if (batch.isEmpty()) return;
 
         try {
-            Query.query("""
-                            INSERT INTO api_request_log(method, path, status_code, duration_ms)
-                            VALUES(:method, :path, :status_code, :duration_ms);""")
+            query("""
+                    INSERT INTO api_request_log(method, path, status_code, duration_ms)
+                    VALUES(:method, :path, :status_code, :duration_ms);""")
                     .batch(batch.stream()
-                            .map(e -> Call.of()
-                                    .bind("method", e.method)
+                            .map(e -> call().bind("method", e.method)
                                     .bind("path", e.path)
                                     .bind("status_code", e.statusCode)
                                     .bind("duration_ms", e.durationMs))
@@ -79,7 +79,7 @@ public class ApiRequestLogger {
 
     private void prune() {
         try {
-            Query.query("DELETE FROM api_request_log WHERE created_at < now() - INTERVAL '3 days';")
+            query("DELETE FROM api_request_log WHERE created_at < now() - INTERVAL '3 days';")
                     .single()
                     .delete();
         } catch (Exception e) {
@@ -111,13 +111,22 @@ public class ApiRequestLogger {
     public record HourlyStats(String hour, long requestCount, double avgDurationMs, long errorCount) {}
 
     public List<EndpointStats> getSlowestEndpoints(int limit) {
-        return Query.query("""
-                        SELECT method, path, COUNT(*) as cnt, AVG(duration_ms) as avg_ms,
-                               MIN(duration_ms) as min_ms, MAX(duration_ms) as max_ms,
-                               SUM(CASE WHEN status_code >= 500 THEN 1 ELSE 0 END)::float / COUNT(*) as error_rate
-                        FROM api_request_log WHERE created_at > now() - INTERVAL '3 days'
-                        GROUP BY method, path ORDER BY avg_ms DESC LIMIT :limit;""")
-                .single(Call.of().bind("limit", limit))
+        return query("""
+                SELECT
+                    method,
+                    path,
+                    count(*)                                                              AS cnt,
+                    avg(duration_ms)                                                      AS avg_ms,
+                    min(duration_ms)                                                      AS min_ms,
+                    max(duration_ms)                                                      AS max_ms,
+                    sum(CASE WHEN status_code >= 500 THEN 1 ELSE 0 END)::FLOAT / count(*) AS error_rate
+                FROM
+                    api_request_log
+                WHERE created_at > now() - INTERVAL '3 days'
+                GROUP BY method, path
+                ORDER BY avg_ms DESC
+                LIMIT :limit;""")
+                .single(call().bind("limit", limit))
                 .map(row -> new EndpointStats(
                         row.getString("method"),
                         row.getString("path"),
@@ -130,13 +139,23 @@ public class ApiRequestLogger {
     }
 
     public List<EndpointStats> getFastestEndpoints(int limit) {
-        return Query.query("""
-                        SELECT method, path, COUNT(*) as cnt, AVG(duration_ms) as avg_ms,
-                               MIN(duration_ms) as min_ms, MAX(duration_ms) as max_ms,
-                               SUM(CASE WHEN status_code >= 500 THEN 1 ELSE 0 END)::float / COUNT(*) as error_rate
-                        FROM api_request_log WHERE created_at > now() - INTERVAL '3 days'
-                        GROUP BY method, path HAVING COUNT(*) > 5 ORDER BY avg_ms ASC LIMIT :limit;""")
-                .single(Call.of().bind("limit", limit))
+        return query("""
+                SELECT
+                    method,
+                    path,
+                    count(*)                                                              AS cnt,
+                    avg(duration_ms)                                                      AS avg_ms,
+                    min(duration_ms)                                                      AS min_ms,
+                    max(duration_ms)                                                      AS max_ms,
+                    sum(CASE WHEN status_code >= 500 THEN 1 ELSE 0 END)::FLOAT / count(*) AS error_rate
+                FROM
+                    api_request_log
+                WHERE created_at > now() - INTERVAL '3 days'
+                GROUP BY method, path
+                HAVING count(*) > 5
+                ORDER BY avg_ms ASC
+                LIMIT :limit;""")
+                .single(call().bind("limit", limit))
                 .map(row -> new EndpointStats(
                         row.getString("method"),
                         row.getString("path"),
@@ -149,15 +168,23 @@ public class ApiRequestLogger {
     }
 
     public List<EndpointStats> getMostFailingEndpoints(int limit) {
-        return Query.query("""
-                        SELECT method, path, COUNT(*) as cnt, AVG(duration_ms) as avg_ms,
-                               MIN(duration_ms) as min_ms, MAX(duration_ms) as max_ms,
-                               SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END)::float / COUNT(*) as error_rate
-                        FROM api_request_log WHERE created_at > now() - INTERVAL '3 days'
-                        GROUP BY method, path
-                        HAVING SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) > 0
-                        ORDER BY error_rate DESC, cnt DESC LIMIT :limit;""")
-                .single(Call.of().bind("limit", limit))
+        return query("""
+                SELECT
+                    method,
+                    path,
+                    count(*)                                                              AS cnt,
+                    avg(duration_ms)                                                      AS avg_ms,
+                    min(duration_ms)                                                      AS min_ms,
+                    max(duration_ms)                                                      AS max_ms,
+                    sum(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END)::FLOAT / count(*) AS error_rate
+                FROM
+                    api_request_log
+                WHERE created_at > now() - INTERVAL '3 days'
+                GROUP BY method, path
+                HAVING sum(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) > 0
+                ORDER BY error_rate DESC, cnt DESC
+                LIMIT :limit;""")
+                .single(call().bind("limit", limit))
                 .map(row -> new EndpointStats(
                         row.getString("method"),
                         row.getString("path"),
@@ -170,10 +197,18 @@ public class ApiRequestLogger {
     }
 
     public List<StatusBreakdown> getStatusBreakdown() {
-        return Query.query("""
-                        SELECT method, path, status_code, COUNT(*) as cnt
-                        FROM api_request_log WHERE created_at > now() - INTERVAL '3 days'
-                        GROUP BY method, path, status_code ORDER BY cnt DESC LIMIT 200;""")
+        return query("""
+                SELECT
+                    method,
+                    path,
+                    status_code,
+                    count(*) AS cnt
+                FROM
+                    api_request_log
+                WHERE created_at > now() - INTERVAL '3 days'
+                GROUP BY method, path, status_code
+                ORDER BY cnt DESC
+                LIMIT 200;""")
                 .single()
                 .map(row -> new StatusBreakdown(
                         row.getString("method"), row.getString("path"),
@@ -182,12 +217,17 @@ public class ApiRequestLogger {
     }
 
     public List<HourlyStats> getHourlyStats() {
-        return Query.query("""
-                        SELECT to_char(created_at, 'YYYY-MM-DD HH24:00') as hour,
-                               COUNT(*) as cnt, AVG(duration_ms) as avg_ms,
-                               SUM(CASE WHEN status_code >= 500 THEN 1 ELSE 0 END) as errors
-                        FROM api_request_log WHERE created_at > now() - INTERVAL '3 days'
-                        GROUP BY hour ORDER BY hour;""")
+        return query("""
+                SELECT
+                    to_char(created_at, 'YYYY-MM-DD HH24:00')           AS hour,
+                    count(*)                                            AS cnt,
+                    avg(duration_ms)                                    AS avg_ms,
+                    sum(CASE WHEN status_code >= 500 THEN 1 ELSE 0 END) AS errors
+                FROM
+                    api_request_log
+                WHERE created_at > now() - INTERVAL '3 days'
+                GROUP BY hour
+                ORDER BY hour;""")
                 .single()
                 .map(row -> new HourlyStats(
                         row.getString("hour"), row.getLong("cnt"),

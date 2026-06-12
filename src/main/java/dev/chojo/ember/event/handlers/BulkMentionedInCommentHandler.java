@@ -7,6 +7,7 @@ package dev.chojo.ember.event.handlers;
 
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.BulkMentionedInComment;
+import dev.chojo.ember.feature.comment.entity.MentionType;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.repository.EventRepository;
@@ -25,6 +26,7 @@ import jakarta.inject.Singleton;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Singleton
 public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMentionedInComment> {
@@ -60,14 +62,14 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
                     case GROUP ->
                         memberGroupRepository.findMembers(event.mentionTargetId()).stream()
                                 .map(StationMember::id)
-                                .collect(java.util.stream.Collectors.toCollection(HashSet::new));
+                                .collect(Collectors.toCollection(HashSet::new));
                     case EVENT -> resolveEventMembers(event);
                     case REGISTERED ->
                         resolveRegistrationsByStatus(event.mentionTargetId(), RegistrationStatus.ACCEPTED);
                     case DECLINED -> resolveRegistrationsByStatus(event.mentionTargetId(), RegistrationStatus.DECLINED);
                 };
 
-        if (event.mentionType() != dev.chojo.ember.feature.comment.entity.MentionType.GROUP) {
+        if (event.mentionType() != MentionType.GROUP) {
             addGuardians(memberIds);
         }
 
@@ -98,7 +100,7 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
         var declinedIds = allRegs.stream()
                 .filter(r -> r.status() == RegistrationStatus.DECLINED)
                 .map(EventRegistration::memberId)
-                .collect(java.util.stream.Collectors.toSet());
+                .collect(Collectors.toSet());
 
         if (stationEvent.requiresRegistration()) {
             var ids = new HashSet<Integer>();
@@ -116,7 +118,7 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
         if (eligible.isEmpty()) {
             var ids = stationMemberRepository.findByStation(stationEvent.stationId(), false).stream()
                     .map(StationMember::id)
-                    .collect(java.util.stream.Collectors.toCollection(HashSet::new));
+                    .collect(Collectors.toCollection(HashSet::new));
             ids.removeAll(declinedIds);
             return ids;
         }
@@ -129,7 +131,7 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
         return eventRepository.findAllRegistrations(eventId).stream()
                 .filter(r -> r.status() == status)
                 .map(EventRegistration::memberId)
-                .collect(java.util.stream.Collectors.toCollection(HashSet::new));
+                .collect(Collectors.toCollection(HashSet::new));
     }
 
     private void addGuardians(Set<Integer> memberIds) {
