@@ -7,7 +7,7 @@
   ],
   "timezone": "Europe/Berlin",
   "schedule": ["before 6am on monday"],
-  "stabilityDays": 14,
+  "minimumReleaseAge": "14 days",
   "internalChecksFilter": "strict",
   "packageRules": [
     {
