@@ -5,10 +5,7 @@
  */
 package dev.chojo.ember.feature.feed.route;
 
-import com.rometools.rome.feed.synd.SyndContent;
-import com.rometools.rome.feed.synd.SyndContentImpl;
 import com.rometools.rome.feed.synd.SyndEntry;
-import com.rometools.rome.feed.synd.SyndEntryImpl;
 import com.rometools.rome.feed.synd.SyndFeed;
 import com.rometools.rome.feed.synd.SyndFeedImpl;
 import com.rometools.rome.io.SyndFeedOutput;
@@ -19,6 +16,7 @@ import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.feed.render.IcalEventRenderer;
+import dev.chojo.ember.feature.feed.render.NotificationFeedRenderer;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
 import dev.chojo.ember.feature.mail.service.EmailService;
@@ -47,10 +45,13 @@ import net.fortuna.ical4j.model.property.ProdId;
 import net.fortuna.ical4j.model.property.XProperty;
 import net.fortuna.ical4j.model.property.immutable.ImmutableCalScale;
 import net.fortuna.ical4j.model.property.immutable.ImmutableVersion;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -59,6 +60,8 @@ import java.util.stream.Collectors;
 @SuppressWarnings("DefaultAnnotationParam")
 @Singleton
 public class UserFeedRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(UserFeedRoutes.class);
+
     private final FeedTokenService tokenService;
     private final EventService eventService;
     private final NotificationService notificationService;
@@ -69,6 +72,7 @@ public class UserFeedRoutes implements Routes {
     private final IcalEventRenderer icalRenderer;
     private final LostAndFoundService lostAndFoundService;
     private final ImageService imageService;
+    private final NotificationFeedRenderer notificationRenderer;
 
     @Inject
     public UserFeedRoutes(
@@ -81,7 +85,8 @@ public class UserFeedRoutes implements Routes {
             AccountRepository accountRepository,
             IcalEventRenderer icalRenderer,
             LostAndFoundService lostAndFoundService,
-            ImageService imageService) {
+            ImageService imageService,
+            NotificationFeedRenderer notificationRenderer) {
         this.tokenService = tokenService;
         this.eventService = eventService;
         this.notificationService = notificationService;
@@ -92,6 +97,7 @@ public class UserFeedRoutes implements Routes {
         this.icalRenderer = icalRenderer;
         this.lostAndFoundService = lostAndFoundService;
         this.imageService = imageService;
+        this.notificationRenderer = notificationRenderer;
     }
 
     @Override
@@ -106,14 +112,6 @@ public class UserFeedRoutes implements Routes {
         String token = ctx.pathParam("token");
         var feedToken = tokenService.findByToken(token).orElseThrow(NotFoundResponse::new);
         return memberRepository.findById(feedToken.memberId()).orElseThrow(NotFoundResponse::new);
-    }
-
-    private int resolveMemberId(Context ctx) {
-        String token = ctx.pathParam("token");
-        return tokenService
-                .findByToken(token)
-                .orElseThrow(NotFoundResponse::new)
-                .memberId();
     }
 
     // -- iCal --
@@ -150,7 +148,7 @@ public class UserFeedRoutes implements Routes {
 
         var allRegistrations = eventService.findRegistrationsByMembers(memberIds);
         var ownerStatusByEvent = new HashMap<Integer, RegistrationStatus>();
-        var ownerRegistered = new java.util.HashSet<Integer>();
+        var ownerRegistered = new HashSet<Integer>();
         var managedByEvent = new HashMap<Integer, List<IcalEventRenderer.ManagedRegistration>>();
         var managedNameById = new HashMap<Integer, String>();
         for (var managed : managedMembers) {
@@ -172,7 +170,7 @@ public class UserFeedRoutes implements Routes {
         }
         // Stable per-event order so the rendered description is deterministic.
         for (var list : managedByEvent.values()) {
-            list.sort(java.util.Comparator.comparing(IcalEventRenderer.ManagedRegistration::memberName));
+            list.sort(Comparator.comparing(IcalEventRenderer.ManagedRegistration::memberName));
         }
 
         var renderCtx = new IcalEventRenderer.Context(
@@ -277,12 +275,15 @@ public class UserFeedRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void rssFeed(Context ctx) {
+        String token = ctx.pathParam("token");
         var member = resolveToken(ctx);
         tokenService.recordNotificationPoll(member.id());
         var station = stationRepository.findById(member.stationId()).orElseThrow(NotFoundResponse::new);
         var notifications = getFeedNotifications(member);
         String locale = notificationService.resolveLocale(station.locale());
         String baseUrl = emailService.getBaseUrl();
+        boolean verbose = !"0".equals(ctx.queryParam("verbose"));
+        boolean images = !"0".equals(ctx.queryParam("images"));
 
         SyndFeed feed = new SyndFeedImpl();
         feed.setFeedType("rss_2.0");
@@ -290,7 +291,7 @@ public class UserFeedRoutes implements Routes {
         feed.setDescription(notificationService.resolveLocalized(locale, "feed", "description", null));
         feed.setLanguage(locale);
         feed.setLink(baseUrl + "/station/dashboard/overview");
-        feed.setEntries(buildSyndEntries(notifications, locale, baseUrl));
+        feed.setEntries(buildSyndEntries(notifications, locale, baseUrl, token, verbose, images));
 
         outputFeed(ctx, feed, "application/rss+xml; charset=utf-8");
     }
@@ -311,12 +312,15 @@ public class UserFeedRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void atomFeed(Context ctx) {
+        String token = ctx.pathParam("token");
         var member = resolveToken(ctx);
         tokenService.recordNotificationPoll(member.id());
         var station = stationRepository.findById(member.stationId()).orElseThrow(NotFoundResponse::new);
         var notifications = getFeedNotifications(member);
         String locale = notificationService.resolveLocale(station.locale());
         String baseUrl = emailService.getBaseUrl();
+        boolean verbose = !"0".equals(ctx.queryParam("verbose"));
+        boolean images = !"0".equals(ctx.queryParam("images"));
 
         SyndFeed feed = new SyndFeedImpl();
         feed.setFeedType("atom_1.0");
@@ -326,7 +330,7 @@ public class UserFeedRoutes implements Routes {
         // Atom requires an alternate link, plus a stable self-identifying URI per-feed.
         feed.setLink(baseUrl + "/station/dashboard/overview");
         feed.setUri("urn:ember:notifications:" + member.id());
-        feed.setEntries(buildSyndEntries(notifications, locale, baseUrl));
+        feed.setEntries(buildSyndEntries(notifications, locale, baseUrl, token, verbose, images));
 
         outputFeed(ctx, feed, "application/atom+xml; charset=utf-8");
     }
@@ -337,24 +341,22 @@ public class UserFeedRoutes implements Routes {
 
     // -- Helpers --
 
-    private List<SyndEntry> buildSyndEntries(List<Notification> notifications, String locale, String baseUrl) {
-        var entries = new ArrayList<SyndEntry>();
+    private List<SyndEntry> buildSyndEntries(
+            List<Notification> notifications,
+            String locale,
+            String baseUrl,
+            String feedToken,
+            boolean verbose,
+            boolean images) {
+        var ctx = new NotificationFeedRenderer.RenderContext(locale, baseUrl, feedToken, verbose, images);
+        var entries = new ArrayList<SyndEntry>(notifications.size());
         for (var n : notifications) {
-            SyndEntry entry = new SyndEntryImpl();
-            entry.setTitle(notificationService.resolveCategory(locale, n.type()));
-            entry.setUri("urn:ember:notification:" + n.id());
-            entry.setPublishedDate(Date.from(n.createdAt()));
-            entry.setUpdatedDate(Date.from(n.createdAt()));
-
-            // Deep-link the entry to the target entity when the notification carries link metadata.
-            String link = notificationService.resolveNotificationUrl(baseUrl, n.data());
-            if (link != null) entry.setLink(link);
-
-            SyndContent content = new SyndContentImpl();
-            content.setType("text/plain");
-            content.setValue(notificationService.resolveFeedBody(locale, n));
-            entry.setDescription(content);
-            entries.add(entry);
+            // Isolate each entry: a malformed notification must never tank the whole feed.
+            try {
+                entries.add(notificationRenderer.render(n, ctx));
+            } catch (Exception e) {
+                log.warn("Failed to render notification {} of type {}", n.id(), n.type(), e);
+            }
         }
         return entries;
     }

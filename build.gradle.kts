@@ -56,6 +56,7 @@ dependencies {
     implementation(libs.pdfbox)
     implementation(libs.ical4j)
     implementation(libs.rome)
+    implementation(libs.rome.modules)
     implementation(libs.bundles.ai)
 
     testRuntimeOnly(libs.junit.platform)
