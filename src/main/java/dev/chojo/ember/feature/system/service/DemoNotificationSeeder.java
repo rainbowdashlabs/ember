@@ -44,10 +44,6 @@ public class DemoNotificationSeeder {
         this.notificationRepository = notificationRepository;
     }
 
-    /**
-     * @param ctx context bundle of real entity ids from the surrounding demo seeders; nullable
-     *            fields fall through to plain links when the corresponding seeder didn't run
-     */
     public record ShowcaseContext(
             Integer newsId,
             Integer oneTimeEventId,
