@@ -49,6 +49,14 @@ data.csv
 .env
 data/
 
+# Re-include source-tree directories whose names happen to be config/ or data/ —
+# the broad rules above otherwise swallow every nested config/ and data/ directory,
+# which silently dropped the attendance-config page files from VCS.
+!frontend/src/**/config/
+!frontend/src/**/config/**
+!frontend/src/**/data/
+!frontend/src/**/data/**
+
 # Created by https://www.toptal.com/developers/gitignore/api/python
 # Edit at https://www.toptal.com/developers/gitignore?templates=python
 

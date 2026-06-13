@@ -97,9 +97,21 @@ public class QuizRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Catalogs
-        routes.get(prefix + "/quiz/catalogs", this::listCatalogs, StationPermission.TEST_CATALOG_VIEW);
+        // Catalog listing is used by the test detail page (which is reachable by anyone with
+        // TEST_RESULT_READ, e.g. a reviewer evaluating attempts) to resolve catalog names by id.
+        // Accept either TEST_CATALOG_VIEW or TEST_RESULT_READ; ApiServer treats multiple roles
+        // as OR, so a reviewer who has neither catalog permission can still list them read-only.
+        routes.get(
+                prefix + "/quiz/catalogs",
+                this::listCatalogs,
+                StationPermission.TEST_CATALOG_VIEW,
+                StationPermission.TEST_RESULT_READ);
         routes.post(prefix + "/quiz/catalogs", this::createCatalog, StationPermission.TEST_CATALOG_EDIT);
-        routes.get(prefix + "/quiz/catalogs/{id}", this::getCatalog, StationPermission.TEST_CATALOG_VIEW);
+        routes.get(
+                prefix + "/quiz/catalogs/{id}",
+                this::getCatalog,
+                StationPermission.TEST_CATALOG_VIEW,
+                StationPermission.TEST_RESULT_READ);
         routes.put(prefix + "/quiz/catalogs/{id}", this::updateCatalog, StationPermission.TEST_CATALOG_EDIT);
         routes.delete(prefix + "/quiz/catalogs/{id}", this::deleteCatalog, StationPermission.TEST_CATALOG_EDIT);
 
