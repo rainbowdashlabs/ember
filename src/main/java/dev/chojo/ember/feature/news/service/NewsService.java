@@ -88,8 +88,34 @@ public class NewsService {
         var news = newsRepository.create(stationId, title, contentMarkdown, contentHtml, author);
         setRestrictions(news.id(), userTypes, groupIds, tagIds, memberIds);
         String authorName = resolveAuthorName(stationId, author);
-        eventBus.publish(new NewsCreated(stationId, news.id(), title, authorName));
+        eventBus.publish(new NewsCreated(stationId, news.id(), title, authorName, previewOf(contentMarkdown)));
         return news;
+    }
+
+    /**
+     * Derives a plain-text preview from a Markdown article body. Strips the most common
+     * formatting (headings, emphasis, lists, code fences, links → label) and collapses
+     * whitespace. The renderer applies its own length cap on top so we don't truncate here;
+     * we just hand it readable plain text. Returns {@code null} when the input is blank.
+     */
+    static String previewOf(String markdown) {
+        if (markdown == null || markdown.isBlank()) return null;
+        String stripped = markdown
+                // Fenced code blocks add nothing useful in plain text — drop them entirely.
+                .replaceAll("(?s)```.*?```", "")
+                // `[label](url)` → keep the label.
+                .replaceAll("\\[([^\\]]+)]\\([^)]+\\)", "$1")
+                // Heading markers, blockquote arrows, inline emphasis chars.
+                .replaceAll("(?m)^\\s*#{1,6}\\s+", "")
+                .replaceAll("(?m)^\\s*>\\s+", "")
+                .replaceAll("[*_`]+", "")
+                // Bullet / numbered list markers at line start.
+                .replaceAll("(?m)^\\s*[-+]\\s+", "")
+                .replaceAll("(?m)^\\s*\\d+\\.\\s+", "")
+                // Collapse all runs of whitespace into single spaces.
+                .replaceAll("\\s+", " ")
+                .trim();
+        return stripped.isBlank() ? null : stripped;
     }
 
     private String resolveAuthorName(int stationId, MemberIdentity author) {

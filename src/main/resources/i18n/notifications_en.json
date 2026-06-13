@@ -71,7 +71,10 @@
     "assignee": "Assignee",
     "priority": "Priority",
     "progress": "Progress",
-    "progressFormat": "{checked} of {total} items"
+    "progressFormat": "{checked} of {total} items",
+    "recurrence": "Recurrence",
+    "deadline": "Registration deadline",
+    "limit": "Attendee limit"
   },
   "storageCategory": {
     "KB_FILES": "Knowledge base",

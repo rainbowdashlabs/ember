@@ -144,7 +144,10 @@ class DomainEventHandlerTest {
     }
 
     @Test
-    void eventCreatedTruncatesLongDescription() {
+    void eventCreatedPassesFullDescriptionThrough() {
+        // Handler now passes the full description through; word-boundary truncation lives in
+        // the feed renderer (NotificationService.truncateSnippet) so we don't mangle text
+        // mid-word at the publisher.
         var handler = new EventCreatedHandler(notificationService);
         String longDesc = "A".repeat(100);
         var stationEvent = new StationEvent(
@@ -176,7 +179,8 @@ class DomainEventHandlerTest {
 
         verify(notificationService).notifyStation(eq(STATION_ID), eq(NotificationType.NEW_EVENT), argThat(data -> {
             var map = data.paramsAsMap();
-            return map.get("eventDescription").length() <= 83; // 80 + "..."
+            // Full 100 chars survive — no handler-side truncation any more.
+            return map.get("eventDescription").length() == 100;
         }));
     }
 
@@ -323,7 +327,7 @@ class DomainEventHandlerTest {
         var handler = new NewsCreatedHandler(notificationService);
         assertEquals(NewsCreated.class, handler.eventType());
 
-        handler.handle(new NewsCreated(STATION_ID, 5, "Neue Nachricht", "Test Author"));
+        handler.handle(new NewsCreated(STATION_ID, 5, "Neue Nachricht", "Test Author", "Vorschau-Text"));
 
         verify(notificationService)
                 .notifyStation(eq(STATION_ID), eq(NotificationType.NEW_NEWS), any(NotificationData.class));

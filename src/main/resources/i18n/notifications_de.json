@@ -71,7 +71,10 @@
     "assignee": "Zuständig",
     "priority": "Priorität",
     "progress": "Fortschritt",
-    "progressFormat": "{checked} von {total} Punkten"
+    "progressFormat": "{checked} von {total} Punkten",
+    "recurrence": "Wiederholung",
+    "deadline": "Anmeldefrist",
+    "limit": "Teilnehmerlimit"
   },
   "storageCategory": {
     "KB_FILES": "Wissensdatenbank",

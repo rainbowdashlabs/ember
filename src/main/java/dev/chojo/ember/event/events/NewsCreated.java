@@ -7,4 +7,10 @@ package dev.chojo.ember.event.events;
 
 import dev.chojo.ember.event.DomainEvent;
 
-public record NewsCreated(int stationId, int newsId, String title, String authorName) implements DomainEvent {}
+/**
+ * @param preview plain-text snippet of the article body (markdown stripped, length-capped by
+ *                the publisher) so the notification feed can surface the news content in the
+ *                entry body instead of just the title + author.
+ */
+public record NewsCreated(int stationId, int newsId, String title, String authorName, String preview)
+        implements DomainEvent {}

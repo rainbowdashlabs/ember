@@ -412,20 +412,36 @@ public class DemoService {
                     },
                     executor));
 
-            // Notifications
+            // Most notification types are produced organically by the other seeders that call
+            // their respective services (NEW_NEWS / NEWS_COMMENT via newsService, NEW_EVENT via
+            // eventService, EXCHANGE_NEW_REQUEST / PROCUREMENT_REQUESTED via the inventory
+            // services, LENDING_* via lendingService, …). On top of that, seed one notification
+            // of every category for the admin account so the dashboard / feed shows the full
+            // matrix at a glance — useful for visual review after notification-shape changes.
             tasks.add(CompletableFuture.runAsync(
                     () -> {
-                        notificationSeeder.seedNotifications(
-                                station.id(),
-                                adminMember,
-                                members.betreuer(),
-                                members.eltern(),
-                                members.anfaenger(),
-                                members.fortgeschritten(),
-                                events.tagDerOffenenTuerId(),
+                        var nextMonday = java.time.LocalDate.now()
+                                .with(java.time.DayOfWeek.MONDAY)
+                                .plusWeeks(
+                                        java.time.LocalDate.now().getDayOfWeek().getValue() > 1 ? 1 : 0);
+                        var showcaseCtx = new DemoNotificationSeeder.ShowcaseContext(
+                                news.firstNewsId(),
                                 events.stadtfestId(),
-                                news.firstNewsId());
-                        log.info("Demo: Created Notifications");
+                                events.evUebung().id(),
+                                nextMonday.toString(),
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                station.id());
+                        notificationSeeder.seedShowcase(adminMember, members.anfaenger(), showcaseCtx);
+                        log.info("Demo: Created showcase notification for every NotificationType");
                     },
                     executor));
 

@@ -502,6 +502,24 @@ public class NotificationFeedRenderer {
                     details.put(label(ctx, "end", "End"), formatInstant(end, ctx.locale()));
                 }
             }
+            // Recurrence label so the user knows it's "weekly" / "monthly" / etc. at a glance.
+            if (event.eventType() != null
+                    && event.eventType() != dev.chojo.ember.feature.events.entity.StationEvent.EventType.ONE_TIME) {
+                String recurrence = notificationService.resolveLocalized(
+                        ctx.locale(), "ical", "eventType." + event.eventType().name(), null);
+                if (!recurrence.equals("eventType." + event.eventType().name())) {
+                    details.put(label(ctx, "recurrence", "Recurrence"), recurrence);
+                }
+            }
+            // Registration controls — surfaced so members can act on the notification body
+            // alone without round-tripping to the detail view.
+            if (event.requiresRegistration() && event.registrationDeadline() != null) {
+                details.put(
+                        label(ctx, "deadline", "Deadline"), formatInstant(event.registrationDeadline(), ctx.locale()));
+            }
+            if (event.registrationLimit() != null) {
+                details.put(label(ctx, "limit", "Limit"), String.valueOf(event.registrationLimit()));
+            }
             // Custom event fields — skip blank values, surface every set value verbatim.
             for (var field : eventFieldService.findByEvent(eventId)) {
                 if (field.value() == null || field.value().isBlank()) continue;
