@@ -94,9 +94,13 @@ public class NewsService {
 
     /**
      * Derives a plain-text preview from a Markdown article body. Strips the most common
-     * formatting (headings, emphasis, lists, code fences, links → label) and collapses
-     * whitespace. The renderer applies its own length cap on top so we don't truncate here;
-     * we just hand it readable plain text. Returns {@code null} when the input is blank.
+     * formatting (headings, emphasis, lists, code fences, links → label) but preserves
+     * paragraph structure (single newlines kept, runs of 3+ newlines collapsed to a single
+     * paragraph break) so the feed renderer can re-flow it as multi-line HTML. Markdown
+     * tables are converted to {@code "col · col · col"} lines so they read as structured
+     * key/value pairs instead of dumping raw {@code |} characters. The renderer applies its
+     * own length cap on top — we just hand it readable plain text. Returns {@code null}
+     * when the input is blank.
      */
     static String previewOf(String markdown) {
         if (markdown == null || markdown.isBlank()) return null;
@@ -105,15 +109,27 @@ public class NewsService {
                 .replaceAll("(?s)```.*?```", "")
                 // `[label](url)` → keep the label.
                 .replaceAll("\\[([^\\]]+)]\\([^)]+\\)", "$1")
-                // Heading markers, blockquote arrows, inline emphasis chars.
+                // Markdown table separator rows (|---|---|---|, with optional spaces / colons
+                // for alignment) carry no content; strip the whole line.
+                .replaceAll("(?m)^\\s*\\|?[\\s:|-]+\\|?\\s*$\\n?", "")
+                // Trim leading / trailing pipes from each table data row.
+                .replaceAll("(?m)^\\s*\\|", "")
+                .replaceAll("(?m)\\|\\s*$", "")
+                // Cell separator: convert " | " into a middle-dot so columns stay visually
+                // grouped without dumping bare pipes into the body.
+                .replace(" | ", " · ")
+                // Heading markers and blockquote arrows at line start.
                 .replaceAll("(?m)^\\s*#{1,6}\\s+", "")
                 .replaceAll("(?m)^\\s*>\\s+", "")
+                // Inline emphasis / inline-code markers.
                 .replaceAll("[*_`]+", "")
-                // Bullet / numbered list markers at line start.
-                .replaceAll("(?m)^\\s*[-+]\\s+", "")
+                // Bullet / numbered list markers at line start — keep a bullet glyph so the
+                // structure survives the strip.
+                .replaceAll("(?m)^\\s*[-+]\\s+", "• ")
                 .replaceAll("(?m)^\\s*\\d+\\.\\s+", "")
-                // Collapse all runs of whitespace into single spaces.
-                .replaceAll("\\s+", " ")
+                // Collapse runs of 3+ newlines into a single paragraph break, but keep
+                // single newlines so the source's line structure flows into the body.
+                .replaceAll("\\n{3,}", "\n\n")
                 .trim();
         return stripped.isBlank() ? null : stripped;
     }

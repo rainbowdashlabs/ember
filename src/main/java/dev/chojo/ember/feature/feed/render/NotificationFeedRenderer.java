@@ -190,10 +190,14 @@ public class NotificationFeedRenderer {
                 int i = 0;
                 for (var entry : details.entrySet()) {
                     if (i++ > 0) sb.append("<br>");
+                    // Values can be multi-line (news previews, event descriptions, change
+                    // text, markdown tables that were stripped to "col · col · col" rows).
+                    // We escape first, then translate the surviving newlines into <br> so
+                    // readers see the paragraph structure instead of a wall of text.
                     sb.append("<dt style=\"color:#6b7280;display:inline\">")
                             .append(escapeHtml(entry.getKey()))
                             .append(":</dt> <dd style=\"display:inline;margin:0 0 0 4px\">")
-                            .append(escapeHtml(entry.getValue()))
+                            .append(escapeHtmlWithLineBreaks(entry.getValue()))
                             .append("</dd>");
                 }
                 sb.append("</dl>");
@@ -872,5 +876,15 @@ public class NotificationFeedRenderer {
     private static String escapeHtml(String s) {
         if (s == null) return "";
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
+    }
+
+    /**
+     * HTML-escape and then convert surviving newlines into {@code <br>} tags. Used for body
+     * field values that may legitimately span multiple lines (news previews, event
+     * descriptions, change descriptions, table rows). Plain single-line values pass through
+     * with no effect because they have no newlines to translate.
+     */
+    private static String escapeHtmlWithLineBreaks(String s) {
+        return escapeHtml(s).replace("\n", "<br>");
     }
 }

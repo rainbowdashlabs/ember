@@ -35,31 +35,43 @@ const typeIcons: Record<string, string> = {
   EXCHANGE_STATUS_CHANGE: 'rotate',
   EXCHANGE_NEW_REQUEST: 'rotate',
   NEW_EVENT: 'calendar-plus',
+  NEW_EVENTS_BATCH: 'calendar-plus',
   MEMBER_ADDED_TO_GROUP: 'layer-group',
   PROFILE_FIELD_CHANGED: 'user',
   PROCUREMENT_REQUESTED: 'box-open',
   PROCUREMENT_FULFILLED: 'box-open',
   LOST_AND_FOUND_NEW: 'box-open',
   LOST_AND_FOUND_CLAIMED: 'box-open',
+  LENDING_NEW_REQUEST: 'handshake',
+  LENDING_STATUS_CHANGE: 'handshake',
+  LENDING_NEW_MESSAGE: 'envelope',
+  BOARD_TICKET_UPDATE: 'list-check',
+  WAITLIST_NEW_ENTRY: 'list-ol',
+  WAITLIST_PUBLIC_REGISTRATION: 'list-ol',
+  STORAGE_WARNING: 'triangle-exclamation',
+  REGISTRATION_DEADLINE_EXPIRED: 'clock',
+  EVENT_CANCELLED: 'calendar-xmark',
+  EVENT_REMINDER: 'bell',
+  PROCEDURE_ASSIGNED: 'clipboard-list',
+  PROCEDURE_RESOLVED: 'clipboard-check',
+  PROCEDURE_REOPENED: 'rotate',
+  PROCEDURE_ITEM_CHECKED: 'square-check',
 }
 
 function renderMessage(n: NotificationEntry): string {
   const params = {...n.params}
+  // Status fields arrive as raw enum names from the backend (PENDING, EXCHANGED, …);
+  // route each one through its locale namespace so the message reads in German.
   if (n.type === 'EVENT_REGISTRATION_STATUS' && params.status) {
     params.status = t(`dashboard.registrationStatus.${params.status}`)
   }
   if (n.type === 'EXCHANGE_STATUS_CHANGE' && params.status) {
     params.status = t(`dashboard.exchangeStatus.${params.status}`)
   }
+  if (n.type === 'LENDING_STATUS_CHANGE' && params.status) {
+    params.status = t(`dashboard.lendingStatus.${params.status}`)
+  }
   return t(n.localeKey, params)
-}
-
-function renderDetail(n: NotificationEntry): string | null {
-  if (n.type === 'NEW_NEWS' && n.params?.preview) return n.params.preview
-  if (n.type === 'NEWS_COMMENT' && n.params?.preview) return n.params.preview
-  if ((n.type === 'EXCHANGE_STATUS_CHANGE' || n.type === 'EXCHANGE_NEW_REQUEST') && n.params?.reason) return n.params.reason
-  if ((n.type === 'EVENT_REGISTRATION_STATUS' || n.type === 'NEW_EVENT') && n.params?.eventDescription) return n.params.eventDescription
-  return null
 }
 
 async function navigateTo(n: NotificationEntry) {
@@ -152,7 +164,8 @@ onMounted(loadData)
             <div>
               <span class="text-xs font-semibold text-(--text-muted)">{{ t(`notification.typeLabel.${n.type}`) }}</span>
               <p class="text-sm">{{ renderMessage(n) }}</p>
-              <p v-if="renderDetail(n)" class="text-xs text-(--text-muted) italic">{{ renderDetail(n) }}</p>
+              <!-- No body / preview snippet on the website: the dashboard panel stays
+                   scannable and the full rich body lives in the feed only. -->
               <p class="text-xs text-(--text-muted)">{{ formatDate(n.createdAt) }}</p>
             </div>
           </div>

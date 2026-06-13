@@ -508,9 +508,13 @@ public class NotificationService {
         if (text == null) return null;
         if (maxChars <= 0 || text.length() <= maxChars) return text;
         String head = text.substring(0, maxChars);
+        // Prefer ending at a paragraph or line break so we don't strand half a list item;
+        // fall back to the last space, and finally to a hard cut if neither exists.
+        int lastNewline = head.lastIndexOf('\n');
         int lastSpace = head.lastIndexOf(' ');
-        if (lastSpace > 0) {
-            head = head.substring(0, lastSpace);
+        int cut = Math.max(lastNewline, lastSpace);
+        if (cut > 0) {
+            head = head.substring(0, cut);
         }
         return head + "…";
     }
@@ -614,7 +618,10 @@ public class NotificationService {
     public String resolveMessage(String locale, Notification n) {
         var templates = LOCALIZER.get("notifications", locale, "message");
         String localeKey = n.type().localeKey();
-        var params = n.data().paramsAsMap();
+        // Defensive copy so we can rewrite the {status} value in-place without affecting any
+        // downstream caller that asked for paramsAsMap() too.
+        var params = new LinkedHashMap<>(n.data().paramsAsMap());
+        localizeStatusParam(locale, params);
 
         // Pluralisation: when the params carry an integer "count"/"daysBefore"/"pendingCount",
         // prefer the .one / .other variant of the localeKey when defined. Languages like German
@@ -640,6 +647,24 @@ public class NotificationService {
             template = template.replace("{" + entry.getKey() + "}", entry.getValue());
         }
         return template;
+    }
+
+    /**
+     * Replaces a raw status enum name (e.g. {@code "ACCEPTED"}, {@code "EXCHANGED"},
+     * {@code "APPROVED"}) in the params with its localised label from the {@code ical.status.*}
+     * bundle. Lets the message templates use a single {@code {status}} placeholder for all
+     * status-bearing types (registration, exchange, lending) without each consumer having to
+     * translate the enum themselves. No-op when the param is absent or the bundle has no
+     * matching entry.
+     */
+    private static void localizeStatusParam(String locale, Map<String, String> params) {
+        String status = params.get("status");
+        if (status == null) return;
+        var statusLabels = LOCALIZER.get("notifications", locale, "ical");
+        String localized = statusLabels.get("status." + status);
+        if (localized != null) {
+            params.put("status", localized);
+        }
     }
 
     /**
