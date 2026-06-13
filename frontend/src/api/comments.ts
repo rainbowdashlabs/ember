@@ -8,12 +8,23 @@ import type { Comment, EntityNote, NoteVersion } from './types'
 
 // -- Event Comments --
 
-export async function listEventComments(eventId: number): Promise<Comment[]> {
-    const res = await client.get<Comment[]>(`/events/${eventId}/comments`)
+/**
+ * Lists comments for an event. When `eventDate` is provided, the list is filtered to
+ * comments scoped to that specific occurrence of a recurring event. When `eventDate` is
+ * the literal string `'none'`, only whole-event comments (event_date IS NULL on the
+ * backend) are returned. Omitted → all comments.
+ */
+export async function listEventComments(eventId: number, eventDate?: string | null): Promise<Comment[]> {
+    const params: Record<string, string> = {}
+    if (eventDate !== undefined && eventDate !== null) params.date = eventDate
+    const res = await client.get<Comment[]>(`/events/${eventId}/comments`, {params})
     return res.data
 }
 
-export async function createEventComment(eventId: number, data: { parentId?: number | null; content: string }): Promise<Comment> {
+export async function createEventComment(
+    eventId: number,
+    data: { parentId?: number | null; content: string; eventDate?: string | null },
+): Promise<Comment> {
     const res = await client.post<Comment>(`/events/${eventId}/comments`, data)
     return res.data
 }
@@ -33,7 +44,11 @@ export async function listFederatedEventComments(stationUid: string, eventId: nu
     return res.data
 }
 
-export async function createFederatedEventComment(stationUid: string, eventId: number, data: { parentId?: number | null; content: string }): Promise<Comment> {
+export async function createFederatedEventComment(
+    stationUid: string,
+    eventId: number,
+    data: { parentId?: number | null; content: string; eventDate?: string | null },
+): Promise<Comment> {
     const res = await client.post<Comment>(`/federated/${stationUid}/events/${eventId}/comments`, data)
     return res.data
 }

@@ -7,7 +7,7 @@
 import StationEditHelp from '~/views/helpcenter/adminview/StationEditHelp'
 
 definePageMeta({
-  layout: 'helpcenter',
+  layout: 'helpcenter-admin',
   name: 'help-admin-station-edit',
 })
 </script>

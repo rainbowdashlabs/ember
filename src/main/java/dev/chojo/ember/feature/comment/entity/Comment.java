@@ -10,6 +10,7 @@ import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
@@ -24,6 +25,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param deleted   whether the comment has been soft-deleted
  * @param createdAt timestamp when the comment was created
  * @param updatedAt timestamp when the comment was last updated, or {@code null}
+ * @param eventDate for comments on a specific occurrence of a recurring event, the ISO date
+ *                  of that occurrence; {@code null} for one-time events and for whole-event
+ *                  comments
  */
 public record Comment(
         int id,
@@ -32,7 +36,8 @@ public record Comment(
         String content,
         boolean deleted,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        LocalDate eventDate) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -49,7 +54,8 @@ public record Comment(
                     row.getString("content"),
                     row.getBoolean("deleted"),
                     row.get("created_at", INSTANT_TIMESTAMP),
-                    row.get("updated_at", INSTANT_TIMESTAMP));
+                    row.get("updated_at", INSTANT_TIMESTAMP),
+                    row.getObject("event_date", LocalDate.class));
         };
     }
 }

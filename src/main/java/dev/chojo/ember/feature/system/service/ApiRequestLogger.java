@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.conf.file.elements.Metrics;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +24,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 /**
  * Captures API request timings and status codes asynchronously.
  * Batches inserts to avoid slowing down request handling.
- * Auto-prunes entries older than 3 days.
+ * Retention is governed by {@link Metrics#requestStatsRetentionDays()}.
  */
 @Singleton
 public class ApiRequestLogger {
@@ -37,6 +39,12 @@ public class ApiRequestLogger {
         t.setDaemon(true);
         return t;
     });
+    private final Metrics metrics;
+
+    @Inject
+    public ApiRequestLogger(Metrics metrics) {
+        this.metrics = metrics;
+    }
 
     public void start() {
         executor.scheduleAtFixedRate(this::flush, FLUSH_INTERVAL_MS, FLUSH_INTERVAL_MS, TimeUnit.MILLISECONDS);
@@ -79,8 +87,12 @@ public class ApiRequestLogger {
 
     private void prune() {
         try {
-            query("DELETE FROM api_request_log WHERE created_at < now() - INTERVAL '3 days';")
-                    .single()
+            // Retention is configurable via metrics.requestStatsRetentionDays; we compute the
+            // cutoff in Java rather than passing days to SQL because SADU bind() doesn't expand
+            // values into INTERVAL literals.
+            int days = Math.max(1, metrics.requestStatsRetentionDays());
+            query("DELETE FROM api_request_log WHERE created_at < now() - make_interval(days := :days);")
+                    .single(call().bind("days", days))
                     .delete();
         } catch (Exception e) {
             log.warn("Failed to prune old API request log entries", e);

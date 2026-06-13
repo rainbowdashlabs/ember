@@ -7,7 +7,7 @@
 import OverviewHelp from '~/views/helpcenter/adminview/OverviewHelp'
 
 definePageMeta({
-  layout: 'helpcenter',
+  layout: 'helpcenter-admin',
   name: 'help-admin-module-overview',
 })
 </script>

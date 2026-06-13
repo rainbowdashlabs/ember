@@ -20,7 +20,7 @@ application {
 
 group = "dev.chojo"
 // CalVer as YY.MINOR.MICRO -> https://calver.org/
-version = "26.7.0"
+version = "26.7.1"
 
 repositories {
     mavenCentral()
@@ -56,6 +56,7 @@ dependencies {
     implementation(libs.pdfbox)
     implementation(libs.ical4j)
     implementation(libs.rome)
+    implementation(libs.rome.modules)
     implementation(libs.bundles.ai)
 
     testRuntimeOnly(libs.junit.platform)

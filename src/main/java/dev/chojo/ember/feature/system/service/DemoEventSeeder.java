@@ -412,7 +412,7 @@ public class DemoEventSeeder {
             eventFieldRepository.create(
                     oeEvent.id(),
                     "Ort",
-                    EventFieldType.STRING,
+                    EventFieldType.LOCATION,
                     EventFieldConfig.parse("{}"),
                     oeOrte[e],
                     0,
@@ -465,7 +465,7 @@ public class DemoEventSeeder {
         eventFieldRepository.create(
                 oeOpen.id(),
                 "Ort",
-                EventFieldType.STRING,
+                EventFieldType.LOCATION,
                 EventFieldConfig.parse("{}"),
                 "Rathausplatz Musterstadt",
                 0,
@@ -504,7 +504,7 @@ public class DemoEventSeeder {
         eventFieldRepository.create(
                 tagDerOffenenTuer.id(),
                 "Ort",
-                EventFieldType.STRING,
+                EventFieldType.LOCATION,
                 EventFieldConfig.parse("{}"),
                 "Feuerwehrhaus Musterstadt",
                 0,
@@ -534,7 +534,7 @@ public class DemoEventSeeder {
         eventFieldRepository.create(
                 stadtfest.id(),
                 "Ort",
-                EventFieldType.STRING,
+                EventFieldType.LOCATION,
                 EventFieldConfig.parse("{}"),
                 "Marktplatz Musterstadt",
                 0,
@@ -554,7 +554,7 @@ public class DemoEventSeeder {
         eventFieldRepository.create(
                 kreisWettbewerb.id(),
                 "Ort",
-                EventFieldType.STRING,
+                EventFieldType.LOCATION,
                 EventFieldConfig.parse("{}"),
                 "Sportplatz Nachbarstadt",
                 0,
@@ -575,7 +575,7 @@ public class DemoEventSeeder {
         eventFieldRepository.create(
                 evUebung.id(),
                 "Ort",
-                EventFieldType.STRING,
+                EventFieldType.LOCATION,
                 EventFieldConfig.parse("{}"),
                 "Feuerwehrhaus Musterstadt",
                 0,
@@ -595,7 +595,7 @@ public class DemoEventSeeder {
         eventFieldRepository.create(
                 evGesamt.id(),
                 "Ort",
-                EventFieldType.STRING,
+                EventFieldType.LOCATION,
                 EventFieldConfig.parse("{}"),
                 "Feuerwehrhaus Musterstadt",
                 0,
@@ -615,7 +615,7 @@ public class DemoEventSeeder {
         eventFieldRepository.create(
                 theorieabend.id(),
                 "Ort",
-                EventFieldType.STRING,
+                EventFieldType.LOCATION,
                 EventFieldConfig.parse("{}"),
                 "Schulungsraum Feuerwehrhaus",
                 0,
@@ -660,7 +660,7 @@ public class DemoEventSeeder {
                 tplStandard.id(),
                 List.of(
                         new EventTemplateFieldData(
-                                "Ort", EventFieldType.STRING, EventFieldConfig.parse("{}"), 0, true, true, null),
+                                "Ort", EventFieldType.LOCATION, EventFieldConfig.parse("{}"), 0, true, true, null),
                         new EventTemplateFieldData(
                                 "Treffpunkt",
                                 EventFieldType.STRING,
@@ -676,7 +676,7 @@ public class DemoEventSeeder {
                 tplWettbewerb.id(),
                 List.of(
                         new EventTemplateFieldData(
-                                "Ort", EventFieldType.STRING, EventFieldConfig.parse("{}"), 0, true, true, null),
+                                "Ort", EventFieldType.LOCATION, EventFieldConfig.parse("{}"), 0, true, true, null),
                         new EventTemplateFieldData(
                                 "Thema", EventFieldType.STRING, EventFieldConfig.parse("{}"), 1, true, false, null)));
         log.info("Demo: Created event templates");

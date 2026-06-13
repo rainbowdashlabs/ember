@@ -52,6 +52,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.rssFeed.webText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.rssFeed.richEntriesTitle')">
+      <p>{{ t('helpCenter.rssFeed.richEntriesText') }}</p>
+    </HelpSection>
+
     <HelpTip>{{ t('helpCenter.rssFeed.tip') }}</HelpTip>
   </HelpArticle>
 </template>

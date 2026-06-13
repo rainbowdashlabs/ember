@@ -14,6 +14,7 @@ import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.EventCreated;
 import dev.chojo.ember.event.events.EventDeleted;
 import dev.chojo.ember.event.events.EventRegistrationStatusChanged;
+import dev.chojo.ember.event.events.EventsBatchCreated;
 import dev.chojo.ember.event.events.ExchangeRequested;
 import dev.chojo.ember.event.events.ExchangeStatusChanged;
 import dev.chojo.ember.event.events.FormDeleted;
@@ -35,6 +36,7 @@ import dev.chojo.ember.event.handlers.CommentDeletedHandler;
 import dev.chojo.ember.event.handlers.EventCreatedHandler;
 import dev.chojo.ember.event.handlers.EventDeletedHandler;
 import dev.chojo.ember.event.handlers.EventRegistrationStatusHandler;
+import dev.chojo.ember.event.handlers.EventsBatchCreatedHandler;
 import dev.chojo.ember.event.handlers.ExchangeRequestedHandler;
 import dev.chojo.ember.event.handlers.ExchangeStatusChangedHandler;
 import dev.chojo.ember.event.handlers.FormDeletedHandler;
@@ -224,6 +226,73 @@ class DomainEventHandlerTest {
         verify(notificationService).deleteByTypeContaining(eq(NotificationType.NEW_EVENT), anyString());
     }
 
+    // -- EventsBatchCreatedHandler --
+
+    @Test
+    void eventsBatchCreatedEmitsSingleAggregateNotification() {
+        var handler = new EventsBatchCreatedHandler(notificationService);
+        assertEquals(EventsBatchCreated.class, handler.eventType());
+
+        var events = List.of(
+                stationEvent(1, "Probe 1"),
+                stationEvent(2, "Probe 2"),
+                stationEvent(3, "Probe 3"),
+                stationEvent(4, "Probe 4"));
+        handler.handle(new EventsBatchCreated(STATION_ID, events));
+
+        verify(notificationService)
+                .notifyStation(eq(STATION_ID), eq(NotificationType.NEW_EVENTS_BATCH), argThat(data -> {
+                    var map = data.paramsAsMap();
+                    // preview shows the first 3 event names plus an ellipsis marker for the rest
+                    String preview = map.get("eventPreview");
+                    return "4".equals(map.get("count"))
+                            && preview != null
+                            && preview.contains("Probe 1")
+                            && preview.contains("Probe 2")
+                            && preview.contains("Probe 3")
+                            && preview.contains("…")
+                            && !preview.contains("Probe 4");
+                }));
+    }
+
+    @Test
+    void eventsBatchCreatedDoesNothingForEmptyBatch() {
+        var handler = new EventsBatchCreatedHandler(notificationService);
+
+        handler.handle(new EventsBatchCreated(STATION_ID, List.of()));
+
+        verify(notificationService, never())
+                .notifyStation(anyInt(), eq(NotificationType.NEW_EVENTS_BATCH), any(NotificationData.class));
+    }
+
+    private StationEvent stationEvent(int id, String name) {
+        return new StationEvent(
+                id,
+                STATION_ID,
+                name,
+                "",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now(),
+                Instant.now().plusSeconds(3600),
+                null,
+                false,
+                null,
+                false,
+                null,
+                RestrictionMode.OR,
+                false,
+                null,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                false,
+                null);
+    }
+
     // -- EventRegistrationStatusHandler --
 
     @Test
@@ -392,8 +461,8 @@ class DomainEventHandlerTest {
         var handler = new MentionedInCommentHandler(notificationService);
         assertEquals(MentionedInComment.class, handler.eventType());
 
-        handler.handle(
-                new MentionedInComment(STATION_ID, 25, MEMBER_ID, "Author", CommentEntityType.NEWS, 5, "Test Title"));
+        handler.handle(new MentionedInComment(
+                STATION_ID, 25, MEMBER_ID, "Author", CommentEntityType.NEWS, 5, "Test Title", "hi there"));
 
         verify(notificationService)
                 .notifyIfAbsent(eq(25), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
@@ -403,8 +472,8 @@ class DomainEventHandlerTest {
     void mentionedInCommentUsesEventLinkForEventComments() {
         var handler = new MentionedInCommentHandler(notificationService);
 
-        handler.handle(
-                new MentionedInComment(STATION_ID, 25, MEMBER_ID, "Author", CommentEntityType.EVENT, 5, "Test Title"));
+        handler.handle(new MentionedInComment(
+                STATION_ID, 25, MEMBER_ID, "Author", CommentEntityType.EVENT, 5, "Test Title", "hi there"));
 
         verify(notificationService)
                 .notifyIfAbsent(eq(25), eq(NotificationType.COMMENT_MENTION), argThat(data -> "event-detail"
@@ -431,7 +500,15 @@ class DomainEventHandlerTest {
 
         bulkHandler()
                 .handle(new BulkMentionedInComment(
-                        STATION_ID, MEMBER_ID, "Author", CommentEntityType.NEWS, 1, "Title", MentionType.GROUP, 5));
+                        STATION_ID,
+                        MEMBER_ID,
+                        "Author",
+                        CommentEntityType.NEWS,
+                        1,
+                        "Title",
+                        MentionType.GROUP,
+                        5,
+                        "preview snippet"));
 
         verify(notificationService)
                 .notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
@@ -445,7 +522,15 @@ class DomainEventHandlerTest {
 
         bulkHandler()
                 .handle(new BulkMentionedInComment(
-                        STATION_ID, MEMBER_ID, "Author", CommentEntityType.NEWS, 1, "Title", MentionType.GROUP, 5));
+                        STATION_ID,
+                        MEMBER_ID,
+                        "Author",
+                        CommentEntityType.NEWS,
+                        1,
+                        "Title",
+                        MentionType.GROUP,
+                        5,
+                        "preview snippet"));
 
         verify(notificationService, never())
                 .notifyIfAbsent(eq(MEMBER_ID), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
@@ -470,7 +555,15 @@ class DomainEventHandlerTest {
 
         bulkHandler()
                 .handle(new BulkMentionedInComment(
-                        STATION_ID, null, "Author", CommentEntityType.NEWS, 1, "Title", MentionType.EVENT, 42));
+                        STATION_ID,
+                        null,
+                        "Author",
+                        CommentEntityType.NEWS,
+                        1,
+                        "Title",
+                        MentionType.EVENT,
+                        42,
+                        "preview snippet"));
 
         verify(notificationService)
                 .notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
@@ -494,7 +587,15 @@ class DomainEventHandlerTest {
 
         bulkHandler()
                 .handle(new BulkMentionedInComment(
-                        STATION_ID, null, "Author", CommentEntityType.NEWS, 1, "Title", MentionType.EVENT, 42));
+                        STATION_ID,
+                        null,
+                        "Author",
+                        CommentEntityType.NEWS,
+                        1,
+                        "Title",
+                        MentionType.EVENT,
+                        42,
+                        "preview snippet"));
 
         verify(notificationService)
                 .notifyIfAbsent(eq(30), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
@@ -516,7 +617,15 @@ class DomainEventHandlerTest {
 
         bulkHandler()
                 .handle(new BulkMentionedInComment(
-                        STATION_ID, null, "Author", CommentEntityType.NEWS, 1, "Title", MentionType.EVENT, 42));
+                        STATION_ID,
+                        null,
+                        "Author",
+                        CommentEntityType.NEWS,
+                        1,
+                        "Title",
+                        MentionType.EVENT,
+                        42,
+                        "preview snippet"));
 
         verify(notificationService)
                 .notifyIfAbsent(eq(30), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
@@ -534,7 +643,15 @@ class DomainEventHandlerTest {
 
         bulkHandler()
                 .handle(new BulkMentionedInComment(
-                        STATION_ID, null, "Author", CommentEntityType.NEWS, 1, "Title", MentionType.REGISTERED, 42));
+                        STATION_ID,
+                        null,
+                        "Author",
+                        CommentEntityType.NEWS,
+                        1,
+                        "Title",
+                        MentionType.REGISTERED,
+                        42,
+                        "preview snippet"));
 
         verify(notificationService)
                 .notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
@@ -554,7 +671,15 @@ class DomainEventHandlerTest {
 
         bulkHandler()
                 .handle(new BulkMentionedInComment(
-                        STATION_ID, null, "Author", CommentEntityType.NEWS, 1, "Title", MentionType.DECLINED, 42));
+                        STATION_ID,
+                        null,
+                        "Author",
+                        CommentEntityType.NEWS,
+                        1,
+                        "Title",
+                        MentionType.DECLINED,
+                        42,
+                        "preview snippet"));
 
         verify(notificationService, never())
                 .notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
@@ -572,7 +697,15 @@ class DomainEventHandlerTest {
 
         bulkHandler()
                 .handle(new BulkMentionedInComment(
-                        STATION_ID, null, "Author", CommentEntityType.NEWS, 1, "Title", MentionType.REGISTERED, 42));
+                        STATION_ID,
+                        null,
+                        "Author",
+                        CommentEntityType.NEWS,
+                        1,
+                        "Title",
+                        MentionType.REGISTERED,
+                        42,
+                        "preview snippet"));
 
         verify(notificationService)
                 .notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
@@ -586,7 +719,15 @@ class DomainEventHandlerTest {
 
         bulkHandler()
                 .handle(new BulkMentionedInComment(
-                        STATION_ID, null, "Author", CommentEntityType.EVENT, 1, "Title", MentionType.GROUP, 5));
+                        STATION_ID,
+                        null,
+                        "Author",
+                        CommentEntityType.EVENT,
+                        1,
+                        "Title",
+                        MentionType.GROUP,
+                        5,
+                        "preview snippet"));
 
         verify(notificationService)
                 .notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), argThat(data -> "event-detail"
@@ -603,7 +744,7 @@ class DomainEventHandlerTest {
         when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.INVENTORY_MANAGER))
                 .thenReturn(List.of(member(30), member(31)));
 
-        handler.handle(new ExchangeRequested(STATION_ID, 1, MEMBER_ID, "Max", "Helm", "Kaputt"));
+        handler.handle(new ExchangeRequested(STATION_ID, 1, MEMBER_ID, "Max", 99, "Helm", "Kaputt"));
 
         verify(notificationService)
                 .notifyMembersIfAbsent(
@@ -623,7 +764,7 @@ class DomainEventHandlerTest {
         when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.INVENTORY_MANAGER))
                 .thenReturn(List.of(member(30)));
 
-        handler.handle(new ExchangeStatusChanged(STATION_ID, 1, MEMBER_ID, "Max", "Helm", ExchangeStatus.RECEIVED));
+        handler.handle(new ExchangeStatusChanged(STATION_ID, 1, MEMBER_ID, "Max", 99, "Helm", ExchangeStatus.RECEIVED));
 
         verify(notificationService)
                 .notify(eq(MEMBER_ID), eq(NotificationType.EXCHANGE_STATUS_CHANGE), any(NotificationData.class));
@@ -642,7 +783,7 @@ class DomainEventHandlerTest {
         var handler = new ProcurementCreatedHandler(notificationService);
         assertEquals(ProcurementCreated.class, handler.eventType());
 
-        handler.handle(new ProcurementCreated(STATION_ID, MEMBER_ID, "Schlauch"));
+        handler.handle(new ProcurementCreated(STATION_ID, MEMBER_ID, 99, "Schlauch"));
 
         verify(notificationService)
                 .notify(eq(MEMBER_ID), eq(NotificationType.PROCUREMENT_REQUESTED), any(NotificationData.class));
@@ -655,7 +796,7 @@ class DomainEventHandlerTest {
         var handler = new ProcurementFulfilledHandler(notificationService);
         assertEquals(ProcurementFulfilled.class, handler.eventType());
 
-        handler.handle(new ProcurementFulfilled(STATION_ID, MEMBER_ID, "Schlauch"));
+        handler.handle(new ProcurementFulfilled(STATION_ID, MEMBER_ID, 99, "Schlauch"));
 
         verify(notificationService)
                 .notify(eq(MEMBER_ID), eq(NotificationType.PROCUREMENT_FULFILLED), any(NotificationData.class));
@@ -665,11 +806,11 @@ class DomainEventHandlerTest {
 
     @Test
     void membersAddedToGroupNotifiesAllMembers() {
-        var handler = new MembersAddedToGroupHandler(notificationService);
+        var handler = new MembersAddedToGroupHandler(notificationService, memberRepository);
         assertEquals(MembersAddedToGroup.class, handler.eventType());
 
         var memberIds = List.of(10, 11, 12);
-        handler.handle(new MembersAddedToGroup(STATION_ID, "Anfänger", memberIds));
+        handler.handle(new MembersAddedToGroup(STATION_ID, "Anfänger", memberIds, null));
 
         verify(notificationService)
                 .notifyMembers(eq(memberIds), eq(NotificationType.MEMBER_ADDED_TO_GROUP), any(NotificationData.class));
@@ -762,7 +903,7 @@ class DomainEventHandlerTest {
         assertEquals(BoardTicketChanged.class, handler.eventType());
 
         handler.handle(new BoardTicketChanged(
-                STATION_ID, 1, 42, "Dev Board", "DEV-42", "Neuer Kommentar", MEMBER_ID, List.of(20, 21)));
+                STATION_ID, 1, 42, "DEV", 7, "Dev Board", "DEV-7", "Neuer Kommentar", MEMBER_ID, List.of(20, 21)));
 
         verify(notificationService)
                 .notifyMembersIfAbsent(
@@ -776,8 +917,8 @@ class DomainEventHandlerTest {
     void boardTicketChangedSkipsEmptyWatchers() {
         var handler = new BoardTicketChangedHandler(notificationService);
 
-        handler.handle(
-                new BoardTicketChanged(STATION_ID, 1, 42, "Dev Board", "DEV-42", "Update", MEMBER_ID, List.of()));
+        handler.handle(new BoardTicketChanged(
+                STATION_ID, 1, 42, "DEV", 7, "Dev Board", "DEV-7", "Update", MEMBER_ID, List.of()));
 
         verify(notificationService)
                 .notifyMembersIfAbsent(

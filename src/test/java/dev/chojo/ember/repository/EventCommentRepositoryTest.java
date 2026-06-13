@@ -65,7 +65,7 @@ class EventCommentRepositoryTest extends RepositoryTestBase {
     @Order(1)
     void createTopLevelComment() {
         var author = memberIdentityFactory.local(station.id(), member.id());
-        var comment = eventCommentRepo.create(eventId, null, author, "Hello world");
+        var comment = eventCommentRepo.create(eventId, null, author, "Hello world", null);
         assertNotNull(comment);
         assertEquals("Hello world", comment.content());
         assertNotNull(comment.author());
@@ -129,7 +129,7 @@ class EventCommentRepositoryTest extends RepositoryTestBase {
     @Order(9)
     void createReply() {
         var author = memberIdentityFactory.local(station.id(), member.id());
-        var reply = eventCommentRepo.create(eventId, commentId, author, "This is a reply");
+        var reply = eventCommentRepo.create(eventId, commentId, author, "This is a reply", null);
         assertNotNull(reply);
         assertEquals(commentId, reply.parentId());
         replyId = reply.id();
@@ -185,7 +185,7 @@ class EventCommentRepositoryTest extends RepositoryTestBase {
     @Order(20)
     void createCommentWithNullAuthorForFederation() {
         // Comments with null author can be created for federated authors
-        var comment = eventCommentRepo.create(eventId, null, null, "Federated-style comment");
+        var comment = eventCommentRepo.create(eventId, null, null, "Federated-style comment", null);
         assertNotNull(comment);
         assertNull(comment.author());
         eventCommentRepo.delete(comment.id());
@@ -194,7 +194,7 @@ class EventCommentRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(30)
     void createCommentWithNullAuthor() {
-        var comment = eventCommentRepo.create(eventId, null, null, "Anonymous comment");
+        var comment = eventCommentRepo.create(eventId, null, null, "Anonymous comment", null);
         assertNotNull(comment);
         assertNull(comment.author());
         eventCommentRepo.delete(comment.id());
@@ -204,9 +204,9 @@ class EventCommentRepositoryTest extends RepositoryTestBase {
     @Order(31)
     void createMultipleTopLevelComments() {
         var author = memberIdentityFactory.local(station.id(), member.id());
-        var c1 = eventCommentRepo.create(eventId, null, author, "Comment 1");
-        var c2 = eventCommentRepo.create(eventId, null, author, "Comment 2");
-        var c3 = eventCommentRepo.create(eventId, null, author, "Comment 3");
+        var c1 = eventCommentRepo.create(eventId, null, author, "Comment 1", null);
+        var c2 = eventCommentRepo.create(eventId, null, author, "Comment 2", null);
+        var c3 = eventCommentRepo.create(eventId, null, author, "Comment 3", null);
 
         var comments = eventCommentRepo.findByEvent(eventId);
         assertTrue(comments.size() >= 3);
@@ -226,9 +226,9 @@ class EventCommentRepositoryTest extends RepositoryTestBase {
     @Order(33)
     void deeplyNestedReplies() {
         var author = memberIdentityFactory.local(station.id(), member.id());
-        var c1 = eventCommentRepo.create(eventId, null, author, "Level 0");
-        var c2 = eventCommentRepo.create(eventId, c1.id(), author, "Level 1");
-        var c3 = eventCommentRepo.create(eventId, c2.id(), author, "Level 2");
+        var c1 = eventCommentRepo.create(eventId, null, author, "Level 0", null);
+        var c2 = eventCommentRepo.create(eventId, c1.id(), author, "Level 1", null);
+        var c3 = eventCommentRepo.create(eventId, c2.id(), author, "Level 2", null);
 
         assertTrue(eventCommentRepo.hasChildren(c1.id()));
         assertTrue(eventCommentRepo.hasChildren(c2.id()));
@@ -246,5 +246,36 @@ class EventCommentRepositoryTest extends RepositoryTestBase {
         // c1 now has no children
         assertTrue(eventCommentRepo.delete(c1.id()));
         assertTrue(eventCommentRepo.findById(c1.id()).isEmpty());
+    }
+
+    @Test
+    @Order(40)
+    void findByEventAndDateFiltersOccurrenceComments() {
+        var author = memberIdentityFactory.local(station.id(), member.id());
+        // Whole-event comment (event_date IS NULL)
+        var whole = eventCommentRepo.create(eventId, null, author, "Whole event", null);
+        // Two different occurrence dates
+        var june =
+                eventCommentRepo.create(eventId, null, author, "June occurrence", java.time.LocalDate.of(2026, 6, 1));
+        var july =
+                eventCommentRepo.create(eventId, null, author, "July occurrence", java.time.LocalDate.of(2026, 7, 1));
+
+        var wholeOnly = eventCommentRepo.findByEventAndDate(eventId, null);
+        assertEquals(1, wholeOnly.size());
+        assertEquals("Whole event", wholeOnly.getFirst().content());
+        assertNull(wholeOnly.getFirst().eventDate());
+
+        var juneOnly = eventCommentRepo.findByEventAndDate(eventId, java.time.LocalDate.of(2026, 6, 1));
+        assertEquals(1, juneOnly.size());
+        assertEquals("June occurrence", juneOnly.getFirst().content());
+        assertEquals(java.time.LocalDate.of(2026, 6, 1), juneOnly.getFirst().eventDate());
+
+        // findByEvent still returns everything regardless of date.
+        var all = eventCommentRepo.findByEvent(eventId);
+        assertEquals(3, all.size());
+
+        eventCommentRepo.delete(whole.id());
+        eventCommentRepo.delete(june.id());
+        eventCommentRepo.delete(july.id());
     }
 }

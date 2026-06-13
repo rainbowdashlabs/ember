@@ -36,8 +36,10 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
@@ -480,14 +482,21 @@ public class DemoFederationSeeder {
         primaryEvents.stream()
                 .filter(e -> "Übung".equals(e.name()) && e.eventType() == StationEvent.EventType.RECURRING)
                 .findFirst()
-                .ifPresent(evUebung -> commentService.create(
-                        primaryStationId,
-                        evUebung.id(),
-                        null,
-                        memberIdentityFactory.local(primaryStationId, createdBy),
-                        "Admin",
-                        "Nächste Woche üben wir den Löschangriff — bitte Sportkleidung mitbringen!",
-                        evUebung.name()));
+                .ifPresent(evUebung -> {
+                    // Recurring-event comments are scoped to a specific occurrence; pin the
+                    // demo comment to the next upcoming occurrence so the date shows the
+                    // feature in the UI.
+                    LocalDate nextOccurrence = nextOccurrenceOf(evUebung);
+                    commentService.create(
+                            primaryStationId,
+                            evUebung.id(),
+                            null,
+                            memberIdentityFactory.local(primaryStationId, createdBy),
+                            "Admin",
+                            "Nächste Woche üben wir den Löschangriff — bitte Sportkleidung mitbringen!",
+                            evUebung.name(),
+                            nextOccurrence);
+                });
 
         // Federated comments on the shared event "Gemeinsame Großübung" (event lives on partner station)
         var primaryAdmin = stationMemberRepository.findById(createdBy).orElseThrow();
@@ -502,13 +511,15 @@ public class DemoFederationSeeder {
                 .findFirst()
                 .orElse(null);
         if (reversePartnerForEvents != null) {
+            // fedEvent is a one-off federation demo event — null eventDate (whole-event).
             var fc1 = eventFederationService.createRemoteComment(
                     reversePartnerForEvents,
                     fedEvent.id(),
                     primaryAdmin.uid(),
                     primaryAdminName,
                     null,
-                    "Wir kommen mit 6 Leuten! Brauchen wir eigene Schläuche?");
+                    "Wir kommen mit 6 Leuten! Brauchen wir eigene Schläuche?",
+                    null);
             // Local reply from partner station member
             commentService.create(
                     partnerStation.id(),
@@ -517,14 +528,16 @@ public class DemoFederationSeeder {
                     memberIdentityFactory.local(partnerStation.id(), partnerMember.id()),
                     "Partner Manager",
                     "Nein, wir haben genug Material da. Einfach nur Schutzkleidung mitbringen.",
-                    fedEvent.name());
+                    fedEvent.name(),
+                    null);
             eventFederationService.createRemoteComment(
                     reversePartnerForEvents,
                     fedEvent.id(),
                     primaryAdmin.uid(),
                     primaryAdminName,
                     null,
-                    "Gibt es eine Lageskizze vorab?");
+                    "Gibt es eine Lageskizze vorab?",
+                    null);
         }
         log.info("Demo: Added event comments (local + federated)");
 
@@ -600,5 +613,23 @@ public class DemoFederationSeeder {
         log.info("Demo: Created third station with manager nachbar@demo.ember (not federated)");
 
         return new SeedResult(partnerStation.id(), partnerMember.id());
+    }
+
+    /**
+     * Returns the next upcoming occurrence date of a recurring event. For weekly events we
+     * walk forward to the next matching {@code day_of_week}; for non-weekly recurrences we
+     * fall back to the event's anchor start time so the demo data still gets a sensible
+     * date attached to the comment.
+     */
+    private static LocalDate nextOccurrenceOf(StationEvent event) {
+        var today = LocalDate.now();
+        if (event.eventType() == StationEvent.EventType.RECURRING && event.dayOfWeek() != null) {
+            DayOfWeek target = DayOfWeek.of(event.dayOfWeek());
+            int delta = (target.getValue() - today.getDayOfWeek().getValue() + 7) % 7;
+            return today.plusDays(delta == 0 ? 7 : delta);
+        }
+        return event.startTime() != null
+                ? event.startTime().atZone(ZoneId.systemDefault()).toLocalDate()
+                : today;
     }
 }

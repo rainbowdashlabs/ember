@@ -41,7 +41,7 @@ public class ProcurementService {
         var procurement = procurementRepository.create(stationId, inventoryId, memberId, sizeId, notes);
         String inventoryName =
                 inventoryRepository.findById(inventoryId).map(Inventory::name).orElse("?");
-        eventBus.publish(new ProcurementCreated(stationId, memberId, inventoryName));
+        eventBus.publish(new ProcurementCreated(stationId, memberId, inventoryId, inventoryName));
         return procurement;
     }
 
@@ -74,7 +74,8 @@ public class ProcurementService {
                     .findById(proc.inventoryId())
                     .map(Inventory::name)
                     .orElse("?");
-            eventBus.publish(new ProcurementFulfilled(proc.stationId(), proc.memberId(), inventoryName));
+            eventBus.publish(
+                    new ProcurementFulfilled(proc.stationId(), proc.memberId(), proc.inventoryId(), inventoryName));
             return true;
         }
         return false;

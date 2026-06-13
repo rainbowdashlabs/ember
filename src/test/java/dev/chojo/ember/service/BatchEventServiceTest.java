@@ -55,7 +55,7 @@ class BatchEventServiceTest extends RepositoryTestBase {
                 eventRepo, new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo), domainEventBus);
         var fieldService = new EventFieldService(eventFieldRepo);
         layoutService = new EventLayoutService(new EventLayoutRepository());
-        batchService = new BatchEventService(eventService, fieldService, layoutService, eventRepo);
+        batchService = new BatchEventService(eventService, fieldService, layoutService, eventRepo, domainEventBus);
 
         station = stationRepo.create("BatchEventServiceStation");
 

@@ -11,13 +11,15 @@ import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 /**
  * Published when a member is @mentioned in a comment.
  *
- * @param stationId       the station where the comment was posted
+ * @param stationId         the station where the comment was posted
  * @param mentionedMemberId the member ID of the mentioned user
- * @param authorMemberId  the member ID of the comment author
- * @param authorName      the display name of the comment author
- * @param entityType      the type of entity the comment is on (e.g. "event")
- * @param entityId        the ID of the entity
- * @param entityTitle     the title/name of the entity
+ * @param authorMemberId    the member ID of the comment author
+ * @param authorName        the display name of the comment author
+ * @param entityType        the type of entity the comment is on (e.g. "event")
+ * @param entityId          the ID of the entity
+ * @param entityTitle       the title/name of the entity
+ * @param preview           a short snippet of the comment text (truncated by the publisher) so
+ *                          the feed entry can surface the surrounding context without a lookup
  */
 public record MentionedInComment(
         int stationId,
@@ -26,5 +28,6 @@ public record MentionedInComment(
         String authorName,
         CommentEntityType entityType,
         int entityId,
-        String entityTitle)
+        String entityTitle,
+        String preview)
         implements DomainEvent {}

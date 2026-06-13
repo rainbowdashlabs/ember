@@ -144,6 +144,25 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(10)
+    void locationFieldTypeRoundTrips() {
+        eventFieldRepo.replaceFields(
+                eventId,
+                List.of(new EventFieldRepository.FieldEntry(
+                        "Ort",
+                        EventFieldType.LOCATION,
+                        EventFieldConfig.parse("{}"),
+                        "Marktplatz 1",
+                        true,
+                        null,
+                        true)));
+        var fields = eventFieldRepo.findByEvent(eventId);
+        assertEquals(1, fields.size());
+        assertEquals(EventFieldType.LOCATION, fields.getFirst().fieldType());
+        assertEquals("Marktplatz 1", fields.getFirst().value());
+    }
+
+    @Test
     @Order(11)
     void deleteByEvent() {
         eventFieldRepo.deleteByEvent(eventId);

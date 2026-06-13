@@ -395,6 +395,7 @@ export const EventFieldTypes = {
     ENUM: 'ENUM',
     URL: 'URL',
     TEXTAREA: 'TEXTAREA',
+    LOCATION: 'LOCATION',
     MEMBER: 'MEMBER',
     MEMBER_LIST: 'MEMBER_LIST',
     MEMBER_OF_GROUP: 'MEMBER_OF_GROUP',
@@ -1832,6 +1833,8 @@ export interface Comment {
     deleted?: boolean
     createdAt: string
     updatedAt?: string | null
+    /** ISO yyyy-MM-dd for date-scoped comments on recurring events; null otherwise. */
+    eventDate?: string | null
 }
 
 export interface EntityNote {

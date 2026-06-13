@@ -35,8 +35,14 @@ public class BoardTicketChangedHandler implements DomainEventHandler<BoardTicket
         var data = NotificationData.of(
                 new NotificationParams.BoardTicketUpdate(
                         event.boardName(), event.ticketKey(), event.changeDescription()),
+                // ticket-detail route uses boardKey + ticketNumber; ticketId rides along so the
+                // feed renderer can enrich with title / assignee / priority.
                 new NotificationData.NotificationLink(
-                        "ticket-detail", Map.of("boardId", event.boardId(), "ticketId", event.ticketId())));
+                        "ticket-detail",
+                        Map.of(
+                                "boardKey", event.boardKey(),
+                                "ticketNumber", event.ticketNumber(),
+                                "ticketId", event.ticketId())));
 
         notificationService.notifyMembersIfAbsent(
                 event.watcherMemberIds(),

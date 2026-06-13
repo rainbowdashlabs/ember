@@ -234,7 +234,8 @@ public class MemberGroupRoutes implements Routes {
         List<Integer> memberIds = request.memberIds() != null ? request.memberIds() : List.of();
 
         // Determine which members are being added
-        var result = groupService.setMembers(groupId, memberIds);
+        var result =
+                groupService.setMembers(groupId, memberIds, session.member().id());
         ctx.json(result.stream().map(this::toMemberWithName).toList());
     }
 

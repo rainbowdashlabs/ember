@@ -7,7 +7,7 @@
 import ApplicationsHelp from '~/views/helpcenter/adminview/ApplicationsHelp'
 
 definePageMeta({
-  layout: 'helpcenter',
+  layout: 'helpcenter-admin',
   name: 'help-admin-station-applications',
 })
 </script>

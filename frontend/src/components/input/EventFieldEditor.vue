@@ -41,6 +41,7 @@ const fieldTypeOptions = [
   {value: EventFieldTypes.ENUM, label: t('eventFields.typeEnum')},
   {value: EventFieldTypes.URL, label: t('eventFields.typeUrl')},
   {value: EventFieldTypes.TEXTAREA, label: t('eventFields.typeTextarea')},
+  {value: EventFieldTypes.LOCATION, label: t('eventFields.typeLocation')},
   {value: EventFieldTypes.MEMBER, label: t('eventFields.typeMember')},
   {value: EventFieldTypes.MEMBER_LIST, label: t('eventFields.typeMemberList')},
   {value: EventFieldTypes.MEMBER_OF_GROUP, label: t('eventFields.typeMemberOfGroup')},

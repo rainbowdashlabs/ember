@@ -17,6 +17,13 @@ import Alert from '@/components/feedback/Alert.vue'
 
 const props = defineProps<{
   eventId: number
+  /**
+   * Optional ISO yyyy-MM-dd occurrence date. When provided, the section is scoped to that
+   * single occurrence of a recurring event — list filters to comments stamped with this
+   * date, and new comments are created with the same stamp. When omitted, the section
+   * shows every comment on the event regardless of date.
+   */
+  eventDate?: string | null
 }>()
 
 const {t} = useI18n()
@@ -37,7 +44,7 @@ async function loadComments() {
   loading.value = true
   try {
     const [c, m, g] = await Promise.all([
-      commentsApi.listEventComments(props.eventId),
+      commentsApi.listEventComments(props.eventId, props.eventDate ?? undefined),
       stationMembers.listCompletions({type: 'EVENT', entityId: props.eventId}),
       memberGroups.listGroups(),
     ])
@@ -50,22 +57,29 @@ async function loadComments() {
 
 async function createComment(parentId: number | null, content: string) {
   try {
-    await commentsApi.createEventComment(props.eventId, {parentId, content})
-    commentsList.value = await commentsApi.listEventComments(props.eventId)
+    // Stamp new comments with the focused date so the thread stays scoped to this
+    // occurrence on subsequent reloads. Whole-event views (no eventDate) keep
+    // eventDate undefined → backend stores NULL.
+    await commentsApi.createEventComment(props.eventId, {
+      parentId,
+      content,
+      eventDate: props.eventDate ?? undefined,
+    })
+    commentsList.value = await commentsApi.listEventComments(props.eventId, props.eventDate ?? undefined)
   } catch { error.value = t('common.error') }
 }
 
 async function updateComment(commentId: number, content: string) {
   try {
     await commentsApi.updateComment(commentId, {content})
-    commentsList.value = await commentsApi.listEventComments(props.eventId)
+    commentsList.value = await commentsApi.listEventComments(props.eventId, props.eventDate ?? undefined)
   } catch { error.value = t('common.error') }
 }
 
 async function deleteComment(commentId: number) {
   try {
     await commentsApi.deleteComment(commentId)
-    commentsList.value = await commentsApi.listEventComments(props.eventId)
+    commentsList.value = await commentsApi.listEventComments(props.eventId, props.eventDate ?? undefined)
   } catch { error.value = t('common.error') }
 }
 

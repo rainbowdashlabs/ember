@@ -545,7 +545,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         service.cacheName(partnerId, REMOTE_MEMBER_1, "Alice Remote");
 
         var response = service.createRemoteComment(
-                localPartner, eventId, REMOTE_MEMBER_1, "Alice Remote", null, "Hello from remote!");
+                localPartner, eventId, REMOTE_MEMBER_1, "Alice Remote", null, "Hello from remote!", null);
         assertNotNull(response);
         assertEquals("Hello from remote!", response.content());
         assertFalse(response.deleted());
@@ -558,9 +558,9 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Order(51)
     void createRemoteCommentWithParent() {
         var parent = service.createRemoteComment(
-                localPartner, eventId, REMOTE_MEMBER_1, "Alice Remote", null, "Parent comment");
+                localPartner, eventId, REMOTE_MEMBER_1, "Alice Remote", null, "Parent comment", null);
         var reply = service.createRemoteComment(
-                localPartner, eventId, REMOTE_MEMBER_2, "Bob Remote", parent.id(), "Reply to parent");
+                localPartner, eventId, REMOTE_MEMBER_2, "Bob Remote", parent.id(), "Reply to parent", null);
         assertNotNull(reply);
         assertEquals(parent.id(), reply.parentId());
         assertEquals("Reply to parent", reply.content());
@@ -572,7 +572,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Order(52)
     void updateRemoteComment() {
         var created = service.createRemoteComment(
-                localPartner, eventId, REMOTE_MEMBER_1, "Alice Remote", null, "Original content");
+                localPartner, eventId, REMOTE_MEMBER_1, "Alice Remote", null, "Original content", null);
         var updated = service.updateRemoteComment(localPartner, created.id(), REMOTE_MEMBER_1, "Updated content");
         assertNotNull(updated);
         assertEquals("Updated content", updated.content());
@@ -582,8 +582,8 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(53)
     void updateRemoteCommentWrongOwner() {
-        var created =
-                service.createRemoteComment(localPartner, eventId, REMOTE_MEMBER_1, "Alice Remote", null, "My comment");
+        var created = service.createRemoteComment(
+                localPartner, eventId, REMOTE_MEMBER_1, "Alice Remote", null, "My comment", null);
         assertThrows(
                 ForbiddenResponse.class,
                 () -> service.updateRemoteComment(localPartner, created.id(), REMOTE_MEMBER_2, "Hacked!"));
@@ -592,7 +592,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(54)
     void updateRemoteCommentNotFederated() {
-        var localComment = eventCommentRepo.create(eventId, null, testMemberIdentity, "Local comment");
+        var localComment = eventCommentRepo.create(eventId, null, testMemberIdentity, "Local comment", null);
         assertThrows(
                 ForbiddenResponse.class,
                 () -> service.updateRemoteComment(localPartner, localComment.id(), REMOTE_MEMBER_1, "Edited"));
@@ -603,8 +603,8 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(55)
     void deleteRemoteComment() {
-        var created =
-                service.createRemoteComment(localPartner, eventId, REMOTE_MEMBER_3, "Delete Me", null, "To be deleted");
+        var created = service.createRemoteComment(
+                localPartner, eventId, REMOTE_MEMBER_3, "Delete Me", null, "To be deleted", null);
         boolean deleted = service.deleteRemoteComment(localPartner, created.id(), REMOTE_MEMBER_3);
         assertTrue(deleted);
     }
@@ -612,7 +612,8 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(56)
     void deleteRemoteCommentWrongOwner() {
-        var created = service.createRemoteComment(localPartner, eventId, REMOTE_MEMBER_1, "Alice", null, "My comment");
+        var created =
+                service.createRemoteComment(localPartner, eventId, REMOTE_MEMBER_1, "Alice", null, "My comment", null);
         assertThrows(
                 ForbiddenResponse.class,
                 () -> service.deleteRemoteComment(localPartner, created.id(), REMOTE_MEMBER_2));
@@ -621,7 +622,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(57)
     void deleteRemoteCommentNotFederated() {
-        var localComment = eventCommentRepo.create(eventId, null, testMemberIdentity, "Local comment to delete");
+        var localComment = eventCommentRepo.create(eventId, null, testMemberIdentity, "Local comment to delete", null);
         assertThrows(
                 ForbiddenResponse.class,
                 () -> service.deleteRemoteComment(localPartner, localComment.id(), REMOTE_MEMBER_1));
@@ -632,10 +633,17 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(60)
     void toCommentResponseDeletedComment() {
-        var comment = eventCommentRepo.create(eventId, null, testMemberIdentity, "Will be deleted");
+        var comment = eventCommentRepo.create(eventId, null, testMemberIdentity, "Will be deleted", null);
         commentService.delete(comment.id());
         var deletedComment = new Comment(
-                comment.id(), comment.parentId(), comment.author(), "", true, comment.createdAt(), comment.updatedAt());
+                comment.id(),
+                comment.parentId(),
+                comment.author(),
+                "",
+                true,
+                comment.createdAt(),
+                comment.updatedAt(),
+                comment.eventDate());
         var response = service.toCommentResponse(deletedComment);
         assertTrue(response.deleted());
         assertEquals("", response.content());
@@ -646,7 +654,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(61)
     void toCommentResponseLocalAuthor() {
-        var comment = eventCommentRepo.create(eventId, null, testMemberIdentity, "Local author comment");
+        var comment = eventCommentRepo.create(eventId, null, testMemberIdentity, "Local author comment", null);
         var response = service.toCommentResponse(comment);
         assertFalse(response.deleted());
         assertEquals("Local author comment", response.content());
@@ -661,7 +669,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Order(62)
     void toCommentResponseFederatedAuthor() {
         var created = service.createRemoteComment(
-                localPartner, eventId, REMOTE_MEMBER_2, "Bob Federated", null, "Federated comment");
+                localPartner, eventId, REMOTE_MEMBER_2, "Bob Federated", null, "Federated comment", null);
         var comment = commentService.findById(created.id()).orElseThrow();
         var response = service.toCommentResponse(comment);
         assertFalse(response.deleted());
@@ -707,6 +715,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 "Remote comment",
                 false,
                 Instant.now(),
+                null,
                 null));
         when(httpClient.getList(
                         eq("https://remote-event.example.com"),
@@ -738,7 +747,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Order(73)
     void createFederatedCommentLocal() {
         var result = service.createFederatedComment(
-                stationB.id(), stationA.uid(), eventId, REMOTE_MEMBER_1, "Alice", null, "Local federated create");
+                stationB.id(), stationA.uid(), eventId, REMOTE_MEMBER_1, "Alice", null, "Local federated create", null);
         assertNotNull(result);
         assertInstanceOf(EventFederationService.FederatedCommentResult.SingleResult.class, result);
         var single = (EventFederationService.FederatedCommentResult.SingleResult) result;
@@ -756,6 +765,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 "Remote created",
                 false,
                 Instant.now(),
+                null,
                 null);
         when(httpClient.post(
                         eq("https://remote-event.example.com"),
@@ -767,7 +777,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 .thenReturn(mockResponse);
 
         var result = service.createFederatedComment(
-                stationA.id(), stationC.uid(), eventId, REMOTE_MEMBER_1, "Alice", null, "Remote content");
+                stationA.id(), stationC.uid(), eventId, REMOTE_MEMBER_1, "Alice", null, "Remote content", null);
         assertNotNull(result);
         assertInstanceOf(EventFederationService.FederatedCommentResult.SingleResult.class, result);
         var single = (EventFederationService.FederatedCommentResult.SingleResult) result;
@@ -789,7 +799,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         assertThrows(
                 IllegalStateException.class,
                 () -> service.createFederatedComment(
-                        stationA.id(), stationC.uid(), eventId, REMOTE_MEMBER_1, "Alice", null, "Will fail"));
+                        stationA.id(), stationC.uid(), eventId, REMOTE_MEMBER_1, "Alice", null, "Will fail", null));
     }
 
     // -- Federated comment methods: updateFederatedComment --
@@ -798,7 +808,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Order(76)
     void updateFederatedCommentLocal() {
         var createResult = service.createFederatedComment(
-                stationB.id(), stationA.uid(), eventId, REMOTE_MEMBER_1, "Alice", null, "To update locally");
+                stationB.id(), stationA.uid(), eventId, REMOTE_MEMBER_1, "Alice", null, "To update locally", null);
         var single = (EventFederationService.FederatedCommentResult.SingleResult) createResult;
         int commentId = single.comment().id();
 
@@ -814,7 +824,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Order(77)
     void updateFederatedCommentLocalWrongOwner() {
         var createResult = service.createFederatedComment(
-                stationB.id(), stationA.uid(), eventId, REMOTE_MEMBER_1, "Alice", null, "Owner check");
+                stationB.id(), stationA.uid(), eventId, REMOTE_MEMBER_1, "Alice", null, "Owner check", null);
         var single = (EventFederationService.FederatedCommentResult.SingleResult) createResult;
         int commentId = single.comment().id();
 
@@ -835,7 +845,8 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 "Updated remote",
                 false,
                 Instant.now(),
-                Instant.now());
+                Instant.now(),
+                null);
         when(httpClient.put(
                         eq("https://remote-event.example.com"),
                         eq("/remote/events/comments/100"),
@@ -874,7 +885,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Order(80)
     void deleteFederatedCommentLocal() {
         var createResult = service.createFederatedComment(
-                stationB.id(), stationA.uid(), eventId, REMOTE_MEMBER_3, "Charlie", null, "Delete me locally");
+                stationB.id(), stationA.uid(), eventId, REMOTE_MEMBER_3, "Charlie", null, "Delete me locally", null);
         var single = (EventFederationService.FederatedCommentResult.SingleResult) createResult;
         int commentId = single.comment().id();
 
@@ -886,7 +897,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Order(81)
     void deleteFederatedCommentLocalWrongOwner() {
         var createResult = service.createFederatedComment(
-                stationB.id(), stationA.uid(), eventId, REMOTE_MEMBER_1, "Alice", null, "Delete check");
+                stationB.id(), stationA.uid(), eventId, REMOTE_MEMBER_1, "Alice", null, "Delete check", null);
         var single = (EventFederationService.FederatedCommentResult.SingleResult) createResult;
         int commentId = single.comment().id();
 
@@ -1013,6 +1024,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 "Content",
                 false,
                 Instant.now(),
+                null,
                 null));
         var result = EventFederationService.FederatedCommentResult.ofList(comments);
         assertInstanceOf(EventFederationService.FederatedCommentResult.ListResult.class, result);
@@ -1034,6 +1046,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 "Content",
                 false,
                 Instant.now(),
+                null,
                 null);
         var result = EventFederationService.FederatedCommentResult.ofSingle(comment);
         assertInstanceOf(EventFederationService.FederatedCommentResult.SingleResult.class, result);

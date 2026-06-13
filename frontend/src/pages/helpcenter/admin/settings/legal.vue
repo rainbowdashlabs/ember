@@ -7,7 +7,7 @@
 import LegalHelp from '~/views/helpcenter/adminview/LegalHelp'
 
 definePageMeta({
-  layout: 'helpcenter',
+  layout: 'helpcenter-admin',
   name: 'help-admin-legal',
 })
 </script>

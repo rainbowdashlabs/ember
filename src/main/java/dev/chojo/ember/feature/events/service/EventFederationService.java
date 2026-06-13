@@ -441,7 +441,15 @@ public class EventFederationService {
     public EventCommentRoutes.CommentResponse toCommentResponse(Comment comment) {
         if (comment.deleted()) {
             return new EventCommentRoutes.CommentResponse(
-                    comment.id(), comment.parentId(), null, null, "", true, comment.createdAt(), null);
+                    comment.id(),
+                    comment.parentId(),
+                    null,
+                    null,
+                    "",
+                    true,
+                    comment.createdAt(),
+                    null,
+                    comment.eventDate());
         }
         var resolved = memberNameResolver.resolveDisplay(comment.author());
         String displayName = resolved.name() != null ? resolved.name() : "";
@@ -453,7 +461,8 @@ public class EventFederationService {
                 comment.content(),
                 false,
                 comment.createdAt(),
-                comment.updatedAt());
+                comment.updatedAt(),
+                comment.eventDate());
     }
 
     /**
@@ -474,9 +483,10 @@ public class EventFederationService {
             UUID remoteMemberUid,
             String displayName,
             Integer parentId,
-            String content) {
+            String content,
+            LocalDate eventDate) {
         var author = new MemberIdentity(partner.partnerStationId(), remoteMemberUid);
-        var comment = commentRepository.create(eventId, parentId, author, content);
+        var comment = commentRepository.create(eventId, parentId, author, content, eventDate);
         federationRepository.cacheName(partner.id(), remoteMemberUid, displayName);
         return toCommentResponse(comment);
     }
@@ -538,12 +548,17 @@ public class EventFederationService {
             UUID memberUid,
             String displayName,
             Integer parentId,
-            String content) {
+            String content,
+            LocalDate eventDate) {
         var partner = resolveActivePartner(stationId, partnerStationUid);
         var station = stationRepository.findById(stationId).orElseThrow();
         if (partner.isRemote()) {
             var body = new RemoteCommentRequest(
-                    memberUid.toString(), displayName, parentId != null ? parentId : 0, content);
+                    memberUid.toString(),
+                    displayName,
+                    parentId != null ? parentId : 0,
+                    content,
+                    eventDate != null ? eventDate.toString() : null);
             var result = httpClient.post(
                     partner.remoteHost(),
                     "/remote/events/" + eventId + "/comments",
@@ -555,7 +570,7 @@ public class EventFederationService {
             return FederatedCommentResult.ofSingle(result);
         }
         var author = new MemberIdentity(partner.partnerStationId(), memberUid);
-        var comment = commentRepository.create(eventId, parentId, author, content);
+        var comment = commentRepository.create(eventId, parentId, author, content, eventDate);
         federationRepository.cacheName(partner.id(), memberUid, displayName);
         return FederatedCommentResult.ofSingle(toCommentResponse(comment));
     }
@@ -636,7 +651,14 @@ public class EventFederationService {
         record SingleResult(EventCommentRoutes.CommentResponse comment) implements FederatedCommentResult {}
     }
 
-    private record RemoteCommentRequest(String remoteMemberUid, String displayName, int parentId, String content) {}
+    /**
+     * Payload for {@code POST /remote/events/{eventId}/comments}. {@code eventDate} is the
+     * occurrence date for date-scoped comments on recurring events; {@code null} for
+     * one-time events or whole-event comments. Older peers that omit the field continue to
+     * work — Jackson maps the absent property to {@code null} on the receiving side.
+     */
+    private record RemoteCommentRequest(
+            String remoteMemberUid, String displayName, int parentId, String content, String eventDate) {}
 
     private record RemoteCommentUpdateRequest(String remoteMemberUid, String content) {}
 

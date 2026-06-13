@@ -42,6 +42,10 @@ public class StorageWarningHandler implements DomainEventHandler<StorageWarningE
                                 event.usedPercent(),
                                 SizeParser.formatBytes(event.usedBytes()),
                                 SizeParser.formatBytes(event.quotaBytes())),
-                        new NotificationData.NotificationLink("station-settings", Map.of())));
+                        // Carry stationId so the feed renderer can load the per-category
+                        // breakdown for the body. The "station-settings" route is parameterless;
+                        // adding extra routeParams is a no-op for the deep link.
+                        new NotificationData.NotificationLink(
+                                "station-settings", Map.of("stationId", event.stationId()))));
     }
 }

@@ -42,6 +42,15 @@ const {canManageEvents, canManageAttendance, isGuardian, sessionInfo} = useSessi
 const eventId = computed(() => Number(route.params.id))
 const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
 
+// Optional ISO date from the route — present on `/station/events/:id/:date` for deep
+// links into a specific occurrence of a recurring event. The view binds itself to a
+// single occurrence so start / end times reflect that date, not the recurrence template.
+const focusedDate = computed(() => {
+  const raw = Array.isArray(route.params.date) ? route.params.date[0] : route.params.date
+  if (!raw) return null
+  return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : null
+})
+
 const event = ref<StationEvent | null>(null)
 const categories = ref<EventCategory[]>([])
 const templates = ref<AttendanceTemplate[]>([])
@@ -55,7 +64,6 @@ const error = ref('')
 const activeTab = ref<'info' | 'registrations'>('info')
 const showCancelModal = ref(false)
 const registrationsTab = ref<InstanceType<typeof EventRegistrationsTab> | null>(null)
-const dayNames = ['', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
 
 function nextOccurrence(dayOfWeek: number): string {
   const now = new Date()
@@ -74,6 +82,40 @@ function nextOccurrence(dayOfWeek: number): string {
 const nextOccurrenceDate = computed(() => {
   if (!event.value || !isRecurringEvent(event.value.eventType) || !event.value.dayOfWeek) return null
   return nextOccurrence(event.value.dayOfWeek)
+})
+
+/**
+ * The single date this view is bound to. Priority:
+ *   1. {@link focusedDate} from the URL path — explicit user / notification deep link.
+ *   2. {@link nextOccurrenceDate} for a recurring event without a path date — sensible default.
+ *   3. The event's {@code startTime} date for one-time events.
+ *
+ * Every downstream lookup (absences, registrations, start/end formatting) reads from this so the
+ * view never mixes "template" times (raw startTime) with "occurrence" times.
+ */
+const effectiveDate = computed((): string | null => {
+  if (focusedDate.value) return focusedDate.value
+  if (nextOccurrenceDate.value) return nextOccurrenceDate.value
+  if (event.value?.startTime) return new Date(event.value.startTime).toISOString().slice(0, 10)
+  return null
+})
+
+function combineDateAndTime(date: string, iso: string): string {
+  // Replace the date portion of the stored ISO with the bound date, keeping hours / minutes.
+  const t = new Date(iso)
+  const hh = String(t.getHours()).padStart(2, '0')
+  const mm = String(t.getMinutes()).padStart(2, '0')
+  return `${new Date(`${date}T00:00:00`).toLocaleDateString('de-DE', {weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric'})}, ${hh}:${mm}`
+}
+
+const startFormatted = computed(() => {
+  if (!event.value?.startTime || !effectiveDate.value) return ''
+  return combineDateAndTime(effectiveDate.value, event.value.startTime)
+})
+
+const endFormatted = computed(() => {
+  if (!event.value?.endTime || !effectiveDate.value) return ''
+  return combineDateAndTime(effectiveDate.value, event.value.endTime)
 })
 
 const registrableMembers = computed((): { id: number; name: string }[] => {
@@ -101,22 +143,6 @@ function categoryName(id: number | null | undefined): string {
 function templateName(id: number | null | undefined): string {
   if (!id) return t('events.noTemplate')
   return templates.value.find(tmpl => tmpl.id === id)?.name ?? ''
-}
-
-function formatTime(iso?: string): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-}
-
-function formatDate(dateStr?: string): string {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric'})
-}
-
-function formatDateLong(dateStr?: string): string {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('de-DE', {weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric'})
 }
 
 function formatDatetime(iso?: string): string {
@@ -167,9 +193,9 @@ async function loadData() {
 }
 
 async function loadAbsences() {
-  if (!nextOccurrenceDate.value) return
+  if (!effectiveDate.value) return
   try {
-    absentMembers.value = await events.listAbsencesForDate(eventId.value, nextOccurrenceDate.value)
+    absentMembers.value = await events.listAbsencesForDate(eventId.value, effectiveDate.value)
   } catch { absentMembers.value = [] }
 }
 
@@ -238,17 +264,13 @@ onMounted(loadData)
                 <DetailLabel>{{ t('events.category') }}</DetailLabel>
                 <p class="text-sm">{{ categoryName(event.categoryId) }}</p>
               </div>
-              <div v-if="isRecurringEvent(event.eventType)">
-                <DetailLabel>{{ t('events.dayOfWeek') }}</DetailLabel>
-                <p class="text-sm">{{ event.dayOfWeek ? dayNames[event.dayOfWeek] : '–' }}</p>
-              </div>
-              <div v-else>
-                <DetailLabel>{{ t('events.date') }}</DetailLabel>
-                <p class="text-sm">{{ formatDate(event.startTime) }}</p>
+              <div>
+                <DetailLabel>{{ t('events.startTime') }}</DetailLabel>
+                <p class="text-sm">{{ startFormatted }}</p>
               </div>
               <div>
-                <DetailLabel>{{ t('events.startTime') }} – {{ t('events.endTime') }}</DetailLabel>
-                <p class="text-sm">{{ formatTime(event.startTime) }} – {{ formatTime(event.endTime) }}</p>
+                <DetailLabel>{{ t('events.endTime') }}</DetailLabel>
+                <p class="text-sm">{{ endFormatted }}</p>
               </div>
               <div v-if="canManageEvents()">
                 <DetailLabel>{{ t('events.template') }}</DetailLabel>
@@ -261,18 +283,12 @@ onMounted(loadData)
             </div>
           </NeutralContainer>
 
-          <NeutralContainer v-if="isRecurringEvent(event.eventType) && nextOccurrenceDate" class="space-y-3">
-            <SubHeader>{{ t('eventDetail.nextOccurrence') }}</SubHeader>
-            <p class="text-sm font-medium">{{ formatDateLong(nextOccurrenceDate) }}</p>
-            <template v-if="canManageEvents() || canManageAttendance()">
-              <div v-if="absentMembers.length > 0" class="space-y-2">
-                <h4 class="text-xs font-semibold uppercase text-(--text-muted)">{{ t('eventDetail.absentMembers') }} ({{ absentMembers.length }})</h4>
-                <div class="flex flex-wrap gap-2">
-                  <ErrorBadge v-for="m in absentMembers" :key="m.memberId">{{ m.memberName }}<span v-if="m.reason" class="ml-1 opacity-75">– {{ m.reason }}</span></ErrorBadge>
-                </div>
-              </div>
-              <p v-else class="text-sm text-(--text-muted)">{{ t('eventDetail.noAbsences') }}</p>
-            </template>
+          <NeutralContainer v-if="isRecurringEvent(event.eventType) && (canManageEvents() || canManageAttendance())" class="space-y-3">
+            <SubHeader>{{ t('eventDetail.absentMembers') }}</SubHeader>
+            <div v-if="absentMembers.length > 0" class="flex flex-wrap gap-2">
+              <ErrorBadge v-for="m in absentMembers" :key="m.memberId">{{ m.memberName }}<span v-if="m.reason" class="ml-1 opacity-75">– {{ m.reason }}</span></ErrorBadge>
+            </div>
+            <p v-else class="text-sm text-(--text-muted)">{{ t('eventDetail.noAbsences') }}</p>
           </NeutralContainer>
 
           <NeutralContainer v-if="canManageEvents()">
@@ -280,7 +296,7 @@ onMounted(loadData)
           </NeutralContainer>
 
           <NeutralContainer>
-            <CommentSection :event-id="eventId"/>
+            <CommentSection :event-id="eventId" :event-date="focusedDate"/>
           </NeutralContainer>
         </template>
 
@@ -293,7 +309,7 @@ onMounted(loadData)
             :current-member-id="currentMemberId"
             :registrable-members="registrableMembers"
             :has-managed-members="hasManagedMembers"
-            :next-occurrence-date="nextOccurrenceDate"
+            :next-occurrence-date="effectiveDate"
         />
 
         <EventCancelModal

@@ -20,7 +20,6 @@ import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -69,20 +68,27 @@ public class EventReminderChecker {
 
                         var targetIds = resolveTargetMembers(event, occurrence);
                         if (!targetIds.isEmpty()) {
-                            String dateStr = occurrence.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
                             notificationService.notifyMembers(
                                     targetIds,
                                     NotificationType.EVENT_REMINDER,
                                     NotificationData.of(
-                                            new NotificationParams.EventReminder(event.name(), daysBefore, dateStr),
+                                            new NotificationParams.EventReminder(event.name(), daysBefore, occurrence),
+                                            // event-detail-date carries the occurrence date as
+                                            // a path segment so the deep link points at the
+                                            // right instance for recurring events.
                                             new NotificationData.NotificationLink(
-                                                    "event-detail", Map.of("id", String.valueOf(event.id())))));
+                                                    "event-detail-date",
+                                                    Map.of(
+                                                            "id",
+                                                            String.valueOf(event.id()),
+                                                            "date",
+                                                            occurrence.toString()))));
                             log.info(
                                     "Sent {} reminder(s) for event '{}' (id={}) on {} — {} days before",
                                     targetIds.size(),
                                     event.name(),
                                     event.id(),
-                                    dateStr,
+                                    occurrence,
                                     daysBefore);
                         }
                         eventRepository.markReminderSent(event.id(), occurrence, daysBefore);

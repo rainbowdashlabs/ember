@@ -285,7 +285,8 @@ public class NewsService {
                                         authorName,
                                         CommentEntityType.NEWS,
                                         newsId,
-                                        news.title()));
+                                        news.title(),
+                                        preview));
                             }
                         });
                     } catch (IllegalArgumentException ignored) {
@@ -302,7 +303,8 @@ public class NewsService {
                                 authorName,
                                 CommentEntityType.NEWS,
                                 newsId,
-                                news.title()));
+                                news.title(),
+                                preview));
                     }
                 }
                 var bulkMatcher = BULK_MENTION_PATTERN.matcher(content);
@@ -317,7 +319,8 @@ public class NewsService {
                             newsId,
                             news.title(),
                             type,
-                            targetId));
+                            targetId,
+                            preview));
                 }
             }
         }

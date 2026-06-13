@@ -18,6 +18,7 @@ public enum NotificationType {
     EXCHANGE_STATUS_CHANGE(NotificationParams.ExchangeStatusChange.class, "notification.exchangeStatusChange"),
     EXCHANGE_NEW_REQUEST(NotificationParams.ExchangeNewRequest.class, "notification.exchangeNewRequest"),
     NEW_EVENT(NotificationParams.NewEvent.class, "notification.newEvent"),
+    NEW_EVENTS_BATCH(NotificationParams.NewEventsBatch.class, "notification.newEventsBatch"),
     MEMBER_ADDED_TO_GROUP(NotificationParams.MemberAddedToGroup.class, "notification.memberAddedToGroup"),
     PROFILE_FIELD_CHANGED(NotificationParams.ProfileFieldChanged.class, "notification.profileFieldChanged"),
     PROCUREMENT_REQUESTED(NotificationParams.ProcurementRequested.class, "notification.procurementRequested"),

@@ -106,7 +106,7 @@ public class DemoNotificationSeeder {
                     eltern.get(i).id(),
                     NotificationType.MEMBER_ADDED_TO_GROUP,
                     NotificationData.of(
-                            new NotificationParams.MemberAddedToGroup("Eltern"),
+                            new NotificationParams.MemberAddedToGroup("Eltern", "Alice Müller"),
                             new NotificationData.NotificationLink("dashboard-overview")));
         }
 

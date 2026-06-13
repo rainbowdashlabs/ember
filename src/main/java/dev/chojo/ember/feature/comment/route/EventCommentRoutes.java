@@ -33,6 +33,8 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
 
 /**
  * HTTP route definitions for event comments.
@@ -68,13 +70,44 @@ public class EventCommentRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/events/{eventId}/comments",
             methods = HttpMethod.GET,
-            summary = "List comments for an event",
+            summary = "List comments for an event, optionally scoped to a specific occurrence",
             tags = {"Event Comments"},
             pathParams = @OpenApiParam(name = "eventId", type = Integer.class, required = true),
+            queryParams = {
+                @OpenApiParam(
+                        name = "date",
+                        type = String.class,
+                        description =
+                                "ISO yyyy-MM-dd. When supplied, returns only comments for that occurrence of a recurring event. "
+                                        + "Use 'none' to explicitly request whole-event comments (event_date IS NULL)."),
+                @OpenApiParam(
+                        name = "scope",
+                        type = String.class,
+                        description =
+                                "Either 'all' (default; date filter ignored) or 'date' (filters to the date param).")
+            },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse[].class)))
     private void list(Context ctx) {
         int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
-        var comments = commentService.findByEvent(eventId);
+        String dateParam = ctx.queryParam("date");
+        String scope = ctx.queryParam("scope");
+        // Default behaviour stays "everything for the event" so existing callers don't
+        // change shape. Date-scoped reads opt in via either ?date=YYYY-MM-DD (most common
+        // for occurrence deep-links) or ?scope=date&date=none (whole-event-only).
+        List<Comment> comments;
+        if (dateParam != null || "date".equals(scope)) {
+            LocalDate eventDate = null;
+            if (dateParam != null && !dateParam.isBlank() && !"none".equalsIgnoreCase(dateParam)) {
+                try {
+                    eventDate = LocalDate.parse(dateParam);
+                } catch (Exception e) {
+                    throw new BadRequestResponse("date must be ISO yyyy-MM-dd or 'none'");
+                }
+            }
+            comments = commentService.findByEventAndDate(eventId, eventDate);
+        } else {
+            comments = commentService.findByEvent(eventId);
+        }
         ctx.json(comments.stream().map(this::toResponse).toList());
     }
 
@@ -104,7 +137,8 @@ public class EventCommentRoutes implements Routes {
                 author,
                 session.account().fullName().trim(),
                 request.content(),
-                eventName);
+                eventName,
+                request.eventDate());
         ctx.status(HttpStatus.CREATED).json(toResponse(comment));
     }
 
@@ -168,7 +202,15 @@ public class EventCommentRoutes implements Routes {
     private CommentResponse toResponse(Comment comment) {
         if (comment.deleted()) {
             return new CommentResponse(
-                    comment.id(), comment.parentId(), null, null, "", true, comment.createdAt(), null);
+                    comment.id(),
+                    comment.parentId(),
+                    null,
+                    null,
+                    "",
+                    true,
+                    comment.createdAt(),
+                    null,
+                    comment.eventDate());
         }
 
         var resolved = memberNameResolver.resolveDisplay(comment.author());
@@ -181,13 +223,17 @@ public class EventCommentRoutes implements Routes {
                 comment.content(),
                 false,
                 comment.createdAt(),
-                comment.updatedAt());
+                comment.updatedAt(),
+                comment.eventDate());
     }
 
     /**
      * Request body for creating a comment.
+     *
+     * @param eventDate Occurrence date (ISO {@code yyyy-MM-dd}) for date-scoped comments on
+     *                  recurring events; {@code null} for whole-event comments.
      */
-    public record CreateCommentRequest(Integer parentId, String content) {}
+    public record CreateCommentRequest(Integer parentId, String content, LocalDate eventDate) {}
 
     /**
      * Request body for updating a comment.
@@ -196,6 +242,9 @@ public class EventCommentRoutes implements Routes {
 
     /**
      * API response representing a comment with resolved author information.
+     *
+     * @param eventDate Occurrence date for date-scoped comments on recurring events; {@code null}
+     *                  for whole-event comments. Serialised as ISO {@code yyyy-MM-dd}.
      */
     @OpenApiName("EventCommentResponse")
     public record CommentResponse(
@@ -206,5 +255,6 @@ public class EventCommentRoutes implements Routes {
             String content,
             boolean deleted,
             Instant createdAt,
-            Instant updatedAt) {}
+            Instant updatedAt,
+            LocalDate eventDate) {}
 }

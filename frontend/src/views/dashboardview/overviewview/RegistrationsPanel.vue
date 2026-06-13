@@ -16,7 +16,8 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import type {StationEvent} from '@/api/types'
-import {RegistrationStatus} from '@/api/types'
+import {isRecurringEvent, RegistrationStatus} from '@/api/types'
+import type {RouteLocationRaw} from 'vue-router'
 import {events} from '@/api'
 import type {EventRegistrationEntry} from '@/api/events'
 import {useSession} from '@/composables/useSession'
@@ -36,6 +37,18 @@ function isOtherMember(memberId: number): boolean {
 
 function eventName(eventId: number): string {
   return allEvents.value.find(e => e.id === eventId)?.name ?? `#${eventId}`
+}
+
+/**
+ * Date-aware deep link: recurring events must carry the occurrence date so the detail page
+ * lands on the right instance, not always the first one.
+ */
+function registrationRoute(reg: EventRegistrationEntry): RouteLocationRaw {
+  const event = allEvents.value.find(e => e.id === reg.eventId)
+  if (event && isRecurringEvent(event.eventType) && reg.eventDate) {
+    return {name: 'event-detail-date', params: {id: reg.eventId, date: reg.eventDate}}
+  }
+  return {name: 'event-detail', params: {id: reg.eventId}}
 }
 
 function statusBadgeComponent(status: string) {
@@ -72,7 +85,7 @@ onMounted(loadData)
       <template v-else>
         <NeutralContainer v-for="reg in activeRegistrations" :key="reg.id"
                           class="flex items-center justify-between gap-2 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
-                          @click="router.push({ name: 'event-detail', params: { id: reg.eventId } })">
+                          @click="router.push(registrationRoute(reg))">
           <div>
             <MemberName v-if="isOtherMember(reg.memberId)" :identity="reg.memberIdentity ?? null"
                         class="text-xs font-semibold text-primary"/>

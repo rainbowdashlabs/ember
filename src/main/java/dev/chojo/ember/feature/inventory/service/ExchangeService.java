@@ -72,7 +72,8 @@ public class ExchangeService {
                 stationId, memberId, itemId, inventoryId, oldSizeId, newSizeId, reason, createdBy);
         String inventoryName =
                 inventoryRepository.findById(inventoryId).map(Inventory::name).orElse("?");
-        eventBus.publish(new ExchangeRequested(stationId, exchange.id(), memberId, memberName, inventoryName, reason));
+        eventBus.publish(new ExchangeRequested(
+                stationId, exchange.id(), memberId, memberName, inventoryId, inventoryName, reason));
         return exchange;
     }
 
@@ -151,7 +152,13 @@ public class ExchangeService {
                 .map(Inventory::name)
                 .orElse("?");
         eventBus.publish(new ExchangeStatusChanged(
-                updated.stationId(), updated.id(), updated.memberId(), null, inventoryName, newStatus));
+                updated.stationId(),
+                updated.id(),
+                updated.memberId(),
+                null,
+                updated.inventoryId(),
+                inventoryName,
+                newStatus));
         return updated;
     }
 

@@ -33,6 +33,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -145,7 +146,7 @@ public class EventService {
             Integer minRegistrations,
             Instant thresholdDate,
             Integer registrationCloseDays) {
-        var event = eventRepository.create(
+        var event = createWithoutEvent(
                 stationId,
                 name,
                 description,
@@ -164,6 +165,47 @@ public class EventService {
                 registrationCloseDays);
         eventBus.publish(new EventCreated(stationId, event));
         return event;
+    }
+
+    /**
+     * Persists a new event without publishing any domain event. Reserved for callers that
+     * aggregate their own domain event (e.g. {@code BatchEventService} emitting
+     * {@link dev.chojo.ember.event.events.EventsBatchCreated} once at the end).
+     */
+    public StationEvent createWithoutEvent(
+            int stationId,
+            String name,
+            String description,
+            StationEvent.EventType eventType,
+            Integer dayOfWeek,
+            Instant startTime,
+            Instant endTime,
+            Integer templateId,
+            boolean requiresRegistration,
+            Instant registrationDeadline,
+            boolean requiresConfirmation,
+            Integer categoryId,
+            Integer registrationLimit,
+            Integer minRegistrations,
+            Instant thresholdDate,
+            Integer registrationCloseDays) {
+        return eventRepository.create(
+                stationId,
+                name,
+                description,
+                eventType,
+                dayOfWeek,
+                startTime,
+                endTime,
+                templateId,
+                requiresRegistration,
+                registrationDeadline,
+                requiresConfirmation,
+                categoryId,
+                registrationLimit,
+                minRegistrations,
+                thresholdDate,
+                registrationCloseDays);
     }
 
     /**
@@ -634,6 +676,27 @@ public class EventService {
      */
     public List<EventRegistration> findRegistrationsByMember(int memberId) {
         return eventRepository.findRegistrationsByMember(memberId);
+    }
+
+    /**
+     * Retrieves upcoming registrations for any member in the given collection in one query.
+     * Used by the personal iCal feed to load owner + managed-member registrations together.
+     *
+     * @param memberIds the member IDs to fetch registrations for
+     * @return the list of registrations
+     */
+    public List<EventRegistration> findRegistrationsByMembers(Collection<Integer> memberIds) {
+        return eventRepository.findRegistrationsByMembers(memberIds);
+    }
+
+    /** Returns the most recent station-event modification time, for feed cache invalidation. */
+    public Instant findMaxEventUpdatedAt(int stationId) {
+        return eventRepository.findMaxEventUpdatedAt(stationId);
+    }
+
+    /** Returns the most recent registration time across the given members, for feed cache invalidation. */
+    public Instant findMaxRegistrationCreatedAt(Collection<Integer> memberIds) {
+        return eventRepository.findMaxRegistrationCreatedAt(memberIds);
     }
 
     /**

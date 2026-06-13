@@ -91,6 +91,27 @@ public class NotificationRepository {
     }
 
     /**
+     * Returns the highest notification id and the most recent {@code created_at} for the given
+     * member. Used to derive an ETag for the personal RSS/Atom feed without enumerating rows.
+     *
+     * @return a stamp where {@code id == 0} means the member has no notifications
+     */
+    public Stamp findMaxStamp(int memberId) {
+        return query(
+                        "SELECT coalesce(max(id), 0) AS max_id, max(created_at) AS max_at FROM notification WHERE member_id = :member_id;")
+                .single(call().bind("member_id", memberId))
+                .map(row -> {
+                    Instant at = row.get("max_at", INSTANT_TIMESTAMP);
+                    return new Stamp(row.getInt("max_id"), at != null ? at : Instant.EPOCH);
+                })
+                .first()
+                .orElse(new Stamp(0, Instant.EPOCH));
+    }
+
+    /** Snapshot of the latest notification state for a member. */
+    public record Stamp(int maxId, Instant maxCreatedAt) {}
+
+    /**
      * Counts unacknowledged notifications for a member.
      *
      * @param memberId the member ID

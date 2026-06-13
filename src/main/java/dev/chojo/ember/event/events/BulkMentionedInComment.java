@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.comment.entity.MentionType;
  * @param entityTitle     the title/name of the entity
  * @param mentionType     the type of mention
  * @param mentionTargetId the ID of the target (group ID or event ID)
+ * @param preview         short snippet of the comment text so the feed entry surfaces context
  */
 public record BulkMentionedInComment(
         int stationId,
@@ -30,5 +31,6 @@ public record BulkMentionedInComment(
         int entityId,
         String entityTitle,
         MentionType mentionType,
-        int mentionTargetId)
+        int mentionTargetId,
+        String preview)
         implements DomainEvent {}

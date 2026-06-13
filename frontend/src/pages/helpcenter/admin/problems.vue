@@ -7,7 +7,7 @@
 import ProblemsHelp from '~/views/helpcenter/adminview/ProblemsHelp'
 
 definePageMeta({
-  layout: 'helpcenter',
+  layout: 'helpcenter-admin',
   name: 'help-admin-problems',
 })
 </script>

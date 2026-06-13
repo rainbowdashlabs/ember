@@ -163,6 +163,7 @@ const HELP_PAGE_MAP: { route: string; path: string; i18nPrefix: string; section:
     {route: 'help-admin-statistics', path: '/helpcenter/admin/statistics', i18nPrefix: 'helpCenter.admin.statistics', section: 'Administration > Statistiken'},
     {route: 'help-admin-settings', path: '/helpcenter/admin/settings', i18nPrefix: 'helpCenter.admin.settings', section: 'Administration > Einstellungen'},
     {route: 'help-admin-api-status', path: '/helpcenter/admin/api-status', i18nPrefix: 'helpCenter.adminApiStatus', section: 'Administration > API-Status'},
+    {route: 'help-admin-feed-metrics', path: '/helpcenter/admin/feed-metrics', i18nPrefix: 'helpCenter.adminFeedMetrics', section: 'Administration > Feed-Telemetrie'},
     {route: 'help-admin-problems', path: '/helpcenter/admin/problems', i18nPrefix: 'helpCenter.adminProblems', section: 'Administration > Problemprotokoll'},
 ]
 

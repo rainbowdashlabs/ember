@@ -7,7 +7,7 @@
 import ApiStatusDetailHelp from '~/views/helpcenter/adminview/ApiStatusDetailHelp'
 
 definePageMeta({
-  layout: 'helpcenter',
+  layout: 'helpcenter-admin',
   name: 'help-admin-api-status-detail',
 })
 </script>

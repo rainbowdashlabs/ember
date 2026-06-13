@@ -76,7 +76,7 @@ public class MemberGroupService {
         return groupRepository.findGroupsForMember(memberId);
     }
 
-    public List<StationMember> setMembers(int groupId, List<Integer> desiredMemberIds) {
+    public List<StationMember> setMembers(int groupId, List<Integer> desiredMemberIds, Integer addedByMemberId) {
         List<StationMember> currentMembers = groupRepository.findMembers(groupId);
         var currentMemberIdSet =
                 new HashSet<>(currentMembers.stream().map(StationMember::id).toList());
@@ -96,7 +96,8 @@ public class MemberGroupService {
 
         if (!addedMemberIds.isEmpty()) {
             findById(groupId)
-                    .ifPresent(g -> eventBus.publish(new MembersAddedToGroup(g.stationId(), g.name(), addedMemberIds)));
+                    .ifPresent(g -> eventBus.publish(
+                            new MembersAddedToGroup(g.stationId(), g.name(), addedMemberIds, addedByMemberId)));
         }
 
         return groupRepository.findMembers(groupId);

@@ -448,6 +448,13 @@ const router = createRouter({
                     component: () => import('@/views/stationview/events/EventDetailView.vue'),
                 },
                 {
+                    // Date-aware deep link for recurring events: opens the detail view
+                    // pre-focused on a specific occurrence (notifications, feed entries).
+                    path: 'events/:id/:date',
+                    name: 'event-detail-date',
+                    component: () => import('@/views/stationview/events/EventDetailView.vue'),
+                },
+                {
                     path: 'events/new',
                     name: 'event-new',
                     component: () => import('@/views/stationview/events/EventEditView.vue'),
@@ -858,6 +865,11 @@ const router = createRouter({
                     path: 'api-status/detail',
                     name: 'admin-api-status-detail',
                     component: () => import('@/views/adminview/AdminApiStatusDetailView.vue'),
+                },
+                {
+                    path: 'feed-metrics',
+                    name: 'admin-feed-metrics',
+                    component: () => import('@/views/adminview/AdminFeedMetricsView.vue'),
                 },
                 {
                     // Dev-only inspector for data_tracking.json. The backend route is gated by
@@ -1315,6 +1327,11 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/stationview/events/EventDetailHelp.vue')
                 },
                 {
+                    path: 'events/:id/:date',
+                    name: 'help-event-detail-date',
+                    component: () => import('@/views/helpcenter/stationview/events/EventDetailDateHelp.vue')
+                },
+                {
                     path: 'events/categories',
                     name: 'help-event-categories',
                     component: () => import('@/views/helpcenter/stationview/events/CategoriesHelp.vue')
@@ -1678,6 +1695,11 @@ const router = createRouter({
                     path: 'api-status/detail',
                     name: 'help-admin-api-status-detail',
                     component: () => import('@/views/helpcenter/adminview/ApiStatusDetailHelp.vue')
+                },
+                {
+                    path: 'feed-metrics',
+                    name: 'help-admin-feed-metrics',
+                    component: () => import('@/views/helpcenter/adminview/FeedMetricsHelp.vue')
                 },
                 {
                     path: 'problems',
