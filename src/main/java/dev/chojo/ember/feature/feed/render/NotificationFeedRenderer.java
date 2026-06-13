@@ -130,22 +130,26 @@ public class NotificationFeedRenderer {
 
         // Categories let users filter by notification type. We expose two categories so
         // readers cover both audiences: the localised label (what humans see in the UI) and
-        // the raw enum name (stable identifier scripts can match on across locales).
+        // the raw enum name (stable identifier scripts can match on across locales). The
+        // enum-name category is tagged with a scheme so readers that collapse duplicate
+        // `term` values still keep both, and the localised one always wins as the primary.
         entry.setCategories(List.of(
                 category(notificationService.resolveCategory(ctx.locale(), notification.type())),
-                category(notification.type().name())));
+                schemedCategory(notification.type().name(), "urn:ember:notification-type")));
 
-        // Plain-text fallback for readers that strip HTML.
-        SyndContent plain = new SyndContentImpl();
-        plain.setType("text/plain");
-        plain.setValue(notificationService.resolveFeedBody(ctx.locale(), notification));
-        entry.setContents(new ArrayList<>(List.of(plain)));
+        // Atom semantics: <summary> is the short preview shown in the inbox row,
+        // <content> is the rich body shown on expand. Previously we had these reversed —
+        // ROME mapped the rich HTML to <summary> and the multi-line plain text to <content>,
+        // which broke readers that strip HTML out of summaries or show only the summary.
+        SyndContent summary = new SyndContentImpl();
+        summary.setType("text/plain");
+        summary.setValue(notificationService.resolveMessage(ctx.locale(), notification));
+        entry.setDescription(summary);
 
-        // Rich HTML body (description) — readers prefer this over plain when both exist.
         SyndContent html = new SyndContentImpl();
         html.setType("text/html");
         html.setValue(renderHtml(notification, ctx, link));
-        entry.setDescription(html);
+        entry.setContents(new ArrayList<>(List.of(html)));
 
         // MediaRSS thumbnail for entries that carry an image (currently lost-and-found).
         if (ctx.images()) {
@@ -775,6 +779,18 @@ public class NotificationFeedRenderer {
     private static SyndCategory category(String name) {
         var c = new SyndCategoryImpl();
         c.setName(name);
+        return c;
+    }
+
+    /**
+     * Same as {@link #category(String)} but sets the {@code scheme} attribute so machine-
+     * readable category terms (like the raw enum name) can be distinguished from the
+     * primary human-readable category by feed readers and scripts.
+     */
+    private static SyndCategory schemedCategory(String name, String scheme) {
+        var c = new SyndCategoryImpl();
+        c.setName(name);
+        c.setTaxonomyUri(scheme);
         return c;
     }
 

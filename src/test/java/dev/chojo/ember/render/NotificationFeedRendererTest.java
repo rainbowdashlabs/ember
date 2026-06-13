@@ -127,7 +127,7 @@ class NotificationFeedRendererTest {
                 NotificationType.EVENT_REGISTRATION_STATUS,
                 new NotificationParams.EventRegistrationStatus("Probe", RegistrationStatus.ACCEPTED, ""));
         var entry = renderer.render(n, richCtx());
-        var html = entry.getDescription().getValue();
+        var html = entry.getContents().get(0).getValue();
         // The mock returns "\u2713 ACCEPTED" — make sure that lands in the body.
         assertTrue(html.contains("\u2713 ACCEPTED"), "Body should embed status from service helper");
     }
@@ -151,19 +151,19 @@ class NotificationFeedRendererTest {
     }
 
     @Test
-    void carriesBothHtmlAndPlainTextContent() {
+    void carriesShortSummaryAndRichHtmlContent() {
         var n = notification(3, NotificationType.NEW_EVENT, new NotificationParams.NewEvent("Probe", "Konzert"));
         var entry = renderer.render(n, richCtx());
-        // Description is the rich HTML body
-        assertEquals("text/html", entry.getDescription().getType());
-        assertTrue(entry.getDescription().getValue().contains("<dl"));
-        assertTrue(entry.getDescription().getValue().contains("<dt"));
-        // Plain-text fallback lives in contents
-        var plain = entry.getContents().stream()
-                .filter(c -> "text/plain".equals(c.getType()))
+        // Atom <summary> carries the short headline so readers' inbox rows stay readable.
+        assertEquals("text/plain", entry.getDescription().getType());
+        assertEquals("MESSAGE", entry.getDescription().getValue());
+        // Atom <content type="html"> carries the rich body for the expanded view.
+        var html = entry.getContents().stream()
+                .filter(c -> "text/html".equals(c.getType()))
                 .findFirst()
                 .orElseThrow();
-        assertEquals("PLAINBODY", plain.getValue());
+        assertTrue(html.getValue().contains("<dl"));
+        assertTrue(html.getValue().contains("<dt"));
     }
 
     @Test
@@ -194,7 +194,7 @@ class NotificationFeedRendererTest {
                 new NotificationParams.LostAndFoundNew("Blaue Jacke"),
                 new NotificationData.NotificationLink("lost-and-found", Map.of("id", 17)));
         var entry = renderer.render(n, richCtx());
-        var html = entry.getDescription().getValue();
+        var html = entry.getContents().get(0).getValue();
         assertTrue(html.contains("/api/v1/public/feed/TOKEN/lost-and-found/17/image"));
         assertTrue(html.contains("alt=\"Blaue Jacke\""));
         // MediaRSS thumbnail also wired so readers like Thunderbird get a preview thumbnail.
@@ -217,7 +217,7 @@ class NotificationFeedRendererTest {
         var noImages =
                 new NotificationFeedRenderer.RenderContext("de", "https://ember.example.com", "TOKEN", true, false);
         var entry = renderer.render(n, noImages);
-        assertFalse(entry.getDescription().getValue().contains("<img"));
+        assertFalse(entry.getContents().get(0).getValue().contains("<img"));
         assertTrue(entry.getModules() == null
                 || entry.getModules().stream().noneMatch(MediaEntryModuleImpl.class::isInstance));
     }
@@ -231,7 +231,7 @@ class NotificationFeedRendererTest {
         var compact =
                 new NotificationFeedRenderer.RenderContext("de", "https://ember.example.com", "TOKEN", false, true);
         var entry = renderer.render(n, compact);
-        var html = entry.getDescription().getValue();
+        var html = entry.getContents().get(0).getValue();
         assertTrue(html.contains("MESSAGE"));
         assertFalse(html.contains("<dl"));
     }
@@ -243,7 +243,7 @@ class NotificationFeedRendererTest {
                 NotificationType.EVENT_REGISTRATION_STATUS,
                 new NotificationParams.EventRegistrationStatus("Probe", RegistrationStatus.ACCEPTED, "Konzert"));
         var entry = renderer.render(n, richCtx());
-        var html = entry.getDescription().getValue();
+        var html = entry.getContents().get(0).getValue();
         assertTrue(html.contains("\u2713 ACCEPTED"), "Description should contain check-mark + ACCEPTED");
         assertTrue(html.contains("Probe"));
     }
@@ -286,7 +286,7 @@ class NotificationFeedRendererTest {
                 new NotificationParams.NewEvent("Probe", "Konzertprobe"),
                 new NotificationData.NotificationLink("event-detail", java.util.Map.of("id", 42)));
         var entry = renderer.render(n, richCtx());
-        var html = entry.getDescription().getValue();
+        var html = entry.getContents().get(0).getValue();
         // Custom field with a value is rendered; empty field is skipped.
         assertTrue(html.contains("Treffpunkt"), "Field name should be rendered");
         assertTrue(html.contains("Marktplatz"), "Field value should be rendered");
@@ -310,7 +310,7 @@ class NotificationFeedRendererTest {
                 NotificationType.LOST_AND_FOUND_NEW,
                 new NotificationParams.LostAndFoundNew("Blaue Jacke"),
                 new NotificationData.NotificationLink("lost-and-found", Map.of("id", 17)));
-        var html = renderer.render(n, richCtx()).getDescription().getValue();
+        var html = renderer.render(n, richCtx()).getContents().get(0).getValue();
         assertTrue(html.contains("Found on"), "Find date label should be present: " + html);
         // Date rendered in some locale-appropriate form; just assert the year is present.
         assertTrue(html.contains("2026"), "Find date year should land in body: " + html);
@@ -327,7 +327,7 @@ class NotificationFeedRendererTest {
                 NotificationType.LOST_AND_FOUND_CLAIMED,
                 new NotificationParams.LostAndFoundClaimed("Frieda", "Blaue Jacke"),
                 new NotificationData.NotificationLink("lost-and-found", Map.of("id", 17)));
-        var html = renderer.render(n, richCtx()).getDescription().getValue();
+        var html = renderer.render(n, richCtx()).getContents().get(0).getValue();
         assertTrue(html.contains("Found on"), "Original find date should still be present");
         assertTrue(html.contains("Claimed on"), "Claim date label should be present");
     }
@@ -351,7 +351,7 @@ class NotificationFeedRendererTest {
                 NotificationType.LENDING_NEW_REQUEST,
                 new NotificationParams.LendingNewRequest("FF Musterstadt-Süd", "2 Handfunkgeräte"),
                 new NotificationData.NotificationLink("lending-request", Map.of("id", 42)));
-        var html = renderer.render(n, richCtx()).getDescription().getValue();
+        var html = renderer.render(n, richCtx()).getContents().get(0).getValue();
         assertTrue(html.contains("Needed"), "Needed label should be present");
         // Range marker (en-dash) collapses from/to into one fact.
         assertTrue(html.contains("\u2013"), "Range should be merged with en-dash: " + html);
@@ -365,7 +365,7 @@ class NotificationFeedRendererTest {
                 NotificationType.LENDING_NEW_REQUEST,
                 new NotificationParams.LendingNewRequest("Some Station", "Radios"),
                 new NotificationData.NotificationLink("lending-request"));
-        var html = renderer.render(n, richCtx()).getDescription().getValue();
+        var html = renderer.render(n, richCtx()).getContents().get(0).getValue();
         assertFalse(html.contains("Needed"));
         assertTrue(html.contains("Some Station"));
     }
@@ -401,7 +401,7 @@ class NotificationFeedRendererTest {
                 NotificationType.STORAGE_WARNING,
                 new NotificationParams.StorageWarning(91, "9.1 GiB", "10 GiB"),
                 new NotificationData.NotificationLink("station-settings", Map.of("stationId", 7)));
-        var html = renderer.render(n, richCtx()).getDescription().getValue();
+        var html = renderer.render(n, richCtx()).getContents().get(0).getValue();
         assertTrue(html.contains("Largest categories"), "Header should be present: " + html);
         // Bullet marker for each category line.
         assertTrue(html.contains("\u2022"), "Bullet marker should be present");
@@ -428,7 +428,7 @@ class NotificationFeedRendererTest {
                 NotificationType.PROCUREMENT_REQUESTED,
                 new NotificationParams.ProcurementRequested("Schlauch 25m"),
                 new NotificationData.NotificationLink("inventory-procurement", Map.of("id", 99)));
-        var html = renderer.render(n, richCtx()).getDescription().getValue();
+        var html = renderer.render(n, richCtx()).getContents().get(0).getValue();
         assertTrue(html.contains("Type"), "Type row should be present: " + html);
         // Renderer falls back to enum name when resolveLocalized mock echoes the key — that's
         // INTERNAL in this test setup. In production the bundle has the localised label.
@@ -450,7 +450,7 @@ class NotificationFeedRendererTest {
                 NotificationType.PROCEDURE_ASSIGNED,
                 new NotificationParams.ProcedureAssigned("Quarterly truck check", "Alice"),
                 new NotificationData.NotificationLink("procedures", Map.of("id", 80)));
-        var html = renderer.render(n, richCtx()).getDescription().getValue();
+        var html = renderer.render(n, richCtx()).getContents().get(0).getValue();
         assertTrue(html.contains("Progress"), "Progress row label should be present: " + html);
         // Mock echoes the bundle key "progressFormat" after substituting {checked} and {total}.
         // The substituted values are what test asserts on.
@@ -466,7 +466,7 @@ class NotificationFeedRendererTest {
                 NotificationType.PROCEDURE_RESOLVED,
                 new NotificationParams.ProcedureResolvedParams("Empty procedure"),
                 new NotificationData.NotificationLink("procedures", Map.of("id", 81)));
-        var html = renderer.render(n, richCtx()).getDescription().getValue();
+        var html = renderer.render(n, richCtx()).getContents().get(0).getValue();
         assertFalse(html.contains("Progress"));
     }
 
@@ -505,7 +505,7 @@ class NotificationFeedRendererTest {
                 new NotificationParams.BoardTicketUpdate("Vorstand", "VOR-42", "moved to Done"),
                 new NotificationData.NotificationLink(
                         "ticket-detail", Map.of("boardKey", "DEV", "ticketNumber", 42, "ticketId", 123)));
-        var html = renderer.render(n, richCtx()).getDescription().getValue();
+        var html = renderer.render(n, richCtx()).getContents().get(0).getValue();
         assertTrue(html.contains("Order new helmets"), "Ticket title should land in body: " + html);
         assertTrue(html.contains("Alice Müller"), "Assignee name should be present");
         assertTrue(html.contains("HIGH"), "Priority should be present (mock echoes enum name)");
@@ -518,7 +518,7 @@ class NotificationFeedRendererTest {
                 NotificationType.PROCUREMENT_FULFILLED,
                 new NotificationParams.ProcurementFulfilled("Schlauch 25m"),
                 new NotificationData.NotificationLink("inventory-procurement"));
-        var html = renderer.render(n, richCtx()).getDescription().getValue();
+        var html = renderer.render(n, richCtx()).getContents().get(0).getValue();
         assertFalse(html.contains("Type"));
         assertTrue(html.contains("Schlauch 25m"));
     }
@@ -530,7 +530,7 @@ class NotificationFeedRendererTest {
                 NotificationType.STORAGE_WARNING,
                 new NotificationParams.StorageWarning(91, "9.1 GiB", "10 GiB"),
                 new NotificationData.NotificationLink("station-settings"));
-        var html = renderer.render(n, richCtx()).getDescription().getValue();
+        var html = renderer.render(n, richCtx()).getContents().get(0).getValue();
         assertFalse(html.contains("Largest categories"));
         // Base usage row still renders.
         assertTrue(html.contains("91%"));
@@ -571,7 +571,7 @@ class NotificationFeedRendererTest {
                 NotificationType.LOST_AND_FOUND_NEW,
                 new NotificationParams.LostAndFoundNew("<script>alert(1)</script>"));
         var entry = renderer.render(n, richCtx());
-        var html = entry.getDescription().getValue();
+        var html = entry.getContents().get(0).getValue();
         assertFalse(html.contains("<script>"));
         assertTrue(html.contains("&lt;script&gt;"));
     }
