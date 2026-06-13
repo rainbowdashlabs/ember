@@ -14,6 +14,8 @@ import dev.chojo.ember.feature.notifications.service.NotificationService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.Map;
+
 @Singleton
 public class ProcurementFulfilledHandler implements DomainEventHandler<ProcurementFulfilled> {
     private final NotificationService notificationService;
@@ -35,6 +37,9 @@ public class ProcurementFulfilledHandler implements DomainEventHandler<Procureme
                 NotificationType.PROCUREMENT_FULFILLED,
                 NotificationData.of(
                         new NotificationParams.ProcurementFulfilled(event.inventoryName()),
-                        new NotificationData.NotificationLink("dashboard-overview")));
+                        // Land on the procurement page with the inventory id so the feed renderer
+                        // can enrich with the inventory's type / flow.
+                        new NotificationData.NotificationLink(
+                                "inventory-procurement", Map.of("id", event.inventoryId()))));
     }
 }

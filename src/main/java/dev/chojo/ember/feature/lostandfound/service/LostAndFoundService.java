@@ -17,6 +17,7 @@ import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -89,9 +90,11 @@ public class LostAndFoundService {
         notificationService.notifyStation(
                 stationId,
                 NotificationType.LOST_AND_FOUND_NEW,
+                // Carry the item id in the link so the feed renderer can fetch the find date,
+                // and the token-scoped image URL has something to point at.
                 NotificationData.of(
                         new NotificationParams.LostAndFoundNew(description != null ? description : ""),
-                        new NotificationLink("lost-and-found")),
+                        new NotificationLink("lost-and-found", Map.of("id", item.id()))),
                 createdBy);
         return item;
     }
@@ -117,7 +120,9 @@ public class LostAndFoundService {
                     NotificationType.LOST_AND_FOUND_CLAIMED,
                     NotificationData.of(
                             new NotificationParams.LostAndFoundClaimed(claimerName, desc),
-                            new NotificationLink("lost-and-found")),
+                            // Carry the item id so the feed renderer can fetch claim date /
+                            // original find date for the body, mirroring the create() flow.
+                            new NotificationLink("lost-and-found", Map.of("id", id))),
                     claimedBy);
             // Remove "new lost item" notifications for this item
             notificationService.deleteByTypeContaining(

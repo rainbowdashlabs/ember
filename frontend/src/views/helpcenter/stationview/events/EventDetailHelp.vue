@@ -62,12 +62,12 @@ const {t} = useI18n()
             <p class="text-sm">Wettkampf</p>
           </div>
           <div>
-            <DetailLabel>{{ t('events.date') }}</DetailLabel>
-            <p class="text-sm">25.05.2026</p>
+            <DetailLabel>{{ t('events.startTime') }}</DetailLabel>
+            <p class="text-sm">Montag, 25.05.2026, 14:00</p>
           </div>
           <div>
-            <DetailLabel>{{ t('events.startTime') }} – {{ t('events.endTime') }}</DetailLabel>
-            <p class="text-sm">14:00 – 17:00</p>
+            <DetailLabel>{{ t('events.endTime') }}</DetailLabel>
+            <p class="text-sm">Montag, 25.05.2026, 17:00</p>
           </div>
         </div>
       </NeutralContainer>

@@ -17,6 +17,8 @@ import dev.chojo.ember.feature.notifications.service.NotificationService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.Map;
+
 @Singleton
 public class ExchangeStatusChangedHandler implements DomainEventHandler<ExchangeStatusChanged> {
     private final NotificationService notificationService;
@@ -38,7 +40,9 @@ public class ExchangeStatusChangedHandler implements DomainEventHandler<Exchange
     public void handle(ExchangeStatusChanged event) {
         var data = NotificationData.of(
                 new NotificationParams.ExchangeStatusChange(event.newStatus(), event.inventoryName(), null),
-                new NotificationData.NotificationLink("inventory-exchanges"));
+                // Inventory id rides with the link so the feed renderer can surface the
+                // inventory's ownership flow in the body without a separate lookup table.
+                new NotificationData.NotificationLink("inventory-exchanges", Map.of("id", event.inventoryId())));
         notificationService.notify(event.memberId(), NotificationType.EXCHANGE_STATUS_CHANGE, data);
         var invMgmtIds =
                 stationMemberRepository

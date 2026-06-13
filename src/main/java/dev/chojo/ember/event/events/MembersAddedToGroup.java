@@ -9,4 +9,9 @@ import dev.chojo.ember.event.DomainEvent;
 
 import java.util.List;
 
-public record MembersAddedToGroup(int stationId, String groupName, List<Integer> memberIds) implements DomainEvent {}
+/**
+ * @param addedByMemberId the actor who added the members; resolved to a display name in the
+ *                        notification handler so the feed entry reads "added by …".
+ */
+public record MembersAddedToGroup(int stationId, String groupName, List<Integer> memberIds, Integer addedByMemberId)
+        implements DomainEvent {}

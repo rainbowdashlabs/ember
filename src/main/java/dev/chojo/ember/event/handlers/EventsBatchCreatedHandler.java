@@ -51,11 +51,20 @@ public class EventsBatchCreatedHandler implements DomainEventHandler<EventsBatch
             preview.append(", …");
         }
 
+        // Earliest start time across the batch — surfaces "starting 15 Sep" in the title so
+        // members see when the first occurrence falls without expanding.
+        java.time.LocalDate firstEventDate = events.stream()
+                .map(dev.chojo.ember.feature.events.entity.StationEvent::startTime)
+                .filter(java.util.Objects::nonNull)
+                .min(java.time.Instant::compareTo)
+                .map(instant -> instant.atZone(java.time.ZoneId.systemDefault()).toLocalDate())
+                .orElse(null);
+
         notificationService.notifyStation(
                 event.stationId(),
                 NotificationType.NEW_EVENTS_BATCH,
                 NotificationData.of(
-                        new NotificationParams.NewEventsBatch(events.size(), preview.toString()),
+                        new NotificationParams.NewEventsBatch(events.size(), preview.toString(), firstEventDate),
                         new NotificationData.NotificationLink("events-upcoming", Map.of())));
     }
 }

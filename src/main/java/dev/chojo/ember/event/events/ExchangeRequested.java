@@ -8,5 +8,11 @@ package dev.chojo.ember.event.events;
 import dev.chojo.ember.event.DomainEvent;
 
 public record ExchangeRequested(
-        int stationId, int exchangeId, int memberId, String memberName, String inventoryName, String reason)
+        int stationId,
+        int exchangeId,
+        int memberId,
+        String memberName,
+        int inventoryId,
+        String inventoryName,
+        String reason)
         implements DomainEvent {}

@@ -14,6 +14,8 @@ import dev.chojo.ember.feature.notifications.service.NotificationService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.Map;
+
 @Singleton
 public class ProcedureResolvedHandler implements DomainEventHandler<ProcedureResolved> {
     private final NotificationService notificationService;
@@ -32,7 +34,8 @@ public class ProcedureResolvedHandler implements DomainEventHandler<ProcedureRes
     public void handle(ProcedureResolved event) {
         var data = NotificationData.of(
                 new NotificationParams.ProcedureResolvedParams(event.procedureName()),
-                new NotificationData.NotificationLink("procedures"));
+                // procedureId rides on the link so the feed renderer can surface progress.
+                new NotificationData.NotificationLink("procedures", Map.of("id", event.procedureId())));
         notificationService.notifyMembersIfAbsent(
                 event.assigneeMemberIds(), NotificationType.PROCEDURE_RESOLVED, data, event.resolvedByMemberId());
     }

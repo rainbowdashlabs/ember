@@ -133,7 +133,7 @@ class NotificationDataTest {
                 NotificationType.EXCHANGE_NEW_REQUEST, new NotificationParams.ExchangeNewRequest("m", "i", "r"),
                 NotificationType.EXCHANGE_STATUS_CHANGE,
                         new NotificationParams.ExchangeStatusChange(ExchangeStatus.SHIPPED, "i", "r"),
-                NotificationType.MEMBER_ADDED_TO_GROUP, new NotificationParams.MemberAddedToGroup("g"),
+                NotificationType.MEMBER_ADDED_TO_GROUP, new NotificationParams.MemberAddedToGroup("g", null),
                 NotificationType.PROFILE_FIELD_CHANGED, new NotificationParams.ProfileFieldChanged("m", "f"),
                 NotificationType.PROCUREMENT_REQUESTED, new NotificationParams.ProcurementRequested("i"),
                 NotificationType.PROCUREMENT_FULFILLED, new NotificationParams.ProcurementFulfilled("i"));

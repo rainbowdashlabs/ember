@@ -126,15 +126,11 @@ public class IcalEventRenderer {
         }
 
         // Registration required + deadline expired + nobody (owner or managed) registered
-        if (event.requiresRegistration()
-                && event.registrationDeadline() != null
-                && event.registrationDeadline().isBefore(Instant.now())
-                && !ctx.ownerRegisteredEvents().contains(event.id())
-                && !anyManagedActive) {
-            return false;
-        }
-
-        return true;
+        return !event.requiresRegistration()
+                || event.registrationDeadline() == null
+                || !event.registrationDeadline().isBefore(Instant.now())
+                || ctx.ownerRegisteredEvents().contains(event.id())
+                || anyManagedActive;
     }
 
     /**
@@ -263,7 +259,7 @@ public class IcalEventRenderer {
                         notificationService.resolveLocalized(ctx.locale(), "ical", "label.accepted", null);
                 String limit = event.registrationLimit() != null
                         ? event.registrationLimit().toString()
-                        : "\u221E";
+                        : "∞";
                 sb.append(acceptedLabel)
                         .append(": ")
                         .append(acceptedCount)
@@ -328,10 +324,10 @@ public class IcalEventRenderer {
     private static String withSymbol(String label, RegistrationStatus status) {
         if (status == null) return label;
         return switch (status) {
-            case ACCEPTED -> "\u2713 " + label;
-            case DENIED, DECLINED -> "\u2717 " + label;
-            case PENDING -> "\u2026 " + label;
-            case WITHDRAWN -> "\u21B6 " + label;
+            case ACCEPTED -> "✓ " + label;
+            case DENIED, DECLINED -> "✗ " + label;
+            case PENDING -> "… " + label;
+            case WITHDRAWN -> "↶ " + label;
         };
     }
 

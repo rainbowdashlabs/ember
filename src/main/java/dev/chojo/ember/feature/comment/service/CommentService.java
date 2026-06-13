@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -67,7 +68,7 @@ public class CommentService {
      * returns only whole-event comments (event_date IS NULL); a non-null date returns
      * comments stamped with exactly that occurrence.
      */
-    public List<Comment> findByEventAndDate(int eventId, java.time.LocalDate eventDate) {
+    public List<Comment> findByEventAndDate(int eventId, LocalDate eventDate) {
         return commentRepository.findByEventAndDate(eventId, eventDate);
     }
 
@@ -101,7 +102,7 @@ public class CommentService {
             String authorName,
             String content,
             String entityTitle,
-            java.time.LocalDate eventDate) {
+            LocalDate eventDate) {
         var comment = commentRepository.create(eventId, parentId, author, content, eventDate);
 
         // Resolve author to local member ID (null if federated / not on this station)
@@ -130,6 +131,7 @@ public class CommentService {
 
         // Parse @mentions and publish events (skip for federated comments without a local author)
         if (authorMemberId != null) {
+            String mentionPreview = content.length() > 100 ? content.substring(0, 100) + "\u2026" : content;
             var mentionedIds = parseMentions(stationId, content);
             for (int mentionedId : mentionedIds) {
                 if (mentionedId != authorMemberId) {
@@ -140,11 +142,19 @@ public class CommentService {
                             authorName,
                             CommentEntityType.EVENT,
                             eventId,
-                            entityTitle));
+                            entityTitle,
+                            mentionPreview));
                 }
             }
             parseBulkMentions(
-                    stationId, authorMemberId, authorName, CommentEntityType.EVENT, eventId, entityTitle, content);
+                    stationId,
+                    authorMemberId,
+                    authorName,
+                    CommentEntityType.EVENT,
+                    eventId,
+                    entityTitle,
+                    content,
+                    mentionPreview);
         }
 
         return comment;
@@ -197,13 +207,14 @@ public class CommentService {
             CommentEntityType entityType,
             int entityId,
             String entityTitle,
-            String content) {
+            String content,
+            String preview) {
         var matcher = BULK_MENTION_PATTERN.matcher(content);
         while (matcher.find()) {
             var type = MentionType.valueOf(matcher.group(1));
             int targetId = Integer.parseInt(matcher.group(3));
             eventBus.publish(new BulkMentionedInComment(
-                    stationId, authorMemberId, authorName, entityType, entityId, entityTitle, type, targetId));
+                    stationId, authorMemberId, authorName, entityType, entityId, entityTitle, type, targetId, preview));
         }
     }
 

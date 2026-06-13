@@ -160,7 +160,7 @@ class NotificationRepositoryTest extends RepositoryTestBase {
                     dev.chojo.ember.feature.notifications.entity.NotificationType.MEMBER_ADDED_TO_GROUP,
                     dev.chojo.ember.feature.notifications.entity.NotificationData.of(
                             new dev.chojo.ember.feature.notifications.entity.NotificationParams.MemberAddedToGroup(
-                                    "Alpha")));
+                                    "Alpha", null)));
             var stamp = notificationRepo.findMaxStamp(freshMember.id());
             assertEquals(n.id(), stamp.maxId());
             assertTrue(stamp.maxCreatedAt().isAfter(java.time.Instant.EPOCH));

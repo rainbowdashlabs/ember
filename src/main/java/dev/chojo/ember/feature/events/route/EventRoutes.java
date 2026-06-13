@@ -1853,10 +1853,10 @@ public class EventRoutes implements Routes {
         }
         // Older peers will omit eventDate entirely; Jackson maps that to null. New peers
         // include an ISO date for date-scoped comments on recurring events.
-        java.time.LocalDate eventDate = null;
+        LocalDate eventDate = null;
         if (req.eventDate() != null && !req.eventDate().isBlank()) {
             try {
-                eventDate = java.time.LocalDate.parse(req.eventDate());
+                eventDate = LocalDate.parse(req.eventDate());
             } catch (Exception e) {
                 throw new BadRequestResponse("eventDate must be ISO yyyy-MM-dd");
             }
@@ -1935,14 +1935,6 @@ public class EventRoutes implements Routes {
         if (req.content() == null || req.content().isBlank()) {
             throw new BadRequestResponse("content is required");
         }
-        java.time.LocalDate eventDate = null;
-        if (req.eventDate() != null && !req.eventDate().isBlank()) {
-            try {
-                eventDate = java.time.LocalDate.parse(req.eventDate());
-            } catch (Exception e) {
-                throw new BadRequestResponse("eventDate must be ISO yyyy-MM-dd");
-            }
-        }
         var result = eventFederationService.createFederatedComment(
                 session.stationId(),
                 partnerUid,
@@ -1951,7 +1943,7 @@ public class EventRoutes implements Routes {
                 session.account().fullName().trim(),
                 req.parentId(),
                 req.content(),
-                eventDate);
+                req.eventDate());
         switch (result) {
             case EventFederationService.FederatedCommentResult.SingleResult r ->
                 ctx.status(HttpStatus.CREATED).json(r.comment());

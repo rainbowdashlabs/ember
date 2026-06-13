@@ -72,7 +72,7 @@ class MemberGroupServiceTest extends RepositoryTestBase {
     @Test
     @Order(10)
     void addMember() {
-        service.setMembers(groupId, List.of(member.id()));
+        service.setMembers(groupId, List.of(member.id()), null);
         var members = service.findMembers(groupId);
         assertTrue(members.stream().anyMatch(m -> m.id() == member.id()));
     }
@@ -87,7 +87,7 @@ class MemberGroupServiceTest extends RepositoryTestBase {
     @Test
     @Order(12)
     void setMembers() {
-        service.setMembers(groupId, List.of(member.id()));
+        service.setMembers(groupId, List.of(member.id()), null);
         var members = service.findMembers(groupId);
         assertEquals(1, members.size());
     }
@@ -125,7 +125,7 @@ class MemberGroupServiceTest extends RepositoryTestBase {
     void convertToTag() {
         // Create a fresh group with the member in it
         var group2 = service.create(station.id(), "ToBeTag");
-        service.setMembers(group2.id(), List.of(member.id()));
+        service.setMembers(group2.id(), List.of(member.id()), null);
 
         service.convertToTag(group2.id());
 

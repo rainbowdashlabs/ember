@@ -15,6 +15,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
+import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import HelpCenterHint from '@/components/help/HelpCenterHint.vue'
@@ -146,9 +147,7 @@ onMounted(loadToken)
               <div class="flex items-center gap-2">
                 <font-awesome-icon :icon="['fas', 'rss']" class="text-primary"/>
                 <FieldLabel>{{ t('userSettings.feedAtom') }}</FieldLabel>
-                <span class="rounded-full bg-primary text-white text-xs font-semibold px-2 py-0.5">
-                  {{ t('userSettings.feedAtomRecommended') }}
-                </span>
+                <PrimaryBadge>{{ t('userSettings.feedAtomRecommended') }}</PrimaryBadge>
               </div>
               <HelpCenterHint :to="{name: 'help-profile-rss-feed'}">
                 {{ t('userSettings.feedHelp') }}

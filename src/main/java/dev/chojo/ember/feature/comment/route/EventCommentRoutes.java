@@ -33,6 +33,8 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
 
 /**
  * HTTP route definitions for event comments.
@@ -92,12 +94,12 @@ public class EventCommentRoutes implements Routes {
         // Default behaviour stays "everything for the event" so existing callers don't
         // change shape. Date-scoped reads opt in via either ?date=YYYY-MM-DD (most common
         // for occurrence deep-links) or ?scope=date&date=none (whole-event-only).
-        java.util.List<Comment> comments;
+        List<Comment> comments;
         if (dateParam != null || "date".equals(scope)) {
-            java.time.LocalDate eventDate = null;
+            LocalDate eventDate = null;
             if (dateParam != null && !dateParam.isBlank() && !"none".equalsIgnoreCase(dateParam)) {
                 try {
-                    eventDate = java.time.LocalDate.parse(dateParam);
+                    eventDate = LocalDate.parse(dateParam);
                 } catch (Exception e) {
                     throw new BadRequestResponse("date must be ISO yyyy-MM-dd or 'none'");
                 }
@@ -128,14 +130,6 @@ public class EventCommentRoutes implements Routes {
                 session.stationId(), session.member().id());
         String eventName =
                 eventService.findById(eventId).map(StationEvent::name).orElse("");
-        java.time.LocalDate eventDate = null;
-        if (request.eventDate() != null && !request.eventDate().isBlank()) {
-            try {
-                eventDate = java.time.LocalDate.parse(request.eventDate());
-            } catch (Exception e) {
-                throw new BadRequestResponse("eventDate must be ISO yyyy-MM-dd");
-            }
-        }
         var comment = commentService.create(
                 session.stationId(),
                 eventId,
@@ -144,7 +138,7 @@ public class EventCommentRoutes implements Routes {
                 session.account().fullName().trim(),
                 request.content(),
                 eventName,
-                eventDate);
+                request.eventDate());
         ctx.status(HttpStatus.CREATED).json(toResponse(comment));
     }
 
@@ -206,10 +200,17 @@ public class EventCommentRoutes implements Routes {
     }
 
     private CommentResponse toResponse(Comment comment) {
-        String eventDate = comment.eventDate() != null ? comment.eventDate().toString() : null;
         if (comment.deleted()) {
             return new CommentResponse(
-                    comment.id(), comment.parentId(), null, null, "", true, comment.createdAt(), null, eventDate);
+                    comment.id(),
+                    comment.parentId(),
+                    null,
+                    null,
+                    "",
+                    true,
+                    comment.createdAt(),
+                    null,
+                    comment.eventDate());
         }
 
         var resolved = memberNameResolver.resolveDisplay(comment.author());
@@ -223,13 +224,16 @@ public class EventCommentRoutes implements Routes {
                 false,
                 comment.createdAt(),
                 comment.updatedAt(),
-                eventDate);
+                comment.eventDate());
     }
 
     /**
      * Request body for creating a comment.
+     *
+     * @param eventDate Occurrence date (ISO {@code yyyy-MM-dd}) for date-scoped comments on
+     *                  recurring events; {@code null} for whole-event comments.
      */
-    public record CreateCommentRequest(Integer parentId, String content, String eventDate) {}
+    public record CreateCommentRequest(Integer parentId, String content, LocalDate eventDate) {}
 
     /**
      * Request body for updating a comment.
@@ -238,6 +242,9 @@ public class EventCommentRoutes implements Routes {
 
     /**
      * API response representing a comment with resolved author information.
+     *
+     * @param eventDate Occurrence date for date-scoped comments on recurring events; {@code null}
+     *                  for whole-event comments. Serialised as ISO {@code yyyy-MM-dd}.
      */
     @OpenApiName("EventCommentResponse")
     public record CommentResponse(
@@ -249,6 +256,5 @@ public class EventCommentRoutes implements Routes {
             boolean deleted,
             Instant createdAt,
             Instant updatedAt,
-            /** Occurrence date (ISO yyyy-MM-dd) for date-scoped comments on recurring events; {@code null} otherwise. */
-            String eventDate) {}
+            LocalDate eventDate) {}
 }

@@ -95,6 +95,22 @@ function formatDate(iso?: string): string {
   if (!iso) return ''
   return new Date(iso).toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric'})
 }
+
+/**
+ * Detail-view route. Recurring events need an occurrence date so the detail view lands on a
+ * specific instance. From this admin list we don't have a particular occurrence in mind, so we
+ * fall back to today (the detail view will jump to the next matching occurrence if today doesn't
+ * fit the recurrence pattern).
+ */
+function detailRoute(ev: StationEvent) {
+  if (isRecurringEvent(ev.eventType)) {
+    const d = new Date()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const today = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    return {name: 'event-detail-date', params: {id: ev.id, date: today}}
+  }
+  return {name: 'event-detail', params: {id: ev.id}}
+}
 </script>
 
 <template>
@@ -123,7 +139,7 @@ function formatDate(iso?: string): string {
       <SubHeader v-else class="text-sm font-semibold uppercase text-(--text-muted) pt-2">{{ t('events.uncategorized') }}</SubHeader>
 
       <NeutralContainer v-for="ev in visibleEvents(group)" :key="ev.id" class="flex items-center justify-between cursor-pointer hover:bg-(--bg-accent) transition-colors"
-                        @click="router.push({ name: 'event-detail', params: { id: ev.id } })">
+                        @click="router.push(detailRoute(ev))">
         <div class="flex items-center gap-2 flex-wrap">
           <SecondaryBadge v-if="isRecurringEvent(ev.eventType)">
             <font-awesome-icon :icon="['fas', 'rotate']" class="mr-1 h-3 w-3"/>

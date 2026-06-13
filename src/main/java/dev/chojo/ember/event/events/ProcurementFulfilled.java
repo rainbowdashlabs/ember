@@ -7,4 +7,5 @@ package dev.chojo.ember.event.events;
 
 import dev.chojo.ember.event.DomainEvent;
 
-public record ProcurementFulfilled(int stationId, int memberId, String inventoryName) implements DomainEvent {}
+public record ProcurementFulfilled(int stationId, int memberId, int inventoryId, String inventoryName)
+        implements DomainEvent {}

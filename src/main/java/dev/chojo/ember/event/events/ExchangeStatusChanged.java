@@ -9,5 +9,11 @@ import dev.chojo.ember.event.DomainEvent;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 
 public record ExchangeStatusChanged(
-        int stationId, int exchangeId, int memberId, String memberName, String inventoryName, ExchangeStatus newStatus)
+        int stationId,
+        int exchangeId,
+        int memberId,
+        String memberName,
+        int inventoryId,
+        String inventoryName,
+        ExchangeStatus newStatus)
         implements DomainEvent {}

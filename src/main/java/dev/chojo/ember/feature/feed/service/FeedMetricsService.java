@@ -37,14 +37,13 @@ public class FeedMetricsService {
     private final FeedMetricsRepository repository;
     private final Metrics metrics;
     private final ExecutorService writer;
-    private final ScheduledExecutorService scheduler;
 
     @Inject
     public FeedMetricsService(FeedMetricsRepository repository, Metrics metrics) {
         this.repository = repository;
         this.metrics = metrics;
         this.writer = Executors.newSingleThreadExecutor(daemon("feed-metrics-writer"));
-        this.scheduler = Executors.newSingleThreadScheduledExecutor(daemon("feed-metrics-prune"));
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(daemon("feed-metrics-prune"));
         // Bound as an eager singleton so the prune schedule kicks in at boot. First sweep
         // runs after 1h so a long-running deployment trims yesterday's tail every day.
         scheduler.scheduleAtFixedRate(this::prune, 1, 24, TimeUnit.HOURS);

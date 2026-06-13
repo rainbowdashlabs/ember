@@ -1084,7 +1084,14 @@ public class KnowledgeBaseService {
                 stationMemberService.resolveId(stationId, memberUid).ifPresent(mentionedId -> {
                     if (mentionedId != authorId) {
                         eventBus.publish(new MentionedInComment(
-                                stationId, mentionedId, authorId, authorName, CommentEntityType.KB, fileId, fileTitle));
+                                stationId,
+                                mentionedId,
+                                authorId,
+                                authorName,
+                                CommentEntityType.KB,
+                                fileId,
+                                fileTitle,
+                                preview));
                     }
                 });
             } catch (IllegalArgumentException ignored) {
@@ -1095,7 +1102,14 @@ public class KnowledgeBaseService {
             int mentionedId = Integer.parseInt(legacyMatcher.group(1));
             if (mentionedId != authorId) {
                 eventBus.publish(new MentionedInComment(
-                        stationId, mentionedId, authorId, authorName, CommentEntityType.KB, fileId, fileTitle));
+                        stationId,
+                        mentionedId,
+                        authorId,
+                        authorName,
+                        CommentEntityType.KB,
+                        fileId,
+                        fileTitle,
+                        preview));
             }
         }
         var bulkMatcher = BULK_MENTION_PATTERN.matcher(content);
@@ -1103,7 +1117,7 @@ public class KnowledgeBaseService {
             var type = MentionType.valueOf(bulkMatcher.group(1));
             int targetId = Integer.parseInt(bulkMatcher.group(3));
             eventBus.publish(new BulkMentionedInComment(
-                    stationId, authorId, authorName, CommentEntityType.KB, fileId, fileTitle, type, targetId));
+                    stationId, authorId, authorName, CommentEntityType.KB, fileId, fileTitle, type, targetId, preview));
         }
 
         return comment;

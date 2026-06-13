@@ -83,7 +83,7 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
                 };
 
         var data = NotificationData.of(
-                new NotificationParams.CommentMention(event.entityTitle(), event.authorName()), link);
+                new NotificationParams.CommentMention(event.entityTitle(), event.authorName(), event.preview()), link);
 
         for (int memberId : memberIds) {
             if (event.authorMemberId() == null || memberId != event.authorMemberId()) {

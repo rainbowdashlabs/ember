@@ -1327,6 +1327,11 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/stationview/events/EventDetailHelp.vue')
                 },
                 {
+                    path: 'events/:id/:date',
+                    name: 'help-event-detail-date',
+                    component: () => import('@/views/helpcenter/stationview/events/EventDetailDateHelp.vue')
+                },
+                {
                     path: 'events/categories',
                     name: 'help-event-categories',
                     component: () => import('@/views/helpcenter/stationview/events/CategoriesHelp.vue')

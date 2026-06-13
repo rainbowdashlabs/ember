@@ -79,7 +79,7 @@ for (const file of vueFiles) {
         for (let i = 0; i < templateLines.length; i++) {
             const line = templateLines[i]
             if (/<span\b[^>]*\brounded-full\b[^>]*\bpx-/.test(line) || /<span\b[^>]*\bpx-[^>]*\brounded-full\b/.test(line)) {
-                error(CAT_RAW_ELEMENTS, file, templateStartLine + i, `<span> with rounded-full + padding — use a Badge component (PrimaryBadge, SuccessBadge, etc.) instead.`)
+                error(file, templateStartLine + i, `<span> with rounded-full + padding — use a Badge component (PrimaryBadge, SuccessBadge, etc.) instead.`, CAT_RAW_ELEMENTS)
             }
         }
     }
@@ -123,7 +123,7 @@ for (const file of vueFiles) {
     for (let i = 0; i < scriptLines.length; i++) {
         const line = scriptLines[i]
         if (/ref<\{[^}]+\}/.test(line) && !line.includes('Record<')) {
-            warn('Inline type', file, i + 1, `Inline object type in ref<> — use a named interface/type instead.`)
+            warn(file, i + 1, `Inline object type in ref<> — use a named interface/type instead.`, 'Inline type')
         }
     }
 }

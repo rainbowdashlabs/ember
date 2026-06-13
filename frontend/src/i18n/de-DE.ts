@@ -1313,6 +1313,8 @@ volumes:
             iosText: 'Installiere einen RSS-Reader wie „NetNewsWire" (kostenlos), „Reeder" oder „Unread". Öffne die App, tippe auf Feed hinzufügen und füge die URL ein. NetNewsWire unterstützt auch iCloud-Sync zwischen Geräten.',
             webTitle: 'Web-basierte Reader',
             webText: 'Dienste wie Feedly, Inoreader oder The Old Reader funktionieren im Browser und auf allen Geräten. Melde dich bei einem Dienst an, klicke auf „Feed hinzufügen" und füge deine Feed-URL ein.',
+            richEntriesTitle: 'Was steht in einem Feed-Eintrag?',
+            richEntriesText: 'Jeder Eintrag hat einen sprechenden Titel (z. B. „Neuigkeit: Übungsplan Q3" oder „Anmeldung ✓ Angenommen: Offenes Training"), eine semantische Definitionsliste mit allen relevanten Details, eine eingebettete Vorschau bei Fundsachen und einen großen „Im Browser öffnen"-Button. Termin-Benachrichtigungen zeigen Beginn, Ende, Treffpunkt und alle gesetzten Feld-Werte. Lager-, Tausch- und Beschaffungs-Hinweise tragen Inventartyp; Tickets zeigen Titel, Zuständig und Priorität; Prozeduren zeigen den Fortschritt (z. B. „5 von 12 Punkten"). Wiederkehrende Termine zeigen das konkrete Datum der jeweiligen Wiederholung.',
             tip: 'Wenn du den Feed-Token neu generierst, werden alle alten URLs ungültig. Du musst sie dann in deinen Apps aktualisieren.',
         },
         icalFeed: {
@@ -2103,8 +2105,8 @@ volumes:
             notesText: 'Verwalter können interne Notizen zum Termin hinterlegen. Diese sind nur für Verwalter sichtbar.',
             federationTitle: 'Anmeldungen anderer Wachen',
             federationText: 'Wenn der Termin für Partnerwachen freigegeben ist, siehst du auch Anmeldungen von Mitgliedern anderer Wachen.',
-            nextOccurrenceTitle: 'Nächster Termin',
-            nextOccurrenceText: 'Bei wiederkehrenden Terminen siehst du, wann der nächste Termin stattfindet und wer abwesend gemeldet ist.',
+            nextOccurrenceTitle: 'Datum-bezogene Ansicht',
+            nextOccurrenceText: 'Die Detailansicht ist immer an ein konkretes Datum gebunden. Bei wiederkehrenden Terminen wird das Datum entweder aus der URL übernommen (etwa wenn du aus einer Erinnerung kommst) oder fällt auf den nächsten Termin zurück. Beginn und Ende zeigen genau diesen Tag — kein separater „Nächster Termin"-Kasten mehr nötig. Abwesenheiten beziehen sich auf dasselbe Datum.',
             tip: 'Melde dich rechtzeitig an oder sag rechtzeitig ab, damit die Planung stimmt.',
         },
         categories: {
@@ -4227,6 +4229,11 @@ volumes:
         pendingCount: 'ausstehend',
         declinedCount: 'abgesagt',
         loadMore: 'Weitere laden',
+        viewList: 'Liste',
+        viewCalendar: 'Kalender',
+        calendarPrev: 'Vorheriger Monat',
+        calendarNext: 'Nächster Monat',
+        calendarToday: 'Heute',
     },
     federatedEventDetail: {
         partnerEvent: 'Partnerwache',

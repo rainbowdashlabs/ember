@@ -49,6 +49,8 @@ public class DueDateReminderChecker {
                         ticket.stationId,
                         ticket.boardId,
                         ticket.ticketId,
+                        ticket.boardKey,
+                        ticket.ticketNumber,
                         ticket.boardName,
                         ticket.ticketKey,
                         "Fällig: " + ticket.dueDate,
@@ -67,6 +69,8 @@ public class DueDateReminderChecker {
             int stationId,
             int boardId,
             int ticketId,
+            String boardKey,
+            int ticketNumber,
             String boardName,
             String ticketKey,
             String dueDate,
@@ -75,6 +79,7 @@ public class DueDateReminderChecker {
     private List<OverdueTicket> findOverdueTickets() {
         return query("""
                         SELECT b.station_id, b.id AS board_id, t.id AS ticket_id,
+                               b.short_key AS board_key, t.ticket_number AS ticket_number,
                                b.name AS board_name, b.short_key || '-' || t.ticket_number AS ticket_key,
                                t.due_date::text AS due_date, sm.id AS assigned_member_id
                         FROM board_ticket t
@@ -94,6 +99,8 @@ public class DueDateReminderChecker {
                         row.getInt("station_id"),
                         row.getInt("board_id"),
                         row.getInt("ticket_id"),
+                        row.getString("board_key"),
+                        row.getInt("ticket_number"),
                         row.getString("board_name"),
                         row.getString("ticket_key"),
                         row.getString("due_date"),

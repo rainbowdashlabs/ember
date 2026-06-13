@@ -57,7 +57,10 @@ public class NotificationService {
             Map.entry("members-detail", "/station/members/detail/{id}"),
             Map.entry("dashboard-overview", "/station/dashboard/overview"),
             Map.entry("lost-and-found", "/station/lost-and-found"),
-            Map.entry("lending-request", "/station/inventory/lending/{id}"));
+            Map.entry("lending-request", "/station/inventory/lending/{id}"),
+            // Board ticket routes use the board short key + per-board ticket number, not the
+            // numeric primary keys. Handlers must pass {boardKey} and {ticketNumber} accordingly.
+            Map.entry("ticket-detail", "/station/boards/{boardKey}/tickets/{ticketNumber}"));
     private final NotificationRepository notificationRepository;
     private final StationMemberRepository stationMemberRepository;
     private final UserSettingsRepository userSettingsRepository;
@@ -330,7 +333,7 @@ public class NotificationService {
             // Group by memberId, preserving order
             Map<Integer, List<Notification>> byMember = new LinkedHashMap<>();
             for (var n : unemailed) {
-                byMember.computeIfAbsent(n.memberId(), k -> new ArrayList<>()).add(n);
+                byMember.computeIfAbsent(n.memberId(), _ -> new ArrayList<>()).add(n);
             }
 
             List<Integer> emailedIds = new ArrayList<>();
@@ -494,6 +497,117 @@ public class NotificationService {
     }
 
     /**
+     * Truncates a snippet to {@code maxChars} on a word boundary, appending a Unicode ellipsis
+     * when truncation occurs. Multi-byte characters count as one code-unit (Java string length).
+     * Returns {@code null} for null input and the original string when shorter than the limit.
+     *
+     * <p>Centralised here so all feed-bound text (titles, body previews, descriptions, change
+     * descriptions) shares the same cap and reader inboxes stay scannable.
+     */
+    public static String truncateSnippet(String text, int maxChars) {
+        if (text == null) return null;
+        if (maxChars <= 0 || text.length() <= maxChars) return text;
+        String head = text.substring(0, maxChars);
+        int lastSpace = head.lastIndexOf(' ');
+        if (lastSpace > 0) {
+            head = head.substring(0, lastSpace);
+        }
+        return head + "…";
+    }
+
+    /** Default cap for entity-identifier fragments embedded in feed titles. */
+    public static final int TITLE_FRAGMENT_MAX = 80;
+
+    /** Default cap for free-form body snippets (previews, descriptions). */
+    public static final int BODY_SNIPPET_MAX = 500;
+
+    /**
+     * Returns the localised status name + Unicode marker for a status-bearing notification. Marker
+     * choice is independent of locale so colour-blind / monochrome readers always have an iconic cue.
+     * Falls back to the raw enum name when no translation is configured.
+     */
+    public String resolveStatusWithSymbol(String locale, String statusName) {
+        if (statusName == null) return null;
+        var labels = LOCALIZER.get("notifications", locale, "ical");
+        String label = labels.getOrDefault("status." + statusName, statusName);
+        String symbol = statusSymbol(statusName);
+        return symbol.isEmpty() ? label : symbol + " " + label;
+    }
+
+    /**
+     * Iconic marker for known status values, shared across registration / exchange / lending
+     * flows. Empty string for statuses without a natural marker so callers can render the label
+     * alone.
+     */
+    private static String statusSymbol(String statusName) {
+        return switch (statusName) {
+            case "ACCEPTED", "APPROVED", "EXCHANGED", "RECEIVED", "RETURNED" -> "✓";
+            case "DENIED", "DECLINED", "REJECTED", "CANCELLED" -> "✗";
+            case "PENDING", "REQUESTED", "ANNOUNCED" -> "…";
+            case "WITHDRAWN" -> "↶";
+            default -> "";
+        };
+    }
+
+    /**
+     * Resolves a rich, scannable feed-entry title: {@code "{Category}: {entity identifier}"} or
+     * a per-type template carrying status, count, etc. Plural-routing uses the same
+     * {@code .one}/{@code .other} convention as {@link #resolveMessage}. Falls back to the bare
+     * category when no template is configured or no fragment can be interpolated, so we never
+     * render an empty title like "News: ".
+     *
+     * <p>All string params are truncated to {@link #TITLE_FRAGMENT_MAX} so a 5KB news title
+     * doesn't blow past the reader's inbox row width.
+     */
+    public String resolveFeedTitle(String locale, Notification n) {
+        var templates = LOCALIZER.get("notifications", locale, "feedTitle");
+        String typeKey = n.type().name();
+        var params = new LinkedHashMap<>(n.data().paramsAsMap());
+        augmentTitleParams(locale, n, params);
+
+        Integer count = extractCountParam(params);
+        String template = null;
+        if (count != null) {
+            String pluralKey = typeKey + (count == 1 ? ".one" : ".other");
+            template = templates.get(pluralKey);
+        }
+        if (template == null) template = templates.get(typeKey);
+        if (template == null) return resolveCategory(locale, n.type());
+
+        // Truncate values defensively — a 5KB description shouldn't fill the inbox row.
+        for (var entry : params.entrySet()) {
+            entry.setValue(truncateSnippet(entry.getValue(), TITLE_FRAGMENT_MAX));
+        }
+        String result = template;
+        for (var entry : params.entrySet()) {
+            if (entry.getValue() == null) continue;
+            result = result.replace("{" + entry.getKey() + "}", entry.getValue());
+        }
+        // Strip any leftover {placeholder} from missing params, then collapse whitespace.
+        result = result.replaceAll("\\{[^}]+\\}", "").replaceAll("\\s+", " ").trim();
+        // Trim dangling separators left over after a missing param was stripped.
+        result = result.replaceAll("[\\s\\-—:,]+$", "").trim();
+        if (result.isBlank()) return resolveCategory(locale, n.type());
+        return result;
+    }
+
+    /**
+     * Injects synthetic params used by feed-title templates: status-with-symbol for status-bearing
+     * types, etc. Anything that requires a locale or symbol mapping lives here so the template
+     * itself stays a simple placeholder string.
+     */
+    private void augmentTitleParams(String locale, Notification n, Map<String, String> params) {
+        var orig = n.data().params();
+        if (orig instanceof NotificationParams.EventRegistrationStatus p) {
+            params.put("statusLabel", resolveStatusWithSymbol(locale, p.status().name()));
+        } else if (orig instanceof NotificationParams.ExchangeStatusChange p) {
+            params.put("statusLabel", resolveStatusWithSymbol(locale, p.status().name()));
+        } else if (orig instanceof NotificationParams.LendingStatusChange p) {
+            params.put("statusLabel", resolveStatusWithSymbol(locale, p.status().name()));
+        }
+    }
+
+    /**
      * Resolves the localized message body for a notification, substituting any {param} placeholders.
      * Falls back to joining the params with em-dashes (or to the locale key) when no template exists.
      */
@@ -547,7 +661,7 @@ public class NotificationService {
     }
 
     /** Param keys that drive pluralisation in {@link #resolveMessage}. */
-    private static final java.util.List<String> COUNT_PARAMS = java.util.List.of("count", "daysBefore", "pendingCount");
+    private static final List<String> COUNT_PARAMS = List.of("count", "daysBefore", "pendingCount");
 
     /**
      * Returns a short detail string (e.g. news preview, denial reason) when the notification type carries one.
@@ -608,7 +722,8 @@ public class NotificationService {
             }
             case EVENT_REMINDER -> {
                 if (params instanceof NotificationParams.EventReminder p) {
-                    if (notBlank(p.eventDate())) lines.add(feedKv(locale, "eventDate", p.eventDate()));
+                    if (p.eventDate() != null)
+                        lines.add(feedKv(locale, "eventDate", p.eventDate().toString()));
                     lines.add(feedKv(locale, "daysBefore", String.valueOf(p.daysBefore())));
                 }
             }

@@ -83,6 +83,8 @@ public class BoardTicketService {
                 board.stationId(),
                 boardId,
                 ticketId,
+                board.shortKey(),
+                ticket.ticketNumber(),
                 board.name(),
                 ticketKey,
                 changeDescription,
@@ -187,6 +189,8 @@ public class BoardTicketService {
                         board != null ? board.stationId() : 0,
                         oldTicket.boardId(),
                         ticketId,
+                        board != null ? board.shortKey() : "",
+                        oldTicket.ticketNumber(),
                         board != null ? board.name() : "",
                         ticketKey,
                         "Du wurdest von " + ticketKey + " abgemeldet",
@@ -204,6 +208,8 @@ public class BoardTicketService {
                                 board != null ? board.stationId() : 0,
                                 oldTicket.boardId(),
                                 ticketId,
+                                board != null ? board.shortKey() : "",
+                                oldTicket.ticketNumber(),
                                 board != null ? board.name() : "",
                                 ticketKey,
                                 "Du wurdest " + ticketKey + " zugewiesen",
@@ -364,6 +370,7 @@ public class BoardTicketService {
                         .resolveId(stationId, author.memberUid())
                         .orElse(null);
             }
+            String mentionPreview = content.length() > 100 ? content.substring(0, 100) + "\u2026" : content;
             for (int mentionedId : parseMentions(stationId, content)) {
                 if (authorMemberId == null || mentionedId != authorMemberId) {
                     eventBus.publish(new MentionedInComment(
@@ -373,7 +380,8 @@ public class BoardTicketService {
                             ticketKey,
                             CommentEntityType.BOARD_TICKET,
                             ticketId,
-                            ticketKey));
+                            ticketKey,
+                            mentionPreview));
                 }
             }
         }

@@ -179,7 +179,8 @@ class CommentServiceTest extends RepositoryTestBase {
                             String authorName,
                             CommentEntityType entityType,
                             int entityId,
-                            String entityTitle))) return false;
+                            String entityTitle,
+                            String preview))) return false;
             return stationId == station.id()
                     && mentionedMemberId == member2.id()
                     && authorMemberId == member1.id()

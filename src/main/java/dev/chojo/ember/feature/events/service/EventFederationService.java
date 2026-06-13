@@ -439,10 +439,17 @@ public class EventFederationService {
      * Converts a comment to an enriched response with federated author information.
      */
     public EventCommentRoutes.CommentResponse toCommentResponse(Comment comment) {
-        String eventDate = comment.eventDate() != null ? comment.eventDate().toString() : null;
         if (comment.deleted()) {
             return new EventCommentRoutes.CommentResponse(
-                    comment.id(), comment.parentId(), null, null, "", true, comment.createdAt(), null, eventDate);
+                    comment.id(),
+                    comment.parentId(),
+                    null,
+                    null,
+                    "",
+                    true,
+                    comment.createdAt(),
+                    null,
+                    comment.eventDate());
         }
         var resolved = memberNameResolver.resolveDisplay(comment.author());
         String displayName = resolved.name() != null ? resolved.name() : "";
@@ -455,7 +462,7 @@ public class EventFederationService {
                 false,
                 comment.createdAt(),
                 comment.updatedAt(),
-                eventDate);
+                comment.eventDate());
     }
 
     /**
@@ -477,7 +484,7 @@ public class EventFederationService {
             String displayName,
             Integer parentId,
             String content,
-            java.time.LocalDate eventDate) {
+            LocalDate eventDate) {
         var author = new MemberIdentity(partner.partnerStationId(), remoteMemberUid);
         var comment = commentRepository.create(eventId, parentId, author, content, eventDate);
         federationRepository.cacheName(partner.id(), remoteMemberUid, displayName);
@@ -542,7 +549,7 @@ public class EventFederationService {
             String displayName,
             Integer parentId,
             String content,
-            java.time.LocalDate eventDate) {
+            LocalDate eventDate) {
         var partner = resolveActivePartner(stationId, partnerStationUid);
         var station = stationRepository.findById(stationId).orElseThrow();
         if (partner.isRemote()) {

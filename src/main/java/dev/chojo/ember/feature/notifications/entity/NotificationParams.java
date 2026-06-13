@@ -10,6 +10,8 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 
+import java.time.LocalDate;
+
 /**
  * Sealed interface for type-safe notification parameters.
  * Each notification type has a corresponding record with its specific fields.
@@ -21,7 +23,7 @@ public sealed interface NotificationParams {
 
     record NewsComment(String newsTitle, String author, String preview) implements NotificationParams {}
 
-    record CommentMention(String entityTitle, String author) implements NotificationParams {}
+    record CommentMention(String entityTitle, String author, String preview) implements NotificationParams {}
 
     record NewEvent(String title, String eventDescription) implements NotificationParams {}
 
@@ -29,7 +31,7 @@ public sealed interface NotificationParams {
      * Aggregated notification for bulk event creation. Carries the total count and a short
      * comma-separated preview of the first few event names so the feed body can summarise.
      */
-    record NewEventsBatch(int count, String eventPreview) implements NotificationParams {}
+    record NewEventsBatch(int count, String eventPreview, LocalDate firstEventDate) implements NotificationParams {}
 
     record EventRegistrationStatus(String eventName, RegistrationStatus status, String eventDescription)
             implements NotificationParams {}
@@ -39,7 +41,7 @@ public sealed interface NotificationParams {
     record ExchangeStatusChange(ExchangeStatus status, String inventoryName, String reason)
             implements NotificationParams {}
 
-    record MemberAddedToGroup(String groupName) implements NotificationParams {}
+    record MemberAddedToGroup(String groupName, String addedByName) implements NotificationParams {}
 
     record ProfileFieldChanged(String memberName, String fieldName) implements NotificationParams {}
 
@@ -68,7 +70,7 @@ public sealed interface NotificationParams {
 
     record EventCancelled(String eventName, String reason) implements NotificationParams {}
 
-    record EventReminder(String eventName, int daysBefore, String eventDate) implements NotificationParams {}
+    record EventReminder(String eventName, int daysBefore, LocalDate eventDate) implements NotificationParams {}
 
     record ProcedureAssigned(String procedureName, String assignedByName) implements NotificationParams {}
 

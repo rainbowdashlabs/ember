@@ -36,8 +36,10 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
@@ -484,7 +486,7 @@ public class DemoFederationSeeder {
                     // Recurring-event comments are scoped to a specific occurrence; pin the
                     // demo comment to the next upcoming occurrence so the date shows the
                     // feature in the UI.
-                    java.time.LocalDate nextOccurrence = nextOccurrenceOf(evUebung);
+                    LocalDate nextOccurrence = nextOccurrenceOf(evUebung);
                     commentService.create(
                             primaryStationId,
                             evUebung.id(),
@@ -619,15 +621,15 @@ public class DemoFederationSeeder {
      * fall back to the event's anchor start time so the demo data still gets a sensible
      * date attached to the comment.
      */
-    private static java.time.LocalDate nextOccurrenceOf(StationEvent event) {
-        var today = java.time.LocalDate.now();
+    private static LocalDate nextOccurrenceOf(StationEvent event) {
+        var today = LocalDate.now();
         if (event.eventType() == StationEvent.EventType.RECURRING && event.dayOfWeek() != null) {
-            java.time.DayOfWeek target = java.time.DayOfWeek.of(event.dayOfWeek());
+            DayOfWeek target = DayOfWeek.of(event.dayOfWeek());
             int delta = (target.getValue() - today.getDayOfWeek().getValue() + 7) % 7;
             return today.plusDays(delta == 0 ? 7 : delta);
         }
         return event.startTime() != null
-                ? event.startTime().atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                ? event.startTime().atZone(ZoneId.systemDefault()).toLocalDate()
                 : today;
     }
 }

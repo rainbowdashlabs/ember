@@ -152,7 +152,9 @@ onMounted(loadData)
       </InfoContainer>
       <NeutralContainer v-for="item in upcomingEvents" :key="`${item.event.id}-${item.date}`"
                         class="py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
-                        @click="router.push({ name: 'event-detail', params: { id: item.event.id } })">
+                        @click="router.push(isRecurringEvent(item.event.eventType)
+                          ? { name: 'event-detail-date', params: { id: item.event.id, date: item.date } }
+                          : { name: 'event-detail', params: { id: item.event.id } })">
         <div class="flex items-center justify-between gap-2">
           <div>
             <p class="text-sm font-medium">{{ item.event.name }}</p>

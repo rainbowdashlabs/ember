@@ -10,6 +10,7 @@ import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryContainer from '@/components/container/PrimaryContainer.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
@@ -20,8 +21,10 @@ import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import EventFilterBar from './upcomingview/EventFilterBar.vue'
-import type {EventCategory, EventField, StationEvent, StationMember} from '@/api/types'
-import {RegistrationStatus} from '@/api/types'
+import type {EventBreak, EventCategory, EventField, StationEvent, StationMember} from '@/api/types'
+import {isRecurringEvent, RegistrationStatus} from '@/api/types'
+import type {RouteLocationRaw} from 'vue-router'
+import EventsCalendar from './upcomingview/EventsCalendar.vue'
 import {events, managedMembers as managedMembersApi} from '@/api'
 import type {EventRegistrationEntry, RegistrationCount, UpcomingEventOccurrence} from '@/api/events'
 import FederatedEventsSection from './upcomingview/FederatedEventsSection.vue'
@@ -36,6 +39,29 @@ const {t} = useI18n()
 const router = useRouter()
 const {sessionInfo, loaded, isGuardian, canManageAttendance} = useSession()
 const {refresh: refreshSidebarCounts} = useSidebarCounts()
+
+// Calendar view rolls its own occurrences client-side from the full event list (one-time +
+// recurring templates), so it doesn't share the paginated `upcomingOccurrences` list. List
+// view stays paginated for snappy initial load on noisy stations.
+const VIEW_MODE_STORAGE_KEY = 'eventsUpcoming.viewMode'
+type ViewMode = 'list' | 'calendar'
+
+function loadInitialViewMode(): ViewMode {
+  if (typeof window === 'undefined') return 'list'
+  const stored = window.localStorage.getItem(VIEW_MODE_STORAGE_KEY)
+  return stored === 'calendar' ? 'calendar' : 'list'
+}
+
+const viewMode = ref<ViewMode>(loadInitialViewMode())
+// Persist the choice — next time the user opens the page they land in the same view.
+watch(viewMode, (mode) => {
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode)
+  }
+})
+
+const allEvents = ref<StationEvent[]>([])
+const eventBreaks = ref<EventBreak[]>([])
 
 const todayEvents = ref<StationEvent[]>([])
 const upcomingOccurrences = ref<UpcomingEventOccurrence[]>([])
@@ -115,6 +141,23 @@ function formatDeadline(iso: string): string {
   return `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}.${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`
 }
 
+function todayIsoDate(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+}
+
+/**
+ * Build the deep link for an event card. Recurring events must carry the occurrence date so the
+ * detail view lands on the correct instance (a weekly drill on the 12th vs the 19th). One-time
+ * events skip the date — they only have a single occurrence.
+ */
+function eventDetailRoute(ev: StationEvent, date: string): RouteLocationRaw {
+  if (isRecurringEvent(ev.eventType)) {
+    return {name: 'event-detail-date', params: {id: ev.id, date}}
+  }
+  return {name: 'event-detail', params: {id: ev.id}}
+}
+
 function buildUpcomingParams(offset = 0) {
   const params: { categoryId?: number; requiresRegistration?: boolean; limit: number; offset: number } = {
     limit: PAGE_SIZE, offset
@@ -128,7 +171,7 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [upcoming, today, regs, elig, counts, ovFields, cats] = await Promise.all([
+    const [upcoming, today, regs, elig, counts, ovFields, cats, allEv, brs] = await Promise.all([
       events.listUpcomingOccurrences(buildUpcomingParams()),
       events.listTodayEvents(),
       events.listMyRegistrations(),
@@ -136,6 +179,10 @@ async function loadData() {
       events.listRegistrationCounts(),
       events.getOverviewFields(),
       events.listCategories(),
+      // Calendar view needs the full event list (one-time + recurring templates) to compute
+      // occurrences for any visible month. Cheap-bounded fetch — events are per-station.
+      events.listEvents(),
+      events.listBreaks().catch(() => []),
     ])
     upcomingOccurrences.value = upcoming
     hasMore.value = upcoming.length >= PAGE_SIZE
@@ -145,6 +192,8 @@ async function loadData() {
     registrationCounts.value = counts
     overviewFields.value = ovFields
     categories.value = cats
+    allEvents.value = allEv
+    eventBreaks.value = brs
 
     if (isGuardian()) {
       const managed = await managedMembersApi.listManaged()
@@ -270,7 +319,20 @@ watch(loaded, (isLoaded) => {
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
-        <!-- Filters -->
+        <!-- View switcher: list (default, paginated, full registration controls) vs calendar
+             (month grid, always 7 days per row, fills with prev/next month dates). -->
+        <div class="flex justify-end gap-2">
+          <SelectionToggleButton :selected="viewMode === 'list'" @toggle="viewMode = 'list'">
+            <font-awesome-icon :icon="['fas', 'list']" class="mr-1"/>
+            {{ t('eventsUpcoming.viewList') }}
+          </SelectionToggleButton>
+          <SelectionToggleButton :selected="viewMode === 'calendar'" @toggle="viewMode = 'calendar'">
+            <font-awesome-icon :icon="['fas', 'calendar-days']" class="mr-1"/>
+            {{ t('eventsUpcoming.viewCalendar') }}
+          </SelectionToggleButton>
+        </div>
+
+        <!-- Filters (apply to both views) -->
         <EventFilterBar
             v-model:search="searchQuery"
             v-model:category-id="selectedCategoryId"
@@ -278,13 +340,26 @@ watch(loaded, (isLoaded) => {
             :categories="categories"
         />
 
+        <!-- Calendar view -->
+        <EventsCalendar
+            v-if="viewMode === 'calendar'"
+            :all-events="allEvents"
+            :event-breaks="eventBreaks"
+            :eligible-member-ids="eligibleMembers"
+            :current-member-id="currentMemberId"
+            :managed-member-ids="managedMembers.map(m => m.id)"
+            :selected-category-id="selectedCategoryId"
+            :search-query="searchQuery"
+        />
+
         <!-- Today -->
+        <template v-if="viewMode === 'list'">
         <div v-if="filteredTodayEvents.length > 0" class="space-y-3">
           <SectionHeader>{{ t('eventsUpcoming.today') }}</SectionHeader>
           <div class="grid gap-3 sm:grid-cols-2">
             <PrimaryContainer v-for="ev in filteredTodayEvents" :key="ev.id" class="space-y-2">
               <div class="flex items-center justify-between">
-                <router-link :to="{ name: 'event-detail', params: { id: ev.id } }" class="font-semibold text-primary hover:underline">{{ ev.name }}</router-link>
+                <router-link :to="eventDetailRoute(ev, todayIsoDate())" class="font-semibold text-primary hover:underline">{{ ev.name }}</router-link>
                 <MutedIcon v-if="ev.restricted" :icon="['fas', 'lock']" class="ml-1"/>
                 <span class="text-sm">{{ formatTime(ev.startTime) }} – {{ formatTime(ev.endTime) }}</span>
               </div>
@@ -317,7 +392,7 @@ watch(loaded, (isLoaded) => {
             <NeutralContainer v-for="item in filteredUpcoming" :key="`${item.event.id}-${item.date}`" class="space-y-2">
               <div class="flex items-center justify-between flex-wrap gap-2">
                 <div>
-                  <router-link :to="{ name: 'event-detail', params: { id: item.event.id } }" class="font-medium text-primary hover:underline">{{ item.event.name }}</router-link>
+                  <router-link :to="eventDetailRoute(item.event, item.date)" class="font-medium text-primary hover:underline">{{ item.event.name }}</router-link>
                   <MutedIcon v-if="item.event.restricted" :icon="['fas', 'lock']" class="ml-1"/>
                   <MutedText size="sm" class="ml-2">{{ dayLabel(item.date) }}, {{ item.date }}</MutedText>
                   <MutedText class="ml-2">{{ formatTime(item.event.startTime) }} – {{ formatTime(item.event.endTime) }}</MutedText>
@@ -353,6 +428,7 @@ watch(loaded, (isLoaded) => {
             </SecondaryButton>
           </div>
         </div>
+        </template>
       </template>
     </div>
   </ViewContent>

@@ -459,7 +459,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         service.notify(member1.id(), NotificationType.LOST_AND_FOUND_CLAIMED, lostFound);
 
         var memberGroup = NotificationData.of(
-                new NotificationParams.MemberAddedToGroup("Rescue Team"),
+                new NotificationParams.MemberAddedToGroup("Rescue Team", null),
                 new NotificationData.NotificationLink("dashboard-overview"));
         service.notify(member1.id(), NotificationType.MEMBER_ADDED_TO_GROUP, memberGroup);
 
@@ -522,7 +522,7 @@ class NotificationServiceTest extends RepositoryTestBase {
 
         // Create notification with unknown route
         var data = NotificationData.of(
-                new NotificationParams.MemberAddedToGroup("Alpha Team"),
+                new NotificationParams.MemberAddedToGroup("Alpha Team", null),
                 new NotificationData.NotificationLink("unknown-route"));
         svc.notify(member1.id(), NotificationType.MEMBER_ADDED_TO_GROUP, data);
 
@@ -630,7 +630,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         assertEquals("Preview", service.resolveDetail(notif));
 
         var none = NotificationData.of(
-                new NotificationParams.MemberAddedToGroup("Alpha"),
+                new NotificationParams.MemberAddedToGroup("Alpha", null),
                 new NotificationData.NotificationLink("dashboard-overview"));
         var noneNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
                 4, member1.id(), NotificationType.MEMBER_ADDED_TO_GROUP, none, java.time.Instant.now(), null);
@@ -652,7 +652,7 @@ class NotificationServiceTest extends RepositoryTestBase {
 
         // NEW_EVENTS_BATCH — count + preview as labeled line
         var batchData = NotificationData.of(
-                new NotificationParams.NewEventsBatch(3, "A, B, C"),
+                new NotificationParams.NewEventsBatch(3, "A, B, C", null),
                 new NotificationData.NotificationLink("dashboard-overview"));
         var batchNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
                 11, member1.id(), NotificationType.NEW_EVENTS_BATCH, batchData, java.time.Instant.now(), null);
@@ -697,11 +697,11 @@ class NotificationServiceTest extends RepositoryTestBase {
     void resolveNotificationUrlHandlesMissingLinkUnknownRouteAndKnownRoute() {
         // resolveNotificationUrl pre-dates the require-link guard. It still handles
         // legacy/malformed data that lacks a link — verify it short-circuits to null.
-        var noLink = new NotificationData(new NotificationParams.MemberAddedToGroup("Alpha"), null);
+        var noLink = new NotificationData(new NotificationParams.MemberAddedToGroup("Alpha", null), null);
         assertNull(service.resolveNotificationUrl("https://ember.example.com", noLink));
 
         var unknown = NotificationData.of(
-                new NotificationParams.MemberAddedToGroup("Alpha"),
+                new NotificationParams.MemberAddedToGroup("Alpha", null),
                 new NotificationData.NotificationLink("bogus-route"));
         assertEquals(
                 "https://ember.example.com/station/dashboard/overview",
@@ -792,7 +792,7 @@ class NotificationServiceTest extends RepositoryTestBase {
 
         // EVENT_REMINDER — labelled eventDate + daysBefore
         var er = NotificationData.of(
-                new NotificationParams.EventReminder("Probe", 3, "2026-08-01"),
+                new NotificationParams.EventReminder("Probe", 3, java.time.LocalDate.parse("2026-08-01")),
                 new NotificationData.NotificationLink("dashboard-overview"));
         var erNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
                 34, member1.id(), NotificationType.EVENT_REMINDER, er, java.time.Instant.now(), null);
@@ -857,10 +857,10 @@ class NotificationServiceTest extends RepositoryTestBase {
     @Order(108)
     void resolveMessagePicksPluralVariantBasedOnCount() {
         // newEventsBatch is the canonical pluralised type — the bundle defines .one and .other.
-        var one =
-                notificationWith(NotificationType.NEW_EVENTS_BATCH, new NotificationParams.NewEventsBatch(1, "A"), 50);
+        var one = notificationWith(
+                NotificationType.NEW_EVENTS_BATCH, new NotificationParams.NewEventsBatch(1, "A", null), 50);
         var many = notificationWith(
-                NotificationType.NEW_EVENTS_BATCH, new NotificationParams.NewEventsBatch(3, "A, B, C"), 51);
+                NotificationType.NEW_EVENTS_BATCH, new NotificationParams.NewEventsBatch(3, "A, B, C", null), 51);
         // EN
         var enOne = service.resolveMessage("en", one);
         var enMany = service.resolveMessage("en", many);
@@ -887,6 +887,111 @@ class NotificationServiceTest extends RepositoryTestBase {
         var data = NotificationData.of(params, new NotificationData.NotificationLink("dashboard-overview"));
         return new dev.chojo.ember.feature.notifications.entity.Notification(
                 id, member1.id(), type, data, java.time.Instant.now(), null);
+    }
+
+    @Test
+    @Order(108)
+    void truncateSnippetCutsAtWordBoundaryAndAppendsEllipsis() {
+        // Word-boundary cut: stays within budget, doesn't break mid-word.
+        var truncated =
+                NotificationService.truncateSnippet("The quick brown fox jumps over the lazy dog and runs further", 20);
+        assertTrue(truncated.endsWith("\u2026"), "Should append ellipsis when truncating: " + truncated);
+        assertTrue(truncated.length() <= 21, "Length should stay near cap: " + truncated);
+        assertFalse(truncated.contains("jumps"), "Should cut before the next word");
+
+        // Short string returned verbatim.
+        assertEquals("hi", NotificationService.truncateSnippet("hi", 100));
+        // Null passes through.
+        assertNull(NotificationService.truncateSnippet(null, 10));
+        // No space within budget — hard truncate.
+        var hard = NotificationService.truncateSnippet("aaaaaaaaaaaaaaaaaaaa", 5);
+        assertEquals("aaaaa\u2026", hard);
+    }
+
+    @Test
+    @Order(108)
+    void resolveFeedTitleEmbedsEntityIdentifierAndRoutesPlurals() {
+        // Static entity title — singular template.
+        var news = notificationWith(
+                NotificationType.NEW_NEWS, new NotificationParams.NewNews("Q3 schedule", "Alice", "preview"), 200);
+        var enTitle = service.resolveFeedTitle("en", news);
+        assertTrue(enTitle.startsWith("News:"), "Expected EN category prefix in: " + enTitle);
+        assertTrue(enTitle.contains("Q3 schedule"));
+        var deTitle = service.resolveFeedTitle("de", news);
+        assertTrue(deTitle.startsWith("Neuigkeit:"), "Expected DE category prefix in: " + deTitle);
+
+        // Plural routing: count == 1 → .one
+        var one = notificationWith(
+                NotificationType.NEW_EVENTS_BATCH, new NotificationParams.NewEventsBatch(1, "A", null), 201);
+        assertEquals("1 new event", service.resolveFeedTitle("en", one));
+        // Plural routing: count > 1 → .other
+        var many = notificationWith(
+                NotificationType.NEW_EVENTS_BATCH, new NotificationParams.NewEventsBatch(3, "A, B, C", null), 202);
+        assertEquals("3 new events", service.resolveFeedTitle("en", many));
+
+        // Status-bearing types interpolate the {statusLabel} synthetic param.
+        var reg = notificationWith(
+                NotificationType.EVENT_REGISTRATION_STATUS,
+                new NotificationParams.EventRegistrationStatus("Open Training", RegistrationStatus.ACCEPTED, "desc"),
+                203);
+        var regTitle = service.resolveFeedTitle("en", reg);
+        assertTrue(regTitle.contains("Accepted"), "Should contain localised status: " + regTitle);
+        assertTrue(regTitle.contains("\u2713"), "Should contain check-mark symbol: " + regTitle);
+        assertTrue(regTitle.contains("Open Training"));
+
+        // EVENT_REMINDER routes via daysBefore plural.
+        var tomorrow = notificationWith(
+                NotificationType.EVENT_REMINDER,
+                new NotificationParams.EventReminder("Probe", 1, java.time.LocalDate.parse("2026-09-15")),
+                204);
+        assertTrue(service.resolveFeedTitle("en", tomorrow).contains("tomorrow"));
+        var later = notificationWith(
+                NotificationType.EVENT_REMINDER,
+                new NotificationParams.EventReminder("Probe", 5, java.time.LocalDate.parse("2026-09-20")),
+                205);
+        assertTrue(service.resolveFeedTitle("en", later).contains("5 days"));
+    }
+
+    @Test
+    @Order(108)
+    void resolveFeedTitleFallsBackToCategoryWhenNoTemplateMatches() {
+        // Synthesize a notification with a type but inject a malformed/empty params shape so
+        // every placeholder strips out — the helper must fall back to the bare category rather
+        // than render a broken "News: " row.
+        var malformed = new dev.chojo.ember.feature.notifications.entity.Notification(
+                300,
+                member1.id(),
+                NotificationType.NEW_NEWS,
+                new NotificationData(new NotificationParams.NewNews(null, null, null), null),
+                java.time.Instant.now(),
+                null);
+        var title = service.resolveFeedTitle("en", malformed);
+        assertEquals("News", title, "Should fall back to bare category, not 'News: '");
+    }
+
+    @Test
+    @Order(108)
+    void resolveFeedTitleTruncatesOverlongFragments() {
+        // 200-char article title must shrink to ≤ 80-char fragment, ending in ellipsis.
+        String longTitle = "A".repeat(200);
+        var n = notificationWith(
+                NotificationType.NEW_NEWS, new NotificationParams.NewNews(longTitle, "Alice", "p"), 301);
+        var title = service.resolveFeedTitle("en", n);
+        assertTrue(
+                title.endsWith("\u2026") || title.length() < longTitle.length(), "Title should be truncated: " + title);
+        // Total title still reasonable.
+        assertTrue(title.length() < 120, "Title shouldn't blow past the cap: " + title);
+    }
+
+    @Test
+    @Order(108)
+    void resolveStatusWithSymbolUsesLocalisedLabelAndIcon() {
+        assertEquals("\u2713 Accepted", service.resolveStatusWithSymbol("en", "ACCEPTED"));
+        assertEquals("\u2713 Angenommen", service.resolveStatusWithSymbol("de", "ACCEPTED"));
+        // Unknown enum value: fall back to raw name with no symbol.
+        assertEquals("MYSTERY", service.resolveStatusWithSymbol("en", "MYSTERY"));
+        // Null guard.
+        assertNull(service.resolveStatusWithSymbol("en", null));
     }
 
     @Test
