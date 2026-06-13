@@ -117,7 +117,7 @@ const activeView = ref('')
               <Td><InfoBadge>{{ t('inventory.manage.type.INTERNAL') }}</InfoBadge></Td>
               <Td>42</Td>
               <Td>44</Td>
-              <Td><SuccessBadge>{{ t('exchanges.status.EXCHANGED') }}</SuccessBadge></Td>
+              <Td><SuccessBadge>{{ t('exchanges.status.DONE') }}</SuccessBadge></Td>
               <Td muted>Gewachsen</Td>
               <Td muted>01.04.2026</Td>
               <Td align="right">

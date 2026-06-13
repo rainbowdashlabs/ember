@@ -117,8 +117,6 @@ const ResizableImage = Image.extend({
 // --- Editor State ---
 
 const isUpdatingFromProp = ref(false)
-const showRawMarkdown = ref(false)
-const rawMarkdown = ref('')
 const isInTable = ref(false)
 const currentLinkUrl = ref('')
 const isOnLink = ref(false)
@@ -205,15 +203,10 @@ async function setEditorContent(md: string) {
 onMounted(async () => { await nextTick(); if (props.modelValue) await setEditorContent(props.modelValue) })
 
 watch(() => props.modelValue, async (md, oldMd) => {
-  if (!editor.value || md === oldMd || showRawMarkdown.value) return
+  if (!editor.value || md === oldMd) return
   const cur = turndown.turndown(editor.value.getHTML())
   if (cur !== md) await setEditorContent(md)
 })
-
-function toggleRawView() {
-  if (!showRawMarkdown.value) { rawMarkdown.value = props.modelValue || ''; showRawMarkdown.value = true }
-  else { showRawMarkdown.value = false; emit('update:modelValue', rawMarkdown.value); nextTick(() => setEditorContent(rawMarkdown.value)) }
-}
 
 onBeforeUnmount(() => { editor.value?.destroy() })
 
@@ -311,15 +304,13 @@ function applyVideo(url: string) {
   <div ref="editorContainer" class="markdown-editor rounded-lg border border-[var(--border)] bg-[var(--bg)] relative">
     <EditorToolbar
       :editor="editor"
-      :show-raw-markdown="showRawMarkdown"
       :file-id="fileId"
-      @toggle-raw="toggleRawView"
       @open-link="openLinkDialog"
       @open-image="openImageDialog"
       @open-video="openVideoDialog"
     />
 
-    <EditorTableBar v-if="isInTable && !showRawMarkdown" :editor="editor" />
+    <EditorTableBar v-if="isInTable" :editor="editor" />
 
     <EditorLinkDialog
       v-if="showLinkDialog"
@@ -349,7 +340,7 @@ function applyVideo(url: string) {
     />
 
     <EditorBubbleMenu
-      v-if="editor && !showRawMarkdown"
+      v-if="editor"
       :editor="editor"
       :is-on-link="isOnLink"
       :current-link-url="currentLinkUrl"
@@ -358,14 +349,7 @@ function applyVideo(url: string) {
       @remove-link="removeLink"
     />
 
-    <textarea
-      v-show="showRawMarkdown"
-      :value="rawMarkdown"
-      class="w-full p-4 min-h-[300px] font-mono text-sm bg-[var(--bg)] text-[var(--text)] outline-none resize-y"
-      @input="rawMarkdown = ($event.target as HTMLTextAreaElement).value"
-    />
-
-    <EditorContent v-show="!showRawMarkdown" :editor="editor" class="markdown-editor-content p-4 min-h-[300px] markdown-content focus:outline-none" />
+    <EditorContent :editor="editor" class="markdown-editor-content p-4 min-h-[300px] markdown-content focus:outline-none" />
   </div>
 </template>
 

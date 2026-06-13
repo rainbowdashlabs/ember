@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
@@ -726,7 +726,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         assertEquals("Preview", service.resolveDetail(ncNotif));
 
         var esc = NotificationData.of(
-                new NotificationParams.ExchangeStatusChange(ExchangeStatus.EXCHANGED, "Inv", "Reason"),
+                new NotificationParams.ExchangeStatusChange(ExchangeStatus.DONE, "Inv", "Reason"),
                 new NotificationData.NotificationLink("dashboard-overview"));
         var escNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
                 21, member1.id(), NotificationType.EXCHANGE_STATUS_CHANGE, esc, java.time.Instant.now(), null);
@@ -810,7 +810,7 @@ class NotificationServiceTest extends RepositoryTestBase {
 
         // EXCHANGE_STATUS_CHANGE — labelled reason
         var esc = NotificationData.of(
-                new NotificationParams.ExchangeStatusChange(ExchangeStatus.EXCHANGED, "Inv", "Approved"),
+                new NotificationParams.ExchangeStatusChange(ExchangeStatus.DONE, "Inv", "Approved"),
                 new NotificationData.NotificationLink("dashboard-overview"));
         var escNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
                 36, member1.id(), NotificationType.EXCHANGE_STATUS_CHANGE, esc, java.time.Instant.now(), null);

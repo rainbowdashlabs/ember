@@ -128,16 +128,15 @@ class ExchangeServiceTest extends RepositoryTestBase {
                 sizes.stream().filter(s -> "L".equals(s.label())).findFirst().orElseThrow();
         var newItem = inventoryRepo.createItem(inventoryId, "B-002", "Blouson L", sizeL.id(), "{}");
 
-        var updated =
-                service.updateStatus(exchangeId, ExchangeStatus.EXCHANGED, member.id(), "Completed", newItem.id());
+        var updated = service.updateStatus(exchangeId, ExchangeStatus.DONE, member.id(), "Completed", newItem.id());
         assertNotNull(updated);
-        assertEquals(ExchangeStatus.EXCHANGED, updated.status());
+        assertEquals(ExchangeStatus.DONE, updated.status());
     }
 
     @Test
     @Order(20)
     void cancel() {
-        // Create a new exchange for delete testing since the previous one was EXCHANGED
+        // Create a new exchange for delete testing since the previous one was DONE
         var sizes = inventoryRepo.findSizes(inventoryId);
         var sizeM =
                 sizes.stream().filter(s -> "M".equals(s.label())).findFirst().orElseThrow();

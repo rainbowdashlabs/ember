@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.api;
 
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -13,7 +13,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class RolesTest {
+class PermissionsTest {
 
     @Test
     void stationAdministratorIncludesLoginWhenExpanded() {

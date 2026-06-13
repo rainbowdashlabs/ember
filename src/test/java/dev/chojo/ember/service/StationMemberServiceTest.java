@@ -5,7 +5,8 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -185,11 +186,11 @@ class StationMemberServiceTest extends RepositoryTestBase {
     @Test
     @Order(24)
     void setUserType() {
-        assertTrue(service.setUserType(member1.id(), dev.chojo.ember.api.roles.StationUserType.TEAM));
+        assertTrue(service.setUserType(member1.id(), StationUserType.TEAM));
         var m = service.findById(member1.id()).orElseThrow();
-        assertEquals(dev.chojo.ember.api.roles.StationUserType.TEAM, m.userType());
+        assertEquals(StationUserType.TEAM, m.userType());
         // Reset
-        service.setUserType(member1.id(), dev.chojo.ember.api.roles.StationUserType.MEMBER);
+        service.setUserType(member1.id(), StationUserType.MEMBER);
     }
 
     @Test

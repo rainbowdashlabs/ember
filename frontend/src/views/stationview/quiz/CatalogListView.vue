@@ -19,6 +19,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
@@ -239,7 +240,7 @@ watch(loaded, (isLoaded) => {
 
       <!-- Search -->
       <div>
-        <TextInput
+        <SearchInput
           v-model="searchQuery"
           :placeholder="t('quiz.catalogs.search')"
         />

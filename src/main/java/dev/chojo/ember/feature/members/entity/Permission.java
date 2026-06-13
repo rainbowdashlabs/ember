@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.members.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 
 /**
  * A permission assignment linking a database permission ID to a {@link StationPermission} enum value.

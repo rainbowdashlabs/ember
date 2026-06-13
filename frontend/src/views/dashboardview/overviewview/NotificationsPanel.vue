@@ -11,6 +11,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import LinkButton from '@/components/button/LinkButton.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import {notifications} from '@/api'
@@ -60,7 +61,7 @@ const typeIcons: Record<string, string> = {
 
 function renderMessage(n: NotificationEntry): string {
   const params = {...n.params}
-  // Status fields arrive as raw enum names from the backend (PENDING, EXCHANGED, …);
+  // Status fields arrive as raw enum names from the backend (PENDING, DONE, …);
   // route each one through its locale namespace so the message reads in German.
   if (n.type === 'EVENT_REGISTRATION_STATUS' && params.status) {
     params.status = t(`dashboard.registrationStatus.${params.status}`)
@@ -134,9 +135,17 @@ onMounted(loadData)
         {{ t('dashboard.notifications') }}
         <span v-if="notifs.length > 0"> ({{ notifs.length }})</span>
       </SectionHeader>
-      <SecondaryButton :icon="['fas', 'check-double']" v-if="notifs.length > 0" class="text-sm" @click="ackAll">
-        {{ t('dashboard.acknowledgeAll') }}
-      </SecondaryButton>
+      <div class="flex items-center gap-1">
+        <SecondaryButton :icon="['fas', 'check-double']" v-if="notifs.length > 0" class="text-sm" @click="ackAll">
+          {{ t('dashboard.acknowledgeAll') }}
+        </SecondaryButton>
+        <IconButton
+            :icon="['fas', 'gear']"
+            :label="t('dashboard.notificationSettings')"
+            class="text-(--text-muted) hover:text-primary"
+            @click="router.push({ name: 'profile-notifications' })"
+        />
+      </div>
     </div>
 
     <div class="overflow-y-auto flex-1 space-y-2">

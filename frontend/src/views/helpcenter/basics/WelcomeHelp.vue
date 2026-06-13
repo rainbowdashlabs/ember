@@ -19,7 +19,7 @@ const faqLogo = emberLogoFaq()
 
 const sections = [
   {icon: ['fas', 'circle-info'], route: 'help-basics-overview', key: 'overview'},
-  {icon: ['fas', 'shield'], route: 'help-basics-roles', key: 'roles'},
+  {icon: ['fas', 'shield'], route: 'help-basics-permissions', key: 'permissions'},
   {icon: ['fas', 'puzzle-piece'], route: 'help-basics-modules', key: 'modules'},
   {icon: ['fas', 'server'], route: 'help-basics-hosting', key: 'hosting'},
   {icon: ['fas', 'arrow-right-arrow-left'], route: 'help-basics-federation', key: 'federation'},

@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.notifications.service;
 
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
@@ -545,7 +545,7 @@ public class NotificationService {
      */
     private static String statusSymbol(String statusName) {
         return switch (statusName) {
-            case "ACCEPTED", "APPROVED", "EXCHANGED", "RECEIVED", "RETURNED" -> "✓";
+            case "ACCEPTED", "APPROVED", "DONE", "RECEIVED", "RETURNED" -> "✓";
             case "DENIED", "DECLINED", "REJECTED", "CANCELLED" -> "✗";
             case "PENDING", "REQUESTED", "ANNOUNCED" -> "…";
             case "WITHDRAWN" -> "↶";
@@ -650,7 +650,7 @@ public class NotificationService {
     }
 
     /**
-     * Replaces a raw status enum name (e.g. {@code "ACCEPTED"}, {@code "EXCHANGED"},
+     * Replaces a raw status enum name (e.g. {@code "ACCEPTED"}, {@code "DONE"},
      * {@code "APPROVED"}) in the params with its localised label from the {@code ical.status.*}
      * bundle. Lets the message templates use a single {@code {status}} placeholder for all
      * status-bearing types (registration, exchange, lending) without each consumer having to

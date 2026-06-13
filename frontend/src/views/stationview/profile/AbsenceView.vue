@@ -220,14 +220,14 @@ watch(loaded, (isLoaded) => {
               :key="absence.id"
           >
             <div class="flex items-center justify-between flex-wrap gap-2">
-              <div>
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span v-if="absence.memberIdentity"
-                      class="text-sm font-semibold mr-2"><MemberName :identity="absence.memberIdentity"/></span>
+                      class="text-sm font-semibold"><MemberName :identity="absence.memberIdentity"/></span>
                 <span class="text-sm">{{ formatDate(absence.absentFrom) }} – {{
                     formatDate(absence.absentUntil)
                   }}</span>
-                <MutedText size="sm" class="ml-3" v-if="absence.reason">{{ absence.reason }}</MutedText>
-                <span v-if="absence.createdByName" class="ml-3 text-xs text-(--text-muted) italic">{{ t('common.createdBy', { name: absence.createdByName }) }}</span>
+                <MutedText size="sm" v-if="absence.reason">{{ absence.reason }}</MutedText>
+                <span v-if="absence.createdByName" class="text-xs text-(--text-muted) italic">{{ t('common.createdBy', { name: absence.createdByName }) }}</span>
               </div>
               <div class="flex items-center gap-2">
                 <SuccessBadge v-if="isAbsenceActive(absence)">{{ t('profile.absenceActive') }}</SuccessBadge>

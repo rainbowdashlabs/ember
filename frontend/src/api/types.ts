@@ -1349,7 +1349,7 @@ export const ExchangeStatus = {
     RECEIVED: 'RECEIVED',
     SHIPPED: 'SHIPPED',
     ARRIVED: 'ARRIVED',
-    EXCHANGED: 'EXCHANGED',
+    DONE: 'DONE',
 } as const
 
 export type ExchangeStatusName = (typeof ExchangeStatus)[keyof typeof ExchangeStatus]

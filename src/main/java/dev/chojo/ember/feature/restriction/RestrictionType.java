@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.restriction;
 
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 
 /**
  * Defines the restriction table, foreign key column, entity table, entity ID column,

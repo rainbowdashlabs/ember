@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feed;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.feed.FeedRateLimiter;
@@ -111,14 +112,7 @@ class UserFeedRoutesIntegrationTest {
         // Minimal fixture: real token, member, station for the rss/atom handlers to resolve.
         token = new FeedToken(MEMBER_ID, TOKEN_VALUE, Instant.EPOCH, null, null);
         member = new StationMember(
-                MEMBER_ID,
-                STATION_ID,
-                UUID.randomUUID(),
-                null,
-                false,
-                null,
-                "Test Member",
-                dev.chojo.ember.api.roles.StationUserType.MEMBER);
+                MEMBER_ID, STATION_ID, UUID.randomUUID(), null, false, null, "Test Member", StationUserType.MEMBER);
         station = new Station(
                 STATION_ID,
                 UUID.randomUUID(),

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.api;
 
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -27,6 +28,19 @@ public record MemberIdentity(
 
     public MemberIdentity withDisplay(String name, String stationName, String nameColor, DisplayTag displayTag) {
         return new MemberIdentity(stationUid, memberUid, name, stationName, nameColor, displayTag);
+    }
+
+    /**
+     * Returns {@code true} if this identity and {@code other} refer to the same member,
+     * comparing only the stable identity fields (stationUid + memberUid).
+     *
+     * <p>Use this for ownership checks instead of {@link #equals(Object)}, which also compares
+     * enrichment fields (name, color, tag) that may differ between a bare DB-loaded identity
+     * and an enriched session identity even when they point to the same person.
+     */
+    public boolean sameMember(MemberIdentity other) {
+        if (other == null) return false;
+        return Objects.equals(stationUid, other.stationUid) && Objects.equals(memberUid, other.memberUid);
     }
 
     public record DisplayTag(String name, String color) {}

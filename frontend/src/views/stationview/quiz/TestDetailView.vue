@@ -25,7 +25,7 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
 
 import { QuizTestStatus } from '@/api/types'
 import type { QuizTestDetail, QuizTestAttempt, QuizCatalog, MemberGroup, UserTag, QuizQuestion } from '@/api/types'
@@ -406,7 +406,7 @@ watch(loaded, (isLoaded) => { if (isLoaded && loading.value) loadData() })
         <Modal v-model="showPickModal">
           <div class="space-y-4">
             <SubHeader>{{ t('quiz.frozenQuestions.pickTitle') }}</SubHeader>
-            <TextInput v-model="pickSearch" :placeholder="t('quiz.frozenQuestions.searchPlaceholder')" />
+            <SearchInput v-model="pickSearch" :placeholder="t('quiz.frozenQuestions.searchPlaceholder')" />
             <div class="max-h-80 overflow-y-auto space-y-2">
               <div v-if="filteredAvailableQuestions.length === 0" class="text-center text-(--text-muted) py-4 text-sm">
                 {{ t('quiz.frozenQuestions.noAvailable') }}

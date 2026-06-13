@@ -52,7 +52,7 @@ const loading = ref(true)
 const error = ref('')
 
 const openExchanges = computed(() => exchangeList.value
-    .filter(e => e.status !== ExchangeStatus.EXCHANGED)
+    .filter(e => e.status !== ExchangeStatus.DONE)
     .slice()
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt)))
 
@@ -141,7 +141,7 @@ function inventoryTypeBadge(type?: string | null) {
 
 function exchangeStatusBadge(status: string) {
   switch (status) {
-    case ExchangeStatus.EXCHANGED: return SuccessBadge
+    case ExchangeStatus.DONE: return SuccessBadge
     case ExchangeStatus.ANNOUNCED: case ExchangeStatus.SHIPPED: return InfoBadge
     case ExchangeStatus.RECEIVED: case ExchangeStatus.ARRIVED: return SecondaryBadge
     default: return SecondaryBadge

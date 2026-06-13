@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import RolesHelp from '~/views/helpcenter/basics/RolesHelp'
+import PermissionsHelp from '~/views/helpcenter/basics/PermissionsHelp'
 
 definePageMeta({
   layout: 'helpcenter',
-  name: 'help-basics-roles',
+  name: 'help-basics-permissions',
 })
 </script>
 
 <template>
-  <RolesHelp />
+  <PermissionsHelp />
 </template>

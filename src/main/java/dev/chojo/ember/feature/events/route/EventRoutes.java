@@ -11,7 +11,7 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
@@ -325,6 +325,10 @@ public class EventRoutes implements Routes {
                         type = Boolean.class,
                         description = "Filter by registration requirement"),
                 @OpenApiParam(
+                        name = "search",
+                        type = String.class,
+                        description = "Free-text search over event name and description (case-insensitive)"),
+                @OpenApiParam(
                         name = "limit",
                         type = Integer.class,
                         description = "Max number of occurrences (default 10)"),
@@ -338,11 +342,12 @@ public class EventRoutes implements Routes {
         Integer categoryId = catParam != null ? Integer.valueOf(catParam) : null;
         String regParam = ctx.queryParam("requiresRegistration");
         Boolean requiresRegistration = regParam != null ? Boolean.valueOf(regParam) : null;
+        String search = ctx.queryParam("search");
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10);
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
         List<Integer> memberIds = resolveVisibleMemberIds(session);
         ctx.json(eventService.findUpcomingOccurrences(
-                session.stationId(), memberIds, categoryId, requiresRegistration, limit, offset));
+                session.stationId(), memberIds, categoryId, requiresRegistration, search, limit, offset));
     }
 
     @OpenApi(

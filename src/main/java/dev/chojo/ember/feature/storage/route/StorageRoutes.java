@@ -7,8 +7,8 @@ package dev.chojo.ember.feature.storage.route;
 
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.api.roles.InstancePermission;
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;

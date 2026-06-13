@@ -107,9 +107,18 @@ function dayLabel(dateStr: string): string {
   return dayNames[dow]
 }
 
-const filteredUpcoming = computed(() =>
-    upcomingOccurrences.value.filter(o => matchesTextSearch(o.event))
-)
+// For multi-day one-time events, returns the YYYY-MM-DD of the endTime if it differs from
+// the start date; otherwise null. Recurring events always end on the same day.
+function multiDayEndDate(event: StationEvent, startDateStr: string): string | null {
+  if (!event.endTime) return null
+  const endStr = new Date(event.endTime).toISOString().slice(0, 10)
+  return endStr !== startDateStr ? endStr : null
+}
+
+// Upcoming list is server-filtered (category + needs-action + search), so we render it as-is.
+// Today's list and the calendar still apply matchesTextSearch client-side since those endpoints
+// don't take a search param yet.
+const filteredUpcoming = computed(() => upcomingOccurrences.value)
 
 function getEligibleMembers(eventId: number): { id: number; name: string }[] {
   const eligible = eligibleMembers.value[eventId]
@@ -159,11 +168,12 @@ function eventDetailRoute(ev: StationEvent, date: string): RouteLocationRaw {
 }
 
 function buildUpcomingParams(offset = 0) {
-  const params: { categoryId?: number; requiresRegistration?: boolean; limit: number; offset: number } = {
+  const params: { categoryId?: number; requiresRegistration?: boolean; search?: string; limit: number; offset: number } = {
     limit: PAGE_SIZE, offset
   }
   if (selectedCategoryId.value) params.categoryId = Number(selectedCategoryId.value)
   if (showNeedsAction.value) params.requiresRegistration = true
+  if (searchQuery.value.trim()) params.search = searchQuery.value.trim()
   return params
 }
 
@@ -299,6 +309,13 @@ async function loadMore() {
 watch(selectedCategoryId, () => reloadUpcoming())
 watch(showNeedsAction, () => reloadUpcoming())
 
+// Search hits the backend now (debounced so each keystroke doesn't fire a request).
+let searchDebounce: ReturnType<typeof setTimeout> | null = null
+watch(searchQuery, () => {
+  if (searchDebounce) clearTimeout(searchDebounce)
+  searchDebounce = setTimeout(() => reloadUpcoming(), 250)
+})
+
 onMounted(() => {
   if (loaded.value) {
     loadData()
@@ -394,7 +411,9 @@ watch(loaded, (isLoaded) => {
                 <div>
                   <router-link :to="eventDetailRoute(item.event, item.date)" class="font-medium text-primary hover:underline">{{ item.event.name }}</router-link>
                   <MutedIcon v-if="item.event.restricted" :icon="['fas', 'lock']" class="ml-1"/>
-                  <MutedText size="sm" class="ml-2">{{ dayLabel(item.date) }}, {{ item.date }}</MutedText>
+                  <MutedText size="sm" class="ml-2">
+                    {{ dayLabel(item.date) }}, {{ item.date }}<template v-if="multiDayEndDate(item.event, item.date)"> – {{ dayLabel(multiDayEndDate(item.event, item.date)!) }}, {{ multiDayEndDate(item.event, item.date) }}</template>
+                  </MutedText>
                   <MutedText class="ml-2">{{ formatTime(item.event.startTime) }} – {{ formatTime(item.event.endTime) }}</MutedText>
                   <MutedText v-if="item.event.requiresRegistration && item.event.registrationDeadline" class="ml-2 text-xs text-(--text-muted)">({{ t('eventsUpcoming.deadline') }}: {{ formatDeadline(item.event.registrationDeadline) }})</MutedText>
                   <p v-if="item.event.description" class="text-sm text-(--text-muted) mt-0.5">{{ item.event.description }}</p>

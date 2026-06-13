@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.system.route;
 
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.system.service.RequirementsService;
 import io.javalin.http.Context;
 import io.javalin.router.JavalinDefaultRoutingApi;

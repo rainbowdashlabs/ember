@@ -25,7 +25,7 @@ const {isGuardian, sessionInfo} = useSession()
 
 const exchangeList = ref<ExchangeRequestEntry[]>([])
 
-const openExchanges = computed(() => exchangeList.value.filter(e => e.status !== ExchangeStatus.EXCHANGED))
+const openExchanges = computed(() => exchangeList.value.filter(e => e.status !== ExchangeStatus.DONE))
 
 function isOtherMember(memberId: number): boolean {
   return isGuardian() && memberId !== (sessionInfo.value?.member?.id ?? 0)
@@ -33,7 +33,7 @@ function isOtherMember(memberId: number): boolean {
 
 function statusBadgeComponent(status: string) {
   switch (status) {
-    case ExchangeStatus.EXCHANGED: return SuccessBadge
+    case ExchangeStatus.DONE: return SuccessBadge
     case ExchangeStatus.ANNOUNCED: case ExchangeStatus.SHIPPED: return InfoBadge
     default: return SecondaryBadge
   }

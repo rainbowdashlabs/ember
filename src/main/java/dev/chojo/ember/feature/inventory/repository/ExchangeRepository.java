@@ -180,7 +180,7 @@ public class ExchangeRepository {
     public int countPendingByStation(int stationId) {
         return query(
                         "SELECT count(*) FROM equipment_exchange_request WHERE station_id = :station_id AND status != :done;")
-                .single(call().bind("station_id", stationId).bind("done", ExchangeStatus.EXCHANGED))
+                .single(call().bind("station_id", stationId).bind("done", ExchangeStatus.DONE))
                 .map(row -> row.getInt(1))
                 .first()
                 .orElse(0);

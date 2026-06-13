@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.roles.StationUserType;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.events.ProcedureAssigned;
 import dev.chojo.ember.event.events.ProcedureItemChecked;
 import dev.chojo.ember.event.events.ProcedureReopened;

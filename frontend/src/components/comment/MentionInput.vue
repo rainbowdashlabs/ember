@@ -116,6 +116,12 @@ function htmlToRaw(el: HTMLElement): string {
         result += `@[${stationUid}/${memberUid}:${name}]`
       } else if (element.tagName === 'BR') {
         result += '\n'
+      } else if (element.tagName === 'DIV' || element.tagName === 'P') {
+        // Chrome/Edge wrap each line typed after Enter in a <div> (Firefox uses <br>).
+        // Treat block-level boundaries as a newline so submitted content keeps the
+        // line break the user typed.
+        if (result && !result.endsWith('\n')) result += '\n'
+        result += htmlToRaw(element)
       } else {
         result += htmlToRaw(element)
       }

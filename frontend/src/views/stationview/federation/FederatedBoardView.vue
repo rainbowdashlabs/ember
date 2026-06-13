@@ -17,6 +17,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -314,7 +315,7 @@ watch([partnerUid, boardKey], loadData)
                 <div class="flex items-center gap-2">
                     <!-- Search (both modes) -->
                     <div class="relative">
-                        <TextInput v-model="searchQuery" :placeholder="t('boards.searchTickets')" class="w-96" @input="onSearchInput" />
+                        <SearchInput v-model="searchQuery" :placeholder="t('boards.searchTickets')" class="w-96" @input="onSearchInput" />
                         <div v-if="searchResults && searchResults.length > 0" class="absolute z-20 mt-1 w-[28rem] right-0 rounded-theme border border-(--border) bg-(--bg) shadow-lg overflow-hidden">
                             <div
                                 v-for="result in searchResults"

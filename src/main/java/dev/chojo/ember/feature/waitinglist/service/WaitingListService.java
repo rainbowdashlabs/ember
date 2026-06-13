@@ -7,8 +7,8 @@ package dev.chojo.ember.feature.waitinglist.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.chojo.ember.api.roles.StationPermission;
-import dev.chojo.ember.api.roles.StationUserType;
+import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.WaitlistPublicRegistration;

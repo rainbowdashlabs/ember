@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.MembersAddedToGroup;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
@@ -14,7 +14,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
-import dev.chojo.ember.feature.members.util.RoleValidation;
+import dev.chojo.ember.feature.members.util.PermissionValidation;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -115,7 +115,7 @@ public class MemberGroupService {
         List<Permission> currentPermissions = groupRepository.findGroupPermissions(groupId);
         var currentIds = currentPermissions.stream().map(Permission::id).toList();
 
-        RoleValidation.validatePermissionChanges(
+        PermissionValidation.validatePermissionChanges(
                 currentPermissions, desiredPermissionIds, allPermissions, callerPermissions);
 
         for (int permId : currentIds) {

@@ -96,7 +96,7 @@ async function createProcurementFromExchange() {
           <option v-for="s in nextStatuses" :key="s" :value="s">{{ statusLabel(s) }}</option>
         </SelectInput>
       </div>
-      <div v-if="updateTargetStatus === ExchangeStatus.EXCHANGED" class="space-y-1 sm:col-span-2">
+      <div v-if="updateTargetStatus === ExchangeStatus.DONE" class="space-y-1 sm:col-span-2">
         <FieldLabel hint>{{ t('exchanges.exchangedItem') }}</FieldLabel>
         <template v-if="!createNewItemForExchange">
           <SelectInput v-model="updateExchangedItemId">

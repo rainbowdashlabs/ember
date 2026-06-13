@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.roles.StationPermission;
-import dev.chojo.ember.api.roles.StationUserType;
+import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.events.entity.StationEvent;

@@ -215,7 +215,7 @@ async function loadData() {
       try { memberInventory.value = await inventory.memberItems(memberId.value) } catch { memberInventory.value = [] }
       try {
         const allExch = await exchanges.listExchanges()
-        memberExchanges.value = allExch.filter(e => e.memberId === memberId.value && e.status !== ExchangeStatus.EXCHANGED)
+        memberExchanges.value = allExch.filter(e => e.memberId === memberId.value && e.status !== ExchangeStatus.DONE)
       } catch { memberExchanges.value = [] }
     }
   } catch {

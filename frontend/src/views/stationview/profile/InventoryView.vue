@@ -100,7 +100,7 @@ async function loadData() {
   try {
     try {
       const allExch = await exchanges.listExchanges()
-      activeExchanges.value = allExch.filter(e => e.status !== ExchangeStatus.EXCHANGED)
+      activeExchanges.value = allExch.filter(e => e.status !== ExchangeStatus.DONE)
     } catch { activeExchanges.value = [] }
     const mid = viewingMemberId.value
     if (mid) {
@@ -169,7 +169,7 @@ function closeExchange() {
 async function submitExchange() {
   if (!exchangeItem.value || !exchangeReason.value.trim()) return
   try {
-    await exchanges.createExchange({
+    const created = await exchanges.createExchange({
       memberId: viewingMemberId.value ?? undefined,
       itemId: exchangeItem.value.id,
       inventoryId: exchangeItem.value.inventoryId,
@@ -177,6 +177,9 @@ async function submitExchange() {
       newSizeId: exchangeNewSizeId.value ? Number(exchangeNewSizeId.value) : undefined,
       reason: exchangeReason.value.trim(),
     })
+    // Append the new request so InventoryItemCard.itemExchange() sees it
+    // immediately and flips the item into its "exchange pending" state.
+    activeExchanges.value = [...activeExchanges.value, created]
     exchangeSuccess.value = t('profile.exchangeCreated')
     closeExchange()
   } catch { /* ignore */ }

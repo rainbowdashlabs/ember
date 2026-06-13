@@ -11,7 +11,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import RoleStep from './createview/RoleStep.vue'
+import UserTypeStep from './createview/UserTypeStep.vue'
 import IdentityStep from './createview/IdentityStep.vue'
 import FieldsStep from './createview/FieldsStep.vue'
 import GroupsStep from './createview/GroupsStep.vue'
@@ -26,8 +26,8 @@ const {t} = useI18n()
 const router = useRouter()
 const {currentStationId} = useStations()
 
-const step = ref<'role' | 'identity' | 'fields' | 'groups' | 'manager' | 'done'>('role')
-const selectedRole = ref<'MEMBER' | 'GUARDIAN' | 'TEAM'>(StationUserType.MEMBER)
+const step = ref<'userType' | 'identity' | 'fields' | 'groups' | 'manager' | 'done'>('userType')
+const selectedUserType = ref<'MEMBER' | 'GUARDIAN' | 'TEAM'>(StationUserType.MEMBER)
 const firstName = ref('')
 const lastName = ref('')
 const email = ref('')
@@ -49,7 +49,7 @@ const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
 
-const scopeFields = computed(() => allFields.value.filter(f => f.scope === selectedRole.value))
+const scopeFields = computed(() => allFields.value.filter(f => f.scope === selectedUserType.value))
 
 async function loadData() {
   loading.value = true
@@ -90,7 +90,7 @@ function setFieldValue(fieldId: number, val: string) {
 }
 
 function nextFromGroups() {
-  if (selectedRole.value === StationUserType.MEMBER) {
+  if (selectedUserType.value === StationUserType.MEMBER) {
     step.value = 'manager'
   } else {
     createAccount()
@@ -173,7 +173,7 @@ async function createAccount() {
       await memberGroups.setGroupMembers(groupId, {memberIds})
     }
 
-    if (selectedRole.value === StationUserType.MEMBER && selectedManagerIds.value.size > 0) {
+    if (selectedUserType.value === StationUserType.MEMBER && selectedManagerIds.value.size > 0) {
       await stationMembers.setManagers(newMember.id, {managerIds: [...selectedManagerIds.value]})
     }
 
@@ -187,7 +187,7 @@ async function createAccount() {
 
 function startOver() {
   step.value = 'role'
-  selectedRole.value = StationUserType.MEMBER
+  selectedUserType.value = StationUserType.MEMBER
   firstName.value = ''
   lastName.value = ''
   email.value = ''
@@ -214,9 +214,9 @@ onMounted(loadData)
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
-        <RoleStep
-            v-if="step === 'role'"
-            v-model="selectedRole"
+        <UserTypeStep
+            v-if="step === 'userType'"
+            v-model="selectedUserType"
             @next="step = 'identity'"
         />
 
@@ -226,7 +226,7 @@ onMounted(loadData)
             v-model:email="email"
             v-model:first-name="firstName"
             v-model:last-name="lastName"
-            @back="step = 'role'"
+            @back="step = 'userType'"
             @next="nextFromIdentity"
         />
 
@@ -243,7 +243,7 @@ onMounted(loadData)
             v-if="step === 'groups'"
             :groups="allGroups"
             :selected-ids="selectedGroupIds"
-            :submit-label="selectedRole === StationUserType.MEMBER ? t('membersCreate.next') : t('membersCreate.create')"
+            :submit-label="selectedUserType === StationUserType.MEMBER ? t('membersCreate.next') : t('membersCreate.create')"
             @back="step = 'fields'"
             @next="nextFromGroups"
             @toggle="toggleGroup"

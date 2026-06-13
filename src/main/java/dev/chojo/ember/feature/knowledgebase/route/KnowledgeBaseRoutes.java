@@ -10,7 +10,7 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -1198,7 +1198,7 @@ public class KnowledgeBaseRoutes implements Routes {
         var comment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
         var memberIdentity = memberIdentityFactory.local(
                 session.stationId(), session.member().id());
-        if (comment.author() == null || !comment.author().equals(memberIdentity)) {
+        if (comment.author() == null || !comment.author().sameMember(memberIdentity)) {
             throw new ForbiddenResponse("You can only edit your own comments");
         }
         var req = ctx.bodyAsClass(UpdateKbCommentRequest.class);
@@ -1216,7 +1216,7 @@ public class KnowledgeBaseRoutes implements Routes {
         var comment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
         var authorIdentity = memberIdentityFactory.local(
                 session.stationId(), session.member().id());
-        boolean isAuthor = comment.author() != null && comment.author().equals(authorIdentity);
+        boolean isAuthor = comment.author() != null && comment.author().sameMember(authorIdentity);
         boolean canModerate = session.hasPermission(StationPermission.KNOWLEDGE_MANAGER);
         if (!isAuthor && !canModerate) {
             throw new ForbiddenResponse("You can only delete your own comments");
@@ -1262,7 +1262,7 @@ public class KnowledgeBaseRoutes implements Routes {
         }
         var comment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
         var expectedAuthor = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
-        if (comment.author() == null || !comment.author().equals(expectedAuthor)) {
+        if (comment.author() == null || !comment.author().sameMember(expectedAuthor)) {
             throw new ForbiddenResponse("You can only edit your own comments");
         }
         kbCommentRepository.update(commentId, req.content());
@@ -1276,7 +1276,7 @@ public class KnowledgeBaseRoutes implements Routes {
         var req = ctx.bodyAsClass(RemoteKbCommentDeleteRequest.class);
         var comment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
         var expectedAuthor = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
-        if (comment.author() == null || !comment.author().equals(expectedAuthor)) {
+        if (comment.author() == null || !comment.author().sameMember(expectedAuthor)) {
             throw new ForbiddenResponse("You can only delete your own comments");
         }
         if (kbCommentRepository.delete(commentId)) {

@@ -13,7 +13,7 @@ import SidebarLink from '@/components/navigation/SidebarLink.vue'
 import SidebarExpandableLink from '@/components/navigation/SidebarExpandableLink.vue'
 import BaseButton from '@/components/button/BaseButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
 import {useHelpSearch} from '@/composables/useHelpSearch'
 
 const {t, te} = useI18n()
@@ -54,11 +54,7 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
   <SidebarLayout :subtitle="pageSubtitle" :title="pageTitle" :station-name="t('helpCenter.title')">
     <template #sidebar="{ close }">
       <div class="px-2 pb-3">
-        <div class="relative">
-          <TextInput v-model="searchQuery" :placeholder="t('helpCenter.search')"/>
-          <font-awesome-icon :icon="['fas', 'magnifying-glass']"
-                             class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] h-3.5 w-3.5 pointer-events-none"/>
-        </div>
+        <SearchInput v-model="searchQuery" :placeholder="t('helpCenter.search')"/>
       </div>
 
       <template v-if="isSearching">
@@ -85,9 +81,9 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
                      to="/helpcenter/station/basics/overview" @navigate="close">
           {{ t('helpCenter.basics.sidebarOverview') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'shield']" name="help-basics-roles"
-                     to="/helpcenter/station/basics/roles" @navigate="close">
-          {{ t('helpCenter.basics.sidebarRoles') }}
+        <SidebarLink :icon="['fas', 'shield']" name="help-basics-permissions"
+                     to="/helpcenter/station/basics/permissions" @navigate="close">
+          {{ t('helpCenter.basics.sidebarPermissions') }}
         </SidebarLink>
         <SidebarLink :icon="['fas', 'puzzle-piece']" name="help-basics-modules"
                      to="/helpcenter/station/basics/modules" @navigate="close">

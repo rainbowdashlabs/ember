@@ -13,7 +13,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import KbBreadcrumb from './knowledgebaseview/KbBreadcrumb.vue'
@@ -324,7 +324,7 @@ function navigateToFavourites() {
 
         <!-- Search -->
         <div class="mb-4">
-            <TextInput
+            <SearchInput
                 v-model="searchQuery"
                 :placeholder="t('kb.search')"
                 @input="onSearchInput"

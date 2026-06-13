@@ -9,12 +9,10 @@ import type { Editor } from '@tiptap/vue-3'
 
 const props = defineProps<{
   editor: Editor | undefined
-  showRawMarkdown: boolean
   fileId?: number
 }>()
 
 const emit = defineEmits<{
-  toggleRaw: []
   openLink: []
   openImage: []
   openVideo: []
@@ -105,8 +103,7 @@ const toolbarButtons: ToolbarButton[][] = [
         :key="btn.label"
         type="button"
         :title="btn.label"
-        :class="['p-1.5 rounded text-sm transition-colors', btn.active() ? 'bg-[var(--primary)] text-[var(--color-primary-text)]' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']"
-        :disabled="showRawMarkdown"
+        :class="['p-1.5 rounded text-sm transition-colors', btn.active() ? 'text-primary bg-primary/10' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']"
         @mousedown.prevent
         @click="btn.action()"
       >
@@ -118,7 +115,7 @@ const toolbarButtons: ToolbarButton[][] = [
     <!-- Highlight picker -->
     <div class="w-px h-5 bg-[var(--border)] mx-1" />
     <div class="relative">
-      <button type="button" title="Hervorhebung" :class="['p-1.5 rounded text-sm transition-colors', isActive('highlight') ? 'bg-[var(--primary)] text-[var(--color-primary-text)]' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']" :disabled="showRawMarkdown" @mousedown.prevent @click="showHighlightPicker = !showHighlightPicker; showColorPicker = false">
+      <button type="button" title="Hervorhebung" :class="['p-1.5 rounded text-sm transition-colors', isActive('highlight') ? 'text-primary bg-primary/10' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']" @mousedown.prevent @click="showHighlightPicker = !showHighlightPicker; showColorPicker = false">
         <font-awesome-icon :icon="['fas', 'highlighter']" class="w-3.5 h-3.5" />
       </button>
       <div v-if="showHighlightPicker" class="absolute top-full left-0 mt-1 z-30 p-2 rounded-lg shadow-lg border border-[var(--border)] bg-[var(--bg)] grid grid-cols-5 gap-2" style="min-width: 160px">
@@ -130,7 +127,7 @@ const toolbarButtons: ToolbarButton[][] = [
 
     <!-- Text color picker -->
     <div class="relative">
-      <button type="button" title="Textfarbe" class="p-1.5 rounded text-sm transition-colors text-[var(--text)] hover:bg-[var(--bg-accent)]" :disabled="showRawMarkdown" @mousedown.prevent @click="showColorPicker = !showColorPicker; showHighlightPicker = false">
+      <button type="button" title="Textfarbe" class="p-1.5 rounded text-sm transition-colors text-[var(--text)] hover:bg-[var(--bg-accent)]" @mousedown.prevent @click="showColorPicker = !showColorPicker; showHighlightPicker = false">
         <font-awesome-icon :icon="['fas', 'palette']" class="w-3.5 h-3.5" />
       </button>
       <div v-if="showColorPicker" class="absolute top-full left-0 mt-1 z-30 p-2 rounded-lg shadow-lg border border-[var(--border)] bg-[var(--bg)] grid grid-cols-5 gap-2" style="min-width: 160px">
@@ -139,11 +136,5 @@ const toolbarButtons: ToolbarButton[][] = [
         </button>
       </div>
     </div>
-
-    <!-- Raw toggle -->
-    <div class="w-px h-5 bg-[var(--border)] mx-1" />
-    <button type="button" title="Markdown anzeigen" :class="['p-1.5 rounded text-sm transition-colors cursor-pointer', showRawMarkdown ? 'bg-[var(--primary)] text-[var(--color-primary-text)]' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']" @click.stop="$emit('toggleRaw')">
-      <font-awesome-icon :icon="['fas', 'file-code']" class="w-3.5 h-3.5" />
-    </button>
   </div>
 </template>

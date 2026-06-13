@@ -75,8 +75,8 @@ const managedWithItemsList = computed(() =>
 )
 
 // Status flow
-const internalFlow: ExchangeStatusName[] = [ExchangeStatus.ANNOUNCED, ExchangeStatus.RECEIVED, ExchangeStatus.EXCHANGED]
-const externalFlow: ExchangeStatusName[] = [ExchangeStatus.ANNOUNCED, ExchangeStatus.RECEIVED, ExchangeStatus.SHIPPED, ExchangeStatus.ARRIVED, ExchangeStatus.EXCHANGED]
+const internalFlow: ExchangeStatusName[] = [ExchangeStatus.ANNOUNCED, ExchangeStatus.RECEIVED, ExchangeStatus.DONE]
+const externalFlow: ExchangeStatusName[] = [ExchangeStatus.ANNOUNCED, ExchangeStatus.RECEIVED, ExchangeStatus.SHIPPED, ExchangeStatus.ARRIVED, ExchangeStatus.DONE]
 
 function getFlow(inventoryType: string): ExchangeStatusName[] {
   return inventoryType === InventoryTypes.INTERNAL ? internalFlow : externalFlow
@@ -288,7 +288,7 @@ watch(loaded, (isLoaded) => {
               <span class="text-sm font-medium">{{ req.inventoryName }}</span>
               <ExchangeStatusBadge :status="req.status" />
             </div>
-            <div>
+            <div v-if="canManageExchanges()">
               <component :is="inventoryTypeBadge(req.inventoryType)">{{ inventoryTypeLabel(req.inventoryType) }}</component>
             </div>
             <div v-if="showMemberColumn" class="text-xs text-(--text-muted)"><MemberName :identity="req.memberIdentity ?? null"/></div>
@@ -300,7 +300,7 @@ watch(loaded, (isLoaded) => {
               <SecondaryButton @click="openLog(req.id)">
                 <font-awesome-icon :icon="['fas', 'clock-rotate-left']" />
               </SecondaryButton>
-              <SecondaryButton v-if="canManageExchanges() && req.status !== ExchangeStatus.EXCHANGED" @click="startStatusUpdate(req)">
+              <SecondaryButton v-if="canManageExchanges() && req.status !== ExchangeStatus.DONE" @click="startStatusUpdate(req)">
                 <font-awesome-icon :icon="['fas', 'arrow-right']" />
               </SecondaryButton>
               <DeleteButton v-if="canManageExchanges()" @click="deleteRequest(req.id)" />
@@ -329,7 +329,7 @@ watch(loaded, (isLoaded) => {
               </th>
               <Th v-if="showMemberColumn">{{ t('exchanges.colMember') }}</Th>
               <Th>{{ t('exchanges.colInventory') }}</Th>
-              <Th>{{ t('exchanges.colType') }}</Th>
+              <Th v-if="canManageExchanges()">{{ t('exchanges.colType') }}</Th>
               <Th>{{ t('exchanges.colOldSize') }}</Th>
               <Th>{{ t('exchanges.colNewSize') }}</Th>
               <Th>{{ t('exchanges.colStatus') }}</Th>
@@ -353,7 +353,7 @@ watch(loaded, (isLoaded) => {
                   <MemberName v-else :identity="req.memberIdentity ?? null"/>
                 </Td>
                 <Td class="font-medium">{{ req.inventoryName }}</Td>
-                <Td>
+                <Td v-if="canManageExchanges()">
                   <component :is="inventoryTypeBadge(req.inventoryType)">{{ inventoryTypeLabel(req.inventoryType) }}</component>
                 </Td>
                 <Td>{{ req.oldSizeLabel ?? t('common.unisize') }}</Td>
@@ -369,7 +369,7 @@ watch(loaded, (isLoaded) => {
                     <SecondaryButton @click="openLog(req.id)">
                       <font-awesome-icon :icon="['fas', 'clock-rotate-left']" />
                     </SecondaryButton>
-                    <SecondaryButton v-if="canManageExchanges() && req.status !== ExchangeStatus.EXCHANGED" @click="startStatusUpdate(req)">
+                    <SecondaryButton v-if="canManageExchanges() && req.status !== ExchangeStatus.DONE" @click="startStatusUpdate(req)">
                       <font-awesome-icon :icon="['fas', 'arrow-right']" />
                     </SecondaryButton>
                     <DeleteButton v-if="canManageExchanges()" @click="deleteRequest(req.id)" />

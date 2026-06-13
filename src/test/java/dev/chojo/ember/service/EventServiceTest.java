@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
@@ -743,7 +743,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 0);
+        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
         assertTrue(occurrences.stream().anyMatch(o -> o.event().id() == event.id()));
     }
 
@@ -773,23 +773,23 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 0);
+        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
         assertTrue(occurrences.stream().anyMatch(o -> o.event().id() == event.id()));
     }
 
     @Test
     @Order(122)
     void findUpcomingOccurrencesWithPagination() {
-        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, 2, 0);
+        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, null, 2, 0);
         assertTrue(occurrences.size() <= 2);
     }
 
     @Test
     @Order(123)
     void findUpcomingOccurrencesWithOffset() {
-        var all = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 0);
+        var all = service.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
         if (all.size() > 1) {
-            var offsetResults = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 1);
+            var offsetResults = service.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 1);
             assertEquals(all.size() - 1, offsetResults.size());
         }
     }
@@ -798,7 +798,7 @@ class EventServiceTest extends RepositoryTestBase {
     @Order(124)
     void findUpcomingOccurrencesWithFilters() {
         var occurrences =
-                service.findUpcomingOccurrences(station.id(), List.of(member.id()), categoryId, false, 100, 0);
+                service.findUpcomingOccurrences(station.id(), List.of(member.id()), categoryId, false, null, 100, 0);
         assertNotNull(occurrences);
     }
 
@@ -828,7 +828,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 0);
+        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
         // The event should appear at least once in the next 28 days if there's a matching date
         assertNotNull(occurrences);
     }
@@ -858,7 +858,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 0);
+        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
         assertNotNull(occurrences);
     }
 
@@ -889,7 +889,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 0);
+        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
         assertNotNull(occurrences);
     }
 
@@ -927,7 +927,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = service.findUpcomingOccurrences(breakStation.id(), null, null, null, 100, 0);
+        var occurrences = service.findUpcomingOccurrences(breakStation.id(), null, null, null, null, 100, 0);
         // Recurring events during break should not appear
         assertTrue(occurrences.stream().noneMatch(o -> o.event().name().equals("Break Recurring")));
 
@@ -962,7 +962,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 0);
+        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
         assertTrue(occurrences.stream().noneMatch(o -> o.event().id() == event.id()));
     }
 

@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import TextInput from '@/components/input/text/TextInput.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -26,7 +26,7 @@ const {t} = useI18n()
   <div class="flex flex-wrap gap-3 items-end">
     <div class="flex-1 min-w-48 space-y-1">
       <FieldLabel>{{ t('eventsUpcoming.search') }}</FieldLabel>
-      <TextInput v-model="search" :placeholder="t('eventsUpcoming.searchPlaceholder')"/>
+      <SearchInput v-model="search" :placeholder="t('eventsUpcoming.searchPlaceholder')"/>
     </div>
     <div class="w-48 space-y-1">
       <FieldLabel>{{ t('events.category') }}</FieldLabel>

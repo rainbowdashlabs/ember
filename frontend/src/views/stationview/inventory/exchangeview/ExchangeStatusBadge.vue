@@ -27,5 +27,5 @@ function statusLabel(status: ExchangeStatusName): string {
   <InfoBadge v-if="status === ExchangeStatus.ANNOUNCED">{{ statusLabel(status) }}</InfoBadge>
   <PrimaryBadge v-else-if="status === ExchangeStatus.RECEIVED || status === ExchangeStatus.ARRIVED">{{ statusLabel(status) }}</PrimaryBadge>
   <SecondaryBadge v-else-if="status === ExchangeStatus.SHIPPED">{{ statusLabel(status) }}</SecondaryBadge>
-  <SuccessBadge v-else-if="status === ExchangeStatus.EXCHANGED">{{ statusLabel(status) }}</SuccessBadge>
+  <SuccessBadge v-else-if="status === ExchangeStatus.DONE">{{ statusLabel(status) }}</SuccessBadge>
 </template>

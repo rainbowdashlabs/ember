@@ -498,7 +498,7 @@ public class EventFederationService {
             FederationPartner partner, int commentId, UUID remoteMemberUid, String content) {
         var comment = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
         var expectedIdentity = new MemberIdentity(partner.partnerStationId(), remoteMemberUid);
-        if (comment.author() == null || !comment.author().equals(expectedIdentity)) {
+        if (comment.author() == null || !comment.author().sameMember(expectedIdentity)) {
             throw new ForbiddenResponse("You can only edit your own comments");
         }
         commentRepository.update(commentId, content);
@@ -512,7 +512,7 @@ public class EventFederationService {
     public boolean deleteRemoteComment(FederationPartner partner, int commentId, UUID remoteMemberUid) {
         var comment = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
         var expectedIdentity = new MemberIdentity(partner.partnerStationId(), remoteMemberUid);
-        if (comment.author() == null || !comment.author().equals(expectedIdentity)) {
+        if (comment.author() == null || !comment.author().sameMember(expectedIdentity)) {
             throw new ForbiddenResponse("You can only delete your own comments");
         }
         return commentService.delete(commentId);
@@ -596,7 +596,7 @@ public class EventFederationService {
         }
         var comment = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
         var expectedIdentity = new MemberIdentity(partner.partnerStationId(), memberUid);
-        if (comment.author() == null || !comment.author().equals(expectedIdentity)) {
+        if (comment.author() == null || !comment.author().sameMember(expectedIdentity)) {
             throw new ForbiddenResponse("You can only edit your own comments");
         }
         commentRepository.update(commentId, content);
@@ -621,7 +621,7 @@ public class EventFederationService {
         }
         var comment = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
         var expectedIdentity = new MemberIdentity(partner.partnerStationId(), memberUid);
-        if (comment.author() == null || !comment.author().equals(expectedIdentity)) {
+        if (comment.author() == null || !comment.author().sameMember(expectedIdentity)) {
             throw new ForbiddenResponse("You can only delete your own comments");
         }
         return commentService.delete(commentId);

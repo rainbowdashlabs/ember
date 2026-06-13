@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.members.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.members.service.MemberImportService;
 import dev.chojo.ember.feature.members.service.MemberImportService.ColumnMapping;
 import io.javalin.http.BadRequestResponse;

@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.members.util;
 
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.members.entity.Permission;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
@@ -17,8 +17,8 @@ import java.util.Set;
  * Utility class for validating permission assignment changes,
  * enforcing caller authorization checks.
  */
-public final class RoleValidation {
-    private RoleValidation() {}
+public final class PermissionValidation {
+    private PermissionValidation() {}
 
     /**
      * Validates permission changes for both member and group permission assignments.

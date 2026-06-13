@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.account.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
-import dev.chojo.ember.api.roles.InstanceUserType;
+import dev.chojo.ember.api.auth.InstanceUserType;
 
 /**
  * Represents a user account with personal information and email verification status.

@@ -6,14 +6,14 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.roles.StationPermission;
-import dev.chojo.ember.api.roles.StationUserType;
+import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.members.util.RoleValidation;
+import dev.chojo.ember.feature.members.util.PermissionValidation;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
@@ -93,7 +93,7 @@ public class StationMemberService {
         List<Permission> currentPermissions = memberRepository.findPermissions(memberId);
         var currentIds = currentPermissions.stream().map(Permission::id).toList();
 
-        RoleValidation.validatePermissionChanges(
+        PermissionValidation.validatePermissionChanges(
                 currentPermissions, desiredPermissionIds, allPermissions, callerPermissions);
 
         // Check if LOGIN permission is being added — requires account with email

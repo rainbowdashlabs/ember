@@ -301,7 +301,7 @@ async function handleLogout() {
         <SidebarLink v-if="hasPermission(StationPermission.TEST_CATALOG_VIEW)" :icon="['fas', 'book']" name="quiz-catalogs" to="/station/quiz/catalogs" @navigate="close">
           {{ t('sidebar.quizCatalogs') }}
         </SidebarLink>
-        <SidebarLink v-if="hasPermission(StationPermission.TEST_RESULT_READ)" :icon="['fas', 'file-lines']" name="quiz-tests" to="/station/quiz/tests" @navigate="close">
+        <SidebarLink :icon="['fas', 'file-lines']" name="quiz-tests" to="/station/quiz/tests" @navigate="close">
           {{ t('sidebar.quizTests') }}
         </SidebarLink>
         <SidebarLink :icon="['fas', 'brain']" name="quiz-training" to="/station/quiz/training" @navigate="close">

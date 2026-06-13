@@ -195,7 +195,7 @@ public class DemoNotificationSeeder {
                 NotificationType.EXCHANGE_STATUS_CHANGE,
                 NotificationData.of(
                         new NotificationParams.ExchangeStatusChange(
-                                ExchangeStatus.EXCHANGED, "Blouson Größe 152", "Neuer Blouson Größe 158 ausgegeben"),
+                                ExchangeStatus.DONE, "Blouson Größe 152", "Neuer Blouson Größe 158 ausgegeben"),
                         exchangeLink));
 
         notificationRepository.create(

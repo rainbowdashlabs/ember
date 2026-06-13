@@ -29,7 +29,7 @@
     "status.RECEIVED": "Received",
     "status.SHIPPED": "Shipped",
     "status.ARRIVED": "Arrived",
-    "status.EXCHANGED": "Exchanged",
+    "status.DONE": "Done",
     "status.REQUESTED": "Requested",
     "status.APPROVED": "Approved",
     "status.LENT": "Lent out",

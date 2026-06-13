@@ -115,8 +115,11 @@ function eventsForDate(date: Date): {event: StationEvent; date: string}[] {
 
     if (ev.eventType === EventTypes.ONE_TIME) {
       if (!ev.startTime) continue
-      const evDateStr = new Date(ev.startTime).toISOString().slice(0, 10)
-      if (evDateStr === dateStr) result.push({event: ev, date: dateStr})
+      const startStr = new Date(ev.startTime).toISOString().slice(0, 10)
+      // Multi-day one-time events span from startTime's date to endTime's date.
+      // Render the chip on every day in that range, not just the start.
+      const endStr = ev.endTime ? new Date(ev.endTime).toISOString().slice(0, 10) : startStr
+      if (dateStr >= startStr && dateStr <= endStr) result.push({event: ev, date: dateStr})
       continue
     }
     if (!isRecurringEvent(ev.eventType)) continue
@@ -255,7 +258,7 @@ function openEvent(ev: StationEvent, date: string) {
               @click="openEvent(evRef.event, evRef.date)"
           >
             <MutedIcon v-if="evRef.event.restricted" :icon="['fas', 'lock']" class="mr-0.5 inline" />
-            <span class="hidden sm:inline">{{ formatTime(evRef.event.startTime) }} </span>
+            <span class="hidden sm:inline">{{ formatTime(evRef.event.startTime) }}&nbsp;</span>
             <span>{{ evRef.event.name }}</span>
           </EventChipButton>
         </div>

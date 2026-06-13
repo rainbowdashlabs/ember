@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.restriction;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;

@@ -10,7 +10,7 @@ import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -376,7 +376,7 @@ public class NewsRoutes implements Routes {
         var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
         var sessionIdentity =
                 memberIdentityFactory.fromMemberId(session.member().id());
-        if (!sessionIdentity.equals(comment.author())) {
+        if (!sessionIdentity.sameMember(comment.author())) {
             throw new ForbiddenResponse("You can only edit your own comments");
         }
         var request = ctx.bodyAsClass(CommentRequest.class);
@@ -404,7 +404,7 @@ public class NewsRoutes implements Routes {
         var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
         var sessionIdentity =
                 memberIdentityFactory.fromMemberId(session.member().id());
-        boolean isAuthor = sessionIdentity.equals(comment.author());
+        boolean isAuthor = sessionIdentity.sameMember(comment.author());
         boolean canModerate = session.hasPermission(StationPermission.NEWS_MANAGER);
         if (!isAuthor && !canModerate) {
             throw new ForbiddenResponse("You can only delete your own comments");
@@ -561,7 +561,7 @@ public class NewsRoutes implements Routes {
         }
         var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
         var expectedIdentity = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
-        if (!expectedIdentity.equals(comment.author())) {
+        if (!expectedIdentity.sameMember(comment.author())) {
             throw new ForbiddenResponse("You can only edit your own comments");
         }
         newsService.updateComment(commentId, req.content());
@@ -575,7 +575,7 @@ public class NewsRoutes implements Routes {
         var req = ctx.bodyAsClass(RemoteNewsCommentDeleteRequest.class);
         var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
         var expectedIdentity = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
-        if (!expectedIdentity.equals(comment.author())) {
+        if (!expectedIdentity.sameMember(comment.author())) {
             throw new ForbiddenResponse("You can only delete your own comments");
         }
         if (newsService.deleteComment(partner.stationId(), commentId)) {
@@ -682,7 +682,7 @@ public class NewsRoutes implements Routes {
             var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
             var sessionIdentity =
                     memberIdentityFactory.fromMemberId(session.member().id());
-            if (!sessionIdentity.equals(comment.author())) {
+            if (!sessionIdentity.sameMember(comment.author())) {
                 throw new ForbiddenResponse("You can only edit your own comments");
             }
             newsService.updateComment(commentId, req.content());
@@ -711,7 +711,7 @@ public class NewsRoutes implements Routes {
             var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
             var sessionIdentity =
                     memberIdentityFactory.fromMemberId(session.member().id());
-            if (!sessionIdentity.equals(comment.author())) {
+            if (!sessionIdentity.sameMember(comment.author())) {
                 throw new ForbiddenResponse("You can only delete your own comments");
             }
             if (newsService.deleteComment(partner.stationId(), commentId)) {

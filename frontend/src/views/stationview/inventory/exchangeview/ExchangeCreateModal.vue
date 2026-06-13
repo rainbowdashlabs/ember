@@ -107,7 +107,7 @@ async function loadCreateMemberItems() {
     }
     const activeExchangeItemIds = new Set(
       props.requests
-        .filter(r => r.status !== ExchangeStatus.EXCHANGED && r.itemId)
+        .filter(r => r.status !== ExchangeStatus.DONE && r.itemId)
         .map(r => r.itemId!)
     )
     createMemberItems.value = items

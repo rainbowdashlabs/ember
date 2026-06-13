@@ -9,7 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.ExchangeLog;
 import dev.chojo.ember.feature.inventory.entity.ExchangeRequest;
@@ -206,8 +206,8 @@ public class ExchangeRoutes implements Routes {
             throw new BadRequestResponse("status is required");
         }
         ExchangeStatus status = request.status();
-        if (status == ExchangeStatus.EXCHANGED && request.exchangedItemId() == null) {
-            // For EXCHANGED status, exchangedItemId is optional but recommended
+        if (status == ExchangeStatus.DONE && request.exchangedItemId() == null) {
+            // For DONE status, exchangedItemId is optional but recommended
         }
         var exchange = exchangeService.updateStatus(
                 id, status, session.member().id(), request.note(), request.exchangedItemId());

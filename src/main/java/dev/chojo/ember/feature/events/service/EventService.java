@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventCancelled;
 import dev.chojo.ember.event.events.EventCreated;
@@ -352,9 +352,21 @@ public class EventService {
             List<Integer> memberIds,
             Integer categoryId,
             Boolean requiresRegistration,
+            String search,
             int limit,
             int offset) {
         var events = findFilteredForMembers(stationId, memberIds, categoryId, requiresRegistration);
+        if (search != null && !search.isBlank()) {
+            String q = search.toLowerCase();
+            events = events.stream()
+                    .filter(ev -> {
+                        String name = ev.name() != null ? ev.name().toLowerCase() : "";
+                        String desc =
+                                ev.description() != null ? ev.description().toLowerCase() : "";
+                        return name.contains(q) || desc.contains(q);
+                    })
+                    .toList();
+        }
         var breaks = eventRepository.findBreaksByStation(stationId);
 
         LocalDate today = LocalDate.now(ZoneOffset.UTC);

@@ -697,8 +697,8 @@ export default {
                     title: 'Was ist Ember?',
                     desc: 'Überblick über das Produkt und seine Funktionen',
                 },
-                roles: {
-                    title: 'Rollen & Berechtigungen',
+                permissions: {
+                    title: 'Berechtigungen & Nutzertypen',
                     desc: 'Wer darf was? Das Berechtigungssystem erklärt',
                 },
                 modules: {
@@ -724,7 +724,7 @@ export default {
             sidebar: 'Grundlagen',
             sidebarWelcome: 'Willkommen',
             sidebarOverview: 'Was ist Ember?',
-            sidebarRoles: 'Rollen & Berechtigungen',
+            sidebarPermissions: 'Berechtigungen & Nutzertypen',
             sidebarModules: 'Module & Navigation',
             sidebarHosting: 'Selbst betreiben',
             sidebarFederation: 'Föderation',
@@ -793,14 +793,14 @@ export default {
                 privacy3: 'Beim Löschen eines Mitglieds werden persönliche Daten anonymisiert.',
                 tip: 'Ember ist Open Source (AGPL-3.0). Du kannst den Quellcode einsehen und eigene Anpassungen vornehmen.',
             },
-            roles: {
-                title: 'Benutzertypen & Berechtigungen',
+            permissions: {
+                title: 'Berechtigungen & Nutzertypen',
                 subtitle: 'Wie das Berechtigungssystem von Ember funktioniert.',
                 whatAre: 'Wie funktionieren Berechtigungen?',
                 whatAreText: 'Ember trennt zwischen Benutzertypen und Berechtigungen. Jedes Mitglied hat genau einen Benutzertyp, der seine Grundrolle bestimmt. Zusätzlich können einzelne Berechtigungen vergeben werden.',
                 whatAreText2: 'Berechtigungen steuern, was ein Mitglied sehen und tun darf. Manche Funktionen sind nur mit bestimmten Berechtigungen sichtbar.',
-                overview: 'Die Benutzertypen im Überblick',
-                role: {
+                overview: 'Die Nutzertypen im Überblick',
+                userType: {
                     member: {
                         name: 'Mitglied',
                         desc: 'Der Standardtyp für alle Mitglieder. Kann das eigene Profil bearbeiten, Anwesenheit sehen und sich zu Terminen anmelden.',
@@ -5895,6 +5895,7 @@ volumes:
     },
     dashboard: {
         notifications: 'Benachrichtigungen',
+        notificationSettings: 'Benachrichtigungs-Einstellungen',
         acknowledge: 'Gelesen',
         acknowledgeAll: 'Alle gelesen',
         noNotifications: 'Keine neuen Benachrichtigungen.',
@@ -5910,7 +5911,7 @@ volumes:
             RECEIVED: 'Empfangen',
             SHIPPED: 'Versendet',
             ARRIVED: 'Angekommen',
-            EXCHANGED: 'Getauscht',
+            DONE: 'Erledigt',
         },
         registrations: 'Meine Anmeldungen',
         registrationsManaged: 'Anmeldungen',
@@ -6107,7 +6108,7 @@ volumes:
             RECEIVED: 'Empfangen',
             SHIPPED: 'Versendet',
             ARRIVED: 'Angekommen',
-            EXCHANGED: 'Getauscht',
+            DONE: 'Erledigt',
         },
         title: 'Tausch-Anfragen',
         create: 'Neue Anfrage',

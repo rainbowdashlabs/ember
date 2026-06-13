@@ -16,6 +16,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
@@ -152,7 +153,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
     </div>
 
     <div class="mb-4">
-      <TextInput v-model="searchQuery" :placeholder="t('procedures.search')" />
+      <SearchInput v-model="searchQuery" :placeholder="t('procedures.search')" />
     </div>
 
     <div class="flex flex-wrap items-center gap-2 mb-4">
