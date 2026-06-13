@@ -95,6 +95,10 @@ public class NewsRoutes implements Routes {
         routes.put(prefix + "/news/comments/{commentId}", this::updateComment, StationPermission.LOGIN);
         routes.delete(prefix + "/news/comments/{commentId}", this::deleteComment, StationPermission.LOGIN);
 
+        // View tracking — anyone can record a view; only editors can read the seen/unseen lists.
+        routes.post(prefix + "/news/{id}/view", this::recordView, StationPermission.LOGIN);
+        routes.get(prefix + "/news/{id}/views", this::listViewers, StationPermission.NEWS_EDIT);
+
         // Federation sharing management
         routes.get(prefix + "/news/{id}/federation", this::getFederationShare, StationPermission.NEWS_FEDERATE);
         routes.put(prefix + "/news/{id}/federation", this::setFederationShare, StationPermission.NEWS_FEDERATE);
@@ -414,6 +418,55 @@ public class NewsRoutes implements Routes {
         } else {
             throw new NotFoundResponse();
         }
+    }
+
+    @OpenApi(
+            path = "/api/v1/news/{id}/view",
+            methods = HttpMethod.POST,
+            summary = "Record that the current member fully saw a news entry",
+            description =
+                    "Idempotent — repeated calls from the same member are silently ignored. The client fires this once the news entry is fully visible in the viewport.",
+            tags = {"News"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void recordView(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (news.stationId() != session.stationId()) throw new NotFoundResponse();
+        newsService.recordView(id, session.member().id());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/news/{id}/views",
+            methods = HttpMethod.GET,
+            summary = "List members who saw / have not yet seen a news entry",
+            description = "Editor-only. Returns two lists: members who fully saw the news (with timestamps,"
+                    + " most recent first) and members who are eligible but have not yet been observed viewing it.",
+            tags = {"News"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = NewsViewsResponse.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void listViewers(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (news.stationId() != session.stationId()) throw new NotFoundResponse();
+        var summary = newsService.findViewerSummary(id, session.stationId());
+        ctx.json(new NewsViewsResponse(
+                summary.seen().stream().map(this::toViewerEntry).toList(),
+                summary.unseen().stream().map(this::toViewerEntry).toList()));
+    }
+
+    private NewsViewerEntry toViewerEntry(dev.chojo.ember.feature.news.entity.NewsViewer viewer) {
+        var enriched = memberNameResolver.enrichDisplay(viewer.member());
+        return new NewsViewerEntry(enriched != null ? enriched : viewer.member(), viewer.seenAt());
     }
 
     /**
@@ -887,4 +940,13 @@ public class NewsRoutes implements Routes {
     }
 
     public record PublicBlogEntry(int id, String title, String contentHtml, String authorName, Instant publishedAt) {}
+
+    /** Response shape for {@code GET /api/v1/news/{id}/views} (editors only). */
+    public record NewsViewsResponse(List<NewsViewerEntry> seen, List<NewsViewerEntry> unseen) {}
+
+    /**
+     * One viewer entry in the seen/unseen lists. {@code seenAt} is {@code null} for the
+     * unseen branch, otherwise the moment of the first view.
+     */
+    public record NewsViewerEntry(MemberIdentity member, Instant seenAt) {}
 }

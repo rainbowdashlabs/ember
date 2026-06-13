@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:12340b1b6d841ffa7064b2272bfad0548d8f7d74388e704a8b514aafd447b174",
-  "generatedAt" : "2026-06-13T21:36:39Z",
+  "schemaHash" : "sha256:2b1a9da859233bb09c3dca07dae1277cfb3113345dcfa40f14f734fb874ba621",
+  "generatedAt" : "2026-06-13T22:47:25Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -7893,6 +7893,54 @@
         "reason" : "News access restriction config, not personal data"
       },
       "description" : "Unified access restrictions for news articles."
+    },
+    "news_view" : {
+      "feature" : "news",
+      "scope" : "STATION",
+      "tableHash" : "sha256:36b8a3b643f2d809b6f6f2b3aab642442c5a064c73be30e1465ed788d8e9fe2f",
+      "columns" : [ {
+        "name" : "news_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "References the news article."
+      }, {
+        "name" : "member_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "References the station member who saw the article."
+      }, {
+        "name" : "seen_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the news first became fully visible in the member's viewport."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "member_id",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "news_id",
+        "refTable" : "news",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Per-member personal state, not part of station data"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "View telemetry — pending detailed review (parallels news_acknowledgement policy)"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "View telemetry — pending detailed review (parallels news_acknowledgement policy)"
+      },
+      "description" : "Tracks when a member fully saw a news entry in their viewport (auto-recorded by the client)."
     },
     "notification" : {
       "feature" : "notifications",

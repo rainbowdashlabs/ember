@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -22,6 +22,8 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 
 import NewsCommentSection from '@/components/comment/NewsCommentSection.vue'
+import NewsViewsModal from './listview/NewsViewsModal.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import type { NewsEntry, MemberIdentity } from '@/api/types'
 import type { FederatedNewsItem } from '@/api/news'
 import { news } from '@/api'
@@ -50,6 +52,37 @@ const federatedNews = ref<FederatedNewsItem[]>([])
 
 // Comments
 const commentsOpenId = ref<string | null>(null)
+
+// View tracking — record a view once the news entry is fully in the viewport for a moment.
+// Only fires for local news entries; federated views are tracked by the originating station.
+const recordedViews = ref<Set<number>>(new Set())
+const newsItemRefs = ref<Map<number, HTMLElement>>(new Map())
+const VIEW_OBSERVE_THRESHOLD = 1.0      // fully in viewport
+const VIEW_DWELL_MS = 800               // must stay visible this long before counting as "seen"
+const pendingDwell = new Map<number, number>()
+let intersectionObserver: IntersectionObserver | null = null
+
+// Views modal state
+const viewsModalOpen = ref(false)
+const viewsModalNewsId = ref<number | null>(null)
+const viewsModalTitle = ref<string | undefined>(undefined)
+
+function setNewsItemRef(el: Element | null, newsId: number) {
+  if (el instanceof HTMLElement) {
+    newsItemRefs.value.set(newsId, el)
+    intersectionObserver?.observe(el)
+  } else {
+    const existing = newsItemRefs.value.get(newsId)
+    if (existing) intersectionObserver?.unobserve(existing)
+    newsItemRefs.value.delete(newsId)
+  }
+}
+
+function openViewsModal(item: UnifiedNewsItem) {
+  viewsModalNewsId.value = item.id
+  viewsModalTitle.value = item.title
+  viewsModalOpen.value = true
+}
 
 interface UnifiedNewsItem {
   kind: 'local' | 'federated'
@@ -175,10 +208,53 @@ async function confirmDelete() {
 onMounted(() => {
   loadData()
   window.addEventListener('scroll', onScroll)
+
+  // Wire an IntersectionObserver to detect when a news entry is fully visible.
+  // Each entry gets a short dwell timer so a quick scroll-past doesn't count as a view.
+  intersectionObserver = new IntersectionObserver((observations) => {
+    for (const obs of observations) {
+      const idAttr = (obs.target as HTMLElement).dataset.newsId
+      if (!idAttr) continue
+      const id = Number(idAttr)
+      if (recordedViews.value.has(id)) continue
+      if (obs.isIntersecting && obs.intersectionRatio >= VIEW_OBSERVE_THRESHOLD) {
+        if (!pendingDwell.has(id)) {
+          const handle = window.setTimeout(() => {
+            pendingDwell.delete(id)
+            if (recordedViews.value.has(id)) return
+            recordedViews.value.add(id)
+            news.recordNewsView(id).catch(() => {
+              // Best-effort — let the next page reload re-attempt. Server-side
+              // INSERT … ON CONFLICT DO NOTHING means duplicate calls are a no-op.
+              recordedViews.value.delete(id)
+            })
+          }, VIEW_DWELL_MS)
+          pendingDwell.set(id, handle)
+        }
+      } else if (pendingDwell.has(id)) {
+        window.clearTimeout(pendingDwell.get(id)!)
+        pendingDwell.delete(id)
+      }
+    }
+  }, {threshold: VIEW_OBSERVE_THRESHOLD})
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', onScroll)
+  intersectionObserver?.disconnect()
+  intersectionObserver = null
+  for (const handle of pendingDwell.values()) window.clearTimeout(handle)
+  pendingDwell.clear()
+})
+
+// As the list grows (initial load + loadMore), re-observe any newly-rendered local
+// news entries. New refs are also auto-observed in setNewsItemRef when they mount.
+watch(() => entries.value.length, async () => {
+  await nextTick()
+  for (const [id, el] of newsItemRefs.value) {
+    if (recordedViews.value.has(id)) continue
+    intersectionObserver?.observe(el)
+  }
 })
 </script>
 
@@ -201,6 +277,8 @@ onUnmounted(() => {
         <NeutralContainer
           v-for="item in allNews"
           :key="itemKey(item)"
+          :ref="(el: unknown) => item.kind === 'local' ? setNewsItemRef(el as Element | null, item.id) : null"
+          :data-news-id="item.kind === 'local' ? item.id : undefined"
           class="space-y-3"
           :class="{ 'cursor-pointer hover:ring-1 hover:ring-primary transition-all': item.kind === 'federated' }"
           @click="item.kind === 'federated' ? router.push({ name: 'federated-news-detail', params: { stationUid: item.stationUid, newsId: item.id } }) : undefined"
@@ -224,6 +302,12 @@ onUnmounted(() => {
               </div>
             </div>
             <div v-if="item.kind === 'local' && canEditNews" class="flex items-center gap-1 shrink-0">
+              <IconButton
+                :icon="['fas', 'eye']"
+                :label="t('news.views.openModal')"
+                class="text-(--text-muted) hover:text-primary"
+                @click.stop="openViewsModal(item)"
+              />
               <EditButton @click.stop="router.push({ name: 'news-edit', params: { id: item.id } })" />
               <DeleteButton @click.stop="requestDelete(item.localEntry!)" />
             </div>
@@ -274,6 +358,12 @@ onUnmounted(() => {
           </div>
         </div>
       </Modal>
+
+      <NewsViewsModal
+        v-model="viewsModalOpen"
+        :news-id="viewsModalNewsId"
+        :news-title="viewsModalTitle"
+      />
     </div>
   </ViewContent>
 </template>

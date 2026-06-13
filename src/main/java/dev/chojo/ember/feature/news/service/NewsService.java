@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.comment.entity.MentionType;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
+import dev.chojo.ember.feature.news.entity.NewsViewer;
 import dev.chojo.ember.feature.news.repository.NewsRepository;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
@@ -233,6 +234,30 @@ public class NewsService {
         }
         return false;
     }
+
+    /**
+     * Records that a member fully saw a news entry in their viewport. Idempotent —
+     * repeated views by the same member are silently ignored.
+     */
+    public void recordView(int newsId, int memberId) {
+        newsRepository.recordView(newsId, memberId);
+    }
+
+    /**
+     * Returns the two lists shown in the views modal: who has seen the news (with the
+     * timestamp of their first view, newest first) and who is eligible to see it but
+     * has not yet been observed viewing it.
+     */
+    public ViewerSummary findViewerSummary(int newsId, int stationId) {
+        return new ViewerSummary(
+                newsRepository.findSeenViewers(newsId), newsRepository.findUnseenViewers(newsId, stationId));
+    }
+
+    /**
+     * The two halves of the news-views modal: members who have seen the news (with
+     * timestamps) and members who have not.
+     */
+    public record ViewerSummary(List<NewsViewer> seen, List<NewsViewer> unseen) {}
 
     /**
      * Retrieves the restriction set for a news article.

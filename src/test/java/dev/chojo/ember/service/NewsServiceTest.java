@@ -232,6 +232,21 @@ class NewsServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(28)
+    void recordAndListViewers() {
+        // Idempotent: two calls only produce one row.
+        service.recordView(newsId, member.id());
+        service.recordView(newsId, member.id());
+
+        var summary = service.findViewerSummary(newsId, station.id());
+        assertEquals(1, summary.seen().size(), "the only member should appear in the seen list");
+        assertNotNull(summary.seen().get(0).seenAt());
+        assertEquals(member.uid(), summary.seen().get(0).member().memberUid());
+        // The only eligible member has now seen the news, so unseen is empty.
+        assertEquals(0, summary.unseen().size());
+    }
+
+    @Test
     @Order(29)
     void deleteNonExistentNews() {
         assertFalse(service.delete(-999));
