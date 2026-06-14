@@ -51,10 +51,21 @@ function isOwnComment(comment: Comment): boolean {
 
 const sortDesc = ref(true)
 const newComment = ref('')
+const newCommentExpanded = ref(false)
 const replyingTo = ref<number | null>(null)
 const replyContent = ref('')
 const editingId = ref<number | null>(null)
 const editContent = ref('')
+
+function onNewCommentFocus() {
+  newCommentExpanded.value = true
+}
+
+function onNewCommentBlur() {
+  if (!newComment.value.trim()) {
+    newCommentExpanded.value = false
+  }
+}
 
 const rootComments = computed(() => {
   const filtered = props.comments.filter(c => (c.parentId ?? null) === (props.parentId ?? null))
@@ -151,6 +162,7 @@ function postTopLevel() {
   if (!newComment.value.trim()) return
   emit('create', props.parentId ?? null, newComment.value.trim())
   newComment.value = ''
+  newCommentExpanded.value = false
 }
 
 const maxDepth = 6
@@ -159,9 +171,10 @@ const maxDepth = 6
 <template>
   <div :class="(depth ?? 0) > 0 ? 'ml-4 pl-3 border-l-2 border-(--border)' : ''">
     <!-- Top-level new comment input (only at root depth, when not readonly) -->
-    <div v-if="(depth ?? 0) === 0 && !readonly" class="space-y-2 mb-4">
-      <MentionInput v-model="newComment" :members="members" :groups="groups" :special-mentions="specialMentions" :placeholder="t('comments.placeholder')"/>
-      <div class="flex gap-2">
+    <div v-if="(depth ?? 0) === 0 && !readonly" class="space-y-2 mb-4" @focusin="onNewCommentFocus" @focusout="onNewCommentBlur" @click="onNewCommentFocus">
+      <MentionInput v-model="newComment" :members="members" :groups="groups" :special-mentions="specialMentions" :placeholder="t('comments.placeholder')" :expanded="newCommentExpanded"/>
+      <MutedText v-if="newCommentExpanded" size="xs">{{ t('comments.mentionHint') }}</MutedText>
+      <div v-if="newCommentExpanded" class="flex gap-2">
         <PrimaryButton :disabled="!newComment.trim()" compact @click="postTopLevel">{{ t('comments.post') }}</PrimaryButton>
       </div>
     </div>

@@ -33,23 +33,35 @@ async function loadComments() {
     const rawComments = props.stationUid
       ? await news.listFederatedNewsComments(props.stationUid, props.newsId)
       : await news.listComments(props.newsId)
-    const [m, g] = await Promise.all([
-      stationMembers.listCompletions({type: 'NEWS', entityId: props.newsId}),
-      memberGroups.listGroups(),
-    ])
-    // Adapt NewsComment to generic Comment interface
+    // Adapt NewsComment to generic Comment interface. Federated comments arrive with
+    // author.name === null because the partner station's member isn't known locally;
+    // backfill from authorName so MemberName/UserAvatar have something to render.
     commentsList.value = rawComments.map(c => ({
       id: c.id,
       parentId: c.parentId,
-      author: c.author,
+      author: c.author
+        ? {...c.author, name: c.author.name || c.authorName || null}
+        : null,
       authorName: c.authorName,
       content: c.content,
       deleted: c.deleted,
       createdAt: c.createdAt,
       updatedAt: c.updatedAt ?? null,
     }))
-    members.value = m
-    groups.value = g
+    // Mention suggestions: only meaningful for local news. For federated news the
+    // local station's members/groups don't apply, and a local NEWS entityId lookup
+    // would 404 on the completions endpoint and tank the whole load.
+    if (props.stationUid) {
+      members.value = []
+      groups.value = []
+    } else {
+      const [m, g] = await Promise.all([
+        stationMembers.listCompletions({type: 'NEWS', entityId: props.newsId}),
+        memberGroups.listGroups(),
+      ])
+      members.value = m
+      groups.value = g
+    }
   } catch { error.value = t('common.error') }
   finally { loading.value = false }
 }

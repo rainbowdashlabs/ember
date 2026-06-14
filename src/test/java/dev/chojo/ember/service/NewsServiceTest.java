@@ -248,6 +248,15 @@ class NewsServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(29)
+    void countViewsAndHasViewed() {
+        // Order 28 (recordAndListViewers) already recorded a view for member.
+        assertEquals(1, service.countViews(newsId));
+        assertTrue(service.hasViewed(newsId, member.id()));
+        assertFalse(service.hasViewed(newsId, -42));
+    }
+
+    @Test
+    @Order(29)
     void deleteNonExistentNews() {
         assertFalse(service.delete(-999));
     }

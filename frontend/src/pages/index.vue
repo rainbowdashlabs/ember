@@ -12,7 +12,7 @@ useCanonical('/')
 useHead({
   title: 'Digitale Verwaltung für Jugendfeuerwehren',
   meta: [
-    {name: 'description', content: 'Ember ist die kostenlose Open-Source-Plattform für Jugendfeuerwehren — Termine, Anwesenheit, Inventar, Wissensdatenbank und mehr.'},
+    {name: 'description', content: 'Ember ist die kostenlose Open-Source-Plattform für Jugendfeuerwehren — Termine, Anwesenheit, Inventar, Wiki und mehr.'},
     {property: 'og:title', content: 'Ember — Digitale Verwaltung für Jugendfeuerwehren'},
     {property: 'og:description', content: 'Kostenlose Open-Source-Verwaltungsplattform für Jugendfeuerwehren.'},
     {property: 'og:type', content: 'website'},

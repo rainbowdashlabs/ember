@@ -38,3 +38,11 @@ INSERT INTO ember_schema.station_permission (name) VALUES
     ('PAGE_EDIT'),
     ('PAGE_MANAGER')
 ON CONFLICT (name) DO NOTHING;
+
+-- Optional display color for an event category. Shown as the chip background in the calendar
+-- view. Stored as a 7-char hex string (#RRGGBB); NULL means "no custom color" — the calendar
+-- falls back to the default primary tint.
+ALTER TABLE ember_schema.event_category
+    ADD COLUMN color TEXT;
+
+COMMENT ON COLUMN ember_schema.event_category.color IS 'Optional display color for the category as a #RRGGBB hex string. Used as the calendar chip background; NULL falls back to the default primary tint.';

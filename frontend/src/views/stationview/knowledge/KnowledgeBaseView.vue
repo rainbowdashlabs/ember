@@ -53,9 +53,9 @@ const filterStationId = ref<string | null>(null)
 const filterTag = ref('')
 const allKbTags = ref<import('@/api/knowledgeBase').KbTag[]>([])
 
-// Tag filter cache (lazily populated when a tag filter is active).
-const {fileMatchesTagFilter: matchTag, ensureFileTagsLoaded} = useKbTagFilter()
-const fileMatchesTagFilter = (fileId: number) => matchTag(fileId, filterTag.value)
+const {fileMatchesTagFilter: mt, folderHasTaggedDescendant: fht, ensureFileTagsLoaded, ensureTagScopeLoaded} = useKbTagFilter()
+const fileMatchesTagFilter = (id: number) => mt(id, filterTag.value)
+const folderHasTaggedDescendant = (id: number) => fht(id, filterTag.value)
 
 // Unique station names from shared files
 const partnerStations = computed(() => {
@@ -76,9 +76,9 @@ const filteredSharedFiles = computed(() => {
 
 const filteredFolders = computed(() => {
     if (filterStationId.value != null) return []
-    // Folders themselves don't carry tags here; when a tag filter is active,
-    // hide folders so the user only sees files that match the tag.
-    if (filterTag.value) return []
+    // When a tag filter is active, keep subfolders whose subtree contains at
+    // least one matching file so the user can navigate down to the matches.
+    if (filterTag.value) return folders.value.filter(f => folderHasTaggedDescendant(f.id))
     return folders.value
 })
 const filteredFiles = computed(() => {
@@ -258,21 +258,15 @@ async function loadTags() {
     catch { /* silent */ }
 }
 
-// Trigger tag loading whenever the tag filter is active and the visible
-// file set changes. Also runs once when the user first picks a tag.
-watch(
-    [filterTag, files, searchResults],
-    () => {
-        if (!filterTag.value) return
-        const ids = new Set<number>()
-        for (const f of files.value) ids.add(f.id)
-        for (const r of searchResults.value) {
-            if (!r.stationName) ids.add(r.file.id)
-        }
-        if (ids.size > 0) ensureFileTagsLoaded([...ids])
-    },
-    {immediate: true},
-)
+watch(filterTag, (tag) => { ensureTagScopeLoaded(tag) }, {immediate: true})
+
+watch([filterTag, files, searchResults], () => {
+    if (!filterTag.value) return
+    const ids = new Set<number>()
+    for (const f of files.value) ids.add(f.id)
+    for (const r of searchResults.value) if (!r.stationName) ids.add(r.file.id)
+    if (ids.size > 0) ensureFileTagsLoaded([...ids])
+}, {immediate: true})
 
 function openEditFolder(folder: KbFolder) {
     editFolderData.value = folder

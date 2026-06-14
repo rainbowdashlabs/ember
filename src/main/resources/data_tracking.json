@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:2b1a9da859233bb09c3dca07dae1277cfb3113345dcfa40f14f734fb874ba621",
-  "generatedAt" : "2026-06-13T22:47:25Z",
+  "schemaHash" : "sha256:6cc0ba04951ae67fa954b9f5940e6bdb1ccd5d991e79af8a3282769f5a695ffd",
+  "generatedAt" : "2026-06-14T12:26:56Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -2574,7 +2574,7 @@
     "event_category" : {
       "feature" : "events",
       "scope" : "STATION",
-      "tableHash" : "sha256:1a20f7e202ad254d2a140c83f0e3b2ecf67654022afba588cf147586ac172e24",
+      "tableHash" : "sha256:64fb4b9a48976888f59b356c5eda6138e09ed42379c934e92c1bde07e4a6ac13",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -2611,6 +2611,12 @@
         "nullable" : false,
         "verified" : true,
         "description" : "Whether events in this category are public by default."
+      }, {
+        "name" : "color",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Optional display color for the category as a #RRGGBB hex string. Used as the calendar chip background; NULL falls back to the default primary tint."
       } ],
       "foreignKeys" : [ {
         "column" : "station_id",

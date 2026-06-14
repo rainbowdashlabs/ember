@@ -494,6 +494,13 @@ public class KnowledgeBaseRepository {
                 .all();
     }
 
+    public List<KbFolder> findAllFolders(int stationId) {
+        return query("SELECT %s FROM kb_folder fo WHERE fo.station_id = :station_id;", FOLDER_COLUMNS)
+                .single(call().bind("station_id", stationId))
+                .map(KbFolder.map())
+                .all();
+    }
+
     public List<KbFile> findFilesByTag(int stationId, String tagName) {
         return query("""
                         SELECT

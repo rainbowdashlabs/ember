@@ -4,9 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, ref} from 'vue'
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
+import ToggleSwitch from '@/components/input/toggle/ToggleSwitch.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
 import type {MemberGroup, StationMember, UserTag} from '@/api/types'
@@ -92,13 +92,10 @@ function onMembersChange(values: string[]) {
   emit('update:selectedMemberIds', values.map(Number))
 }
 
-const internalMode = ref<'AND' | 'OR'>(props.mode ?? 'AND')
-
-function setMode(mode: 'AND' | 'OR') {
-  if (internalMode.value === mode) return
-  internalMode.value = mode
-  emit('update:mode', mode)
-}
+const modeModel = computed<'AND' | 'OR'>({
+  get: () => props.mode ?? 'AND',
+  set: (value) => emit('update:mode', value),
+})
 
 const hasActiveSelection = computed(() =>
     props.selectedUserTypes.length > 0 || props.selectedGroupIds.length > 0 || props.selectedTagIds.length > 0 || props.selectedMemberIds.length > 0
@@ -114,17 +111,15 @@ function reset() {
 
 <template>
   <div class="flex flex-wrap items-center gap-3">
-    <!-- AND/OR toggle (only between groups and tags — user types are always OR).
-         Two side-by-side toggles so both options are visible at all times and it's
-         obvious the user is picking between them. -->
-    <div v-if="showMode && (showGroups || showTags)" class="inline-flex items-center gap-1">
-      <SelectionToggleButton :selected="internalMode === 'AND'" size="sm" @toggle="setMode('AND')">
-        {{ t('restriction.and') }}
-      </SelectionToggleButton>
-      <SelectionToggleButton :selected="internalMode === 'OR'" size="sm" @toggle="setMode('OR')">
-        {{ t('restriction.or') }}
-      </SelectionToggleButton>
-    </div>
+    <!-- AND/OR toggle (only between groups and tags — user types are always OR). -->
+    <ToggleSwitch
+        v-if="showMode && (showGroups || showTags)"
+        v-model="modeModel"
+        option-a="AND"
+        option-b="OR"
+        :label-a="t('restriction.and')"
+        :label-b="t('restriction.or')"
+    />
 
     <!-- User types dropdown (always OR-connected) -->
     <MultiSelectDropdown

@@ -299,6 +299,7 @@ export interface EventCategory {
     maxShownEvents?: number | null
     isPublic?: boolean
     registrationLimit?: number | null
+    color?: string | null
 }
 
 export interface CategoryRequest {
@@ -307,6 +308,7 @@ export interface CategoryRequest {
     maxShownEvents?: number | null
     isPublic?: boolean
     registrationLimit?: number | null
+    color?: string | null
 }
 
 export interface StationEvent {
@@ -1279,6 +1281,8 @@ export interface NewsEntry {
     commentCount: number
     restricted?: boolean
     publicBlog?: boolean
+    viewCount: number
+    viewedByMe: boolean
 }
 
 export interface NewsRequest {

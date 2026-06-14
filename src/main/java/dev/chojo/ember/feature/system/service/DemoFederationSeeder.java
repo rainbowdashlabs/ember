@@ -348,7 +348,7 @@ public class DemoFederationSeeder {
         }
 
         // Create a public event on the partner station (visible via federation)
-        var eventCategory = eventService.createCategory(partnerStation.id(), "Gemeinsame Übung", 0);
+        var eventCategory = eventService.createCategory(partnerStation.id(), "Gemeinsame Übung", 0, "#3694ff");
         Instant nextSatStart = LocalDate.now()
                 .plusDays(14 - LocalDate.now().getDayOfWeek().getValue() % 7)
                 .atTime(9, 0)

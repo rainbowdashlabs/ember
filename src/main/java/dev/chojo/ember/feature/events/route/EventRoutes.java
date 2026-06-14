@@ -961,7 +961,7 @@ public class EventRoutes implements Routes {
         var req = ctx.bodyAsClass(CategoryRequest.class);
         if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
         ctx.status(HttpStatus.CREATED)
-                .json(eventService.createCategory(session.stationId(), req.name(), req.position()));
+                .json(eventService.createCategory(session.stationId(), req.name(), req.position(), req.color()));
     }
 
     @OpenApi(
@@ -984,7 +984,12 @@ public class EventRoutes implements Routes {
         }
         var req = ctx.bodyAsClass(CategoryRequest.class);
         if (!eventService.updateCategory(
-                id, req.name(), req.position(), req.maxShownEvents(), req.isPublic() != null && req.isPublic())) {
+                id,
+                req.name(),
+                req.position(),
+                req.maxShownEvents(),
+                req.isPublic() != null && req.isPublic(),
+                req.color())) {
             throw new NotFoundResponse();
         }
         ctx.status(HttpStatus.OK).json(new MessageResponse("Updated"));
@@ -1399,7 +1404,7 @@ public class EventRoutes implements Routes {
 
     public record BreakRequest(String name, LocalDate startDate, LocalDate endDate) {}
 
-    public record CategoryRequest(String name, int position, Integer maxShownEvents, Boolean isPublic) {}
+    public record CategoryRequest(String name, int position, Integer maxShownEvents, Boolean isPublic, String color) {}
 
     public record ReorderCategoriesRequest(List<Integer> orderedIds) {}
 

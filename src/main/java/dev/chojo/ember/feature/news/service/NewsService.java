@@ -245,6 +245,20 @@ public class NewsService {
     }
 
     /**
+     * Counts how many distinct members have viewed a news entry.
+     */
+    public int countViews(int newsId) {
+        return newsRepository.countViews(newsId);
+    }
+
+    /**
+     * Checks whether a specific member has viewed a news entry.
+     */
+    public boolean hasViewed(int newsId, int memberId) {
+        return newsRepository.hasViewed(newsId, memberId);
+    }
+
+    /**
      * Returns the two lists shown in the views modal: who has seen the news (with the
      * timestamp of their first view, newest first) and who is eligible to see it but
      * has not yet been observed viewing it.

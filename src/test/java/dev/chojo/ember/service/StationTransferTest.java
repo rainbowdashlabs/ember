@@ -203,8 +203,8 @@ class StationTransferTest extends RepositoryTestBase {
                 0);
 
         // --- Event categories ---
-        var catTraining = eventRepo.createCategory(sourceStationId, "Training", 0);
-        var catSonder = eventRepo.createCategory(sourceStationId, "Sondertermin", 1);
+        var catTraining = eventRepo.createCategory(sourceStationId, "Training", 0, "#ff6421");
+        var catSonder = eventRepo.createCategory(sourceStationId, "Sondertermin", 1, null);
 
         // --- Events ---
         var now = Instant.now();

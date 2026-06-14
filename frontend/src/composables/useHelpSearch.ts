@@ -146,12 +146,12 @@ const HELP_PAGE_MAP: { route: string; path: string; i18nPrefix: string; section:
     {route: 'help-board-settings', path: '/helpcenter/station/boards/BOARD/settings', i18nPrefix: 'helpCenter.boardSettings', section: 'Boards > Einstellungen'},
     {route: 'help-federated-boards', path: '/helpcenter/station/federation/boards', i18nPrefix: 'helpCenter.federatedBoards', section: 'Boards > Föderierte Boards'},
     // Knowledge Base
-    {route: 'help-knowledge-module-overview', path: '/helpcenter/station/knowledge', i18nPrefix: 'helpCenter.knowledgeModuleOverview', section: 'Lernsammlung'},
-    {route: 'help-knowledge-base', path: '/helpcenter/station/knowledge/browse', i18nPrefix: 'helpCenter.kb', section: 'Lernsammlung > Durchsuchen'},
-    {route: 'help-knowledge-editor', path: '/helpcenter/station/knowledge/editor', i18nPrefix: 'helpCenter.kb.editor', section: 'Lernsammlung > Editor'},
-    {route: 'help-knowledge-federated', path: '/helpcenter/station/knowledge/federated', i18nPrefix: 'helpCenter.federatedKb', section: 'Lernsammlung > Geteilte Inhalte'},
-    {route: 'help-kb-file', path: '/helpcenter/station/knowledge/file/0', i18nPrefix: 'helpCenter.kbFileView', section: 'Lernsammlung > Datei anzeigen'},
-    {route: 'help-kb-versions', path: '/helpcenter/station/knowledge/file/0/versions', i18nPrefix: 'helpCenter.kbVersions', section: 'Lernsammlung > Versionsverlauf'},
+    {route: 'help-knowledge-module-overview', path: '/helpcenter/station/knowledge', i18nPrefix: 'helpCenter.knowledgeModuleOverview', section: 'Wiki'},
+    {route: 'help-knowledge-base', path: '/helpcenter/station/knowledge/browse', i18nPrefix: 'helpCenter.kb', section: 'Wiki > Durchsuchen'},
+    {route: 'help-knowledge-editor', path: '/helpcenter/station/knowledge/editor', i18nPrefix: 'helpCenter.kb.editor', section: 'Wiki > Editor'},
+    {route: 'help-knowledge-federated', path: '/helpcenter/station/knowledge/federated', i18nPrefix: 'helpCenter.federatedKb', section: 'Wiki > Geteilte Inhalte'},
+    {route: 'help-kb-file', path: '/helpcenter/station/knowledge/file/0', i18nPrefix: 'helpCenter.kbFileView', section: 'Wiki > Datei anzeigen'},
+    {route: 'help-kb-versions', path: '/helpcenter/station/knowledge/file/0/versions', i18nPrefix: 'helpCenter.kbVersions', section: 'Wiki > Versionsverlauf'},
     // Public Pages
     {route: 'help-pages', path: '/helpcenter/station/pages', i18nPrefix: 'helpCenter.pages', section: 'Öffentliche Seiten'},
     // Admin

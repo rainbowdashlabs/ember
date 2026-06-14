@@ -101,6 +101,7 @@ public class NewsRoutes implements Routes {
 
         // View tracking — anyone can record a view; only editors can read the seen/unseen lists.
         routes.post(prefix + "/news/{id}/view", this::recordView, StationPermission.LOGIN);
+        routes.get(prefix + "/news/{id}/view-count", this::getViewCount, StationPermission.NEWS_EDIT);
         routes.get(prefix + "/news/{id}/views", this::listViewers, StationPermission.NEWS_EDIT);
 
         // Federation sharing management
@@ -158,8 +159,9 @@ public class NewsRoutes implements Routes {
             newsList = newsService.findVisibleForMember(
                     session.stationId(), session.member().id(), offset, limit);
         }
+        int memberId = session.member().id();
         ctx.json(newsList.stream()
-                .map(n -> toResponse(n, session.hasPermission(StationPermission.NEWS_MANAGER)))
+                .map(n -> toResponse(n, session.hasPermission(StationPermission.NEWS_MANAGER), memberId))
                 .toList());
     }
 
@@ -176,10 +178,12 @@ public class NewsRoutes implements Routes {
     private void get(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         UserSession session = UserSession.from(ctx);
+        int memberId = session.member().id();
         newsService
                 .findById(id)
                 .ifPresentOrElse(
-                        news -> ctx.json(toResponse(news, session.hasPermission(StationPermission.NEWS_MANAGER))),
+                        news -> ctx.json(
+                                toResponse(news, session.hasPermission(StationPermission.NEWS_MANAGER), memberId)),
                         () -> {
                             throw new NotFoundResponse();
                         });
@@ -216,7 +220,8 @@ public class NewsRoutes implements Routes {
             newsService.updatePublicBlog(news.id(), request.publicBlog());
         }
         var result = newsService.findById(news.id()).orElse(news);
-        ctx.status(HttpStatus.CREATED).json(toResponse(result, true));
+        ctx.status(HttpStatus.CREATED)
+                .json(toResponse(result, true, session.member().id()));
     }
 
     @OpenApi(
@@ -254,7 +259,7 @@ public class NewsRoutes implements Routes {
                                 newsService.updatePublicBlog(updated.id(), request.publicBlog());
                             }
                             var result = newsService.findById(updated.id()).orElse(updated);
-                            ctx.json(toResponse(result, true));
+                            ctx.json(toResponse(result, true, session.member().id()));
                         },
                         () -> {
                             throw new NotFoundResponse();
@@ -286,13 +291,15 @@ public class NewsRoutes implements Routes {
     }
 
     /**
-     * Converts a {@link News} entity to an API response, resolving the author name and comment count.
+     * Converts a {@link News} entity to an API response, resolving the author name, comment
+     * count, and view stats for the requesting member.
      *
      * @param news                the news entity
      * @param includeRestrictions whether to include group restriction IDs in the response
+     * @param viewerMemberId      the member ID of the requesting user (for {@code viewedByMe})
      * @return the news response DTO
      */
-    private NewsResponse toResponse(News news, boolean includeRestrictions) {
+    private NewsResponse toResponse(News news, boolean includeRestrictions, int viewerMemberId) {
         var resolved = news.author() != null ? memberNameResolver.resolveDisplay(news.author()) : null;
         String authorName = resolved != null && resolved.name() != null ? resolved.name() : "";
         List<StationUserType> userTypes = List.of();
@@ -307,6 +314,8 @@ public class NewsRoutes implements Routes {
             memberIds = restrictions.memberIds();
         }
         int commentCount = newsService.countComments(news.id());
+        int viewCount = newsService.countViews(news.id());
+        boolean viewedByMe = newsService.hasViewed(news.id(), viewerMemberId);
         return new NewsResponse(
                 news.id(),
                 news.stationId(),
@@ -322,7 +331,9 @@ public class NewsRoutes implements Routes {
                 tagIds,
                 memberIds,
                 commentCount,
-                news.publicBlog());
+                news.publicBlog(),
+                viewCount,
+                viewedByMe);
     }
 
     // -- Comments --
@@ -466,6 +477,25 @@ public class NewsRoutes implements Routes {
         ctx.json(new NewsViewsResponse(
                 summary.seen().stream().map(this::toViewerEntry).toList(),
                 summary.unseen().stream().map(this::toViewerEntry).toList()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/news/{id}/view-count",
+            methods = HttpMethod.GET,
+            summary = "Get the current view count for a news entry",
+            description = "Editor-only. Lightweight endpoint for the badge to refresh after a view is recorded.",
+            tags = {"News"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = NewsViewCountResponse.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void getViewCount(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (news.stationId() != session.stationId()) throw new NotFoundResponse();
+        ctx.json(new NewsViewCountResponse(newsService.countViews(id)));
     }
 
     private NewsViewerEntry toViewerEntry(NewsViewer viewer) {
@@ -828,7 +858,9 @@ public class NewsRoutes implements Routes {
             List<Integer> tagIds,
             List<Integer> memberIds,
             int commentCount,
-            boolean publicBlog) {}
+            boolean publicBlog,
+            int viewCount,
+            boolean viewedByMe) {}
 
     /**
      * Request body for creating or updating a comment.
@@ -953,4 +985,7 @@ public class NewsRoutes implements Routes {
      * unseen branch, otherwise the moment of the first view.
      */
     public record NewsViewerEntry(MemberIdentity member, Instant seenAt) {}
+
+    /** Lightweight response for {@code GET /api/v1/news/{id}/view-count} (editors only). */
+    public record NewsViewCountResponse(int count) {}
 }

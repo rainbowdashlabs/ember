@@ -59,10 +59,11 @@ class EventRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void createCategory() {
-        EventCategory cat = eventRepo.createCategory(station.id(), "Training", 1);
+        EventCategory cat = eventRepo.createCategory(station.id(), "Training", 1, "#ff6421");
         assertNotNull(cat);
         assertEquals("Training", cat.name());
         assertEquals(1, cat.position());
+        assertEquals("#ff6421", cat.color());
         categoryId = cat.id();
     }
 
@@ -77,10 +78,11 @@ class EventRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(3)
     void updateCategory() {
-        assertTrue(eventRepo.updateCategory(categoryId, "Exercise", 2, null, false));
+        assertTrue(eventRepo.updateCategory(categoryId, "Exercise", 2, null, false, "#3694ff"));
         var cats = eventRepo.findCategoriesByStation(station.id());
         assertEquals("Exercise", cats.getFirst().name());
         assertEquals(2, cats.getFirst().position());
+        assertEquals("#3694ff", cats.getFirst().color());
     }
 
     // -- Events --
@@ -389,7 +391,7 @@ class EventRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(45)
     void reorderCategories() {
-        var cat2 = eventRepo.createCategory(station.id(), "Cat2", 2);
+        var cat2 = eventRepo.createCategory(station.id(), "Cat2", 2, null);
         assertDoesNotThrow(() -> eventRepo.reorderCategories(List.of(categoryId, cat2.id())));
         eventRepo.deleteCategory(cat2.id());
     }
@@ -492,7 +494,7 @@ class EventRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(93)
     void findFilteredByMember() {
-        var cat = eventRepo.createCategory(station.id(), "FilterCat", 0);
+        var cat = eventRepo.createCategory(station.id(), "FilterCat", 0, null);
         var tmpEvent = eventRepo.create(
                 station.id(),
                 "Member Filtered",
@@ -521,7 +523,7 @@ class EventRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(94)
     void findFilteredByCategory() {
-        var cat = eventRepo.createCategory(station.id(), "FilterCat2", 0);
+        var cat = eventRepo.createCategory(station.id(), "FilterCat2", 0, null);
         var tmpEvent = eventRepo.create(
                 station.id(),
                 "Cat Filtered",
@@ -579,7 +581,7 @@ class EventRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(96)
     void findFilteredAllParams() {
-        var cat = eventRepo.createCategory(station.id(), "AllFilterCat", 0);
+        var cat = eventRepo.createCategory(station.id(), "AllFilterCat", 0, null);
         var tmpEvent = eventRepo.create(
                 station.id(),
                 "All Params",
@@ -682,7 +684,7 @@ class EventRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(106)
     void updateCategoryNotFound() {
-        assertFalse(eventRepo.updateCategory(99999, "X", 0, null, false));
+        assertFalse(eventRepo.updateCategory(99999, "X", 0, null, false, null));
     }
 
     @Test

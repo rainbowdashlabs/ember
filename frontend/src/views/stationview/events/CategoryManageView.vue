@@ -14,6 +14,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import ColorInput from '@/components/input/ColorInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -38,6 +39,7 @@ const editId = ref<number | null>(null)
 const editName = ref('')
 const editMaxShown = ref<number | null>(null)
 const editPublic = ref(false)
+const editColor = ref<string>('')
 const saving = ref(false)
 
 // Delete modal
@@ -63,6 +65,7 @@ function openCreate() {
   editName.value = ''
   editMaxShown.value = null
   editPublic.value = false
+  editColor.value = ''
   editOpen.value = true
 }
 
@@ -71,13 +74,20 @@ function openEdit(cat: EventCategory) {
   editName.value = cat.name ?? ''
   editMaxShown.value = cat.maxShownEvents ?? null
   editPublic.value = cat.isPublic ?? false
+  editColor.value = cat.color ?? ''
   editOpen.value = true
 }
 
 async function saveCategory() {
   saving.value = true
   try {
-    const data = {name: editName.value, position: 0, maxShownEvents: editMaxShown.value || null, isPublic: editPublic.value}
+    const data = {
+      name: editName.value,
+      position: 0,
+      maxShownEvents: editMaxShown.value || null,
+      isPublic: editPublic.value,
+      color: editColor.value ? editColor.value : null,
+    }
     if (editId.value) {
       await events.updateCategory(editId.value, data)
     } else {
@@ -146,7 +156,13 @@ async function moveDown(index: number) {
           :key="cat.id"
           class="flex items-center justify-between"
       >
-        <div>
+        <div class="flex items-center gap-2">
+          <span
+              v-if="cat.color"
+              class="inline-block w-4 h-4 rounded border border-(--border) shrink-0"
+              :style="{ backgroundColor: cat.color }"
+              :aria-label="t('categoryManage.color')"
+          />
           <span class="font-medium">{{ cat.name }}</span>
           <MutedText v-if="cat.maxShownEvents" tag="span" size="sm" class="ml-2">
             ({{ t('categoryManage.maxShown', {count: cat.maxShownEvents}) }})
@@ -177,6 +193,16 @@ async function moveDown(index: number) {
         <div class="flex items-center justify-between">
           <FieldLabel>{{ t('categoryManage.public') }}</FieldLabel>
           <ToggleInput v-model="editPublic"/>
+        </div>
+        <div class="space-y-1">
+          <FieldLabel>{{ t('categoryManage.color') }}</FieldLabel>
+          <div class="flex items-center gap-2">
+            <ColorInput v-model="editColor"/>
+            <SecondaryButton v-if="editColor" @click="editColor = ''">
+              <font-awesome-icon :icon="['fas', 'xmark']"/>
+            </SecondaryButton>
+          </div>
+          <MutedText tag="p" size="sm">{{ t('categoryManage.colorHint') }}</MutedText>
         </div>
 
         <div class="flex justify-end gap-3">

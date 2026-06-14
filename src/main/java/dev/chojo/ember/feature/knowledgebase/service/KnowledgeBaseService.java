@@ -701,6 +701,10 @@ public class KnowledgeBaseService {
         return repository.findFilesByTag(stationId, tagName);
     }
 
+    public List<KbFolder> findAllFolders(int stationId) {
+        return repository.findAllFolders(stationId);
+    }
+
     public List<KbTag> setFileTags(int fileId, List<String> tagNames, int stationId) {
         repository.setFileTags(fileId, tagNames, stationId);
         return repository.findFileTags(fileId);

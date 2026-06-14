@@ -328,7 +328,7 @@ const router = createRouter({
                     component: () => import('@/views/stationview/members/waitinglist/EntryDetailView.vue'),
                 },
                 {
-                    path: 'inventory/overview',
+                    path: 'inventory',
                     name: 'inventory-overview',
                     component: InventoryOverviewView,
                 },

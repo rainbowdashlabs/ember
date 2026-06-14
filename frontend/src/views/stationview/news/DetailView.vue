@@ -19,6 +19,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import NewsCommentSection from '@/components/comment/NewsCommentSection.vue'
+import NewsViewBadge from '@/components/news/NewsViewBadge.vue'
 import type {NewsEntry} from '@/api/types'
 import {news} from '@/api'
 import {useSession} from '@/composables/useSession'
@@ -33,6 +34,8 @@ const loading = ref(true)
 const error = ref('')
 const showDeleteModal = ref(false)
 const highlightCommentId = ref<number | null>(null)
+const viewBadge = ref<{refresh: () => Promise<void>} | null>(null)
+const recordedViewIds = new Set<number>()
 
 async function loadData() {
   loading.value = true
@@ -40,6 +43,14 @@ async function loadData() {
   try {
     const id = Number(route.params.id)
     entry.value = await news.getNews(id)
+    // Record a view on detail open. Idempotent on the server (ON CONFLICT DO NOTHING),
+    // and we also guard locally so re-entering the page in the same session doesn't spam.
+    // The badge fetches its own count on mount and refreshes here once the view is in.
+    if (entry.value && !recordedViewIds.has(id)) {
+      recordedViewIds.add(id)
+      news.recordNewsView(id).then(() => viewBadge.value?.refresh())
+        .catch(() => recordedViewIds.delete(id))
+    }
   } catch {
     error.value = t('common.error')
   } finally {
@@ -113,6 +124,7 @@ watch(loading, (isLoading) => {
             </div>
           </div>
           <div v-if="canManageNews()" class="flex items-center gap-1 shrink-0">
+            <NewsViewBadge ref="viewBadge" :news-id="entry.id" :initial-count="entry.viewCount ?? 0" :news-title="entry.title"/>
             <EditButton @click="router.push({name: 'news-edit', params: {id: entry.id}})"/>
             <DeleteButton @click="showDeleteModal = true"/>
           </div>

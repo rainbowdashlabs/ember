@@ -144,7 +144,7 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
         userTagRepo.create(sourceStationId, "Tag1");
         userTagRepo.create(sourceStationId, "Tag2");
 
-        eventRepo.createCategory(sourceStationId, "Cat", 0);
+        eventRepo.createCategory(sourceStationId, "Cat", 0, null);
         inventoryRepo.create(
                 sourceStationId, "Inv", dev.chojo.ember.feature.inventory.entity.InventoryType.INTERNAL, false);
 

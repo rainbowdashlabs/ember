@@ -65,9 +65,10 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void createCategory() {
-        var cat = service.createCategory(station.id(), "Training", 0);
+        var cat = service.createCategory(station.id(), "Training", 0, "#ff6421");
         assertNotNull(cat);
         assertEquals("Training", cat.name());
+        assertEquals("#ff6421", cat.color());
         categoryId = cat.id();
     }
 
@@ -267,16 +268,17 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(52)
     void updateCategory() {
-        boolean updated = service.updateCategory(categoryId, "Updated Training", 1, null, false);
+        boolean updated = service.updateCategory(categoryId, "Updated Training", 1, null, false, "#73ceff");
         assertTrue(updated);
         var found = service.findCategoryById(categoryId).orElseThrow();
         assertEquals("Updated Training", found.name());
+        assertEquals("#73ceff", found.color());
     }
 
     @Test
     @Order(53)
     void reorderCategories() {
-        var cat2 = service.createCategory(station.id(), "Category 2", 1);
+        var cat2 = service.createCategory(station.id(), "Category 2", 1, null);
         // Reorder: put cat2 first, categoryId second
         service.reorderCategories(List.of(cat2.id(), categoryId));
         // Just verify no exception is thrown and both still exist
@@ -288,7 +290,7 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(54)
     void deleteCategory() {
-        var cat = service.createCategory(station.id(), "Temp Cat", 99);
+        var cat = service.createCategory(station.id(), "Temp Cat", 99, null);
         assertTrue(service.deleteCategory(cat.id()));
         assertTrue(service.findCategoryById(cat.id()).isEmpty());
     }

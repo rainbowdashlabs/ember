@@ -391,6 +391,35 @@ public class NewsRepository {
     }
 
     /**
+     * Counts how many distinct members have viewed a news entry.
+     *
+     * @param newsId the news article ID
+     * @return view count
+     */
+    public int countViews(int newsId) {
+        return query("SELECT count(*) AS cnt FROM news_view WHERE news_id = :news_id;")
+                .single(call().bind("news_id", newsId))
+                .map(row -> row.getInt("cnt"))
+                .first()
+                .orElse(0);
+    }
+
+    /**
+     * Checks whether a specific member has viewed a news entry.
+     *
+     * @param newsId   the news article ID
+     * @param memberId the member ID
+     * @return {@code true} if the member has viewed the article
+     */
+    public boolean hasViewed(int newsId, int memberId) {
+        return query("SELECT 1 FROM news_view WHERE news_id = :news_id AND member_id = :member_id;")
+                .single(call().bind("news_id", newsId).bind("member_id", memberId))
+                .map(row -> true)
+                .first()
+                .isPresent();
+    }
+
+    /**
      * Returns every active station member who is allowed to see the news (per restrictions)
      * but has not yet been observed viewing it. {@code seenAt} on the returned rows is always
      * {@code null}.

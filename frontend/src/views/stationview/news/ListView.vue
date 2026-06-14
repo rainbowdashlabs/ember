@@ -22,8 +22,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 
 import NewsCommentSection from '@/components/comment/NewsCommentSection.vue'
-import NewsViewsModal from './listview/NewsViewsModal.vue'
-import IconButton from '@/components/button/IconButton.vue'
+import NewsViewBadge from '@/components/news/NewsViewBadge.vue'
 import type { NewsEntry, MemberIdentity } from '@/api/types'
 import type { FederatedNewsItem } from '@/api/news'
 import { news } from '@/api'
@@ -53,22 +52,38 @@ const federatedNews = ref<FederatedNewsItem[]>([])
 // Comments
 const commentsOpenId = ref<string | null>(null)
 
-// View tracking — record a view once the news entry is fully in the viewport for a moment.
+// View tracking — record a view once the news entry has been meaningfully visible for a moment.
 // Only fires for local news entries; federated views are tracked by the originating station.
+// The trigger is "either half of the card is visible OR the card covers at least half of the
+// viewport" — the second branch is what makes long articles (taller than the screen) countable.
 const recordedViews = ref<Set<number>>(new Set())
 const newsItemRefs = ref<Map<number, HTMLElement>>(new Map())
-const VIEW_OBSERVE_THRESHOLD = 1.0      // fully in viewport
+const VIEW_OBSERVE_THRESHOLDS = [0, 0.25, 0.5, 0.75, 1.0]
+const VIEW_VISIBLE_RATIO = 0.5          // 50% of the card visible
+const VIEW_VIEWPORT_COVER = 0.5         // OR the visible portion covers 50% of the viewport
 const VIEW_DWELL_MS = 800               // must stay visible this long before counting as "seen"
 const pendingDwell = new Map<number, number>()
 let intersectionObserver: IntersectionObserver | null = null
 
-// Views modal state
-const viewsModalOpen = ref(false)
-const viewsModalNewsId = ref<number | null>(null)
-const viewsModalTitle = ref<string | undefined>(undefined)
+function isMeaningfullyVisible(obs: IntersectionObserverEntry): boolean {
+  if (!obs.isIntersecting) return false
+  if (obs.intersectionRatio >= VIEW_VISIBLE_RATIO) return true
+  const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 1
+  return obs.intersectionRect.height >= VIEW_VIEWPORT_COVER * viewportHeight
+}
 
-function setNewsItemRef(el: Element | null, newsId: number) {
-  if (el instanceof HTMLElement) {
+function setNewsItemRef(refObj: unknown, newsId: number) {
+  // The v-for target is a Vue component (NeutralContainer), so the function ref
+  // receives the component instance proxy rather than a DOM element. Peel down to
+  // the underlying root element via `$el` (single-root component).
+  let el: HTMLElement | null = null
+  if (refObj instanceof HTMLElement) {
+    el = refObj
+  } else if (refObj && typeof refObj === 'object' && '$el' in refObj) {
+    const candidate = (refObj as {$el: unknown}).$el
+    if (candidate instanceof HTMLElement) el = candidate
+  }
+  if (el) {
     newsItemRefs.value.set(newsId, el)
     intersectionObserver?.observe(el)
   } else {
@@ -78,10 +93,15 @@ function setNewsItemRef(el: Element | null, newsId: number) {
   }
 }
 
-function openViewsModal(item: UnifiedNewsItem) {
-  viewsModalNewsId.value = item.id
-  viewsModalTitle.value = item.title
-  viewsModalOpen.value = true
+type BadgeHandle = {refresh: () => Promise<void>}
+const viewBadgeRefs = new Map<number, BadgeHandle>()
+
+function setViewBadgeRef(el: unknown, newsId: number) {
+  if (el && typeof (el as BadgeHandle).refresh === 'function') {
+    viewBadgeRefs.set(newsId, el as BadgeHandle)
+  } else {
+    viewBadgeRefs.delete(newsId)
+  }
 }
 
 interface UnifiedNewsItem {
@@ -153,11 +173,17 @@ async function loadData() {
 }
 
 async function loadMore() {
-  if (loadingMore.value || !hasMore.value) return
+  // Guard against firing while the initial load is still in flight — otherwise the
+  // offset is stale (zero) and we'd re-fetch the same first page, producing duplicate
+  // entries and triggering Vue's "Duplicate keys" warning.
+  if (loading.value || loadingMore.value || !hasMore.value) return
   loadingMore.value = true
   try {
     const batch = await news.listNews(entries.value.length, PAGE_SIZE)
-    entries.value = [...entries.value, ...batch]
+    // Defensive dedupe in case a stale request still returns overlapping ids.
+    const known = new Set(entries.value.map(e => e.id))
+    const fresh = batch.filter(e => !known.has(e.id))
+    entries.value = [...entries.value, ...fresh]
     hasMore.value = batch.length >= PAGE_SIZE
   } catch {
     error.value = t('common.error')
@@ -176,6 +202,14 @@ function onScroll() {
 
 function itemKey(item: UnifiedNewsItem): string {
   return `${item.kind}-${item.stationUid ?? 'local'}-${item.id}`
+}
+
+function openItem(item: UnifiedNewsItem) {
+  if (item.kind === 'federated') {
+    router.push({name: 'federated-news-detail', params: {stationUid: item.stationUid, newsId: item.id}})
+  } else {
+    router.push({name: 'news-detail', params: {id: item.id}})
+  }
 }
 
 function toggleComments(item: UnifiedNewsItem) {
@@ -217,13 +251,17 @@ onMounted(() => {
       if (!idAttr) continue
       const id = Number(idAttr)
       if (recordedViews.value.has(id)) continue
-      if (obs.isIntersecting && obs.intersectionRatio >= VIEW_OBSERVE_THRESHOLD) {
+      if (isMeaningfullyVisible(obs)) {
         if (!pendingDwell.has(id)) {
           const handle = window.setTimeout(() => {
             pendingDwell.delete(id)
             if (recordedViews.value.has(id)) return
             recordedViews.value.add(id)
-            news.recordNewsView(id).catch(() => {
+            news.recordNewsView(id).then(() => {
+              // Badge owns its own count; nudge it to re-fetch now that the
+              // server has the just-recorded view.
+              viewBadgeRefs.get(id)?.refresh()
+            }).catch(() => {
               // Best-effort — let the next page reload re-attempt. Server-side
               // INSERT … ON CONFLICT DO NOTHING means duplicate calls are a no-op.
               recordedViews.value.delete(id)
@@ -236,7 +274,7 @@ onMounted(() => {
         pendingDwell.delete(id)
       }
     }
-  }, {threshold: VIEW_OBSERVE_THRESHOLD})
+  }, {threshold: VIEW_OBSERVE_THRESHOLDS})
 })
 
 onUnmounted(() => {
@@ -277,11 +315,10 @@ watch(() => entries.value.length, async () => {
         <NeutralContainer
           v-for="item in allNews"
           :key="itemKey(item)"
-          :ref="(el: unknown) => item.kind === 'local' ? setNewsItemRef(el as Element | null, item.id) : null"
+          :ref="(el: unknown) => item.kind === 'local' ? setNewsItemRef(el, item.id) : null"
           :data-news-id="item.kind === 'local' ? item.id : undefined"
-          class="space-y-3"
-          :class="{ 'cursor-pointer hover:ring-1 hover:ring-primary transition-all': item.kind === 'federated' }"
-          @click="item.kind === 'federated' ? router.push({ name: 'federated-news-detail', params: { stationUid: item.stationUid, newsId: item.id } }) : undefined"
+          class="space-y-3 cursor-pointer hover:ring-1 hover:ring-primary transition-all"
+          @click="openItem(item)"
         >
           <!-- Header -->
           <div class="flex items-start justify-between gap-3">
@@ -289,8 +326,7 @@ watch(() => entries.value.length, async () => {
               <UserAvatar v-if="item.author || item.authorName" :identity="item.author" :name="item.author?.name ?? item.authorName" size="md"/>
               <div>
                 <SubHeader class="flex items-center gap-1">
-                  <router-link v-if="item.kind === 'local'" :to="{name: 'news-detail', params: {id: item.id}}" class="hover:text-primary hover:underline">{{ item.title }}</router-link>
-                  <span v-else>{{ item.title }}</span>
+                  <span>{{ item.title }}</span>
                   <font-awesome-icon v-if="item.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/>
                   <SuccessBadge v-if="item.publicBlog" class="ml-1">{{ t('news.publicBlogBadge') }}</SuccessBadge>
                   <StationBadge v-if="item.kind === 'federated'" :station-name="item.stationName!" class="ml-1"/>
@@ -302,11 +338,11 @@ watch(() => entries.value.length, async () => {
               </div>
             </div>
             <div v-if="item.kind === 'local' && canEditNews" class="flex items-center gap-1 shrink-0">
-              <IconButton
-                :icon="['fas', 'eye']"
-                :label="t('news.views.openModal')"
-                class="text-(--text-muted) hover:text-primary"
-                @click.stop="openViewsModal(item)"
+              <NewsViewBadge
+                :ref="(el: unknown) => setViewBadgeRef(el, item.id)"
+                :news-id="item.id"
+                :initial-count="item.localEntry?.viewCount ?? 0"
+                :news-title="item.title"
               />
               <EditButton @click.stop="router.push({ name: 'news-edit', params: { id: item.id } })" />
               <DeleteButton @click.stop="requestDelete(item.localEntry!)" />
@@ -358,12 +394,6 @@ watch(() => entries.value.length, async () => {
           </div>
         </div>
       </Modal>
-
-      <NewsViewsModal
-        v-model="viewsModalOpen"
-        :news-id="viewsModalNewsId"
-        :news-title="viewsModalTitle"
-      />
     </div>
   </ViewContent>
 </template>

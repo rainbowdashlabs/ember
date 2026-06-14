@@ -343,7 +343,7 @@ public class EventRepository {
      */
     public Optional<EventCategory> findCategoryById(int id) {
         return query(
-                        "SELECT id, station_id, name, position, max_shown_events, public FROM event_category WHERE id = :id;")
+                        "SELECT id, station_id, name, position, max_shown_events, public, color FROM event_category WHERE id = :id;")
                 .single(call().bind("id", id))
                 .map(EventCategory.map())
                 .first();
@@ -351,7 +351,7 @@ public class EventRepository {
 
     public List<EventCategory> findCategoriesByStation(int stationId) {
         return query(
-                        "SELECT id, station_id, name, position, max_shown_events, public FROM event_category WHERE station_id = :station_id ORDER BY position;")
+                        "SELECT id, station_id, name, position, max_shown_events, public, color FROM event_category WHERE station_id = :station_id ORDER BY position;")
                 .single(call().bind("station_id", stationId))
                 .map(EventCategory.map())
                 .all();
@@ -363,12 +363,16 @@ public class EventRepository {
      * @param stationId the station ID
      * @param name      the category name
      * @param position  the display order position
+     * @param color     optional display color (#RRGGBB), or null
      * @return the created category
      */
-    public EventCategory createCategory(int stationId, String name, int position) {
+    public EventCategory createCategory(int stationId, String name, int position, String color) {
         return query(
-                        "INSERT INTO event_category(station_id, name, position) VALUES(:station_id, :name, :position) RETURNING id, station_id, name, position, max_shown_events, public;")
-                .single(call().bind("station_id", stationId).bind("name", name).bind("position", position))
+                        "INSERT INTO event_category(station_id, name, position, color) VALUES(:station_id, :name, :position, :color) RETURNING id, station_id, name, position, max_shown_events, public, color;")
+                .single(call().bind("station_id", stationId)
+                        .bind("name", name)
+                        .bind("position", position)
+                        .bind("color", color))
                 .map(EventCategory.map())
                 .first()
                 .orElseThrow();
@@ -380,15 +384,18 @@ public class EventRepository {
      * @param id       the category ID
      * @param name     the new category name
      * @param position the new display order position
+     * @param color    the optional new display color (#RRGGBB), or null to clear
      * @return true if a row was updated
      */
-    public boolean updateCategory(int id, String name, int position, Integer maxShownEvents, boolean isPublic) {
+    public boolean updateCategory(
+            int id, String name, int position, Integer maxShownEvents, boolean isPublic, String color) {
         return query(
-                        "UPDATE event_category SET name = :name, position = :position, max_shown_events = :max_shown_events, public = :public WHERE id = :id;")
+                        "UPDATE event_category SET name = :name, position = :position, max_shown_events = :max_shown_events, public = :public, color = :color WHERE id = :id;")
                 .single(call().bind("name", name)
                         .bind("position", position)
                         .bind("max_shown_events", maxShownEvents)
                         .bind("public", isPublic)
+                        .bind("color", color)
                         .bind("id", id))
                 .update()
                 .changed();

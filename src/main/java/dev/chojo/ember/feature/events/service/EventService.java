@@ -446,10 +446,11 @@ public class EventService {
      * @param stationId the station ID
      * @param name      the category name
      * @param position  the display order position
+     * @param color     optional display color (#RRGGBB), or null
      * @return the created category
      */
-    public EventCategory createCategory(int stationId, String name, int position) {
-        return eventRepository.createCategory(stationId, name, position);
+    public EventCategory createCategory(int stationId, String name, int position, String color) {
+        return eventRepository.createCategory(stationId, name, position, color);
     }
 
     /**
@@ -458,10 +459,12 @@ public class EventService {
      * @param id       the category ID
      * @param name     the new name
      * @param position the new position
+     * @param color    the optional new display color (#RRGGBB), or null to clear
      * @return true if the category was updated
      */
-    public boolean updateCategory(int id, String name, int position, Integer maxShownEvents, boolean isPublic) {
-        return eventRepository.updateCategory(id, name, position, maxShownEvents, isPublic);
+    public boolean updateCategory(
+            int id, String name, int position, Integer maxShownEvents, boolean isPublic, String color) {
+        return eventRepository.updateCategory(id, name, position, maxShownEvents, isPublic, color);
     }
 
     /**

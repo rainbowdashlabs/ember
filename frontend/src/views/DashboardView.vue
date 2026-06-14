@@ -215,7 +215,7 @@ async function handleLogout() {
       </SidebarGroup>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.INVENTORY)" :badge="counts.pendingExchanges + counts.lendingRequests" :icon="['fas', 'boxes-stacked']" :label="t('sidebar.inventory')" prefix="/station/inventory">
-        <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_READ)" :icon="['fas', 'house']" name="inventory-overview" to="/station/inventory/overview"
+        <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_READ)" :icon="['fas', 'house']" name="inventory-overview" to="/station/inventory"
                      @navigate="close">
           {{ t('sidebar.overview') }}
         </SidebarLink>

@@ -27,9 +27,11 @@ const props = withDefaults(defineProps<{
   groups?: MemberGroup[]
   specialMentions?: SpecialMention[]
   placeholder?: string
+  expanded?: boolean
 }>(), {
   groups: () => [],
   specialMentions: () => [],
+  expanded: true,
 })
 
 const {t} = useI18n()
@@ -314,7 +316,7 @@ function onPaste(e: ClipboardEvent) {
         ref="editorRef"
         contenteditable="true"
         :data-placeholder="placeholder"
-        class="mention-editor w-full px-3 py-2 rounded-theme border border-bg-light-accent bg-bg-light text-[var(--text)] placeholder-[var(--text-muted)] transition-colors duration-150 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-bg-dark-accent dark:bg-bg-dark"
+        :class="['mention-editor w-full px-3 py-2 rounded-theme border border-bg-light-accent bg-bg-light text-[var(--text)] placeholder-[var(--text-muted)] transition-colors duration-150 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-bg-dark-accent dark:bg-bg-dark', expanded ? 'mention-editor--expanded' : 'mention-editor--collapsed']"
         @input="onInput"
         @keydown="onKeydown"
         @paste="onPaste"
@@ -367,11 +369,21 @@ function onPaste(e: ClipboardEvent) {
 
 <style scoped>
 .mention-editor {
-  min-height: 4.5rem;
-  max-height: 12rem;
   overflow-y: auto;
   white-space: pre-wrap;
   word-wrap: break-word;
+}
+
+.mention-editor--expanded {
+  min-height: 4.5rem;
+  max-height: 12rem;
+}
+
+.mention-editor--collapsed {
+  min-height: 2.25rem;
+  max-height: 2.25rem;
+  white-space: nowrap;
+  overflow-x: hidden;
 }
 
 .mention-editor:empty::before {

@@ -250,6 +250,7 @@ public class KnowledgeBaseRoutes implements Routes {
 
         // Tags
         routes.get(prefix + "/kb/tags", this::listTags, StationPermission.USER);
+        routes.get(prefix + "/kb/tags/{name}/scope", this::getTagScope, StationPermission.USER);
         routes.get(prefix + "/kb/files/{id}/tags", this::getFileTags, StationPermission.USER);
         routes.put(prefix + "/kb/files/{id}/tags", this::setFileTags, StationPermission.KNOWLEDGE_EDIT);
         routes.get(prefix + "/kb/folders/{id}/tags", this::getFolderTags, StationPermission.USER);
@@ -1027,6 +1028,51 @@ public class KnowledgeBaseRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         ctx.json(service.findFolderTags(id));
     }
+
+    private void getTagScope(Context ctx) {
+        var session = UserSession.from(ctx);
+        String tagName = ctx.pathParam("name");
+        int stationId = session.stationId();
+
+        var matchingFiles = service.findFilesByTag(stationId, tagName);
+        var allFolders = service.findAllFolders(stationId);
+
+        // Apply access restrictions for non-managers.
+        if (!session.hasPermission(StationPermission.KNOWLEDGE_MANAGER)) {
+            int memberId = session.member().id();
+            StationUserType memberUserType = session.member().userType();
+            var memberGroupIds = memberGroupRepository.findGroupsForMember(memberId).stream()
+                    .map(MemberGroup::id)
+                    .toList();
+            var memberTagIds = userTagRepository.findTagsForMember(memberId).stream()
+                    .map(UserTag::id)
+                    .toList();
+            matchingFiles = matchingFiles.stream()
+                    .filter(f ->
+                            service.canAccess(memberId, null, f.id(), memberUserType, memberGroupIds, memberTagIds))
+                    .toList();
+        }
+
+        // Build parent lookup map for folder ancestry traversal.
+        var folderParent = new java.util.HashMap<Integer, Integer>();
+        for (var folder : allFolders) {
+            folderParent.put(folder.id(), folder.parentId());
+        }
+
+        var matchingFileIds = matchingFiles.stream().map(KbFile::id).toList();
+        var ancestorFolderIds = new java.util.HashSet<Integer>();
+        for (var file : matchingFiles) {
+            Integer cur = file.folderId();
+            while (cur != null && !ancestorFolderIds.contains(cur)) {
+                ancestorFolderIds.add(cur);
+                cur = folderParent.get(cur);
+            }
+        }
+
+        ctx.json(new TagScopeResponse(matchingFileIds, new java.util.ArrayList<>(ancestorFolderIds)));
+    }
+
+    public record TagScopeResponse(List<Integer> matchingFileIds, List<Integer> ancestorFolderIds) {}
 
     private void setFolderTags(Context ctx) {
         var session = UserSession.from(ctx);

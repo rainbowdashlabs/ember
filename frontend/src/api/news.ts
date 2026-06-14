@@ -170,6 +170,11 @@ export async function listNewsViewers(newsId: number): Promise<NewsViewsResponse
     return res.data
 }
 
+export async function getNewsViewCount(newsId: number): Promise<number> {
+    const res = await client.get<{count: number}>(`/news/${newsId}/view-count`)
+    return res.data.count
+}
+
 // --- Public Blog ---
 
 export async function listPublicBlog(stationUid: string, offset = 0, limit = 20): Promise<PublicBlogEntry[]> {
