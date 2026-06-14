@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.members.entity;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.auth.StationUserType;
 import org.slf4j.Logger;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
@@ -44,7 +45,7 @@ public record RichMember(
         String name,
         String email,
         boolean former,
-        String userType,
+        StationUserType userType,
         List<String> roles,
         List<GroupEntry> groups,
         List<TagEntry> tags,
@@ -70,7 +71,7 @@ public record RichMember(
                 row.getString("name"),
                 row.getString("email"),
                 row.getBoolean("former"),
-                row.getString("user_type"),
+                row.getEnum("user_type", StationUserType.class),
                 parseJson(row.getString("roles"), STRING_LIST, List.of()),
                 parseJson(row.getString("groups"), GROUP_LIST, List.of()),
                 parseJson(row.getString("tags"), TAG_LIST, List.of()),

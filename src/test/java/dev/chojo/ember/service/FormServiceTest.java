@@ -260,7 +260,8 @@ class FormServiceTest extends RepositoryTestBase {
     @Test
     @Order(31)
     void setRestrictions() {
-        service.setRestrictions(formId, List.of("MEMBER"), List.of(), List.of(), List.of());
+        service.setRestrictions(
+                formId, List.of(dev.chojo.ember.api.auth.StationUserType.MEMBER), List.of(), List.of(), List.of());
         var rs = service.findRestrictions(formId);
         assertTrue(rs.hasRestrictions());
         // Clear

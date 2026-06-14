@@ -131,7 +131,7 @@ public class CommentService {
 
         // Parse @mentions and publish events (skip for federated comments without a local author)
         if (authorMemberId != null) {
-            String mentionPreview = content.length() > 100 ? content.substring(0, 100) + "\u2026" : content;
+            String mentionPreview = content.length() > 100 ? content.substring(0, 100) + "…" : content;
             var mentionedIds = parseMentions(stationId, content);
             for (int mentionedId : mentionedIds) {
                 if (mentionedId != authorMemberId) {

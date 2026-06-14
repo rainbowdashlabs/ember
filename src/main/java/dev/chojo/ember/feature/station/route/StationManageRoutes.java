@@ -703,7 +703,7 @@ public class StationManageRoutes implements Routes {
     public record ImportProgressResponse(
             int stationId,
             String stationName,
-            String status,
+            StationImportService.ImportProgress.Status status,
             int totalTables,
             int completedTables,
             String currentTable,

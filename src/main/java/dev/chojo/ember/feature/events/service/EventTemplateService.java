@@ -5,10 +5,13 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.EventTemplateField;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
+import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -42,11 +45,11 @@ public class EventTemplateService {
             String title,
             String description,
             Integer categoryId,
-            String eventType,
+            StationEvent.EventType eventType,
             Boolean requiresRegistration,
             String registrationDeadlineOffset,
             Boolean requiresConfirmation,
-            String restrictionMode,
+            RestrictionMode restrictionMode,
             Integer attendanceTemplateId,
             Integer registrationLimit) {
         return repository.update(
@@ -80,7 +83,7 @@ public class EventTemplateService {
         return repository.findRestrictions(templateId);
     }
 
-    public void setRestrictions(int templateId, List<String> userTypes) {
+    public void setRestrictions(int templateId, List<StationUserType> userTypes) {
         repository.setRestrictions(templateId, userTypes);
     }
 

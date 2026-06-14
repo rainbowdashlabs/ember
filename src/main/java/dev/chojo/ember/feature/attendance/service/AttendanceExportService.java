@@ -191,7 +191,7 @@ public class AttendanceExportService {
         // Flat entries list for summary counts
         var allEntries = new ArrayList<StatusEntry>();
         for (var entry : entries) {
-            allEntries.add(new StatusEntry(entry.status().name()));
+            allEntries.add(new StatusEntry(entry.status()));
         }
         data.put("entries", allEntries);
 
@@ -287,5 +287,5 @@ public class AttendanceExportService {
 
     record Section(String name, List<Map<String, String>> entries) {}
 
-    record StatusEntry(String status) {}
+    record StatusEntry(AttendanceEntry.AttendanceStatus status) {}
 }

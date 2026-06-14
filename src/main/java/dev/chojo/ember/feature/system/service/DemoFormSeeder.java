@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
@@ -44,8 +45,8 @@ public class DemoFormSeeder {
             StationMember admin,
             List<StationMember> anfaenger,
             List<StationMember> fortgeschritten,
-            String memberUserType,
-            String guardianUserType,
+            StationUserType memberUserType,
+            StationUserType guardianUserType,
             int anfaengerGroupId,
             int wettkampfTagId,
             Random rng) {

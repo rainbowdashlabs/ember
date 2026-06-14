@@ -9,6 +9,7 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.inventory.entity.CheckItemRequest;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository.MemberCheckSummary;
@@ -101,7 +102,7 @@ public class InventoryCheckRoutes implements Routes {
             Integer lockedBy,
             String lockerFirstName,
             String lockerLastName,
-            String userType,
+            StationUserType userType,
             MemberIdentity identity) {
         EnrichedCheckSummary(MemberCheckSummary s, MemberIdentity identity) {
             this(
@@ -255,7 +256,7 @@ public class InventoryCheckRoutes implements Routes {
 
         // Create a new item and assign it
         var inv = inventoryService.findById(request.inventoryId()).orElseThrow();
-        var item = inventoryService.createItem(request.inventoryId(), null, inv.name(), request.sizeId(), "{}");
+        var item = inventoryService.createItem(request.inventoryId(), null, inv.name(), request.sizeId(), null);
         inventoryService.assignItem(item.id(), memberId, memberName);
 
         var state = checkService.startCheck(

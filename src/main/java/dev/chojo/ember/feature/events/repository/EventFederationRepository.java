@@ -9,6 +9,7 @@ import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventFederationShare;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
@@ -47,7 +48,7 @@ public class EventFederationRepository {
      * @param scope   the sharing scope
      * @return the created or updated share
      */
-    public EventFederationShare setShare(int eventId, String scope) {
+    public EventFederationShare setShare(int eventId, ShareScope scope) {
         return query("""
                 INSERT INTO event_federation_share(event_id, scope)
                 VALUES (:event_id, :scope)

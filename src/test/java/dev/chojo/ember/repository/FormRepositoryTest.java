@@ -205,7 +205,13 @@ class FormRepositoryTest extends RepositoryTestBase {
     void setAndFindRestrictions() {
         var restrictionRepo = new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo);
         restrictionRepo.setRestrictions(
-                "form_restriction", "form_id", formId, List.of("MEMBER", "TEAM"), List.of(), List.of(), List.of());
+                "form_restriction",
+                "form_id",
+                formId,
+                List.of(dev.chojo.ember.api.auth.StationUserType.MEMBER, dev.chojo.ember.api.auth.StationUserType.TEAM),
+                List.of(),
+                List.of(),
+                List.of());
         var restrictions = restrictionRepo.findRestrictions("form_restriction", "form_id", formId);
         assertEquals(2, restrictions.size());
         // Clear

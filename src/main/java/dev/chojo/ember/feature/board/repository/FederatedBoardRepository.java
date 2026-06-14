@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.board.repository;
 
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
 import dev.chojo.ember.feature.board.entity.FederationBoardBookmark;
@@ -48,7 +49,7 @@ public class FederatedBoardRepository {
 
     // -- Share Targets --
 
-    public void setShareTarget(int shareId, int partnerId, BoardShareMode shareMode, String requiredRole) {
+    public void setShareTarget(int shareId, int partnerId, BoardShareMode shareMode, StationUserType requiredUserType) {
         query("""
                 INSERT
                 INTO
@@ -61,7 +62,7 @@ public class FederatedBoardRepository {
                 .single(call().bind("share_id", shareId)
                         .bind("partner_id", partnerId)
                         .bind("share_mode", shareMode)
-                        .bind("required_user_type", requiredRole))
+                        .bind("required_user_type", requiredUserType))
                 .insert();
     }
 
@@ -94,7 +95,7 @@ public class FederatedBoardRepository {
                 .first();
     }
 
-    public Optional<String> findRequiredRole(int boardId, int partnerId) {
+    public Optional<StationUserType> findRequiredUserType(int boardId, int partnerId) {
         return query("""
                 SELECT
                     t.required_user_type
@@ -105,7 +106,7 @@ public class FederatedBoardRepository {
                 WHERE s.board_id = :board_id
                   AND t.partner_id = :partner_id;""")
                 .single(call().bind("board_id", boardId).bind("partner_id", partnerId))
-                .map(row -> row.getString("required_user_type"))
+                .map(row -> row.getEnum("required_user_type", StationUserType.class))
                 .first();
     }
 
@@ -125,21 +126,21 @@ public class FederatedBoardRepository {
 
     // -- Federated Edit User Types --
 
-    public void setFederatedEditUserTypes(int boardId, List<String> userTypes) {
+    public void setFederatedEditUserTypes(int boardId, List<StationUserType> userTypes) {
         query("DELETE FROM federation_board_edit_user_type WHERE board_id = :board_id;")
                 .single(call().bind("board_id", boardId))
                 .delete();
-        for (String userType : userTypes) {
+        for (StationUserType userType : userTypes) {
             query("INSERT INTO federation_board_edit_user_type(board_id, user_type) VALUES (:board_id, :user_type);")
                     .single(call().bind("board_id", boardId).bind("user_type", userType))
                     .insert();
         }
     }
 
-    public List<String> findFederatedEditUserTypes(int boardId) {
+    public List<StationUserType> findFederatedEditUserTypes(int boardId) {
         return query("SELECT user_type FROM federation_board_edit_user_type WHERE board_id = :board_id;")
                 .single(call().bind("board_id", boardId))
-                .map(row -> row.getString("user_type"))
+                .map(row -> row.getEnum("user_type", StationUserType.class))
                 .all();
     }
 
@@ -254,7 +255,7 @@ public class FederatedBoardRepository {
                 .single(call().bind("partner_id", partnerId)
                         .bind("remote_board_uid", remoteBoardUid, StandardValueConverter.UUID_STRING))
                 .delete();
-        for (String userType : access.userTypes()) {
+        for (StationUserType userType : access.userTypes()) {
             query("""
                     INSERT INTO federation_board_local_view_override(partner_id, remote_board_uid, user_type)
                     VALUES (:partner_id, :remote_board_uid::UUID, :user_type);""")
@@ -296,7 +297,7 @@ public class FederatedBoardRepository {
                 .single(call().bind("partner_id", partnerId)
                         .bind("remote_board_uid", remoteBoardUid, StandardValueConverter.UUID_STRING))
                 .delete();
-        for (String userType : access.userTypes()) {
+        for (StationUserType userType : access.userTypes()) {
             query("""
                     INSERT INTO federation_board_local_edit_override(partner_id, remote_board_uid, user_type)
                     VALUES (:partner_id, :remote_board_uid::UUID, :user_type);""")
@@ -337,7 +338,7 @@ public class FederatedBoardRepository {
                 ORDER BY user_type;""")
                 .single(call().bind("partner_id", partnerId)
                         .bind("remote_board_uid", remoteBoardUid, StandardValueConverter.UUID_STRING))
-                .map(row -> row.getString("user_type"))
+                .map(row -> row.getEnum("user_type", StationUserType.class))
                 .all();
         var groupIds = query("""
                 SELECT
@@ -378,7 +379,7 @@ public class FederatedBoardRepository {
                 ORDER BY user_type;""")
                 .single(call().bind("partner_id", partnerId)
                         .bind("remote_board_uid", remoteBoardUid, StandardValueConverter.UUID_STRING))
-                .map(row -> row.getString("user_type"))
+                .map(row -> row.getEnum("user_type", StationUserType.class))
                 .all();
         var groupIds = query("""
                 SELECT

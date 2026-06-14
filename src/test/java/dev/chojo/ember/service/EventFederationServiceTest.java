@@ -163,10 +163,11 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void setShareAllPartners() {
-        var share = service.setShare(eventId, "ALL_PARTNERS", List.of());
+        var share =
+                service.setShare(eventId, dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS, List.of());
         assertNotNull(share);
         assertEquals(eventId, share.eventId());
-        assertEquals("ALL_PARTNERS", share.scope());
+        assertEquals(dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS, share.scope());
     }
 
     @Test
@@ -174,15 +175,18 @@ class EventFederationServiceTest extends RepositoryTestBase {
     void findShareByEvent() {
         var found = service.findShareByEvent(eventId);
         assertTrue(found.isPresent());
-        assertEquals("ALL_PARTNERS", found.get().scope());
+        assertEquals(
+                dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS,
+                found.get().scope());
     }
 
     @Test
     @Order(3)
     void setShareSpecificWithTargets() {
-        var share = service.setShare(eventId, "SPECIFIC", List.of(partnerId));
+        var share = service.setShare(
+                eventId, dev.chojo.ember.feature.federation.entity.ShareScope.SPECIFIC, List.of(partnerId));
         assertNotNull(share);
-        assertEquals("SPECIFIC", share.scope());
+        assertEquals(dev.chojo.ember.feature.federation.entity.ShareScope.SPECIFIC, share.scope());
 
         var targets = service.findShareTargets(share.id());
         assertTrue(targets.contains(partnerId));
@@ -200,7 +204,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Order(5)
     void findSharedEventIdsAllPartners() {
         // Switch back to ALL_PARTNERS
-        service.setShare(eventId, "ALL_PARTNERS", List.of());
+        service.setShare(eventId, dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS, List.of());
         var sharedIds = service.findSharedEventIds(partnerId, stationA.id());
         assertTrue(sharedIds.contains(eventId));
     }
@@ -256,7 +260,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         boolean updated = service.updateRegistrationStatus(reg.id(), RegistrationStatus.ACCEPTED);
         assertTrue(updated);
         var found = service.findRegistrationById(reg.id()).orElseThrow();
-        assertEquals("ACCEPTED", found.status());
+        assertEquals(dev.chojo.ember.feature.events.entity.RegistrationStatus.ACCEPTED, found.status());
     }
 
     @Test
@@ -345,7 +349,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(30)
     void browseFederatedEventsWithShare() {
-        service.setShare(eventId, "ALL_PARTNERS", List.of());
+        service.setShare(eventId, dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS, List.of());
         var items = service.browseFederatedEvents(stationB.id());
         assertFalse(items.isEmpty(), "Should find shared events");
         assertTrue(items.stream().anyMatch(item -> {
@@ -372,7 +376,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(32)
     void getFederatedEventLocal() {
-        service.setShare(eventId, "ALL_PARTNERS", List.of());
+        service.setShare(eventId, dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS, List.of());
         var result = service.getFederatedEvent(stationB.id(), stationA.uid(), eventId);
         assertNotNull(result);
         var event = (EventFederationService.RemoteEventSummary) result;
@@ -406,14 +410,14 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Order(40)
     void browseFederatedEventsViaHttp() {
         // Ensure event is shared
-        service.setShare(eventId, "ALL_PARTNERS", List.of());
+        service.setShare(eventId, dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS, List.of());
 
         // Mock HTTP response for remote partner (stationC)
         var remoteEvent = new EventFederationService.RemoteFederatedEvent(
                 9999,
                 "Remote Event",
                 "Remote desc",
-                "ONE_TIME",
+                dev.chojo.ember.feature.events.entity.StationEvent.EventType.ONE_TIME,
                 0,
                 Instant.now().toString(),
                 Instant.now().plus(2, ChronoUnit.HOURS).toString(),
@@ -458,7 +462,15 @@ class EventFederationServiceTest extends RepositoryTestBase {
         // getFederatedEvent(stationA.id(), stationC.uid(), eventId) should call HTTP
 
         var remoteEvent = new EventFederationService.RemoteEventSummary(
-                eventId, "Remote Event", "desc", "REGULAR", 1, "10:00", "12:00", false, false);
+                eventId,
+                "Remote Event",
+                "desc",
+                dev.chojo.ember.feature.events.entity.StationEvent.EventType.RECURRING,
+                1,
+                "10:00",
+                "12:00",
+                false,
+                false);
         when(httpClient.get(
                         eq("https://remote-event.example.com"),
                         eq("/remote/events/" + eventId),
@@ -502,7 +514,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Order(43)
     void browseFederatedEventsHttpReturnsEmpty() {
         // When remote partner returns no events, browse from stationB should still work (local events from stationA)
-        service.setShare(eventId, "ALL_PARTNERS", List.of());
+        service.setShare(eventId, dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS, List.of());
         // stationB has no remote partners, so only local browse applies
         var items = service.browseFederatedEvents(stationB.id());
         assertNotNull(items);
@@ -541,7 +553,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Order(50)
     void createRemoteComment() {
         // Ensure event is shared
-        service.setShare(eventId, "ALL_PARTNERS", List.of());
+        service.setShare(eventId, dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS, List.of());
         service.cacheName(partnerId, REMOTE_MEMBER_1, "Alice Remote");
 
         var response = service.createRemoteComment(
@@ -696,7 +708,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(70)
     void listFederatedCommentsLocal() {
-        service.setShare(eventId, "ALL_PARTNERS", List.of());
+        service.setShare(eventId, dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS, List.of());
         var result = service.listFederatedComments(stationB.id(), stationA.uid(), eventId);
         assertNotNull(result);
         assertInstanceOf(EventFederationService.FederatedCommentResult.ListResult.class, result);
@@ -968,7 +980,15 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Order(90)
     void fetchFederatedEvents() {
         var remoteEvent = new EventFederationService.RemoteFederatedEvent(
-                1, "Test Event", "desc", "ONE_TIME", 0, "10:00", "12:00", true, false);
+                1,
+                "Test Event",
+                "desc",
+                dev.chojo.ember.feature.events.entity.StationEvent.EventType.ONE_TIME,
+                0,
+                "10:00",
+                "12:00",
+                true,
+                false);
         when(httpClient.getList(
                         eq("https://example.com"),
                         eq("/remote/events"),
@@ -981,7 +1001,9 @@ class EventFederationServiceTest extends RepositoryTestBase {
         assertEquals(1, result.size());
         assertEquals("Test Event", result.getFirst().name());
         assertEquals("desc", result.getFirst().description());
-        assertEquals("ONE_TIME", result.getFirst().eventType());
+        assertEquals(
+                dev.chojo.ember.feature.events.entity.StationEvent.EventType.ONE_TIME,
+                result.getFirst().eventType());
         assertEquals(0, result.getFirst().dayOfWeek());
         assertEquals("10:00", result.getFirst().startTime());
         assertEquals("12:00", result.getFirst().endTime());
@@ -1063,11 +1085,19 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Order(97)
     void remoteFederatedEventRecord() {
         var event = new EventFederationService.RemoteFederatedEvent(
-                1, "Name", "Description", "RECURRING", 3, "09:00", "11:00", false, true);
+                1,
+                "Name",
+                "Description",
+                dev.chojo.ember.feature.events.entity.StationEvent.EventType.RECURRING,
+                3,
+                "09:00",
+                "11:00",
+                false,
+                true);
         assertEquals(1, event.id());
         assertEquals("Name", event.name());
         assertEquals("Description", event.description());
-        assertEquals("RECURRING", event.eventType());
+        assertEquals(dev.chojo.ember.feature.events.entity.StationEvent.EventType.RECURRING, event.eventType());
         assertEquals(3, event.dayOfWeek());
         assertEquals("09:00", event.startTime());
         assertEquals("11:00", event.endTime());

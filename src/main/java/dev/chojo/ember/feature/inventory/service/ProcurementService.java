@@ -65,7 +65,7 @@ public class ProcurementService {
         var inv = inventoryService.findById(proc.inventoryId());
         if (inv.isPresent()) {
             var item = inventoryService.createItem(
-                    proc.inventoryId(), "", inv.get().name(), proc.sizeId(), "{}");
+                    proc.inventoryId(), "", inv.get().name(), proc.sizeId(), null);
             inventoryService.assignItem(item.id(), proc.memberId(), "");
         }
 

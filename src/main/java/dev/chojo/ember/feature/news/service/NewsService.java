@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.news.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.BulkMentionedInComment;
 import dev.chojo.ember.event.events.CommentCreated;
@@ -82,7 +83,7 @@ public class NewsService {
             String contentMarkdown,
             String contentHtml,
             MemberIdentity author,
-            List<String> userTypes,
+            List<StationUserType> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds) {
@@ -197,7 +198,7 @@ public class NewsService {
             String title,
             String contentMarkdown,
             String contentHtml,
-            List<String> userTypes,
+            List<StationUserType> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds) {
@@ -273,7 +274,11 @@ public class NewsService {
      * Sets all restrictions for a news article.
      */
     public void setRestrictions(
-            int newsId, List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {
+            int newsId,
+            List<StationUserType> userTypes,
+            List<Integer> groupIds,
+            List<Integer> tagIds,
+            List<Integer> memberIds) {
         restrictionRepository.setRestrictions(
                 RestrictionType.NEWS.table(),
                 RestrictionType.NEWS.fkColumn(),

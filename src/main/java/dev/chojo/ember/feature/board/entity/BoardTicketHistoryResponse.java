@@ -13,7 +13,13 @@ import java.time.Instant;
  * Response DTO for board ticket history entries with unified member identity.
  */
 public record BoardTicketHistoryResponse(
-        int id, int ticketId, String action, String detail, MemberIdentity actor, String actorName, Instant createdAt) {
+        int id,
+        int ticketId,
+        BoardTicketHistoryAction action,
+        String detail,
+        MemberIdentity actor,
+        String actorName,
+        Instant createdAt) {
 
     public static BoardTicketHistoryResponse from(BoardTicketHistory h, MemberIdentity actor, String actorName) {
         return new BoardTicketHistoryResponse(

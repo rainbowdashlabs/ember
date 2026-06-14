@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
@@ -370,7 +371,7 @@ public class DemoFederationSeeder {
                 null,
                 null,
                 null);
-        eventFederationService.setShare(fedEvent.id(), "ALL_PARTNERS", List.of());
+        eventFederationService.setShare(fedEvent.id(), ShareScope.ALL_PARTNERS, List.of());
 
         // -- Share news with partner --
         var partnerMember1Uid = UUID.fromString("00000000-0000-0000-0000-000000000001");
@@ -393,7 +394,7 @@ public class DemoFederationSeeder {
 
         if (news1 != null) {
             // Share news1 with all partners, visibility MEMBER
-            newsFederationService.setShare(news1.id(), "ALL_PARTNERS", "MEMBER", List.of());
+            newsFederationService.setShare(news1.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER, List.of());
             // Federated comment from partner member on news1
             var nc1 = newsFederationService.createRemoteComment(
                     primaryStationId,
@@ -414,7 +415,8 @@ public class DemoFederationSeeder {
         }
         if (news2 != null) {
             // Share news2 with specific partner, visibility TEAM
-            newsFederationService.setShare(news2.id(), "SPECIFIC", "TEAM", List.of(partner.id()));
+            newsFederationService.setShare(
+                    news2.id(), ShareScope.SPECIFIC, NewsVisibilityRole.TEAM, List.of(partner.id()));
             // Federated comment from partner member on news2
             newsFederationService.createRemoteComment(
                     primaryStationId,
@@ -444,7 +446,7 @@ public class DemoFederationSeeder {
                 List.of(),
                 List.of(),
                 List.of());
-        newsFederationService.setShare(partnerNews.id(), "ALL_PARTNERS", "MEMBER", List.of());
+        newsFederationService.setShare(partnerNews.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER, List.of());
         // Find the reverse partner record (partner station's view of the primary station)
         var reversePartner = federationService.findPartners(partnerStation.id()).stream()
                 .filter(p -> p.stationId() == partnerStation.id())

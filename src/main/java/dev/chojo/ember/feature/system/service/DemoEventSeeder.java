@@ -649,7 +649,7 @@ public class DemoEventSeeder {
                 "Übungsabend",
                 null,
                 null,
-                "RECURRING",
+                StationEvent.EventType.RECURRING,
                 false,
                 null,
                 false,
@@ -671,7 +671,18 @@ public class DemoEventSeeder {
                                 null)));
         var tplWettbewerb = eventTemplateService.create(stationId, "Wettbewerb");
         eventTemplateService.update(
-                tplWettbewerb.id(), "Wettbewerb", null, null, null, "ONE_TIME", true, null, true, null, null, null);
+                tplWettbewerb.id(),
+                "Wettbewerb",
+                null,
+                null,
+                null,
+                StationEvent.EventType.ONE_TIME,
+                true,
+                null,
+                true,
+                null,
+                null,
+                null);
         eventTemplateService.replaceFields(
                 tplWettbewerb.id(),
                 List.of(

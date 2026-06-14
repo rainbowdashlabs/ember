@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.api;
 
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import tools.jackson.core.JsonGenerator;
 import tools.jackson.core.JsonParser;
@@ -179,7 +180,7 @@ public class StationIdModule extends SimpleModule {
             }
             return stationRepository
                     .findByUid(uid)
-                    .map(s -> s.id())
+                    .map(Station::id)
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Unknown station id '" + propertyName + "' (uid " + uid + ")"));
         }

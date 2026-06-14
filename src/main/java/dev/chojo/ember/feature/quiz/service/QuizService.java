@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.quiz.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.Direction;
@@ -796,7 +797,11 @@ public class QuizService {
     }
 
     public void setRestrictions(
-            int testId, List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {
+            int testId,
+            List<StationUserType> userTypes,
+            List<Integer> groupIds,
+            List<Integer> tagIds,
+            List<Integer> memberIds) {
         restrictionRepository.setRestrictions(
                 RestrictionType.QUIZ_TEST.table(),
                 RestrictionType.QUIZ_TEST.fkColumn(),

@@ -11,6 +11,7 @@ import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -744,7 +745,7 @@ public class KnowledgeBaseRoutes implements Routes {
         // Filter by access restrictions unless user has KNOWLEDGE_MANAGER role
         if (!session.hasPermission(StationPermission.KNOWLEDGE_MANAGER)) {
             int memberId = session.member().id();
-            String memberUserType = session.member().userType().name();
+            StationUserType memberUserType = session.member().userType();
             var memberGroupIds = memberGroupRepository.findGroupsForMember(memberId).stream()
                     .map(MemberGroup::id)
                     .toList();
@@ -910,7 +911,7 @@ public class KnowledgeBaseRoutes implements Routes {
     public record MarkdownHtmlResponse(String html, String markdown) {}
 
     public record RestrictionResponse(
-            List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {}
+            List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {}
 
     public record BrowseResponse(KbFolder currentFolder, List<KbFolder> folders, List<KbFileSummary> files) {}
 

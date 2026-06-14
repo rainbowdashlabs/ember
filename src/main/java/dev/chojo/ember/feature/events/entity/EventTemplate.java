@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.events.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.feature.events.entity.StationEvent.EventType;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 
 public record EventTemplate(
         int id,
@@ -14,11 +16,11 @@ public record EventTemplate(
         String title,
         String description,
         Integer categoryId,
-        String eventType,
+        EventType eventType,
         Boolean requiresRegistration,
         String registrationDeadlineOffset,
         Boolean requiresConfirmation,
-        String restrictionMode,
+        RestrictionMode restrictionMode,
         Integer attendanceTemplateId,
         Integer registrationLimit) {
 
@@ -30,11 +32,13 @@ public record EventTemplate(
                 row.getString("title"),
                 row.getString("description"),
                 row.getObject("category_id", Integer.class),
-                row.getString("event_type"),
+                row.getString("event_type") != null ? EventType.valueOf(row.getString("event_type")) : null,
                 row.getObject("requires_registration", Boolean.class),
                 row.getString("registration_deadline_offset"),
                 row.getObject("requires_confirmation", Boolean.class),
-                row.getString("restriction_mode"),
+                row.getString("restriction_mode") != null
+                        ? RestrictionMode.valueOf(row.getString("restriction_mode"))
+                        : null,
                 row.getObject("attendance_template_id", Integer.class),
                 row.getObject("registration_limit", Integer.class));
     }

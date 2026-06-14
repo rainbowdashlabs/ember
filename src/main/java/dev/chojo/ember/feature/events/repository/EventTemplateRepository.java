@@ -5,10 +5,13 @@
  */
 package dev.chojo.ember.feature.events.repository;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.EventTemplateField;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
+import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -56,11 +59,11 @@ public class EventTemplateRepository {
             String title,
             String description,
             Integer categoryId,
-            String eventType,
+            StationEvent.EventType eventType,
             Boolean requiresRegistration,
             String registrationDeadlineOffset,
             Boolean requiresConfirmation,
-            String restrictionMode,
+            RestrictionMode restrictionMode,
             Integer attendanceTemplateId,
             Integer registrationLimit) {
         return query("UPDATE event_template SET"
@@ -134,11 +137,11 @@ public class EventTemplateRepository {
                 .all();
     }
 
-    public void setRestrictions(int templateId, List<String> userTypes) {
+    public void setRestrictions(int templateId, List<StationUserType> userTypes) {
         query("DELETE FROM event_template_restriction WHERE template_id = :template_id;")
                 .single(call().bind("template_id", templateId))
                 .delete();
-        for (String userType : userTypes) {
+        for (StationUserType userType : userTypes) {
             query("INSERT INTO event_template_restriction(template_id, user_type) VALUES (:template_id, :user_type);")
                     .single(call().bind("template_id", templateId).bind("user_type", userType))
                     .insert();

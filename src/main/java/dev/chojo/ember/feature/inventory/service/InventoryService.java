@@ -5,9 +5,11 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemHistory;
+import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventorySummary;
@@ -213,7 +215,8 @@ public class InventoryService {
      * @param metadata    JSON metadata
      * @return the created item
      */
-    public InventoryItem createItem(int inventoryId, String internalId, String name, Integer sizeId, String metadata) {
+    public InventoryItem createItem(
+            int inventoryId, String internalId, String name, Integer sizeId, InventoryItemMetadata metadata) {
         return inventoryRepository.createItem(inventoryId, internalId, name, sizeId, metadata);
     }
 
@@ -233,7 +236,7 @@ public class InventoryService {
             String internalId,
             String name,
             Integer sizeId,
-            String metadata,
+            InventoryItemMetadata metadata,
             InventoryItem.ItemSource itemSource) {
         return inventoryRepository.createItem(inventoryId, internalId, name, sizeId, metadata, itemSource);
     }
@@ -248,7 +251,8 @@ public class InventoryService {
      * @param metadata   the new JSON metadata
      * @return the updated item, or empty if not found
      */
-    public Optional<InventoryItem> updateItem(int id, String internalId, String name, Integer sizeId, String metadata) {
+    public Optional<InventoryItem> updateItem(
+            int id, String internalId, String name, Integer sizeId, InventoryItemMetadata metadata) {
         if (inventoryRepository.updateItem(id, internalId, name, sizeId, metadata)) {
             return inventoryRepository.findItemById(id);
         }
@@ -355,7 +359,8 @@ public class InventoryService {
      * @param quantity    the required quantity
      * @return the created requirement
      */
-    public InventoryRequirement createRequirement(int inventoryId, String userType, int groupId, int quantity) {
+    public InventoryRequirement createRequirement(
+            int inventoryId, StationUserType userType, int groupId, int quantity) {
         return inventoryRepository.createRequirement(inventoryId, userType, groupId, quantity);
     }
 

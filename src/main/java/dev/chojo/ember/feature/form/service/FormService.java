@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.form.service;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.FormDeleted;
 import dev.chojo.ember.event.events.FormPublished;
@@ -76,14 +77,13 @@ public class FormService {
 
         var member = memberService.findById(memberId).orElse(null);
         if (member == null) return false;
-        String memberUserType = member.userType().name();
         var memberGroupIds = groupService.findGroupsForMember(memberId).stream()
                 .map(MemberGroup::id)
                 .toList();
         var memberTagIds =
                 tagService.findTagsForMember(memberId).stream().map(UserTag::id).toList();
 
-        return restrictions.matches(memberUserType, memberGroupIds, memberTagIds, memberId);
+        return restrictions.matches(member.userType(), memberGroupIds, memberTagIds, memberId);
     }
 
     /**
@@ -437,7 +437,11 @@ public class FormService {
      * @param memberIds member IDs to restrict access to, or {@code null} for none
      */
     public void setRestrictions(
-            int formId, List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {
+            int formId,
+            List<StationUserType> userTypes,
+            List<Integer> groupIds,
+            List<Integer> tagIds,
+            List<Integer> memberIds) {
         restrictionRepository.setRestrictions(
                 RestrictionType.FORM.table(),
                 RestrictionType.FORM.fkColumn(),

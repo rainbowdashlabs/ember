@@ -10,6 +10,7 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
@@ -180,7 +181,7 @@ public class FormRoutes implements Routes {
                         f.stationId(),
                         f.title(),
                         f.description(),
-                        f.status().name(),
+                        f.status(),
                         f.startAt(),
                         f.endAt(),
                         formService.countResponses(f.id()),
@@ -373,7 +374,7 @@ public class FormRoutes implements Routes {
                 id,
                 Arrays.stream(questions)
                         .map(q -> new QuestionEntry(
-                                FormQuestionType.valueOf(q.questionType()),
+                                q.questionType(),
                                 q.title(),
                                 q.description() != null ? q.description() : "",
                                 q.required() != null && q.required(),
@@ -638,7 +639,7 @@ public class FormRoutes implements Routes {
                 .map(q -> {
                     var answers = formService.findAllAnswersForQuestion(q.id());
                     var values = answers.stream().map(FormAnswer::value).toList();
-                    return new QuestionAnalytics(q.id(), q.formQuestionType().name(), q.title(), q.config(), values);
+                    return new QuestionAnalytics(q.id(), q.formQuestionType(), q.title(), q.config(), values);
                 })
                 .toList();
         ctx.json(new FormAnalytics(id, formService.countResponses(id), questionAnalytics));
@@ -748,7 +749,7 @@ public class FormRoutes implements Routes {
      * @param config       type-specific configuration as JSON string
      */
     public record QuestionRequest(
-            String questionType,
+            FormQuestionType questionType,
             String title,
             String description,
             Boolean required,
@@ -763,7 +764,7 @@ public class FormRoutes implements Routes {
      * @param tagIds   list of tag IDs that grant access
      */
     public record FormRestrictions(
-            List<String> userTypes,
+            List<StationUserType> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds,
@@ -824,7 +825,7 @@ public class FormRoutes implements Routes {
             int stationId,
             String title,
             String description,
-            String status,
+            Form.FormStatus status,
             Instant startAt,
             Instant endAt,
             int responseCount,
@@ -849,7 +850,11 @@ public class FormRoutes implements Routes {
      * @param values       all answer values submitted for this question
      */
     public record QuestionAnalytics(
-            int questionId, String questionType, String title, FormQuestionConfig config, List<String> values) {}
+            int questionId,
+            FormQuestionType questionType,
+            String title,
+            FormQuestionConfig config,
+            List<String> values) {}
 
     /**
      * Response indicating which members (self and managed) are eligible to respond to a form.

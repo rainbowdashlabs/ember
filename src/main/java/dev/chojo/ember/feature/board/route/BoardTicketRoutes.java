@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.board.entity.BoardTicket;
 import dev.chojo.ember.feature.board.entity.BoardTicketAttachment;
 import dev.chojo.ember.feature.board.entity.BoardTicketFieldValue;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistory;
+import dev.chojo.ember.feature.board.entity.BoardTicketHistoryAction;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistoryResponse;
 import dev.chojo.ember.feature.board.entity.BoardTicketKbLink;
 import dev.chojo.ember.feature.board.entity.BoardTicketLink;
@@ -1007,7 +1008,7 @@ public class BoardTicketRoutes implements Routes {
         ticketService.setFieldValue(ticketId, fieldId, value);
         ticketService.logHistory(
                 ticketId,
-                "FIELD_CHANGED",
+                BoardTicketHistoryAction.FIELD_CHANGED,
                 "Feld #" + fieldId,
                 memberIdentityFactory.local(
                         session.stationId(), session.member().id()));
@@ -1078,7 +1079,7 @@ public class BoardTicketRoutes implements Routes {
                 .orElse(null);
         ticketService.logHistory(
                 ticketId,
-                "LABEL_ADDED",
+                BoardTicketHistoryAction.LABEL_ADDED,
                 label != null ? label.name() : "?",
                 memberIdentityFactory.local(
                         session.stationId(), session.member().id()));
@@ -1109,7 +1110,7 @@ public class BoardTicketRoutes implements Routes {
         boardService.removeLabelFromTicket(ticketId, labelId);
         ticketService.logHistory(
                 ticketId,
-                "LABEL_REMOVED",
+                BoardTicketHistoryAction.LABEL_REMOVED,
                 label != null ? label.name() : "?",
                 memberIdentityFactory.local(
                         session.stationId(), session.member().id()));

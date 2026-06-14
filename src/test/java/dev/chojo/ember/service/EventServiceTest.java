@@ -455,7 +455,8 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        service.setRestrictions(event.id(), List.of("MEMBER"), List.of(), List.of(), List.of());
+        service.setRestrictions(
+                event.id(), List.of(dev.chojo.ember.api.auth.StationUserType.MEMBER), List.of(), List.of(), List.of());
         var restrictions = service.findRestrictions(event.id());
         assertNotNull(restrictions);
     }
@@ -705,7 +706,7 @@ class EventServiceTest extends RepositoryTestBase {
     void findFilteredByRequiresRegistration() {
         var results = service.findFiltered(station.id(), null, null, false);
         assertNotNull(results);
-        assertTrue(results.stream().noneMatch(e -> e.requiresRegistration()));
+        assertTrue(results.stream().noneMatch(StationEvent::requiresRegistration));
     }
 
     @Test

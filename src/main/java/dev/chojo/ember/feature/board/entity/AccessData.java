@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.board.entity;
 
+import dev.chojo.ember.api.auth.StationUserType;
+
 import java.util.List;
 
-public record AccessData(List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds) {}
+public record AccessData(List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds) {}

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.board.repository;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.entity.BoardField;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
@@ -268,11 +269,12 @@ public class BoardRepository {
 
     // -- Access restrictions --
 
-    public void setViewAccess(int boardId, List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
+    public void setViewAccess(
+            int boardId, List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
         query("DELETE FROM board_view_access WHERE board_id = :board_id;")
                 .single(call().bind("board_id", boardId))
                 .delete();
-        for (String userType : userTypes) {
+        for (StationUserType userType : userTypes) {
             query("INSERT INTO board_view_access(board_id, user_type) VALUES (:board_id, :user_type);")
                     .single(call().bind("board_id", boardId).bind("user_type", userType))
                     .insert();
@@ -289,11 +291,12 @@ public class BoardRepository {
         }
     }
 
-    public void setEditAccess(int boardId, List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
+    public void setEditAccess(
+            int boardId, List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
         query("DELETE FROM board_edit_access WHERE board_id = :board_id;")
                 .single(call().bind("board_id", boardId))
                 .delete();
-        for (String userType : userTypes) {
+        for (StationUserType userType : userTypes) {
             query("INSERT INTO board_edit_access(board_id, user_type) VALUES (:board_id, :user_type);")
                     .single(call().bind("board_id", boardId).bind("user_type", userType))
                     .insert();
@@ -310,10 +313,10 @@ public class BoardRepository {
         }
     }
 
-    public List<String> findViewAccessUserTypes(int boardId) {
+    public List<StationUserType> findViewAccessUserTypes(int boardId) {
         return query("SELECT user_type FROM board_view_access WHERE board_id = :board_id AND user_type IS NOT NULL;")
                 .single(call().bind("board_id", boardId))
-                .map(row -> row.getString("user_type"))
+                .map(row -> row.getEnum("user_type", StationUserType.class))
                 .all();
     }
 
@@ -331,10 +334,10 @@ public class BoardRepository {
                 .all();
     }
 
-    public List<String> findEditAccessUserTypes(int boardId) {
+    public List<StationUserType> findEditAccessUserTypes(int boardId) {
         return query("SELECT user_type FROM board_edit_access WHERE board_id = :board_id AND user_type IS NOT NULL;")
                 .single(call().bind("board_id", boardId))
-                .map(row -> row.getString("user_type"))
+                .map(row -> row.getEnum("user_type", StationUserType.class))
                 .all();
     }
 

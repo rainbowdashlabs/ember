@@ -10,6 +10,7 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
@@ -762,15 +763,12 @@ public class AttendanceRoutes implements Routes {
     private void updateEntryStatus(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var request = ctx.bodyAsClass(StatusRequest.class);
-        AttendanceEntry.AttendanceStatus status;
-        try {
-            status = AttendanceEntry.AttendanceStatus.valueOf(request.status());
-        } catch (IllegalArgumentException e) {
-            log.warn("Invalid attendance status value: {}", request.status(), e);
+        AttendanceEntry.AttendanceStatus status = request.status();
+        if (status == null) {
             throw new BadRequestResponse("status must be UNCONFIRMED, PRESENT, ABSENT, or DECLINED");
         }
         if (attendanceService.updateEntryStatus(id, status)) {
-            ctx.json(new StatusResponse(id, status.name()));
+            ctx.json(new StatusResponse(id, status));
         } else {
             throw new NotFoundResponse();
         }
@@ -841,8 +839,8 @@ public class AttendanceRoutes implements Routes {
             summary = "Preview an attendance report",
             tags = {"Attendance"},
             queryParams = {
-                @OpenApiParam(name = "role"),
-                @OpenApiParam(name = "groupId", type = Integer.class),
+                @OpenApiParam(name = "userTypes"),
+                @OpenApiParam(name = "groupIds"),
                 @OpenApiParam(name = "from", required = true),
                 @OpenApiParam(name = "to", required = true),
                 @OpenApiParam(name = "rounding")
@@ -853,13 +851,11 @@ public class AttendanceRoutes implements Routes {
             })
     private void reportPreview(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        // Support both legacy "role" and new "userTypes" parameter
-        String role = ctx.queryParam("role");
-        List<String> userTypes = ctx.queryParams("userTypes");
-        String groupIdStr = ctx.queryParam("groupId");
-        List<String> groupIds = ctx.queryParams("groupIds");
-        Integer groupId = groupIdStr != null && !groupIdStr.isBlank() ? Integer.parseInt(groupIdStr) : null;
-        List<Integer> groupIdList = groupIds.stream()
+        var userTypes = ctx.queryParams("userTypes").stream()
+                .filter(s -> !s.isBlank())
+                .map(StationUserType::valueOf)
+                .toList();
+        var groupIds = ctx.queryParams("groupIds").stream()
                 .filter(s -> !s.isBlank())
                 .map(Integer::parseInt)
                 .toList();
@@ -869,19 +865,12 @@ public class AttendanceRoutes implements Routes {
         if (fromStr == null || toStr == null) {
             throw new BadRequestResponse("from and to are required");
         }
-        if ((role == null || role.isBlank()) && userTypes.isEmpty() && groupId == null && groupIdList.isEmpty()) {
+        if (userTypes.isEmpty() && groupIds.isEmpty()) {
             throw new BadRequestResponse("userTypes or groupIds is required");
-        }
-        // Legacy single role → treat as userType
-        if (role != null && !role.isBlank() && userTypes.isEmpty()) {
-            userTypes = List.of(role);
-        }
-        if (groupId != null && groupIdList.isEmpty()) {
-            groupIdList = List.of(groupId);
         }
         Instant from = Instant.parse(fromStr);
         Instant to = Instant.parse(toStr);
-        ctx.json(reportService.buildReport(session.stationId(), userTypes, groupIdList, from, to, rounding));
+        ctx.json(reportService.buildReport(session.stationId(), userTypes, groupIds, from, to, rounding));
     }
 
     @OpenApi(
@@ -890,8 +879,8 @@ public class AttendanceRoutes implements Routes {
             summary = "Export an attendance report as PDF",
             tags = {"Attendance"},
             queryParams = {
-                @OpenApiParam(name = "role"),
-                @OpenApiParam(name = "groupId", type = Integer.class),
+                @OpenApiParam(name = "userTypes"),
+                @OpenApiParam(name = "groupIds"),
                 @OpenApiParam(name = "from", required = true),
                 @OpenApiParam(name = "to", required = true),
                 @OpenApiParam(name = "rounding"),
@@ -904,17 +893,14 @@ public class AttendanceRoutes implements Routes {
             })
     private void reportExport(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        List<String> userTypes = ctx.queryParams("userTypes");
-        List<Integer> groupIds = ctx.queryParams("groupIds").stream()
+        var userTypes = ctx.queryParams("userTypes").stream()
+                .filter(s -> !s.isBlank())
+                .map(StationUserType::valueOf)
+                .toList();
+        var groupIds = ctx.queryParams("groupIds").stream()
                 .filter(s -> !s.isBlank())
                 .map(Integer::parseInt)
                 .toList();
-        // Legacy fallback
-        String role = ctx.queryParam("role");
-        if (role != null && !role.isBlank() && userTypes.isEmpty()) userTypes = List.of(role);
-        String groupIdStr = ctx.queryParam("groupId");
-        if (groupIdStr != null && !groupIdStr.isBlank() && groupIds.isEmpty())
-            groupIds = List.of(Integer.parseInt(groupIdStr));
 
         String fromStr = ctx.queryParam("from");
         String toStr = ctx.queryParam("to");
@@ -968,14 +954,14 @@ public class AttendanceRoutes implements Routes {
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
         }
-        if (isBlank(request.roleName()) && request.groupId() == null) {
-            throw new BadRequestResponse("roleName or groupId is required");
+        if (request.userType() == null && request.groupId() == null) {
+            throw new BadRequestResponse("userType or groupId is required");
         }
         ctx.status(HttpStatus.CREATED)
                 .json(reportService.createPreset(
                         session.stationId(),
                         request.name(),
-                        request.roleName(),
+                        request.userType(),
                         request.groupId(),
                         request.period(),
                         request.rounding()));
@@ -1042,16 +1028,15 @@ public class AttendanceRoutes implements Routes {
         if (request.memberId() == null) {
             throw new BadRequestResponse("memberId is required");
         }
-        if (isBlank(request.absentFrom()) || isBlank(request.absentUntil())) {
+        if (request.absentFrom() == null || request.absentUntil() == null) {
             throw new BadRequestResponse("absentFrom and absentUntil are required");
         }
-        LocalDate from = LocalDate.parse(request.absentFrom());
-        LocalDate until = LocalDate.parse(request.absentUntil());
-        if (until.isBefore(from)) {
+        if (request.absentUntil().isBefore(request.absentFrom())) {
             throw new BadRequestResponse("absentUntil must not be before absentFrom");
         }
         ctx.status(HttpStatus.CREATED)
-                .json(attendanceService.createAbsence(request.memberId(), from, until, request.reason(), null));
+                .json(attendanceService.createAbsence(
+                        request.memberId(), request.absentFrom(), request.absentUntil(), request.reason(), null));
     }
 
     // -- Self-service absences --
@@ -1115,14 +1100,11 @@ public class AttendanceRoutes implements Routes {
             throw new BadRequestResponse("Not a station member");
         }
         var req = ctx.bodyAsClass(MyAbsenceRequest.class);
-        if (req.absentFrom() == null
-                || req.absentFrom().isBlank()
-                || req.absentUntil() == null
-                || req.absentUntil().isBlank()) {
+        if (req.absentFrom() == null || req.absentUntil() == null) {
             throw new BadRequestResponse("absentFrom and absentUntil are required");
         }
-        LocalDate from = LocalDate.parse(req.absentFrom());
-        LocalDate until = LocalDate.parse(req.absentUntil());
+        LocalDate from = req.absentFrom();
+        LocalDate until = req.absentUntil();
         if (until.isBefore(from)) {
             throw new BadRequestResponse("absentUntil must not be before absentFrom");
         }
@@ -1257,28 +1239,30 @@ public class AttendanceRoutes implements Routes {
     /**
      * Request body for updating an attendance entry's status.
      */
-    public record StatusRequest(String status) {}
+    public record StatusRequest(AttendanceEntry.AttendanceStatus status) {}
 
     /**
      * Response confirming an attendance entry's status was updated.
      */
-    public record StatusResponse(int entryId, String status) {}
+    public record StatusResponse(int entryId, AttendanceEntry.AttendanceStatus status) {}
 
     /**
      * Request body for creating an absence by a manager.
      */
-    public record AbsenceRequest(Integer memberId, String absentFrom, String absentUntil, String reason) {}
+    public record AbsenceRequest(Integer memberId, LocalDate absentFrom, LocalDate absentUntil, String reason) {}
 
     /**
      * Request body for self-service absence creation, optionally targeting managed members.
      */
     @OpenApiName("MyAbsenceRequest")
-    public record MyAbsenceRequest(String absentFrom, String absentUntil, String reason, List<Integer> memberIds) {}
+    public record MyAbsenceRequest(
+            LocalDate absentFrom, LocalDate absentUntil, String reason, List<Integer> memberIds) {}
 
     /**
      * Request body for creating a report preset.
      */
-    public record CreatePresetRequest(String name, String roleName, Integer groupId, String period, String rounding) {}
+    public record CreatePresetRequest(
+            String name, StationUserType userType, Integer groupId, String period, String rounding) {}
 
     /**
      * Absence response enriched with the creator's display name.

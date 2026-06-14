@@ -15,4 +15,4 @@ import java.time.LocalDate;
  * @param status    the registration status name
  * @param count     the number of registrations
  */
-public record RegistrationCount(int eventId, LocalDate eventDate, String status, int count) {}
+public record RegistrationCount(int eventId, LocalDate eventDate, RegistrationStatus status, int count) {}

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.CheckItemRequest;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
@@ -17,6 +18,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryCheckLock;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
+import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.RequiredInventoryItem;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository.MemberCheckSummary;
@@ -247,7 +249,7 @@ public class InventoryCheckService {
      */
     public List<RequiredInventoryItem> getRequiredItems(int stationId, int memberId) {
         var member = stationMemberRepository.findById(memberId).orElse(null);
-        String memberUserType = member != null ? member.userType().name() : null;
+        StationUserType memberUserType = member != null ? member.userType() : null;
         List<MemberGroup> memberGroups = memberGroupRepository.findGroupsForMember(memberId);
         List<InventoryRequirement> allRequirements = inventoryRepository.findAllRequirementsByStation(stationId);
 
@@ -255,7 +257,7 @@ public class InventoryCheckService {
 
         // Filter requirements applicable to this member
         List<InventoryRequirement> applicable = allRequirements.stream()
-                .filter(req -> (req.userType() != null && req.userType().equals(memberUserType))
+                .filter(req -> (req.userType() != null && req.userType() == memberUserType)
                         || (req.groupId() != 0 && memberGroupIds.contains(req.groupId())))
                 .toList();
 
@@ -280,7 +282,7 @@ public class InventoryCheckService {
             int assignedQty = assignedByInventory.getOrDefault(inventoryId, 0);
             Inventory inv = inventoryRepository.findById(inventoryId).orElse(null);
             String invName = inv != null ? inv.name() : "#" + inventoryId;
-            String invType = inv != null ? inv.inventoryType().name() : "INTERNAL";
+            InventoryType invType = inv != null ? inv.inventoryType() : InventoryType.INTERNAL;
             boolean hasSizes = inv != null && inv.hasSizes();
             List<InventorySize> sizes = hasSizes ? inventoryRepository.findSizes(inventoryId) : List.of();
             result.add(new RequiredInventoryItem(

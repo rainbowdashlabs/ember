@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.attendance.repository;
 
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
@@ -608,7 +609,7 @@ public class AttendanceRepository {
      * @param userType  the user type to filter by
      * @return list of member IDs
      */
-    public List<Integer> findMemberIdsByUserType(int stationId, String userType) {
+    public List<Integer> findMemberIdsByUserType(int stationId, StationUserType userType) {
         return query("""
                             SELECT sm.id
                             FROM station_member sm
@@ -653,19 +654,19 @@ public class AttendanceRepository {
      *
      * @param stationId the station ID
      * @param name      preset display name
-     * @param roleName  optional role filter
+     * @param userType  optional user-type filter
      * @param groupId   optional group filter
      * @param period    time period granularity
      * @param rounding  hour rounding mode
      * @return the created preset
      */
     public AttendanceReportPreset createPreset(
-            int stationId, String name, String roleName, Integer groupId, String period, String rounding) {
+            int stationId, String name, StationUserType userType, Integer groupId, String period, String rounding) {
         return query(
                         "INSERT INTO attendance_report_preset(station_id, name, role_name, group_id, period, rounding) VALUES(:station_id, :name, :role_name, :group_id, :period, :rounding) RETURNING id, station_id, name, role_name, group_id, period, rounding;")
                 .single(call().bind("station_id", stationId)
                         .bind("name", name)
-                        .bind("role_name", roleName)
+                        .bind("role_name", userType)
                         .bind("group_id", groupId)
                         .bind("period", period)
                         .bind("rounding", rounding))

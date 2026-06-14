@@ -82,11 +82,11 @@ class EventTemplateServiceTest extends RepositoryTestBase {
                 "Weekly Training",
                 "Regular training session",
                 null,
-                "RECURRING",
+                dev.chojo.ember.feature.events.entity.StationEvent.EventType.RECURRING,
                 true,
                 "1 day",
                 false,
-                "AND",
+                dev.chojo.ember.feature.restriction.RestrictionMode.AND,
                 null,
                 null);
         assertTrue(updated);
@@ -134,7 +134,12 @@ class EventTemplateServiceTest extends RepositoryTestBase {
     @Test
     @Order(20)
     void setAndFindRestrictions() {
-        service.setRestrictions(templateId, List.of("MEMBER", "TEAM", "MANAGER"));
+        service.setRestrictions(
+                templateId,
+                List.of(
+                        dev.chojo.ember.api.auth.StationUserType.MEMBER,
+                        dev.chojo.ember.api.auth.StationUserType.TEAM,
+                        dev.chojo.ember.api.auth.StationUserType.MANAGER));
         var restrictions = service.findRestrictions(templateId);
         assertEquals(3, restrictions.size());
         assertTrue(restrictions.containsAll(List.of("MEMBER", "TEAM", "MANAGER")));
@@ -143,7 +148,7 @@ class EventTemplateServiceTest extends RepositoryTestBase {
     @Test
     @Order(21)
     void setRestrictionsReplaces() {
-        service.setRestrictions(templateId, List.of("GUARDIAN"));
+        service.setRestrictions(templateId, List.of(dev.chojo.ember.api.auth.StationUserType.GUARDIAN));
         var restrictions = service.findRestrictions(templateId);
         assertEquals(1, restrictions.size());
         assertEquals("GUARDIAN", restrictions.getFirst());

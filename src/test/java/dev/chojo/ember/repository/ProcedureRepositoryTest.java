@@ -144,8 +144,8 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
         assertTrue(
                 procedureRepo.updateTemplateItem(templateItemId1, "Step 1 Updated", "Updated desc", false, false, 1));
         var items = procedureRepo.findTemplateItems(templateId);
-        assertEquals("Step 1 Updated", items.get(0).title());
-        assertFalse(items.get(0).isPublic());
+        assertEquals("Step 1 Updated", items.getFirst().title());
+        assertFalse(items.getFirst().isPublic());
     }
 
     @Test
@@ -318,7 +318,7 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     void findItems() {
         var items = procedureRepo.findItems(procedureId);
         assertEquals(3, items.size());
-        assertEquals("Check exits", items.get(0).title());
+        assertEquals("Check exits", items.getFirst().title());
     }
 
     @Test

@@ -12,6 +12,7 @@ import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.MailSettings;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.conf.file.elements.Theming;
+import dev.chojo.ember.feature.legal.entity.LegalDocumentType;
 import dev.chojo.ember.feature.legal.service.LegalDocumentService;
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
@@ -358,35 +359,23 @@ public class AdminSettingsRoutes implements Routes {
     // -- Legal documents --
 
     private void getLegalDocument(Context ctx) {
-        String type = ctx.pathParam("type");
+        LegalDocumentType type = parseLegalType(ctx);
         Path dir = legalDir(type);
-        if (dir == null) {
-            ctx.status(HttpStatus.BAD_REQUEST).json(new ErrorResponse("Invalid legal document type: " + type));
-            return;
-        }
         var doc = documentService.getDocument(dir, "de");
         ctx.json(new LegalDocumentResponse(type, doc.markdown(), doc.version()));
     }
 
     private void getLegalDocumentLocale(Context ctx) {
-        String type = ctx.pathParam("type");
+        LegalDocumentType type = parseLegalType(ctx);
         String locale = ctx.pathParam("locale");
         Path dir = legalDir(type);
-        if (dir == null) {
-            ctx.status(HttpStatus.BAD_REQUEST).json(new ErrorResponse("Invalid legal document type: " + type));
-            return;
-        }
         var doc = documentService.getDocument(dir, locale);
         ctx.json(new LegalDocumentResponse(type, doc.markdown(), doc.version()));
     }
 
     private void getLegalLocales(Context ctx) {
-        String type = ctx.pathParam("type");
+        LegalDocumentType type = parseLegalType(ctx);
         Path dir = legalDir(type);
-        if (dir == null) {
-            ctx.status(HttpStatus.BAD_REQUEST).json(new ErrorResponse("Invalid legal document type: " + type));
-            return;
-        }
         List<String> locales = new ArrayList<>();
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
             for (Path entry : stream) {
@@ -410,12 +399,8 @@ public class AdminSettingsRoutes implements Routes {
     }
 
     private void updateLegalDocumentForLocale(Context ctx, String locale) {
-        String type = ctx.pathParam("type");
+        LegalDocumentType type = parseLegalType(ctx);
         Path dir = legalDir(type);
-        if (dir == null) {
-            ctx.status(HttpStatus.BAD_REQUEST).json(new ErrorResponse("Invalid legal document type: " + type));
-            return;
-        }
         var request = ctx.bodyAsClass(LegalDocumentRequest.class);
         Path localeDir = dir.resolve(locale);
         try {
@@ -432,13 +417,9 @@ public class AdminSettingsRoutes implements Routes {
     }
 
     private void getLegalFiles(Context ctx) {
-        String type = ctx.pathParam("type");
+        LegalDocumentType type = parseLegalType(ctx);
         String locale = ctx.pathParam("locale");
         Path dir = legalDir(type);
-        if (dir == null) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            return;
-        }
         ctx.json(readLegalFiles(dir.resolve(locale)));
     }
 
@@ -464,13 +445,9 @@ public class AdminSettingsRoutes implements Routes {
     }
 
     private void saveLegalFiles(Context ctx) {
-        String type = ctx.pathParam("type");
+        LegalDocumentType type = parseLegalType(ctx);
         String locale = ctx.pathParam("locale");
         Path dir = legalDir(type);
-        if (dir == null) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            return;
-        }
         Path localeDir = dir.resolve(locale);
         var request = ctx.bodyAsClass(LegalFileEntry[].class);
         try {
@@ -500,15 +477,22 @@ public class AdminSettingsRoutes implements Routes {
         }
     }
 
-    private Path legalDir(String type) {
+    private Path legalDir(LegalDocumentType type) {
         var api = conf.main().api();
         return switch (type) {
-            case "privacy" -> Path.of(api.privacyPolicyDir());
-            case "tos" -> Path.of(api.tosDir());
-            case "consent" -> Path.of(api.consentDir());
-            case "imprint" -> Path.of(api.imprintDir());
-            default -> null;
+            case PRIVACY -> Path.of(api.privacyPolicyDir());
+            case TOS -> Path.of(api.tosDir());
+            case CONSENT -> Path.of(api.consentDir());
+            case IMPRINT -> Path.of(api.imprintDir());
         };
+    }
+
+    private LegalDocumentType parseLegalType(Context ctx) {
+        try {
+            return LegalDocumentType.fromSlug(ctx.pathParam("type"));
+        } catch (IllegalArgumentException e) {
+            throw new io.javalin.http.BadRequestResponse("Invalid legal document type: " + ctx.pathParam("type"));
+        }
     }
 
     private static void setField(Class<?> clazz, Object target, String fieldName, Object value) throws Exception {
@@ -558,7 +542,7 @@ public class AdminSettingsRoutes implements Routes {
             int dailySendLimit,
             int notificationDigestIntervalMinutes) {}
 
-    public record LegalDocumentResponse(String type, String content, String version) {}
+    public record LegalDocumentResponse(LegalDocumentType type, String content, String version) {}
 
     public record LegalDocumentRequest(String content) {}
 

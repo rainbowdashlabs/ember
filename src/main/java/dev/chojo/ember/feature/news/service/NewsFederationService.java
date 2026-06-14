@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationPartner.FederationStatus;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
@@ -18,6 +19,7 @@ import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.entity.NewsFederationShare;
+import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
 import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -81,7 +83,8 @@ public class NewsFederationService {
      * @param partnerIds     the partner IDs to target (used when scope is SPECIFIC)
      * @return the created or updated share
      */
-    public NewsFederationShare setShare(int newsId, String scope, String visibilityRole, List<Integer> partnerIds) {
+    public NewsFederationShare setShare(
+            int newsId, ShareScope scope, NewsVisibilityRole visibilityRole, List<Integer> partnerIds) {
         var share = federationRepository.setShare(newsId, scope, visibilityRole);
         federationRepository.setShareTargets(share.id(), partnerIds);
         return share;
@@ -133,7 +136,7 @@ public class NewsFederationService {
      * @param newsId the news article ID
      * @return the visibility role, if the news is shared
      */
-    public Optional<String> findVisibilityRole(int newsId) {
+    public Optional<NewsVisibilityRole> findVisibilityRole(int newsId) {
         return federationRepository.findVisibilityRole(newsId);
     }
 
@@ -195,7 +198,7 @@ public class NewsFederationService {
         var items = new ArrayList<FederatedNewsItem>();
         for (int newsId : newsIds) {
             newsService.findById(newsId).ifPresent(n -> {
-                String visibilityRole = findVisibilityRole(newsId).orElse("MEMBER");
+                NewsVisibilityRole visibilityRole = findVisibilityRole(newsId).orElse(NewsVisibilityRole.MEMBER);
                 items.add(new FederatedNewsItem(
                         partner.id(),
                         partnerStationName(partner),
@@ -268,7 +271,8 @@ public class NewsFederationService {
         return newsService
                 .findById(newsId)
                 .map(n -> {
-                    String visibilityRole = findVisibilityRole(newsId).orElse("MEMBER");
+                    NewsVisibilityRole visibilityRole =
+                            findVisibilityRole(newsId).orElse(NewsVisibilityRole.MEMBER);
                     return toNewsData(n, visibilityRole);
                 })
                 .orElseThrow();
@@ -281,7 +285,7 @@ public class NewsFederationService {
                 .orElse("?");
     }
 
-    private FederatedNewsData toNewsData(News n, String visibilityRole) {
+    private FederatedNewsData toNewsData(News n, NewsVisibilityRole visibilityRole) {
         var authorResolved = n.author() != null ? memberNameResolver.resolveDisplay(n.author()) : null;
         String authorName = authorResolved != null && authorResolved.name() != null ? authorResolved.name() : "";
         return new FederatedNewsData(
@@ -327,7 +331,7 @@ public class NewsFederationService {
             String authorName,
             String publishedAt,
             int commentCount,
-            String visibilityRole) {}
+            NewsVisibilityRole visibilityRole) {}
 
     private record RemoteNewsListEntry(
             int id,
@@ -336,5 +340,5 @@ public class NewsFederationService {
             String authorName,
             String publishedAt,
             int commentCount,
-            String visibilityRole) {}
+            NewsVisibilityRole visibilityRole) {}
 }

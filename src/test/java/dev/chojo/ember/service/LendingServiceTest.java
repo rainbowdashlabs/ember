@@ -74,7 +74,12 @@ class LendingServiceTest extends RepositoryTestBase {
         // Create inventory
         var inv = inventoryRepo.create(stationA.id(), "LendSvcInventory", InventoryType.INTERNAL, false);
         inventoryIdA = inv.id();
-        var item = inventoryRepo.createItem(inventoryIdA, "LSVC-001", "Lend Svc Item", null, "{}");
+        var item = inventoryRepo.createItem(
+                inventoryIdA,
+                "LSVC-001",
+                "Lend Svc Item",
+                null,
+                (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null);
         itemIdA = item.id();
 
         // Create federation between A and B (local, remoteHost = null)

@@ -526,11 +526,17 @@ public class StationImportService {
      * readable from polling endpoints without locks.
      */
     public static class ImportProgress {
+        public enum Status {
+            IN_PROGRESS,
+            COMPLETED,
+            FAILED
+        }
+
         private final int stationId;
         private final String stationName;
         private final int totalTables;
 
-        private volatile String status = "IN_PROGRESS";
+        private volatile Status status = Status.IN_PROGRESS;
         private volatile String currentTable;
         private volatile int completedTables;
         private volatile String error;
@@ -549,7 +555,7 @@ public class StationImportService {
             return stationName;
         }
 
-        public String status() {
+        public Status status() {
             return status;
         }
 
@@ -578,12 +584,12 @@ public class StationImportService {
         }
 
         void complete() {
-            this.status = "COMPLETED";
+            this.status = Status.COMPLETED;
             this.currentTable = null;
         }
 
         void fail(String error) {
-            this.status = "FAILED";
+            this.status = Status.FAILED;
             this.error = error;
         }
     }

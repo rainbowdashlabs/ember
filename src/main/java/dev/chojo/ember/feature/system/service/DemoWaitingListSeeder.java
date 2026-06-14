@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -64,13 +65,13 @@ public class DemoWaitingListSeeder {
                 true);
 
         var nameField = waitingListRepository.createField(
-                list.id(), "Vorname", "TEXT", WaitingListFieldConfig.parse("{}"), 0, true, true);
+                list.id(), "Vorname", WaitingListFieldType.TEXT, WaitingListFieldConfig.parse("{}"), 0, true, true);
         var ageField = waitingListRepository.createField(
-                list.id(), "Alter", "NUMBER", WaitingListFieldConfig.parse("{}"), 1, true, true);
+                list.id(), "Alter", WaitingListFieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 1, true, true);
         var expField = waitingListRepository.createField(
                 list.id(),
                 "Erfahrung",
-                "ENUM",
+                WaitingListFieldType.ENUM,
                 WaitingListFieldConfig.parse("{\"options\":[\"Anfänger\",\"Fortgeschritten\"]}"),
                 2,
                 true,
@@ -88,9 +89,21 @@ public class DemoWaitingListSeeder {
                 0,
                 true);
         waitingListRepository.createField(
-                kinderList.id(), "Name des Kindes", "TEXT", WaitingListFieldConfig.parse("{}"), 0, true, true);
+                kinderList.id(),
+                "Name des Kindes",
+                WaitingListFieldType.TEXT,
+                WaitingListFieldConfig.parse("{}"),
+                0,
+                true,
+                true);
         waitingListRepository.createField(
-                kinderList.id(), "Geburtsdatum", "DATE", WaitingListFieldConfig.parse("{}"), 1, true, true);
+                kinderList.id(),
+                "Geburtsdatum",
+                WaitingListFieldType.DATE,
+                WaitingListFieldConfig.parse("{}"),
+                1,
+                true,
+                true);
         waitingListRepository.createInvite(kinderList.id(), "demo-kinder-invite", 10, null);
 
         // Create invite codes

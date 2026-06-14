@@ -422,8 +422,8 @@ public class DemoService {
                                 adminMember,
                                 members.anfaenger(),
                                 members.fortgeschritten(),
-                                StationUserType.MEMBER.name(),
-                                StationUserType.GUARDIAN.name(),
+                                StationUserType.MEMBER,
+                                StationUserType.GUARDIAN,
                                 members.groupAnfaenger().id(),
                                 members.tagWettkampf().id(),
                                 new Random(42_003));
@@ -535,8 +535,8 @@ public class DemoService {
                                 federationResult.partnerStationId(),
                                 adminMember,
                                 members.betreuer(),
-                                "TEAM",
-                                "MEMBER",
+                                StationUserType.TEAM,
+                                StationUserType.MEMBER,
                                 new Random(42_005));
                         log.info("Demo: Created shared board data");
                     },
@@ -546,7 +546,12 @@ public class DemoService {
             tasks.add(CompletableFuture.runAsync(
                     () -> {
                         boardSeeder.seed(
-                                station.id(), adminMember, members.betreuer(), "TEAM", "MEMBER", new Random(42_004));
+                                station.id(),
+                                adminMember,
+                                members.betreuer(),
+                                StationUserType.TEAM,
+                                StationUserType.MEMBER,
+                                new Random(42_004));
                         log.info("Demo: Created board data");
                     },
                     executor));

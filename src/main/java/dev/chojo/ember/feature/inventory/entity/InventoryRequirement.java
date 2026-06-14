@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.api.auth.StationUserType;
 
 /**
  * Defines how many items from a specific inventory are required for members with a given user type or group.
@@ -17,7 +18,8 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param quantity    the number of items required
  * @param position    the sort position for display ordering
  */
-public record InventoryRequirement(int id, int inventoryId, String userType, int groupId, int quantity, int position) {
+public record InventoryRequirement(
+        int id, int inventoryId, StationUserType userType, int groupId, int quantity, int position) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -25,7 +27,7 @@ public record InventoryRequirement(int id, int inventoryId, String userType, int
         return row -> new InventoryRequirement(
                 row.getInt("id"),
                 row.getInt("inventory_id"),
-                row.getString("user_type"),
+                row.getString("user_type") != null ? StationUserType.valueOf(row.getString("user_type")) : null,
                 row.getInt("group_id"),
                 row.getInt("quantity"),
                 row.getInt("position"));

@@ -418,8 +418,10 @@ public class StationMemberRoutes implements Routes {
     private void setUserType(Context ctx) {
         int memberId = ctx.pathParamAsClass("id", Integer.class).get();
         var request = ctx.bodyAsClass(SetUserTypeRequest.class);
-        StationUserType userType = StationUserType.valueOf(request.userType());
-        stationMemberRepository.setUserType(memberId, userType);
+        if (request.userType() == null) {
+            throw new BadRequestResponse("userType is required");
+        }
+        stationMemberRepository.setUserType(memberId, request.userType());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -489,7 +491,7 @@ public class StationMemberRoutes implements Routes {
 
     public record FormerCheckResponse(boolean canMarkFormer, String reason) {}
 
-    public record SetUserTypeRequest(String userType) {}
+    public record SetUserTypeRequest(StationUserType userType) {}
 
     public record SetUserTypePermissionsRequest(List<Integer> permissionIds) {}
 }

@@ -12,6 +12,7 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.Board;
@@ -20,6 +21,7 @@ import dev.chojo.ember.feature.board.entity.BoardField;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
 import dev.chojo.ember.feature.board.entity.BoardFieldType;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
+import dev.chojo.ember.feature.board.entity.BoardTicketHistoryAction;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistoryResponse;
 import dev.chojo.ember.feature.board.entity.BoardTicketTransitionResponse;
 import dev.chojo.ember.feature.board.entity.LaneData;
@@ -760,7 +762,7 @@ public class BoardRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
         var targets = federatedBoardService.findShareTargets(id).stream()
-                .map(t -> new FederationTargetResponse(t.partnerId(), t.shareMode(), t.requiredRole()))
+                .map(t -> new FederationTargetResponse(t.partnerId(), t.shareMode(), t.requiredUserType()))
                 .toList();
         var editUserTypes = federatedBoardService.findFederatedEditUserTypes(id);
         ctx.json(new FederationConfigResponse(targets, editUserTypes));
@@ -784,7 +786,9 @@ public class BoardRoutes implements Routes {
         var configs = (req.targets() != null ? req.targets() : List.<FederationTargetRequest>of())
                 .stream()
                         .map(t -> new FederatedBoardService.PartnerShareConfig(
-                                t.partnerId(), t.shareMode(), t.requiredRole() != null ? t.requiredRole() : "USER"))
+                                t.partnerId(),
+                                t.shareMode(),
+                                t.requiredUserType() != null ? t.requiredUserType() : StationUserType.MEMBER))
                         .toList();
         if (configs.isEmpty()) {
             federatedBoardService.unshareBoard(id);
@@ -858,18 +862,17 @@ public class BoardRoutes implements Routes {
         var enriched = bookmarks.stream()
                 .map(bm -> {
                     var partner = federationRepository.findPartnerById(bm.partnerId());
-                    String uid =
-                            partner.map(p -> p.partnerStationId().toString()).orElse("");
+                    UUID uid = partner.map(FederationPartner::partnerStationId).orElse(null);
                     return new EnrichedBookmark(
                             bm.id(),
                             bm.memberId(),
                             bm.partnerId(),
                             uid,
-                            bm.remoteBoardUid().toString(),
+                            bm.remoteBoardUid(),
                             bm.remoteBoardName(),
                             bm.remoteBoardShortKey(),
-                            bm.shareMode().name(),
-                            bm.createdAt().toString());
+                            bm.shareMode(),
+                            bm.createdAt());
                 })
                 .toList();
         ctx.json(enriched);
@@ -885,7 +888,7 @@ public class BoardRoutes implements Routes {
     private void federatedLocalCreateBookmark(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(LocalBookmarkRequest.class);
-        UUID partnerUid = UUID.fromString(req.partnerUid());
+        UUID partnerUid = req.partnerUid();
         int partnerId = federationRepository
                 .findPartnerByStationAndRemoteUid(session.stationId(), partnerUid)
                 .orElseThrow(() -> new NotFoundResponse("Unknown partner"))
@@ -893,10 +896,10 @@ public class BoardRoutes implements Routes {
         ctx.json(proxyService.createBookmark(
                 session.member().id(),
                 partnerId,
-                UUID.fromString(req.remoteBoardUid()),
+                req.remoteBoardUid(),
                 req.remoteBoardName(),
                 req.remoteBoardShortKey(),
-                BoardShareMode.valueOf(req.shareMode())));
+                req.shareMode()));
     }
 
     @OpenApi(
@@ -1748,16 +1751,16 @@ public class BoardRoutes implements Routes {
                     var mode = federatedBoardService
                             .getShareMode(board.id(), partner.id())
                             .orElse(BoardShareMode.READ_ONLY);
-                    var requiredRole = federatedBoardService
-                            .getRequiredRole(board.id(), partner.id())
-                            .orElse("USER");
+                    var requiredUserType = federatedBoardService
+                            .getRequiredUserType(board.id(), partner.id())
+                            .orElse(StationUserType.MEMBER);
                     return new RemoteSharedBoardResponse(
-                            board.uid().toString(),
+                            board.uid(),
                             board.name(),
                             board.description() != null ? board.description() : "",
                             board.shortKey(),
-                            mode.name(),
-                            requiredRole);
+                            mode,
+                            requiredUserType);
                 })
                 .toList();
         ctx.json(boards);
@@ -1781,8 +1784,7 @@ public class BoardRoutes implements Routes {
         var mode = federatedBoardService.getShareMode(boardId, partner.id()).orElse(BoardShareMode.READ_ONLY);
         String stationName =
                 stationRepository.findById(board.stationId()).map(Station::name).orElse("");
-        ctx.json(
-                FederatedBoardProxyService.FederatedBoardDetail.of(board, mode.name(), stationName, stationRepository));
+        ctx.json(FederatedBoardProxyService.FederatedBoardDetail.of(board, mode, stationName, stationRepository));
     }
 
     @OpenApi(
@@ -1961,7 +1963,7 @@ public class BoardRoutes implements Routes {
         requireRemoteView(boardId, partner);
         var mode = federatedBoardService.getShareMode(boardId, partner.id()).orElse(BoardShareMode.READ_ONLY);
         var editUserTypes = federatedBoardService.findFederatedEditUserTypes(boardId);
-        ctx.json(new RemoteAccessResponse(mode.name(), editUserTypes));
+        ctx.json(new RemoteAccessResponse(mode, editUserTypes));
     }
 
     private void federatedRemoteGetMembers(Context ctx) {
@@ -2273,7 +2275,7 @@ public class BoardRoutes implements Routes {
                 .orElse(null);
         ticketService.logHistory(
                 ticketId,
-                "LABEL_ADDED",
+                BoardTicketHistoryAction.LABEL_ADDED,
                 label != null ? label.name() : "?",
                 new MemberIdentity(partner.partnerStationId(), req.remoteMemberId()));
         if (req.displayName() != null) {
@@ -2307,7 +2309,7 @@ public class BoardRoutes implements Routes {
         boardService.removeLabelFromTicket(ticketId, labelId);
         ticketService.logHistory(
                 ticketId,
-                "LABEL_REMOVED",
+                BoardTicketHistoryAction.LABEL_REMOVED,
                 label != null ? label.name() : "?",
                 new MemberIdentity(partner.partnerStationId(), req.remoteMemberId()));
         if (req.displayName() != null) {
@@ -2392,7 +2394,7 @@ public class BoardRoutes implements Routes {
         if (req.displayName() != null && req.remoteMemberUid() != null) {
             eventFederationRepository.cacheName(partner.id(), req.remoteMemberUid(), req.displayName());
         }
-        ticketService.linkTickets(ticketId, linkedTicketId, LinkType.valueOf(req.linkType()), actorIdentity);
+        ticketService.linkTickets(ticketId, linkedTicketId, req.linkType(), actorIdentity);
         ctx.status(HttpStatus.CREATED);
     }
 
@@ -2486,7 +2488,7 @@ public class BoardRoutes implements Routes {
     private void federatedRemoteOnBoardRenamed(Context ctx) {
         var partner = requireFederationPartner(ctx);
         var req = ctx.bodyAsClass(RemoteBoardRenamedWebhook.class);
-        proxyService.onBoardRenamed(partner.id(), UUID.fromString(req.boardUid()), req.newName(), req.newShortKey());
+        proxyService.onBoardRenamed(partner.id(), req.boardUid(), req.newName(), req.newShortKey());
         ctx.status(204);
     }
 
@@ -2500,7 +2502,7 @@ public class BoardRoutes implements Routes {
     private void federatedRemoteOnBoardUnshared(Context ctx) {
         var partner = requireFederationPartner(ctx);
         var req = ctx.bodyAsClass(RemoteBoardUnsharedWebhook.class);
-        proxyService.onBoardUnshared(partner.id(), UUID.fromString(req.boardUid()));
+        proxyService.onBoardUnshared(partner.id(), req.boardUid());
         ctx.status(204);
     }
 
@@ -2514,8 +2516,7 @@ public class BoardRoutes implements Routes {
     private void federatedRemoteOnShareModeChanged(Context ctx) {
         var partner = requireFederationPartner(ctx);
         var req = ctx.bodyAsClass(RemoteShareModeChangedWebhook.class);
-        proxyService.onShareModeChanged(
-                partner.id(), UUID.fromString(req.boardUid()), BoardShareMode.valueOf(req.shareMode()));
+        proxyService.onShareModeChanged(partner.id(), req.boardUid(), req.shareMode());
         ctx.status(204);
     }
 
@@ -2578,33 +2579,39 @@ public class BoardRoutes implements Routes {
 
     public record LabelRequest(String name, String color) {}
 
-    public record AccessRequest(List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds) {}
+    public record AccessRequest(List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds) {}
 
-    public record FederationTargetRequest(int partnerId, BoardShareMode shareMode, String requiredRole) {}
+    public record FederationTargetRequest(int partnerId, BoardShareMode shareMode, StationUserType requiredUserType) {}
 
-    public record FederationTargetResponse(int partnerId, BoardShareMode shareMode, String requiredRole) {}
+    public record FederationTargetResponse(int partnerId, BoardShareMode shareMode, StationUserType requiredUserType) {}
 
-    public record FederationConfigRequest(List<FederationTargetRequest> targets, List<String> editUserTypes) {}
+    public record FederationConfigRequest(List<FederationTargetRequest> targets, List<StationUserType> editUserTypes) {}
 
-    public record FederationConfigResponse(List<FederationTargetResponse> targets, List<String> editUserTypes) {}
+    public record FederationConfigResponse(
+            List<FederationTargetResponse> targets, List<StationUserType> editUserTypes) {}
 
     public record RemoteSharedBoardResponse(
-            String uid, String name, String description, String shortKey, String shareMode, String requiredRole) {}
+            UUID uid,
+            String name,
+            String description,
+            String shortKey,
+            BoardShareMode shareMode,
+            StationUserType requiredUserType) {}
 
     // -- Federated local proxy records --
 
     record LocalBookmarkRequest(
-            String partnerUid,
-            String remoteBoardUid,
+            UUID partnerUid,
+            UUID remoteBoardUid,
             String remoteBoardName,
             String remoteBoardShortKey,
-            String shareMode) {}
+            BoardShareMode shareMode) {}
 
     record LocalCreateTicketRequest(
-            Integer laneId, String title, String description, String priority, String dueDate) {}
+            Integer laneId, String title, String description, TicketPriority priority, LocalDate dueDate) {}
 
     record LocalUpdateTicketRequest(
-            String title, String description, Integer assignedMemberId, String priority, String dueDate) {}
+            String title, String description, Integer assignedMemberId, TicketPriority priority, LocalDate dueDate) {}
 
     record LocalMoveTicketRequest(int toLaneId, int position) {}
 
@@ -2612,7 +2619,7 @@ public class BoardRoutes implements Routes {
 
     record LocalCommentRequest(Integer parentId, String content) {}
 
-    record LocalLinkRequest(int linkedTicketNumber, String linkType) {}
+    record LocalLinkRequest(int linkedTicketNumber, LinkType linkType) {}
 
     record LocalChecklistItemRequest(String title) {}
 
@@ -2621,10 +2628,10 @@ public class BoardRoutes implements Routes {
     record LocalCreateLabelRequest(String name, String color) {}
 
     record LocalOverrideRequest(
-            List<String> viewUserTypes,
+            List<StationUserType> viewUserTypes,
             List<Integer> viewGroupIds,
             List<Integer> viewTagIds,
-            List<String> editUserTypes,
+            List<StationUserType> editUserTypes,
             List<Integer> editGroupIds,
             List<Integer> editTagIds) {}
 
@@ -2654,7 +2661,7 @@ public class BoardRoutes implements Routes {
 
     record RemoteUpdateChecklistItemRequest(String title, boolean checked, UUID remoteMemberUid, String displayName) {}
 
-    record RemoteLinkRequest(int linkedTicketNumber, String linkType, UUID remoteMemberUid, String displayName) {}
+    record RemoteLinkRequest(int linkedTicketNumber, LinkType linkType, UUID remoteMemberUid, String displayName) {}
 
     record RemoteCreateLabelRequest(String name, String color) {}
 
@@ -2662,11 +2669,11 @@ public class BoardRoutes implements Routes {
 
     record RemoteWatchRequest(UUID remoteMemberId) {}
 
-    record RemoteBoardRenamedWebhook(String boardUid, String newName, String newShortKey) {}
+    record RemoteBoardRenamedWebhook(UUID boardUid, String newName, String newShortKey) {}
 
-    record RemoteBoardUnsharedWebhook(String boardUid) {}
+    record RemoteBoardUnsharedWebhook(UUID boardUid) {}
 
-    record RemoteShareModeChangedWebhook(String boardUid, String shareMode) {}
+    record RemoteShareModeChangedWebhook(UUID boardUid, BoardShareMode shareMode) {}
 
     record CanEditResponse(boolean canEdit) {}
 
@@ -2676,16 +2683,16 @@ public class BoardRoutes implements Routes {
             int id,
             int memberId,
             int partnerId,
-            String partnerStationUid,
-            String remoteBoardUid,
+            UUID partnerStationUid,
+            UUID remoteBoardUid,
             String remoteBoardName,
             String remoteBoardShortKey,
-            String shareMode,
-            String createdAt) {}
+            BoardShareMode shareMode,
+            Instant createdAt) {}
 
     record AccessOverrideResponse(AccessData view, AccessData edit) {}
 
     record WatcherResponse(List<Integer> local, List<Object> federated) {}
 
-    record RemoteAccessResponse(String shareMode, List<String> editUserTypes) {}
+    record RemoteAccessResponse(BoardShareMode shareMode, List<StationUserType> editUserTypes) {}
 }

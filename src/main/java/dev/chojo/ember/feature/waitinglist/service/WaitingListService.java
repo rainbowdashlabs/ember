@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.waitinglist.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
@@ -22,6 +21,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryGuardian;
@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryValue;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListField;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import jakarta.inject.Inject;
@@ -55,8 +56,6 @@ import java.util.regex.Pattern;
 @Singleton
 public class WaitingListService {
     private static final Logger log = LoggerFactory.getLogger(WaitingListService.class);
-
-    public record GuardianInput(String firstname, String lastname, String email, String phone) {}
 
     private static final ObjectMapper JSON = new ObjectMapper();
 
@@ -169,7 +168,7 @@ public class WaitingListService {
     public WaitingListField createField(
             int listId,
             String name,
-            String fieldType,
+            WaitingListFieldType fieldType,
             WaitingListFieldConfig config,
             int position,
             boolean required,
@@ -180,7 +179,7 @@ public class WaitingListService {
     public Optional<WaitingListField> updateField(
             int fieldId,
             String name,
-            String fieldType,
+            WaitingListFieldType fieldType,
             WaitingListFieldConfig config,
             int position,
             boolean required,
@@ -720,17 +719,15 @@ public class WaitingListService {
         }
 
         String token = UUID.randomUUID().toString();
-        String guardiansJson;
-        String fieldValuesJson;
-        try {
-            guardiansJson = JSON.writeValueAsString(guardians != null ? guardians : List.of());
-            fieldValuesJson = JSON.writeValueAsString(fieldValues != null ? fieldValues : Map.of());
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to serialize registration data", e);
-        }
-
         repository.createVerificationToken(
-                token, listId, firstname, lastname, email, guardiansJson, fieldValuesJson, notes != null ? notes : "");
+                token,
+                listId,
+                firstname,
+                lastname,
+                email,
+                guardians != null ? guardians : List.of(),
+                fieldValues != null ? fieldValues : Map.of(),
+                notes != null ? notes : "");
 
         String stationName = resolveStationName(list.stationId());
         emailService.sendWaitlistVerifyEmail(email, firstname, stationName, token, "de", list.stationId());
@@ -744,15 +741,8 @@ public class WaitingListService {
             return false;
         }
 
-        List<GuardianInput> guardians;
-        Map<Integer, String> fieldValues;
-        try {
-            guardians = JSON.readValue(verification.guardians(), new TypeReference<>() {});
-            fieldValues = JSON.readValue(verification.fieldValues(), new TypeReference<>() {});
-        } catch (Exception e) {
-            log.error("Failed to deserialize verification data for token {}", token, e);
-            return false;
-        }
+        List<GuardianInput> guardians = verification.guardians();
+        Map<Integer, String> fieldValues = verification.fieldValues();
 
         String parentName = guardians != null && !guardians.isEmpty()
                 ? (guardians.getFirst().firstname() + " " + guardians.getFirst().lastname()).trim()

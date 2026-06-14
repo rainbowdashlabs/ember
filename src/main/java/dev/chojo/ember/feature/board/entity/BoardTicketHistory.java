@@ -15,7 +15,7 @@ import java.util.UUID;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 public record BoardTicketHistory(
-        int id, int ticketId, String action, String detail, MemberIdentity actor, Instant createdAt) {
+        int id, int ticketId, BoardTicketHistoryAction action, String detail, MemberIdentity actor, Instant createdAt) {
 
     public static RowMapping<BoardTicketHistory> map() {
         return row -> {
@@ -28,7 +28,7 @@ public record BoardTicketHistory(
             return new BoardTicketHistory(
                     row.getInt("id"),
                     row.getInt("ticket_id"),
-                    row.getString("action"),
+                    row.getEnum("action", BoardTicketHistoryAction.class),
                     row.getString("detail"),
                     actor,
                     row.get("created_at", INSTANT_TIMESTAMP));

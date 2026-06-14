@@ -240,8 +240,8 @@ class NewsServiceTest extends RepositoryTestBase {
 
         var summary = service.findViewerSummary(newsId, station.id());
         assertEquals(1, summary.seen().size(), "the only member should appear in the seen list");
-        assertNotNull(summary.seen().get(0).seenAt());
-        assertEquals(member.uid(), summary.seen().get(0).member().memberUid());
+        assertNotNull(summary.seen().getFirst().seenAt());
+        assertEquals(member.uid(), summary.seen().getFirst().member().memberUid());
         // The only eligible member has now seen the news, so unseen is empty.
         assertEquals(0, summary.unseen().size());
     }

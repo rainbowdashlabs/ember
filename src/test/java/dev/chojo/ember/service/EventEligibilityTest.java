@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.restriction.Restriction;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
@@ -20,13 +21,13 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class EventEligibilityTest {
 
-    private static final String USER_TYPE_MEMBER = "MEMBER";
-    private static final String USER_TYPE_TEAM = "TEAM";
+    private static final StationUserType USER_TYPE_MEMBER = StationUserType.MEMBER;
+    private static final StationUserType USER_TYPE_TEAM = StationUserType.TEAM;
     private static final int GROUP_A = 10;
     private static final int TAG_X = 20;
     private static final int MEMBER_42 = 42;
 
-    private Restriction userTypeRestriction(String userType) {
+    private Restriction userTypeRestriction(StationUserType userType) {
         return new Restriction(0, userType, null, null, null);
     }
 

@@ -11,9 +11,11 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -21,6 +23,8 @@ import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
+import dev.chojo.ember.feature.news.entity.NewsViewer;
+import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -291,7 +295,7 @@ public class NewsRoutes implements Routes {
     private NewsResponse toResponse(News news, boolean includeRestrictions) {
         var resolved = news.author() != null ? memberNameResolver.resolveDisplay(news.author()) : null;
         String authorName = resolved != null && resolved.name() != null ? resolved.name() : "";
-        List<String> userTypes = List.of();
+        List<StationUserType> userTypes = List.of();
         List<Integer> groupIds = List.of();
         List<Integer> tagIds = List.of();
         List<Integer> memberIds = List.of();
@@ -464,7 +468,7 @@ public class NewsRoutes implements Routes {
                 summary.unseen().stream().map(this::toViewerEntry).toList()));
     }
 
-    private NewsViewerEntry toViewerEntry(dev.chojo.ember.feature.news.entity.NewsViewer viewer) {
+    private NewsViewerEntry toViewerEntry(NewsViewer viewer) {
         var enriched = memberNameResolver.enrichDisplay(viewer.member());
         return new NewsViewerEntry(enriched != null ? enriched : viewer.member(), viewer.seenAt());
     }
@@ -517,13 +521,11 @@ public class NewsRoutes implements Routes {
         var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
         if (news.stationId() != session.stationId()) throw new ForbiddenResponse();
         var req = ctx.bodyAsClass(SetNewsFederationShareRequest.class);
+        NewsVisibilityRole visibilityRole =
+                req.visibilityRole() != null ? req.visibilityRole() : NewsVisibilityRole.MEMBER;
         newsFederationService.setShare(
-                id,
-                req.scope(),
-                req.visibilityRole() != null ? req.visibilityRole() : "MEMBER",
-                req.partnerIds() != null ? req.partnerIds() : List.of());
-        ctx.json(new NewsFederationShareResponse(
-                true, req.scope(), req.visibilityRole() != null ? req.visibilityRole() : "MEMBER", null));
+                id, req.scope(), visibilityRole, req.partnerIds() != null ? req.partnerIds() : List.of());
+        ctx.json(new NewsFederationShareResponse(true, req.scope(), visibilityRole, null));
     }
 
     private void removeFederationShare(Context ctx) {
@@ -544,8 +546,8 @@ public class NewsRoutes implements Routes {
                 .map(id -> newsService.findById(id).orElse(null))
                 .filter(Objects::nonNull)
                 .map(n -> {
-                    String visibilityRole =
-                            newsFederationService.findVisibilityRole(n.id()).orElse("MEMBER");
+                    NewsVisibilityRole visibilityRole =
+                            newsFederationService.findVisibilityRole(n.id()).orElse(NewsVisibilityRole.MEMBER);
                     var authorResolved = n.author() != null ? memberNameResolver.resolveDisplay(n.author()) : null;
                     String authorName =
                             authorResolved != null && authorResolved.name() != null ? authorResolved.name() : "";
@@ -572,7 +574,8 @@ public class NewsRoutes implements Routes {
         var news = newsService.findById(newsId).orElseThrow(NotFoundResponse::new);
         var authorResolved = news.author() != null ? memberNameResolver.resolveDisplay(news.author()) : null;
         String authorName = authorResolved != null && authorResolved.name() != null ? authorResolved.name() : "";
-        String visibilityRole = newsFederationService.findVisibilityRole(newsId).orElse("MEMBER");
+        NewsVisibilityRole visibilityRole =
+                newsFederationService.findVisibilityRole(newsId).orElse(NewsVisibilityRole.MEMBER);
         ctx.json(new RemoteNewsDetail(
                 news.id(),
                 news.title(),
@@ -801,7 +804,7 @@ public class NewsRoutes implements Routes {
             String title,
             String contentMarkdown,
             String contentHtml,
-            List<String> userTypes,
+            List<StationUserType> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds,
@@ -820,7 +823,7 @@ public class NewsRoutes implements Routes {
             String authorName,
             Instant publishedAt,
             Instant createdAt,
-            List<String> userTypes,
+            List<StationUserType> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds,
@@ -846,7 +849,7 @@ public class NewsRoutes implements Routes {
             Instant createdAt) {}
 
     public record NewsFederationShareResponse(
-            boolean shared, String scope, String visibilityRole, List<Integer> partnerIds) {}
+            boolean shared, ShareScope scope, NewsVisibilityRole visibilityRole, List<Integer> partnerIds) {}
 
     public record RemoteNewsSummary(
             int id,
@@ -855,7 +858,7 @@ public class NewsRoutes implements Routes {
             String authorName,
             String publishedAt,
             int commentCount,
-            String visibilityRole) {}
+            NewsVisibilityRole visibilityRole) {}
 
     public record RemoteNewsDetail(
             int id,
@@ -865,12 +868,13 @@ public class NewsRoutes implements Routes {
             String authorName,
             String publishedAt,
             int commentCount,
-            String visibilityRole) {}
+            NewsVisibilityRole visibilityRole) {}
 
     /**
      * Request body for setting news federation sharing.
      */
-    public record SetNewsFederationShareRequest(String scope, String visibilityRole, List<Integer> partnerIds) {}
+    public record SetNewsFederationShareRequest(
+            ShareScope scope, NewsVisibilityRole visibilityRole, List<Integer> partnerIds) {}
 
     /**
      * Request body for creating a comment from a remote federated partner.

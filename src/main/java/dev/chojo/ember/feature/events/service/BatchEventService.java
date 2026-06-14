@@ -134,12 +134,13 @@ public class BatchEventService {
 
     private List<LocalDate> expandInterval(IntervalConfig interval) {
         var dates = new ArrayList<LocalDate>();
+        if (interval.intervalType() == null) return dates;
         LocalDate start = interval.startDate();
         LocalDate end = interval.endDate();
         int dayOfWeek = interval.dayOfWeek();
 
         return switch (interval.intervalType()) {
-            case "RECURRING" -> {
+            case RECURRING -> {
                 LocalDate cursor = start;
                 while (!cursor.isAfter(end)) {
                     if (cursor.getDayOfWeek().getValue() == dayOfWeek) {
@@ -149,7 +150,7 @@ public class BatchEventService {
                 }
                 yield dates;
             }
-            case "MONTHLY_FIRST" -> {
+            case MONTHLY_FIRST -> {
                 LocalDate cursor = start.withDayOfMonth(1);
                 while (!cursor.isAfter(end)) {
                     for (int d = 1; d <= 7 && !cursor.plusDays(d - 1).isAfter(end); d++) {
@@ -163,7 +164,7 @@ public class BatchEventService {
                 }
                 yield dates;
             }
-            case "QUARTERLY" -> {
+            case QUARTERLY -> {
                 LocalDate cursor = start.withDayOfMonth(1);
                 while (!cursor.isAfter(end)) {
                     if ((cursor.getMonthValue() - 1) % 3 == 0) {
@@ -179,7 +180,7 @@ public class BatchEventService {
                 }
                 yield dates;
             }
-            case "YEARLY" -> {
+            case YEARLY -> {
                 LocalDate cursor = start;
                 while (!cursor.isAfter(end)) {
                     dates.add(cursor);

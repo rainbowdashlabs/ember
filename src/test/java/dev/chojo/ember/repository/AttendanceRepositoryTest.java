@@ -304,7 +304,7 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(41)
     void findMemberIdsByUserType() {
-        var ids = attendanceRepo.findMemberIdsByUserType(station.id(), "MEMBER");
+        var ids = attendanceRepo.findMemberIdsByUserType(station.id(), dev.chojo.ember.api.auth.StationUserType.MEMBER);
         assertNotNull(ids);
     }
 

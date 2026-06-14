@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.knowledgebase.repository;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.knowledgebase.entity.ConversionStatus;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessRestriction;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
@@ -393,7 +394,12 @@ public class KnowledgeBaseRepository {
     }
 
     public KbAccessRestriction addRestriction(
-            Integer folderId, Integer fileId, String userType, Integer groupId, Integer tagId, Integer memberId) {
+            Integer folderId,
+            Integer fileId,
+            StationUserType userType,
+            Integer groupId,
+            Integer tagId,
+            Integer memberId) {
         return query("""
                 INSERT
                 INTO

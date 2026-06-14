@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventCancelled;
 import dev.chojo.ember.event.events.EventCreated;
@@ -564,7 +565,7 @@ public class EventService {
      */
     public void setRestrictions(
             int eventId,
-            List<String> userTypes,
+            List<StationUserType> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds) {

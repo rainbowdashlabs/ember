@@ -42,20 +42,20 @@ public class DemoLendingSeeder {
         // Create inventory on the partner station for lending purposes
         var partnerFeuerloescher =
                 inventoryRepository.create(partnerStationId, "Feuerlöscher", InventoryType.INTERNAL, false);
-        inventoryRepository.createItem(partnerFeuerloescher.id(), "FL-001", "Feuerlöscher ABC 6kg", null, "{}");
-        inventoryRepository.createItem(partnerFeuerloescher.id(), "FL-002", "Feuerlöscher ABC 6kg", null, "{}");
-        inventoryRepository.createItem(partnerFeuerloescher.id(), "FL-003", "Feuerlöscher CO2 5kg", null, "{}");
+        inventoryRepository.createItem(partnerFeuerloescher.id(), "FL-001", "Feuerlöscher ABC 6kg", null, null);
+        inventoryRepository.createItem(partnerFeuerloescher.id(), "FL-002", "Feuerlöscher ABC 6kg", null, null);
+        inventoryRepository.createItem(partnerFeuerloescher.id(), "FL-003", "Feuerlöscher CO2 5kg", null, null);
 
         var partnerSchlaeuche =
                 inventoryRepository.create(partnerStationId, "Schläuche", InventoryType.INTERNAL, false);
-        inventoryRepository.createItem(partnerSchlaeuche.id(), "S-001", "B-Schlauch 20m", null, "{}");
-        inventoryRepository.createItem(partnerSchlaeuche.id(), "S-002", "B-Schlauch 20m", null, "{}");
-        inventoryRepository.createItem(partnerSchlaeuche.id(), "S-003", "C-Schlauch 15m", null, "{}");
-        inventoryRepository.createItem(partnerSchlaeuche.id(), "S-004", "C-Schlauch 15m", null, "{}");
+        inventoryRepository.createItem(partnerSchlaeuche.id(), "S-001", "B-Schlauch 20m", null, null);
+        inventoryRepository.createItem(partnerSchlaeuche.id(), "S-002", "B-Schlauch 20m", null, null);
+        inventoryRepository.createItem(partnerSchlaeuche.id(), "S-003", "C-Schlauch 15m", null, null);
+        inventoryRepository.createItem(partnerSchlaeuche.id(), "S-004", "C-Schlauch 15m", null, null);
 
         var partnerZelte = inventoryRepository.create(partnerStationId, "Zelte", InventoryType.INTERNAL, false);
-        inventoryRepository.createItem(partnerZelte.id(), "Z-001", "Mannschaftszelt 6x4m", null, "{}");
-        inventoryRepository.createItem(partnerZelte.id(), "Z-002", "Faltzelt 3x3m", null, "{}");
+        inventoryRepository.createItem(partnerZelte.id(), "Z-001", "Mannschaftszelt 6x4m", null, null);
+        inventoryRepository.createItem(partnerZelte.id(), "Z-002", "Faltzelt 3x3m", null, null);
 
         // -- Request 1: APPROVED — partner lends Feuerlöscher to main station --
         var approvedRequest = lendingService.createRequest(
@@ -122,12 +122,12 @@ public class DemoLendingSeeder {
 
         // -- Walky Talkies on the base station (some lent out to partner) --
         var walkieTalkies = inventoryRepository.create(stationId, "Funkgeräte", InventoryType.INTERNAL, false);
-        var wt1 = inventoryRepository.createItem(walkieTalkies.id(), "FG-001", "Motorola DP1400", null, "{}");
-        var wt2 = inventoryRepository.createItem(walkieTalkies.id(), "FG-002", "Motorola DP1400", null, "{}");
-        inventoryRepository.createItem(walkieTalkies.id(), "FG-003", "Motorola DP1400", null, "{}");
-        inventoryRepository.createItem(walkieTalkies.id(), "FG-004", "Motorola DP1400", null, "{}");
-        inventoryRepository.createItem(walkieTalkies.id(), "FG-005", "Motorola DP3441e", null, "{}");
-        inventoryRepository.createItem(walkieTalkies.id(), "FG-006", "Motorola DP3441e", null, "{}");
+        var wt1 = inventoryRepository.createItem(walkieTalkies.id(), "FG-001", "Motorola DP1400", null, null);
+        var wt2 = inventoryRepository.createItem(walkieTalkies.id(), "FG-002", "Motorola DP1400", null, null);
+        inventoryRepository.createItem(walkieTalkies.id(), "FG-003", "Motorola DP1400", null, null);
+        inventoryRepository.createItem(walkieTalkies.id(), "FG-004", "Motorola DP1400", null, null);
+        inventoryRepository.createItem(walkieTalkies.id(), "FG-005", "Motorola DP3441e", null, null);
+        inventoryRepository.createItem(walkieTalkies.id(), "FG-006", "Motorola DP3441e", null, null);
 
         // -- Request 4 (INCOMING): partner requests Funkgeräte from main station (LENT — currently out) --
         var lentRequest = lendingService.createRequest(

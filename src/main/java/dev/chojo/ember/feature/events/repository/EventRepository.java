@@ -718,7 +718,7 @@ public class EventRepository {
                 .map(row -> new RegistrationCount(
                         row.getInt("event_id"),
                         row.getObject("event_date", LocalDate.class),
-                        row.getString("status"),
+                        RegistrationStatus.valueOf(row.getString("status")),
                         row.getInt("count")))
                 .all();
     }

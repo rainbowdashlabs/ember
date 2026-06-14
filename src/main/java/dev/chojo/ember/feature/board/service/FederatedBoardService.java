@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.board.service;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
 import dev.chojo.ember.feature.board.entity.FederationBoardBookmark;
@@ -34,9 +35,9 @@ public class FederatedBoardService {
 
     // -- Board Sharing --
 
-    public record PartnerShareConfig(int partnerId, BoardShareMode shareMode, String requiredRole) {
+    public record PartnerShareConfig(int partnerId, BoardShareMode shareMode, StationUserType requiredUserType) {
         public PartnerShareConfig(int partnerId, BoardShareMode shareMode) {
-            this(partnerId, shareMode, "USER");
+            this(partnerId, shareMode, StationUserType.MEMBER);
         }
     }
 
@@ -48,7 +49,7 @@ public class FederatedBoardService {
                     share.id(),
                     config.partnerId(),
                     config.shareMode(),
-                    config.requiredRole() != null ? config.requiredRole() : "USER");
+                    config.requiredUserType() != null ? config.requiredUserType() : StationUserType.MEMBER);
         }
     }
 
@@ -71,8 +72,8 @@ public class FederatedBoardService {
         return repository.findShareMode(boardId, partnerId);
     }
 
-    public Optional<String> getRequiredRole(int boardId, int partnerId) {
-        return repository.findRequiredRole(boardId, partnerId);
+    public Optional<StationUserType> getRequiredUserType(int boardId, int partnerId) {
+        return repository.findRequiredUserType(boardId, partnerId);
     }
 
     public List<Integer> findSharedBoardIds(int partnerId) {
@@ -96,18 +97,18 @@ public class FederatedBoardService {
                 .orElse(false);
     }
 
-    public boolean canFederatedEdit(int boardId, int partnerId, List<String> partnerUserTypes) {
+    public boolean canFederatedEdit(int boardId, int partnerId, List<StationUserType> partnerUserTypes) {
         if (!canFederatedWrite(boardId, partnerId)) return false;
         if (!repository.hasFederatedEditUserTypes(boardId)) return true;
         var allowedUserTypes = repository.findFederatedEditUserTypes(boardId);
         return partnerUserTypes.stream().anyMatch(allowedUserTypes::contains);
     }
 
-    public void setFederatedEditUserTypes(int boardId, List<String> userTypes) {
+    public void setFederatedEditUserTypes(int boardId, List<StationUserType> userTypes) {
         repository.setFederatedEditUserTypes(boardId, userTypes);
     }
 
-    public List<String> findFederatedEditUserTypes(int boardId) {
+    public List<StationUserType> findFederatedEditUserTypes(int boardId) {
         return repository.findFederatedEditUserTypes(boardId);
     }
 

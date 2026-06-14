@@ -7,12 +7,14 @@ package dev.chojo.ember.feature.board.repository;
 
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.feature.board.entity.BoardActivityType;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
 import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
 import dev.chojo.ember.feature.board.entity.BoardTicketAttachment;
 import dev.chojo.ember.feature.board.entity.BoardTicketFieldValue;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistory;
+import dev.chojo.ember.feature.board.entity.BoardTicketHistoryAction;
 import dev.chojo.ember.feature.board.entity.BoardTicketKbLink;
 import dev.chojo.ember.feature.board.entity.BoardTicketLink;
 import dev.chojo.ember.feature.board.entity.BoardTicketTransition;
@@ -669,7 +671,7 @@ public class BoardTicketRepository {
 
     // -- History --
 
-    public void logHistory(int ticketId, String action, String detail, MemberIdentity actor) {
+    public void logHistory(int ticketId, BoardTicketHistoryAction action, String detail, MemberIdentity actor) {
         query("""
                         INSERT INTO board_ticket_history(ticket_id, action, detail, actor_station_uid, actor_member_uid)
                         VALUES (:ticket_id, :action, :detail, :actor_station_uid::uuid, :actor_member_uid::uuid)""")
@@ -696,19 +698,19 @@ public class BoardTicketRepository {
 
     // -- Activity feed --
 
-    public record ActivityEntry(String type, int id, Instant timestamp) {}
+    public record ActivityEntry(BoardActivityType type, int id, Instant timestamp) {}
 
     public List<ActivityEntry> findActivity(int ticketId) {
         return query("""
-                        SELECT 'comment' AS type, id, created_at AS ts FROM board_ticket_comment WHERE ticket_id = :ticket_id AND NOT deleted
+                        SELECT 'COMMENT' AS type, id, created_at AS ts FROM board_ticket_comment WHERE ticket_id = :ticket_id AND NOT deleted
                         UNION ALL
-                        SELECT 'transition' AS type, id, moved_at AS ts FROM board_ticket_transition WHERE ticket_id = :ticket_id
+                        SELECT 'TRANSITION' AS type, id, moved_at AS ts FROM board_ticket_transition WHERE ticket_id = :ticket_id
                         UNION ALL
-                        SELECT 'history' AS type, id, created_at AS ts FROM board_ticket_history WHERE ticket_id = :ticket_id
+                        SELECT 'HISTORY' AS type, id, created_at AS ts FROM board_ticket_history WHERE ticket_id = :ticket_id
                         ORDER BY ts;""")
                 .single(call().bind("ticket_id", ticketId))
                 .map(row -> new ActivityEntry(
-                        row.getString("type"),
+                        row.getEnum("type", BoardActivityType.class),
                         row.getInt("id"),
                         row.get("ts", StandardValueConverter.INSTANT_TIMESTAMP)))
                 .all();

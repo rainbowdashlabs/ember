@@ -88,7 +88,12 @@ class InventoryServiceTest extends RepositoryTestBase {
     void createItem() {
         var sizes = service.findSizes(inventoryId);
         var sizeId = sizes.isEmpty() ? null : sizes.getFirst().id();
-        var item = service.createItem(inventoryId, "H-001", "Helmet 1", sizeId, "{}");
+        var item = service.createItem(
+                inventoryId,
+                "H-001",
+                "Helmet 1",
+                sizeId,
+                (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null);
         assertNotNull(item);
         itemId = item.id();
     }
@@ -142,7 +147,9 @@ class InventoryServiceTest extends RepositoryTestBase {
     void findItemById() {
         // Item was deleted in order 50, so create a new one
         var inv = service.create(station.id(), "FindItem Inv", InventoryType.INTERNAL, false);
-        var item = service.createItem(inv.id(), "FI-001", "FindItem 1", null, "{}");
+        var item = service.createItem(
+                inv.id(), "FI-001", "FindItem 1", null, (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata)
+                        null);
         assertTrue(service.findItemById(item.id()).isPresent());
         assertTrue(service.findItemById(99999).isEmpty());
         service.delete(inv.id());
@@ -152,8 +159,18 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Order(56)
     void updateItem() {
         var inv = service.create(station.id(), "UpdateItem Inv", InventoryType.INTERNAL, false);
-        var item = service.createItem(inv.id(), "UI-001", "Original Name", null, "{}");
-        var updated = service.updateItem(item.id(), "UI-002", "Updated Name", null, "{\"color\":\"red\"}");
+        var item = service.createItem(
+                inv.id(),
+                "UI-001",
+                "Original Name",
+                null,
+                (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null);
+        var updated = service.updateItem(
+                item.id(),
+                "UI-002",
+                "Updated Name",
+                null,
+                new dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata(true));
         assertTrue(updated.isPresent());
         assertEquals("Updated Name", updated.get().name());
         assertEquals("UI-002", updated.get().internalId());
@@ -163,7 +180,9 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Test
     @Order(57)
     void updateItemNonExistent() {
-        assertTrue(service.updateItem(99999, "XX", "XX", null, "{}").isEmpty());
+        assertTrue(service.updateItem(
+                        99999, "XX", "XX", null, (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null)
+                .isEmpty());
     }
 
     @Test
@@ -225,7 +244,9 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Order(64)
     void findAllItemsByStation() {
         var inv = service.create(station.id(), "AllItems Inv", InventoryType.INTERNAL, false);
-        service.createItem(inv.id(), "AI-001", "All Item 1", null, "{}");
+        service.createItem(
+                inv.id(), "AI-001", "All Item 1", null, (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata)
+                        null);
         var items = service.findAllItemsByStation(station.id());
         assertFalse(items.isEmpty());
         service.delete(inv.id());
@@ -245,7 +266,12 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Order(66)
     void findHistory() {
         var inv = service.create(station.id(), "History Inv", InventoryType.INTERNAL, false);
-        var item = service.createItem(inv.id(), "HI-001", "History Item", null, "{}");
+        var item = service.createItem(
+                inv.id(),
+                "HI-001",
+                "History Item",
+                null,
+                (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null);
         service.assignItem(item.id(), member.id(), "Inv Tester");
         service.assignItem(item.id(), null, "");
         var history = service.findHistory(item.id());
@@ -275,7 +301,7 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Order(70)
     void createItemWithSource() {
         var inv = service.create(station.id(), "Source Inv", InventoryType.INTERNAL, false);
-        var item = service.createItem(inv.id(), "SI-001", "Source Item", null, "{}", InventoryItem.ItemSource.EXTERNAL);
+        var item = service.createItem(inv.id(), "SI-001", "Source Item", null, null, InventoryItem.ItemSource.EXTERNAL);
         assertNotNull(item);
         service.delete(inv.id());
     }
@@ -285,7 +311,7 @@ class InventoryServiceTest extends RepositoryTestBase {
     void requirementCrud() {
         var inv = service.create(station.id(), "Req Inv", InventoryType.INTERNAL, false);
         // Use MEMBER user type
-        var req = service.createRequirement(inv.id(), "MEMBER", 0, 3);
+        var req = service.createRequirement(inv.id(), dev.chojo.ember.api.auth.StationUserType.MEMBER, 0, 3);
         assertNotNull(req);
 
         assertTrue(service.updateRequirement(req.id(), 5));

@@ -18,6 +18,7 @@ import com.rometools.rome.feed.synd.SyndEntryImpl;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
@@ -511,8 +512,7 @@ public class NotificationFeedRenderer {
                 }
             }
             // Recurrence label so the user knows it's "weekly" / "monthly" / etc. at a glance.
-            if (event.eventType() != null
-                    && event.eventType() != dev.chojo.ember.feature.events.entity.StationEvent.EventType.ONE_TIME) {
+            if (event.eventType() != null && event.eventType() != StationEvent.EventType.ONE_TIME) {
                 String recurrence = notificationService.resolveLocalized(
                         ctx.locale(), "ical", "eventType." + event.eventType().name(), null);
                 if (!recurrence.equals("eventType." + event.eventType().name())) {

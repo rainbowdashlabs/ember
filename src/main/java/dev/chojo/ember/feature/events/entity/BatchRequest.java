@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
+import dev.chojo.ember.api.auth.StationUserType;
+
 import java.time.Instant;
 import java.util.List;
 
@@ -19,6 +21,6 @@ public record BatchRequest(
         Boolean requiresRegistration,
         Boolean requiresConfirmation,
         Instant registrationDeadline,
-        List<String> restrictedUserTypes,
+        List<StationUserType> restrictedUserTypes,
         List<Integer> restrictedGroupIds,
         List<Integer> restrictedTagIds) {}

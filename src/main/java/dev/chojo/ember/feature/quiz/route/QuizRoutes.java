@@ -10,6 +10,7 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -574,7 +575,7 @@ public class QuizRoutes implements Routes {
         var result = tests.stream()
                 .map(t -> {
                     var attempt = quizService.findAttempt(t.id(), memberId).orElse(null);
-                    String attemptStatus = attempt != null ? attempt.status().name() : null;
+                    AttemptStatus attemptStatus = attempt != null ? attempt.status() : null;
                     Instant startedAt = attempt != null ? attempt.startedAt() : null;
                     Instant submittedAt = attempt != null ? attempt.submittedAt() : null;
                     return new AvailableTest(t, attemptStatus, startedAt, submittedAt);
@@ -1125,9 +1126,8 @@ public class QuizRoutes implements Routes {
                     : "";
 
             // Determine question type
-            QuizQuestionType quizQuestionType = mappings.defaultType() != null
-                    ? parseQuestionType(mappings.defaultType())
-                    : QuizQuestionType.MULTIPLE_CHOICE;
+            QuizQuestionType quizQuestionType =
+                    mappings.defaultType() != null ? mappings.defaultType() : QuizQuestionType.MULTIPLE_CHOICE;
             if (!typeStr.isEmpty()) {
                 quizQuestionType = parseQuestionType(typeStr);
             }
@@ -1348,7 +1348,7 @@ public class QuizRoutes implements Routes {
     public record AccessRequest(Integer memberId, Instant closesAt) {}
 
     public record TestRestrictions(
-            List<String> userTypes,
+            List<StationUserType> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds,
@@ -1388,7 +1388,7 @@ public class QuizRoutes implements Routes {
             String pointsColumn,
             String separator,
             String answerSeparator,
-            String defaultType) {}
+            QuizQuestionType defaultType) {}
 
     public record CatalogExport(
             String name,
@@ -1397,7 +1397,7 @@ public class QuizRoutes implements Routes {
             List<QuizCategory> categories,
             List<QuizQuestion> questions) {}
 
-    public record AvailableTest(QuizTest test, String attemptStatus, Instant startedAt, Instant submittedAt) {}
+    public record AvailableTest(QuizTest test, AttemptStatus attemptStatus, Instant startedAt, Instant submittedAt) {}
 
     private record SuccessResponse(boolean success) {}
 

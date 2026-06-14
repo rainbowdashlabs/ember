@@ -7,6 +7,7 @@ package dev.chojo.ember.event.handlers;
 
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.EventsBatchCreated;
+import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -14,7 +15,11 @@ import dev.chojo.ember.feature.notifications.service.NotificationService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Aggregates a batch event creation into a single station-wide NEW_EVENTS_BATCH notification
@@ -53,11 +58,11 @@ public class EventsBatchCreatedHandler implements DomainEventHandler<EventsBatch
 
         // Earliest start time across the batch — surfaces "starting 15 Sep" in the title so
         // members see when the first occurrence falls without expanding.
-        java.time.LocalDate firstEventDate = events.stream()
-                .map(dev.chojo.ember.feature.events.entity.StationEvent::startTime)
-                .filter(java.util.Objects::nonNull)
-                .min(java.time.Instant::compareTo)
-                .map(instant -> instant.atZone(java.time.ZoneId.systemDefault()).toLocalDate())
+        LocalDate firstEventDate = events.stream()
+                .map(StationEvent::startTime)
+                .filter(Objects::nonNull)
+                .min(Instant::compareTo)
+                .map(instant -> instant.atZone(ZoneId.systemDefault()).toLocalDate())
                 .orElse(null);
 
         notificationService.notifyStation(

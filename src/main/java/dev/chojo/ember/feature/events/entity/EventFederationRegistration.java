@@ -31,7 +31,7 @@ public record EventFederationRegistration(
         int partnerId,
         UUID remoteMemberId,
         LocalDate eventDate,
-        String status,
+        RegistrationStatus status,
         Instant createdAt) {
 
     /**
@@ -44,7 +44,7 @@ public record EventFederationRegistration(
                 row.getInt("partner_id"),
                 row.get("remote_member_id", StandardValueConverter.UUID_STRING),
                 row.getObject("event_date", LocalDate.class),
-                row.getString("status"),
+                RegistrationStatus.valueOf(row.getString("status")),
                 row.get("created_at", INSTANT_TIMESTAMP));
     }
 }
