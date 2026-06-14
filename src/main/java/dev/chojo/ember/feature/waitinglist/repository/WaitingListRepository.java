@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.waitinglist.repository;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
@@ -17,7 +16,11 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
 import dev.chojo.ember.feature.waitinglist.entity.WaitlistVerificationToken;
+import dev.chojo.ember.util.JsonUtil;
 import jakarta.inject.Singleton;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
 import java.util.List;
@@ -31,7 +34,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class WaitingListRepository {
 
-    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final ObjectMapper JSON = JsonMapper.builder().build();
 
     // --- Waiting List CRUD ---
 
@@ -449,14 +452,14 @@ public class WaitingListRepository {
                 .all();
     }
 
-    public void upsertEntryValue(int entryId, int fieldId, String value) {
+    public void upsertEntryValue(int entryId, int fieldId, JsonNode value) {
         query("""
                 INSERT INTO waiting_list_entry_value (entry_id, field_id, value)
                 VALUES (:entry_id, :field_id, :value::JSONB)
                 ON CONFLICT (entry_id, field_id) DO UPDATE SET value = :value::JSONB;""")
                 .single(call().bind("entry_id", entryId)
                         .bind("field_id", fieldId)
-                        .bind("value", value))
+                        .bind("value", JsonUtil.toJson(value)))
                 .insert();
     }
 
@@ -592,16 +595,10 @@ public class WaitingListRepository {
             String lastname,
             String email,
             List<GuardianInput> guardians,
-            Map<Integer, String> fieldValues,
+            Map<Integer, JsonNode> fieldValues,
             String notes) {
-        String guardiansPayload;
-        String fieldValuesPayload;
-        try {
-            guardiansPayload = JSON.writeValueAsString(guardians != null ? guardians : List.of());
-            fieldValuesPayload = JSON.writeValueAsString(fieldValues != null ? fieldValues : Map.of());
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to serialize verification token data", e);
-        }
+        String guardiansPayload = JSON.writeValueAsString(guardians != null ? guardians : List.of());
+        String fieldValuesPayload = JSON.writeValueAsString(fieldValues != null ? fieldValues : Map.of());
         return query("""
                 INSERT
                 INTO

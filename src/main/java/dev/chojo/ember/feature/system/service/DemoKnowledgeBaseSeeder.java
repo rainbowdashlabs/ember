@@ -412,7 +412,7 @@ public class DemoKnowledgeBaseSeeder {
         try {
             byte[] pdfData = TypstCompiler.compile("""
                     #set page(paper: "a4", margin: 2cm)
-                    #set text(font: "Noto Sans", size: 11pt, lang: "de")
+                    #set text(font: "Liberation Sans", size: 11pt, lang: "de")
 
                     #align(center)[
                       #text(size: 20pt, weight: "bold")[Dienstanweisung]

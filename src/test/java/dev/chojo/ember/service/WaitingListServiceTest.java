@@ -17,6 +17,8 @@ import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.node.IntNode;
+import tools.jackson.databind.node.StringNode;
 
 import java.time.Instant;
 import java.util.List;
@@ -140,7 +142,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 "Max",
                 "Müller",
                 guardians("Sabine", "test@test.com"),
-                Map.of(field.id(), "8"),
+                Map.of(field.id(), IntNode.valueOf(8)),
                 "Test note");
 
         assertNotNull(entry);
@@ -155,7 +157,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         // Values should be stored
         var values = service.findEntryValues(entry.id());
         assertEquals(1, values.size());
-        assertEquals("8", values.getFirst().value());
+        assertEquals(IntNode.valueOf(8), values.getFirst().value());
     }
 
     @Test
@@ -242,7 +244,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 "Max",
                 "",
                 guardians("", "test@test.com"),
-                Map.of(ageField.id(), "10", expField.id(), "\"fortgeschritten\""),
+                Map.of(ageField.id(), IntNode.valueOf(10), expField.id(), StringNode.valueOf("fortgeschritten")),
                 "");
 
         var values = service.findEntryValues(entry.id());
@@ -307,10 +309,12 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 0,
                 false,
                 true);
-        var entry = service.createEntry(listId, "A", "B", guardians("", "e@test.com"), Map.of(field.id(), "5"), "");
-        service.updateEntry(entry.id(), "A", "B", guardians("", "e@test.com"), "", Map.of(field.id(), "10"));
+        var entry = service.createEntry(
+                listId, "A", "B", guardians("", "e@test.com"), Map.of(field.id(), IntNode.valueOf(5)), "");
+        service.updateEntry(
+                entry.id(), "A", "B", guardians("", "e@test.com"), "", Map.of(field.id(), IntNode.valueOf(10)));
         var values = service.findEntryValues(entry.id());
-        assertTrue(values.stream().anyMatch(v -> "10".equals(v.value())));
+        assertTrue(values.stream().anyMatch(v -> IntNode.valueOf(10).equals(v.value())));
     }
 
     @Test
@@ -429,7 +433,12 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 .orElseThrow();
 
         var entry = service.createEntry(
-                listId, "Max", "", guardians("", "test@test.com"), Map.of(dobField.id(), "\"2016-05-26\""), "");
+                listId,
+                "Max",
+                "",
+                guardians("", "test@test.com"),
+                Map.of(dobField.id(), StringNode.valueOf("2016-05-26")),
+                "");
 
         var values = service.findEntryValues(entry.id());
         var fields = service.findFieldsByList(listId);
@@ -629,7 +638,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var list = service.update(listId, "BadDateScored", "", "age([BadDate])", 180, null, null, 5, false)
                 .orElseThrow();
         var entry = service.createEntry(
-                listId, "A", "", guardians("", "t@t.com"), Map.of(dobField.id(), "\"not-a-date\""), "");
+                listId, "A", "", guardians("", "t@t.com"), Map.of(dobField.id(), StringNode.valueOf("not-a-date")), "");
         var values = service.findEntryValues(entry.id());
         var fields = service.findFieldsByList(listId);
         double score = service.evaluateScore(entry, values, fields, list.scoringFormula());

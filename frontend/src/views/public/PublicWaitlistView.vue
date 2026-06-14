@@ -115,9 +115,9 @@ async function submit() {
     const guardianData = guardians.value
         .filter(g => g.firstname.trim() || g.email.trim())
         .map(g => ({firstname: g.firstname.trim(), lastname: g.lastname.trim(), email: g.email.trim(), phone: g.phone.trim()}))
-    const values: Record<number, string> = {}
+    const values: Record<number, unknown> = {}
     for (const [k, v] of Object.entries(fieldValues.value)) {
-      if (v) values[Number(k)] = JSON.stringify(v)
+      if (v) values[Number(k)] = v
     }
     await waitingList.submitPublicRegistration(stationUid.value, selectedListId.value, {
       firstname: firstname.value.trim(),

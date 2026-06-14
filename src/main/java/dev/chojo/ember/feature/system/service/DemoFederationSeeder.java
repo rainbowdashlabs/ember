@@ -377,9 +377,21 @@ public class DemoFederationSeeder {
         var partnerMember1Uid = UUID.fromString("00000000-0000-0000-0000-000000000001");
         var partnerMember2Uid = UUID.fromString("00000000-0000-0000-0000-000000000002");
 
-        // Cache display names for federated partner members
-        eventFederationRepository.cacheName(partner.id(), partnerMember1Uid, "Max Feuermann");
-        eventFederationRepository.cacheName(partner.id(), partnerMember2Uid, "Sabine Lösch");
+        // Cache display names for federated partner members from BOTH partner directions so
+        // a viewer on either station resolves the remote member's real name instead of falling
+        // back to the station name.
+        var primaryPartner = federationService.findPartners(primaryStationId).stream()
+                .filter(p -> p.partnerStationId()
+                        .equals(stationRepository
+                                .findById(partnerStation.id())
+                                .orElseThrow()
+                                .uid()))
+                .findFirst()
+                .orElse(null);
+        for (var p : primaryPartner != null ? List.of(partner, primaryPartner) : List.of(partner)) {
+            eventFederationRepository.cacheName(p.id(), partnerMember1Uid, "Max Feuermann");
+            eventFederationRepository.cacheName(p.id(), partnerMember2Uid, "Sabine Lösch");
+        }
 
         var primaryNews = newsService.findByStation(primaryStationId, 0, 10);
         // news1 = "Willkommen..." (most recent last in DESC order, so reverse lookup)

@@ -37,6 +37,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.JsonNode;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -610,7 +611,7 @@ public class WaitingListRoutes implements Routes {
             String parentName,
             String email,
             List<GuardianRequest> guardians,
-            Map<Integer, String> values,
+            Map<Integer, JsonNode> values,
             String notes) {}
 
     public record PublicEntryResponse(String accessToken) {}
@@ -659,7 +660,7 @@ public class WaitingListRoutes implements Routes {
             String parentName,
             String email,
             List<GuardianRequest> guardians,
-            Map<Integer, String> values,
+            Map<Integer, JsonNode> values,
             String notes) {}
 
     public record CreatedAtRequest(Instant createdAt) {}
@@ -795,6 +796,6 @@ public class WaitingListRoutes implements Routes {
             String lastname,
             String email,
             List<GuardianRequest> guardians,
-            Map<Integer, String> values,
+            Map<Integer, JsonNode> values,
             String notes) {}
 }

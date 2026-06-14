@@ -73,9 +73,9 @@ async function save() {
   saving.value = true
   error.value = ''
   try {
-    const values: Record<number, string> = {}
+    const values: Record<number, unknown> = {}
     for (const [k, v] of Object.entries(fieldValues.value)) {
-      if (v) values[Number(k)] = JSON.stringify(v)
+      if (v) values[Number(k)] = v
     }
     await waitingList.createEntry(listId.value, {
       firstname: firstname.value.trim(),

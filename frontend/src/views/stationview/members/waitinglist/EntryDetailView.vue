@@ -83,7 +83,7 @@ async function loadData() {
 
     const valMap = new Map<number, string>()
     for (const v of found.values) {
-      valMap.set(v.fieldId, v.value ?? '')
+      valMap.set(v.fieldId, v.value == null ? '' : String(v.value))
     }
     editValues.value = valMap
   } catch {
@@ -142,7 +142,7 @@ async function save() {
   saving.value = true
   error.value = ''
   try {
-    const values: Record<number, string> = {}
+    const values: Record<number, unknown> = {}
     for (const [fieldId, value] of editValues.value) {
       values[fieldId] = value
     }

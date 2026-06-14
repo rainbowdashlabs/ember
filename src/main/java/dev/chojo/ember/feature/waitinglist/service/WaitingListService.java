@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.waitinglist.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.auth.PasswordHasher;
@@ -36,6 +35,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.JsonNode;
 
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -56,8 +56,6 @@ import java.util.regex.Pattern;
 @Singleton
 public class WaitingListService {
     private static final Logger log = LoggerFactory.getLogger(WaitingListService.class);
-
-    private static final ObjectMapper JSON = new ObjectMapper();
 
     private final WaitingListRepository repository;
     private final StationRepository stationRepository;
@@ -217,7 +215,7 @@ public class WaitingListService {
             String firstname,
             String lastname,
             List<GuardianInput> guardians,
-            Map<Integer, String> fieldValues,
+            Map<Integer, JsonNode> fieldValues,
             String notes) {
         var invite = repository
                 .findInviteByCode(inviteCode)
@@ -322,7 +320,7 @@ public class WaitingListService {
             String firstname,
             String lastname,
             List<GuardianInput> guardians,
-            Map<Integer, String> fieldValues,
+            Map<Integer, JsonNode> fieldValues,
             String notes) {
         String parentName = guardians != null && !guardians.isEmpty()
                 ? (guardians.getFirst().firstname() + " " + guardians.getFirst().lastname()).trim()
@@ -347,7 +345,7 @@ public class WaitingListService {
             String lastname,
             List<GuardianInput> guardians,
             String notes,
-            Map<Integer, String> fieldValues) {
+            Map<Integer, JsonNode> fieldValues) {
         String parentName = guardians != null && !guardians.isEmpty()
                 ? (guardians.getFirst().firstname() + " " + guardians.getFirst().lastname()).trim()
                 : "";
@@ -531,11 +529,9 @@ public class WaitingListService {
                     .filter(v -> v.fieldId() == field.id())
                     .map(WaitingListEntryValue::value)
                     .findFirst()
+                    .map(node ->
+                            node == null || node.isNull() ? "0" : (node.isString() ? node.asString() : node.toString()))
                     .orElse("0");
-            // Strip JSON quotes if present
-            if (value.startsWith("\"") && value.endsWith("\"")) {
-                value = value.substring(1, value.length() - 1);
-            }
             variables.put(field.name(), value);
         }
 
@@ -711,7 +707,7 @@ public class WaitingListService {
             String lastname,
             String email,
             List<GuardianInput> guardians,
-            Map<Integer, String> fieldValues,
+            Map<Integer, JsonNode> fieldValues,
             String notes) {
         var list = repository.findById(listId).orElseThrow(() -> new IllegalArgumentException("List not found"));
         if (!list.isPublic()) {
@@ -742,7 +738,7 @@ public class WaitingListService {
         }
 
         List<GuardianInput> guardians = verification.guardians();
-        Map<Integer, String> fieldValues = verification.fieldValues();
+        Map<Integer, JsonNode> fieldValues = verification.fieldValues();
 
         String parentName = guardians != null && !guardians.isEmpty()
                 ? (guardians.getFirst().firstname() + " " + guardians.getFirst().lastname()).trim()

@@ -27,7 +27,7 @@ const router = useRouter()
 const {currentStationId} = useStations()
 
 const step = ref<'userType' | 'identity' | 'fields' | 'groups' | 'manager' | 'done'>('userType')
-const selectedUserType = ref<'MEMBER' | 'GUARDIAN' | 'TEAM'>(StationUserType.MEMBER)
+const selectedUserType = ref<'TRIAL' | 'MEMBER' | 'GUARDIAN' | 'TEAM'>(StationUserType.MEMBER)
 const firstName = ref('')
 const lastName = ref('')
 const email = ref('')
@@ -156,9 +156,11 @@ async function createAccount() {
     const newMember = membersList.find(m => m.accountId === invited.id)
     if (!newMember) throw new Error('Member not found after invite')
 
-    // Set user type for the new member — backend handles this via the invite endpoint
-    // The user type is determined by the selected role on account creation
-    await stationMembers.setPermissions(newMember.id, {permissionIds: []})  // permissions handled separately
+    // Apply the user type picked in the first step (default is MEMBER on the backend, so this
+    // is a no-op for MEMBER but required for TRIAL / GUARDIAN / TEAM).
+    if (selectedUserType.value !== StationUserType.MEMBER) {
+      await stationMembers.setUserType(newMember.id, selectedUserType.value)
+    }
 
     const entries = [...fieldValues.value.entries()]
         .filter(([_, val]) => val.trim())
@@ -186,7 +188,7 @@ async function createAccount() {
 }
 
 function startOver() {
-  step.value = 'role'
+  step.value = 'userType'
   selectedUserType.value = StationUserType.MEMBER
   firstName.value = ''
   lastName.value = ''

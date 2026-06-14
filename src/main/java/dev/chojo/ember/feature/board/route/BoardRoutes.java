@@ -2525,24 +2525,14 @@ public class BoardRoutes implements Routes {
     private BoardCommentResponse toCommentResponse(BoardComment comment) {
         if (comment.deleted()) {
             return new BoardCommentResponse(
-                    comment.id(),
-                    comment.ticketId(),
-                    comment.parentId(),
-                    null,
-                    null,
-                    "",
-                    true,
-                    comment.createdAt(),
-                    null);
+                    comment.id(), comment.ticketId(), comment.parentId(), null, "", true, comment.createdAt(), null);
         }
-        var resolved = memberNameResolver.resolveDisplay(comment.author());
-        String authorName = resolved.name() != null ? resolved.name() : "";
+        var enriched = memberNameResolver.enrichDisplay(comment.author());
         return new BoardCommentResponse(
                 comment.id(),
                 comment.ticketId(),
                 comment.parentId(),
-                resolved.identity(),
-                authorName,
+                enriched,
                 comment.content(),
                 false,
                 comment.createdAt(),
@@ -2554,7 +2544,6 @@ public class BoardRoutes implements Routes {
             int ticketId,
             Integer parentId,
             MemberIdentity author,
-            String authorName,
             String content,
             boolean deleted,
             Instant createdAt,

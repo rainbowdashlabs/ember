@@ -28,7 +28,10 @@ class DiscoveryStationCacheRepositoryTest extends RepositoryTestBase {
                 "https://contact",
                 List.of("fire"),
                 "<10",
-                Instant.parse("2026-01-01T00:00:00Z"));
+                Instant.parse("2026-01-01T00:00:00Z"),
+                null,
+                null,
+                null);
     }
 
     @Test

@@ -36,7 +36,7 @@ import { useSession } from '@/composables/useSession'
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { canManageBoards } = useSession()
+const { canManageBoards, sessionInfo } = useSession()
 
 const boardKey = computed(() => route.params.boardKey as string)
 const board = ref<Board | null>(null)
@@ -147,7 +147,9 @@ function archivedCountForLane(laneId: number): number {
 
 const assignees = computed(() => {
     const uids = new Set(tickets.value.map(t => t.assignee?.memberUid).filter(Boolean) as string[])
-    return members.value.filter(m => uids.has(m.memberUid))
+    const list = members.value.filter(m => uids.has(m.memberUid))
+    const i = list.findIndex(m => m.memberUid === sessionInfo.value?.member?.uid)
+    return i <= 0 ? list : [list[i], ...list.slice(0, i), ...list.slice(i + 1)]
 })
 async function handleCreateTicket() {
     createError.value = ''
@@ -178,11 +180,7 @@ async function handleCreateTicket() {
 
 function toggleAssigneeFilter(memberUid: string) {
     const next = new Set(assigneeFilter.value)
-    if (next.has(memberUid)) {
-        next.delete(memberUid)
-    } else {
-        next.add(memberUid)
-    }
+    if (next.has(memberUid)) next.delete(memberUid); else next.add(memberUid)
     assigneeFilter.value = next
 }
 

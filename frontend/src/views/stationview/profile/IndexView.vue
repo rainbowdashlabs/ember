@@ -7,7 +7,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -50,9 +50,7 @@ const { refresh: refreshSidebarCounts } = useSidebarCounts()
 const fields = ref<ProfileField[]>([])
 const values = ref<Map<number, string>>(new Map())
 const loading = ref(true)
-const saving = ref(false)
 const error = ref('')
-const success = ref('')
 
 // Avatar
 const avatarKey = ref(0)
@@ -68,7 +66,6 @@ async function handleAvatarUpload(file: File) {
   try {
     await sessionApi.uploadAvatar(file)
     avatarKey.value++
-    success.value = t('profile.avatarUpdated')
   } catch {
     error.value = t('common.error')
   } finally {
@@ -90,13 +87,11 @@ async function removeAvatar() {
 const editFirstName = ref('')
 const editLastName = ref('')
 const editEmail = ref('')
-const savingAccount = ref(false)
 
 // Password change
 const currentPassword = ref('')
 const newPassword = ref('')
 const confirmPassword = ref('')
-const savingPassword = ref(false)
 
 const memberId = computed(() => sessionInfo.value?.member?.id ?? null)
 
@@ -165,51 +160,41 @@ async function loadProfile() {
 
 async function saveProfile() {
   if (!memberId.value) return
-  saving.value = true
   error.value = ''
-  success.value = ''
   try {
     const entries = editableFields.value
       .filter(f => !parseFieldConfig(f.config).readonly)
       .map(f => ({ fieldId: f.id, value: JSON.stringify(getValue(f.id)) }))
     await profileFields.setValues(memberId.value, { values: entries })
-    success.value = t('profile.saved')
     refreshSidebarCounts()
-  } catch {
+  } catch (e) {
     error.value = t('common.error')
-  } finally {
-    saving.value = false
+    throw e
   }
 }
 
 async function saveAccount() {
-  savingAccount.value = true
   error.value = ''
-  success.value = ''
+  const accountId = sessionInfo.value?.account?.id
+  if (!accountId) return
   try {
-    const accountId = sessionInfo.value?.account?.id
-    if (!accountId) return
     await members.updateAccount(accountId, {
       email: editEmail.value,
       firstName: editFirstName.value,
       lastName: editLastName.value,
     })
-    success.value = t('profile.accountSaved')
-  } catch {
+  } catch (e) {
     error.value = t('common.error')
-  } finally {
-    savingAccount.value = false
+    throw e
   }
 }
 
 async function changePassword() {
   if (newPassword.value !== confirmPassword.value) {
     error.value = t('profile.passwordMismatch')
-    return
+    throw new Error('mismatch')
   }
-  savingPassword.value = true
   error.value = ''
-  success.value = ''
   try {
     await auth.changePassword({
       currentPassword: currentPassword.value,
@@ -218,11 +203,9 @@ async function changePassword() {
     currentPassword.value = ''
     newPassword.value = ''
     confirmPassword.value = ''
-    success.value = t('profile.passwordChanged')
-  } catch {
+  } catch (e) {
     error.value = t('profile.passwordError')
-  } finally {
-    savingPassword.value = false
+    throw e
   }
 }
 
@@ -238,7 +221,6 @@ onMounted(loadProfile)
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
-      <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <template v-if="!loading && memberId">
         <!-- Avatar -->
@@ -278,9 +260,7 @@ onMounted(loadProfile)
               <TextInput v-model="editEmail" />
             </div>
           </div>
-          <PrimaryButton :disabled="savingAccount" @click="saveAccount">
-            {{ savingAccount ? t('common.loading') : t('profile.saveAccount') }}
-          </PrimaryButton>
+          <SaveButton :action="saveAccount">{{ t('profile.saveAccount') }}</SaveButton>
         </NeutralContainer>
 
         <!-- Change password -->
@@ -300,9 +280,7 @@ onMounted(loadProfile)
               <PasswordInput v-model="confirmPassword" :placeholder="t('profile.confirmPassword')" />
             </div>
           </div>
-          <PrimaryButton :disabled="savingPassword || !currentPassword || !newPassword || !confirmPassword" @click="changePassword">
-            {{ savingPassword ? t('common.loading') : t('profile.changePassword') }}
-          </PrimaryButton>
+          <SaveButton :disabled="!currentPassword || !newPassword || !confirmPassword" :action="changePassword">{{ t('profile.changePassword') }}</SaveButton>
         </NeutralContainer>
 
         <!-- Onboarding: incomplete fields -->
@@ -336,9 +314,7 @@ onMounted(loadProfile)
             />
           </div>
 
-          <PrimaryButton :disabled="saving" @click="saveProfile">
-            {{ saving ? t('common.loading') : t('profile.save') }}
-          </PrimaryButton>
+          <SaveButton :action="saveProfile"/>
         </NeutralContainer>
       </template>
     </div>

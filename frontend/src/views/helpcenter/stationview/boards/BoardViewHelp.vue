@@ -68,6 +68,67 @@ const {t} = useI18n()
             </HelpList>
         </HelpSection>
 
+        <HelpSection :title="t('helpCenter.boardView.prioritiesTitle')">
+            <p>{{ t('helpCenter.boardView.prioritiesText') }}</p>
+            <HelpList>
+                <li class="flex items-center gap-2">
+                    <font-awesome-icon :icon="['fas', 'angles-up']" class="text-red-500 text-xs w-4 text-center"/>
+                    {{ t('boards.priorityHighest') }}
+                </li>
+                <li class="flex items-center gap-2">
+                    <font-awesome-icon :icon="['fas', 'angle-up']" class="text-orange-500 text-xs w-4 text-center"/>
+                    {{ t('boards.priorityHigh') }}
+                </li>
+                <li class="flex items-center gap-2">
+                    <font-awesome-icon :icon="['fas', 'equals']" class="text-yellow-500 text-xs w-4 text-center"/>
+                    {{ t('boards.priorityMedium') }}
+                </li>
+                <li class="flex items-center gap-2">
+                    <font-awesome-icon :icon="['fas', 'angle-down']" class="text-blue-400 text-xs w-4 text-center"/>
+                    {{ t('boards.priorityLow') }}
+                </li>
+                <li class="flex items-center gap-2">
+                    <font-awesome-icon :icon="['fas', 'angles-down']" class="text-gray-400 text-xs w-4 text-center"/>
+                    {{ t('boards.priorityLowest') }}
+                </li>
+            </HelpList>
+        </HelpSection>
+
+        <HelpSection :title="t('helpCenter.boardView.labelsTitle')">
+            <p>{{ t('helpCenter.boardView.labelsText') }}</p>
+            <div class="flex flex-wrap gap-1.5">
+                <BaseBadge bg-class="bg-blue-500" class="text-white">Planung</BaseBadge>
+                <BaseBadge bg-class="bg-green-600" class="text-white">Wartung</BaseBadge>
+                <BaseBadge bg-class="bg-orange-500" class="text-white">Dringend</BaseBadge>
+                <BaseBadge bg-class="bg-purple-500" class="text-white">Ausbildung</BaseBadge>
+                <BaseBadge bg-class="bg-rose-500" class="text-white">Einsatz</BaseBadge>
+            </div>
+        </HelpSection>
+
+        <HelpSection :title="t('helpCenter.boardView.checklistProgressTitle')">
+            <p>{{ t('helpCenter.boardView.checklistProgressText') }}</p>
+            <div class="space-y-2 max-w-sm">
+                <div>
+                    <div class="text-xs text-(--text-muted) mb-1">{{ t('helpCenter.boardView.checklistProgressPartial') }}</div>
+                    <div class="flex items-center gap-2">
+                        <div class="flex-1 h-1.5 bg-[var(--bg-muted)] rounded-full overflow-hidden">
+                            <div class="h-full rounded-full bg-primary" style="width: 66%"/>
+                        </div>
+                        <span class="text-xs text-[var(--text-muted)] whitespace-nowrap">2/3</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="text-xs text-(--text-muted) mb-1">{{ t('helpCenter.boardView.checklistProgressDone') }}</div>
+                    <div class="flex items-center gap-2">
+                        <div class="flex-1 h-1.5 bg-[var(--bg-muted)] rounded-full overflow-hidden">
+                            <div class="h-full rounded-full bg-green-500" style="width: 100%"/>
+                        </div>
+                        <span class="text-xs text-[var(--text-muted)] whitespace-nowrap">4/4</span>
+                    </div>
+                </div>
+            </div>
+        </HelpSection>
+
         <HelpSection :title="t('helpCenter.boardView.filterTitle')">
             <p>{{ t('helpCenter.boardView.filterText') }}</p>
             <HelpList>

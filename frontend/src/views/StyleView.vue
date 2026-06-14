@@ -95,6 +95,7 @@ import UploadButton from '@/components/button/UploadButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import ConfirmButton from '@/components/button/ConfirmButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 
@@ -350,6 +351,7 @@ function toggleDisplay(name: string) {
         <SecondaryButton compact>Compact</SecondaryButton>
         <SuccessButton compact>Compact</SuccessButton>
       </div>
+      <div class="flex flex-wrap gap-2 items-center"><SaveButton :action="() => new Promise(r => setTimeout(r, 800))"/><SaveButton :action="() => new Promise(r => setTimeout(r, 800))">Custom text</SaveButton></div>
       <div class="flex flex-wrap gap-2 items-center">
         <PrimaryButton disabled>Disabled</PrimaryButton>
         <SecondaryButton disabled>Disabled</SecondaryButton>

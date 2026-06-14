@@ -1567,7 +1567,7 @@ export interface WaitingListEntry {
 export interface WaitingListEntryValue {
     entryId: number
     fieldId: number
-    value: string
+    value: unknown
 }
 
 export interface WaitingListEntryGuardian {

@@ -164,18 +164,38 @@ public class MemberNameResolver {
     public MemberIdentity enrichDisplay(MemberIdentity identity) {
         if (identity == null) return null;
 
-        var data = displayCache.get(identity.memberUid(), uid -> {
-            var station = stationRepository.findByUid(identity.stationUid()).orElse(null);
-            if (station == null) return new DisplayData(null, null, null, null);
-            String stationName = station.name();
-            var memberId = memberService.resolveId(station.id(), uid);
-            if (memberId.isEmpty()) return new DisplayData(null, stationName, null, null);
-            String name = resolveLocal(memberId.get());
-            return new DisplayData(
-                    name, stationName, resolveNameColor(memberId.get()), resolveDisplayTag(memberId.get()));
-        });
+        // Resolve once, then cache only if we have a name. Caching null would keep federated
+        // members nameless for the full TTL even after their name lands in the partner cache
+        // (e.g. via a later signed federation push or a demo seeder re-run).
+        var cached = displayCache.getIfPresent(identity.memberUid());
+        var data = cached != null ? cached : resolveDisplayData(identity);
+        if (cached == null && data.name() != null) {
+            displayCache.put(identity.memberUid(), data);
+        }
 
         return identity.withDisplay(data.name(), data.stationName(), data.nameColor(), data.displayTag());
+    }
+
+    private DisplayData resolveDisplayData(MemberIdentity identity) {
+        var station = stationRepository.findByUid(identity.stationUid()).orElse(null);
+        String stationName = station != null ? station.name() : null;
+        if (station != null) {
+            var memberId = memberService.resolveId(station.id(), identity.memberUid());
+            if (memberId.isPresent()) {
+                String name = resolveLocal(memberId.get());
+                return new DisplayData(
+                        name, stationName, resolveNameColor(memberId.get()), resolveDisplayTag(memberId.get()));
+            }
+        }
+        // Federated: fall back to the partner name cache for the remote member.
+        var partner = federationRepository.findPartnerByRemoteStationUid(identity.stationUid());
+        if (partner.isPresent()) {
+            var name = eventFederationRepository
+                    .getCachedName(partner.get().id(), identity.memberUid())
+                    .orElse(null);
+            if (name != null) return new DisplayData(name, stationName, null, null);
+        }
+        return new DisplayData(null, stationName, null, null);
     }
 
     private String resolveNameColor(int memberId) {

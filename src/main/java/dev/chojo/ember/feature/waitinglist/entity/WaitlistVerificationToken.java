@@ -5,10 +5,12 @@
  */
 package dev.chojo.ember.feature.waitinglist.entity;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import org.slf4j.Logger;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
 import java.util.List;
@@ -25,15 +27,15 @@ public record WaitlistVerificationToken(
         String lastname,
         String email,
         List<GuardianInput> guardians,
-        Map<Integer, String> fieldValues,
+        Map<Integer, JsonNode> fieldValues,
         String notes,
         Instant createdAt,
         Instant expiresAt) {
 
     private static final Logger log = getLogger(WaitlistVerificationToken.class);
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = JsonMapper.builder().build();
     private static final TypeReference<List<GuardianInput>> GUARDIAN_LIST = new TypeReference<>() {};
-    private static final TypeReference<Map<Integer, String>> VALUE_MAP = new TypeReference<>() {};
+    private static final TypeReference<Map<Integer, JsonNode>> VALUE_MAP = new TypeReference<>() {};
 
     public boolean isExpired() {
         return Instant.now().isAfter(expiresAt);
@@ -64,7 +66,7 @@ public record WaitlistVerificationToken(
         }
     }
 
-    private static Map<Integer, String> parseFieldValues(String json) {
+    private static Map<Integer, JsonNode> parseFieldValues(String json) {
         if (json == null || json.isBlank()) return Map.of();
         try {
             return MAPPER.readValue(json, VALUE_MAP);

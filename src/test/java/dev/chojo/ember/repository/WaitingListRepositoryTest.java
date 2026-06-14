@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.node.IntNode;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -175,16 +176,16 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
         var entry = waitingListRepo.createEntry(
                 list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "");
 
-        waitingListRepo.upsertEntryValue(entry.id(), field.id(), "8");
+        waitingListRepo.upsertEntryValue(entry.id(), field.id(), IntNode.valueOf(8));
         var values = waitingListRepo.findEntryValues(entry.id());
         assertEquals(1, values.size());
-        assertEquals("8", values.getFirst().value());
+        assertEquals(IntNode.valueOf(8), values.getFirst().value());
 
         // Upsert overwrites
-        waitingListRepo.upsertEntryValue(entry.id(), field.id(), "9");
+        waitingListRepo.upsertEntryValue(entry.id(), field.id(), IntNode.valueOf(9));
         values = waitingListRepo.findEntryValues(entry.id());
         assertEquals(1, values.size());
-        assertEquals("9", values.getFirst().value());
+        assertEquals(IntNode.valueOf(9), values.getFirst().value());
     }
 
     @Test
@@ -212,7 +213,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
                 true);
         var entry = waitingListRepo.createEntry(
                 list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "");
-        waitingListRepo.upsertEntryValue(entry.id(), field.id(), "8");
+        waitingListRepo.upsertEntryValue(entry.id(), field.id(), IntNode.valueOf(8));
         waitingListRepo.createInvite(list.id(), UUID.randomUUID().toString(), 1, null);
 
         waitingListRepo.delete(list.id());

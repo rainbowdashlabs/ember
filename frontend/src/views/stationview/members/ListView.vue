@@ -72,7 +72,10 @@ const { savedFilters, loadSavedFilters, saveCurrentFilter, applyFilter, deleteFi
   useSavedFilters(tabStates, activeTab)
 
 // --- Column visibility ---
+// Default-visible (overview) fields appear unless their id is in hiddenColumnIds.
+// Optional (non-overview) fields appear only when their id is in extraColumnIds.
 const extraColumnIds = ref<Set<number>>(new Set())
+const hiddenColumnIds = ref<Set<number>>(new Set())
 
 const tabScopedFields = computed(() => {
   const scopeForTab: Record<string, string[]> = {
@@ -94,14 +97,22 @@ const tabOverviewFields = computed(() => tabScopedFields.value.filter(f => parse
 const tabNonOverviewFields = computed(() => tabScopedFields.value.filter(f => !parseFieldConfig(f.config).overview))
 
 const visibleColumns = computed(() => {
+  const overview = tabOverviewFields.value.filter(f => !hiddenColumnIds.value.has(f.id))
   const extra = tabNonOverviewFields.value.filter(f => extraColumnIds.value.has(f.id))
-  return [...tabOverviewFields.value, ...extra]
+  return [...overview, ...extra]
 })
 
-function toggleExtraColumn(fieldId: number) {
-  const newSet = new Set(extraColumnIds.value)
-  if (newSet.has(fieldId)) { newSet.delete(fieldId) } else { newSet.add(fieldId) }
-  extraColumnIds.value = newSet
+function toggleColumn(fieldId: number) {
+  const isOverview = tabOverviewFields.value.some(f => f.id === fieldId)
+  if (isOverview) {
+    const next = new Set(hiddenColumnIds.value)
+    if (next.has(fieldId)) next.delete(fieldId); else next.add(fieldId)
+    hiddenColumnIds.value = next
+  } else {
+    const next = new Set(extraColumnIds.value)
+    if (next.has(fieldId)) next.delete(fieldId); else next.add(fieldId)
+    extraColumnIds.value = next
+  }
 }
 
 // --- Member filter ---
@@ -214,8 +225,10 @@ onMounted(() => {
         <MemberFilterBar
           v-model:filter-text="filterText"
           :saved-filters="savedFilters"
+          :overview-fields="tabOverviewFields"
           :non-overview-fields="tabNonOverviewFields"
           :extra-column-ids="extraColumnIds"
+          :hidden-column-ids="hiddenColumnIds"
           :export-mode="exportMode"
           :selected-count="selectedIds.size"
           :can-export="canExport"
@@ -225,7 +238,7 @@ onMounted(() => {
           @apply-filter="applyFilter"
           @delete-filter="deleteFilter"
           @save-filter="saveCurrentFilter"
-          @toggle-column="toggleExtraColumn"
+          @toggle-column="toggleColumn"
           @toggle-export="toggleExportMode"
           @export-continue="openExportModal"
           @filter="onMemberFilter"

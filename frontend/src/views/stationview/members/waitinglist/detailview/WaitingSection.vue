@@ -59,7 +59,8 @@ function entryFullName(item: WaitingListEntryWithScore): string {
 }
 
 function getEntryFieldValue(item: WaitingListEntryWithScore, fieldId: number): string {
-  return item.values.find(v => v.fieldId === fieldId)?.value ?? ''
+  const v = item.values.find(v => v.fieldId === fieldId)?.value
+  return v == null ? '' : String(v)
 }
 
 function statusBadgeComponent(status: string) {
