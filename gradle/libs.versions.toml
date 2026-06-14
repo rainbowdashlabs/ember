@@ -1,21 +1,21 @@
 [versions]
-logback = "1.5.32"
+logback = "1.5.33"
 sadu = "2.3.9"
-jackson = "3.1.2"
-junit = "6.0.3"
-javalin = "7.2.0"
+jackson = "3.1.4"
+junit = "6.1.0"
+javalin = "7.2.2"
 testcontainers = "2.0.5"
 commonmark = "0.28.0"
 
 [plugins]
-spotless = { id = "com.diffplug.spotless", version = "8.4.0" }
+spotless = { id = "com.diffplug.spotless", version = "8.6.0" }
 idea = { id = "org.jetbrains.gradle.plugin.idea-ext", version = "1.4.1" }
 pitest = { id = "info.solidsoft.pitest", version = "1.19.0" }
 
 [libraries]
 # Database
 hikari = { group = "com.zaxxer", name = "HikariCP", version = "7.0.2" }
-postgres = { group = "org.postgresql", name = "postgresql", version = "42.7.10" }
+postgres = { group = "org.postgresql", name = "postgresql", version = "42.7.11" }
 sadu-postgresql = { group = "de.chojo.sadu", name = "sadu-postgresql", version.ref = "sadu" }
 sadu-datasource = { group = "de.chojo.sadu", name = "sadu-datasource", version.ref = "sadu" }
 sadu-queries = { group = "de.chojo.sadu", name = "sadu-queries", version.ref = "sadu" }
@@ -24,7 +24,7 @@ sadu-updater = { group = "de.chojo.sadu", name = "sadu-updater", version.ref = "
 sadu-testing = { group = "de.chojo.sadu", name = "sadu-testing", version.ref = "sadu" }
 
 # Logging
-slf4j = { group = "org.slf4j", name = "slf4j-api", version = "2.0.17" }
+slf4j = { group = "org.slf4j", name = "slf4j-api", version = "2.0.18" }
 logback-core = { group = "ch.qos.logback", name = "logback-core", version.ref = "logback" }
 logback-classic = { group = "ch.qos.logback", name = "logback-classic", version.ref = "logback" }
 
@@ -63,25 +63,25 @@ bcrypt = { group = "at.favre.lib", name = "bcrypt", version = "0.10.2" }
 
 # Annotations
 jspecify = { group = "org.jspecify", name = "jspecify", version = "1.0.0" }
-caffeine = { group = "com.github.ben-manes.caffeine", name = "caffeine", version = "3.2.0" }
+caffeine = { group = "com.github.ben-manes.caffeine", name = "caffeine", version = "3.2.4" }
 
 # mailing
 angus = { group = "org.eclipse.angus", name = "angus-mail", version = "2.0.5" }
 
 # Image processing
-thumbnailator = { group = "net.coobird", name = "thumbnailator", version = "0.4.20" }
-imageio-webp = { group = "com.twelvemonkeys.imageio", name = "imageio-webp", version = "3.13.0" }
+thumbnailator = { group = "net.coobird", name = "thumbnailator", version = "0.4.21" }
+imageio-webp = { group = "com.twelvemonkeys.imageio", name = "imageio-webp", version = "3.13.1" }
 
 # AI SDKs
 openai = { group = "com.openai", name = "openai-java", version = "4.37.0" }
-anthropic = { group = "com.anthropic", name = "anthropic-java", version = "2.34.0" }
-google-genai = { group = "com.google.genai", name = "google-genai", version = "1.54.0" }
+anthropic = { group = "com.anthropic", name = "anthropic-java", version = "2.35.0" }
+google-genai = { group = "com.google.genai", name = "google-genai", version = "1.56.0" }
 
 # CSV
-commons-csv = { group = "org.apache.commons", name = "commons-csv", version = "1.14.0" }
+commons-csv = { group = "org.apache.commons", name = "commons-csv", version = "1.14.1" }
 
 # PDF
-pdfbox = { group = "org.apache.pdfbox", name = "pdfbox", version = "3.0.5" }
+pdfbox = { group = "org.apache.pdfbox", name = "pdfbox", version = "3.0.7" }
 
 # iCal
 ical4j = { group = "org.mnode.ical4j", name = "ical4j", version = "4.2.5" }
@@ -91,7 +91,7 @@ rome = { group = "com.rometools", name = "rome", version = "2.1.0" }
 rome-modules = { group = "com.rometools", name = "rome-modules", version = "2.1.0" }
 
 # Diff
-java-diff-utils = { group = "io.github.java-diff-utils", name = "java-diff-utils", version = "4.15" }
+java-diff-utils = { group = "io.github.java-diff-utils", name = "java-diff-utils", version = "4.17" }
 
 # Markdown
 commonmark = { group = "org.commonmark", name = "commonmark", version.ref = "commonmark" }
