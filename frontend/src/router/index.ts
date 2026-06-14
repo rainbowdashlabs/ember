@@ -872,6 +872,11 @@ const router = createRouter({
                     component: () => import('@/views/adminview/AdminFeedMetricsView.vue'),
                 },
                 {
+                    path: 'discovery',
+                    name: 'admin-discovery',
+                    component: () => import('@/views/adminview/AdminDiscoveryView.vue'),
+                },
+                {
                     // Dev-only inspector for data_tracking.json. The backend route is gated by
                     // Demo.dev(); the frontend page additionally checks import.meta.env.DEV to
                     // hide the UI from production bundles.
@@ -1700,6 +1705,11 @@ const router = createRouter({
                     path: 'feed-metrics',
                     name: 'help-admin-feed-metrics',
                     component: () => import('@/views/helpcenter/adminview/FeedMetricsHelp.vue')
+                },
+                {
+                    path: 'discovery',
+                    name: 'help-admin-discovery',
+                    component: () => import('@/views/helpcenter/adminview/DiscoveryHelp.vue')
                 },
                 {
                     path: 'problems',

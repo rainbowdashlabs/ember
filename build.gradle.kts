@@ -20,7 +20,7 @@ application {
 
 group = "dev.chojo"
 // CalVer as YY.MINOR.MICRO -> https://calver.org/
-version = "26.7.1"
+version = "26.8.0"
 
 repositories {
     mavenCentral()
@@ -287,6 +287,16 @@ tasks {
                     "*.StorageQuotaService*",
                     // Federation version broadcaster (daemon thread, startup-only)
                     "*.FederationVersionBroadcaster*",
+                    // Discovery chain (HTTP + daemon threads, exercised by integration tests)
+                    "*.DiscoveryHttpClient*",
+                    "*.DiscoveryPingScheduler*",
+                    "*.DiscoveryStationRefreshScheduler*",
+                    "*.DiscoveryMaintenanceScheduler*",
+                    "*.DiscoveryPingService*",
+                    "*.DiscoveryStationFetcher*",
+                    "*.FederationPartnerSeeder*",
+                    "*.DiscoveryKeyService*",
+                    "*.DiscoveryStationProjectionService*",
                 )
                 limit {
                     counter = "LINE"
@@ -354,7 +364,10 @@ spotless {
     }
 
     format("javascript") {
-        licenseHeaderFile(rootProject.file("HEADER.txt"), "(import|const|let|var|export|//)")
+        licenseHeaderFile(
+            rootProject.file("HEADER.txt"),
+            "(import|const|let|var|export|function|type|interface|enum|class|abstract|async|declare|//)",
+        )
         target("frontend/src/**/*.js", "frontend/src/**/*.ts")
         targetExclude("frontend/node_modules/**", "frontend/dist/**")
         trimTrailingWhitespace()

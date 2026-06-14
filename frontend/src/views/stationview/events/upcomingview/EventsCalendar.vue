@@ -121,12 +121,56 @@ function matchesFilters(ev: StationEvent): boolean {
   return !!(ev.name?.toLowerCase().includes(q) || ev.description?.toLowerCase().includes(q))
 }
 
-function eventsForDate(date: Date): {event: StationEvent; date: string}[] {
-  const dateStr = isoDate(date)
-  // ISO weekday: Monday=1 .. Sunday=7. JS getDay() returns Sunday=0..Saturday=6.
+// For any event (one-time or recurring), the number of additional calendar days the
+// occurrence spans beyond the start. 0 = single day, 1 = spans 2 days, etc. Negative diffs
+// (corrupted data, or a series cut-off that landed before start) are clamped to 0.
+function eventDayDuration(ev: StationEvent): number {
+  if (!ev.startTime || !ev.endTime) return 0
+  const startDay = new Date(ev.startTime).toISOString().slice(0, 10)
+  const endDay = new Date(ev.endTime).toISOString().slice(0, 10)
+  if (endDay <= startDay) return 0
+  return Math.round(
+      (Date.UTC(...isoToYmd(endDay)) - Date.UTC(...isoToYmd(startDay))) / (24 * 3600 * 1000),
+  )
+}
+
+function isMultiDayEvent(ev: StationEvent): boolean {
+  return eventDayDuration(ev) > 0
+}
+
+function isoToYmd(iso: string): [number, number, number] {
+  const [y, m, d] = iso.split('-').map(Number) as [number, number, number]
+  return [y, m - 1, d]
+}
+
+function addDays(iso: string, days: number): string {
+  const [y, m, d] = isoToYmd(iso)
+  const t = new Date(Date.UTC(y, m, d))
+  t.setUTCDate(t.getUTCDate() + days)
+  return t.toISOString().slice(0, 10)
+}
+
+// True if the date (in local time) is a valid occurrence start for the given recurring event.
+function recurringOccurrenceStartsOn(ev: StationEvent, date: Date): boolean {
+  if (!isRecurringEvent(ev.eventType)) return false
   const dow = date.getDay() === 0 ? 7 : date.getDay()
+  if (!ev.dayOfWeek || ev.dayOfWeek !== dow) return false
   const dayOfMonth = date.getDate()
   const month = date.getMonth()
+  if (ev.eventType === EventTypes.RECURRING) return true
+  if (ev.eventType === EventTypes.MONTHLY_FIRST) return dayOfMonth <= 7
+  if (ev.eventType === EventTypes.QUARTERLY) return dayOfMonth <= 7 && month % 3 === 0
+  if (ev.eventType === EventTypes.YEARLY && ev.startTime) {
+    const ref = new Date(ev.startTime)
+    return ref.getMonth() === month && ref.getDate() === dayOfMonth
+  }
+  return false
+}
+
+// Single-day chips that live INSIDE a day cell. Multi-day occurrences are excluded — they
+// are rendered as spanning bars by `weeks`.
+function singleDayEventsForDate(date: Date): {event: StationEvent; date: string}[] {
+  const dateStr = isoDate(date)
   const inBreak = props.eventBreaks.some(
       b => b.startDate && b.endDate && dateStr >= b.startDate && dateStr <= b.endDate,
   )
@@ -135,59 +179,135 @@ function eventsForDate(date: Date): {event: StationEvent; date: string}[] {
   const result: {event: StationEvent; date: string}[] = []
   for (const ev of props.allEvents) {
     if (!isRelevant(ev.id) || !matchesFilters(ev)) continue
+    if (isMultiDayEvent(ev)) continue // handled by the spanning bars layer
 
     if (ev.eventType === EventTypes.ONE_TIME) {
       if (!ev.startTime) continue
       const startStr = new Date(ev.startTime).toISOString().slice(0, 10)
-      // Multi-day one-time events span from startTime's date to endTime's date.
-      // Render the chip on every day in that range, not just the start.
-      const endStr = ev.endTime ? new Date(ev.endTime).toISOString().slice(0, 10) : startStr
-      if (dateStr >= startStr && dateStr <= endStr) result.push({event: ev, date: dateStr})
+      if (dateStr === startStr) result.push({event: ev, date: dateStr})
       continue
     }
-    if (!isRecurringEvent(ev.eventType)) continue
-    if (!ev.dayOfWeek || ev.dayOfWeek !== dow) continue
-
-    if (ev.eventType === EventTypes.RECURRING) {
-      result.push({event: ev, date: dateStr})
-    } else if (ev.eventType === EventTypes.MONTHLY_FIRST) {
-      if (dayOfMonth <= 7) result.push({event: ev, date: dateStr})
-    } else if (ev.eventType === EventTypes.QUARTERLY) {
-      // First matching weekday in the first week of a quarter (month % 3 === 0).
-      if (dayOfMonth <= 7 && month % 3 === 0) result.push({event: ev, date: dateStr})
-    } else if (ev.eventType === EventTypes.YEARLY && ev.startTime) {
-      const ref = new Date(ev.startTime)
-      if (ref.getMonth() === month && ref.getDate() === dayOfMonth) {
-        result.push({event: ev, date: dateStr})
-      }
-    }
+    if (recurringOccurrenceStartsOn(ev, date)) result.push({event: ev, date: dateStr})
   }
   // Sort by start time within each day so the cell reads top-down chronologically.
   return result.sort((a, b) => (a.event.startTime ?? '').localeCompare(b.event.startTime ?? ''))
 }
 
-const cells = computed((): DayCell[] => {
+interface MultiDayBar {
+  event: StationEvent
+  startCol: number      // 1-based column (Mon=1 .. Sun=7) where the bar starts in the week
+  endCol: number        // 1-based column where the bar ends (inclusive)
+  lane: number          // 0-based vertical lane within the week
+  continuesLeft: boolean  // event started before this week
+  continuesRight: boolean // event ends after this week
+  startIso: string      // for click-to-detail
+}
+
+// Builds one bar per (multi-day occurrence × intersecting week) for the given week. Includes
+// both one-time and recurring multi-day events; recurring events are enumerated by stepping
+// each candidate start date in [weekStart - duration, weekEnd] and checking the recurrence
+// rule. Lanes are packed greedily so no two bars in the same week overlap.
+function buildMultiDayBars(weekDays: DayCell[]): MultiDayBar[] {
+  if (weekDays.length === 0) return []
+  const weekStart = weekDays[0].iso
+  const weekEnd = weekDays[6].iso
+  const bars: MultiDayBar[] = []
+
+  const pushBar = (ev: StationEvent, startIso: string, endIso: string) => {
+    if (endIso < weekStart || startIso > weekEnd) return
+    const clampStart = startIso < weekStart ? weekStart : startIso
+    const clampEnd = endIso > weekEnd ? weekEnd : endIso
+    const startCol = weekDays.findIndex(c => c.iso === clampStart) + 1
+    const endCol = weekDays.findIndex(c => c.iso === clampEnd) + 1
+    if (startCol < 1 || endCol < 1) return
+    // Skip if every covered day is inside an event break.
+    const blocked = weekDays.slice(startCol - 1, endCol).every(c => {
+      return props.eventBreaks.some(
+          b => b.startDate && b.endDate && c.iso >= b.startDate && c.iso <= b.endDate)
+    })
+    if (blocked) return
+    bars.push({
+      event: ev,
+      startCol,
+      endCol,
+      lane: 0,
+      continuesLeft: startIso < weekStart,
+      continuesRight: endIso > weekEnd,
+      startIso,
+    })
+  }
+
+  for (const ev of props.allEvents) {
+    if (!isRelevant(ev.id) || !matchesFilters(ev)) continue
+    const dur = eventDayDuration(ev)
+    if (dur < 1) continue
+
+    if (ev.eventType === EventTypes.ONE_TIME) {
+      if (!ev.startTime) continue
+      const startIso = new Date(ev.startTime).toISOString().slice(0, 10)
+      pushBar(ev, startIso, addDays(startIso, dur))
+      continue
+    }
+    if (!isRecurringEvent(ev.eventType)) continue
+    // Enumerate possible occurrence start dates that could still overlap this week —
+    // anything starting up to `dur` days before the week's first day.
+    const iterFrom = addDays(weekStart, -dur)
+    const iterTo = weekEnd
+    let cursor = new Date(iterFrom + 'T12:00:00')
+    const stop = new Date(iterTo + 'T12:00:00')
+    while (cursor.getTime() <= stop.getTime()) {
+      if (recurringOccurrenceStartsOn(ev, cursor)) {
+        const startIso = isoDate(cursor)
+        pushBar(ev, startIso, addDays(startIso, dur))
+      }
+      cursor = new Date(cursor.getTime() + 24 * 3600 * 1000)
+    }
+  }
+
+  // Lane packing: greedy by startCol. Lower lane number = higher up.
+  bars.sort((a, b) => a.startCol - b.startCol || a.endCol - b.endCol)
+  const laneEnds: number[] = []
+  for (const bar of bars) {
+    let lane = 0
+    while (lane < laneEnds.length && laneEnds[lane]! >= bar.startCol) lane++
+    laneEnds[lane] = bar.endCol
+    bar.lane = lane
+  }
+  return bars
+}
+
+interface Week {
+  days: DayCell[]
+  bars: MultiDayBar[]
+  laneCount: number
+}
+
+const weeks = computed((): Week[] => {
   const firstOfMonth = new Date(viewYear.value, viewMonth.value, 1)
   // Map JS Sunday-first weekday to Monday-first offset: Mon=0 .. Sun=6.
   const firstWeekdayMon = (firstOfMonth.getDay() + 6) % 7
-  const result: DayCell[] = []
+  const allCells: DayCell[] = []
   for (let i = 0; i < 42; i++) {
     const d = new Date(viewYear.value, viewMonth.value, 1 - firstWeekdayMon + i)
     const iso = isoDate(d)
-    result.push({
+    allCells.push({
       date: d,
       iso,
       isCurrentMonth: d.getMonth() === viewMonth.value && d.getFullYear() === viewYear.value,
       isToday: iso === todayIso,
-      events: eventsForDate(d),
+      events: singleDayEventsForDate(d),
     })
   }
-  // Trim a trailing row that's entirely next-month dates — happens when February starts on
-  // a Monday, or whenever the month ends right at the end of a week. Keeps the grid as
-  // compact as possible without ever exposing a "ghost" all-next-month row.
-  const lastRow = result.slice(35)
-  if (lastRow.every(c => !c.isCurrentMonth)) {
-    return result.slice(0, 35)
+  // Trim a trailing row that's entirely next-month dates — keeps the grid compact without
+  // exposing a ghost row.
+  const lastRow = allCells.slice(35)
+  const usedCells = lastRow.every(c => !c.isCurrentMonth) ? allCells.slice(0, 35) : allCells
+  const result: Week[] = []
+  for (let w = 0; w < usedCells.length; w += 7) {
+    const days = usedCells.slice(w, w + 7)
+    const bars = buildMultiDayBars(days)
+    const laneCount = bars.reduce((m, b) => Math.max(m, b.lane + 1), 0)
+    result.push({days, bars, laneCount})
   }
   return result
 })
@@ -251,41 +371,81 @@ function openEvent(ev: StationEvent, date: string) {
       <div v-for="d in weekdayHeader" :key="d" class="text-center py-1">{{ d }}</div>
     </div>
 
-    <!-- Calendar grid: always 7 columns. Row count is 5 or 6 depending on whether the last
-         row contains any current-month dates — see {@link cells}. -->
-    <div class="grid grid-cols-7 gap-0.5 sm:gap-1">
+    <!-- Per-week subgrids. Each week is its own 7-column grid so multi-day events can use
+         `grid-column-start` / `grid-column-end` to span across cells (Google-calendar style).
+         Day cells occupy `grid-row: 1 / -1` so they form the visual background; the
+         multi-day bar rows are placed on top in lanes (rows 2..). -->
+    <div class="space-y-0.5 sm:space-y-1">
       <div
-          v-for="cell in cells"
-          :key="cell.iso"
-          class="min-h-16 sm:min-h-24 lg:min-h-28 border border-(--border) rounded p-0.5 sm:p-1.5 flex flex-col gap-0.5 overflow-hidden"
-          :class="[
-            cell.isCurrentMonth ? 'bg-(--bg)' : 'bg-(--bg-accent) opacity-50',
-            cell.isToday ? 'ring-2 ring-primary' : '',
-          ]"
+          v-for="(week, weekIdx) in weeks"
+          :key="weekIdx"
+          class="grid grid-cols-7 gap-0.5 sm:gap-1"
+          :style="{
+            gridTemplateRows: `auto ${'1.25rem '.repeat(week.laneCount)}1fr`,
+          }"
       >
-        <div class="flex items-center justify-between">
-          <span
-              class="text-xs sm:text-sm font-semibold leading-none"
-              :class="cell.isToday ? 'text-primary' : ''"
-          >{{ cell.date.getDate() }}</span>
-          <span
-              v-if="cell.events.length > 3"
-              class="text-[9px] sm:text-[10px] text-(--text-muted) font-medium"
-          >+{{ cell.events.length - 3 }}</span>
+        <!-- Day cells (background, day number top-left, single-day chips bottom) -->
+        <div
+            v-for="(cell, dayIdx) in week.days"
+            :key="cell.iso"
+            class="min-h-16 sm:min-h-24 lg:min-h-28 border border-(--border) rounded p-0.5 sm:p-1.5 flex flex-col gap-0.5 overflow-hidden"
+            :class="[
+              cell.isCurrentMonth ? 'bg-(--bg)' : 'bg-(--bg-accent) opacity-50',
+              cell.isToday ? 'ring-2 ring-primary' : '',
+            ]"
+            :style="{gridColumn: dayIdx + 1, gridRow: `1 / span ${week.laneCount + 2}`}"
+        >
+          <div class="flex items-center justify-between">
+            <span
+                class="text-xs sm:text-sm font-semibold leading-none"
+                :class="cell.isToday ? 'text-primary' : ''"
+            >{{ cell.date.getDate() }}</span>
+            <span
+                v-if="cell.events.length > 3"
+                class="text-[9px] sm:text-[10px] text-(--text-muted) font-medium"
+            >+{{ cell.events.length - 3 }}</span>
+          </div>
+          <!-- Reserve vertical room for the multi-day bars overlaid above this cell so
+               single-day chips don't visually collide with them. -->
+          <div :style="{height: `${week.laneCount * 1.25}rem`}" aria-hidden="true"/>
+          <div class="flex flex-col gap-0.5 overflow-hidden min-h-0">
+            <EventChipButton
+                v-for="evRef in cell.events.slice(0, 3)"
+                :key="`${evRef.event.id}-${evRef.date}`"
+                :title="`${evRef.event.name}${evRef.event.startTime ? ' · ' + formatTime(evRef.event.startTime) : ''}`"
+                :custom-style="chipStyle(evRef.event)"
+                @click="openEvent(evRef.event, evRef.date)"
+            >
+              <MutedIcon v-if="evRef.event.restricted" :icon="['fas', 'lock']" class="mr-0.5 inline" />
+              <span class="hidden sm:inline">{{ formatTime(evRef.event.startTime) }}&nbsp;</span>
+              <span>{{ evRef.event.name }}</span>
+            </EventChipButton>
+          </div>
         </div>
-        <div class="flex flex-col gap-0.5 overflow-hidden min-h-0">
-          <EventChipButton
-              v-for="evRef in cell.events.slice(0, 3)"
-              :key="`${evRef.event.id}-${evRef.date}`"
-              :title="`${evRef.event.name}${evRef.event.startTime ? ' · ' + formatTime(evRef.event.startTime) : ''}`"
-              :custom-style="chipStyle(evRef.event)"
-              @click="openEvent(evRef.event, evRef.date)"
-          >
-            <MutedIcon v-if="evRef.event.restricted" :icon="['fas', 'lock']" class="mr-0.5 inline" />
-            <span class="hidden sm:inline">{{ formatTime(evRef.event.startTime) }}&nbsp;</span>
-            <span>{{ evRef.event.name }}</span>
-          </EventChipButton>
-        </div>
+        <!-- Multi-day bars (column-span, lane row). Rendered AFTER the cells so source
+             order plus relative positioning puts them on top. -->
+        <button
+            v-for="(bar, barIdx) in week.bars"
+            :key="`bar-${weekIdx}-${barIdx}`"
+            type="button"
+            class="relative z-10 text-left text-[10px] sm:text-xs leading-tight px-1 truncate cursor-pointer transition-opacity self-center"
+            :class="[
+              chipStyle(bar.event) ? 'hover:opacity-80' : 'bg-primary/30 hover:bg-primary/50 text-primary',
+              bar.continuesLeft ? 'rounded-l-none ml-0' : 'rounded-l ml-0.5',
+              bar.continuesRight ? 'rounded-r-none mr-0' : 'rounded-r mr-0.5',
+            ]"
+            :style="{
+              gridColumnStart: bar.startCol,
+              gridColumnEnd: bar.endCol + 1,
+              gridRow: bar.lane + 2,
+              ...(chipStyle(bar.event) ?? {}),
+            }"
+            :title="`${bar.event.name}${bar.event.startTime ? ' · ' + formatTime(bar.event.startTime) : ''}`"
+            @click="openEvent(bar.event, bar.startIso)"
+        >
+          <font-awesome-icon v-if="bar.event.restricted" :icon="['fas', 'lock']" class="mr-0.5 inline h-2.5 w-2.5" />
+          {{ bar.event.name }}
+        </button>
       </div>
     </div>
   </NeutralContainer>

@@ -109,6 +109,9 @@ async function handleLogout() {
         <SidebarLink :icon="['fas', 'rss']" name="admin-feed-metrics" to="/admin/feed-metrics" @navigate="close">
           {{ t('sidebar.feedMetrics') }}
         </SidebarLink>
+        <SidebarLink :icon="['fas', 'compass']" name="admin-discovery" to="/admin/discovery" @navigate="close">
+          {{ t('sidebar.discovery') }}
+        </SidebarLink>
       </SidebarGroup>
 
       <SidebarGroup

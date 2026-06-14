@@ -1,161 +1,136 @@
 # Changelog
 
-## v26.7.1
+## v26.8.0
 
 ### New Features
 
+#### Discovery Chain (Cross-instance Catalog)
+
+A new two-layer protocol lets every Ember instance build an organic, asynchronously-refreshed catalog of *other Ember instances* and surface their `PUBLIC`-scoped stations on a single discovery page — including stations the local instance has never federated with. See `.concept/discovery.md` for the full design.
+
+- **Ed25519-signed gossip** — every instance owns a long-lived Ed25519 keypair generated on first boot under `data/discovery/`. The fingerprint `sha256(publicKey)[:16]` is the stable instance id used in logs and the admin UI. Distinct from the per-partner RSA keys used by federation, so discovery and federation key rotations stay independent.
+- **Async-first ping/callback** — pinging another instance returns `204` immediately; the actual peer list comes back via a delayed `POST` to the originator's callback URL. No long-lived HTTP connections on either side, and slow peers can't pile up against the requester. Replay-protected per-nonce, drift-checked ±5 min.
+- **Public station catalog endpoint** — `GET /public/discovery/stations` returns every `PUBLIC`-scoped station with bucketed member count (`<10 / 10-50 / 50-200 / 200+`) so small stations don't leak exact size. `INSTANCE` and `NONE` scopes are filtered at the SQL level, never trusted to the application layer alone. Cacheable for 5 min.
+- **Instance info probe** — unauthenticated `GET /public/discovery/info` returns `{baseUrl, instanceId, publicKey, softwareVersion, discoveryEnabled}`. Drives manual peer addition, admin "test connectivity" checks, and any future external aggregator.
+- **Bootstrap via federation** — on boot the instance walks its active federation partners, probes their info endpoint, and seeds the peer registry as `BOOTSTRAP` source. No global seed list — operators stay in control of who they federate with first.
+- **Manual admin add** — admins can register a known instance by base URL; the discovery public key is fetched from the peer's info endpoint and may optionally be pinned to an admin-supplied value so URL/key drift is caught at add time.
+- **Reputation + back-off** — signature failures (−20), timeouts (−1), invalid announcements (−2), and admin downvotes (−50) accumulate per peer; reputations below −50 trigger a 24h ping back-off. Successful callbacks and station fetches each add +1; a daily decay pulls negative scores toward zero by 5/day so transient outages don't permanently degrade a peer.
+- **Hard blocklist** — admin-managed list of base URLs or public keys that are refused on both sides of the protocol regardless of reputation. Outbound pings, inbound pings, callbacks, and station fetches all consult the list.
+- **Per-instance admin settings** — `discovery_enabled` (kill switch for outbound pings and the public stations endpoint), `discovery_max_depth` (0..10, default 2 — fan-out hint attached to pings), `discovery_ping_interval_minutes` (default 60, minimum 60).
+- **Schedulers** — ping cycle (60 min), station-listing refresh (6 h), nonce GC (5 min), reputation decay (24 h). All initial delays staggered so federation seeding fills the registry before the first ping cycle.
+- **Admin UI** under `/admin/discovery` — identity card (showing our own instanceId, publicKey, baseUrl), settings panel, peer registry with per-row actions (upvote / downvote / block / unblock / ping now / delete), manual add with probe, blocklist editor, "Discover now" trigger that pings every usable peer and refreshes the station cache in one shot, and "Seed from federation" trigger that rescans the federation partner list.
+
+### Changes
+
+#### Calendar Multi-day Events
+
+- **Google-calendar-style spanning bars** on `/station/events/upcoming` — multi-day events render as a single continuous bar across the week grid instead of one chip per day. Bars carry the event's category colour, round only on the start/end sides, and pack into lanes so multiple overlapping multi-day events stay readable.
+- **Recurring multi-day events** — the same spanning logic now enumerates per occurrence of recurring events (weekly, monthly-first, quarterly, yearly), so a multi-day recurring meeting spans correctly on every occurrence and not just the first.
+- **Fix `multiDayEndDate` in the upcoming list view** — recurring events no longer display absurd ranges like `Samstag, 2026-07-04 – Sonntag, 2026-06-14`; recurring entries skip the range entirely and one-time events whose end falls on the start day collapse to a single date.
+
+## v26.7.1
+
+### Changes
+
 #### Personal Feed Overhaul (iCal, Atom, RSS)
 
-The biggest piece of this release: every member's personal calendar and notification feed got a top-to-bottom rewrite so feed readers like Thunderbird, Apple Calendar, NetNewsWire, Feedly, and Reeder finally surface the same context that the web UI does — and stations can monitor exactly how their feeds are being consumed.
+Every member's personal calendar and notification feed got a top-to-bottom rewrite so feed readers like Thunderbird, Apple Calendar, NetNewsWire, Feedly, and Reeder surface the same context that the web UI does.
 
-- **Guardian-aware visibility** — the iCal feed now hides events only when *every* relevant registration is `DECLINED`/`DENIED`. A guardian whose child is going still sees the event; a member who declined themselves but whose managed members are going still sees it. Events with expired registration deadlines and no active registrations are dropped to keep the calendar clean.
-- **Rich iCal event descriptions** — every VEVENT now carries category, recurrence label, registration deadline/limit/status, custom event field values, per-managed-member registration breakdown, accepted-count over limit, station-timezone-aware timestamps, and a trailing web link. Cancelled events get a localised `[Cancelled]` prefix in `SUMMARY` plus the standard `STATUS:CANCELLED` so clients strikethrough or hide them; every event also emits the RFC-5545 `URL` property for one-tap web open.
-- **New `LOCATION` event field type** — a dedicated `EventFieldType.LOCATION` variant that feeds the standard iCal `LOCATION` property so phones and calendar apps turn it into a tap-to-navigate map link.
-- **Rich notification feed entries** — RSS/Atom entries now carry a semantic HTML body (definition list, status badges with Unicode markers `✓ ✗ … ↶`, action button at WCAG 2.5.5 tap-target size), a plain-text fallback for readers that strip HTML, the notification's actor as the entry author, two categories per entry (a localised label for humans plus the stable enum name for scripted filters across locales), and an embedded image with meaningful alt text where applicable.
-- **Event context in notification entries** — `NEW_EVENT`, `EVENT_REMINDER`, `EVENT_CANCELLED`, and `EVENT_REGISTRATION_STATUS` entries now also surface the event's localised start/end timestamps and every non-empty custom field value (location, meeting point, notes, …) in the details block, so feed readers carry the same information as the event-detail page without an extra click. News and comment previews (`NEW_NEWS`, `NEWS_COMMENT`) continue to surface the existing description snippet.
-- **Rich title format** — feed entry titles now read `News: Q3 schedule published`, `Procurement requested: Hose 25m`, `Lost & Found: Blue jacket`, etc. instead of the bare category. Status-bearing types (`EVENT_REGISTRATION_STATUS`, `EXCHANGE_STATUS_CHANGE`, `LENDING_STATUS_CHANGE`) include the localised status with a Unicode marker (`Registration ✓ Accepted: Open Training`). Plural-bearing types (`NEW_EVENTS_BATCH`, `EVENT_REMINDER`, `REGISTRATION_DEADLINE_EXPIRED`) route via `.one`/`.other`. Long fragments are truncated on a word boundary with an ellipsis so inbox rows stay scannable.
-- **Same-day event range merge** — events whose start and end fall on the same calendar day collapse into one `When: 15 Sep 17:00 – 19:00` row instead of separate `Starts:` / `Ends:` rows. Cross-day events keep the split format to preserve the date on each side.
-- **Live context lookups** — feed entries enrich themselves with information loaded from the relevant service at render time, so handlers don't have to pre-bake everything into params:
-  - `LOST_AND_FOUND_NEW` / `_CLAIMED` — find date (always) and claim date (claimed variant) via `LostAndFoundService`.
-  - `LENDING_NEW_REQUEST` / `_STATUS_CHANGE` / `_NEW_MESSAGE` — range-merged `Needed: 5 Oct – 7 Oct` row via `LendingService`.
-  - `PROCUREMENT_REQUESTED` / `_FULFILLED` and `EXCHANGE_NEW_REQUEST` / `_STATUS_CHANGE` — inventory ownership flow (`Organisation-owned` / `Member-owned` / `Mixed`) via `InventoryService`.
-  - `BOARD_TICKET_UPDATE` — ticket title, assignee, priority via `BoardTicketService`.
-  - `PROCEDURE_ASSIGNED` / `_RESOLVED` / `_REOPENED` / `_ITEM_CHECKED` — progress (`Progress: 5 of 12 items`) via `ProcedureService`.
-  - `STORAGE_WARNING` — top-5 category breakdown as a bulleted child list via `StorageQuotaService`. Categories localised in their own `storageCategory` bundle namespace.
-  Every enrichment silently no-ops on missing id or stale reference; a deleted entity never tanks the feed render.
-- **Richer params (Phase C)** — `MemberAddedToGroup` adds `addedByName` so the body reads `By: Alice Müller`. `CommentMention` adds `preview` (first 100 chars of the comment) so feed readers see the surrounding context without opening the source. `NewEventsBatch` adds `firstEventDate` so the body surfaces the first occurrence.
-- **Embedded lost-and-found images** — new token-scoped `/public/feed/{token}/lost-and-found/{id}/image` route lets unauthenticated feed readers fetch images without exposing the rest of the API. Cross-station requests look identical to missing items so the token can't be used to probe foreign stations. MediaRSS `<media:thumbnail>` is emitted alongside the inline `<img>` for readers that render previews.
-- **Atom is the recommended format** — Atom is featured prominently in the user-facing feed settings with a "Recommended" badge and an inline explainer covering author, categories, and MediaRSS thumbnails. RSS collapses into a `<details>` "emergency fallback" for clients that don't speak Atom. iCal gets its own featured card explaining the calendar-subscription use case.
-- **Verbosity presets** — three radio buttons on the feed settings page (Rich / Compact / Minimal) rewrite the copied URL with the matching `verbose` / `images` query parameters. The selection persists in `localStorage`; no backend round-trip. Rich is the default.
-- **Conditional GET (ETag + If-Modified-Since)** — every feed endpoint computes a short SHA-256 fingerprint over the freshness inputs (event/registration/notification mutation times, locale, query params) and answers a matching `If-None-Match` or `If-Modified-Since` with `304 Not Modified`. Aggressive pollers (Thunderbird default ~100 min, RSS-Bridge much shorter) drop to near-zero bandwidth on unchanged feeds.
-- **Leaky-bucket rate limiting** — feed endpoints now enforce a per-token leaky bucket with 10-request burst capacity and 5/minute sustained refill. Realistic burst traffic passes cleanly while runaway readers get a `429` with `Retry-After`. The token-scoped image endpoint is intentionally exempt. The bucket is implemented in a new reusable `dev.chojo.ember.util.LeakyBucket` utility so future features can drop in the same shape.
-- **Body size caps** — RSS/Atom truncates to the last 100 notifications; iCal limits non-recurring events to a `[now − 7 days, now + 1 year]` window, keeping payloads bounded even on noisy stations.
-- **Privacy hardening** — `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex` are emitted on every response (200, 304, 429, 404) so the feed token can never leak via `Referer` and leaked URLs can't be picked up by search engines. The "Regenerate token" and "Revoke token" buttons now show a confirmation modal that warns the action breaks every subscribed reader on the spot.
-- **Per-entry failure isolation** — one malformed notification or event no longer 500s the entire feed. Failures are logged and skipped; the rest of the feed renders.
-- **Accessibility** — feed HTML uses semantic `<dl>/<dt>/<dd>`, `lang` + `dir="auto"` for proper screen-reader pronunciation, persistent `text-decoration:underline` on links (most readers strip `:hover`), 44px tap targets on action buttons, and Unicode status symbols so meaning survives monochrome rendering and colour-blindness. WCAG AA contrast budget documented in the concept.
+- **Guardian-aware visibility** — the iCal feed only hides events when *every* relevant registration is declined/denied, so a guardian whose child is going still sees the event. Events whose registration deadline has passed without any active registrations drop out to keep the calendar clean.
+- **Rich iCal event entries** — every event now carries category, recurrence label, registration deadline/limit/status, custom field values, per-managed-member registration breakdown, station-timezone-aware timestamps, and a tap-to-open web link. Cancelled events get a localised `[Cancelled]` prefix so clients strike through or hide them.
+- **New `LOCATION` event field** — feeds the standard iCal `LOCATION` property so phones and calendar apps turn it into a tap-to-navigate map link.
+- **Rich notification feed entries** — RSS/Atom entries carry a semantic HTML body (status badges with Unicode markers, prominent action button), a plain-text fallback for readers that strip HTML, the notification's actor as the entry author, both localised and stable filterable categories, and embedded images with meaningful alt text.
+- **Event context in notifications** — new-event, reminder, cancellation, and registration-status entries surface the event's start/end timestamps and every non-empty custom field value (location, meeting point, notes, …) so feed readers carry the same info as the event-detail page.
+- **Rich entry titles** — feed titles now read `News: Q3 schedule published`, `Procurement requested: Hose 25m`, `Registration ✓ Accepted: Open Training`, etc. instead of a bare category. Long fragments are truncated on a word boundary.
+- **Same-day event range merge** — events whose start and end fall on the same day collapse into one `When: 15 Sep 17:00 – 19:00` row.
+- **Live context lookups** — feed entries pull fresh details at render time: lost-and-found find/claim dates, lending date ranges, inventory ownership (organisation-owned / member-owned / mixed), board ticket title/assignee/priority, procedure progress, and storage-warning category breakdowns.
+- **Embedded lost-and-found images** — feed readers can fetch item images via a token-scoped endpoint without exposing the rest of the API.
+- **Atom is the recommended format** — featured prominently on the feed settings page with an explainer. RSS collapses into an "emergency fallback" section. iCal gets its own card explaining the calendar-subscription use case.
+- **Verbosity presets** — three radio buttons on feed settings (Rich / Compact / Minimal) rewrite the copied URL accordingly. Persists locally; Rich is the default.
+- **Privacy hardening** — the feed token never leaks via `Referer` and leaked URLs can't be picked up by search engines. The Regenerate-token / Revoke-token buttons show a confirmation modal warning that the action breaks every subscribed reader immediately.
+- **Accessibility** — semantic HTML, `dir="auto"`, persistent link underlines, 44px tap targets, Unicode status symbols so meaning survives monochrome rendering and colour-blindness.
 
-#### Notification Pipeline Improvements
+#### Notifications
 
-- **Aggregate batch event notifications** — bulk-created events now produce one `NEW_EVENTS_BATCH` notification per recipient instead of one per row. A new `EventsBatchCreated` domain event drives the aggregation; `BatchEventService` publishes it after the bulk create.
-- **Complete i18n coverage** — every `NotificationType` now has a localised category label and message in both bundles (English and German). Previously 12 of 29 types were falling back to bare keys.
-- **Plural-split messages** — `newEventsBatch`, `eventReminder`, and `registrationDeadlineExpired` now route to `.one` / `.other` variants based on integer count/daysBefore/pendingCount params so the singular form reads correctly across locales. The email digest subject ("X new notifications") uses the same mechanism.
-- **Required notification links** — every public `notify*` method on `NotificationService` now enforces that the `NotificationData` carries a `NotificationLink`. A future handler that forgets one fails fast with `IllegalArgumentException` instead of producing a notification that can't be opened.
+- **Aggregated batch event notifications** — bulk-created events produce one batched notification per recipient instead of one per row.
+- **Complete EN/DE coverage** — every notification type now has a localised category label and message.
+- **Correct singular/plural handling** for `newEventsBatch`, `eventReminder`, `registrationDeadlineExpired`, and the email digest subject.
 
-#### Recurring-Event Date Context
+#### Recurring Events
 
-Reminders for recurring events used to deep-link to `/station/events/{id}` regardless of which occurrence the reminder was about. Comments on recurring events merged across every occurrence. Both are now occurrence-aware end-to-end.
+Reminders for recurring events used to deep-link to a generic event page and comments merged across every occurrence. Both are now occurrence-aware end-to-end.
 
-- **Date-aware deep links** — new `event-detail-date` route template (`/station/events/{id}/{date}`) carries the occurrence date as a path segment. `EventReminderChecker` emits the date so weekly reminders land on the right week. The frontend route accepts the optional `:date` param.
-- **Detail view bound to a single date** — the event detail view now derives its start/end timestamps from the URL path date (or, when no path date is provided, from the next occurrence for recurring events / the event's start for one-time events). The redundant "Next date" container is gone; the date is shown directly in the general info as the `Start` / `End` rows. Absences are loaded for the bound date.
-- **Date-aware navigation across the app** — the upcoming-events page, dashboard's upcoming-events panel, registrations panel, and admin event-by-category list all route recurring events to `event-detail-date` with the relevant occurrence date so members never land on the wrong instance.
-- **List ↔ calendar toggle on `/station/events/upcoming`** — new month-grid view, always 7 columns and 5 or 6 rows depending on whether the last week would be entirely next-month dates (no all-ghost trailing row). Occurrences are computed client-side from the full event list so any month can be browsed without an extra fetch. The cell chips deep-link via `event-detail-date` for recurring events and `event-detail` for one-time events. The user's choice between list and calendar persists in `localStorage` so the same view returns on the next visit.
-- **Mobile-tight calendar layout** — calendar wrapper drops to 4 px outer padding on mobile (vs. 16 px on `sm+`), cell padding shrinks to 2 px, and the new `EventChipButton` hard-clips long event names without an ellipsis so a 35-px-wide mobile cell uses every available character. Reclaims roughly 60 px of horizontal space on a 360-px viewport (~21 % wider cells).
-- **Per-occurrence comment threads** — `event_comment` gains a nullable `event_date` column. One-time events and whole-event comments keep `event_date = NULL`; comments on a specific occurrence of a recurring event carry the ISO date. `CommentSection.vue` honours the focused date — list filters and new comments stay scoped to that occurrence. The `/events/{id}/comments` GET endpoint accepts an optional `?date=` query parameter for filtering.
-- **Federation parity** — the `RemoteCommentRequest` payload across federation now carries `eventDate`. Older peers that omit it map to `null` (whole-event comment) on the receiver, preserving backwards compatibility.
-- **Typed date fields** — `EventCommentRoutes.CreateCommentRequest.eventDate`, `CommentResponse.eventDate`, and `NotificationParams.EventReminder.eventDate` are now `LocalDate` instead of `String`. Jackson serialises as ISO `yyyy-MM-dd`. The manual `LocalDate.parse(...)` round-trips disappear and date formatting in the feed renderer can finally honour locale.
+- **Date-aware deep links** — weekly reminders land on the right occurrence.
+- **Detail view bound to a single date** — derived from the URL or the next occurrence. The redundant "Next date" container is gone; the date is shown directly as the `Start` / `End` rows.
+- **List ↔ calendar toggle on `/station/events/upcoming`** — new month-grid view; the user's choice persists in `localStorage`.
+- **Mobile-tight calendar layout** — reclaims roughly 60 px of horizontal space on a 360 px viewport (~21 % wider cells).
+- **Per-occurrence comment threads** — comments on a specific occurrence of a recurring event stay scoped to that occurrence.
 
 #### Feed Telemetry (Admin)
 
-A new admin observability panel under "Monitoring → Feed-Telemetrie" charts feed usage and performance.
+A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and performance.
 
-- **Persisted daily metrics** — new `feed_metric_daily` table stores one row per `(day, type, status)` with request count, total/total entries, and a five-bucket duration histogram (<50ms, 50–200ms, 200ms–1s, 1–5s, ≥5s). Upserted on every feed render.
-- **Global user-agent aggregate** — new `feed_user_agent_stat` table tracks distinct reader user-agents with request counts and first/last-seen timestamps. **No per-token attribution by design** — a station admin with DB access cannot derive which member uses which reader.
-- **Async, non-blocking writes** — telemetry persists on a dedicated executor so a slow DB never delays a feed render. All writes are best-effort with logged warnings on failure.
-- **Configurable retention** — new top-level `metrics` config block with two windows: `requestStatsRetentionDays` (default 3, applies to the existing `api_request_log`) and `feedStatsRetentionDays` (default 90, applies to the new feed tables). A daily prune job enforces both.
-- **Admin dashboard** — four summary cards (total requests, fully rendered, 304 cache hits, average render duration), three ECharts diagrams (requests-by-type line chart, latency histogram bar chart with green→red colour coding, daily volume bar chart), a status-code breakdown table, and the global reader leaderboard.
-- **Help center article** — full article explaining every chart, the histogram bucket colour code, the relevant HTTP status codes (200/304/429/500), and the user-agent leaderboard's privacy posture.
+- Four summary cards (total requests, fully rendered, 304 cache hits, average render duration), three ECharts diagrams (requests-by-type, latency histogram, daily volume), a status-code breakdown table, and a global reader leaderboard.
+- **No per-token attribution by design** — a station admin with DB access cannot derive which member uses which reader.
+- Configurable retention windows; default 3 days for request stats, 90 days for feed metrics.
+- Help center article explaining every chart, the histogram colour code, the relevant HTTP status codes, and the privacy posture of the reader leaderboard.
 
-#### Helpers and Reusable Components
+#### News View Tracking
 
-- **`LeakyBucket` utility** — extracted from the feed rate limiter into `dev.chojo.ember.util.LeakyBucket` so future features that need per-key rate limiting can reuse it.
-- **`HelpCenterHint` Vue component** — small standalone affordance using the animated ember mascot (FAQ variant with auto-blink + gaze) linking to a named help-center route. Used in the feed settings card and the admin Feed Metrics panel; can be dropped in anywhere.
+- News entries are silently recorded as "seen" when fully visible for 800 ms (distinct from the explicit "I've read this" acknowledgement).
+- News editors see a new eye icon on each entry; clicking opens a modal listing who has seen the entry and who hasn't.
 
-### Improvements
+#### Backend-driven Search
 
-- **Bulk-friendly registration lookups** — new `EventRepository.findRegistrationsByMembers(Collection<Integer>)` loads an owner's + their managed members' registrations in one query instead of N. Cuts query count on the iCal feed for guardian accounts.
-- **Event modification timestamp** — `station_event.updated_at` column + tracking through every UPDATE statement so the iCal ETag invalidates on any event edit.
-- **`StationEvent` URL property in iCal** — explicit RFC-5545 `URL` property in every VEVENT for one-tap "open on website" in calendar clients.
+- The upcoming-events search bar now hits the backend (debounced 250 ms, case-insensitive) instead of filtering the already-loaded page.
+- A new prominent `SearchInput` component (primary-color border, magnifying-glass prefix, clear button) replaces 11 page-level search bars (events, help center, board tickets, procedures, protocols, KB, lending offers, quiz catalogs, …).
 
-### Frontend
+#### Other Improvements
 
-- **`helpcenter-admin` layout** — the admin section pages now use a dedicated layout instead of the generic `helpcenter` layout, decoupling the two sidebars.
+- **Calendar view multi-day events** — one-time events with multi-day duration now render on every day from start to end.
+- **Guardian sees own inventory page** when at least one of their managed members owns an item.
+- **Exchange type column** gated by `INVENTORY_EXCHANGE`.
+- **Notification settings shortcut** from the dashboard notifications panel.
+- **Reactive item state** — submitting an exchange request flips the inventory card into its "exchange pending" state immediately.
+- **`/station/quiz/tests` accessible to anyone** — the page handles permission gating internally.
+- **Event notes** no longer require member-notes permission for event managers.
+- **Quiz reviewers** can list catalog names with `TEST_RESULT_READ` alone.
+- **`Exchanged` status renamed to `Done`** (German `Erledigt`) for clarity.
+- **`RestrictionPicker` AND/OR toggle** is clearer (two side-by-side buttons with both words always visible).
+- **Rich text editor active icon** is finally readable (primary color glow instead of black-on-primary).
+- **Comment line breaks preserved** when submitting (Chrome/Edge wrap each line in a `<div>`).
+- **Help link for `/station/events/new`** now resolves to a dedicated article instead of a broken redirect.
+- **Settings intro tour step** navigates to the page it actually describes.
+- **Profile absences row** alignment fixed (date stays centered with the name).
 
-### Internal / Infrastructure
+#### Bug Fixes
 
-- **Frontend lint infrastructure fixes** — `scripts/lint-conventions.mjs` had two argument-order bugs (rule 3b "raw badge span" and rule 6b "inline ref<> object type") that swapped the category and file/line arguments, so the lint output showed `error Raw element usage: 149` instead of `error src/views/.../File.vue:149: <span> with rounded-full + padding ...`. The actual offending file (a "Recommended" pill on the feed settings card) was effectively invisible. Fixed both call sites; the only remaining error after the fix was an obvious `<span>` to `PrimaryBadge` swap.
-- **`npm run build` now runs the linters** — `scripts/build.mjs` previously spawned `nuxi build` and exited 0 on success without ever invoking `lint-icons` / `lint-conventions` / `lint-helpcenter` / `lint-locales`. Per the project spec in `CLAUDE.md` (and to match `build:spa`), the build script now runs the four linters in sequence before `nuxi build` and exits non-zero on the first failure. Convention violations can no longer slip past a green build.
-- **Schema migrations** — patch_11 adds `station_event.updated_at`. patch_12 introduces `feed_metric_daily`, `feed_user_agent_stat`, and `event_comment.event_date`.
-- **rome-modules dependency** — pulled in for MediaRSS support on RSS/Atom feeds.
-- **Test infrastructure** — new `UserFeedRoutesIntegrationTest` exercises the route handlers end-to-end (conditional GET roundtrips, rate-limit short-circuit, privacy headers on every status path) via a hand-rolled `RecordingContext` Javalin stub. `LeakyBucketTest` covers the algorithm in isolation. `FeedFingerprintTest`, `FeedRateLimiterTest`, `IcalEventRendererTest`, `NotificationFeedRendererTest`, and `FeedMetricsRepositoryTest` round out the new feed surface. Existing `NotificationServiceTest` gained pluralisation coverage and the `notifyRejectsDataWithoutLink` regression for the link guard.
+- Lost-and-found, board ticket, and news notifications now deep-link to the correct page (previously fell back to the dashboard).
+- Self-edit on comments now works correctly across news, knowledge base, and events.
+- KB tag filter actually filters (was a no-op for search results and missing entirely for browse mode).
+- Quick-check skipping no longer leaves the process hung with nothing rendered.
+- Attendance config pages reappear (a `.gitignore` overmatch had been silently dropping them from VCS, so demo deploys 404'd).
+- `PAGE_EDIT` / `PAGE_MANAGER` permissions are now actually grantable.
 
-### Bug fixes
+### Technical
 
-- **Notification feed coverage** — every `NotificationType` switch branch in `NotificationService.resolveDetail` and `resolveFeedBody` is now exercised by tests; previously several types fell through to default rendering at runtime.
-- **Lost-and-found notification deep links** — `LostAndFoundService.create` and `.claim` now pass the item id in the notification link's `routeParams`. Previously the link was issued without an id, which silently broke both the deep link (fallback to dashboard) and the token-scoped image lookup (no embedded image).
-- **Board ticket notification deep links** — `BoardTicketChanged` now carries `boardKey` + `ticketNumber` so the `ticket-detail` route (`/station/boards/{boardKey}/tickets/{ticketNumber}`) actually resolves. Previously the link carried numeric `boardId` / `ticketId` and silently fell back to the dashboard because `ticket-detail` was unregistered in `NotificationService.ROUTE_PATHS`.
-- **News notification preview** — `NewsCreatedHandler` previously passed `null` as the preview field, so every `NEW_NEWS` notification reached the atom feed without any article content in the body. The handler now receives a markdown-stripped preview computed by `NewsService.create` and the feed body surfaces it.
-- **Event notification body too sparse** — `EventCreatedHandler` cut the description at a fixed 80 chars with a `"..."` ellipsis even when the body had room for more, and the feed enrichment only loaded start/end + custom fields. The handler now passes the full description through (word-boundary truncation lives in the renderer) and `enrichWithEventContext` additionally surfaces the recurrence label, registration deadline, and attendee limit when available.
-- **Demo notifications use real services** — `DemoNotificationSeeder` previously hand-rolled notifications with stale link metadata (e.g. `PROCUREMENT_REQUESTED` linked to the dashboard instead of the procurement page, `EXCHANGE_NEW_REQUEST` link missing the inventory id). The seeder now relies on the other demo seeders' service calls to produce notifications organically — `NewsService`, `EventService`, `ExchangeService`, `ProcurementService`, `LendingService`, etc. — and additionally seeds one showcase notification of every `NotificationType` for the demo admin so all 29 categories can be reviewed at a glance. New `DemoLostAndFoundSeeder` calls `LostAndFoundService.create`/`.claim` so the demo fires real `LOST_AND_FOUND_NEW` / `LOST_AND_FOUND_CLAIMED` notifications and the showcase context can deep-link to a real item id. The showcase task runs after the parallel-seed block so live-lookup enrichment (board ticket title / assignee / priority, procedure progress, lending date range, inventory ownership, lost-and-found dates) hits real entities seeded by the other modules.
-- **Atom `<summary>` / `<content>` swap** — ROME's `entry.setDescription` maps to Atom's `<summary>` and `setContents` to `<content>`, but we had them reversed: the rich HTML body lived in `<summary>` (too much for inbox rows) and the multi-line plain text lived in `<content>` (HTML readers ignored it). Swapped so the short headline goes in `<summary>` (one-line preview for inbox rows) and the rich HTML lives in `<content type="html">` (the full body on expand).
-- **Duplicate-`term` categories disambiguated** — entries used to expose two `<category term="…"/>` elements with no `scheme` attribute (one localised, one raw enum). Feed readers that collapse same-`term` entries dropped the localised one and showed the technical enum name. The enum-name category now carries `scheme="urn:ember:notification-type"` so readers preserve both and the localised one stays primary in the row.
-
-### Permission model cleanup
-
-- **`api.roles` → `api.auth` package rename** — the post-patch_6 model is `StationUserType` (categorical) + `StationPermission` (hierarchical), so the legacy `api.roles` package name no longer fit. Moved `StationPermission`, `StationUserType`, `InstancePermission`, `InstanceUserType` into `dev.chojo.ember.api.auth`; ~160 import sites auto-rewritten. Internal parameter names `roles` → `permissions` and the matching Javadoc swept across the four enums.
-- **`RoleValidation` → `PermissionValidation`** — the class only validates permissions (its method is `validatePermissionChanges`); name now matches. Test renamed alongside (`RoleValidationTest` → `PermissionValidationTest`).
-- **`RolesTest` → `PermissionsTest`** — sibling test against `StationPermission`.
-- **Frontend file renames** — deleted unused `RoleSelector.vue` (functionality already covered by `PermissionPicker`). `RoleStep.vue` → `UserTypeStep.vue` (the step only picks a `StationUserType`, not roles). `RolesHelp.vue` → `PermissionsHelp.vue`; corresponding page at `/helpcenter/station/basics/permissions`, route name `help-basics-permissions`. Wave 1 of the i18n key sweep moved `helpCenter.basics.roles.*` → `helpCenter.basics.permissions.*` with the inner `role.{member|guardian|…}` subtree → `userType.{…}`.
-
-### New Features (additional)
-
-#### News view tracking
-
-- **`news_view` table** — auto-recorded by the client when a news entry is fully visible in the viewport (IntersectionObserver, 1.0 threshold, 800 ms dwell). Distinct from `news_acknowledgement` (an explicit "I've read this" gesture); `news_view` is silent telemetry.
-- **Editor-only views modal** — `GET /api/v1/news/{id}/views` returns two lists (seen with timestamps; unseen members eligible per the news restriction). NEWS_EDIT users see a new eye icon next to each entry; clicking opens a `NewsViewsModal` showing both lists with `MemberName` rendering.
-
-#### Backend-driven search
-
-- **`/events/upcoming` accepts `search`** — the upcoming-events search bar now hits the backend (debounced 250 ms client-side, case-insensitive contains on `name` / `description` server-side) instead of filtering the already-loaded page. Category and the search query are now both server-side filters.
-- **Prominent `SearchInput` component** — primary-color 2px border + magnifying-glass prefix + ✕ clear button + `type="search"` semantics. Migrated 11 page-level search bars (events upcoming, help center, board ticket search + federated variant, procedures, protocols, KB + public KB, lending offers, quiz catalogs, frozen-question picker) to the new component. Dropdown-internal search inputs (`SearchSelectInput`, `MultiSelectDropdown`) intentionally left as is.
-
-### Improvements (additional)
-
-- **`ExchangeStatus.EXCHANGED` → `ExchangeStatus.DONE`** — enum constant renamed across the backend (`InventoryItem`, `ExchangeService`, `ExchangeRoutes`, demo seeders, notifications), the frontend (`api/types.ts`, all Vue files), i18n keys (German `Getauscht` → `Erledigt`), and a `patch_12.sql` migration that rewrites stored `equipment_exchange_request.status` and `equipment_exchange_log.{old,new}_status` from `'EXCHANGED'` to `'DONE'`.
-- **`MemberIdentity.sameMember(other)` helper** — `equals` on `MemberIdentity` compares all six fields including enrichment (name, color, displayTag, stationName); a bare DB-loaded identity never matched the fully-enriched session identity even for the same member. `sameMember` compares only the two stable UIDs (`stationUid` + `memberUid`). Adopted at every ownership check: `NewsRoutes.updateComment`/`deleteComment`/their federation variants, `EventCommentRoutes.update`/`delete`, `EventFederationService.update`/`delete`/their federation variants, `KnowledgeBaseRoutes.update`/`delete`/their federation variants. Fixes self-edit on comments across news, knowledge base and events.
-- **Event notes require `EVENT_EDIT`** — `/api/v1/notes/{entityType}/{entityId}` (and the `/versions` sibling) now widen the route-level gate to accept either `MEMBER_NOTES` or `EVENT_EDIT`, and a per-entity-type check in the handler picks the right one (`EVENT` → `EVENT_EDIT`, otherwise `MEMBER_NOTES`). Event managers no longer need member-notes permission to attach notes to events.
-- **`/quiz/catalogs` (and `/quiz/catalogs/{id}`) accept `TEST_RESULT_READ`** — reviewers hitting the test detail page on the way to `/evaluate` can now list catalog names without needing `TEST_CATALOG_VIEW`.
-- **Calendar view multi-day events** — `EventsCalendar.eventsForDate` treats `ONE_TIME` events with multi-day `endTime` as spanning every day from start to end (was rendering only on the start date). The list view (`UpcomingView`) renders the end date alongside the start when they differ.
-- **Calendar event chip space** — Vue's template whitespace compressor was eating the boundary space between the time and title in each calendar chip. Replaced the trailing literal space with `&nbsp;` so the chip reads `15:00 Open Training` consistently.
-- **Guardian sees own inventory page** — `SidebarCountService.myInventoryCount` now also surfaces a 1 when a `MEMBER_GUARDIAN` user owns nothing themselves but at least one of their managed members owns something. The "my inventory" sidebar entry surfaces for guardians accordingly.
-- **Exchange type column gated by `INVENTORY_EXCHANGE`** — the type column on `/station/inventory/exchanges` (desktop table + mobile card) only renders for users with `INVENTORY_EXCHANGE`.
-- **Notification settings shortcut from dashboard** — small gear icon next to the dashboard notifications panel header navigates to `/station/profile/settings/notifications` (route name `profile-notifications`).
-- **Reactive item state after exchange request** — submitting an exchange request on `/station/inventory/my` now appends the created request to `activeExchanges` so the item card flips into its "exchange pending" state immediately, no reload required.
-- **`/station/quiz/tests` accessible to anyone** — sidebar entry no longer gated by `TEST_RESULT_READ`. The page itself already shows tabs/buttons conditionally based on permissions.
-- **Calendar view event display** — for the upcoming events grid: per-status badge summary in event header; restriction filter applying to export uncheck; the "today" list still uses the client-side `matchesTextSearch` since `/events/today` doesn't take a search param yet.
-
-### Frontend (additional)
-
-- **`RestrictionPicker` UX** — AND/OR toggle is now two side-by-side `SelectionToggleButton`s with both words always visible, instead of a single button that flipped its label. Reset button styled as `ErrorButton` (danger color).
-- **Rich text editor toolbar** — active icon now glows in primary color (`text-primary bg-primary/10`) instead of the previous unreadable black-on-primary (`--color-primary-text` was undefined and resolved to black). Markdown raw-view toggle removed alongside its dead `showRawMarkdown` / `rawMarkdown` / `toggleRawView` state in `MarkdownEditor`.
-- **Help link for `/station/events/new`** — `help-event-new` was redirecting to `help-event-edit` (which requires an `:id` path param it never received). Now resolves to a dedicated `EventNewHelp.vue` wrapper that re-renders `EventEditHelp` (new + edit share the same form). Missing Nuxt page file at `pages/helpcenter/station/events/new.vue` added.
-- **Settings intro tour step** — the tour's settings step navigated to `profile-settings`, which redirects to `profile-theming` (only the appearance settings). The tour body actually describes notifications + sessions + restart-tour, which live in `profile-sessions`. Step now navigates to `profile-sessions`; orphaned `SettingsView.vue` (a stale copy whose content was migrated into `SessionsView`) deleted.
-- **Comment line breaks preserved** — `MentionInput.htmlToRaw` now treats `DIV`/`P` block-level boundaries as `\n`. Chrome and Edge wrap each line after Enter in a `<div>` (Firefox uses `<br>`); the previous implementation only handled `<br>` and silently dropped the line breaks when submitting.
-- **Profile absences alignment** — the row mixing `MemberName` (avatar+name in `inline-flex`) with plain date text aligned by baseline, dropping the date below the avatar's vertical center. Row container is now `flex flex-wrap items-center` so the date stays centered with the name.
-
-### Bug fixes (additional)
-
-- **`StationIdModule` round-trip broken** — the module had a serializer (int → UUID string) but no matching deserializer, so every inbound body that the API itself round-tripped with UUID strings failed with `InvalidFormatException` ("Cannot deserialize value of type `int` from String '…'") on the int field. Added a `ValueDeserializerModifier.updateBuilder` hook that wraps the deserializer for any `int`/`Integer` property in the auto-converted set with a `UuidStringToIntDeserializer` resolving UUID → int via `StationRepository.findByUid`. `partnerStationId` was also missing from the field-name set on the serializer side; added.
-- **`PAGE_EDIT` / `PAGE_MANAGER` not grantable** — the constants exist on `StationPermission` but were never inserted into the `station_permission` lookup table, so `listAllPermissions` skipped them and `PermissionPicker` couldn't expose them. `patch_12.sql` backfills the rows.
-- **`.gitignore` `config/` / `data/` patterns too broad** — the unanchored entries matched every nested `config/` and `data/` directory anywhere in the repo, silently dropping the attendance-config page files (and their helpcenter siblings) from VCS. Demo deploys then 404'd on `/station/attendance/config` even though the sidebar linked to it. `.gitignore` adds an explicit negation for `frontend/src/**/{config,data}/**` and the four previously-shadowed page files are committed.
-- **Quick-check skipping hung the process** — `RapidCheckMode.vue` kept a local `checkIndex` that advanced on skip while the parent's `uncheckedEntries` computed only dropped entries on confirm/mark. The displayed entry drifted from the array index the parent handlers wrote to, eventually pushing `checkIndex` past the array length and leaving nothing rendered. Replaced with a `skippedKeys` set + child-exposed `currentEntry` consumed by the parent handlers.
-- **KB tag filter not filtering** — `filteredSearchResults` had `r.stationName || true` (always true) so the tag filter did nothing on search results. Browse mode had no tag filtering at all. Added a per-file tag cache (`useKbTagFilter` composable) that lazily fetches tags when a tag filter is active; folders are hidden while filtering since the browse data doesn't carry tags on folders.
-
-### Internal / Infrastructure (additional)
-
-- **patch_12 contents** — rename of `EXCHANGED` → `DONE` across the three `equipment_exchange_*` status columns; new `news_view` table (composite PK + per-member index, tracked in `data_tracking.json` as `STATION` scope, `IGNORED` for transfer/GDPR mirroring `news_acknowledgement`'s policy); backfill of `PAGE_EDIT` / `PAGE_MANAGER` into `station_permission`.
-- **`data_tracking.json`** — refreshed for `news_view`; verified flag flipped to `true` for all three columns.
-- **`./gradlew jacocoCoverageCheck` + `testTracking`** — both green after the changes above.
-- **Component extractions to satisfy the 500-line view-size lint** — `KnowledgeBaseView` + `KbFileView` exceeded the limit after the KB tag-filter + KB metadata-edit additions. Split into focused components: `useKbTagFilter` composable, `KbDeleteModals.vue`, `KbFiltersBar.vue`, `KbFileContent.vue`.
+- **Feed plumbing** — Conditional GET (ETag + If-Modified-Since) on every endpoint; per-token leaky-bucket rate limiting (10 burst, 5/min refill); body size caps (RSS/Atom: last 100 notifications, iCal: `[now − 7 days, now + 1 year]`); per-entry failure isolation; `Referrer-Policy` and `X-Robots-Tag` on every response.
+- **Atom `<summary>` / `<content>` swap** — ROME maps `setDescription` → `<summary>` and `setContents` → `<content>`; previously reversed. Duplicate-`term` categories disambiguated via `scheme="urn:ember:notification-type"`.
+- **New shared utility `dev.chojo.ember.util.LeakyBucket`** and `HelpCenterHint` Vue component.
+- **Notification pipeline** — new `EventsBatchCreated` domain event aggregates bulk notifications; `NotificationService.notify*` now enforces a `NotificationLink` (fails fast otherwise).
+- **Recurring events** — new `event-detail-date` route (`/station/events/{id}/{date}`); nullable `event_comment.event_date`; `RemoteCommentRequest` federation payload carries `eventDate` (backwards compatible with peers that omit it).
+- **Typed date fields** — `LocalDate` instead of `String` on comment / reminder payloads (Jackson ISO `yyyy-MM-dd`).
+- **Permission model cleanup** — `api.roles` → `api.auth` package rename (~160 import sites). `RoleValidation` → `PermissionValidation`, `RolesTest` → `PermissionsTest`. Frontend: `RoleSelector.vue` deleted, `RoleStep.vue` → `UserTypeStep.vue`, `RolesHelp.vue` → `PermissionsHelp.vue`; matching i18n key sweep.
+- **`MemberIdentity.sameMember(other)` helper** — UID-only equality for ownership checks; adopted in news / event / KB comment routes and their federation variants. Fixes self-edit when DB-loaded vs. session-enriched identities are compared.
+- **`StationIdModule` deserializer added** — previously serializer-only, so round-tripped UUID strings on `int` fields blew up with `InvalidFormatException`. `partnerStationId` added to the field-name set.
+- **Bulk-friendly registration lookup** — `EventRepository.findRegistrationsByMembers(Collection<Integer>)` collapses N queries into 1 for guardian iCal feeds.
+- **Schema migrations** — patch_11 (`station_event.updated_at`), patch_12 (`feed_metric_daily`, `feed_user_agent_stat`, `event_comment.event_date`, `EXCHANGED` → `DONE` rewrite, `news_view` table, `PAGE_EDIT` / `PAGE_MANAGER` backfill). `data_tracking.json` refreshed and verified.
+- **`npm run build` now runs the four convention linters** (`lint-icons`, `lint-conventions`, `lint-helpcenter`, `lint-locales`) before `nuxi build`, matching `build:spa`. Two argument-order bugs in `lint-conventions.mjs` fixed.
+- **`helpcenter-admin` layout** split from the generic `helpcenter` layout so the two sidebars are decoupled.
+- **Component extractions** to satisfy the 500-line view-size lint: `useKbTagFilter`, `KbDeleteModals`, `KbFiltersBar`, `KbFileContent`.
+- **rome-modules dependency** added for MediaRSS support.
+- **Demo seeders** refactored to call real services (`NewsService`, `EventService`, `ExchangeService`, …) so notifications fire organically with correct link metadata. New `DemoLostAndFoundSeeder`; one showcase notification of every type seeded for the demo admin.
+- **Test infrastructure** — new `UserFeedRoutesIntegrationTest`, `LeakyBucketTest`, `FeedFingerprintTest`, `FeedRateLimiterTest`, `IcalEventRendererTest`, `NotificationFeedRendererTest`, `FeedMetricsRepositoryTest`. `NotificationServiceTest` expanded with pluralisation coverage and a `notifyRejectsDataWithoutLink` regression. `jacocoCoverageCheck` and `testTracking` green.
 
 ## v26.7.0
 

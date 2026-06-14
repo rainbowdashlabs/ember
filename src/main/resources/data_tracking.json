@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:6cc0ba04951ae67fa954b9f5940e6bdb1ccd5d991e79af8a3282769f5a695ffd",
-  "generatedAt" : "2026-06-14T12:26:56Z",
+  "schemaHash" : "sha256:3e86f8f2e385a5436d512093c2126363b11f01e163343c6128e941ef0006bd49",
+  "generatedAt" : "2026-06-14T15:27:51Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -2012,6 +2012,241 @@
         "reason" : "Board structure data, not per-member"
       },
       "description" : "View access restrictions for a board (empty = visible to all station members)."
+    },
+    "discovery_blocklist" : {
+      "feature" : "discovery",
+      "scope" : "INSTANCE",
+      "tableHash" : "sha256:7e7797341238e69e030667b5ad7dbddc02ad3bc8b118438705d448a224f0615c",
+      "columns" : [ {
+        "name" : "value",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Blocked base URL or public key (primary key)."
+      }, {
+        "name" : "kind",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "BASE_URL or PUBLIC_KEY — controls which side of the peer identity is matched."
+      }, {
+        "name" : "note",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Optional admin note explaining the block."
+      }, {
+        "name" : "created_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the entry was added."
+      } ],
+      "foreignKeys" : [ ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Instance-level discovery configuration, not station-scoped"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Instance configuration, not personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Instance configuration, not personal data"
+      },
+      "description" : "Admin-managed blocklist of peer base URLs / public keys discovery refuses to interact with."
+    },
+    "discovery_peer" : {
+      "feature" : "discovery",
+      "scope" : "INSTANCE",
+      "tableHash" : "sha256:4cbf31e4aae1b8c98e549922414b04554b56b23f187b22af4cbc3241abe1f7b1",
+      "columns" : [ {
+        "name" : "public_key",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Peer's Ed25519 discovery public key (base64; primary key)."
+      }, {
+        "name" : "base_url",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Last observed base URL of the peer instance."
+      }, {
+        "name" : "instance_id",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Display fingerprint sha256(public_key)[:16]."
+      }, {
+        "name" : "first_seen_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When we first learned about this peer."
+      }, {
+        "name" : "last_seen_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the peer was last referenced by gossip or local refresh."
+      }, {
+        "name" : "last_pinged_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When we last sent the peer a discovery ping."
+      }, {
+        "name" : "last_reached_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When the peer last successfully answered a ping or station fetch."
+      }, {
+        "name" : "reachable",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether we currently consider the peer reachable."
+      }, {
+        "name" : "source",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Origin of this peer record: BOOTSTRAP | GOSSIP | MANUAL."
+      }, {
+        "name" : "introduced_by",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Public key of the peer that told us about this one; NULL for BOOTSTRAP and MANUAL."
+      }, {
+        "name" : "reputation",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Soft score driving back-off and decay; negative values throttle outbound pings."
+      }, {
+        "name" : "blocked",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Admin-set hard block — peer is never queried and never accepted."
+      } ],
+      "foreignKeys" : [ ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Instance-level discovery state, not station-scoped"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Metadata about other Ember instances, not personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Metadata about other Ember instances, not personal data"
+      },
+      "description" : "Known Ember instances learned via gossip, federation bootstrap, or manual admin add."
+    },
+    "discovery_ping" : {
+      "feature" : "discovery",
+      "scope" : "INSTANCE",
+      "tableHash" : "sha256:022546d778360781083f7e00ee412c616ed31fcbf0b28b60b73d1407985b4e2c",
+      "columns" : [ {
+        "name" : "nonce",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Random base64 ping nonce (primary key)."
+      }, {
+        "name" : "direction",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "OUT for pings we sent, IN for pings we received (used for nonce reuse detection)."
+      }, {
+        "name" : "peer_key",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Public key of the involved peer (the recipient for OUT, the sender for IN)."
+      }, {
+        "name" : "issued_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the ping was created or received."
+      }, {
+        "name" : "expires_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When this nonce is eligible for garbage collection."
+      } ],
+      "foreignKeys" : [ ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Ephemeral protocol state, not station-scoped"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Ephemeral discovery protocol state, not personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Ephemeral discovery protocol state, not personal data"
+      },
+      "description" : "In-flight discovery ping nonces used for callback correlation and replay protection."
+    },
+    "discovery_station_cache" : {
+      "feature" : "discovery",
+      "scope" : "INSTANCE",
+      "tableHash" : "sha256:d5da3dd31fd841e745b2e79a84aeffb8babb891d052e2f3e973e53f80b7a345c",
+      "columns" : [ {
+        "name" : "instance_public_key",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Peer instance whose listing this card came from."
+      }, {
+        "name" : "station_uid",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Remote station UUID as reported by the peer."
+      }, {
+        "name" : "payload",
+        "type" : "jsonb",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The station card JSON exactly as returned by the peer's /public/discovery/stations endpoint."
+      }, {
+        "name" : "fetched_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the cached entry was last refreshed."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "instance_public_key",
+        "refTable" : "discovery_peer",
+        "refColumn" : "public_key",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cache of remote station metadata, not local station data"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Cache of publicly-exposed remote station cards, not personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Cache of publicly-exposed remote station cards, not personal data"
+      },
+      "description" : "Locally cached snapshot of the public station listings exposed by every reachable peer."
     },
     "email_daily_count" : {
       "feature" : "mail",
