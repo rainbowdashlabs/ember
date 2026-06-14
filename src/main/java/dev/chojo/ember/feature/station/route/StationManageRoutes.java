@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
 import dev.chojo.ember.feature.station.service.StationImportService;
+import dev.chojo.ember.feature.station.service.StationLocationService;
 import dev.chojo.ember.feature.station.service.StationService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -66,6 +67,7 @@ public class StationManageRoutes implements Routes {
     private final EmailService emailService;
     private final AuthService authService;
     private final StationImportService importService;
+    private final StationLocationService locationService;
 
     @Inject
     public StationManageRoutes(
@@ -73,12 +75,14 @@ public class StationManageRoutes implements Routes {
             StationMailConfigRepository mailConfigRepository,
             EmailService emailService,
             AuthService authService,
-            StationImportService importService) {
+            StationImportService importService,
+            StationLocationService locationService) {
         this.stationService = stationService;
         this.mailConfigRepository = mailConfigRepository;
         this.emailService = emailService;
         this.authService = authService;
         this.importService = importService;
+        this.locationService = locationService;
     }
 
     @Override
@@ -114,6 +118,27 @@ public class StationManageRoutes implements Routes {
                 this::transferOwnership,
                 StationPermission.STATION_ADMINISTRATOR);
         routes.get(prefix + "/public/confirm-station-delete", this::confirmDelete);
+        routes.get(prefix + "/station/location", this::getLocation, StationPermission.STATION_GENERAL);
+        routes.put(prefix + "/station/location", this::updateLocation, StationPermission.STATION_GENERAL);
+        routes.delete(prefix + "/station/location", this::clearLocation, StationPermission.STATION_GENERAL);
+    }
+
+    private void getLocation(Context ctx) {
+        var session = UserSession.from(ctx);
+        ctx.json(locationService.find(session.stationId()));
+    }
+
+    private void updateLocation(Context ctx) {
+        var session = UserSession.from(ctx);
+        var body = ctx.bodyAsClass(StationLocationService.LocationUpdate.class);
+        locationService.update(session.stationId(), body);
+        ctx.json(locationService.find(session.stationId()));
+    }
+
+    private void clearLocation(Context ctx) {
+        var session = UserSession.from(ctx);
+        locationService.clear(session.stationId());
+        ctx.status(HttpStatus.NO_CONTENT);
     }
 
     @OpenApi(

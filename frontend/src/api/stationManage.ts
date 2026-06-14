@@ -136,3 +136,28 @@ export async function transferOwnership(newOwnerMemberId: number): Promise<{mess
     const res = await client.post<{message: string}>('/station/manage/transfer-ownership', {newOwnerMemberId})
     return res.data
 }
+
+// -- Geolocation --
+
+export interface StationLocation {
+    addressLine: string | null
+    postalCode: string | null
+    city: string | null
+    country: string | null
+    latitude: number | null
+    longitude: number | null
+}
+
+export async function getStationLocation(): Promise<StationLocation> {
+    const res = await client.get<StationLocation>('/station/location')
+    return res.data
+}
+
+export async function updateStationLocation(data: StationLocation): Promise<StationLocation> {
+    const res = await client.put<StationLocation>('/station/location', data)
+    return res.data
+}
+
+export async function clearStationLocation(): Promise<void> {
+    await client.delete('/station/location')
+}

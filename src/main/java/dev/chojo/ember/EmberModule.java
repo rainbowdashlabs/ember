@@ -91,6 +91,8 @@ import dev.chojo.ember.feature.knowledgebase.route.KnowledgeBaseRoutes;
 import dev.chojo.ember.feature.knowledgebase.route.PublicKnowledgeBaseRoutes;
 import dev.chojo.ember.feature.legal.route.ConsentRoutes;
 import dev.chojo.ember.feature.lostandfound.route.LostAndFoundRoutes;
+import dev.chojo.ember.feature.maps.route.AdminMapsRoutes;
+import dev.chojo.ember.feature.maps.route.PublicMapsRoutes;
 import dev.chojo.ember.feature.members.route.ManagedMemberRoutes;
 import dev.chojo.ember.feature.members.route.MemberGroupRoutes;
 import dev.chojo.ember.feature.members.route.MemberImportRoutes;
@@ -212,6 +214,8 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(DiscoveryRoutes.class);
         routesBinder.addBinding().to(PublicDiscoveryRoutes.class);
         routesBinder.addBinding().to(AdminDiscoveryRoutes.class);
+        routesBinder.addBinding().to(PublicMapsRoutes.class);
+        routesBinder.addBinding().to(AdminMapsRoutes.class);
         routesBinder.addBinding().to(FeedTokenRoutes.class);
         routesBinder.addBinding().to(UserFeedRoutes.class);
         routesBinder.addBinding().to(FeedMetricsRoutes.class);

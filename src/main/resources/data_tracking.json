@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:3e86f8f2e385a5436d512093c2126363b11f01e163343c6128e941ef0006bd49",
-  "generatedAt" : "2026-06-14T15:27:51Z",
+  "schemaHash" : "sha256:e458c7e29965a231198ae4f584851c9baafcc8b2974fcd877aead69f0f9b861d",
+  "generatedAt" : "2026-06-14T22:20:17Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -2021,8 +2021,7 @@
         "name" : "value",
         "type" : "text",
         "nullable" : false,
-        "verified" : true,
-        "description" : "Blocked base URL or public key (primary key)."
+        "verified" : true
       }, {
         "name" : "kind",
         "type" : "text",
@@ -2033,14 +2032,12 @@
         "name" : "note",
         "type" : "text",
         "nullable" : true,
-        "verified" : true,
-        "description" : "Optional admin note explaining the block."
+        "verified" : true
       }, {
         "name" : "created_at",
         "type" : "timestamptz",
         "nullable" : false,
-        "verified" : true,
-        "description" : "When the entry was added."
+        "verified" : true
       } ],
       "foreignKeys" : [ ],
       "stationTransfer" : {
@@ -2054,8 +2051,7 @@
       "gdprDeletion" : {
         "status" : "IGNORED",
         "reason" : "Instance configuration, not personal data"
-      },
-      "description" : "Admin-managed blocklist of peer base URLs / public keys discovery refuses to interact with."
+      }
     },
     "discovery_peer" : {
       "feature" : "discovery",
@@ -2065,50 +2061,42 @@
         "name" : "public_key",
         "type" : "text",
         "nullable" : false,
-        "verified" : true,
-        "description" : "Peer's Ed25519 discovery public key (base64; primary key)."
+        "verified" : true
       }, {
         "name" : "base_url",
         "type" : "text",
         "nullable" : false,
-        "verified" : true,
-        "description" : "Last observed base URL of the peer instance."
+        "verified" : true
       }, {
         "name" : "instance_id",
         "type" : "text",
         "nullable" : false,
-        "verified" : true,
-        "description" : "Display fingerprint sha256(public_key)[:16]."
+        "verified" : true
       }, {
         "name" : "first_seen_at",
         "type" : "timestamptz",
         "nullable" : false,
-        "verified" : true,
-        "description" : "When we first learned about this peer."
+        "verified" : true
       }, {
         "name" : "last_seen_at",
         "type" : "timestamptz",
         "nullable" : false,
-        "verified" : true,
-        "description" : "When the peer was last referenced by gossip or local refresh."
+        "verified" : true
       }, {
         "name" : "last_pinged_at",
         "type" : "timestamptz",
         "nullable" : true,
-        "verified" : true,
-        "description" : "When we last sent the peer a discovery ping."
+        "verified" : true
       }, {
         "name" : "last_reached_at",
         "type" : "timestamptz",
         "nullable" : true,
-        "verified" : true,
-        "description" : "When the peer last successfully answered a ping or station fetch."
+        "verified" : true
       }, {
         "name" : "reachable",
         "type" : "bool",
         "nullable" : false,
-        "verified" : true,
-        "description" : "Whether we currently consider the peer reachable."
+        "verified" : true
       }, {
         "name" : "source",
         "type" : "text",
@@ -2131,8 +2119,7 @@
         "name" : "blocked",
         "type" : "bool",
         "nullable" : false,
-        "verified" : true,
-        "description" : "Admin-set hard block — peer is never queried and never accepted."
+        "verified" : true
       } ],
       "foreignKeys" : [ ],
       "stationTransfer" : {
@@ -2157,8 +2144,7 @@
         "name" : "nonce",
         "type" : "text",
         "nullable" : false,
-        "verified" : true,
-        "description" : "Random base64 ping nonce (primary key)."
+        "verified" : true
       }, {
         "name" : "direction",
         "type" : "text",
@@ -2169,20 +2155,17 @@
         "name" : "peer_key",
         "type" : "text",
         "nullable" : true,
-        "verified" : true,
-        "description" : "Public key of the involved peer (the recipient for OUT, the sender for IN)."
+        "verified" : true
       }, {
         "name" : "issued_at",
         "type" : "timestamptz",
         "nullable" : false,
-        "verified" : true,
-        "description" : "When the ping was created or received."
+        "verified" : true
       }, {
         "name" : "expires_at",
         "type" : "timestamptz",
         "nullable" : false,
-        "verified" : true,
-        "description" : "When this nonce is eligible for garbage collection."
+        "verified" : true
       } ],
       "foreignKeys" : [ ],
       "stationTransfer" : {
@@ -2196,8 +2179,7 @@
       "gdprDeletion" : {
         "status" : "IGNORED",
         "reason" : "Ephemeral discovery protocol state, not personal data"
-      },
-      "description" : "In-flight discovery ping nonces used for callback correlation and replay protection."
+      }
     },
     "discovery_station_cache" : {
       "feature" : "discovery",
@@ -2207,14 +2189,12 @@
         "name" : "instance_public_key",
         "type" : "text",
         "nullable" : false,
-        "verified" : true,
-        "description" : "Peer instance whose listing this card came from."
+        "verified" : true
       }, {
         "name" : "station_uid",
         "type" : "text",
         "nullable" : false,
-        "verified" : true,
-        "description" : "Remote station UUID as reported by the peer."
+        "verified" : true
       }, {
         "name" : "payload",
         "type" : "jsonb",
@@ -2225,8 +2205,7 @@
         "name" : "fetched_at",
         "type" : "timestamptz",
         "nullable" : false,
-        "verified" : true,
-        "description" : "When the cached entry was last refreshed."
+        "verified" : true
       } ],
       "foreignKeys" : [ {
         "column" : "instance_public_key",
@@ -2245,8 +2224,7 @@
       "gdprDeletion" : {
         "status" : "IGNORED",
         "reason" : "Cache of publicly-exposed remote station cards, not personal data"
-      },
-      "description" : "Locally cached snapshot of the public station listings exposed by every reachable peer."
+      }
     },
     "email_daily_count" : {
       "feature" : "mail",
@@ -10290,7 +10268,7 @@
     "station" : {
       "feature" : "station",
       "scope" : "STATION",
-      "tableHash" : "sha256:8b9d725fe444559448d9556a05fdf7ec5c883e4895aa674b33a59f2a4a3bdfbe",
+      "tableHash" : "sha256:9f0dad29553c904b8ee4713f3a34efe0f4e1f9a512835b80d281890f7203ab0d",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -10490,6 +10468,39 @@
         "nullable" : true,
         "verified" : true,
         "description" : "Last applied storage quota preset (NULL if using defaults or manually configured)"
+      }, {
+        "name" : "address_line",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true
+      }, {
+        "name" : "postal_code",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true
+      }, {
+        "name" : "city",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true
+      }, {
+        "name" : "country",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "ISO-3166-1 alpha-2 (e.g. 'DE'). Free-form text but admin UI restricts the input set."
+      }, {
+        "name" : "latitude",
+        "type" : "numeric",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "WGS-84 latitude in degrees, [-90, 90]. NULL if the station has not opted into geolocation."
+      }, {
+        "name" : "longitude",
+        "type" : "numeric",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "WGS-84 longitude in degrees, [-180, 180]. NULL if the station has not opted into geolocation."
       } ],
       "foreignKeys" : [ {
         "column" : "landing_page_id",

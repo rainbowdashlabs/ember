@@ -32,6 +32,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import {stationManage} from '@/api'
 import client from '@/api/client'
 import OwnerSection from './stationview/OwnerSection.vue'
+import LocationSection from './stationview/LocationSection.vue'
 
 const {t} = useI18n()
 
@@ -234,6 +235,13 @@ onMounted(async () => {
 
         <p class="text-xs text-(--text-muted)">{{ t('stationManage.logoHint') }}</p>
       </NeutralContainer>
+
+      <!-- Geolocation: opt-in address + coordinates -->
+      <LocationSection
+          v-if="!loading"
+          @error="handleError"
+          @success="handleSuccess"
+      />
 
       <!-- Owner sections (transfer, handover, deletion) -->
       <OwnerSection

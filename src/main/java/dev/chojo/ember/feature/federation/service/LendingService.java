@@ -333,7 +333,49 @@ public class LendingService {
                 log.error("Error collecting available inventory results", e);
             }
         }
-        return results;
+        return enrichWithDistance(stationId, results);
+    }
+
+    /**
+     * Decorates each result with the great-circle distance from the local station's
+     * coordinates (if both ends have them) and sorts entries by distance ascending, with
+     * {@code null} distances pushed to the end. The original collection order is preserved
+     * among entries that share a null distance.
+     */
+    private List<AvailableInventoryEntry> enrichWithDistance(int stationId, List<AvailableInventoryEntry> results) {
+        var local = stationRepository.findById(stationId).orElse(null);
+        if (local == null || local.latitude() == null || local.longitude() == null) {
+            return results;
+        }
+        double localLat = local.latitude().doubleValue();
+        double localLon = local.longitude().doubleValue();
+
+        var decorated = new ArrayList<AvailableInventoryEntry>(results.size());
+        for (var entry : results) {
+            Double distance = null;
+            var partnerStation = stationRepository.findById(entry.stationId()).orElse(null);
+            if (partnerStation != null && partnerStation.latitude() != null && partnerStation.longitude() != null) {
+                distance = dev.chojo.ember.feature.station.service.StationLocationService.distanceKm(
+                        localLat,
+                        localLon,
+                        partnerStation.latitude().doubleValue(),
+                        partnerStation.longitude().doubleValue());
+            }
+            decorated.add(new AvailableInventoryEntry(
+                    entry.inventoryId(),
+                    entry.inventoryName(),
+                    entry.stationId(),
+                    entry.stationName(),
+                    entry.availableCount(),
+                    distance));
+        }
+        decorated.sort((a, b) -> {
+            if (a.distanceKm() == null && b.distanceKm() == null) return 0;
+            if (a.distanceKm() == null) return 1;
+            if (b.distanceKm() == null) return -1;
+            return Double.compare(a.distanceKm(), b.distanceKm());
+        });
+        return decorated;
     }
 
     private List<AvailableInventoryEntry> findAvailableForPartner(
@@ -370,12 +412,26 @@ public class LendingService {
                 availableCount = unassigned.size();
             }
             if (availableCount > 0) {
-                entries.add(new AvailableInventoryEntry(inv.id(), inv.name(), partnerStationId, name, availableCount));
+                entries.add(new AvailableInventoryEntry(
+                        inv.id(), inv.name(), partnerStationId, name, availableCount, null));
             }
         }
         return entries;
     }
 
+    /**
+     * Federated lending inventory entry.
+     *
+     * @param distanceKm great-circle distance from the searching station to the offering
+     *                   station, or {@code null} when either side hasn't published
+     *                   coordinates. Distance is computed locally; the partner is never
+     *                   asked to reveal exact coordinates over the wire.
+     */
     public record AvailableInventoryEntry(
-            int inventoryId, String inventoryName, int stationId, String stationName, int availableCount) {}
+            int inventoryId,
+            String inventoryName,
+            int stationId,
+            String stationName,
+            int availableCount,
+            Double distanceKm) {}
 }

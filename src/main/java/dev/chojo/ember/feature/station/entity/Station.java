@@ -9,6 +9,7 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
@@ -46,7 +47,13 @@ public record Station(
         boolean publicPagesEnabled,
         String publicSlug,
         boolean publicWaitlistEnabled,
-        boolean publicBlogEnabled) {
+        boolean publicBlogEnabled,
+        String addressLine,
+        String postalCode,
+        String city,
+        String country,
+        BigDecimal latitude,
+        BigDecimal longitude) {
     public static RowMapping<Station> map() {
         return row -> new Station(
                 row.getInt("id"),
@@ -70,6 +77,12 @@ public record Station(
                 row.getBoolean("public_pages_enabled"),
                 row.getString("public_slug"),
                 row.getBoolean("public_waitlist_enabled"),
-                row.getBoolean("public_blog_enabled"));
+                row.getBoolean("public_blog_enabled"),
+                row.getString("address_line"),
+                row.getString("postal_code"),
+                row.getString("city"),
+                row.getString("country"),
+                row.getBigDecimal("latitude"),
+                row.getBigDecimal("longitude"));
     }
 }

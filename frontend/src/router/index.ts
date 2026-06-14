@@ -248,6 +248,11 @@ const router = createRouter({
                     component: () => import('@/views/stationview/manage/DiscoveryView.vue'),
                 },
                 {
+                    path: 'discovery',
+                    name: 'station-discovery-network',
+                    component: () => import('@/views/stationview/discovery/IndexView.vue'),
+                },
+                {
                     path: 'members/create',
                     name: 'members-create',
                     component: MembersCreateView,
@@ -877,6 +882,11 @@ const router = createRouter({
                     component: () => import('@/views/adminview/AdminDiscoveryView.vue'),
                 },
                 {
+                    path: 'maps',
+                    name: 'admin-maps',
+                    component: () => import('@/views/adminview/AdminMapsView.vue'),
+                },
+                {
                     // Dev-only inspector for data_tracking.json. The backend route is gated by
                     // Demo.dev(); the frontend page additionally checks import.meta.env.DEV to
                     // hide the UI from production bundles.
@@ -1096,6 +1106,11 @@ const router = createRouter({
                     path: 'federate/discovery',
                     name: 'help-station-discovery',
                     component: () => import('@/views/helpcenter/stationview/manage/DiscoveryHelp.vue')
+                },
+                {
+                    path: 'discovery',
+                    name: 'help-station-discovery-network',
+                    component: () => import('@/views/helpcenter/stationview/discovery/DiscoveryNetworkHelp.vue')
                 },
                 // Members
                 {
@@ -1710,6 +1725,11 @@ const router = createRouter({
                     path: 'discovery',
                     name: 'help-admin-discovery',
                     component: () => import('@/views/helpcenter/adminview/DiscoveryHelp.vue')
+                },
+                {
+                    path: 'maps',
+                    name: 'help-admin-maps',
+                    component: () => import('@/views/helpcenter/adminview/MapsHelp.vue')
                 },
                 {
                     path: 'problems',

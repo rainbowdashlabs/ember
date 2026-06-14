@@ -128,6 +128,9 @@ export interface DiscoveredStation {
     tags: string[]
     memberCount: string
     publishedAt: string | null
+    addressLine: string | null
+    latitude: number | null
+    longitude: number | null
     instancePublicKey: string
     fetchedAt: string
 }

@@ -62,13 +62,16 @@ public class DiscoveryStationProjectionService {
                 station.name(),
                 station.discoveryDescription(),
                 baseUrl + "/api/v1/public/stations/" + station.uid() + "/logo",
+                station.country(),
                 null,
-                null,
-                null,
+                station.city(),
                 station.publicSlug() != null ? baseUrl + "/s/" + station.publicSlug() : baseUrl,
                 List.of(),
                 DiscoveryStationCard.bucketMemberCount(memberCount),
-                Instant.now());
+                Instant.now(),
+                station.addressLine(),
+                station.latitude(),
+                station.longitude());
     }
 
     private int countMembers(int stationId) {

@@ -202,6 +202,12 @@ watch(loaded, (v) => {
               </div>
               <span class="text-xs text-[var(--text-muted)]">
                 {{ item.availableCount }} {{ t('lending.available') }}
+                <template v-if="item.distanceKm != null">
+                  · {{ t('lendingDistance.distanceKm', {distance: item.distanceKm.toFixed(1)}) }}
+                </template>
+                <template v-else>
+                  · {{ t('lendingDistance.distanceUnknown') }}
+                </template>
               </span>
             </div>
             <PrimaryButton :icon="['fas', 'paper-plane']" @click="navigateToCreateRequest(item)">

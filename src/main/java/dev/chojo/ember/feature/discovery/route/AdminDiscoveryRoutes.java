@@ -299,6 +299,9 @@ public class AdminDiscoveryRoutes implements Routes {
                     card.tags(),
                     card.memberCount(),
                     card.publishedAt(),
+                    card.addressLine(),
+                    card.latitude(),
+                    card.longitude(),
                     c.instancePublicKey(),
                     c.fetchedAt()));
         }
@@ -365,6 +368,9 @@ public class AdminDiscoveryRoutes implements Routes {
             List<String> tags,
             String memberCount,
             Instant publishedAt,
+            String addressLine,
+            java.math.BigDecimal latitude,
+            java.math.BigDecimal longitude,
             String instancePublicKey,
             Instant fetchedAt) {}
 

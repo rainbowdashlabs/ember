@@ -119,6 +119,7 @@ export interface AvailableInventoryEntry {
     stationId: string
     stationName: string
     availableCount: number
+    distanceKm: number | null
 }
 
 // -- Lent-out items by inventory --

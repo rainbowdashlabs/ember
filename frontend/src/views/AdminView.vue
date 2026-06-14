@@ -112,6 +112,9 @@ async function handleLogout() {
         <SidebarLink :icon="['fas', 'compass']" name="admin-discovery" to="/admin/discovery" @navigate="close">
           {{ t('sidebar.discovery') }}
         </SidebarLink>
+        <SidebarLink :icon="['fas', 'map-location-dot']" name="admin-maps" to="/admin/maps" @navigate="close">
+          {{ t('sidebar.maps') }}
+        </SidebarLink>
       </SidebarGroup>
 
       <SidebarGroup

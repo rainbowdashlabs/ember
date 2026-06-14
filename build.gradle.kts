@@ -287,6 +287,8 @@ tasks {
                     "*.StorageQuotaService*",
                     // Federation version broadcaster (daemon thread, startup-only)
                     "*.FederationVersionBroadcaster*",
+                    // Maps tile cache (filesystem walks + outbound HTTP, exercised manually)
+                    "*.MapTileCacheService*",
                     // Discovery chain (HTTP + daemon threads, exercised by integration tests)
                     "*.DiscoveryHttpClient*",
                     "*.DiscoveryPingScheduler*",
