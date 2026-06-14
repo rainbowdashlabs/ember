@@ -3,12 +3,6 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-function linearize(channel: number): number {
-    // Per WCAG: channel must be normalized to 0..1 first, then gamma-corrected.
-    const c = channel / 255
-    return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
-}
-
 export function relativeLuminance(r: number, g: number, b: number): number {
     return 0.2126 * linearize(r) + 0.7152 * linearize(g) + 0.0722 * linearize(b)
 }
