@@ -866,6 +866,7 @@ export const RegistrationStatus = {
     ACCEPTED: 'ACCEPTED',
     DENIED: 'DENIED',
     DECLINED: 'DECLINED',
+    WITHDRAWN: 'WITHDRAWN',
 } as const
 
 export type RegistrationStatusName = (typeof RegistrationStatus)[keyof typeof RegistrationStatus]

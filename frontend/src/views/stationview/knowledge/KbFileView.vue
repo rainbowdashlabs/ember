@@ -12,16 +12,15 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import KbTagsSection from '@/views/stationview/knowledge/kbfileview/KbTagsSection.vue'
 import KbRelatedFilesSection from '@/views/stationview/knowledge/kbfileview/KbRelatedFilesSection.vue'
 import KbCommentSection from '@/components/comment/KbCommentSection.vue'
 import PresentationViewer from '@/views/stationview/knowledge/kbfileview/PresentationViewer.vue'
-import KbPresentationContent from '@/views/stationview/knowledge/kbfileview/KbPresentationContent.vue'
+import KbFileContent from '@/views/stationview/knowledge/kbfileview/KbFileContent.vue'
+import KbEditFileModal from '@/views/stationview/knowledge/knowledgebaseview/KbEditFileModal.vue'
 import {useSession} from '@/composables/useSession'
 import {knowledgeBase} from '@/api'
 import type {KbFile, KbTag, MarkdownHtmlResponse} from '@/api/knowledgeBase'
@@ -49,6 +48,7 @@ const relatedFiles = ref<KbFile[]>([])
 const editingDescription = ref(false)
 const editDescriptionValue = ref('')
 const showPresentation = ref(false)
+const showEditMetadataModal = ref(false)
 const originalUrl = computed(() => file.value ? knowledgeBase.originalFileUrl(file.value.id) : '')
 
 const fileId = computed(() => Number(route.params.id))
@@ -280,6 +280,13 @@ onMounted(() => {
                     {{ t('federation.copyToStation') }}
                 </PrimaryButton>
                 <template v-else>
+                    <SecondaryButton
+                        v-if="canEditKnowledge()"
+                        @click="showEditMetadataModal = true"
+                    >
+                        <font-awesome-icon :icon="['fas', 'gear']"/>
+                        {{ t('kb.editMetadata') }}
+                    </SecondaryButton>
                     <PrimaryButton
                         v-if="canEditKnowledge() && (file.fileType === KbFileType.MARKDOWN || file.fileType === KbFileType.TEXT)"
                         @click="toggleEdit"
@@ -368,118 +375,18 @@ onMounted(() => {
                 </span>
             </div>
 
-            <!-- MARKDOWN -->
-            <template v-if="file.fileType === KbFileType.MARKDOWN">
-                <MarkdownEditor
-                    v-if="editing"
-                    v-model="editContent"
-                    :file-id="file?.id"
-                    @update:model-value="onContentInput"
-                />
-                <NeutralContainer v-else>
-                    <div v-if="renderedHtml" class="markdown-content"
-                         v-html="renderedHtml"/>
-                    <p v-else class="text-[var(--text-muted)]">{{ t('kb.noContent') }}</p>
-                </NeutralContainer>
-            </template>
-
-            <!-- TEXT -->
-            <template v-else-if="file.fileType === KbFileType.TEXT">
-                <div v-if="editing">
-                    <TextAreaInput
-                        v-model="editContent"
-                        class="font-mono min-h-[400px]"
-                        @input="onContentInput"
-                    />
-                </div>
-                <NeutralContainer v-else>
-                    <pre v-if="textContent" class="whitespace-pre-wrap text-sm">{{ textContent }}</pre>
-                    <p v-else class="text-[var(--text-muted)]">{{ t('kb.noContent') }}</p>
-                </NeutralContainer>
-            </template>
-
-            <!-- PDF -->
-            <template v-else-if="file.fileType === KbFileType.PDF">
-                <NeutralContainer class="p-0">
-                    <iframe
-                        :src="contentUrl"
-                        class="w-full min-h-[80vh] rounded"
-                        :title="file.name"
-                    />
-                </NeutralContainer>
-            </template>
-
-            <!-- IMAGE -->
-            <template v-else-if="file.fileType === KbFileType.IMAGE">
-                <NeutralContainer class="flex justify-center">
-                    <img
-                        :src="contentUrl"
-                        :alt="file.name"
-                        class="max-w-full max-h-[80vh] rounded"
-                    />
-                </NeutralContainer>
-            </template>
-
-            <!-- YOUTUBE -->
-            <template v-else-if="file.fileType === KbFileType.YOUTUBE">
-                <NeutralContainer v-if="youtubeEmbedUrl" class="p-0">
-                    <div class="relative pb-[56.25%] h-0">
-                        <iframe
-                            :src="youtubeEmbedUrl"
-                            class="absolute top-0 left-0 w-full h-full rounded"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowfullscreen
-                            :title="file.name"
-                        />
-                    </div>
-                </NeutralContainer>
-                <Alert v-else variant="error">{{ t('kb.noContent') }}</Alert>
-            </template>
-
-            <!-- LINK -->
-            <template v-else-if="file.fileType === KbFileType.LINK">
-                <NeutralContainer class="space-y-4">
-                    <div class="flex items-center gap-2">
-                        <font-awesome-icon :icon="['fas', 'link']" class="text-[var(--secondary)]"/>
-                        <a
-                            :href="file.linkUrl ?? ''"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="text-[var(--primary)] hover:underline break-all"
-                        >
-                            {{ file.linkUrl }}
-                        </a>
-                    </div>
-                    <a :href="file.linkUrl ?? ''" target="_blank" rel="noopener noreferrer" class="inline-block">
-                        <PrimaryButton>
-                            <font-awesome-icon :icon="['fas', 'arrow-right']"/>
-                            {{ t('kb.openLink') }}
-                        </PrimaryButton>
-                    </a>
-                </NeutralContainer>
-            </template>
-
-            <!-- PRESENTATION -->
-            <template v-else-if="file.fileType === KbFileType.PRESENTATION">
-                <KbPresentationContent
-                    :file="file" :content-url="contentUrl" :can-edit="canEditKnowledge()"
-                    @reupload="handleReuploadFile"
-                />
-            </template>
-
-            <!-- OTHER -->
-            <template v-else>
-                <NeutralContainer class="text-center py-8">
-                    <font-awesome-icon :icon="['fas', 'file']" class="text-4xl text-[var(--text-muted)] mb-4"/>
-                    <p class="mb-4">{{ file.name }}</p>
-                    <a :href="contentUrl" download class="inline-block">
-                        <PrimaryButton>
-                            <font-awesome-icon :icon="['fas', 'download']"/>
-                            {{ t('kb.download') }}
-                        </PrimaryButton>
-                    </a>
-                </NeutralContainer>
-            </template>
+            <KbFileContent
+                :file="file"
+                :editing="editing"
+                :content-url="contentUrl"
+                :text-content="textContent"
+                :rendered-html="renderedHtml"
+                :youtube-embed-url="youtubeEmbedUrl"
+                :can-edit="canEditKnowledge()"
+                v-model:edit-content="editContent"
+                @content-input="onContentInput"
+                @reupload="handleReuploadFile"
+            />
 
             <!-- Comments -->
             <KbCommentSection
@@ -494,6 +401,14 @@ onMounted(() => {
             :content-url="contentUrl"
             :title="file.name"
             @close="showPresentation = false"
+        />
+
+        <!-- Edit metadata modal (name / description / visibility / restrictions / tags) -->
+        <KbEditFileModal
+            :show="showEditMetadataModal"
+            :file="file"
+            @update:show="showEditMetadataModal = $event"
+            @saved="loadData()"
         />
     </ViewContent>
 </template>

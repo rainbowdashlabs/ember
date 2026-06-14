@@ -43,7 +43,7 @@ const {t} = useI18n()
       <NeutralContainer class="space-y-3">
         <div class="flex items-center justify-between">
           <SubHeader>
-            <span class="text-xs uppercase tracking-wide text-(--text-muted) mr-2">{{ t('inventory.requirements.role') }}</span>
+            <span class="text-xs uppercase tracking-wide text-(--text-muted) mr-2">{{ t('inventory.requirements.userType') }}</span>
             {{ t('membersCreate.roleMember') }}
           </SubHeader>
           <SecondaryButton :icon="['fas', 'plus']">

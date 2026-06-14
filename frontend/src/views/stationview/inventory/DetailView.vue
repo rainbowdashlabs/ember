@@ -33,6 +33,7 @@ import EditItemModal from './detailview/EditItemModal.vue'
 import HistoryModal from './detailview/HistoryModal.vue'
 import ProcurementTable from './detailview/ProcurementTable.vue'
 import LostItemsTable from './detailview/LostItemsTable.vue'
+import ItemModals from './editview/ItemModals.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -41,9 +42,27 @@ const { currentStationId } = useStations()
 const { hasPermission } = useSession()
 const canEdit = computed(() => hasPermission(StationPermission.INVENTORY_EDIT))
 const canProcure = computed(() => hasPermission(StationPermission.INVENTORY_PROCUREMENT))
+const canCreateInternal = computed(() => hasPermission(StationPermission.INVENTORY_CREATE_INTERNAL))
+const canCreateExternal = computed(() => hasPermission(StationPermission.INVENTORY_CREATE_EXTERNAL))
 
 const inventoryId = computed(() => Number(route.params.id))
 const detail = ref<InventoryDetail | null>(null)
+
+const canCreateItem = computed(() => {
+  const type = detail.value?.inventoryType ?? InventoryTypes.INTERNAL
+  if (type === InventoryTypes.INTERNAL) return canCreateInternal.value
+  if (type === InventoryTypes.EXTERNAL) return canCreateExternal.value
+  // MIXED
+  return canCreateInternal.value || canCreateExternal.value
+})
+const canQuickAssign = computed(() => {
+  const type = detail.value?.inventoryType ?? InventoryTypes.INTERNAL
+  return (type === InventoryTypes.EXTERNAL || type === InventoryTypes.MIXED) && canCreateExternal.value
+})
+const canAddInternal = computed(() => {
+  const type = detail.value?.inventoryType ?? InventoryTypes.INTERNAL
+  return type !== InventoryTypes.EXTERNAL && canCreateInternal.value
+})
 const items = ref<InventoryItem[]>([])
 const memberMap = ref<Map<number, StationMember>>(new Map())
 const openProcurement = ref<ProcurementEntry[]>([])
@@ -66,6 +85,9 @@ const procCreated = ref(false)
 // Edit item modal
 const showEditItemModal = ref(false)
 const editingItem = ref<InventoryItem | null>(null)
+
+// Item creation modal (reused from edit view)
+const itemModals = ref<InstanceType<typeof ItemModals> | null>(null)
 
 // History modal
 const showHistoryModal = ref(false)
@@ -297,13 +319,29 @@ onMounted(loadData)
           :size-stats="allSizeStats"
         />
 
-        <ProcurementTable :entries="openProcurement" :readonly="!canProcure" @fulfill="fulfillProcurement" />
+        <ProcurementTable
+          :entries="openProcurement"
+          :readonly="!canProcure"
+          :can-create="canProcure"
+          @fulfill="fulfillProcurement"
+          @create="openProcurementModal"
+        />
 
         <LentOutTable :lent-out-items="lentOutItems" :lent-out-count="lentOutCount" />
 
         <!-- All items -->
-        <template v-if="items.length > 0">
+        <div v-if="items.length > 0 || canCreateItem" class="flex flex-wrap items-center justify-between gap-2">
           <SubHeader>{{ t('inventory.edit.itemsTitle') }} ({{ items.length }})</SubHeader>
+          <div v-if="canCreateItem" class="flex items-center gap-2">
+            <PrimaryButton v-if="canQuickAssign" :icon="['fas', 'user-plus']" @click="itemModals?.openQuickAssign()">
+              {{ t('inventory.edit.quickAssign') }}
+            </PrimaryButton>
+            <PrimaryButton v-if="canAddInternal" :icon="['fas', 'plus']" @click="itemModals?.openAdd()">
+              {{ t('inventory.edit.addItem') }}
+            </PrimaryButton>
+          </div>
+        </div>
+        <template v-if="items.length > 0">
           <ItemsTable
             :items="items"
             :has-sizes="detail.hasSizes"
@@ -401,6 +439,15 @@ onMounted(loadData)
         :has-sizes="detail?.hasSizes ?? false"
         :sizes="detail?.sizes ?? []"
         @saved="loadData"
+      />
+
+      <ItemModals
+        v-if="detail"
+        ref="itemModals"
+        :detail="detail"
+        :members="[...memberMap.values()]"
+        @items-changed="loadData"
+        @error="error = $event"
       />
 
       <HistoryModal

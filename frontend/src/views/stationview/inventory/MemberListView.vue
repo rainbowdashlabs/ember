@@ -164,6 +164,21 @@ watch(showName, v => setItem('inv-members-show-name', String(v)))
 watch(showInternalId, v => setItem('inv-members-show-internal-id', String(v)))
 watch(showSize, v => setItem('inv-members-show-size', String(v)))
 
+// When the visible/filtered member set changes (e.g. via the restriction picker),
+// drop any export selections that no longer match the filter.
+watch(filteredMembers, list => {
+  if (!exportMode.value) return
+  if (selectedForExport.value.size === 0) return
+  const visibleIds = new Set(list.map(m => m.id))
+  let changed = false
+  const next = new Set<number>()
+  for (const id of selectedForExport.value) {
+    if (visibleIds.has(id)) next.add(id)
+    else changed = true
+  }
+  if (changed) selectedForExport.value = next
+})
+
 async function enterExportMode() {
   exportMode.value = true
   selectedForExport.value = new Set(filteredMembers.value.map(m => m.id))

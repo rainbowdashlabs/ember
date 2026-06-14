@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -20,13 +20,13 @@ import IconButton from '@/components/button/IconButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import type { QuizAttemptDetail, QuizQuestion, QuizTestAnswer } from '@/api/types'
-import { QuizQuestionTypes } from '@/api/types'
+import { QuizAttemptStatus, QuizQuestionTypes, StationPermission } from '@/api/types'
 import { quiz } from '@/api'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 import SectionLabel from '@/components/typography/SectionLabel.vue'
+import AuthImage from '@/components/display/AuthImage.vue'
 
-import { StationPermission } from '@/api/types'
 import { useSession } from '@/composables/useSession'
 
 const { t } = useI18n()
@@ -138,6 +138,26 @@ async function finishGrading() {
     }
     await quiz.gradeAttempt(attemptId.value)
     graded.value = true
+
+    // Find next ungraded attempt for the same test and navigate to it.
+    // If none remain, fall back to the test detail.
+    try {
+      const all = await quiz.listAttempts(testId.value)
+      const next = all
+        .filter(a => a.id !== attemptId.value && a.status !== QuizAttemptStatus.GRADED && a.status !== QuizAttemptStatus.IN_PROGRESS)
+        .sort((a, b) => {
+          const aT = a.submittedAt ? new Date(a.submittedAt).getTime() : 0
+          const bT = b.submittedAt ? new Date(b.submittedAt).getTime() : 0
+          return aT - bT
+        })[0]
+      if (next) {
+        router.push({ name: 'quiz-test-evaluate', params: { id: testId.value, attemptId: next.id } })
+        return
+      }
+      router.push({ name: 'quiz-test-detail', params: { id: testId.value } })
+    } catch {
+      // If we cannot determine the next attempt, stay on the success view.
+    }
   } catch {
     error.value = t('common.error')
   } finally {
@@ -194,6 +214,17 @@ async function loadData() {
 }
 
 onMounted(loadData)
+
+// Reload when navigating between attempts (same route, different attemptId)
+watch(attemptId, async (newId, oldId) => {
+  if (newId === oldId) return
+  attemptDetail.value = null
+  questionsMap.value = new Map()
+  pointsOverrides.value = new Map()
+  gapCorrectOverrides.value = new Map()
+  graded.value = false
+  await loadData()
+})
 </script>
 
 <template>
@@ -244,6 +275,12 @@ onMounted(loadData)
                     </SuccessBadge>
                   </div>
                   <p class="font-medium">{{ questionsMap.get(aq.questionId)!.title }}</p>
+                  <AuthImage
+                    v-if="questionsMap.get(aq.questionId)!.imageUrl"
+                    :src="quiz.questionImageUrl(questionsMap.get(aq.questionId)!.id, 300)"
+                    class="max-h-48 rounded-lg object-contain mt-2"
+                    alt=""
+                  />
                 </div>
 
                 <!-- MC: show options with correct/wrong highlighting -->

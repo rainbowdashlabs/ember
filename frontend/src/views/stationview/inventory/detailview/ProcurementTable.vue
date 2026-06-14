@@ -19,12 +19,15 @@ import type { ProcurementEntry } from '@/api/types'
 const props = withDefaults(defineProps<{
   entries: ProcurementEntry[]
   readonly?: boolean
+  canCreate?: boolean
 }>(), {
   readonly: false,
+  canCreate: false,
 })
 
 const emit = defineEmits<{
   fulfill: [id: number]
+  create: []
 }>()
 
 const { t } = useI18n()
@@ -32,10 +35,15 @@ const { t } = useI18n()
 
 <template>
   <template v-if="props.entries.length > 0">
-    <SubHeader>
-      <font-awesome-icon :icon="['fas', 'folder-plus']" class="mr-2" />
-      {{ t('inventory.detail.procurement') }} ({{ props.entries.length }})
-    </SubHeader>
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <SubHeader>
+        <font-awesome-icon :icon="['fas', 'folder-plus']" class="mr-2" />
+        {{ t('inventory.detail.procurement') }} ({{ props.entries.length }})
+      </SubHeader>
+      <PrimaryButton v-if="props.canCreate" :icon="['fas', 'folder-plus']" @click="emit('create')">
+        {{ t('inventory.detail.createProcurement') }}
+      </PrimaryButton>
+    </div>
     <NeutralContainer class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead>

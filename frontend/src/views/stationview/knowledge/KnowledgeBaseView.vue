@@ -10,12 +10,7 @@ import {useRouter, useRoute} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import Modal from '@/components/feedback/Modal.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
-import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import KbBreadcrumb from './knowledgebaseview/KbBreadcrumb.vue'
 import KbCreateMenu from './knowledgebaseview/KbCreateMenu.vue'
 import KbItemGrid from './knowledgebaseview/KbItemGrid.vue'
@@ -24,10 +19,12 @@ import KbEditFolderModal from './knowledgebaseview/KbEditFolderModal.vue'
 import KbEditFileModal from './knowledgebaseview/KbEditFileModal.vue'
 import KbCreateModals from './knowledgebaseview/KbCreateModals.vue'
 import KbSearchResults from './knowledgebaseview/KbSearchResults.vue'
+import KbDeleteModals from './knowledgebaseview/KbDeleteModals.vue'
+import KbFiltersBar from './knowledgebaseview/KbFiltersBar.vue'
 import {useSession} from '@/composables/useSession'
+import {useKbTagFilter} from '@/composables/useKbTagFilter'
 import {getItem} from '@/api/storage'
 import {knowledgeBase, federation} from '@/api'
-import SubHeader from '@/components/typography/SubHeader.vue'
 import type {KbFolder, KbFile, SharedFileEntry} from '@/api/knowledgeBase'
 import MutedText from '@/components/typography/MutedText.vue'
 
@@ -56,6 +53,10 @@ const filterStationId = ref<string | null>(null)
 const filterTag = ref('')
 const allKbTags = ref<import('@/api/knowledgeBase').KbTag[]>([])
 
+// Tag filter cache (lazily populated when a tag filter is active).
+const {fileMatchesTagFilter: matchTag, ensureFileTagsLoaded} = useKbTagFilter()
+const fileMatchesTagFilter = (fileId: number) => matchTag(fileId, filterTag.value)
+
 // Unique station names from shared files
 const partnerStations = computed(() => {
     const map = new Map<string, string>()
@@ -73,8 +74,18 @@ const filteredSharedFiles = computed(() => {
     return sharedFiles.value
 })
 
-const filteredFolders = computed(() => filterStationId.value != null ? [] : folders.value)
-const filteredFiles = computed(() => filterStationId.value != null ? [] : files.value)
+const filteredFolders = computed(() => {
+    if (filterStationId.value != null) return []
+    // Folders themselves don't carry tags here; when a tag filter is active,
+    // hide folders so the user only sees files that match the tag.
+    if (filterTag.value) return []
+    return folders.value
+})
+const filteredFiles = computed(() => {
+    if (filterStationId.value != null) return []
+    if (!filterTag.value) return files.value
+    return files.value.filter(f => fileMatchesTagFilter(f.id))
+})
 
 // Search
 const searchQuery = ref('')
@@ -90,7 +101,10 @@ const filteredSearchResults = computed(() => {
         results = results.filter(r => !r.stationName || r.sourceStationId === filterStationId.value)
     }
     if (filterTag.value) {
-        results = results.filter(r => r.stationName || true)
+        // For local results, use the cached per-file tags. Remote (federated)
+        // results can't be tag-checked client-side, but the backend search
+        // already received the tag filter, so keep them in the list.
+        results = results.filter(r => r.stationName || fileMatchesTagFilter(r.file.id))
     }
     return results
 })
@@ -244,6 +258,22 @@ async function loadTags() {
     catch { /* silent */ }
 }
 
+// Trigger tag loading whenever the tag filter is active and the visible
+// file set changes. Also runs once when the user first picks a tag.
+watch(
+    [filterTag, files, searchResults],
+    () => {
+        if (!filterTag.value) return
+        const ids = new Set<number>()
+        for (const f of files.value) ids.add(f.id)
+        for (const r of searchResults.value) {
+            if (!r.stationName) ids.add(r.file.id)
+        }
+        if (ids.size > 0) ensureFileTagsLoaded([...ids])
+    },
+    {immediate: true},
+)
+
 function openEditFolder(folder: KbFolder) {
     editFolderData.value = folder
     showEditFolderModal.value = true
@@ -331,25 +361,14 @@ function navigateToFavourites() {
             />
         </div>
 
-        <!-- Filters -->
-        <div class="flex flex-wrap items-center gap-2 mb-4">
-            <SelectionToggleButton :selected="showFederated" @toggle="showFederated = !showFederated; onSearchInput()">
-                <font-awesome-icon :icon="['fas', 'arrow-right-arrow-left']" class="w-3 h-3 mr-1" />
-                {{ t('federation.shared') }}
-            </SelectionToggleButton>
-            <SelectInput v-if="showFederated && partnerStations.length > 0" :model-value="filterStationId != null ? String(filterStationId) : ''" class="!w-auto !text-xs !py-1" @update:model-value="(v: string | undefined) => { filterStationId = v || null; onSearchInput() }">
-                <option value="">{{ t('kb.allStations') }}</option>
-                <option v-for="station in partnerStations" :key="station.id" :value="String(station.id)">
-                    {{ station.name }}
-                </option>
-            </SelectInput>
-            <SelectInput v-if="allKbTags.length > 0" v-model="filterTag" class="!w-auto !text-xs !py-1" @change="onSearchInput()">
-                <option value="">{{ t('kb.allTags') }}</option>
-                <option v-for="tag in allKbTags" :key="tag.id" :value="tag.name">
-                    {{ tag.name }}
-                </option>
-            </SelectInput>
-        </div>
+        <KbFiltersBar
+            v-model:show-federated="showFederated"
+            v-model:filter-station-id="filterStationId"
+            v-model:filter-tag="filterTag"
+            :partner-stations="partnerStations"
+            :all-kb-tags="allKbTags"
+            @refresh="onSearchInput"
+        />
 
         <!-- Breadcrumbs + View Toggle -->
         <KbBreadcrumb
@@ -468,28 +487,13 @@ function navigateToFavourites() {
             @saved="loadData()"
         />
 
-        <!-- Delete Folder Confirmation -->
-        <Modal v-model="showDeleteFolderModal">
-            <SubHeader class="mb-3">{{ t('kb.deleteFolder') }}</SubHeader>
-            <p class="mb-4">{{ t('kb.deleteFolderConfirm') }}</p>
-            <div class="flex gap-2 justify-end">
-                <SecondaryButton @click="showDeleteFolderModal = false">{{ t('common.cancel') }}</SecondaryButton>
-                <DeleteButton :label="t('common.delete')" @click="handleDeleteFolder">
-                    {{ t('common.delete') }}
-                </DeleteButton>
-            </div>
-        </Modal>
-
-        <!-- Delete File Confirmation -->
-        <Modal v-model="showDeleteFileModal">
-            <SubHeader class="mb-3">{{ t('kb.deleteFile') }}</SubHeader>
-            <p class="mb-4">{{ t('kb.deleteFileConfirm') }}</p>
-            <div class="flex gap-2 justify-end">
-                <SecondaryButton @click="showDeleteFileModal = false">{{ t('common.cancel') }}</SecondaryButton>
-                <DeleteButton :label="t('common.delete')" @click="handleDeleteFile">
-                    {{ t('common.delete') }}
-                </DeleteButton>
-            </div>
-        </Modal>
+        <KbDeleteModals
+            :show-folder="showDeleteFolderModal"
+            :show-file="showDeleteFileModal"
+            @update:show-folder="showDeleteFolderModal = $event"
+            @update:show-file="showDeleteFileModal = $event"
+            @confirm-folder="handleDeleteFolder"
+            @confirm-file="handleDeleteFile"
+        />
     </ViewContent>
 </template>
