@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.feature.news.repository;
 
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.news.entity.NewsFederationShare;
+import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -43,7 +45,7 @@ public class NewsFederationRepository {
      * @param visibilityRole the minimum visibility role on partner stations
      * @return the created or updated share
      */
-    public NewsFederationShare setShare(int newsId, String scope, String visibilityRole) {
+    public NewsFederationShare setShare(int newsId, ShareScope scope, NewsVisibilityRole visibilityRole) {
         return query("""
                         INSERT INTO news_federation_share(news_id, scope, visibility_role)
                         VALUES (:news_id, :scope, :visibility_role)
@@ -129,10 +131,10 @@ public class NewsFederationRepository {
      * @param newsId the news article ID
      * @return the visibility role, if the news is shared
      */
-    public Optional<String> findVisibilityRole(int newsId) {
+    public Optional<NewsVisibilityRole> findVisibilityRole(int newsId) {
         return query("SELECT visibility_role FROM news_federation_share WHERE news_id = :news_id;")
                 .single(call().bind("news_id", newsId))
-                .map(row -> row.getString("visibility_role"))
+                .map(row -> row.getEnum("visibility_role", NewsVisibilityRole.class))
                 .first();
     }
 }

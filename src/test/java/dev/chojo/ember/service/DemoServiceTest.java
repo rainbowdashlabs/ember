@@ -52,6 +52,7 @@ import dev.chojo.ember.feature.system.service.DemoFormSeeder;
 import dev.chojo.ember.feature.system.service.DemoInventorySeeder;
 import dev.chojo.ember.feature.system.service.DemoKnowledgeBaseSeeder;
 import dev.chojo.ember.feature.system.service.DemoLendingSeeder;
+import dev.chojo.ember.feature.system.service.DemoLostAndFoundSeeder;
 import dev.chojo.ember.feature.system.service.DemoMediaSeeder;
 import dev.chojo.ember.feature.system.service.DemoMemberSeeder;
 import dev.chojo.ember.feature.system.service.DemoNewsSeeder;
@@ -176,6 +177,19 @@ class DemoServiceTest extends RepositoryTestBase {
                 lendingRepo, federationHttpClient, federationService, stationRepo, inventoryRepo, noOpBus);
         var federatedBoardService = new FederatedBoardService(federatedBoardRepo);
 
+        // Services consumed by DemoService for the post-seed notification showcase (read-only
+        // lookups for one entity of each type). We mock NotificationService since the demo's
+        // read paths don't depend on its behavior and constructing a real one would drag in
+        // EmailService + Mailing config that aren't relevant here.
+        var notificationServiceMock = mock(dev.chojo.ember.feature.notifications.service.NotificationService.class);
+        var lostAndFoundService = new dev.chojo.ember.feature.lostandfound.service.LostAndFoundService(
+                lostAndFoundRepo, notificationServiceMock);
+        var boardService =
+                new dev.chojo.ember.feature.board.service.BoardService(boardRepo, memberSvc, groupService, tagService);
+        var boardTicketService = new dev.chojo.ember.feature.board.service.BoardTicketService(
+                boardTicketRepo, boardRepo, noOpBus, memberSvc, memberIdentityFactory, memberNameResolver);
+        var procedureService = new dev.chojo.ember.feature.procedure.service.ProcedureService(procedureRepo, noOpBus);
+
         // -- Seeders --
         var memberSeeder = new DemoMemberSeeder(
                 accountRepo, stationMemberRepo, memberGroupRepo, profileFieldRepo, profileFieldChangeRepo, userTagRepo);
@@ -215,6 +229,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var procedureSeeder = new DemoProcedureSeeder(procedureRepo);
         var pageSeeder = new DemoPageSeeder(new PageService(pageRepo, new PageImageStorageService()));
         var newsSeeder = new DemoNewsSeeder(newsService, stationMemberRepo);
+        var lostAndFoundSeederLocal = new DemoLostAndFoundSeeder(lostAndFoundService);
 
         // -- DemoService --
         demoService = new DemoService(
@@ -244,10 +259,15 @@ class DemoServiceTest extends RepositoryTestBase {
                 procedureSeeder,
                 pageSeeder,
                 newsSeeder,
+                lostAndFoundSeederLocal,
                 applicationSettingRepo,
                 exchangeService,
                 procurementService,
-                feedTokenService);
+                feedTokenService,
+                boardService,
+                boardTicketService,
+                procedureService,
+                lendingService);
     }
 
     @Test

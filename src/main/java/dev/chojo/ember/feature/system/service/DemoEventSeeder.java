@@ -98,12 +98,17 @@ public class DemoEventSeeder {
                         new AttendanceRepository.TemplateGroup(groupFortgeschrittenId, 1)));
 
         // -- Event categories --
-        var catUebung = eventRepository.createCategory(stationId, "Übungen", 0);
-        var catVeranstaltung = eventRepository.createCategory(stationId, "Veranstaltungen", 1);
-        var catWettbewerb = eventRepository.createCategory(stationId, "Wettbewerbe", 2);
+        var catUebung = eventRepository.createCategory(stationId, "Übungen", 0, "#ff6421");
+        var catVeranstaltung = eventRepository.createCategory(stationId, "Veranstaltungen", 1, "#73ceff");
+        var catWettbewerb = eventRepository.createCategory(stationId, "Wettbewerbe", 2, "#ffdd1b");
         // Make Veranstaltungen public (all events in this category visible on public calendar)
         eventRepository.updateCategory(
-                catVeranstaltung.id(), catVeranstaltung.name(), catVeranstaltung.position(), null, true);
+                catVeranstaltung.id(),
+                catVeranstaltung.name(),
+                catVeranstaltung.position(),
+                null,
+                true,
+                catVeranstaltung.color());
 
         // -- Events --
         Instant monStart = LocalDate.now().atTime(17, 30).toInstant(ZoneOffset.UTC);
@@ -364,9 +369,14 @@ public class DemoEventSeeder {
         }
 
         // -- Oeffentlichkeitsarbeit events --
-        var catOeffentlichkeit = eventRepository.createCategory(stationId, "Öffentlichkeitsarbeit", 3);
+        var catOeffentlichkeit = eventRepository.createCategory(stationId, "Öffentlichkeitsarbeit", 3, "#00c507");
         eventRepository.updateCategory(
-                catOeffentlichkeit.id(), catOeffentlichkeit.name(), catOeffentlichkeit.position(), null, true);
+                catOeffentlichkeit.id(),
+                catOeffentlichkeit.name(),
+                catOeffentlichkeit.position(),
+                null,
+                true,
+                catOeffentlichkeit.color());
         var allMembers = new ArrayList<StationMember>();
         allMembers.addAll(anfaengerMembers);
         allMembers.addAll(fortgeschrittenMembers);
@@ -649,7 +659,7 @@ public class DemoEventSeeder {
                 "Übungsabend",
                 null,
                 null,
-                "RECURRING",
+                StationEvent.EventType.RECURRING,
                 false,
                 null,
                 false,
@@ -671,7 +681,18 @@ public class DemoEventSeeder {
                                 null)));
         var tplWettbewerb = eventTemplateService.create(stationId, "Wettbewerb");
         eventTemplateService.update(
-                tplWettbewerb.id(), "Wettbewerb", null, null, null, "ONE_TIME", true, null, true, null, null, null);
+                tplWettbewerb.id(),
+                "Wettbewerb",
+                null,
+                null,
+                null,
+                StationEvent.EventType.ONE_TIME,
+                true,
+                null,
+                true,
+                null,
+                null,
+                null);
         eventTemplateService.replaceFields(
                 tplWettbewerb.id(),
                 List.of(

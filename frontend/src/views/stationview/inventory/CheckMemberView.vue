@@ -19,6 +19,8 @@ import { inventoryCheck, procurement } from '@/api'
 import MemberName from '@/components/avatar/MemberName.vue'
 import RapidCheckMode from './checkmemberview/RapidCheckMode.vue'
 import type { CheckEntry } from './checkmemberview/RapidCheckMode.vue'
+
+const rapidCheckRef = ref<InstanceType<typeof RapidCheckMode> | null>(null)
 import InventorySection from './checkmemberview/InventorySection.vue'
 
 const { t } = useI18n()
@@ -146,15 +148,20 @@ async function loadData() {
 }
 
 // Rapid check mode handlers
+function currentRapidEntry(): CheckEntry | null {
+  // Vue unwraps refs exposed via defineExpose on the public instance proxy.
+  return rapidCheckRef.value?.currentEntry ?? null
+}
+
 function onRapidSetResult(result: CheckResult) {
-  const entry = uncheckedEntries.value[0]
+  const entry = currentRapidEntry()
   if (!entry || entry.type !== 'item') return
   itemResults.value.set(entry.item.id, result)
   itemResults.value = new Map(itemResults.value)
 }
 
 function onRapidMarkNotInPossession() {
-  const entry = uncheckedEntries.value[0]
+  const entry = currentRapidEntry()
   if (!entry || entry.type !== 'slot') return
   toggleNotInPossession(entry.req.inventoryId, entry.slotIndex)
 }
@@ -169,7 +176,7 @@ async function onRapidAssign(itemIdStr: string) {
 }
 
 async function onRapidCreateAndAssign(sizeIdStr: string) {
-  const entry = uncheckedEntries.value[0]
+  const entry = currentRapidEntry()
   if (!entry || entry.type !== 'slot') return
   error.value = ''
   try {
@@ -381,6 +388,7 @@ onMounted(loadData)
         <!-- Rapid check mode -->
         <RapidCheckMode
           v-if="checkMode"
+          ref="rapidCheckRef"
           :unchecked-entries="uncheckedEntries"
           :available-for-inventory="availableForInventory"
           :item-label="itemLabel"

@@ -9,7 +9,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 
 public record IntervalConfig(
-        String intervalType,
+        IntervalType intervalType,
         int dayOfWeek,
         LocalDate startDate,
         LocalDate endDate,

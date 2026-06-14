@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.inventory.service.ExchangeService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -37,6 +38,7 @@ public class SidebarCountService {
     private final InventoryService inventoryService;
     private final ExchangeService exchangeService;
     private final ProcedureService procedureService;
+    private final StationMemberService stationMemberService;
 
     @Inject
     public SidebarCountService(
@@ -51,7 +53,8 @@ public class SidebarCountService {
             StationRepository stationRepository,
             InventoryService inventoryService,
             ExchangeService exchangeService,
-            ProcedureService procedureService) {
+            ProcedureService procedureService,
+            StationMemberService stationMemberService) {
         this.notificationService = notificationService;
         this.requirementsService = requirementsService;
         this.profileFieldChangeRepository = profileFieldChangeRepository;
@@ -64,6 +67,7 @@ public class SidebarCountService {
         this.inventoryService = inventoryService;
         this.exchangeService = exchangeService;
         this.procedureService = procedureService;
+        this.stationMemberService = stationMemberService;
     }
 
     public SidebarCounts getCounts(UserSession session) {
@@ -111,7 +115,17 @@ public class SidebarCountService {
             lostAndFoundPending = lostAndFoundRepository.countClaimedNotProvided(stationId);
         }
 
+        // Guardians see the "my inventory" entry as soon as one of their managed members
+        // owns anything, even if the guardian themselves owns nothing.
         int myInventoryCount = inventoryService.countItemsByMember(memberId);
+        if (myInventoryCount == 0 && roles.contains(StationPermission.MEMBER_GUARDIAN)) {
+            for (var managed : stationMemberService.findManaged(memberId)) {
+                if (inventoryService.countItemsByMember(managed.id()) > 0) {
+                    myInventoryCount = 1;
+                    break;
+                }
+            }
+        }
 
         int pendingExchanges = 0;
         if (roles.contains(StationPermission.INVENTORY_EDIT)) {

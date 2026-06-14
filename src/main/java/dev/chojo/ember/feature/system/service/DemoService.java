@@ -8,23 +8,32 @@ package dev.chojo.ember.feature.system.service;
 import de.chojo.sadu.postgresql.databases.PostgreSql;
 import de.chojo.sadu.updater.QueryReplacement;
 import de.chojo.sadu.updater.SqlUpdater;
-import dev.chojo.ember.api.roles.InstanceUserType;
-import dev.chojo.ember.api.roles.StationPermission;
-import dev.chojo.ember.api.roles.StationUserType;
+import dev.chojo.ember.api.auth.InstanceUserType;
+import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.board.service.BoardService;
+import dev.chojo.ember.feature.board.service.BoardTicketService;
+import dev.chojo.ember.feature.federation.entity.LendingRequest;
+import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
+import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.repository.ExchangeRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
 import dev.chojo.ember.feature.inventory.service.ProcurementService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.feature.lostandfound.entity.LostAndFoundItem;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.procedure.entity.Procedure;
+import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
+import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
@@ -39,8 +48,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
@@ -90,6 +101,16 @@ public class DemoService {
     private final DemoProcedureSeeder procedureSeeder;
     private final DemoPageSeeder pageSeeder;
     private final DemoNewsSeeder newsSeeder;
+    private final DemoLostAndFoundSeeder lostAndFoundSeeder;
+    // Services used to look up one representative entity of each notification-relevant type
+    // when building the notification showcase, so the renderer's per-type live enrichment
+    // (board lookup, procedure progress, lending date range, inventory ownership) all fire.
+    // Demo deliberately goes through services, matching the rest of the demo's "use services
+    // so domain events fire" convention even though these particular lookups are read-only.
+    private final BoardService boardService;
+    private final BoardTicketService boardTicketService;
+    private final ProcedureService procedureService;
+    private final LendingService lendingService;
     private final ApplicationSettingRepository applicationSettingRepository;
     private final ExchangeService exchangeService;
     private final ProcurementService procurementService;
@@ -126,10 +147,15 @@ public class DemoService {
             DemoProcedureSeeder procedureSeeder,
             DemoPageSeeder pageSeeder,
             DemoNewsSeeder newsSeeder,
+            DemoLostAndFoundSeeder lostAndFoundSeeder,
             ApplicationSettingRepository applicationSettingRepository,
             ExchangeService exchangeService,
             ProcurementService procurementService,
-            FeedTokenService feedTokenService) {
+            FeedTokenService feedTokenService,
+            BoardService boardService,
+            BoardTicketService boardTicketService,
+            ProcedureService procedureService,
+            LendingService lendingService) {
         this.demoConfig = demoConfig;
         this.databaseConfig = databaseConfig;
         this.dataSource = dataSource;
@@ -156,6 +182,11 @@ public class DemoService {
         this.procedureSeeder = procedureSeeder;
         this.pageSeeder = pageSeeder;
         this.newsSeeder = newsSeeder;
+        this.lostAndFoundSeeder = lostAndFoundSeeder;
+        this.boardService = boardService;
+        this.boardTicketService = boardTicketService;
+        this.procedureService = procedureService;
+        this.lendingService = lendingService;
         this.applicationSettingRepository = applicationSettingRepository;
         this.exchangeService = exchangeService;
         this.procurementService = procurementService;
@@ -329,6 +360,12 @@ public class DemoService {
         var news = newsSeeder.seed(
                 station.id(), adminMember.id(), members.betreuer(), members.eltern(), members.fortgeschritten());
 
+        // -- Lost & Found (sequential so the create / claim service calls fire their
+        //    LOST_AND_FOUND_NEW / LOST_AND_FOUND_CLAIMED notifications before the parallel
+        //    block starts, and the showcase notification can reference a real item id) --
+        var lostAndFoundItem =
+                lostAndFoundSeeder.seed(station.id(), members.betreuer(), members.anfaenger(), members.eltern());
+
         // -- Parallel module seeding --
         log.info("Demo: Starting parallel module seeding...");
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
@@ -385,8 +422,8 @@ public class DemoService {
                                 adminMember,
                                 members.anfaenger(),
                                 members.fortgeschritten(),
-                                StationUserType.MEMBER.name(),
-                                StationUserType.GUARDIAN.name(),
+                                StationUserType.MEMBER,
+                                StationUserType.GUARDIAN,
                                 members.groupAnfaenger().id(),
                                 members.tagWettkampf().id(),
                                 new Random(42_003));
@@ -409,23 +446,6 @@ public class DemoService {
                             accountRepository.createSession(admin.id(), token, sessionExpiry, demoUserAgent, null);
                         }
                         log.info("Demo: Created previous sessions");
-                    },
-                    executor));
-
-            // Notifications
-            tasks.add(CompletableFuture.runAsync(
-                    () -> {
-                        notificationSeeder.seedNotifications(
-                                station.id(),
-                                adminMember,
-                                members.betreuer(),
-                                members.eltern(),
-                                members.anfaenger(),
-                                members.fortgeschritten(),
-                                events.tagDerOffenenTuerId(),
-                                events.stadtfestId(),
-                                news.firstNewsId());
-                        log.info("Demo: Created Notifications");
                     },
                     executor));
 
@@ -515,8 +535,8 @@ public class DemoService {
                                 federationResult.partnerStationId(),
                                 adminMember,
                                 members.betreuer(),
-                                "TEAM",
-                                "MEMBER",
+                                StationUserType.TEAM,
+                                StationUserType.MEMBER,
                                 new Random(42_005));
                         log.info("Demo: Created shared board data");
                     },
@@ -526,7 +546,12 @@ public class DemoService {
             tasks.add(CompletableFuture.runAsync(
                     () -> {
                         boardSeeder.seed(
-                                station.id(), adminMember, members.betreuer(), "TEAM", "MEMBER", new Random(42_004));
+                                station.id(),
+                                adminMember,
+                                members.betreuer(),
+                                StationUserType.TEAM,
+                                StationUserType.MEMBER,
+                                new Random(42_004));
                         log.info("Demo: Created board data");
                     },
                     executor));
@@ -551,8 +576,87 @@ public class DemoService {
             CompletableFuture.allOf(tasks.toArray(CompletableFuture[]::new)).join();
         }
 
+        // -- Notification showcase (runs after the parallel block so every entity referenced
+        //    by the showcase context already exists). The other seeders' service calls have
+        //    organically produced most NotificationTypes by now; this seeder adds one
+        //    notification of every category for the demo admin so the dashboard / feed shows
+        //    the full matrix at a glance — useful for visual review after notification-shape
+        //    changes. Live-loaded body enrichment fires because the ids are real. --
+        seedNotificationShowcase(station.id(), adminMember, members, news, events, lostAndFoundItem);
+
         log.info("Demo: Created all user accounts (password: '{}')", PASSWORD);
         log.info("Demo: Admin login: admin@ember.local / {}", PASSWORD);
+    }
+
+    private void seedNotificationShowcase(
+            int stationId,
+            StationMember adminMember,
+            DemoMemberSeeder.SeedResult members,
+            DemoNewsSeeder.SeedResult news,
+            DemoEventSeeder.SeedResult events,
+            LostAndFoundItem lostAndFoundItem) {
+        // Pick one representative entity of each type that the renderer enriches; falling back
+        // to null when the corresponding seeder didn't populate the station (the showcase
+        // seeder treats null ids as "use a plain link, skip enrichment").
+        var nextMonday = LocalDate.now()
+                .with(DayOfWeek.MONDAY)
+                .plusWeeks(LocalDate.now().getDayOfWeek().getValue() > 1 ? 1 : 0);
+
+        Integer inventoryId = inventoryRepository.findByStation(stationId).stream()
+                .filter(inv -> "Blouson".equals(inv.name()))
+                .map(Inventory::id)
+                .findFirst()
+                .orElseGet(() -> inventoryRepository.findByStation(stationId).stream()
+                        .map(Inventory::id)
+                        .findFirst()
+                        .orElse(null));
+
+        Integer lendingRequestId = lendingService.findRequestsByStation(stationId).stream()
+                .map(LendingRequest::id)
+                .findFirst()
+                .orElse(null);
+
+        var board = boardService.findByStation(stationId).stream().findFirst().orElse(null);
+        Integer boardId = board == null ? null : board.id();
+        String boardKey = board == null ? null : board.shortKey();
+        Integer boardTicketId = null;
+        Integer boardTicketNumber = null;
+        if (board != null) {
+            var ticket = boardTicketService.findByBoard(board.id()).stream()
+                    .findFirst()
+                    .orElse(null);
+            if (ticket != null) {
+                boardTicketId = ticket.id();
+                boardTicketNumber = ticket.ticketNumber();
+            }
+        }
+
+        Integer procedureId = procedureService.findProceduresByStation(stationId, ProcedureStatus.OPEN).stream()
+                .map(Procedure::id)
+                .findFirst()
+                .orElseGet(() -> procedureService.findProceduresByStation(stationId, ProcedureStatus.RESOLVED).stream()
+                        .map(Procedure::id)
+                        .findFirst()
+                        .orElse(null));
+
+        var ctx = new DemoNotificationSeeder.ShowcaseContext(
+                news.firstNewsId(),
+                events.stadtfestId(),
+                events.evUebung().id(),
+                nextMonday.toString(),
+                null,
+                lostAndFoundItem == null ? null : lostAndFoundItem.id(),
+                lendingRequestId,
+                boardId,
+                boardKey,
+                boardTicketId,
+                boardTicketNumber,
+                procedureId,
+                inventoryId,
+                null,
+                stationId);
+        notificationSeeder.seedShowcase(adminMember, members.anfaenger(), ctx);
+        log.info("Demo: Created showcase notification for every NotificationType");
     }
 
     private void seedExchanges(

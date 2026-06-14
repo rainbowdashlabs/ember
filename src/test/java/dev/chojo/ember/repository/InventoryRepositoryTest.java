@@ -113,7 +113,12 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(20)
     void createItem() {
-        InventoryItem item = inventoryRepo.createItem(inventoryId, "H-001", "Red Helmet", sizeId, "{}");
+        InventoryItem item = inventoryRepo.createItem(
+                inventoryId,
+                "H-001",
+                "Red Helmet",
+                sizeId,
+                (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null);
         assertNotNull(item);
         assertEquals("H-001", item.internalId());
         itemId = item.id();
@@ -134,7 +139,12 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(23)
     void updateItem() {
-        assertTrue(inventoryRepo.updateItem(itemId, "H-002", "Blue Helmet", sizeId, "{\"color\":\"blue\"}"));
+        assertTrue(inventoryRepo.updateItem(
+                itemId,
+                "H-002",
+                "Blue Helmet",
+                sizeId,
+                new dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata(true)));
         InventoryItem updated = inventoryRepo.findItemById(itemId).orElseThrow();
         assertEquals("H-002", updated.internalId());
         assertEquals("Blue Helmet", updated.name());
@@ -162,7 +172,12 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Order(30)
     void createHistory() {
         // Re-create item for history tests
-        InventoryItem item = inventoryRepo.createItem(inventoryId, "H-003", "History Helmet", sizeId, "{}");
+        InventoryItem item = inventoryRepo.createItem(
+                inventoryId,
+                "H-003",
+                "History Helmet",
+                sizeId,
+                (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null);
         itemId = item.id();
 
         InventoryItemHistory history = inventoryRepo.createHistory(itemId, member.id(), "Inv User");
@@ -210,7 +225,8 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(40)
     void createRequirementByUserType() {
-        InventoryRequirement req = inventoryRepo.createRequirement(inventoryId, "MEMBER", 0, 2);
+        InventoryRequirement req =
+                inventoryRepo.createRequirement(inventoryId, dev.chojo.ember.api.auth.StationUserType.MEMBER, 0, 2);
         assertNotNull(req);
         assertEquals(inventoryId, req.inventoryId());
         assertEquals(2, req.quantity());
@@ -259,7 +275,12 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Order(45)
     void findItemsByStation() {
         // Create a fresh item for this test
-        InventoryItem item = inventoryRepo.createItem(inventoryId, "STAT-001", "Station Item", sizeId, "{}");
+        InventoryItem item = inventoryRepo.createItem(
+                inventoryId,
+                "STAT-001",
+                "Station Item",
+                sizeId,
+                (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null);
         var items = inventoryRepo.findItemsByStation(station.id());
         assertFalse(items.isEmpty());
         assertTrue(items.stream().anyMatch(i -> i.id() == item.id()));
@@ -276,7 +297,12 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(47)
     void findUnassignedItems() {
-        InventoryItem item = inventoryRepo.createItem(inventoryId, "UNAS-001", "Unassigned Item", null, "{}");
+        InventoryItem item = inventoryRepo.createItem(
+                inventoryId,
+                "UNAS-001",
+                "Unassigned Item",
+                null,
+                (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null);
         var unassigned = inventoryRepo.findUnassignedItems(inventoryId);
         assertFalse(unassigned.isEmpty());
         assertTrue(unassigned.stream().anyMatch(i -> i.id() == item.id()));
@@ -288,7 +314,12 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(48)
     void markLostAndFound() {
-        InventoryItem item = inventoryRepo.createItem(inventoryId, "LOST-001", "Lost Item", null, "{}");
+        InventoryItem item = inventoryRepo.createItem(
+                inventoryId,
+                "LOST-001",
+                "Lost Item",
+                null,
+                (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null);
         assertTrue(inventoryRepo.markLost(item.id()));
         assertNotNull(inventoryRepo.findItemById(item.id()).orElseThrow().lostAt());
 
@@ -315,7 +346,12 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(35)
     void createHistoryWithDates() {
-        InventoryItem item = inventoryRepo.createItem(inventoryId, "HIST-D", "HistDates Item", null, "{}");
+        InventoryItem item = inventoryRepo.createItem(
+                inventoryId,
+                "HIST-D",
+                "HistDates Item",
+                null,
+                (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null);
         Instant givenOut = Instant.parse("2025-01-01T10:00:00Z");
         Instant returned = Instant.parse("2025-01-15T10:00:00Z");
         assertDoesNotThrow(
@@ -331,7 +367,7 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(43)
     void updateRequirementPosition() {
-        var req = inventoryRepo.createRequirement(inventoryId, "TEAM", 0, 1);
+        var req = inventoryRepo.createRequirement(inventoryId, dev.chojo.ember.api.auth.StationUserType.TEAM, 0, 1);
         assertTrue(inventoryRepo.updateRequirementPosition(req.id(), 5));
         inventoryRepo.deleteRequirement(req.id());
     }

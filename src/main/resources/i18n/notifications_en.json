@@ -25,6 +25,16 @@
     "status.DECLINED": "Declined",
     "status.WITHDRAWN": "Withdrawn",
     "status.NONE": "Not registered",
+    "status.ANNOUNCED": "Announced",
+    "status.RECEIVED": "Received",
+    "status.SHIPPED": "Shipped",
+    "status.ARRIVED": "Arrived",
+    "status.DONE": "Done",
+    "status.REQUESTED": "Requested",
+    "status.APPROVED": "Approved",
+    "status.LENT": "Lent out",
+    "status.RETURNED": "Returned",
+    "status.CLOSED": "Closed",
     "cancelled": "Event cancelled",
     "cancelledWithReason": "Event cancelled: {reason}",
     "registrationRequired": "Registration required"
@@ -71,7 +81,10 @@
     "assignee": "Assignee",
     "priority": "Priority",
     "progress": "Progress",
-    "progressFormat": "{checked} of {total} items"
+    "progressFormat": "{checked} of {total} items",
+    "recurrence": "Recurrence",
+    "deadline": "Registration deadline",
+    "limit": "Attendee limit"
   },
   "storageCategory": {
     "KB_FILES": "Knowledge base",

@@ -215,7 +215,7 @@ async function handleLogout() {
       </SidebarGroup>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.INVENTORY)" :badge="counts.pendingExchanges + counts.lendingRequests" :icon="['fas', 'boxes-stacked']" :label="t('sidebar.inventory')" prefix="/station/inventory">
-        <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_READ)" :icon="['fas', 'house']" name="inventory-overview" to="/station/inventory/overview"
+        <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_READ)" :icon="['fas', 'house']" name="inventory-overview" to="/station/inventory"
                      @navigate="close">
           {{ t('sidebar.overview') }}
         </SidebarLink>
@@ -301,7 +301,7 @@ async function handleLogout() {
         <SidebarLink v-if="hasPermission(StationPermission.TEST_CATALOG_VIEW)" :icon="['fas', 'book']" name="quiz-catalogs" to="/station/quiz/catalogs" @navigate="close">
           {{ t('sidebar.quizCatalogs') }}
         </SidebarLink>
-        <SidebarLink v-if="hasPermission(StationPermission.TEST_RESULT_READ)" :icon="['fas', 'file-lines']" name="quiz-tests" to="/station/quiz/tests" @navigate="close">
+        <SidebarLink :icon="['fas', 'file-lines']" name="quiz-tests" to="/station/quiz/tests" @navigate="close">
           {{ t('sidebar.quizTests') }}
         </SidebarLink>
         <SidebarLink :icon="['fas', 'brain']" name="quiz-training" to="/station/quiz/training" @navigate="close">

@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.system.route;
 
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.roles.InstancePermission;
+import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.feature.system.service.ApiRequestLogger;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;

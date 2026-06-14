@@ -33,9 +33,9 @@ public class DemoKnowledgeBaseSeeder {
 
     public void seed(int stationId, int createdBy) {
         // === Root-level files ===
-        var welcomeFile = kbService.createMarkdownFile(
-                stationId, null, "Willkommen", "Startseite der Lernsammlung", """
-                        # Willkommen in der Lernsammlung
+        var welcomeFile =
+                kbService.createMarkdownFile(stationId, null, "Willkommen", "Startseite des Wikis", """
+                        # Willkommen im Wiki
 
                         Hier findest du alle wichtigen Informationen rund um die Jugendfeuerwehr.
 
@@ -51,7 +51,7 @@ public class DemoKnowledgeBaseSeeder {
 
         // Edit the welcome file to create a version history
         kbService.updateMarkdownContent(welcomeFile.id(), """
-                        # Willkommen in der Lernsammlung
+                        # Willkommen im Wiki
 
                         Hier findest du alle wichtigen Informationen rund um die Jugendfeuerwehr.
                         Schau dich um und lerne etwas Neues!

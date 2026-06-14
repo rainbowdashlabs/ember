@@ -39,55 +39,72 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const checkIndex = ref(0)
 const rapidAssignSelection = ref('')
 const rapidCreateSizeId = ref('')
 
+// Track entries the user explicitly skipped this session so they are
+// rotated to the back of the rapid-check queue without being marked as
+// confirmed in the backend.
+const skippedKeys = ref<Set<string>>(new Set())
+
+function entryKey(entry: CheckEntry): string {
+  return entry.type === 'item'
+    ? `item-${entry.item.id}`
+    : `slot-${entry.req.inventoryId}-${entry.slotIndex}`
+}
+
+// The next entry to present: the first unchecked entry the user has not
+// skipped this session. Falls back to the first skipped entry once every
+// pending entry has been seen, so the user keeps cycling through the
+// skipped ones until they decide.
 const currentEntry = computed((): CheckEntry | null => {
-  if (checkIndex.value >= props.uncheckedEntries.length) return null
-  return props.uncheckedEntries[checkIndex.value]
+  const entries = props.uncheckedEntries
+  if (entries.length === 0) return null
+  const next = entries.find(e => !skippedKeys.value.has(entryKey(e)))
+  if (next) return next
+  // All remaining entries were skipped — reset and cycle through them again.
+  return entries[0] ?? null
 })
 
-function handleSetResult(result: CheckResult) {
-  emit('setResult', result)
+function resetSelections() {
   rapidAssignSelection.value = ''
   rapidCreateSizeId.value = ''
-  if (checkIndex.value >= props.uncheckedEntries.length) {
-    emit('done')
-  }
+}
+
+function handleSetResult(result: CheckResult) {
+  const entry = currentEntry.value
+  emit('setResult', result)
+  if (entry) skippedKeys.value.delete(entryKey(entry))
+  resetSelections()
 }
 
 function handleMarkNotInPossession() {
+  const entry = currentEntry.value
   emit('markNotInPossession')
-  rapidAssignSelection.value = ''
-  rapidCreateSizeId.value = ''
-  if (checkIndex.value >= props.uncheckedEntries.length) {
-    emit('done')
-  }
+  if (entry) skippedKeys.value.delete(entryKey(entry))
+  resetSelections()
 }
 
 function handleAssign() {
   if (!rapidAssignSelection.value) return
   emit('assign', rapidAssignSelection.value)
-  rapidAssignSelection.value = ''
-  rapidCreateSizeId.value = ''
+  resetSelections()
 }
 
 function handleCreateAndAssign() {
   emit('createAndAssign', rapidCreateSizeId.value)
-  rapidAssignSelection.value = ''
-  rapidCreateSizeId.value = ''
+  resetSelections()
 }
 
 function skip() {
-  checkIndex.value++
-  rapidAssignSelection.value = ''
-  rapidCreateSizeId.value = ''
-  if (checkIndex.value >= props.uncheckedEntries.length) {
-    emit('done')
-  } else {
-    emit('skip')
+  const entry = currentEntry.value
+  if (entry) {
+    const next = new Set(skippedKeys.value)
+    next.add(entryKey(entry))
+    skippedKeys.value = next
   }
+  resetSelections()
+  emit('skip')
 }
 
 defineExpose({ currentEntry })

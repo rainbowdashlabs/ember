@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.restriction;
 
+import dev.chojo.ember.api.auth.StationUserType;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -19,14 +21,14 @@ public record RestrictionSet(List<Restriction> restrictions, RestrictionMode mod
     /**
      * Checks whether a member with the given identifiers satisfies these restrictions.
      *
-     * @param memberUserType the member's user type name
+     * @param memberUserType the member's user type
      * @param memberGroupIds the member's group IDs
      * @param memberTagIds   the member's tag IDs
      * @param memberId       the member's ID (for per-user restrictions)
      * @return true if the member passes the restrictions
      */
     public boolean matches(
-            String memberUserType, List<Integer> memberGroupIds, List<Integer> memberTagIds, int memberId) {
+            StationUserType memberUserType, List<Integer> memberGroupIds, List<Integer> memberTagIds, int memberId) {
         if (restrictions.isEmpty()) return true;
 
         // Per-user restrictions are always OR — any member match grants immediate access
@@ -73,7 +75,7 @@ public record RestrictionSet(List<Restriction> restrictions, RestrictionMode mod
         return !restrictions.isEmpty();
     }
 
-    public List<String> userTypes() {
+    public List<StationUserType> userTypes() {
         return restrictions.stream()
                 .map(Restriction::userType)
                 .filter(Objects::nonNull)

@@ -328,7 +328,7 @@ const router = createRouter({
                     component: () => import('@/views/stationview/members/waitinglist/EntryDetailView.vue'),
                 },
                 {
-                    path: 'inventory/overview',
+                    path: 'inventory',
                     name: 'inventory-overview',
                     component: InventoryOverviewView,
                 },
@@ -898,9 +898,9 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/basics/OverviewHelp.vue')
                 },
                 {
-                    path: 'basics/roles',
-                    name: 'help-basics-roles',
-                    component: () => import('@/views/helpcenter/basics/RolesHelp.vue')
+                    path: 'basics/permissions',
+                    name: 'help-basics-permissions',
+                    component: () => import('@/views/helpcenter/basics/PermissionsHelp.vue')
                 },
                 {
                     path: 'basics/modules',
@@ -1314,7 +1314,7 @@ const router = createRouter({
                 {
                     path: 'events/new',
                     name: 'help-event-new',
-                    redirect: { name: 'help-event-edit' },
+                    component: () => import('@/views/helpcenter/stationview/events/EventNewHelp.vue')
                 },
                 {
                     path: 'events/:id/edit',

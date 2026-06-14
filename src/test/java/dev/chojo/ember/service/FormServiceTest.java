@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.roles.StationUserType;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.Form;
@@ -260,7 +260,8 @@ class FormServiceTest extends RepositoryTestBase {
     @Test
     @Order(31)
     void setRestrictions() {
-        service.setRestrictions(formId, List.of("MEMBER"), List.of(), List.of(), List.of());
+        service.setRestrictions(
+                formId, List.of(dev.chojo.ember.api.auth.StationUserType.MEMBER), List.of(), List.of(), List.of());
         var rs = service.findRestrictions(formId);
         assertTrue(rs.hasRestrictions());
         // Clear

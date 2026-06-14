@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
 import dev.chojo.ember.feature.board.entity.LinkType;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
@@ -56,8 +57,8 @@ public class DemoBoardSeeder {
             int stationId,
             StationMember admin,
             List<StationMember> teamMembers,
-            String teamUserType,
-            String memberUserType,
+            StationUserType teamUserType,
+            StationUserType memberUserType,
             Random rng) {
         this.currentStationId = stationId;
 
@@ -585,8 +586,8 @@ public class DemoBoardSeeder {
             int partnerStationId,
             StationMember admin,
             List<StationMember> teamMembers,
-            String teamUserType,
-            String memberUserType,
+            StationUserType teamUserType,
+            StationUserType memberUserType,
             Random rng) {
         // Find the federation partner ID
         var partners = federationService.findPartners(stationId);

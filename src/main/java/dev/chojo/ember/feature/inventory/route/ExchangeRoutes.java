@@ -9,13 +9,14 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.ExchangeLog;
 import dev.chojo.ember.feature.inventory.entity.ExchangeRequest;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
+import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ExchangeExportService;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
@@ -206,8 +207,8 @@ public class ExchangeRoutes implements Routes {
             throw new BadRequestResponse("status is required");
         }
         ExchangeStatus status = request.status();
-        if (status == ExchangeStatus.EXCHANGED && request.exchangedItemId() == null) {
-            // For EXCHANGED status, exchangedItemId is optional but recommended
+        if (status == ExchangeStatus.DONE && request.exchangedItemId() == null) {
+            // For DONE status, exchangedItemId is optional but recommended
         }
         var exchange = exchangeService.updateStatus(
                 id, status, session.member().id(), request.note(), request.exchangedItemId());
@@ -289,7 +290,7 @@ public class ExchangeRoutes implements Routes {
         Inventory inventory =
                 inventoryRepository.findById(exchange.inventoryId()).orElse(null);
         String inventoryName = inventory != null ? inventory.name() : "";
-        String inventoryType = inventory != null ? inventory.inventoryType().name() : "";
+        InventoryType inventoryType = inventory != null ? inventory.inventoryType() : null;
         return new ExchangeResponse(
                 exchange.id(),
                 exchange.memberId(),
@@ -303,7 +304,7 @@ public class ExchangeRoutes implements Routes {
                 exchange.newSizeId(),
                 resolveSizeLabel(exchange.newSizeId(), exchange.inventoryId()),
                 inventoryType,
-                exchange.status().name(),
+                exchange.status(),
                 exchange.reason(),
                 exchange.createdAt(),
                 exchange.updatedAt(),
@@ -318,8 +319,8 @@ public class ExchangeRoutes implements Routes {
                 .orElse("");
         return new LogResponse(
                 log.id(),
-                log.oldStatus().name(),
-                log.newStatus().name(),
+                log.oldStatus(),
+                log.newStatus(),
                 log.changedBy(),
                 changedByName,
                 log.changedAt(),
@@ -340,8 +341,8 @@ public class ExchangeRoutes implements Routes {
             String oldSizeLabel,
             Integer newSizeId,
             String newSizeLabel,
-            String inventoryType,
-            String status,
+            InventoryType inventoryType,
+            ExchangeStatus status,
             String reason,
             Instant createdAt,
             Instant updatedAt,
@@ -349,8 +350,8 @@ public class ExchangeRoutes implements Routes {
 
     public record LogResponse(
             int id,
-            String oldStatus,
-            String newStatus,
+            ExchangeStatus oldStatus,
+            ExchangeStatus newStatus,
             int changedBy,
             String changedByName,
             Instant changedAt,

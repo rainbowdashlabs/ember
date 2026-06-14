@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.knowledgebase.repository;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.knowledgebase.entity.ConversionStatus;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessRestriction;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
@@ -393,7 +394,12 @@ public class KnowledgeBaseRepository {
     }
 
     public KbAccessRestriction addRestriction(
-            Integer folderId, Integer fileId, String userType, Integer groupId, Integer tagId, Integer memberId) {
+            Integer folderId,
+            Integer fileId,
+            StationUserType userType,
+            Integer groupId,
+            Integer tagId,
+            Integer memberId) {
         return query("""
                 INSERT
                 INTO
@@ -485,6 +491,13 @@ public class KnowledgeBaseRepository {
         return query("SELECT %s FROM kb_file f WHERE f.station_id = :station_id ORDER BY f.name;", FILE_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(KbFile.map())
+                .all();
+    }
+
+    public List<KbFolder> findAllFolders(int stationId) {
+        return query("SELECT %s FROM kb_folder fo WHERE fo.station_id = :station_id;", FOLDER_COLUMNS)
+                .single(call().bind("station_id", stationId))
+                .map(KbFolder.map())
                 .all();
     }
 

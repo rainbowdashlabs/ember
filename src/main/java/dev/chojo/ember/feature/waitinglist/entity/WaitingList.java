@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.waitinglist.entity;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.api.auth.StationUserType;
 
 import java.time.Instant;
 import java.util.List;
@@ -25,7 +26,7 @@ public record WaitingList(
         List<Integer> visibleFields,
         Integer testingGroupId,
         Integer joinGroupId,
-        String joinUserType,
+        StationUserType joinUserType,
         int attendanceThreshold,
         boolean isPublic) {
 
@@ -43,7 +44,7 @@ public record WaitingList(
                 parseVisibleFields(row.getString("visible_fields")),
                 row.getObject("testing_group_id", Integer.class),
                 row.getObject("join_group_id", Integer.class),
-                row.getString("join_user_type"),
+                row.getEnum("join_user_type", StationUserType.class),
                 row.getInt("attendance_threshold"),
                 row.getBoolean("public"));
     }

@@ -299,6 +299,7 @@ export interface EventCategory {
     maxShownEvents?: number | null
     isPublic?: boolean
     registrationLimit?: number | null
+    color?: string | null
 }
 
 export interface CategoryRequest {
@@ -307,6 +308,7 @@ export interface CategoryRequest {
     maxShownEvents?: number | null
     isPublic?: boolean
     registrationLimit?: number | null
+    color?: string | null
 }
 
 export interface StationEvent {
@@ -866,6 +868,7 @@ export const RegistrationStatus = {
     ACCEPTED: 'ACCEPTED',
     DENIED: 'DENIED',
     DECLINED: 'DECLINED',
+    WITHDRAWN: 'WITHDRAWN',
 } as const
 
 export type RegistrationStatusName = (typeof RegistrationStatus)[keyof typeof RegistrationStatus]
@@ -1278,6 +1281,8 @@ export interface NewsEntry {
     commentCount: number
     restricted?: boolean
     publicBlog?: boolean
+    viewCount: number
+    viewedByMe: boolean
 }
 
 export interface NewsRequest {
@@ -1349,7 +1354,7 @@ export const ExchangeStatus = {
     RECEIVED: 'RECEIVED',
     SHIPPED: 'SHIPPED',
     ARRIVED: 'ARRIVED',
-    EXCHANGED: 'EXCHANGED',
+    DONE: 'DONE',
 } as const
 
 export type ExchangeStatusName = (typeof ExchangeStatus)[keyof typeof ExchangeStatus]

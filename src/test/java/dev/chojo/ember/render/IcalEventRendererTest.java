@@ -275,7 +275,7 @@ class IcalEventRendererTest {
                 "de",
                 "https://ember.example.com",
                 true,
-                new HashMap<>(Map.of(1, new EventCategory(1, 1, "Cat", 1, null, false))),
+                new HashMap<>(Map.of(1, new EventCategory(1, 1, "Cat", 1, null, false, null))),
                 new HashMap<>(ownerStatus),
                 new HashSet<>(ownerRegistered),
                 new HashMap<>(managed));

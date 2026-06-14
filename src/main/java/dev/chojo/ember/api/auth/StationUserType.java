@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.api.roles;
+package dev.chojo.ember.api.auth;
 
 /**
  * A user type represents a fixed set of permissions

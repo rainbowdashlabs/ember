@@ -38,7 +38,7 @@ const ALL_STEPS: TourStep[] = [
     {id: 'federation', icon: ['fas', 'arrow-right-arrow-left'], route: 'station-federation', roles: [StationPermission.STATION_FEDERATION]},
     {id: 'discovery', icon: ['fas', 'compass'], route: 'station-discovery', roles: [StationPermission.STATION_ADMINISTRATOR, StationPermission.STATION_FEDERATION]},
     {id: 'station', icon: ['fas', 'gears'], route: 'station-manage', roles: [StationPermission.STATION_ADMINISTRATOR]},
-    {id: 'settings', icon: ['fas', 'gear'], route: 'profile-settings'},
+    {id: 'settings', icon: ['fas', 'gear'], route: 'profile-sessions'},
     {id: 'helpCenter', icon: ['fas', 'circle-question'], route: 'dashboard-overview'},
     {id: 'done', icon: ['fas', 'check'], route: 'dashboard-overview'},
 ]

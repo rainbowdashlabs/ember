@@ -7,12 +7,13 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
-import type {EventBreak, StationEvent} from '@/api/types'
+import type {EventBreak, EventCategory, StationEvent} from '@/api/types'
 import {EventTypes, isRecurringEvent} from '@/api/types'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EventChipButton from '@/components/button/EventChipButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
+import {contrastingTextColorForHex} from '@/util/contrastColor'
 
 /**
  * Month-grid calendar of upcoming events. Always renders a 7×6 grid (42 cells) so the layout
@@ -32,7 +33,29 @@ const props = defineProps<{
   managedMemberIds: number[]
   selectedCategoryId: string
   searchQuery: string
+  categories?: EventCategory[]
 }>()
+
+// categoryId -> {bg, fg}. Computed once per props change so we don't re-derive contrast
+// colors per cell. Categories without a color fall back to undefined and the chip renders
+// with the default primary tint.
+const categoryStyle = computed<Record<number, {bg: string; fg: string}>>(() => {
+  const out: Record<number, {bg: string; fg: string}> = {}
+  for (const cat of props.categories ?? []) {
+    if (!cat.color) continue
+    const fg = contrastingTextColorForHex(cat.color)
+    if (!fg) continue
+    out[cat.id] = {bg: cat.color, fg}
+  }
+  return out
+})
+
+function chipStyle(ev: StationEvent): {backgroundColor: string; color: string} | undefined {
+  if (ev.categoryId == null) return undefined
+  const s = categoryStyle.value[ev.categoryId]
+  if (!s) return undefined
+  return {backgroundColor: s.bg, color: s.fg}
+}
 
 const {t} = useI18n()
 const router = useRouter()
@@ -115,8 +138,11 @@ function eventsForDate(date: Date): {event: StationEvent; date: string}[] {
 
     if (ev.eventType === EventTypes.ONE_TIME) {
       if (!ev.startTime) continue
-      const evDateStr = new Date(ev.startTime).toISOString().slice(0, 10)
-      if (evDateStr === dateStr) result.push({event: ev, date: dateStr})
+      const startStr = new Date(ev.startTime).toISOString().slice(0, 10)
+      // Multi-day one-time events span from startTime's date to endTime's date.
+      // Render the chip on every day in that range, not just the start.
+      const endStr = ev.endTime ? new Date(ev.endTime).toISOString().slice(0, 10) : startStr
+      if (dateStr >= startStr && dateStr <= endStr) result.push({event: ev, date: dateStr})
       continue
     }
     if (!isRecurringEvent(ev.eventType)) continue
@@ -252,10 +278,11 @@ function openEvent(ev: StationEvent, date: string) {
               v-for="evRef in cell.events.slice(0, 3)"
               :key="`${evRef.event.id}-${evRef.date}`"
               :title="`${evRef.event.name}${evRef.event.startTime ? ' · ' + formatTime(evRef.event.startTime) : ''}`"
+              :custom-style="chipStyle(evRef.event)"
               @click="openEvent(evRef.event, evRef.date)"
           >
             <MutedIcon v-if="evRef.event.restricted" :icon="['fas', 'lock']" class="mr-0.5 inline" />
-            <span class="hidden sm:inline">{{ formatTime(evRef.event.startTime) }} </span>
+            <span class="hidden sm:inline">{{ formatTime(evRef.event.startTime) }}&nbsp;</span>
             <span>{{ evRef.event.name }}</span>
           </EventChipButton>
         </div>

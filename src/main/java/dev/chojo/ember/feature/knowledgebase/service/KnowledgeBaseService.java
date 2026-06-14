@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.BulkMentionedInComment;
 import dev.chojo.ember.event.events.CommentCreated;
@@ -364,7 +365,7 @@ public class KnowledgeBaseService {
             List<Integer> memberIds) {
         repository.clearRestrictions(folderId, fileId);
         for (String userType : userTypes) {
-            repository.addRestriction(folderId, fileId, userType, null, null, null);
+            repository.addRestriction(folderId, fileId, StationUserType.valueOf(userType), null, null, null);
         }
         for (Integer groupId : groupIds) {
             repository.addRestriction(folderId, fileId, null, groupId, null, null);
@@ -381,7 +382,7 @@ public class KnowledgeBaseService {
             int memberId,
             Integer folderId,
             Integer fileId,
-            String memberUserType,
+            StationUserType memberUserType,
             List<Integer> memberGroupIds,
             List<Integer> memberTagIds) {
         // Check file/folder restrictions
@@ -421,7 +422,7 @@ public class KnowledgeBaseService {
     private boolean canAccessFolder(
             int memberId,
             int folderId,
-            String memberUserType,
+            StationUserType memberUserType,
             List<Integer> memberGroupIds,
             List<Integer> memberTagIds) {
         var folder = repository.findFolderById(folderId);
@@ -698,6 +699,10 @@ public class KnowledgeBaseService {
 
     public List<KbFile> findFilesByTag(int stationId, String tagName) {
         return repository.findFilesByTag(stationId, tagName);
+    }
+
+    public List<KbFolder> findAllFolders(int stationId) {
+        return repository.findAllFolders(stationId);
     }
 
     public List<KbTag> setFileTags(int fileId, List<String> tagNames, int stationId) {

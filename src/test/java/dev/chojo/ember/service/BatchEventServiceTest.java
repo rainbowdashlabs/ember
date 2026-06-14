@@ -167,7 +167,7 @@ class BatchEventServiceTest extends RepositoryTestBase {
                 false,
                 false,
                 null,
-                List.of("MEMBER"),
+                List.of(dev.chojo.ember.api.auth.StationUserType.MEMBER),
                 List.<Integer>of(),
                 null);
 
@@ -182,7 +182,8 @@ class BatchEventServiceTest extends RepositoryTestBase {
         // Monday = 1, generate weekly for 3 weeks
         LocalDate start = LocalDate.of(2026, 6, 1); // Monday
         LocalDate end = LocalDate.of(2026, 6, 22); // covers 4 Mondays: 1, 8, 15, 22
-        var config = new IntervalConfig("RECURRING", 1, start, end, null, null);
+        var config = new IntervalConfig(
+                dev.chojo.ember.feature.events.entity.IntervalType.RECURRING, 1, start, end, null, null);
 
         var rows = batchService.generateDates(station.id(), config, true);
         assertEquals(4, rows.size());
@@ -197,7 +198,8 @@ class BatchEventServiceTest extends RepositoryTestBase {
         // First Tuesday (dayOfWeek=2) in each month from June to August 2026
         LocalDate start = LocalDate.of(2026, 6, 1);
         LocalDate end = LocalDate.of(2026, 8, 31);
-        var config = new IntervalConfig("MONTHLY_FIRST", 2, start, end, null, null);
+        var config = new IntervalConfig(
+                dev.chojo.ember.feature.events.entity.IntervalType.MONTHLY_FIRST, 2, start, end, null, null);
 
         var rows = batchService.generateDates(station.id(), config, true);
         assertEquals(3, rows.size()); // June, July, August
@@ -209,7 +211,8 @@ class BatchEventServiceTest extends RepositoryTestBase {
         // First Wednesday (3) of the first month of each quarter: Jan, Apr, Jul, Oct
         LocalDate start = LocalDate.of(2026, 1, 1);
         LocalDate end = LocalDate.of(2026, 12, 31);
-        var config = new IntervalConfig("QUARTERLY", 3, start, end, null, null);
+        var config = new IntervalConfig(
+                dev.chojo.ember.feature.events.entity.IntervalType.QUARTERLY, 3, start, end, null, null);
 
         var rows = batchService.generateDates(station.id(), config, true);
         assertEquals(4, rows.size()); // Q1, Q2, Q3, Q4
@@ -220,7 +223,8 @@ class BatchEventServiceTest extends RepositoryTestBase {
     void generateDatesYearly() {
         LocalDate start = LocalDate.of(2026, 3, 15);
         LocalDate end = LocalDate.of(2030, 3, 15);
-        var config = new IntervalConfig("YEARLY", 1, start, end, null, null);
+        var config = new IntervalConfig(
+                dev.chojo.ember.feature.events.entity.IntervalType.YEARLY, 1, start, end, null, null);
 
         var rows = batchService.generateDates(station.id(), config, true);
         assertEquals(5, rows.size()); // 2026, 2027, 2028, 2029, 2030
@@ -233,7 +237,8 @@ class BatchEventServiceTest extends RepositoryTestBase {
         LocalDate end = LocalDate.of(2026, 6, 1);
         LocalTime startTime = LocalTime.of(9, 0);
         LocalTime endTime = LocalTime.of(17, 30);
-        var config = new IntervalConfig("RECURRING", 1, start, end, startTime, endTime);
+        var config = new IntervalConfig(
+                dev.chojo.ember.feature.events.entity.IntervalType.RECURRING, 1, start, end, startTime, endTime);
 
         var rows = batchService.generateDates(station.id(), config, true);
         assertFalse(rows.isEmpty());
@@ -247,7 +252,8 @@ class BatchEventServiceTest extends RepositoryTestBase {
     @Order(15)
     void generateDatesDefaultTimesWhenNull() {
         LocalDate date = LocalDate.of(2026, 6, 1); // Monday
-        var config = new IntervalConfig("RECURRING", 1, date, date, null, null);
+        var config = new IntervalConfig(
+                dev.chojo.ember.feature.events.entity.IntervalType.RECURRING, 1, date, date, null, null);
 
         var rows = batchService.generateDates(station.id(), config, true);
         assertFalse(rows.isEmpty());
@@ -263,7 +269,8 @@ class BatchEventServiceTest extends RepositoryTestBase {
     void generateDatesUnknownType() {
         LocalDate start = LocalDate.of(2026, 6, 1);
         LocalDate end = LocalDate.of(2026, 6, 30);
-        var config = new IntervalConfig("UNKNOWN_TYPE", 1, start, end, null, null);
+        // Null type falls through the switch's default branch and yields an empty list
+        var config = new IntervalConfig(null, 1, start, end, null, null);
 
         var rows = batchService.generateDates(station.id(), config, true);
         assertTrue(rows.isEmpty());

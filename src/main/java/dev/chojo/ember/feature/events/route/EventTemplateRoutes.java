@@ -8,11 +8,14 @@ package dev.chojo.ember.feature.events.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.EventTemplateField;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
+import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -234,11 +237,11 @@ public class EventTemplateRoutes implements Routes {
             String title,
             String description,
             Integer categoryId,
-            String eventType,
+            StationEvent.EventType eventType,
             Boolean requiresRegistration,
             String registrationDeadlineOffset,
             Boolean requiresConfirmation,
-            String restrictionMode,
+            RestrictionMode restrictionMode,
             Integer attendanceTemplateId,
             Integer registrationLimit) {}
 
@@ -250,7 +253,7 @@ public class EventTemplateRoutes implements Routes {
 
     public record SetFieldsRequest(List<EventTemplateFieldData> fields) {}
 
-    public record SetRestrictionsRequest(List<String> userTypes) {}
+    public record SetRestrictionsRequest(List<StationUserType> userTypes) {}
 
     public record SetRemindersRequest(List<Integer> daysBefore) {}
 

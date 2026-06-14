@@ -7,8 +7,9 @@ package dev.chojo.ember.feature.waitinglist.route;
 
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryGuardian;
@@ -16,6 +17,7 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryValue;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListField;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.feature.waitinglist.service.ScoreEvaluator;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
 import io.javalin.http.BadRequestResponse;
@@ -640,7 +642,12 @@ public class WaitingListRoutes implements Routes {
     public record ListWithCount(WaitingList list, int entryCount) {}
 
     public record FieldRequest(
-            String name, String fieldType, String config, int position, boolean required, Boolean isPublic) {}
+            String name,
+            WaitingListFieldType fieldType,
+            String config,
+            int position,
+            boolean required,
+            Boolean isPublic) {}
 
     public record VisibleFieldsRequest(List<Integer> fieldIds) {}
 
@@ -668,11 +675,11 @@ public class WaitingListRoutes implements Routes {
 
     public record GuardianRequest(String firstname, String lastname, String email, String phone) {}
 
-    private static List<WaitingListService.GuardianInput> resolveGuardians(
+    private static List<GuardianInput> resolveGuardians(
             List<GuardianRequest> guardians, String parentName, String email) {
         if (guardians != null && !guardians.isEmpty()) {
             return guardians.stream()
-                    .map(g -> new WaitingListService.GuardianInput(
+                    .map(g -> new GuardianInput(
                             g.firstname() != null ? g.firstname() : "",
                             g.lastname() != null ? g.lastname() : "",
                             g.email() != null ? g.email() : "",
@@ -680,8 +687,7 @@ public class WaitingListRoutes implements Routes {
                     .toList();
         }
         if ((parentName != null && !parentName.isBlank()) || (email != null && !email.isBlank())) {
-            return List.of(new WaitingListService.GuardianInput(
-                    parentName != null ? parentName : "", "", email != null ? email : "", ""));
+            return List.of(new GuardianInput(parentName != null ? parentName : "", "", email != null ? email : "", ""));
         }
         return List.of();
     }
@@ -735,13 +741,13 @@ public class WaitingListRoutes implements Routes {
         }
         var guardianInputs = request.guardians() != null
                 ? request.guardians().stream()
-                        .map(g -> new WaitingListService.GuardianInput(
+                        .map(g -> new GuardianInput(
                                 g.firstname() != null ? g.firstname() : "",
                                 g.lastname() != null ? g.lastname() : "",
                                 g.email() != null ? g.email() : "",
                                 g.phone() != null ? g.phone() : ""))
                         .toList()
-                : List.<WaitingListService.GuardianInput>of();
+                : List.<GuardianInput>of();
         service.submitPublicRegistration(
                 wid,
                 request.firstname(),

@@ -72,7 +72,7 @@ public class FederatedBoardNotificationService {
 
     public void notifyShareModeChanged(int partnerId, int boardId, BoardShareMode newMode) {
         webhookService.fireEventToPartner(
-                partnerId, WebhookEvent.BOARD_SHARE_MODE_CHANGED, new ShareModeChangedPayload(boardId, newMode.name()));
+                partnerId, WebhookEvent.BOARD_SHARE_MODE_CHANGED, new ShareModeChangedPayload(boardId, newMode));
     }
 
     private boolean isFullMode(int boardId, int partnerId) {
@@ -88,5 +88,5 @@ public class FederatedBoardNotificationService {
 
     public record BoardIdPayload(int boardId) {}
 
-    public record ShareModeChangedPayload(int boardId, String shareMode) {}
+    public record ShareModeChangedPayload(int boardId, BoardShareMode shareMode) {}
 }

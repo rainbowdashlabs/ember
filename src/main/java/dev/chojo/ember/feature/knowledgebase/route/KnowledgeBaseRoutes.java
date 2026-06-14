@@ -10,7 +10,8 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -249,6 +250,7 @@ public class KnowledgeBaseRoutes implements Routes {
 
         // Tags
         routes.get(prefix + "/kb/tags", this::listTags, StationPermission.USER);
+        routes.get(prefix + "/kb/tags/{name}/scope", this::getTagScope, StationPermission.USER);
         routes.get(prefix + "/kb/files/{id}/tags", this::getFileTags, StationPermission.USER);
         routes.put(prefix + "/kb/files/{id}/tags", this::setFileTags, StationPermission.KNOWLEDGE_EDIT);
         routes.get(prefix + "/kb/folders/{id}/tags", this::getFolderTags, StationPermission.USER);
@@ -744,7 +746,7 @@ public class KnowledgeBaseRoutes implements Routes {
         // Filter by access restrictions unless user has KNOWLEDGE_MANAGER role
         if (!session.hasPermission(StationPermission.KNOWLEDGE_MANAGER)) {
             int memberId = session.member().id();
-            String memberUserType = session.member().userType().name();
+            StationUserType memberUserType = session.member().userType();
             var memberGroupIds = memberGroupRepository.findGroupsForMember(memberId).stream()
                     .map(MemberGroup::id)
                     .toList();
@@ -910,7 +912,7 @@ public class KnowledgeBaseRoutes implements Routes {
     public record MarkdownHtmlResponse(String html, String markdown) {}
 
     public record RestrictionResponse(
-            List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {}
+            List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {}
 
     public record BrowseResponse(KbFolder currentFolder, List<KbFolder> folders, List<KbFileSummary> files) {}
 
@@ -1026,6 +1028,51 @@ public class KnowledgeBaseRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         ctx.json(service.findFolderTags(id));
     }
+
+    private void getTagScope(Context ctx) {
+        var session = UserSession.from(ctx);
+        String tagName = ctx.pathParam("name");
+        int stationId = session.stationId();
+
+        var matchingFiles = service.findFilesByTag(stationId, tagName);
+        var allFolders = service.findAllFolders(stationId);
+
+        // Apply access restrictions for non-managers.
+        if (!session.hasPermission(StationPermission.KNOWLEDGE_MANAGER)) {
+            int memberId = session.member().id();
+            StationUserType memberUserType = session.member().userType();
+            var memberGroupIds = memberGroupRepository.findGroupsForMember(memberId).stream()
+                    .map(MemberGroup::id)
+                    .toList();
+            var memberTagIds = userTagRepository.findTagsForMember(memberId).stream()
+                    .map(UserTag::id)
+                    .toList();
+            matchingFiles = matchingFiles.stream()
+                    .filter(f ->
+                            service.canAccess(memberId, null, f.id(), memberUserType, memberGroupIds, memberTagIds))
+                    .toList();
+        }
+
+        // Build parent lookup map for folder ancestry traversal.
+        var folderParent = new java.util.HashMap<Integer, Integer>();
+        for (var folder : allFolders) {
+            folderParent.put(folder.id(), folder.parentId());
+        }
+
+        var matchingFileIds = matchingFiles.stream().map(KbFile::id).toList();
+        var ancestorFolderIds = new java.util.HashSet<Integer>();
+        for (var file : matchingFiles) {
+            Integer cur = file.folderId();
+            while (cur != null && !ancestorFolderIds.contains(cur)) {
+                ancestorFolderIds.add(cur);
+                cur = folderParent.get(cur);
+            }
+        }
+
+        ctx.json(new TagScopeResponse(matchingFileIds, new java.util.ArrayList<>(ancestorFolderIds)));
+    }
+
+    public record TagScopeResponse(List<Integer> matchingFileIds, List<Integer> ancestorFolderIds) {}
 
     private void setFolderTags(Context ctx) {
         var session = UserSession.from(ctx);
@@ -1198,7 +1245,7 @@ public class KnowledgeBaseRoutes implements Routes {
         var comment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
         var memberIdentity = memberIdentityFactory.local(
                 session.stationId(), session.member().id());
-        if (comment.author() == null || !comment.author().equals(memberIdentity)) {
+        if (comment.author() == null || !comment.author().sameMember(memberIdentity)) {
             throw new ForbiddenResponse("You can only edit your own comments");
         }
         var req = ctx.bodyAsClass(UpdateKbCommentRequest.class);
@@ -1216,7 +1263,7 @@ public class KnowledgeBaseRoutes implements Routes {
         var comment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
         var authorIdentity = memberIdentityFactory.local(
                 session.stationId(), session.member().id());
-        boolean isAuthor = comment.author() != null && comment.author().equals(authorIdentity);
+        boolean isAuthor = comment.author() != null && comment.author().sameMember(authorIdentity);
         boolean canModerate = session.hasPermission(StationPermission.KNOWLEDGE_MANAGER);
         if (!isAuthor && !canModerate) {
             throw new ForbiddenResponse("You can only delete your own comments");
@@ -1262,7 +1309,7 @@ public class KnowledgeBaseRoutes implements Routes {
         }
         var comment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
         var expectedAuthor = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
-        if (comment.author() == null || !comment.author().equals(expectedAuthor)) {
+        if (comment.author() == null || !comment.author().sameMember(expectedAuthor)) {
             throw new ForbiddenResponse("You can only edit your own comments");
         }
         kbCommentRepository.update(commentId, req.content());
@@ -1276,7 +1323,7 @@ public class KnowledgeBaseRoutes implements Routes {
         var req = ctx.bodyAsClass(RemoteKbCommentDeleteRequest.class);
         var comment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
         var expectedAuthor = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
-        if (comment.author() == null || !comment.author().equals(expectedAuthor)) {
+        if (comment.author() == null || !comment.author().sameMember(expectedAuthor)) {
             throw new ForbiddenResponse("You can only delete your own comments");
         }
         if (kbCommentRepository.delete(commentId)) {

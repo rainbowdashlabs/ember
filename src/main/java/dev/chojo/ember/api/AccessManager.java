@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.api;
 
-import dev.chojo.ember.api.roles.InstancePermission;
-import dev.chojo.ember.api.roles.InstanceUserType;
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.auth.InstanceUserType;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;

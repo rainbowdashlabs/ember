@@ -20,7 +20,7 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import type {LendingRequestResponse, LendingStatusName, AvailableInventoryEntry} from '@/api/lending'
 import {LendingStatus} from '@/api/lending'
@@ -168,7 +168,7 @@ watch(loaded, (v) => {
 
     <!-- Offers tab -->
     <template v-if="activeTab === 'offers'">
-      <TextInput
+      <SearchInput
           v-model="searchQuery"
           :placeholder="t('lending.searchInventory')"
           class="mb-4"

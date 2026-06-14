@@ -8,7 +8,7 @@ package dev.chojo.ember.service;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
-import dev.chojo.ember.api.roles.StationUserType;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.AccessData;
@@ -278,7 +278,10 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Test
     @Order(21)
     void passesLocalViewOverrideWithMatchingUserType() {
-        proxyService.setLocalViewOverride(partnerId, boardUid, new AccessData(List.of("MEMBER"), List.of(), List.of()));
+        proxyService.setLocalViewOverride(
+                partnerId,
+                boardUid,
+                new AccessData(List.of(dev.chojo.ember.api.auth.StationUserType.MEMBER), List.of(), List.of()));
         when(memberService.findById(memberId))
                 .thenReturn(Optional.of(new StationMember(
                         memberId, station1.id(), null, null, false, null, null, StationUserType.MEMBER)));
@@ -333,7 +336,10 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Test
     @Order(31)
     void passesLocalEditOverrideWithMatchingUserType() {
-        proxyService.setLocalEditOverride(partnerId, boardUid, new AccessData(List.of("MEMBER"), List.of(), List.of()));
+        proxyService.setLocalEditOverride(
+                partnerId,
+                boardUid,
+                new AccessData(List.of(dev.chojo.ember.api.auth.StationUserType.MEMBER), List.of(), List.of()));
         when(memberService.findById(memberId))
                 .thenReturn(Optional.of(new StationMember(
                         memberId, station1.id(), null, null, false, null, null, StationUserType.MEMBER)));
@@ -401,7 +407,9 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 boardId, List.of(new FederatedBoardService.PartnerShareConfig(partnerId, BoardShareMode.FULL)));
         // Set view override that member won't pass
         proxyService.setLocalViewOverride(
-                partnerId, boardUid, new AccessData(List.of("MANAGER"), List.of(), List.of()));
+                partnerId,
+                boardUid,
+                new AccessData(List.of(dev.chojo.ember.api.auth.StationUserType.MANAGER), List.of(), List.of()));
         when(memberService.findById(memberId))
                 .thenReturn(Optional.of(new StationMember(
                         memberId, station1.id(), null, null, false, null, null, StationUserType.MEMBER)));
@@ -417,7 +425,9 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Order(46)
     void cannotWriteWhenEditOverrideFails() {
         proxyService.setLocalEditOverride(
-                partnerId, boardUid, new AccessData(List.of("MANAGER"), List.of(), List.of()));
+                partnerId,
+                boardUid,
+                new AccessData(List.of(dev.chojo.ember.api.auth.StationUserType.MANAGER), List.of(), List.of()));
         when(memberService.findById(memberId))
                 .thenReturn(Optional.of(new StationMember(
                         memberId, station1.id(), null, null, false, null, null, StationUserType.MEMBER)));
@@ -435,10 +445,20 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Order(50)
     void getLocalViewOverride() {
         proxyService.setLocalViewOverride(
-                partnerId, boardUid, new AccessData(List.of("MEMBER", "GUARDIAN"), List.of(3), List.of(4)));
+                partnerId,
+                boardUid,
+                new AccessData(
+                        List.of(
+                                dev.chojo.ember.api.auth.StationUserType.MEMBER,
+                                dev.chojo.ember.api.auth.StationUserType.GUARDIAN),
+                        List.of(3),
+                        List.of(4)));
         var access = proxyService.getLocalViewOverride(partnerId, boardUid);
         assertEquals(2, access.userTypes().size());
-        assertTrue(access.userTypes().containsAll(List.of("MEMBER", "GUARDIAN")));
+        assertTrue(access.userTypes()
+                .containsAll(List.of(
+                        dev.chojo.ember.api.auth.StationUserType.MEMBER,
+                        dev.chojo.ember.api.auth.StationUserType.GUARDIAN)));
         assertEquals(List.of(3), access.groupIds());
         assertEquals(List.of(4), access.tagIds());
         // Cleanup
@@ -449,9 +469,11 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Order(51)
     void getLocalEditOverride() {
         proxyService.setLocalEditOverride(
-                partnerId, boardUid, new AccessData(List.of("TEAM"), List.of(6, 7), List.of()));
+                partnerId,
+                boardUid,
+                new AccessData(List.of(dev.chojo.ember.api.auth.StationUserType.TEAM), List.of(6, 7), List.of()));
         var access = proxyService.getLocalEditOverride(partnerId, boardUid);
-        assertEquals(List.of("TEAM"), access.userTypes());
+        assertEquals(List.of(dev.chojo.ember.api.auth.StationUserType.TEAM), access.userTypes());
         assertEquals(List.of(6, 7), access.groupIds());
         assertTrue(access.tagIds().isEmpty());
         // Cleanup
@@ -579,7 +601,12 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
         when(httpClient.getList(
                         eq("https://remote.example.com"), eq("/remote/boards"), eq(station1.id()), any(), any()))
                 .thenReturn(List.of(new FederatedBoardProxyService.RemoteDiscoveredBoard(
-                        UUID.randomUUID().toString(), "Remote Board", "RMT", "Remote desc", "FULL", "USER")));
+                        UUID.randomUUID().toString(),
+                        "Remote Board",
+                        "RMT",
+                        "Remote desc",
+                        BoardShareMode.FULL,
+                        dev.chojo.ember.api.auth.StationUserType.MEMBER)));
 
         var discovered = proxyService.discoverBoards(station1.id());
         assertFalse(discovered.isEmpty());
@@ -631,7 +658,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 "A description",
                 BoardShareMode.FULL,
                 "Partner Station",
-                "USER");
+                dev.chojo.ember.api.auth.StationUserType.MEMBER);
         assertEquals(1, db.partnerId());
         assertEquals("550e8400-e29b-41d4-a716-446655440000", db.partnerStationUid());
         assertEquals(testUid, db.remoteBoardUid());
@@ -687,7 +714,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
         var detail = proxyService.proxyGetBoard(partnerId, boardKey);
         assertNotNull(detail);
         assertEquals("Shared Board", detail.board().name());
-        assertEquals("FULL", detail.shareMode());
+        assertEquals(BoardShareMode.FULL, detail.shareMode());
         assertNotNull(detail.stationName());
     }
 
@@ -868,7 +895,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 current.title(),
                 current.description(),
                 null,
-                current.priority().name(),
+                current.priority(),
                 null,
                 null,
                 null);
@@ -1121,14 +1148,15 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         var remoteBoard = new FederatedBoardProxyService.RemoteBoard(
                 10, "00000000-0000-4000-a000-000000000099", "Remote Board", "Desc", "RMT", 0, 0, null, null);
-        var remoteDetail = new FederatedBoardProxyService.FederatedBoardDetail(remoteBoard, "FULL", "Remote Station");
+        var remoteDetail =
+                new FederatedBoardProxyService.FederatedBoardDetail(remoteBoard, BoardShareMode.FULL, "Remote Station");
         when(httpClient.get(eq("https://remote.example.com"), eq("/remote/boards/" + boardKey), anyInt(), any(), any()))
                 .thenReturn(remoteDetail);
 
         var detail = proxyService.proxyGetBoard(partnerId, boardKey);
         assertNotNull(detail);
         assertEquals("Remote Board", detail.board().name());
-        assertEquals("FULL", detail.shareMode());
+        assertEquals(BoardShareMode.FULL, detail.shareMode());
         assertEquals("Remote Station", detail.stationName());
     }
 
@@ -1184,7 +1212,14 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 .thenReturn(responseTicket);
 
         var ticket = proxyService.proxyCreateTicket(
-                partnerId, boardKey, 1, "New Remote Ticket", "Desc", "HIGH", null, REMOTE_MEMBER_1);
+                partnerId,
+                boardKey,
+                1,
+                "New Remote Ticket",
+                "Desc",
+                dev.chojo.ember.feature.board.entity.TicketPriority.HIGH,
+                null,
+                REMOTE_MEMBER_1);
         assertNotNull(ticket);
         assertEquals("New Remote Ticket", ticket.title());
     }
@@ -1462,8 +1497,17 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                         any()))
                 .thenReturn(responseTicket);
 
-        var updated =
-                proxyService.proxyUpdateTicket(partnerId, boardKey, 1, "Updated", null, null, "LOW", null, null, null);
+        var updated = proxyService.proxyUpdateTicket(
+                partnerId,
+                boardKey,
+                1,
+                "Updated",
+                null,
+                null,
+                dev.chojo.ember.feature.board.entity.TicketPriority.LOW,
+                null,
+                null,
+                null);
         assertNotNull(updated);
         assertEquals("Updated", updated.title());
     }
@@ -1727,7 +1771,14 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
         assertThrows(
                 NotFoundResponse.class,
                 () -> proxyService.proxyCreateTicket(
-                        partnerId, boardKey, 1, "Title", "Desc", "HIGH", null, REMOTE_MEMBER_1));
+                        partnerId,
+                        boardKey,
+                        1,
+                        "Title",
+                        "Desc",
+                        dev.chojo.ember.feature.board.entity.TicketPriority.HIGH,
+                        null,
+                        REMOTE_MEMBER_1));
     }
 
     @Test
@@ -1789,7 +1840,15 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
 
         assertThrows(
                 NotFoundResponse.class,
-                () -> proxyService.proxyCreateTicket(partnerId, boardKey, 1, "X", "D", "HIGH", null, REMOTE_1));
+                () -> proxyService.proxyCreateTicket(
+                        partnerId,
+                        boardKey,
+                        1,
+                        "X",
+                        "D",
+                        dev.chojo.ember.feature.board.entity.TicketPriority.HIGH,
+                        null,
+                        REMOTE_1));
     }
 
     @Test

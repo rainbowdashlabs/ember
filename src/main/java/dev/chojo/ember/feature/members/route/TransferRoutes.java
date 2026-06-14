@@ -7,8 +7,8 @@ package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.api.roles.InstancePermission;
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
 import io.javalin.http.BadRequestResponse;
@@ -197,7 +197,7 @@ public class TransferRoutes implements Routes {
     public record ImportProgressResponse(
             int stationId,
             String stationName,
-            String status,
+            dev.chojo.ember.feature.station.service.StationImportService.ImportProgress.Status status,
             int totalTables,
             int completedTables,
             String currentTable,

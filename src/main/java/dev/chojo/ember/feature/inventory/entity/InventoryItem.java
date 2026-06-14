@@ -30,7 +30,7 @@ public record InventoryItem(
         String internalId,
         String name,
         Integer sizeId,
-        String metadata,
+        InventoryItemMetadata metadata,
         Integer assignedTo,
         Instant lostAt,
         ItemSource itemSource) {
@@ -44,7 +44,7 @@ public record InventoryItem(
                 row.getString("internal_id"),
                 row.getString("name"),
                 row.getObject("size_id", Integer.class),
-                row.getString("metadata"),
+                InventoryItemMetadata.parse(row.getString("metadata")),
                 row.getObject("assigned_to", Integer.class),
                 row.get("lost_at", INSTANT_TIMESTAMP),
                 row.getEnum("item_source", ItemSource.class));

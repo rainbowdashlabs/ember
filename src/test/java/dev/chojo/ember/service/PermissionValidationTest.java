@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.members.entity.Permission;
-import dev.chojo.ember.feature.members.util.RoleValidation;
+import dev.chojo.ember.feature.members.util.PermissionValidation;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
 import org.junit.jupiter.api.Test;
@@ -18,7 +18,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class RoleValidationTest {
+class PermissionValidationTest {
 
     // Test permission fixtures matching DB IDs
     static final Permission LOGIN = new Permission(1, StationPermission.LOGIN);
@@ -40,8 +40,8 @@ class RoleValidationTest {
         Set<StationPermission> callerPermissions = EnumSet.of(
                 StationPermission.STATION_ADMINISTRATOR, StationPermission.INVENTORY_MANAGER, StationPermission.LOGIN);
 
-        assertDoesNotThrow(
-                () -> RoleValidation.validatePermissionChanges(current, desired, ALL_PERMISSIONS, callerPermissions));
+        assertDoesNotThrow(() ->
+                PermissionValidation.validatePermissionChanges(current, desired, ALL_PERMISSIONS, callerPermissions));
     }
 
     @Test
@@ -52,7 +52,8 @@ class RoleValidationTest {
 
         assertThrows(
                 ForbiddenResponse.class,
-                () -> RoleValidation.validatePermissionChanges(current, desired, ALL_PERMISSIONS, callerPermissions));
+                () -> PermissionValidation.validatePermissionChanges(
+                        current, desired, ALL_PERMISSIONS, callerPermissions));
     }
 
     @Test
@@ -61,8 +62,8 @@ class RoleValidationTest {
         List<Integer> desired = List.of(LOGIN.id(), STATION_ADMINISTRATOR.id()); // no change
         Set<StationPermission> callerPermissions = EnumSet.of(StationPermission.MEMBER_MANAGER);
 
-        assertDoesNotThrow(
-                () -> RoleValidation.validatePermissionChanges(current, desired, ALL_PERMISSIONS, callerPermissions));
+        assertDoesNotThrow(() ->
+                PermissionValidation.validatePermissionChanges(current, desired, ALL_PERMISSIONS, callerPermissions));
     }
 
     @Test
@@ -73,7 +74,8 @@ class RoleValidationTest {
 
         assertThrows(
                 BadRequestResponse.class,
-                () -> RoleValidation.validatePermissionChanges(current, desired, ALL_PERMISSIONS, callerPermissions));
+                () -> PermissionValidation.validatePermissionChanges(
+                        current, desired, ALL_PERMISSIONS, callerPermissions));
     }
 
     @Test
@@ -83,8 +85,8 @@ class RoleValidationTest {
         Set<StationPermission> callerPermissions = EnumSet.of(StationPermission.LOGIN);
 
         // Removing a permission is always allowed (no authorization check on removal)
-        assertDoesNotThrow(
-                () -> RoleValidation.validatePermissionChanges(current, desired, ALL_PERMISSIONS, callerPermissions));
+        assertDoesNotThrow(() ->
+                PermissionValidation.validatePermissionChanges(current, desired, ALL_PERMISSIONS, callerPermissions));
     }
 
     @Test
@@ -94,7 +96,7 @@ class RoleValidationTest {
         Set<StationPermission> callerPermissions = EnumSet.of(
                 StationPermission.STATION_ADMINISTRATOR, StationPermission.MEMBER_GUARDIAN, StationPermission.LOGIN);
 
-        assertDoesNotThrow(
-                () -> RoleValidation.validatePermissionChanges(current, desired, ALL_PERMISSIONS, callerPermissions));
+        assertDoesNotThrow(() ->
+                PermissionValidation.validatePermissionChanges(current, desired, ALL_PERMISSIONS, callerPermissions));
     }
 }

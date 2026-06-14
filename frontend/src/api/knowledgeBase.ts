@@ -356,6 +356,16 @@ export async function getFolderTags(folderId: number): Promise<KbTag[]> {
     return res.data
 }
 
+export interface TagScope {
+    matchingFileIds: number[]
+    ancestorFolderIds: number[]
+}
+
+export async function getTagScope(tagName: string): Promise<TagScope> {
+    const res = await client.get<TagScope>(`/kb/tags/${encodeURIComponent(tagName)}/scope`)
+    return res.data
+}
+
 export async function setFolderTags(folderId: number, tags: string[]): Promise<KbTag[]> {
     const res = await client.put<KbTag[]>(`/kb/folders/${folderId}/tags`, {tags})
     return res.data

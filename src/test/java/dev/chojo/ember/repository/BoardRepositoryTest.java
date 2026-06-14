@@ -7,6 +7,7 @@ package dev.chojo.ember.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.Board;
+import dev.chojo.ember.feature.board.entity.BoardActivityType;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
 import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
@@ -352,11 +353,18 @@ class BoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(71)
     void setAndFindViewAccess() {
-        boardRepo.setViewAccess(boardId, List.of("MEMBER", "GUARDIAN"), List.of(), List.of());
+        boardRepo.setViewAccess(
+                boardId,
+                List.of(
+                        dev.chojo.ember.api.auth.StationUserType.MEMBER,
+                        dev.chojo.ember.api.auth.StationUserType.GUARDIAN),
+                List.of(),
+                List.of());
         assertTrue(boardRepo.hasViewRestrictions(boardId));
         var userTypes = boardRepo.findViewAccessUserTypes(boardId);
         assertEquals(2, userTypes.size());
-        assertTrue(userTypes.containsAll(List.of("MEMBER", "GUARDIAN")));
+        assertTrue(userTypes.containsAll(List.of(
+                dev.chojo.ember.api.auth.StationUserType.MEMBER, dev.chojo.ember.api.auth.StationUserType.GUARDIAN)));
     }
 
     @Test
@@ -372,9 +380,11 @@ class BoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(73)
     void setAndFindEditAccess() {
-        boardRepo.setEditAccess(boardId, List.of("TEAM"), List.of(15), List.of(25));
+        boardRepo.setEditAccess(
+                boardId, List.of(dev.chojo.ember.api.auth.StationUserType.TEAM), List.of(15), List.of(25));
         assertTrue(boardRepo.hasEditRestrictions(boardId));
-        assertEquals(List.of("TEAM"), boardRepo.findEditAccessUserTypes(boardId));
+        assertEquals(
+                List.of(dev.chojo.ember.api.auth.StationUserType.TEAM), boardRepo.findEditAccessUserTypes(boardId));
         assertEquals(List.of(15), boardRepo.findEditAccessGroupIds(boardId));
         assertEquals(List.of(25), boardRepo.findEditAccessTagIds(boardId));
     }
@@ -464,7 +474,7 @@ class BoardRepositoryTest extends RepositoryTestBase {
     void findActivity() {
         var activity = boardTicketRepo.findActivity(ticketId1);
         assertFalse(activity.isEmpty());
-        assertTrue(activity.stream().anyMatch(a -> "transition".equals(a.type())));
+        assertTrue(activity.stream().anyMatch(a -> BoardActivityType.TRANSITION.equals(a.type())));
     }
 
     // -- Weblinks --
@@ -614,10 +624,15 @@ class BoardRepositoryTest extends RepositoryTestBase {
     @Order(84)
     void logAndFindHistory() {
         boardTicketRepo.logHistory(
-                ticketId1, "TEST_ACTION", "test detail", memberIdentityFactory.local(station.id(), member.id()));
+                ticketId1,
+                dev.chojo.ember.feature.board.entity.BoardTicketHistoryAction.TITLE_CHANGED,
+                "test detail",
+                memberIdentityFactory.local(station.id(), member.id()));
         var history = boardTicketRepo.findHistory(ticketId1);
         assertFalse(history.isEmpty());
-        assertEquals("TEST_ACTION", history.getLast().action());
+        assertEquals(
+                dev.chojo.ember.feature.board.entity.BoardTicketHistoryAction.TITLE_CHANGED,
+                history.getLast().action());
     }
 
     // -- Ticket deletion --

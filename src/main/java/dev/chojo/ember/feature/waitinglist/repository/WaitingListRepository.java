@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.waitinglist.repository;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryGuardian;
@@ -12,12 +14,14 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryValue;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListField;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
 import dev.chojo.ember.feature.waitinglist.entity.WaitlistVerificationToken;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -26,6 +30,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 
 @Singleton
 public class WaitingListRepository {
+
+    private static final ObjectMapper JSON = new ObjectMapper();
 
     // --- Waiting List CRUD ---
 
@@ -147,7 +153,7 @@ public class WaitingListRepository {
     public WaitingListField createField(
             int listId,
             String name,
-            String fieldType,
+            WaitingListFieldType fieldType,
             WaitingListFieldConfig config,
             int position,
             boolean required,
@@ -171,7 +177,7 @@ public class WaitingListRepository {
     public Optional<WaitingListField> updateField(
             int fieldId,
             String name,
-            String fieldType,
+            WaitingListFieldType fieldType,
             WaitingListFieldConfig config,
             int position,
             boolean required,
@@ -585,9 +591,17 @@ public class WaitingListRepository {
             String firstname,
             String lastname,
             String email,
-            String guardiansJson,
-            String fieldValuesJson,
+            List<GuardianInput> guardians,
+            Map<Integer, String> fieldValues,
             String notes) {
+        String guardiansPayload;
+        String fieldValuesPayload;
+        try {
+            guardiansPayload = JSON.writeValueAsString(guardians != null ? guardians : List.of());
+            fieldValuesPayload = JSON.writeValueAsString(fieldValues != null ? fieldValues : Map.of());
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to serialize verification token data", e);
+        }
         return query("""
                 INSERT
                 INTO
@@ -601,8 +615,8 @@ public class WaitingListRepository {
                         .bind("firstname", firstname)
                         .bind("lastname", lastname)
                         .bind("email", email)
-                        .bind("guardians", guardiansJson)
-                        .bind("field_values", fieldValuesJson)
+                        .bind("guardians", guardiansPayload)
+                        .bind("field_values", fieldValuesPayload)
                         .bind("notes", notes))
                 .map(WaitlistVerificationToken.map())
                 .first()

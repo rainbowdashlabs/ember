@@ -12,6 +12,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import PasswordInput from '@/components/input/text/PasswordInput.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import DecimalInput from '@/components/input/number/DecimalInput.vue'
 import SliderInput from '@/components/input/number/SliderInput.vue'
@@ -27,6 +28,7 @@ import RadioInput from '@/components/input/toggle/RadioInput.vue'
 const textValue = ref('')
 const textAreaValue = ref('')
 const passwordValue = ref('')
+const searchValue = ref('')
 const numberValue = ref(0)
 const decimalValue = ref(0)
 const sliderValue = ref(50)
@@ -55,6 +57,10 @@ const radioValue = ref('a')
       <div class="space-y-1">
         <FieldLabel>Password</FieldLabel>
         <PasswordInput v-model="passwordValue" placeholder="Enter password..."/>
+      </div>
+      <div class="space-y-1 sm:col-span-2">
+        <FieldLabel>Search (prominent primary border + icon + clear)</FieldLabel>
+        <SearchInput v-model="searchValue" placeholder="Search..."/>
       </div>
     </div>
     <div class="space-y-1">

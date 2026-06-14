@@ -8,9 +8,9 @@ package dev.chojo.ember.feature.account.route;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.api.roles.InstanceUserType;
-import dev.chojo.ember.api.roles.StationPermission;
-import dev.chojo.ember.api.roles.StationUserType;
+import dev.chojo.ember.api.auth.InstanceUserType;
+import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -54,6 +54,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -159,7 +160,7 @@ public class SessionRoutes implements Routes {
                     session.member().id(),
                     session.stationUid() != null ? session.stationUid().toString() : null,
                     session.member().accountId(),
-                    session.member().uid() != null ? session.member().uid().toString() : null);
+                    session.member().uid());
         }
 
         var roleNames = session.permissions().stream().map(Enum::name).sorted().toList();
@@ -179,9 +180,8 @@ public class SessionRoutes implements Routes {
                             : (m.displayName() != null ? m.displayName() : "");
                     String email = account != null ? account.email() : "";
                     var managedStation = stationService.findById(m.stationId()).orElse(null);
-                    String managedStationUid =
-                            managedStation != null ? managedStation.uid().toString() : null;
-                    String memberUid = m.uid() != null ? m.uid().toString() : null;
+                    UUID managedStationUid = managedStation != null ? managedStation.uid() : null;
+                    UUID memberUid = m.uid() != null ? m.uid() : null;
                     return new ManagedMemberInfo(
                             m.id(),
                             managedStationUid,
@@ -274,7 +274,7 @@ public class SessionRoutes implements Routes {
                 .map(m -> {
                     var station = stationService.findById(m.stationId()).orElse(null);
                     String stationName = station != null ? station.name() : null;
-                    String stationUid = station != null ? station.uid().toString() : null;
+                    UUID stationUid = station != null ? station.uid() : null;
                     return new StationMembership(m.id(), stationUid, stationName);
                 })
                 .toList();
@@ -513,7 +513,7 @@ public class SessionRoutes implements Routes {
      * @param name      the member's display name
      * @param email     the member's email, or empty string if unavailable
      */
-    public record ManagedMemberInfo(int id, String stationId, String uid, int accountId, String name, String email) {}
+    public record ManagedMemberInfo(int id, UUID stationId, UUID uid, int accountId, String name, String email) {}
 
     /**
      * Account information included in the session response.
@@ -532,7 +532,7 @@ public class SessionRoutes implements Routes {
      * @param stationId the station identifier
      * @param accountId the account identifier
      */
-    public record MemberInfo(int id, String stationId, int accountId, String uid) {}
+    public record MemberInfo(int id, String stationId, int accountId, UUID uid) {}
 
     /**
      * A station membership entry listing which stations the user belongs to.
@@ -541,7 +541,7 @@ public class SessionRoutes implements Routes {
      * @param stationId   the station identifier
      * @param stationName the station name
      */
-    public record StationMembership(int memberId, String stationId, String stationName) {}
+    public record StationMembership(int memberId, UUID stationId, String stationName) {}
 
     /**
      * Represents an active session as returned to the user.

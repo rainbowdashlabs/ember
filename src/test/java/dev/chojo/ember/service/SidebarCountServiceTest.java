@@ -6,10 +6,10 @@
 package dev.chojo.ember.service;
 
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.api.roles.InstancePermission;
-import dev.chojo.ember.api.roles.InstanceUserType;
-import dev.chojo.ember.api.roles.StationPermission;
-import dev.chojo.ember.api.roles.StationUserType;
+import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.auth.InstanceUserType;
+import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -50,6 +51,7 @@ class SidebarCountServiceTest {
     private InventoryService inventoryService;
     private ExchangeService exchangeService;
     private ProcedureService procedureService;
+    private StationMemberService stationMemberService;
 
     private SidebarCountService service;
 
@@ -71,6 +73,7 @@ class SidebarCountServiceTest {
         inventoryService = mock(InventoryService.class);
         exchangeService = mock(ExchangeService.class);
         procedureService = mock(ProcedureService.class);
+        stationMemberService = mock(StationMemberService.class);
         when(stationRepository.resolveUid(STATION_ID)).thenReturn(STATION_UID);
 
         service = new SidebarCountService(
@@ -85,7 +88,8 @@ class SidebarCountServiceTest {
                 stationRepository,
                 inventoryService,
                 exchangeService,
-                procedureService);
+                procedureService,
+                stationMemberService);
     }
 
     private UserSession sessionWithPermissions(Set<StationPermission> permissions) {

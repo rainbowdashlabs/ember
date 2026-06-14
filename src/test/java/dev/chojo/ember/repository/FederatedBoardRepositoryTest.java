@@ -134,7 +134,8 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(10)
     void setShareTarget() {
-        federatedBoardRepo.setShareTarget(shareId, partnerId, BoardShareMode.READ_ONLY, "USER");
+        federatedBoardRepo.setShareTarget(
+                shareId, partnerId, BoardShareMode.READ_ONLY, dev.chojo.ember.api.auth.StationUserType.MEMBER);
         var targets = federatedBoardRepo.findShareTargets(shareId);
         assertEquals(1, targets.size());
         assertEquals(partnerId, targets.getFirst().partnerId());
@@ -144,7 +145,8 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(11)
     void setShareTargetUpsert() {
-        federatedBoardRepo.setShareTarget(shareId, partnerId, BoardShareMode.FULL, "USER");
+        federatedBoardRepo.setShareTarget(
+                shareId, partnerId, BoardShareMode.FULL, dev.chojo.ember.api.auth.StationUserType.MEMBER);
         var targets = federatedBoardRepo.findShareTargets(shareId);
         assertEquals(1, targets.size());
         assertEquals(BoardShareMode.FULL, targets.getFirst().shareMode());
@@ -184,7 +186,8 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(16)
     void clearShareTargets() {
-        federatedBoardRepo.setShareTarget(shareId, partnerId, BoardShareMode.READ_ONLY, "USER");
+        federatedBoardRepo.setShareTarget(
+                shareId, partnerId, BoardShareMode.READ_ONLY, dev.chojo.ember.api.auth.StationUserType.MEMBER);
         federatedBoardRepo.clearShareTargets(shareId);
         var targets = federatedBoardRepo.findShareTargets(shareId);
         assertTrue(targets.isEmpty());
@@ -203,10 +206,18 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(20)
     void setFederatedEditUserTypes() {
-        federatedBoardRepo.setFederatedEditUserTypes(boardId, List.of("MEMBER", "GUARDIAN", "TEAM"));
+        federatedBoardRepo.setFederatedEditUserTypes(
+                boardId,
+                List.of(
+                        dev.chojo.ember.api.auth.StationUserType.MEMBER,
+                        dev.chojo.ember.api.auth.StationUserType.GUARDIAN,
+                        dev.chojo.ember.api.auth.StationUserType.TEAM));
         var userTypes = federatedBoardRepo.findFederatedEditUserTypes(boardId);
         assertEquals(3, userTypes.size());
-        assertTrue(userTypes.containsAll(List.of("MEMBER", "GUARDIAN", "TEAM")));
+        assertTrue(userTypes.containsAll(List.of(
+                dev.chojo.ember.api.auth.StationUserType.MEMBER,
+                dev.chojo.ember.api.auth.StationUserType.GUARDIAN,
+                dev.chojo.ember.api.auth.StationUserType.TEAM)));
     }
 
     @Test
@@ -218,10 +229,11 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(22)
     void setFederatedEditUserTypesReplace() {
-        federatedBoardRepo.setFederatedEditUserTypes(boardId, List.of("MANAGER"));
+        federatedBoardRepo.setFederatedEditUserTypes(
+                boardId, List.of(dev.chojo.ember.api.auth.StationUserType.MANAGER));
         var userTypes = federatedBoardRepo.findFederatedEditUserTypes(boardId);
         assertEquals(1, userTypes.size());
-        assertEquals("MANAGER", userTypes.getFirst());
+        assertEquals(dev.chojo.ember.api.auth.StationUserType.MANAGER, userTypes.getFirst());
     }
 
     @Test
@@ -329,7 +341,12 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(80)
     void setLocalViewOverride() {
-        var access = new AccessData(List.of("MEMBER", "GUARDIAN"), List.of(10), List.of(20));
+        var access = new AccessData(
+                List.of(
+                        dev.chojo.ember.api.auth.StationUserType.MEMBER,
+                        dev.chojo.ember.api.auth.StationUserType.GUARDIAN),
+                List.of(10),
+                List.of(20));
         federatedBoardRepo.setLocalViewOverride(partnerId, boardUid, access);
         assertTrue(federatedBoardRepo.hasLocalViewOverride(partnerId, boardUid));
     }
@@ -339,7 +356,10 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     void findLocalViewOverride() {
         var access = federatedBoardRepo.findLocalViewOverride(partnerId, boardUid);
         assertEquals(2, access.userTypes().size());
-        assertTrue(access.userTypes().containsAll(List.of("MEMBER", "GUARDIAN")));
+        assertTrue(access.userTypes()
+                .containsAll(List.of(
+                        dev.chojo.ember.api.auth.StationUserType.MEMBER,
+                        dev.chojo.ember.api.auth.StationUserType.GUARDIAN)));
         assertEquals(List.of(10), access.groupIds());
         assertEquals(List.of(20), access.tagIds());
     }
@@ -347,10 +367,10 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(82)
     void setLocalViewOverrideReplace() {
-        var access = new AccessData(List.of("TEAM"), List.of(), List.of());
+        var access = new AccessData(List.of(dev.chojo.ember.api.auth.StationUserType.TEAM), List.of(), List.of());
         federatedBoardRepo.setLocalViewOverride(partnerId, boardUid, access);
         var result = federatedBoardRepo.findLocalViewOverride(partnerId, boardUid);
-        assertEquals(List.of("TEAM"), result.userTypes());
+        assertEquals(List.of(dev.chojo.ember.api.auth.StationUserType.TEAM), result.userTypes());
         assertTrue(result.groupIds().isEmpty());
         assertTrue(result.tagIds().isEmpty());
     }
@@ -375,7 +395,8 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(85)
     void setLocalEditOverride() {
-        var access = new AccessData(List.of("GUARDIAN"), List.of(11), List.of(21));
+        var access =
+                new AccessData(List.of(dev.chojo.ember.api.auth.StationUserType.GUARDIAN), List.of(11), List.of(21));
         federatedBoardRepo.setLocalEditOverride(partnerId, boardUid, access);
         assertTrue(federatedBoardRepo.hasLocalEditOverride(partnerId, boardUid));
     }
@@ -384,7 +405,7 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Order(86)
     void findLocalEditOverride() {
         var access = federatedBoardRepo.findLocalEditOverride(partnerId, boardUid);
-        assertEquals(List.of("GUARDIAN"), access.userTypes());
+        assertEquals(List.of(dev.chojo.ember.api.auth.StationUserType.GUARDIAN), access.userTypes());
         assertEquals(List.of(11), access.groupIds());
         assertEquals(List.of(21), access.tagIds());
     }

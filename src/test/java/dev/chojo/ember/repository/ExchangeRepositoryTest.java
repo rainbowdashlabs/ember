@@ -37,7 +37,12 @@ class ExchangeRepositoryTest extends RepositoryTestBase {
         inventory = inventoryRepo.create(station.id(), "Ex Inventory", InventoryType.EXTERNAL, true);
         inventoryRepo.createSize(inventory.id(), "M", 1, null);
         int sizeId = inventoryRepo.findSizes(inventory.id()).getFirst().id();
-        var item = inventoryRepo.createItem(inventory.id(), "EX-001", "Item", sizeId, "{}");
+        var item = inventoryRepo.createItem(
+                inventory.id(),
+                "EX-001",
+                "Item",
+                sizeId,
+                (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null);
         itemId = item.id();
     }
 
@@ -98,9 +103,9 @@ class ExchangeRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(6)
     void updateStatusWithExchangedItem() {
-        assertTrue(exchangeRepo.updateStatusWithExchangedItem(requestId, ExchangeStatus.EXCHANGED, itemId));
+        assertTrue(exchangeRepo.updateStatusWithExchangedItem(requestId, ExchangeStatus.DONE, itemId));
         var request = exchangeRepo.findById(requestId).orElseThrow();
-        assertEquals(ExchangeStatus.EXCHANGED, request.status());
+        assertEquals(ExchangeStatus.DONE, request.status());
         assertEquals(0, exchangeRepo.countPendingByStation(station.id()));
     }
 

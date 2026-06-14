@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.roles.StationUserType;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
@@ -395,7 +395,8 @@ class BoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(61)
     void canViewWithUserTypeRestriction() {
-        boardService.setViewAccess(boardId, List.of("MEMBER"), List.of(), List.of());
+        boardService.setViewAccess(
+                boardId, List.of(dev.chojo.ember.api.auth.StationUserType.MEMBER), List.of(), List.of());
         when(memberService.findById(member.id()))
                 .thenReturn(Optional.of(new StationMember(
                         member.id(),
@@ -412,7 +413,8 @@ class BoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(62)
     void cannotViewWithWrongUserType() {
-        boardService.setViewAccess(boardId, List.of("MANAGER"), List.of(), List.of());
+        boardService.setViewAccess(
+                boardId, List.of(dev.chojo.ember.api.auth.StationUserType.MANAGER), List.of(), List.of());
         when(memberService.findById(member.id()))
                 .thenReturn(Optional.of(new StationMember(
                         member.id(),
@@ -448,7 +450,8 @@ class BoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(65)
     void canEditWithRestriction() {
-        boardService.setEditAccess(boardId, List.of("MEMBER"), List.of(), List.of());
+        boardService.setEditAccess(
+                boardId, List.of(dev.chojo.ember.api.auth.StationUserType.MEMBER), List.of(), List.of());
         when(memberService.findById(member.id()))
                 .thenReturn(Optional.of(new StationMember(
                         member.id(),
@@ -522,9 +525,10 @@ class BoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(79)
     void getAccessData() {
-        boardService.setViewAccess(boardId, List.of("MEMBER"), List.of(2), List.of(3));
+        boardService.setViewAccess(
+                boardId, List.of(dev.chojo.ember.api.auth.StationUserType.MEMBER), List.of(2), List.of(3));
         var va = boardService.getViewAccess(boardId);
-        assertEquals(List.of("MEMBER"), va.userTypes());
+        assertEquals(List.of(dev.chojo.ember.api.auth.StationUserType.MEMBER), va.userTypes());
         assertEquals(List.of(2), va.groupIds());
         assertEquals(List.of(3), va.tagIds());
         var ea = boardService.getEditAccess(boardId);
@@ -748,10 +752,16 @@ class BoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(890)
     void ticketHistoryLogging() {
-        ticketService.logHistory(ticketId1, "TEST", "detail", memberIdentityFactory.local(station.id(), member.id()));
+        ticketService.logHistory(
+                ticketId1,
+                dev.chojo.ember.feature.board.entity.BoardTicketHistoryAction.TITLE_CHANGED,
+                "detail",
+                memberIdentityFactory.local(station.id(), member.id()));
         var history = ticketService.findHistory(ticketId1);
         assertFalse(history.isEmpty());
-        assertTrue(history.stream().anyMatch(h -> "TEST".equals(h.action())));
+        assertTrue(history.stream()
+                .anyMatch(h ->
+                        h.action() == dev.chojo.ember.feature.board.entity.BoardTicketHistoryAction.TITLE_CHANGED));
     }
 
     // -- KB Links --

@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.board.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.board.entity.BoardLane;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
 import dev.chojo.ember.feature.board.entity.BoardTicketAttachment;
+import dev.chojo.ember.feature.board.entity.BoardTicketHistoryAction;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistoryResponse;
 import dev.chojo.ember.feature.board.entity.BoardTicketLink;
 import dev.chojo.ember.feature.board.entity.BoardTicketTransitionResponse;
@@ -35,7 +36,6 @@ import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.MemberCompletion;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
-import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
@@ -61,7 +61,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 /**
  * Partner station service that discovers federated boards, proxies requests to owning stations,
@@ -175,9 +174,9 @@ public class FederatedBoardProxyService {
                         .map(board -> {
                             var mode =
                                     getEffectiveShareMode(partner.id(), boardId).orElse(BoardShareMode.READ_ONLY);
-                            var requiredRole = federatedBoardService
-                                    .getRequiredRole(boardId, partner.id())
-                                    .orElse("USER");
+                            var requiredUserType = federatedBoardService
+                                    .getRequiredUserType(boardId, partner.id())
+                                    .orElse(StationUserType.MEMBER);
                             return new DiscoveredBoard(
                                     partner.id(),
                                     partner.partnerStationId().toString(),
@@ -187,7 +186,7 @@ public class FederatedBoardProxyService {
                                     board.description(),
                                     mode,
                                     partnerStationName(partner),
-                                    requiredRole);
+                                    requiredUserType);
                         })
                         .orElse(null))
                 .filter(Objects::nonNull)
@@ -209,9 +208,9 @@ public class FederatedBoardProxyService {
                         b.name(),
                         b.shortKey(),
                         b.description(),
-                        BoardShareMode.valueOf(b.shareMode()),
+                        b.shareMode(),
                         partnerStationName(partner),
-                        b.requiredRole() != null ? b.requiredRole() : "USER"))
+                        b.requiredUserType() != null ? b.requiredUserType() : StationUserType.MEMBER))
                 .toList();
     }
 
@@ -229,7 +228,7 @@ public class FederatedBoardProxyService {
                 .findById(board.stationId())
                 .map(Station::name)
                 .orElse("Station #" + board.stationId());
-        return FederatedBoardDetail.of(board, mode.name(), stationName, stationRepository);
+        return FederatedBoardDetail.of(board, mode, stationName, stationRepository);
     }
 
     public List<MemberCompletion> proxyGetMembers(int partnerId, String boardKey) {
@@ -449,8 +448,8 @@ public class FederatedBoardProxyService {
             Integer laneId,
             String title,
             String description,
-            String priority,
-            String dueDate,
+            TicketPriority priority,
+            LocalDate dueDate,
             UUID remoteMemberId) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
@@ -459,8 +458,8 @@ public class FederatedBoardProxyService {
                     laneId != null ? String.valueOf(laneId) : "",
                     title != null ? title : "",
                     description != null ? description : "",
-                    priority != null ? priority : "",
-                    dueDate != null ? dueDate : "");
+                    priority,
+                    dueDate);
             return remotePost(partner, "/remote/boards/" + boardKey + "/tickets", body, BoardTicket.class);
         }
         int boardId = resolveBoardId(boardKey, partner);
@@ -474,8 +473,8 @@ public class FederatedBoardProxyService {
                 title,
                 description,
                 null,
-                priority != null ? TicketPriority.valueOf(priority) : TicketPriority.MEDIUM,
-                dueDate != null ? LocalDate.parse(dueDate) : null,
+                priority != null ? priority : TicketPriority.MEDIUM,
+                dueDate,
                 creatorIdentity);
     }
 
@@ -486,8 +485,8 @@ public class FederatedBoardProxyService {
             String title,
             String description,
             Integer assignedMemberId,
-            String priority,
-            String dueDate,
+            TicketPriority priority,
+            LocalDate dueDate,
             UUID remoteMemberUid,
             String displayName) {
         var partner = findPartner(partnerId);
@@ -513,14 +512,7 @@ public class FederatedBoardProxyService {
         if (displayName != null && remoteMemberUid != null) {
             eventFederationRepository.cacheName(partnerId, remoteMemberUid, displayName);
         }
-        ticketService.updateTicket(
-                ticketId,
-                title,
-                description,
-                assigneeIdentity,
-                priority != null ? TicketPriority.valueOf(priority) : null,
-                dueDate != null ? LocalDate.parse(dueDate) : null,
-                actorIdentity);
+        ticketService.updateTicket(ticketId, title, description, assigneeIdentity, priority, dueDate, actorIdentity);
         return ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new);
     }
 
@@ -691,7 +683,7 @@ public class FederatedBoardProxyService {
                 .orElse(null);
         ticketService.logHistory(
                 ticketId,
-                "LABEL_ADDED",
+                BoardTicketHistoryAction.LABEL_ADDED,
                 label != null ? label.name() : "?",
                 new MemberIdentity(partner.partnerStationId(), remoteMemberId));
         if (displayName != null) eventFederationRepository.cacheName(partnerId, remoteMemberId, displayName);
@@ -717,7 +709,7 @@ public class FederatedBoardProxyService {
         boardService.removeLabelFromTicket(ticketId, labelId);
         ticketService.logHistory(
                 ticketId,
-                "LABEL_REMOVED",
+                BoardTicketHistoryAction.LABEL_REMOVED,
                 label != null ? label.name() : "?",
                 new MemberIdentity(partner.partnerStationId(), remoteMemberId));
         if (displayName != null) eventFederationRepository.cacheName(partnerId, remoteMemberId, displayName);
@@ -765,7 +757,7 @@ public class FederatedBoardProxyService {
             String boardKey,
             int ticketNumber,
             int linkedTicketNumber,
-            String linkType,
+            LinkType linkType,
             UUID remoteMemberUid,
             String displayName) {
         var partner = findPartner(partnerId);
@@ -786,7 +778,7 @@ public class FederatedBoardProxyService {
         if (displayName != null && remoteMemberUid != null) {
             eventFederationRepository.cacheName(partnerId, remoteMemberUid, displayName);
         }
-        ticketService.linkTickets(ticketId, linkedTicketId, LinkType.valueOf(linkType), actorIdentity);
+        ticketService.linkTickets(ticketId, linkedTicketId, linkType, actorIdentity);
     }
 
     public void proxyDeleteLink(
@@ -888,8 +880,8 @@ public class FederatedBoardProxyService {
             return matchesAccess(memberId, override);
         }
 
-        // No local override — use shared required role
-        return memberHasRole(memberId, shareInfo.requiredRole());
+        // No local override — use shared required user type
+        return memberHasUserType(memberId, shareInfo.requiredUserType());
     }
 
     /**
@@ -911,42 +903,36 @@ public class FederatedBoardProxyService {
         return true;
     }
 
-    private boolean memberHasRole(int memberId, String requiredRoleName) {
-        if (requiredRoleName == null || requiredRoleName.equals("USER")) return true; // USER = everyone
-        var memberRoles = memberService.findPermissions(memberId).stream()
-                .map(Permission::permission)
-                .collect(Collectors.toSet());
-        var expanded = StationPermission.expand(memberRoles);
-        try {
-            return expanded.contains(StationPermission.valueOf(requiredRoleName));
-        } catch (IllegalArgumentException e) {
-            return false;
-        }
+    private boolean memberHasUserType(int memberId, StationUserType requiredUserType) {
+        if (requiredUserType == null || requiredUserType == StationUserType.MEMBER) return true;
+        var member = memberService.findById(memberId).orElse(null);
+        if (member == null) return false;
+        return member.userType() == requiredUserType;
     }
 
-    private record ShareInfo(BoardShareMode shareMode, String requiredRole) {}
+    private record ShareInfo(BoardShareMode shareMode, StationUserType requiredUserType) {}
 
     private ShareInfo getEffectiveShareInfo(int partnerId, int boardId) {
         var mode = getEffectiveShareMode(partnerId, boardId);
         if (mode.isEmpty()) return null;
-        var requiredRole = getSharedRequiredRole(partnerId, boardId);
-        return new ShareInfo(mode.get(), requiredRole);
+        var requiredUserType = getSharedRequiredUserType(partnerId, boardId);
+        return new ShareInfo(mode.get(), requiredUserType);
     }
 
-    private String getSharedRequiredRole(int partnerId, int boardId) {
+    private StationUserType getSharedRequiredUserType(int partnerId, int boardId) {
         var partner = federationRepository.findPartnerById(partnerId).orElse(null);
-        if (partner == null) return "USER";
+        if (partner == null) return StationUserType.MEMBER;
         var ourStationUid = stationRepository
                 .findById(partner.stationId())
                 .map(Station::uid)
                 .orElse(null);
-        if (ourStationUid == null) return "USER";
+        if (ourStationUid == null) return StationUserType.MEMBER;
         var board = boardService.findById(boardId).orElse(null);
-        if (board == null) return "USER";
+        if (board == null) return StationUserType.MEMBER;
         var owningPartner = federationRepository.findPartnerByStationAndRemoteUid(board.stationId(), ourStationUid);
         return owningPartner
-                .flatMap(op -> federatedBoardService.getRequiredRole(boardId, op.id()))
-                .orElse("USER");
+                .flatMap(op -> federatedBoardService.getRequiredUserType(boardId, op.id()))
+                .orElse(StationUserType.MEMBER);
     }
 
     // -- Local Overrides --
@@ -1127,8 +1113,7 @@ public class FederatedBoardProxyService {
     private boolean matchesAccess(int memberId, AccessData access) {
         if (!access.userTypes().isEmpty()) {
             var member = memberService.findById(memberId);
-            if (member.isPresent()
-                    && access.userTypes().contains(member.get().userType().name())) return true;
+            if (member.isPresent() && access.userTypes().contains(member.get().userType())) return true;
         }
         if (!access.groupIds().isEmpty()) {
             var memberGroupIds = groupService.findGroupsForMember(memberId).stream()
@@ -1186,7 +1171,7 @@ public class FederatedBoardProxyService {
             String description,
             BoardShareMode shareMode,
             String partnerStationName,
-            String requiredRole) {}
+            StationUserType requiredUserType) {}
 
     /**
      * Board representation for remote federation responses where stationId is a UUID string.
@@ -1207,13 +1192,13 @@ public class FederatedBoardProxyService {
         }
     }
 
-    public record FederatedBoardDetail(RemoteBoard board, String shareMode, String stationName) {
+    public record FederatedBoardDetail(RemoteBoard board, BoardShareMode shareMode, String stationName) {
 
         /**
          * Creates a FederatedBoardDetail from a local Board entity.
          */
         public static FederatedBoardDetail of(
-                Board board, String shareMode, String stationName, StationRepository stationRepository) {
+                Board board, BoardShareMode shareMode, String stationName, StationRepository stationRepository) {
             var stationUid = stationRepository.resolveUid(board.stationId()).toString();
             return new FederatedBoardDetail(
                     new RemoteBoard(
@@ -1234,10 +1219,20 @@ public class FederatedBoardProxyService {
     public record FederatedWatcherData(List<Integer> local, List<Object> federated) {}
 
     public record RemoteDiscoveredBoard(
-            String uid, String name, String shortKey, String description, String shareMode, String requiredRole) {}
+            String uid,
+            String name,
+            String shortKey,
+            String description,
+            BoardShareMode shareMode,
+            StationUserType requiredUserType) {}
 
     record CreateTicketBody(
-            UUID remoteMemberId, String laneId, String title, String description, String priority, String dueDate) {}
+            UUID remoteMemberId,
+            String laneId,
+            String title,
+            String description,
+            TicketPriority priority,
+            LocalDate dueDate) {}
 
     record ReorderBody(int laneId, List<Integer> orderedIds) {}
 

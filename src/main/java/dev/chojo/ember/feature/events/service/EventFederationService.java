@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationPartner.FederationStatus;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
@@ -86,7 +87,7 @@ public class EventFederationService {
      * @param partnerIds the partner IDs to target (used when scope is SPECIFIC)
      * @return the created or updated share
      */
-    public EventFederationShare setShare(int eventId, String scope, List<Integer> partnerIds) {
+    public EventFederationShare setShare(int eventId, ShareScope scope, List<Integer> partnerIds) {
         var share = federationRepository.setShare(eventId, scope);
         federationRepository.setShareTargets(share.id(), partnerIds);
         return share;
@@ -390,7 +391,7 @@ public class EventFederationService {
                 e.id(),
                 e.name(),
                 e.description() != null ? e.description() : "",
-                e.eventType() != null ? e.eventType().name() : "",
+                e.eventType(),
                 e.dayOfWeek() != null ? e.dayOfWeek() : 0,
                 e.startTime() != null ? e.startTime().toString() : "",
                 e.endTime() != null ? e.endTime().toString() : "",
@@ -417,13 +418,13 @@ public class EventFederationService {
     }
 
     public record MyFederatedRegistration(
-            int eventId, String remoteMemberId, String eventDate, String status, int partnerId) {}
+            int eventId, String remoteMemberId, String eventDate, RegistrationStatus status, int partnerId) {}
 
     public record RemoteEventSummary(
             int id,
             String name,
             String description,
-            String eventType,
+            StationEvent.EventType eventType,
             int dayOfWeek,
             String startTime,
             String endTime,
@@ -498,7 +499,7 @@ public class EventFederationService {
             FederationPartner partner, int commentId, UUID remoteMemberUid, String content) {
         var comment = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
         var expectedIdentity = new MemberIdentity(partner.partnerStationId(), remoteMemberUid);
-        if (comment.author() == null || !comment.author().equals(expectedIdentity)) {
+        if (comment.author() == null || !comment.author().sameMember(expectedIdentity)) {
             throw new ForbiddenResponse("You can only edit your own comments");
         }
         commentRepository.update(commentId, content);
@@ -512,7 +513,7 @@ public class EventFederationService {
     public boolean deleteRemoteComment(FederationPartner partner, int commentId, UUID remoteMemberUid) {
         var comment = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
         var expectedIdentity = new MemberIdentity(partner.partnerStationId(), remoteMemberUid);
-        if (comment.author() == null || !comment.author().equals(expectedIdentity)) {
+        if (comment.author() == null || !comment.author().sameMember(expectedIdentity)) {
             throw new ForbiddenResponse("You can only delete your own comments");
         }
         return commentService.delete(commentId);
@@ -596,7 +597,7 @@ public class EventFederationService {
         }
         var comment = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
         var expectedIdentity = new MemberIdentity(partner.partnerStationId(), memberUid);
-        if (comment.author() == null || !comment.author().equals(expectedIdentity)) {
+        if (comment.author() == null || !comment.author().sameMember(expectedIdentity)) {
             throw new ForbiddenResponse("You can only edit your own comments");
         }
         commentRepository.update(commentId, content);
@@ -621,7 +622,7 @@ public class EventFederationService {
         }
         var comment = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
         var expectedIdentity = new MemberIdentity(partner.partnerStationId(), memberUid);
-        if (comment.author() == null || !comment.author().equals(expectedIdentity)) {
+        if (comment.author() == null || !comment.author().sameMember(expectedIdentity)) {
             throw new ForbiddenResponse("You can only delete your own comments");
         }
         return commentService.delete(commentId);
@@ -704,7 +705,7 @@ public class EventFederationService {
             int id,
             String name,
             String description,
-            String eventType,
+            StationEvent.EventType eventType,
             int dayOfWeek,
             String startTime,
             String endTime,

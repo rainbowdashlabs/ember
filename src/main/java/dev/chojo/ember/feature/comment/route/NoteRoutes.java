@@ -8,13 +8,14 @@ package dev.chojo.ember.feature.comment.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.comment.entity.EntityNote;
 import dev.chojo.ember.feature.comment.entity.NoteEntityType;
 import dev.chojo.ember.feature.comment.entity.NoteVersion;
 import dev.chojo.ember.feature.comment.service.NoteService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -44,10 +45,36 @@ public class NoteRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/notes/{entityType}/{entityId}", this::getNote, StationPermission.MEMBER_NOTES);
-        routes.put(prefix + "/notes/{entityType}/{entityId}", this::updateNote, StationPermission.MEMBER_NOTES);
+        // Note routes are shared by multiple entity types with different permission requirements
+        // (EVENT notes require EVENT_EDIT, ITEM / MEMBER notes require MEMBER_NOTES). Pass both
+        // roles so callers with either pass the route-level gate; the per-entity-type check is
+        // refined inside each handler via {@link #requireNoteAccess}.
         routes.get(
-                prefix + "/notes/{entityType}/{entityId}/versions", this::listVersions, StationPermission.MEMBER_NOTES);
+                prefix + "/notes/{entityType}/{entityId}",
+                this::getNote,
+                StationPermission.MEMBER_NOTES,
+                StationPermission.EVENT_EDIT);
+        routes.put(
+                prefix + "/notes/{entityType}/{entityId}",
+                this::updateNote,
+                StationPermission.MEMBER_NOTES,
+                StationPermission.EVENT_EDIT);
+        routes.get(
+                prefix + "/notes/{entityType}/{entityId}/versions",
+                this::listVersions,
+                StationPermission.MEMBER_NOTES,
+                StationPermission.EVENT_EDIT);
+    }
+
+    private static StationPermission requiredPermission(NoteEntityType entityType) {
+        return entityType == NoteEntityType.EVENT ? StationPermission.EVENT_EDIT : StationPermission.MEMBER_NOTES;
+    }
+
+    private static void requireNoteAccess(UserSession session, NoteEntityType entityType) {
+        StationPermission required = requiredPermission(entityType);
+        if (!session.hasPermission(required)) {
+            throw new ForbiddenResponse("Missing required permission: " + required.name());
+        }
     }
 
     @OpenApi(
@@ -63,6 +90,7 @@ public class NoteRoutes implements Routes {
     private void getNote(Context ctx) {
         var entityType = NoteEntityType.valueOf(ctx.pathParam("entityType").toUpperCase());
         int entityId = ctx.pathParamAsClass("entityId", Integer.class).get();
+        requireNoteAccess(UserSession.from(ctx), entityType);
         var note = noteService.findNote(entityType, entityId);
         if (note.isEmpty()) {
             ctx.json(new NoteResponse(null, entityType, entityId, "", null, null));
@@ -89,6 +117,7 @@ public class NoteRoutes implements Routes {
         var entityType = NoteEntityType.valueOf(ctx.pathParam("entityType").toUpperCase());
         int entityId = ctx.pathParamAsClass("entityId", Integer.class).get();
         UserSession session = UserSession.from(ctx);
+        requireNoteAccess(session, entityType);
         var request = ctx.bodyAsClass(UpdateNoteRequest.class);
         if (request.content() == null) {
             throw new BadRequestResponse("content is required");
@@ -118,6 +147,7 @@ public class NoteRoutes implements Routes {
     private void listVersions(Context ctx) {
         var entityType = NoteEntityType.valueOf(ctx.pathParam("entityType").toUpperCase());
         int entityId = ctx.pathParamAsClass("entityId", Integer.class).get();
+        requireNoteAccess(UserSession.from(ctx), entityType);
         var note = noteService.findNote(entityType, entityId).orElseThrow(NotFoundResponse::new);
         var versions = noteService.findVersions(note.id());
         ctx.json(versions.stream().map(this::toVersionResponse).toList());

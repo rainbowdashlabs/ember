@@ -105,7 +105,7 @@ const tabs = [
       <NeutralContainer class="space-y-3 mt-2">
         <SubHeader class="text-sm">{{ t('memberDetail.permissions') }}</SubHeader>
         <div class="flex flex-wrap gap-2">
-          <PrimaryBadge>{{ t('helpCenter.basics.roles.mgmt.attendanceManagement.name') }}</PrimaryBadge>
+          <PrimaryBadge>{{ t('helpCenter.basics.permissions.mgmt.attendanceManagement.name') }}</PrimaryBadge>
         </div>
       </NeutralContainer>
       <NeutralContainer class="space-y-3 mt-2">

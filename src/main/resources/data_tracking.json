@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:12340b1b6d841ffa7064b2272bfad0548d8f7d74388e704a8b514aafd447b174",
-  "generatedAt" : "2026-06-12T20:09:39Z",
+  "schemaHash" : "sha256:6cc0ba04951ae67fa954b9f5940e6bdb1ccd5d991e79af8a3282769f5a695ffd",
+  "generatedAt" : "2026-06-14T12:26:56Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -2574,7 +2574,7 @@
     "event_category" : {
       "feature" : "events",
       "scope" : "STATION",
-      "tableHash" : "sha256:1a20f7e202ad254d2a140c83f0e3b2ecf67654022afba588cf147586ac172e24",
+      "tableHash" : "sha256:64fb4b9a48976888f59b356c5eda6138e09ed42379c934e92c1bde07e4a6ac13",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -2611,6 +2611,12 @@
         "nullable" : false,
         "verified" : true,
         "description" : "Whether events in this category are public by default."
+      }, {
+        "name" : "color",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Optional display color for the category as a #RRGGBB hex string. Used as the calendar chip background; NULL falls back to the default primary tint."
       } ],
       "foreignKeys" : [ {
         "column" : "station_id",
@@ -7893,6 +7899,54 @@
         "reason" : "News access restriction config, not personal data"
       },
       "description" : "Unified access restrictions for news articles."
+    },
+    "news_view" : {
+      "feature" : "news",
+      "scope" : "STATION",
+      "tableHash" : "sha256:36b8a3b643f2d809b6f6f2b3aab642442c5a064c73be30e1465ed788d8e9fe2f",
+      "columns" : [ {
+        "name" : "news_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "References the news article."
+      }, {
+        "name" : "member_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "References the station member who saw the article."
+      }, {
+        "name" : "seen_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the news first became fully visible in the member's viewport."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "member_id",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "news_id",
+        "refTable" : "news",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Per-member personal state, not part of station data"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "View telemetry — pending detailed review (parallels news_acknowledgement policy)"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "View telemetry — pending detailed review (parallels news_acknowledgement policy)"
+      },
+      "description" : "Tracks when a member fully saw a news entry in their viewport (auto-recorded by the client)."
     },
     "notification" : {
       "feature" : "notifications",

@@ -6,9 +6,11 @@
 package dev.chojo.ember.feature.inventory.repository;
 
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemHistory;
+import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventorySummary;
@@ -337,7 +339,8 @@ public class InventoryRepository {
      * @param metadata    JSON metadata
      * @return the created item
      */
-    public InventoryItem createItem(int inventoryId, String internalId, String name, Integer sizeId, String metadata) {
+    public InventoryItem createItem(
+            int inventoryId, String internalId, String name, Integer sizeId, InventoryItemMetadata metadata) {
         return createItem(inventoryId, internalId, name, sizeId, metadata, null);
     }
 
@@ -357,7 +360,7 @@ public class InventoryRepository {
             String internalId,
             String name,
             Integer sizeId,
-            String metadata,
+            InventoryItemMetadata metadata,
             InventoryItem.ItemSource itemSource) {
         return query("""
                             INSERT INTO inventory_item(inventory_id, internal_id, name, size_id, metadata, item_source)
@@ -367,8 +370,8 @@ public class InventoryRepository {
                         .bind("internal_id", internalId)
                         .bind("name", name)
                         .bind("size_id", sizeId)
-                        .bind("metadata", metadata != null ? metadata : "{}")
-                        .bind("item_source", itemSource != null ? itemSource.name() : null))
+                        .bind("metadata", (metadata != null ? metadata : InventoryItemMetadata.empty()).toJson())
+                        .bind("item_source", itemSource))
                 .map(InventoryItem.map())
                 .first()
                 .orElseThrow();
@@ -384,7 +387,7 @@ public class InventoryRepository {
      * @param metadata   the new JSON metadata
      * @return {@code true} if the item was updated
      */
-    public boolean updateItem(int id, String internalId, String name, Integer sizeId, String metadata) {
+    public boolean updateItem(int id, String internalId, String name, Integer sizeId, InventoryItemMetadata metadata) {
         return query("""
                             UPDATE inventory_item
                             SET
@@ -396,7 +399,7 @@ public class InventoryRepository {
                 .single(call().bind("internal_id", internalId)
                         .bind("name", name)
                         .bind("size_id", sizeId)
-                        .bind("metadata", metadata)
+                        .bind("metadata", (metadata != null ? metadata : InventoryItemMetadata.empty()).toJson())
                         .bind("id", id))
                 .update()
                 .changed();
@@ -550,11 +553,12 @@ public class InventoryRepository {
      * @param quantity    the required quantity
      * @return the created requirement
      */
-    public InventoryRequirement createRequirement(int inventoryId, String userType, int groupId, int quantity) {
+    public InventoryRequirement createRequirement(
+            int inventoryId, StationUserType userType, int groupId, int quantity) {
         return query(
                         "INSERT INTO inventory_requirement(inventory_id, user_type, group_id, quantity) VALUES(:inventoryId, :userType, :groupId, :quantity) RETURNING id, inventory_id, user_type, group_id, quantity, position;")
                 .single(call().bind("inventoryId", inventoryId)
-                        .bind("userType", userType != null && !userType.isBlank() ? userType : null)
+                        .bind("userType", userType)
                         .bind("groupId", groupId == 0 ? null : groupId)
                         .bind("quantity", quantity))
                 .map(InventoryRequirement.map())

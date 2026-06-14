@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.repository;
 
-import dev.chojo.ember.api.roles.InstanceUserType;
+import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.entity.AccountExternalAuth;

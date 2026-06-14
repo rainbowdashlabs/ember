@@ -18,6 +18,7 @@ import com.rometools.rome.feed.synd.SyndEntryImpl;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
@@ -130,22 +131,26 @@ public class NotificationFeedRenderer {
 
         // Categories let users filter by notification type. We expose two categories so
         // readers cover both audiences: the localised label (what humans see in the UI) and
-        // the raw enum name (stable identifier scripts can match on across locales).
+        // the raw enum name (stable identifier scripts can match on across locales). The
+        // enum-name category is tagged with a scheme so readers that collapse duplicate
+        // `term` values still keep both, and the localised one always wins as the primary.
         entry.setCategories(List.of(
                 category(notificationService.resolveCategory(ctx.locale(), notification.type())),
-                category(notification.type().name())));
+                schemedCategory(notification.type().name(), "urn:ember:notification-type")));
 
-        // Plain-text fallback for readers that strip HTML.
-        SyndContent plain = new SyndContentImpl();
-        plain.setType("text/plain");
-        plain.setValue(notificationService.resolveFeedBody(ctx.locale(), notification));
-        entry.setContents(new ArrayList<>(List.of(plain)));
+        // Atom semantics: <summary> is the short preview shown in the inbox row,
+        // <content> is the rich body shown on expand. Previously we had these reversed —
+        // ROME mapped the rich HTML to <summary> and the multi-line plain text to <content>,
+        // which broke readers that strip HTML out of summaries or show only the summary.
+        SyndContent summary = new SyndContentImpl();
+        summary.setType("text/plain");
+        summary.setValue(notificationService.resolveMessage(ctx.locale(), notification));
+        entry.setDescription(summary);
 
-        // Rich HTML body (description) — readers prefer this over plain when both exist.
         SyndContent html = new SyndContentImpl();
         html.setType("text/html");
         html.setValue(renderHtml(notification, ctx, link));
-        entry.setDescription(html);
+        entry.setContents(new ArrayList<>(List.of(html)));
 
         // MediaRSS thumbnail for entries that carry an image (currently lost-and-found).
         if (ctx.images()) {
@@ -186,10 +191,14 @@ public class NotificationFeedRenderer {
                 int i = 0;
                 for (var entry : details.entrySet()) {
                     if (i++ > 0) sb.append("<br>");
+                    // Values can be multi-line (news previews, event descriptions, change
+                    // text, markdown tables that were stripped to "col · col · col" rows).
+                    // We escape first, then translate the surviving newlines into <br> so
+                    // readers see the paragraph structure instead of a wall of text.
                     sb.append("<dt style=\"color:#6b7280;display:inline\">")
                             .append(escapeHtml(entry.getKey()))
                             .append(":</dt> <dd style=\"display:inline;margin:0 0 0 4px\">")
-                            .append(escapeHtml(entry.getValue()))
+                            .append(escapeHtmlWithLineBreaks(entry.getValue()))
                             .append("</dd>");
                 }
                 sb.append("</dl>");
@@ -502,6 +511,23 @@ public class NotificationFeedRenderer {
                     details.put(label(ctx, "end", "End"), formatInstant(end, ctx.locale()));
                 }
             }
+            // Recurrence label so the user knows it's "weekly" / "monthly" / etc. at a glance.
+            if (event.eventType() != null && event.eventType() != StationEvent.EventType.ONE_TIME) {
+                String recurrence = notificationService.resolveLocalized(
+                        ctx.locale(), "ical", "eventType." + event.eventType().name(), null);
+                if (!recurrence.equals("eventType." + event.eventType().name())) {
+                    details.put(label(ctx, "recurrence", "Recurrence"), recurrence);
+                }
+            }
+            // Registration controls — surfaced so members can act on the notification body
+            // alone without round-tripping to the detail view.
+            if (event.requiresRegistration() && event.registrationDeadline() != null) {
+                details.put(
+                        label(ctx, "deadline", "Deadline"), formatInstant(event.registrationDeadline(), ctx.locale()));
+            }
+            if (event.registrationLimit() != null) {
+                details.put(label(ctx, "limit", "Limit"), String.valueOf(event.registrationLimit()));
+            }
             // Custom event fields — skip blank values, surface every set value verbatim.
             for (var field : eventFieldService.findByEvent(eventId)) {
                 if (field.value() == null || field.value().isBlank()) continue;
@@ -760,6 +786,18 @@ public class NotificationFeedRenderer {
         return c;
     }
 
+    /**
+     * Same as {@link #category(String)} but sets the {@code scheme} attribute so machine-
+     * readable category terms (like the raw enum name) can be distinguished from the
+     * primary human-readable category by feed readers and scripts.
+     */
+    private static SyndCategory schemedCategory(String name, String scheme) {
+        var c = new SyndCategoryImpl();
+        c.setName(name);
+        c.setTaxonomyUri(scheme);
+        return c;
+    }
+
     // -- image embedding --
 
     /**
@@ -838,5 +876,15 @@ public class NotificationFeedRenderer {
     private static String escapeHtml(String s) {
         if (s == null) return "";
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
+    }
+
+    /**
+     * HTML-escape and then convert surviving newlines into {@code <br>} tags. Used for body
+     * field values that may legitimately span multiple lines (news previews, event
+     * descriptions, change descriptions, table rows). Plain single-line values pass through
+     * with no effect because they have no newlines to translate.
+     */
+    private static String escapeHtmlWithLineBreaks(String s) {
+        return escapeHtml(s).replace("\n", "<br>");
     }
 }

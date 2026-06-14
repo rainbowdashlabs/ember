@@ -121,7 +121,7 @@ public class ExchangeService {
     }
 
     /**
-     * Updates the status of an exchange request. When transitioning to {@link ExchangeStatus#EXCHANGED},
+     * Updates the status of an exchange request. When transitioning to {@link ExchangeStatus#DONE},
      * completes the exchange by handling old and new item assignments.
      *
      * @param id              the exchange request ID
@@ -138,7 +138,7 @@ public class ExchangeService {
                 exchangeRepository.findById(id).orElseThrow(() -> new BadRequestResponse("Exchange request not found"));
         var oldStatus = request.status();
 
-        if (newStatus == ExchangeStatus.EXCHANGED) {
+        if (newStatus == ExchangeStatus.DONE) {
             completeExchange(request, exchangedItemId);
             exchangeRepository.updateStatusWithExchangedItem(id, newStatus, exchangedItemId);
         } else {

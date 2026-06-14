@@ -6,7 +6,8 @@
 package dev.chojo.ember.feature.restriction;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
@@ -60,7 +61,7 @@ public class RestrictionRepository {
             String table,
             String fkColumn,
             int entityId,
-            List<String> userTypes,
+            List<StationUserType> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds) {
@@ -68,7 +69,7 @@ public class RestrictionRepository {
                 .single(call().bind("entity_id", entityId))
                 .delete();
 
-        for (String userType : userTypes) {
+        for (StationUserType userType : userTypes) {
             query("INSERT INTO %s (%s, user_type) VALUES (:entity_id, :user_type);", table, fkColumn)
                     .single(call().bind("entity_id", entityId).bind("user_type", userType))
                     .insert();
@@ -131,7 +132,7 @@ public class RestrictionRepository {
         }
         if (!userTypes.isEmpty()) {
             stationMemberRepository.findByStation(stationId, false).stream()
-                    .filter(m -> userTypes.contains(m.userType().name()))
+                    .filter(m -> userTypes.contains(m.userType()))
                     .forEach(m -> memberIds.add(m.id()));
         }
         // Include managers who bypass restrictions
@@ -157,7 +158,7 @@ public class RestrictionRepository {
         StationMember member = stationMemberRepository.findById(memberId).orElse(null);
         if (member == null) return false;
 
-        String userType = member.userType().name();
+        StationUserType userType = member.userType();
         List<Integer> groupIds = memberGroupRepository.findGroupsForMember(memberId).stream()
                 .map(MemberGroup::id)
                 .toList();

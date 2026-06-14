@@ -13,7 +13,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import * as publicKb from '@/api/publicKb'
@@ -136,9 +136,9 @@ useHead(computed(() => {
     if (!stationInfo.value) return {}
     const folderName = currentFolder.value?.name
     const title = folderName
-        ? `${folderName} — Wissensdatenbank — ${stationInfo.value.stationName}`
-        : `Wissensdatenbank — ${stationInfo.value.stationName}`
-    const desc = currentFolder.value?.description || `Öffentliche Wissensdatenbank von ${stationInfo.value.stationName}`
+        ? `${folderName} — Wiki — ${stationInfo.value.stationName}`
+        : `Wiki — ${stationInfo.value.stationName}`
+    const desc = currentFolder.value?.description || `Öffentliches Wiki von ${stationInfo.value.stationName}`
     const breadcrumbs: { '@type': string; position: number; name: string; item?: string }[] = [
         {'@type': 'ListItem', position: 1, name: stationInfo.value.stationName, item: `/public/station/${stationUid.value}/knowledge`},
     ]
@@ -178,7 +178,7 @@ onMounted(() => {
 
             <!-- Search -->
             <div class="mb-4">
-                <TextInput
+                <SearchInput
                     v-model="searchQuery"
                     :placeholder="t('publicKb.search')"
                     @input="onSearchInput"

@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.repository;
 
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
@@ -48,7 +48,12 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
             stationMemberRepo.grantPermission(member2.id(), r.id());
         });
         inventory = inventoryRepo.create(station.id(), "Check Inv", InventoryType.EXTERNAL, false);
-        item = inventoryRepo.createItem(inventory.id(), "C-001", "Check Item", null, "{}");
+        item = inventoryRepo.createItem(
+                inventory.id(),
+                "C-001",
+                "Check Item",
+                null,
+                (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null);
         inventoryRepo.assignItem(item.id(), member1.id());
     }
 

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.inventory.repository;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.inventory.entity.CheckDetail;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheck;
@@ -125,7 +126,9 @@ public class InventoryCheckRepository {
                         row.getObject("locked_by", Integer.class),
                         row.getString("locker_first_name"),
                         row.getString("locker_last_name"),
-                        row.getString("user_type")))
+                        row.getString("user_type") != null
+                                ? StationUserType.valueOf(row.getString("user_type"))
+                                : null))
                 .all();
     }
 
@@ -280,19 +283,26 @@ public class InventoryCheckRepository {
     public Optional<Integer> nextUncheckedMember(int stationId, int excludeMemberId, boolean teamOnly) {
         String roleFilter =
                 teamOnly ? "AND sm.user_type IN ('TEAM','MANAGER','GUARDIAN')" : "AND sm.user_type = 'MEMBER'";
-        return query("SELECT sm.id FROM station_member sm"
-                        + " LEFT JOIN inventory_check_lock l ON l.member_id = sm.id"
-                        + " LEFT JOIN LATERAL ("
-                        + "     SELECT checked_at FROM inventory_check WHERE member_id = sm.id ORDER BY checked_at DESC LIMIT 1"
-                        + " ) lc ON TRUE"
-                        + " WHERE sm.station_id = :station_id"
-                        + " AND l.id IS NULL"
-                        + " AND sm.id != :exclude"
-                        + " AND sm.former = FALSE"
-                        + " AND (lc.checked_at IS NULL OR lc.checked_at < CURRENT_DATE)"
-                        + " " + roleFilter
-                        + " ORDER BY lc.checked_at ASC NULLS FIRST"
-                        + " LIMIT 1;")
+        return query("""
+                SELECT
+                    sm.id
+                FROM
+                    station_member sm
+                        LEFT JOIN inventory_check_lock l
+                        ON l.member_id = sm.id
+                        LEFT JOIN LATERAL ( SELECT checked_at
+                                            FROM inventory_check
+                                            WHERE member_id = sm.id
+                                            ORDER BY checked_at DESC
+                                            LIMIT 1 ) lc
+                        ON TRUE
+                WHERE sm.station_id = :station_id
+                  AND l.id IS NULL
+                  AND sm.id != :exclude
+                  AND sm.former = FALSE
+                  AND ( lc.checked_at IS NULL OR lc.checked_at < current_date ) %s
+                ORDER BY lc.checked_at ASC NULLS FIRST
+                LIMIT 1;""", roleFilter)
                 .single(call().bind("station_id", stationId).bind("exclude", excludeMemberId))
                 .map(row -> row.getInt("id"))
                 .first();
@@ -326,5 +336,5 @@ public class InventoryCheckRepository {
             Integer lockedBy,
             String lockerFirstName,
             String lockerLastName,
-            String userType) {}
+            StationUserType userType) {}
 }

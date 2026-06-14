@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.api.roles;
+package dev.chojo.ember.api.auth;
 
 /**
  * Defines the user type on the instance level.

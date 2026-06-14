@@ -25,6 +25,16 @@
     "status.DECLINED": "Abgesagt",
     "status.WITHDRAWN": "Zurückgezogen",
     "status.NONE": "Nicht angemeldet",
+    "status.ANNOUNCED": "Angekündigt",
+    "status.RECEIVED": "Empfangen",
+    "status.SHIPPED": "Versendet",
+    "status.ARRIVED": "Angekommen",
+    "status.DONE": "Erledigt",
+    "status.REQUESTED": "Angefragt",
+    "status.APPROVED": "Genehmigt",
+    "status.LENT": "Ausgeliehen",
+    "status.RETURNED": "Zurückgegeben",
+    "status.CLOSED": "Abgeschlossen",
     "cancelled": "Termin abgesagt",
     "cancelledWithReason": "Termin abgesagt: {reason}",
     "registrationRequired": "Anmeldung erforderlich"
@@ -71,10 +81,13 @@
     "assignee": "Zuständig",
     "priority": "Priorität",
     "progress": "Fortschritt",
-    "progressFormat": "{checked} von {total} Punkten"
+    "progressFormat": "{checked} von {total} Punkten",
+    "recurrence": "Wiederholung",
+    "deadline": "Anmeldefrist",
+    "limit": "Teilnehmerlimit"
   },
   "storageCategory": {
-    "KB_FILES": "Wissensdatenbank",
+    "KB_FILES": "Wiki",
     "BOARD_ATTACHMENTS": "Board-Anhänge",
     "PAGE_IMAGES": "Seitenbilder",
     "AVATARS": "Profilbilder",

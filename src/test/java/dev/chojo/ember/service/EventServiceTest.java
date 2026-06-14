@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
@@ -65,9 +65,10 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void createCategory() {
-        var cat = service.createCategory(station.id(), "Training", 0);
+        var cat = service.createCategory(station.id(), "Training", 0, "#ff6421");
         assertNotNull(cat);
         assertEquals("Training", cat.name());
+        assertEquals("#ff6421", cat.color());
         categoryId = cat.id();
     }
 
@@ -267,16 +268,17 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(52)
     void updateCategory() {
-        boolean updated = service.updateCategory(categoryId, "Updated Training", 1, null, false);
+        boolean updated = service.updateCategory(categoryId, "Updated Training", 1, null, false, "#73ceff");
         assertTrue(updated);
         var found = service.findCategoryById(categoryId).orElseThrow();
         assertEquals("Updated Training", found.name());
+        assertEquals("#73ceff", found.color());
     }
 
     @Test
     @Order(53)
     void reorderCategories() {
-        var cat2 = service.createCategory(station.id(), "Category 2", 1);
+        var cat2 = service.createCategory(station.id(), "Category 2", 1, null);
         // Reorder: put cat2 first, categoryId second
         service.reorderCategories(List.of(cat2.id(), categoryId));
         // Just verify no exception is thrown and both still exist
@@ -288,7 +290,7 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(54)
     void deleteCategory() {
-        var cat = service.createCategory(station.id(), "Temp Cat", 99);
+        var cat = service.createCategory(station.id(), "Temp Cat", 99, null);
         assertTrue(service.deleteCategory(cat.id()));
         assertTrue(service.findCategoryById(cat.id()).isEmpty());
     }
@@ -455,7 +457,8 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        service.setRestrictions(event.id(), List.of("MEMBER"), List.of(), List.of(), List.of());
+        service.setRestrictions(
+                event.id(), List.of(dev.chojo.ember.api.auth.StationUserType.MEMBER), List.of(), List.of(), List.of());
         var restrictions = service.findRestrictions(event.id());
         assertNotNull(restrictions);
     }
@@ -705,7 +708,7 @@ class EventServiceTest extends RepositoryTestBase {
     void findFilteredByRequiresRegistration() {
         var results = service.findFiltered(station.id(), null, null, false);
         assertNotNull(results);
-        assertTrue(results.stream().noneMatch(e -> e.requiresRegistration()));
+        assertTrue(results.stream().noneMatch(StationEvent::requiresRegistration));
     }
 
     @Test
@@ -743,7 +746,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 0);
+        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
         assertTrue(occurrences.stream().anyMatch(o -> o.event().id() == event.id()));
     }
 
@@ -773,23 +776,23 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 0);
+        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
         assertTrue(occurrences.stream().anyMatch(o -> o.event().id() == event.id()));
     }
 
     @Test
     @Order(122)
     void findUpcomingOccurrencesWithPagination() {
-        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, 2, 0);
+        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, null, 2, 0);
         assertTrue(occurrences.size() <= 2);
     }
 
     @Test
     @Order(123)
     void findUpcomingOccurrencesWithOffset() {
-        var all = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 0);
+        var all = service.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
         if (all.size() > 1) {
-            var offsetResults = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 1);
+            var offsetResults = service.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 1);
             assertEquals(all.size() - 1, offsetResults.size());
         }
     }
@@ -798,7 +801,7 @@ class EventServiceTest extends RepositoryTestBase {
     @Order(124)
     void findUpcomingOccurrencesWithFilters() {
         var occurrences =
-                service.findUpcomingOccurrences(station.id(), List.of(member.id()), categoryId, false, 100, 0);
+                service.findUpcomingOccurrences(station.id(), List.of(member.id()), categoryId, false, null, 100, 0);
         assertNotNull(occurrences);
     }
 
@@ -828,7 +831,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 0);
+        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
         // The event should appear at least once in the next 28 days if there's a matching date
         assertNotNull(occurrences);
     }
@@ -858,7 +861,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 0);
+        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
         assertNotNull(occurrences);
     }
 
@@ -889,7 +892,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 0);
+        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
         assertNotNull(occurrences);
     }
 
@@ -927,7 +930,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = service.findUpcomingOccurrences(breakStation.id(), null, null, null, 100, 0);
+        var occurrences = service.findUpcomingOccurrences(breakStation.id(), null, null, null, null, 100, 0);
         // Recurring events during break should not appear
         assertTrue(occurrences.stream().noneMatch(o -> o.event().name().equals("Break Recurring")));
 
@@ -962,7 +965,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 0);
+        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
         assertTrue(occurrences.stream().noneMatch(o -> o.event().id() == event.id()));
     }
 

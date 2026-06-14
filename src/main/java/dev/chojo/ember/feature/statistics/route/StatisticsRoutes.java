@@ -7,8 +7,8 @@ package dev.chojo.ember.feature.statistics.route;
 
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.api.roles.InstancePermission;
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.attendance.service;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
@@ -27,6 +28,8 @@ import tools.jackson.databind.json.JsonMapper;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -88,8 +91,8 @@ public class AttendanceReportService {
      * Creates a new report preset with the given filter configuration.
      */
     public AttendanceReportPreset createPreset(
-            int stationId, String name, String roleName, Integer groupId, String period, String rounding) {
-        return attendanceRepository.createPreset(stationId, name, roleName, groupId, period, rounding);
+            int stationId, String name, StationUserType userType, Integer groupId, String period, String rounding) {
+        return attendanceRepository.createPreset(stationId, name, userType, groupId, period, rounding);
     }
 
     /**
@@ -104,7 +107,12 @@ public class AttendanceReportService {
      * Filters members by role or group and aggregates hours within the given time range.
      */
     public ReportData buildReport(
-            int stationId, List<String> userTypes, List<Integer> groupIds, Instant from, Instant to, String rounding) {
+            int stationId,
+            List<StationUserType> userTypes,
+            List<Integer> groupIds,
+            Instant from,
+            Instant to,
+            String rounding) {
         ZoneId zone = resolveTimezone(stationId);
         Locale locale = resolveLocale(stationId);
         DateTimeFormatter monthFmt = DateTimeFormatter.ofPattern("MMMM yyyy", locale);
@@ -117,7 +125,7 @@ public class AttendanceReportService {
         }
         for (var ut : userTypes) {
             rawIdSet.addAll(attendanceRepository.findMemberIdsByUserType(stationId, ut));
-            filterLabels.add(ut);
+            filterLabels.add(ut.name());
         }
         String filterLabel = String.join(", ", filterLabels);
         var memberIds = Set.copyOf(rawIdSet);
@@ -164,12 +172,16 @@ public class AttendanceReportService {
                 Instant checkOut = entry.checkOut() != null ? entry.checkOut() : session.endTime();
                 double hours = computeHours(entry, checkIn, checkOut, rounding);
 
+                LocalDate sessionDate = session.startTime() != null
+                        ? session.startTime().atZone(zone).toLocalDate()
+                        : null;
                 entryDataList.add(new SessionMemberEntry(
                         entry.memberId(),
                         name,
-                        entry.status().name(),
-                        checkIn != null ? TIME_FMT.format(checkIn.atZone(zone)) : "",
-                        checkOut != null ? TIME_FMT.format(checkOut.atZone(zone)) : "",
+                        entry.status(),
+                        sessionDate,
+                        checkIn != null ? checkIn.atZone(zone).toLocalTime() : null,
+                        checkOut != null ? checkOut.atZone(zone).toLocalTime() : null,
                         hours));
 
                 memberTotalHours.merge(entry.memberId(), hours, Double::sum);
@@ -197,14 +209,12 @@ public class AttendanceReportService {
                     session.id(),
                     session.title() != null ? session.title() : "",
                     session.startTime() != null
-                            ? DATE_FMT.format(session.startTime().atZone(zone))
-                            : "",
+                            ? session.startTime().atZone(zone).toLocalDate()
+                            : null,
                     session.startTime() != null
-                            ? TIME_FMT.format(session.startTime().atZone(zone))
-                            : "",
-                    session.endTime() != null
-                            ? TIME_FMT.format(session.endTime().atZone(zone))
-                            : "",
+                            ? session.startTime().atZone(zone).toLocalTime()
+                            : null,
+                    session.endTime() != null ? session.endTime().atZone(zone).toLocalTime() : null,
                     expectedCount,
                     presentCount,
                     entryDataList);
@@ -258,7 +268,7 @@ public class AttendanceReportService {
      */
     public Optional<byte[]> exportReportPdf(
             int stationId,
-            List<String> userTypes,
+            List<StationUserType> userTypes,
             List<Integer> groupIds,
             Instant from,
             Instant to,
@@ -430,9 +440,9 @@ public class AttendanceReportService {
     public record SessionData(
             int sessionId,
             String title,
-            String date,
-            String startTime,
-            String endTime,
+            LocalDate date,
+            LocalTime startTime,
+            LocalTime endTime,
             int expectedCount,
             int presentCount,
             List<SessionMemberEntry> entries) {}
@@ -441,7 +451,13 @@ public class AttendanceReportService {
      * A member's attendance entry within a specific session.
      */
     public record SessionMemberEntry(
-            int memberId, String name, String status, String checkIn, String checkOut, double hours) {}
+            int memberId,
+            String name,
+            AttendanceEntry.AttendanceStatus status,
+            LocalDate date,
+            LocalTime checkIn,
+            LocalTime checkOut,
+            double hours) {}
 
     /**
      * Monthly breakdown with per-member summaries and session details.

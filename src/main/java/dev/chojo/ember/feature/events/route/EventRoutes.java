@@ -11,7 +11,8 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
@@ -28,6 +29,7 @@ import dev.chojo.ember.feature.events.entity.EventLayoutField;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.EventSummary;
 import dev.chojo.ember.feature.events.entity.IntervalConfig;
+import dev.chojo.ember.feature.events.entity.IntervalType;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
@@ -38,6 +40,7 @@ import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -325,6 +328,10 @@ public class EventRoutes implements Routes {
                         type = Boolean.class,
                         description = "Filter by registration requirement"),
                 @OpenApiParam(
+                        name = "search",
+                        type = String.class,
+                        description = "Free-text search over event name and description (case-insensitive)"),
+                @OpenApiParam(
                         name = "limit",
                         type = Integer.class,
                         description = "Max number of occurrences (default 10)"),
@@ -338,11 +345,12 @@ public class EventRoutes implements Routes {
         Integer categoryId = catParam != null ? Integer.valueOf(catParam) : null;
         String regParam = ctx.queryParam("requiresRegistration");
         Boolean requiresRegistration = regParam != null ? Boolean.valueOf(regParam) : null;
+        String search = ctx.queryParam("search");
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10);
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
         List<Integer> memberIds = resolveVisibleMemberIds(session);
         ctx.json(eventService.findUpcomingOccurrences(
-                session.stationId(), memberIds, categoryId, requiresRegistration, limit, offset));
+                session.stationId(), memberIds, categoryId, requiresRegistration, search, limit, offset));
     }
 
     @OpenApi(
@@ -359,7 +367,7 @@ public class EventRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(EventRequest.class);
         validate(req);
-        var eventType = StationEvent.EventType.valueOf(req.eventType());
+        var eventType = req.eventType();
         var event = eventService.create(
                 session.stationId(),
                 req.name(),
@@ -423,7 +431,7 @@ public class EventRoutes implements Routes {
         }
         var req = ctx.bodyAsClass(EventRequest.class);
         validate(req);
-        var eventType = StationEvent.EventType.valueOf(req.eventType());
+        var eventType = req.eventType();
         eventService
                 .update(
                         id,
@@ -520,11 +528,7 @@ public class EventRoutes implements Routes {
         var req = ctx.bodyAsClass(BreakRequest.class);
         if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
         ctx.status(HttpStatus.CREATED)
-                .json(eventService.createBreak(
-                        session.stationId(),
-                        req.name(),
-                        LocalDate.parse(req.startDate()),
-                        LocalDate.parse(req.endDate())));
+                .json(eventService.createBreak(session.stationId(), req.name(), req.startDate(), req.endDate()));
     }
 
     @OpenApi(
@@ -546,11 +550,9 @@ public class EventRoutes implements Routes {
             throw new ForbiddenResponse("Cannot access resources from another station");
         }
         var req = ctx.bodyAsClass(BreakRequest.class);
-        eventService
-                .updateBreak(id, req.name(), LocalDate.parse(req.startDate()), LocalDate.parse(req.endDate()))
-                .ifPresentOrElse(ctx::json, () -> {
-                    throw new NotFoundResponse();
-                });
+        eventService.updateBreak(id, req.name(), req.startDate(), req.endDate()).ifPresentOrElse(ctx::json, () -> {
+            throw new NotFoundResponse();
+        });
     }
 
     @OpenApi(
@@ -640,7 +642,7 @@ public class EventRoutes implements Routes {
                             memberName,
                             memberIdentity,
                             r.eventDate(),
-                            r.status().name(),
+                            r.status(),
                             r.createdAt(),
                             createdByName);
                 })
@@ -672,7 +674,7 @@ public class EventRoutes implements Routes {
                             memberName,
                             identity,
                             r.eventDate(),
-                            r.status().name(),
+                            r.status(),
                             r.createdAt(),
                             createdByName);
                 })
@@ -749,7 +751,7 @@ public class EventRoutes implements Routes {
                             memberName,
                             memberIdentity,
                             r.eventDate(),
-                            r.status().name(),
+                            r.status(),
                             r.createdAt(),
                             createdByName);
                 })
@@ -959,7 +961,7 @@ public class EventRoutes implements Routes {
         var req = ctx.bodyAsClass(CategoryRequest.class);
         if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
         ctx.status(HttpStatus.CREATED)
-                .json(eventService.createCategory(session.stationId(), req.name(), req.position()));
+                .json(eventService.createCategory(session.stationId(), req.name(), req.position(), req.color()));
     }
 
     @OpenApi(
@@ -982,7 +984,12 @@ public class EventRoutes implements Routes {
         }
         var req = ctx.bodyAsClass(CategoryRequest.class);
         if (!eventService.updateCategory(
-                id, req.name(), req.position(), req.maxShownEvents(), req.isPublic() != null && req.isPublic())) {
+                id,
+                req.name(),
+                req.position(),
+                req.maxShownEvents(),
+                req.isPublic() != null && req.isPublic(),
+                req.color())) {
             throw new NotFoundResponse();
         }
         ctx.status(HttpStatus.OK).json(new MessageResponse("Updated"));
@@ -1368,14 +1375,14 @@ public class EventRoutes implements Routes {
             String memberName,
             MemberIdentity memberIdentity,
             LocalDate eventDate,
-            String status,
+            RegistrationStatus status,
             Instant createdAt,
             String createdByName) {}
 
     public record EventRequest(
             String name,
             String description,
-            String eventType,
+            StationEvent.EventType eventType,
             Integer dayOfWeek,
             Instant startTime,
             Instant endTime,
@@ -1384,7 +1391,7 @@ public class EventRoutes implements Routes {
             Instant registrationDeadline,
             Boolean requiresConfirmation,
             Integer categoryId,
-            List<String> restrictedUserTypes,
+            List<StationUserType> restrictedUserTypes,
             List<Integer> restrictedGroupIds,
             List<Integer> restrictedTagIds,
             Boolean isPublic,
@@ -1395,9 +1402,9 @@ public class EventRoutes implements Routes {
 
     public record CancelEventRequest(String reason) {}
 
-    public record BreakRequest(String name, String startDate, String endDate) {}
+    public record BreakRequest(String name, LocalDate startDate, LocalDate endDate) {}
 
-    public record CategoryRequest(String name, int position, Integer maxShownEvents, Boolean isPublic) {}
+    public record CategoryRequest(String name, int position, Integer maxShownEvents, Boolean isPublic, String color) {}
 
     public record ReorderCategoriesRequest(List<Integer> orderedIds) {}
 
@@ -1427,7 +1434,7 @@ public class EventRoutes implements Routes {
     public record StatusUpdateRequest(RegistrationStatus status) {}
 
     public record EventRestrictions(
-            List<String> userTypes,
+            List<StationUserType> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds,
@@ -1473,7 +1480,7 @@ public class EventRoutes implements Routes {
     public record SetLayoutFieldsRequest(List<LayoutFieldEntry> fields) {}
 
     public record GenerateDatesRequest(
-            String intervalType,
+            IntervalType intervalType,
             Integer dayOfWeek,
             String startDate,
             String endDate,
@@ -1492,7 +1499,7 @@ public class EventRoutes implements Routes {
             Boolean requiresRegistration,
             Boolean requiresConfirmation,
             Instant registrationDeadline,
-            List<String> restrictedUserTypes,
+            List<StationUserType> restrictedUserTypes,
             List<Integer> restrictedGroupIds,
             List<Integer> restrictedTagIds) {}
 
@@ -1598,7 +1605,7 @@ public class EventRoutes implements Routes {
     public record EnrichedFederationRegistration(
             EventFederationRegistration registration, MemberIdentity memberIdentity) {}
 
-    public record SetFederationShareRequest(String scope, List<Integer> partnerIds) {}
+    public record SetFederationShareRequest(ShareScope scope, List<Integer> partnerIds) {}
 
     // -- Federated endpoints (user-facing, aggregates from partners with parallel fetch) --
 
@@ -1802,7 +1809,7 @@ public class EventRoutes implements Routes {
                 e.id(),
                 e.name(),
                 e.description() != null ? e.description() : "",
-                e.eventType() != null ? e.eventType().name() : "",
+                e.eventType(),
                 e.dayOfWeek() != null ? e.dayOfWeek() : 0,
                 e.startTime() != null ? e.startTime().toString() : "",
                 e.endTime() != null ? e.endTime().toString() : "",
@@ -1810,20 +1817,20 @@ public class EventRoutes implements Routes {
                 true);
     }
 
-    public record FederationShareResponse(boolean shared, String scope, List<Integer> partnerIds) {}
+    public record FederationShareResponse(boolean shared, ShareScope scope, List<Integer> partnerIds) {}
 
     public record FederatedEventDetail(Object event, List<EventField> publicFields) {}
 
     public record StatusResponse(String status) {}
 
     public record RemoteMemberRegistration(
-            int eventId, String remoteMemberId, String eventDate, String status, int partnerId) {}
+            int eventId, String remoteMemberId, String eventDate, RegistrationStatus status, int partnerId) {}
 
     public record RemoteEvent(
             int id,
             String name,
             String description,
-            String eventType,
+            StationEvent.EventType eventType,
             int dayOfWeek,
             String startTime,
             String endTime,

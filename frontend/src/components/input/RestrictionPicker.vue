@@ -4,10 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, ref} from 'vue'
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ToggleSwitch from '@/components/input/toggle/ToggleSwitch.vue'
+import ErrorButton from '@/components/button/ErrorButton.vue'
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
 import type {MemberGroup, StationMember, UserTag} from '@/api/types'
 import {StationUserType} from '@/api/types'
@@ -92,12 +92,10 @@ function onMembersChange(values: string[]) {
   emit('update:selectedMemberIds', values.map(Number))
 }
 
-const internalMode = ref<'AND' | 'OR'>(props.mode ?? 'AND')
-
-function toggleMode() {
-  internalMode.value = internalMode.value === 'AND' ? 'OR' : 'AND'
-  emit('update:mode', internalMode.value)
-}
+const modeModel = computed<'AND' | 'OR'>({
+  get: () => props.mode ?? 'AND',
+  set: (value) => emit('update:mode', value),
+})
 
 const hasActiveSelection = computed(() =>
     props.selectedUserTypes.length > 0 || props.selectedGroupIds.length > 0 || props.selectedTagIds.length > 0 || props.selectedMemberIds.length > 0
@@ -113,15 +111,15 @@ function reset() {
 
 <template>
   <div class="flex flex-wrap items-center gap-3">
-    <!-- AND/OR toggle (only between groups and tags — user types are always OR) -->
-    <SelectionToggleButton
+    <!-- AND/OR toggle (only between groups and tags — user types are always OR). -->
+    <ToggleSwitch
         v-if="showMode && (showGroups || showTags)"
-        :selected="internalMode === 'AND'"
-        size="sm"
-        @toggle="toggleMode"
-    >
-      {{ internalMode === 'AND' ? t('restriction.and') : t('restriction.or') }}
-    </SelectionToggleButton>
+        v-model="modeModel"
+        option-a="AND"
+        option-b="OR"
+        :label-a="t('restriction.and')"
+        :label-b="t('restriction.or')"
+    />
 
     <!-- User types dropdown (always OR-connected) -->
     <MultiSelectDropdown
@@ -160,13 +158,13 @@ function reset() {
     />
 
     <!-- Reset button -->
-    <SecondaryButton
+    <ErrorButton
         v-if="hasActiveSelection"
         @click="reset"
     >
       <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1"/>
       {{ t('restriction.reset') }}
-    </SecondaryButton>
+    </ErrorButton>
 
     <!-- Empty hint -->
     <span v-if="!hasActiveSelection" class="text-xs text-(--text-muted) italic">

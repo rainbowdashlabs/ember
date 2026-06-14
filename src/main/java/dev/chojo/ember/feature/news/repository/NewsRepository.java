@@ -9,6 +9,7 @@ import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
+import dev.chojo.ember.feature.news.entity.NewsViewer;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -358,5 +359,85 @@ public class NewsRepository {
                 .map(row -> row.getInt("cnt"))
                 .first()
                 .orElse(0);
+    }
+
+    // -- Views --
+
+    /**
+     * Records that a member fully saw a news article. Idempotent — (news_id, member_id)
+     * is the table's PK so a repeated view from the same member is silently ignored.
+     */
+    public void recordView(int newsId, int memberId) {
+        query("INSERT INTO news_view(news_id, member_id) VALUES(:news_id, :member_id) ON CONFLICT DO NOTHING;")
+                .single(call().bind("news_id", newsId).bind("member_id", memberId))
+                .insert();
+    }
+
+    /**
+     * Returns every member who has seen the news (most-recent first), with the timestamp
+     * of their first view.
+     */
+    public List<NewsViewer> findSeenViewers(int newsId) {
+        return query("""
+                            SELECT st.uid AS station_uid, sm.uid AS member_uid, nv.seen_at
+                            FROM news_view nv
+                            JOIN station_member sm ON sm.id = nv.member_id
+                            JOIN station st ON st.id = sm.station_id
+                            WHERE nv.news_id = :news_id
+                            ORDER BY nv.seen_at DESC;""")
+                .single(call().bind("news_id", newsId))
+                .map(NewsViewer.map())
+                .all();
+    }
+
+    /**
+     * Counts how many distinct members have viewed a news entry.
+     *
+     * @param newsId the news article ID
+     * @return view count
+     */
+    public int countViews(int newsId) {
+        return query("SELECT count(*) AS cnt FROM news_view WHERE news_id = :news_id;")
+                .single(call().bind("news_id", newsId))
+                .map(row -> row.getInt("cnt"))
+                .first()
+                .orElse(0);
+    }
+
+    /**
+     * Checks whether a specific member has viewed a news entry.
+     *
+     * @param newsId   the news article ID
+     * @param memberId the member ID
+     * @return {@code true} if the member has viewed the article
+     */
+    public boolean hasViewed(int newsId, int memberId) {
+        return query("SELECT 1 FROM news_view WHERE news_id = :news_id AND member_id = :member_id;")
+                .single(call().bind("news_id", newsId).bind("member_id", memberId))
+                .map(row -> true)
+                .first()
+                .isPresent();
+    }
+
+    /**
+     * Returns every active station member who is allowed to see the news (per restrictions)
+     * but has not yet been observed viewing it. {@code seenAt} on the returned rows is always
+     * {@code null}.
+     */
+    public List<NewsViewer> findUnseenViewers(int newsId, int stationId) {
+        return query("""
+                            SELECT st.uid AS station_uid, sm.uid AS member_uid, NULL::timestamptz AS seen_at
+                            FROM station_member sm
+                            JOIN station st ON st.id = sm.station_id
+                            WHERE sm.station_id = :station_id
+                              AND sm.former = FALSE
+                              AND check_restriction('news_restriction', 'news_id', 'news', 'id', :news_id, sm.id, 'NEWS_MANAGER')
+                              AND NOT EXISTS (
+                                  SELECT 1 FROM news_view nv
+                                  WHERE nv.news_id = :news_id AND nv.member_id = sm.id)
+                            ORDER BY sm.id;""")
+                .single(call().bind("news_id", newsId).bind("station_id", stationId))
+                .map(NewsViewer.map())
+                .all();
     }
 }

@@ -21,7 +21,7 @@ import java.util.List;
 public record RequiredInventoryItem(
         int inventoryId,
         String inventoryName,
-        String inventoryType,
+        InventoryType inventoryType,
         boolean hasSizes,
         List<InventorySize> sizes,
         int requiredQuantity,

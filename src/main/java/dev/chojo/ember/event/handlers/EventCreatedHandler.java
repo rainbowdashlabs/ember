@@ -33,10 +33,10 @@ public class EventCreatedHandler implements DomainEventHandler<EventCreated> {
     @Override
     public void handle(EventCreated event) {
         var e = event.event();
-        String description = "";
-        if (e.description() != null && !e.description().isBlank()) {
-            description = e.description().length() > 80 ? e.description().substring(0, 80) + "..." : e.description();
-        }
+        // Pass the full description through — the feed renderer applies word-boundary
+        // truncation via NotificationService.truncateSnippet on the way out so we don't
+        // mangle the text at a fixed 80-char cut here.
+        String description = e.description() == null ? "" : e.description();
         notificationService.notifyStation(
                 event.stationId(),
                 NotificationType.NEW_EVENT,

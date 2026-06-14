@@ -24,7 +24,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import EventFieldValue from '@/components/display/EventFieldValue.vue'
 import DetailLabel from '@/components/typography/DetailLabel.vue'
 import type {AttendanceTemplate, EventCategory, EventField, StationEvent, StationMember} from '@/api/types'
-import {isRecurringEvent} from '@/api/types'
+import {isRecurringEvent, StationPermission} from '@/api/types'
 import type {AbsentMember} from '@/api/events'
 import {attendance, events, managedMembers as managedMembersApi} from '@/api'
 import {useSession} from '@/composables/useSession'
@@ -37,7 +37,7 @@ import EventRegistrationsTab from './eventdetailview/EventRegistrationsTab.vue'
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {canManageEvents, canManageAttendance, isGuardian, sessionInfo} = useSession()
+const {canManageEvents, canManageAttendance, isGuardian, sessionInfo, hasPermission} = useSession()
 
 const eventId = computed(() => Number(route.params.id))
 const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
@@ -291,7 +291,9 @@ onMounted(loadData)
             <p v-else class="text-sm text-(--text-muted)">{{ t('eventDetail.noAbsences') }}</p>
           </NeutralContainer>
 
-          <NeutralContainer v-if="canManageEvents()">
+          <!-- Event notes require EVENT_EDIT (not the broader EVENT_MANAGER / canManageEvents).
+               Matches the backend gate on /api/v1/notes/EVENT/{id}. -->
+          <NeutralContainer v-if="hasPermission(StationPermission.EVENT_EDIT)">
             <NoteEditor entity-type="EVENT" :entity-id="eventId"/>
           </NeutralContainer>
 

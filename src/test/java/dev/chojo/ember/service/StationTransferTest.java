@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.roles.StationPermission;
-import dev.chojo.ember.api.roles.StationUserType;
+import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
@@ -202,8 +203,8 @@ class StationTransferTest extends RepositoryTestBase {
                 0);
 
         // --- Event categories ---
-        var catTraining = eventRepo.createCategory(sourceStationId, "Training", 0);
-        var catSonder = eventRepo.createCategory(sourceStationId, "Sondertermin", 1);
+        var catTraining = eventRepo.createCategory(sourceStationId, "Training", 0, "#ff6421");
+        var catSonder = eventRepo.createCategory(sourceStationId, "Sondertermin", 1, null);
 
         // --- Events ---
         var now = Instant.now();
@@ -264,15 +265,31 @@ class StationTransferTest extends RepositoryTestBase {
         inventoryRepo.createSize(invHelme.id(), "S", 0, "");
         inventoryRepo.createSize(invHelme.id(), "M", 1, "");
         inventoryRepo.createSize(invHelme.id(), "L", 2, "");
-        inventoryRepo.createItem(invHelme.id(), "H-001", "Helm 1", null, "{}");
-        inventoryRepo.createItem(invHelme.id(), "H-002", "Helm 2", null, "{}");
-        inventoryRepo.createItem(invHelme.id(), "H-003", "Helm 3", null, "{}");
+        inventoryRepo.createItem(
+                invHelme.id(), "H-001", "Helm 1", null, (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata)
+                        null);
+        inventoryRepo.createItem(
+                invHelme.id(), "H-002", "Helm 2", null, (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata)
+                        null);
+        inventoryRepo.createItem(
+                invHelme.id(), "H-003", "Helm 3", null, (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata)
+                        null);
 
         var invStiefel = inventoryRepo.create(sourceStationId, "Stiefel", InventoryType.INTERNAL, true);
         inventoryRepo.createSize(invStiefel.id(), "38", 0, "");
         inventoryRepo.createSize(invStiefel.id(), "42", 1, "");
-        inventoryRepo.createItem(invStiefel.id(), "S-001", "Stiefel 1", null, "{}");
-        inventoryRepo.createItem(invStiefel.id(), "S-002", "Stiefel 2", null, "{}");
+        inventoryRepo.createItem(
+                invStiefel.id(),
+                "S-001",
+                "Stiefel 1",
+                null,
+                (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null);
+        inventoryRepo.createItem(
+                invStiefel.id(),
+                "S-002",
+                "Stiefel 2",
+                null,
+                (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null);
 
         // --- Forms ---
         var form = formRepo.create(
@@ -461,7 +478,7 @@ class StationTransferTest extends RepositoryTestBase {
         assertNotNull(imported.ownerMemberId(), "Station owner should be set after import");
 
         // PKs were remapped — source member ids should not match any target member id.
-        var importedMemberIds = importedMembers.stream().map(m -> m.id()).toList();
+        var importedMemberIds = importedMembers.stream().map(StationMember::id).toList();
         assertTrue(importedMemberIds.stream().noneMatch(id -> id == sourceManagerId));
         assertTrue(importedMemberIds.stream().noneMatch(id -> id == sourceTrainerId));
         assertTrue(importedMemberIds.stream().noneMatch(id -> id == sourceChildId));

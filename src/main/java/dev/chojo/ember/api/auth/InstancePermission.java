@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.api.roles;
+package dev.chojo.ember.api.auth;
 
 import io.javalin.security.RouteRole;
 
@@ -28,18 +28,18 @@ public enum InstancePermission implements RouteRole {
     }
 
     /**
-     * Expands a set of roles to include all transitively contained child roles.
+     * Expands a set of permissions to include all transitively contained child permissions.
      */
-    public static Set<InstancePermission> expand(Set<InstancePermission> roles) {
-        Set<InstancePermission> expanded = EnumSet.copyOf(roles);
-        for (InstancePermission role : roles) {
-            expanded.addAll(role.allChildren());
+    public static Set<InstancePermission> expand(Set<InstancePermission> permissions) {
+        Set<InstancePermission> expanded = EnumSet.copyOf(permissions);
+        for (InstancePermission permission : permissions) {
+            expanded.addAll(permission.allChildren());
         }
         return expanded;
     }
 
     /**
-     * Returns all roles transitively included by this role (direct and indirect children).
+     * Returns all permissions transitively included by this permission (direct and indirect children).
      */
     public Set<InstancePermission> allChildren() {
         if (allChildren == null) {
@@ -53,9 +53,9 @@ public enum InstancePermission implements RouteRole {
     }
 
     /**
-     * Checks whether this role transitively includes the given role.
+     * Checks whether this permission transitively includes the given permission.
      */
-    public boolean includes(InstancePermission role) {
-        return allChildren().contains(role);
+    public boolean includes(InstancePermission permission) {
+        return allChildren().contains(permission);
     }
 }

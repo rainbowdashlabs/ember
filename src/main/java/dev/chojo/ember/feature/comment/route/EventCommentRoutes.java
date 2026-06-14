@@ -9,7 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -159,7 +159,7 @@ public class EventCommentRoutes implements Routes {
         var comment = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
         var authorIdentity = memberIdentityFactory.local(
                 session.stationId(), session.member().id());
-        if (comment.author() == null || !comment.author().equals(authorIdentity)) {
+        if (comment.author() == null || !comment.author().sameMember(authorIdentity)) {
             throw new ForbiddenResponse("You can only edit your own comments");
         }
         var request = ctx.bodyAsClass(UpdateCommentRequest.class);
@@ -187,7 +187,7 @@ public class EventCommentRoutes implements Routes {
         var comment = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
         var authorIdentity = memberIdentityFactory.local(
                 session.stationId(), session.member().id());
-        boolean isAuthor = comment.author() != null && comment.author().equals(authorIdentity);
+        boolean isAuthor = comment.author() != null && comment.author().sameMember(authorIdentity);
         boolean canModerate = session.hasPermission(StationPermission.EVENT_MANAGER);
         if (!isAuthor && !canModerate) {
             throw new ForbiddenResponse("You can only delete your own comments");

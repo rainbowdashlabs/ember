@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.system.service;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
+import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
@@ -228,7 +229,7 @@ public class DemoInventorySeeder {
                     "HS-" + String.format("%03d", itemCounter++),
                     "Handschuhe (eigen) " + size.label(),
                     size.id(),
-                    "{\"owned\":true}",
+                    new InventoryItemMetadata(true),
                     InventoryItem.ItemSource.EXTERNAL);
             inventoryRepository.assignItem(ownedGlove.id(), kid.id());
         }

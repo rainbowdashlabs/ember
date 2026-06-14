@@ -144,7 +144,7 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
         userTagRepo.create(sourceStationId, "Tag1");
         userTagRepo.create(sourceStationId, "Tag2");
 
-        eventRepo.createCategory(sourceStationId, "Cat", 0);
+        eventRepo.createCategory(sourceStationId, "Cat", 0, null);
         inventoryRepo.create(
                 sourceStationId, "Inv", dev.chojo.ember.feature.inventory.entity.InventoryType.INTERNAL, false);
 
@@ -228,9 +228,11 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
     }
 
     private static int sizeOf(Object payload) {
-        if (payload == null) return 0;
-        if (payload instanceof List<?> l) return l.size();
-        if (payload instanceof Map) return 1;
-        return 1;
+        return switch (payload) {
+            case null -> 0;
+            case List<?> l -> l.size();
+            case Map map -> 1;
+            default -> 1;
+        };
     }
 }

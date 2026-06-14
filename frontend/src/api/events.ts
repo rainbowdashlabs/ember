@@ -34,6 +34,7 @@ export interface EventListParams {
 export interface UpcomingParams {
     categoryId?: number
     requiresRegistration?: boolean
+    search?: string
     limit?: number
     offset?: number
 }

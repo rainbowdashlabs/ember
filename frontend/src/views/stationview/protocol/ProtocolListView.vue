@@ -20,6 +20,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -150,7 +151,7 @@ onMounted(() => { if (loaded.value) loadData() })
 
     <!-- Search -->
     <div class="mb-4">
-      <TextInput v-model="searchQuery" :placeholder="t('protocol.search')" />
+      <SearchInput v-model="searchQuery" :placeholder="t('protocol.search')" />
     </div>
 
     <!-- Filters -->

@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.api.roles;
+package dev.chojo.ember.api.auth;
 
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import io.javalin.security.RouteRole;
@@ -446,18 +446,18 @@ public enum StationPermission implements RouteRole {
     }
 
     /**
-     * Expands a set of roles to include all transitively contained child roles.
+     * Expands a set of permissions to include all transitively contained child permissions.
      */
-    public static Set<StationPermission> expand(Set<StationPermission> roles) {
-        Set<StationPermission> expanded = EnumSet.copyOf(roles);
-        for (StationPermission role : roles) {
-            expanded.addAll(role.allChildren());
+    public static Set<StationPermission> expand(Set<StationPermission> permissions) {
+        Set<StationPermission> expanded = EnumSet.copyOf(permissions);
+        for (StationPermission permission : permissions) {
+            expanded.addAll(permission.allChildren());
         }
         return expanded;
     }
 
     /**
-     * Returns all roles transitively included by this role (direct and indirect children).
+     * Returns all permissions transitively included by this permission (direct and indirect children).
      */
     public Set<StationPermission> allChildren() {
         if (allChildren == null) {
@@ -471,9 +471,9 @@ public enum StationPermission implements RouteRole {
     }
 
     /**
-     * Checks whether this role transitively includes the given role.
+     * Checks whether this permission transitively includes the given permission.
      */
-    public boolean includes(StationPermission role) {
-        return allChildren().contains(role);
+    public boolean includes(StationPermission permission) {
+        return allChildren().contains(permission);
     }
 }

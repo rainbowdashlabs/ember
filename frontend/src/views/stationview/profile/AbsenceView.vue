@@ -46,6 +46,12 @@ const savingAbsence = ref(false)
 
 const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
 
+const isAbsenceRangeInvalid = computed(() =>
+    !!newAbsenceFrom.value
+    && !!newAbsenceUntil.value
+    && newAbsenceUntil.value < newAbsenceFrom.value
+)
+
 function isAbsenceActive(absence: MemberAbsence): boolean {
   if (!absence.absentFrom || !absence.absentUntil) return false
   const today = new Date().toISOString().slice(0, 10)
@@ -93,6 +99,7 @@ async function loadData() {
 
 async function addAbsence() {
   if (!newAbsenceFrom.value || !newAbsenceUntil.value) return
+  if (isAbsenceRangeInvalid.value) return
   savingAbsence.value = true
   error.value = ''
   success.value = ''
@@ -174,6 +181,10 @@ watch(loaded, (isLoaded) => {
             </div>
           </div>
 
+          <p v-if="isAbsenceRangeInvalid" class="text-sm text-error">
+            {{ t('profile.absenceInvalidRange') }}
+          </p>
+
           <!-- Member selection -->
           <div class="space-y-2">
             <FieldLabel>{{ t('profile.absenceFor') }}</FieldLabel>
@@ -199,7 +210,7 @@ watch(loaded, (isLoaded) => {
 
           <div class="flex gap-3">
             <PrimaryButton
-                :disabled="savingAbsence || !newAbsenceFrom || !newAbsenceUntil || selectedMemberIds.size === 0"
+                :disabled="savingAbsence || !newAbsenceFrom || !newAbsenceUntil || selectedMemberIds.size === 0 || isAbsenceRangeInvalid"
                 @click="addAbsence">
               {{ savingAbsence ? t('common.loading') : t('profile.absenceAdd') }}
             </PrimaryButton>
@@ -220,14 +231,14 @@ watch(loaded, (isLoaded) => {
               :key="absence.id"
           >
             <div class="flex items-center justify-between flex-wrap gap-2">
-              <div>
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span v-if="absence.memberIdentity"
-                      class="text-sm font-semibold mr-2"><MemberName :identity="absence.memberIdentity"/></span>
+                      class="text-sm font-semibold"><MemberName :identity="absence.memberIdentity"/></span>
                 <span class="text-sm">{{ formatDate(absence.absentFrom) }} – {{
                     formatDate(absence.absentUntil)
                   }}</span>
-                <MutedText size="sm" class="ml-3" v-if="absence.reason">{{ absence.reason }}</MutedText>
-                <span v-if="absence.createdByName" class="ml-3 text-xs text-(--text-muted) italic">{{ t('common.createdBy', { name: absence.createdByName }) }}</span>
+                <MutedText size="sm" v-if="absence.reason">{{ absence.reason }}</MutedText>
+                <span v-if="absence.createdByName" class="text-xs text-(--text-muted) italic">{{ t('common.createdBy', { name: absence.createdByName }) }}</span>
               </div>
               <div class="flex items-center gap-2">
                 <SuccessBadge v-if="isAbsenceActive(absence)">{{ t('profile.absenceActive') }}</SuccessBadge>

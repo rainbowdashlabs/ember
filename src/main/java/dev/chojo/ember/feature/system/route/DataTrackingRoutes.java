@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.system.route;
 
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.roles.InstancePermission;
+import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.system.service.DataTrackingAdminService;
 import io.javalin.http.Context;

@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.board.entity.BoardTicket;
 import dev.chojo.ember.feature.board.entity.BoardTicketAttachment;
 import dev.chojo.ember.feature.board.entity.BoardTicketFieldValue;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistory;
+import dev.chojo.ember.feature.board.entity.BoardTicketHistoryAction;
 import dev.chojo.ember.feature.board.entity.BoardTicketKbLink;
 import dev.chojo.ember.feature.board.entity.BoardTicketLink;
 import dev.chojo.ember.feature.board.entity.BoardTicketTransition;
@@ -148,14 +149,21 @@ public class BoardTicketService {
         if (updated && oldTicket != null) {
             if (oldTicket.priority() != priority)
                 ticketRepository.logHistory(
-                        id, "PRIORITY_CHANGED", oldTicket.priority().name() + " → " + priority.name(), actor);
+                        id,
+                        BoardTicketHistoryAction.PRIORITY_CHANGED,
+                        oldTicket.priority().name() + " → " + priority.name(),
+                        actor);
             if (!Objects.equals(oldTicket.title(), title))
-                ticketRepository.logHistory(id, "TITLE_CHANGED", oldTicket.title() + " → " + title, actor);
+                ticketRepository.logHistory(
+                        id, BoardTicketHistoryAction.TITLE_CHANGED, oldTicket.title() + " → " + title, actor);
             if (!Objects.equals(oldTicket.description(), description))
-                ticketRepository.logHistory(id, "DESCRIPTION_CHANGED", null, actor);
+                ticketRepository.logHistory(id, BoardTicketHistoryAction.DESCRIPTION_CHANGED, null, actor);
             if (!Objects.equals(oldTicket.dueDate(), dueDate))
                 ticketRepository.logHistory(
-                        id, "DUE_DATE_CHANGED", (dueDate != null ? dueDate.toString() : "entfernt"), actor);
+                        id,
+                        BoardTicketHistoryAction.DUE_DATE_CHANGED,
+                        (dueDate != null ? dueDate.toString() : "entfernt"),
+                        actor);
             notifyWatchers(id, oldTicket.boardId(), "Ticket aktualisiert", null);
         }
         return updated;
@@ -176,7 +184,7 @@ public class BoardTicketService {
             String oldName = memberNameResolver.resolve(oldAssignee);
             String newName = memberNameResolver.resolve(assignee);
             String detail = (oldName != null ? oldName : "—") + " → " + (newName != null ? newName : "—");
-            ticketRepository.logHistory(ticketId, "ASSIGNEE_CHANGED", detail, actorIdentity);
+            ticketRepository.logHistory(ticketId, BoardTicketHistoryAction.ASSIGNEE_CHANGED, detail, actorIdentity);
 
             // Notify watchers
             notifyWatchers(ticketId, oldTicket.boardId(), "Zuweisung geändert", actorMemberId);
@@ -282,8 +290,8 @@ public class BoardTicketService {
             var linkedBoard = boardRepository.findById(linkedTicket.boardId()).orElse(null);
             String key = (board != null ? board.shortKey() : "?") + "-" + linkedTicket.ticketNumber();
             String reverseKey = (linkedBoard != null ? linkedBoard.shortKey() : "?") + "-" + ticket.ticketNumber();
-            ticketRepository.logHistory(ticketId, "LINK_ADDED", key, actor);
-            ticketRepository.logHistory(linkedTicketId, "LINK_ADDED", reverseKey, actor);
+            ticketRepository.logHistory(ticketId, BoardTicketHistoryAction.LINK_ADDED, key, actor);
+            ticketRepository.logHistory(linkedTicketId, BoardTicketHistoryAction.LINK_ADDED, reverseKey, actor);
         }
     }
 
@@ -296,8 +304,8 @@ public class BoardTicketService {
             var linkedBoard = boardRepository.findById(linkedTicket.boardId()).orElse(null);
             String key = (board != null ? board.shortKey() : "?") + "-" + linkedTicket.ticketNumber();
             String reverseKey = (linkedBoard != null ? linkedBoard.shortKey() : "?") + "-" + ticket.ticketNumber();
-            ticketRepository.logHistory(ticketId, "LINK_REMOVED", key, actor);
-            ticketRepository.logHistory(linkedTicketId, "LINK_REMOVED", reverseKey, actor);
+            ticketRepository.logHistory(ticketId, BoardTicketHistoryAction.LINK_REMOVED, key, actor);
+            ticketRepository.logHistory(linkedTicketId, BoardTicketHistoryAction.LINK_REMOVED, reverseKey, actor);
         }
         return deleted;
     }
@@ -370,7 +378,7 @@ public class BoardTicketService {
                         .resolveId(stationId, author.memberUid())
                         .orElse(null);
             }
-            String mentionPreview = content.length() > 100 ? content.substring(0, 100) + "\u2026" : content;
+            String mentionPreview = content.length() > 100 ? content.substring(0, 100) + "…" : content;
             for (int mentionedId : parseMentions(stationId, content)) {
                 if (authorMemberId == null || mentionedId != authorMemberId) {
                     eventBus.publish(new MentionedInComment(
@@ -527,7 +535,7 @@ public class BoardTicketService {
 
     // -- History --
 
-    public void logHistory(int ticketId, String action, String detail, MemberIdentity actor) {
+    public void logHistory(int ticketId, BoardTicketHistoryAction action, String detail, MemberIdentity actor) {
         ticketRepository.logHistory(ticketId, action, detail, actor);
     }
 

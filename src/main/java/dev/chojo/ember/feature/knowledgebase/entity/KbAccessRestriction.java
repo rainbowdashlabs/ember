@@ -6,16 +6,23 @@
 package dev.chojo.ember.feature.knowledgebase.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.api.auth.StationUserType;
 
 public record KbAccessRestriction(
-        int id, Integer folderId, Integer fileId, String userType, Integer groupId, Integer tagId, Integer memberId) {
+        int id,
+        Integer folderId,
+        Integer fileId,
+        StationUserType userType,
+        Integer groupId,
+        Integer tagId,
+        Integer memberId) {
 
     public static RowMapping<KbAccessRestriction> map() {
         return row -> new KbAccessRestriction(
                 row.getInt("id"),
                 row.getObject("folder_id", Integer.class),
                 row.getObject("file_id", Integer.class),
-                row.getString("user_type"),
+                row.getEnum("user_type", StationUserType.class),
                 row.getObject("group_id", Integer.class),
                 row.getObject("tag_id", Integer.class),
                 row.getObject("member_id", Integer.class));

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.board.service;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.entity.BoardField;
@@ -220,10 +221,11 @@ public class BoardService {
                 repository.findEditAccessTagIds(boardId));
     }
 
-    private boolean matchesAccess(int memberId, List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
+    private boolean matchesAccess(
+            int memberId, List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
         if (!userTypes.isEmpty()) {
             var member = memberService.findById(memberId);
-            if (member.isPresent() && userTypes.contains(member.get().userType().name())) return true;
+            if (member.isPresent() && userTypes.contains(member.get().userType())) return true;
         }
         if (!groupIds.isEmpty()) {
             var memberGroupIds = groupService.findGroupsForMember(memberId).stream()
@@ -254,11 +256,13 @@ public class BoardService {
                 repository.findEditAccessTagIds(boardId));
     }
 
-    public void setViewAccess(int boardId, List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
+    public void setViewAccess(
+            int boardId, List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
         repository.setViewAccess(boardId, userTypes, groupIds, tagIds);
     }
 
-    public void setEditAccess(int boardId, List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
+    public void setEditAccess(
+            int boardId, List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
         repository.setEditAccess(boardId, userTypes, groupIds, tagIds);
     }
 }

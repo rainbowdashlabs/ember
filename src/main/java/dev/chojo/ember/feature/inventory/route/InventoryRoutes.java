@@ -9,9 +9,11 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
+import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -33,8 +35,6 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.List;
@@ -45,7 +45,6 @@ import java.util.List;
  */
 @Singleton
 public class InventoryRoutes implements Routes {
-    private static final Logger log = LoggerFactory.getLogger(InventoryRoutes.class);
     private final InventoryService inventoryService;
     private final InventoryCheckService checkService;
     private final InventoryExportService inventoryExportService;
@@ -269,12 +268,12 @@ public class InventoryRoutes implements Routes {
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
         }
+        if (request.inventoryType() == null) {
+            throw new BadRequestResponse("inventoryType is required");
+        }
         ctx.status(HttpStatus.CREATED)
                 .json(inventoryService.create(
-                        session.stationId(),
-                        request.name(),
-                        parseInventoryType(request.inventoryType()),
-                        request.hasSizes()));
+                        session.stationId(), request.name(), request.inventoryType(), request.hasSizes()));
     }
 
     @OpenApi(
@@ -298,7 +297,7 @@ public class InventoryRoutes implements Routes {
                                     inventory.id(),
                                     inventory.stationId(),
                                     inventory.name(),
-                                    inventory.inventoryType().name(),
+                                    inventory.inventoryType(),
                                     inventory.hasSizes(),
                                     sizes));
                         },
@@ -329,8 +328,11 @@ public class InventoryRoutes implements Routes {
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
         }
+        if (request.inventoryType() == null) {
+            throw new BadRequestResponse("inventoryType is required");
+        }
         inventoryService
-                .update(id, request.name(), parseInventoryType(request.inventoryType()), request.hasSizes())
+                .update(id, request.name(), request.inventoryType(), request.hasSizes())
                 .ifPresentOrElse(ctx::json, () -> {
                     throw new NotFoundResponse();
                 });
@@ -489,10 +491,8 @@ public class InventoryRoutes implements Routes {
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
         }
-        InventoryItem.ItemSource source = InventoryItem.ItemSource.INTERNAL;
-        if (request.itemSource() != null) {
-            source = InventoryItem.ItemSource.valueOf(request.itemSource());
-        }
+        InventoryItem.ItemSource source =
+                request.itemSource() != null ? request.itemSource() : InventoryItem.ItemSource.INTERNAL;
         StationPermission required = source == InventoryItem.ItemSource.EXTERNAL
                 ? StationPermission.INVENTORY_CREATE_EXTERNAL
                 : StationPermission.INVENTORY_CREATE_INTERNAL;
@@ -704,9 +704,9 @@ public class InventoryRoutes implements Routes {
         if (request.inventoryId() == 0) {
             throw new BadRequestResponse("inventoryId is required");
         }
-        String userType = request.userType();
+        StationUserType userType = request.userType();
         int groupId = request.groupId() != null ? request.groupId() : 0;
-        if ((userType == null || userType.isBlank()) && groupId == 0) {
+        if (userType == null && groupId == 0) {
             throw new BadRequestResponse("userType or groupId is required");
         }
         ctx.status(HttpStatus.CREATED)
@@ -777,15 +777,6 @@ public class InventoryRoutes implements Routes {
 
     // -- Request/Response records --
 
-    private InventoryType parseInventoryType(String type) {
-        try {
-            return InventoryType.valueOf(type);
-        } catch (IllegalArgumentException e) {
-            log.warn("Invalid inventory type: {}", type, e);
-            throw new BadRequestResponse("Invalid inventory type: " + type);
-        }
-    }
-
     @OpenApi(
             path = "/api/v1/inventories/members/export",
             methods = HttpMethod.POST,
@@ -830,18 +821,28 @@ public class InventoryRoutes implements Routes {
 
     public record MyRequirement(int inventoryId, String inventoryName, int requiredQuantity) {}
 
-    public record InventoryRequest(String name, String inventoryType, boolean hasSizes) {}
+    public record InventoryRequest(String name, InventoryType inventoryType, boolean hasSizes) {}
 
     public record InventoryDetail(
-            int id, int stationId, String name, String inventoryType, boolean hasSizes, List<InventorySize> sizes) {}
+            int id,
+            int stationId,
+            String name,
+            InventoryType inventoryType,
+            boolean hasSizes,
+            List<InventorySize> sizes) {}
 
     public record SizeRequest(String label, int position, String note) {}
 
-    public record ItemRequest(String internalId, String name, Integer sizeId, String metadata, String itemSource) {}
+    public record ItemRequest(
+            String internalId,
+            String name,
+            Integer sizeId,
+            InventoryItemMetadata metadata,
+            InventoryItem.ItemSource itemSource) {}
 
     public record AssignRequest(Integer memberId, String memberName) {}
 
-    public record RequirementRequest(int inventoryId, String userType, Integer groupId, int quantity) {}
+    public record RequirementRequest(int inventoryId, StationUserType userType, Integer groupId, int quantity) {}
 
     public record UpdateRequirementRequest(int quantity) {}
 

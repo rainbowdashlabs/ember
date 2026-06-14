@@ -9,7 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.mail.service.EmailService;
@@ -703,7 +703,7 @@ public class StationManageRoutes implements Routes {
     public record ImportProgressResponse(
             int stationId,
             String stationName,
-            String status,
+            StationImportService.ImportProgress.Status status,
             int totalTables,
             int completedTables,
             String currentTable,

@@ -77,7 +77,7 @@ async function loadData() {
     member.value = allMembers.find(m => m.id === mid) ?? null
     try {
       const allExch = await exchanges.listExchanges()
-      activeExchanges.value = allExch.filter(e => e.memberId === mid && e.status !== ExchangeStatus.EXCHANGED)
+      activeExchanges.value = allExch.filter(e => e.memberId === mid && e.status !== ExchangeStatus.DONE)
     } catch { activeExchanges.value = [] }
   } catch {
     error.value = t('common.error')

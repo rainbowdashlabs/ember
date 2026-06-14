@@ -66,7 +66,13 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
     void createAndFindFields() {
         var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5, false);
         var field = waitingListRepo.createField(
-                list.id(), "Name", "TEXT", WaitingListFieldConfig.parse("{}"), 0, true, true);
+                list.id(),
+                "Name",
+                dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType.TEXT,
+                WaitingListFieldConfig.parse("{}"),
+                0,
+                true,
+                true);
         assertNotNull(field);
         assertEquals("Name", field.name());
         assertTrue(field.required());
@@ -79,9 +85,21 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
     void updateField() {
         var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5, false);
         var field = waitingListRepo.createField(
-                list.id(), "Name", "TEXT", WaitingListFieldConfig.parse("{}"), 0, false, true);
+                list.id(),
+                "Name",
+                dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType.TEXT,
+                WaitingListFieldConfig.parse("{}"),
+                0,
+                false,
+                true);
         var updated = waitingListRepo.updateField(
-                field.id(), "Full Name", "TEXT", WaitingListFieldConfig.parse("{}"), 1, true, true);
+                field.id(),
+                "Full Name",
+                dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType.TEXT,
+                WaitingListFieldConfig.parse("{}"),
+                1,
+                true,
+                true);
         assertTrue(updated.isPresent());
         assertEquals("Full Name", updated.get().name());
         assertTrue(updated.get().required());
@@ -147,7 +165,13 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
     void upsertAndFindEntryValues() {
         var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5, false);
         var field = waitingListRepo.createField(
-                list.id(), "Age", "NUMBER", WaitingListFieldConfig.parse("{}"), 0, true, true);
+                list.id(),
+                "Age",
+                dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType.NUMBER,
+                WaitingListFieldConfig.parse("{}"),
+                0,
+                true,
+                true);
         var entry = waitingListRepo.createEntry(
                 list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "");
 
@@ -179,7 +203,13 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
     void cascadeDeleteListRemovesEntries() {
         var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5, false);
         var field = waitingListRepo.createField(
-                list.id(), "Age", "NUMBER", WaitingListFieldConfig.parse("{}"), 0, false, true);
+                list.id(),
+                "Age",
+                dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType.NUMBER,
+                WaitingListFieldConfig.parse("{}"),
+                0,
+                false,
+                true);
         var entry = waitingListRepo.createEntry(
                 list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "");
         waitingListRepo.upsertEntryValue(entry.id(), field.id(), "8");
@@ -211,7 +241,13 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
     void deleteField() {
         var list = waitingListRepo.create(stationId, "DelField List", "", null, 180, null, null, 5, false);
         var field = waitingListRepo.createField(
-                list.id(), "ToDelete", "TEXT", WaitingListFieldConfig.parse("{}"), 0, false, true);
+                list.id(),
+                "ToDelete",
+                dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType.TEXT,
+                WaitingListFieldConfig.parse("{}"),
+                0,
+                false,
+                true);
         waitingListRepo.deleteField(field.id());
         assertTrue(waitingListRepo.findFieldsByList(list.id()).isEmpty());
     }

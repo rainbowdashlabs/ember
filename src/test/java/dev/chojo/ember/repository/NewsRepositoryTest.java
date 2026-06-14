@@ -222,6 +222,40 @@ class NewsRepositoryTest extends RepositoryTestBase {
         assertFalse(newsRepo.hasPublicBlogEntries(station.id()));
     }
 
+    // -- Views --
+
+    @Test
+    @Order(50)
+    void recordViewAndCount() {
+        // No views yet
+        assertEquals(0, newsRepo.countViews(newsId));
+        assertFalse(newsRepo.hasViewed(newsId, member.id()));
+        newsRepo.recordView(newsId, member.id());
+        assertEquals(1, newsRepo.countViews(newsId));
+        assertTrue(newsRepo.hasViewed(newsId, member.id()));
+        // Idempotent — second call adds no row
+        newsRepo.recordView(newsId, member.id());
+        assertEquals(1, newsRepo.countViews(newsId));
+    }
+
+    @Test
+    @Order(51)
+    void findSeenAndUnseenViewers() {
+        var account2 = accountRepo.create("news-views2@test.com", "News2", "Viewer");
+        var member2 = stationMemberRepo.create(station.id(), account2.id());
+        // member has viewed, member2 has not
+        var seen = newsRepo.findSeenViewers(newsId);
+        assertEquals(1, seen.size());
+        assertEquals(member.uid(), seen.getFirst().member().memberUid());
+        assertNotNull(seen.getFirst().seenAt());
+
+        var unseen = newsRepo.findUnseenViewers(newsId, station.id());
+        assertTrue(unseen.stream().anyMatch(v -> v.member().memberUid().equals(member2.uid())));
+        assertTrue(unseen.stream().allMatch(v -> v.seenAt() == null));
+
+        accountRepo.delete(account2.id());
+    }
+
     @Test
     @Order(99)
     void delete() {

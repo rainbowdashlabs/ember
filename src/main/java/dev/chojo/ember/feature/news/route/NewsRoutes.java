@@ -10,10 +10,12 @@ import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -21,6 +23,8 @@ import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
+import dev.chojo.ember.feature.news.entity.NewsViewer;
+import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -95,6 +99,11 @@ public class NewsRoutes implements Routes {
         routes.put(prefix + "/news/comments/{commentId}", this::updateComment, StationPermission.LOGIN);
         routes.delete(prefix + "/news/comments/{commentId}", this::deleteComment, StationPermission.LOGIN);
 
+        // View tracking — anyone can record a view; only editors can read the seen/unseen lists.
+        routes.post(prefix + "/news/{id}/view", this::recordView, StationPermission.LOGIN);
+        routes.get(prefix + "/news/{id}/view-count", this::getViewCount, StationPermission.NEWS_EDIT);
+        routes.get(prefix + "/news/{id}/views", this::listViewers, StationPermission.NEWS_EDIT);
+
         // Federation sharing management
         routes.get(prefix + "/news/{id}/federation", this::getFederationShare, StationPermission.NEWS_FEDERATE);
         routes.put(prefix + "/news/{id}/federation", this::setFederationShare, StationPermission.NEWS_FEDERATE);
@@ -150,8 +159,9 @@ public class NewsRoutes implements Routes {
             newsList = newsService.findVisibleForMember(
                     session.stationId(), session.member().id(), offset, limit);
         }
+        int memberId = session.member().id();
         ctx.json(newsList.stream()
-                .map(n -> toResponse(n, session.hasPermission(StationPermission.NEWS_MANAGER)))
+                .map(n -> toResponse(n, session.hasPermission(StationPermission.NEWS_MANAGER), memberId))
                 .toList());
     }
 
@@ -168,10 +178,12 @@ public class NewsRoutes implements Routes {
     private void get(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         UserSession session = UserSession.from(ctx);
+        int memberId = session.member().id();
         newsService
                 .findById(id)
                 .ifPresentOrElse(
-                        news -> ctx.json(toResponse(news, session.hasPermission(StationPermission.NEWS_MANAGER))),
+                        news -> ctx.json(
+                                toResponse(news, session.hasPermission(StationPermission.NEWS_MANAGER), memberId)),
                         () -> {
                             throw new NotFoundResponse();
                         });
@@ -208,7 +220,8 @@ public class NewsRoutes implements Routes {
             newsService.updatePublicBlog(news.id(), request.publicBlog());
         }
         var result = newsService.findById(news.id()).orElse(news);
-        ctx.status(HttpStatus.CREATED).json(toResponse(result, true));
+        ctx.status(HttpStatus.CREATED)
+                .json(toResponse(result, true, session.member().id()));
     }
 
     @OpenApi(
@@ -246,7 +259,7 @@ public class NewsRoutes implements Routes {
                                 newsService.updatePublicBlog(updated.id(), request.publicBlog());
                             }
                             var result = newsService.findById(updated.id()).orElse(updated);
-                            ctx.json(toResponse(result, true));
+                            ctx.json(toResponse(result, true, session.member().id()));
                         },
                         () -> {
                             throw new NotFoundResponse();
@@ -278,16 +291,18 @@ public class NewsRoutes implements Routes {
     }
 
     /**
-     * Converts a {@link News} entity to an API response, resolving the author name and comment count.
+     * Converts a {@link News} entity to an API response, resolving the author name, comment
+     * count, and view stats for the requesting member.
      *
      * @param news                the news entity
      * @param includeRestrictions whether to include group restriction IDs in the response
+     * @param viewerMemberId      the member ID of the requesting user (for {@code viewedByMe})
      * @return the news response DTO
      */
-    private NewsResponse toResponse(News news, boolean includeRestrictions) {
+    private NewsResponse toResponse(News news, boolean includeRestrictions, int viewerMemberId) {
         var resolved = news.author() != null ? memberNameResolver.resolveDisplay(news.author()) : null;
         String authorName = resolved != null && resolved.name() != null ? resolved.name() : "";
-        List<String> userTypes = List.of();
+        List<StationUserType> userTypes = List.of();
         List<Integer> groupIds = List.of();
         List<Integer> tagIds = List.of();
         List<Integer> memberIds = List.of();
@@ -299,6 +314,8 @@ public class NewsRoutes implements Routes {
             memberIds = restrictions.memberIds();
         }
         int commentCount = newsService.countComments(news.id());
+        int viewCount = newsService.countViews(news.id());
+        boolean viewedByMe = newsService.hasViewed(news.id(), viewerMemberId);
         return new NewsResponse(
                 news.id(),
                 news.stationId(),
@@ -314,7 +331,9 @@ public class NewsRoutes implements Routes {
                 tagIds,
                 memberIds,
                 commentCount,
-                news.publicBlog());
+                news.publicBlog(),
+                viewCount,
+                viewedByMe);
     }
 
     // -- Comments --
@@ -376,7 +395,7 @@ public class NewsRoutes implements Routes {
         var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
         var sessionIdentity =
                 memberIdentityFactory.fromMemberId(session.member().id());
-        if (!sessionIdentity.equals(comment.author())) {
+        if (!sessionIdentity.sameMember(comment.author())) {
             throw new ForbiddenResponse("You can only edit your own comments");
         }
         var request = ctx.bodyAsClass(CommentRequest.class);
@@ -404,7 +423,7 @@ public class NewsRoutes implements Routes {
         var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
         var sessionIdentity =
                 memberIdentityFactory.fromMemberId(session.member().id());
-        boolean isAuthor = sessionIdentity.equals(comment.author());
+        boolean isAuthor = sessionIdentity.sameMember(comment.author());
         boolean canModerate = session.hasPermission(StationPermission.NEWS_MANAGER);
         if (!isAuthor && !canModerate) {
             throw new ForbiddenResponse("You can only delete your own comments");
@@ -414,6 +433,74 @@ public class NewsRoutes implements Routes {
         } else {
             throw new NotFoundResponse();
         }
+    }
+
+    @OpenApi(
+            path = "/api/v1/news/{id}/view",
+            methods = HttpMethod.POST,
+            summary = "Record that the current member fully saw a news entry",
+            description =
+                    "Idempotent — repeated calls from the same member are silently ignored. The client fires this once the news entry is fully visible in the viewport.",
+            tags = {"News"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void recordView(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (news.stationId() != session.stationId()) throw new NotFoundResponse();
+        newsService.recordView(id, session.member().id());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/news/{id}/views",
+            methods = HttpMethod.GET,
+            summary = "List members who saw / have not yet seen a news entry",
+            description = "Editor-only. Returns two lists: members who fully saw the news (with timestamps,"
+                    + " most recent first) and members who are eligible but have not yet been observed viewing it.",
+            tags = {"News"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = NewsViewsResponse.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void listViewers(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (news.stationId() != session.stationId()) throw new NotFoundResponse();
+        var summary = newsService.findViewerSummary(id, session.stationId());
+        ctx.json(new NewsViewsResponse(
+                summary.seen().stream().map(this::toViewerEntry).toList(),
+                summary.unseen().stream().map(this::toViewerEntry).toList()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/news/{id}/view-count",
+            methods = HttpMethod.GET,
+            summary = "Get the current view count for a news entry",
+            description = "Editor-only. Lightweight endpoint for the badge to refresh after a view is recorded.",
+            tags = {"News"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = NewsViewCountResponse.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void getViewCount(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (news.stationId() != session.stationId()) throw new NotFoundResponse();
+        ctx.json(new NewsViewCountResponse(newsService.countViews(id)));
+    }
+
+    private NewsViewerEntry toViewerEntry(NewsViewer viewer) {
+        var enriched = memberNameResolver.enrichDisplay(viewer.member());
+        return new NewsViewerEntry(enriched != null ? enriched : viewer.member(), viewer.seenAt());
     }
 
     /**
@@ -464,13 +551,11 @@ public class NewsRoutes implements Routes {
         var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
         if (news.stationId() != session.stationId()) throw new ForbiddenResponse();
         var req = ctx.bodyAsClass(SetNewsFederationShareRequest.class);
+        NewsVisibilityRole visibilityRole =
+                req.visibilityRole() != null ? req.visibilityRole() : NewsVisibilityRole.MEMBER;
         newsFederationService.setShare(
-                id,
-                req.scope(),
-                req.visibilityRole() != null ? req.visibilityRole() : "MEMBER",
-                req.partnerIds() != null ? req.partnerIds() : List.of());
-        ctx.json(new NewsFederationShareResponse(
-                true, req.scope(), req.visibilityRole() != null ? req.visibilityRole() : "MEMBER", null));
+                id, req.scope(), visibilityRole, req.partnerIds() != null ? req.partnerIds() : List.of());
+        ctx.json(new NewsFederationShareResponse(true, req.scope(), visibilityRole, null));
     }
 
     private void removeFederationShare(Context ctx) {
@@ -491,8 +576,8 @@ public class NewsRoutes implements Routes {
                 .map(id -> newsService.findById(id).orElse(null))
                 .filter(Objects::nonNull)
                 .map(n -> {
-                    String visibilityRole =
-                            newsFederationService.findVisibilityRole(n.id()).orElse("MEMBER");
+                    NewsVisibilityRole visibilityRole =
+                            newsFederationService.findVisibilityRole(n.id()).orElse(NewsVisibilityRole.MEMBER);
                     var authorResolved = n.author() != null ? memberNameResolver.resolveDisplay(n.author()) : null;
                     String authorName =
                             authorResolved != null && authorResolved.name() != null ? authorResolved.name() : "";
@@ -519,7 +604,8 @@ public class NewsRoutes implements Routes {
         var news = newsService.findById(newsId).orElseThrow(NotFoundResponse::new);
         var authorResolved = news.author() != null ? memberNameResolver.resolveDisplay(news.author()) : null;
         String authorName = authorResolved != null && authorResolved.name() != null ? authorResolved.name() : "";
-        String visibilityRole = newsFederationService.findVisibilityRole(newsId).orElse("MEMBER");
+        NewsVisibilityRole visibilityRole =
+                newsFederationService.findVisibilityRole(newsId).orElse(NewsVisibilityRole.MEMBER);
         ctx.json(new RemoteNewsDetail(
                 news.id(),
                 news.title(),
@@ -561,7 +647,7 @@ public class NewsRoutes implements Routes {
         }
         var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
         var expectedIdentity = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
-        if (!expectedIdentity.equals(comment.author())) {
+        if (!expectedIdentity.sameMember(comment.author())) {
             throw new ForbiddenResponse("You can only edit your own comments");
         }
         newsService.updateComment(commentId, req.content());
@@ -575,7 +661,7 @@ public class NewsRoutes implements Routes {
         var req = ctx.bodyAsClass(RemoteNewsCommentDeleteRequest.class);
         var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
         var expectedIdentity = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
-        if (!expectedIdentity.equals(comment.author())) {
+        if (!expectedIdentity.sameMember(comment.author())) {
             throw new ForbiddenResponse("You can only delete your own comments");
         }
         if (newsService.deleteComment(partner.stationId(), commentId)) {
@@ -682,7 +768,7 @@ public class NewsRoutes implements Routes {
             var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
             var sessionIdentity =
                     memberIdentityFactory.fromMemberId(session.member().id());
-            if (!sessionIdentity.equals(comment.author())) {
+            if (!sessionIdentity.sameMember(comment.author())) {
                 throw new ForbiddenResponse("You can only edit your own comments");
             }
             newsService.updateComment(commentId, req.content());
@@ -711,7 +797,7 @@ public class NewsRoutes implements Routes {
             var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
             var sessionIdentity =
                     memberIdentityFactory.fromMemberId(session.member().id());
-            if (!sessionIdentity.equals(comment.author())) {
+            if (!sessionIdentity.sameMember(comment.author())) {
                 throw new ForbiddenResponse("You can only delete your own comments");
             }
             if (newsService.deleteComment(partner.stationId(), commentId)) {
@@ -748,7 +834,7 @@ public class NewsRoutes implements Routes {
             String title,
             String contentMarkdown,
             String contentHtml,
-            List<String> userTypes,
+            List<StationUserType> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds,
@@ -767,12 +853,14 @@ public class NewsRoutes implements Routes {
             String authorName,
             Instant publishedAt,
             Instant createdAt,
-            List<String> userTypes,
+            List<StationUserType> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds,
             int commentCount,
-            boolean publicBlog) {}
+            boolean publicBlog,
+            int viewCount,
+            boolean viewedByMe) {}
 
     /**
      * Request body for creating or updating a comment.
@@ -793,7 +881,7 @@ public class NewsRoutes implements Routes {
             Instant createdAt) {}
 
     public record NewsFederationShareResponse(
-            boolean shared, String scope, String visibilityRole, List<Integer> partnerIds) {}
+            boolean shared, ShareScope scope, NewsVisibilityRole visibilityRole, List<Integer> partnerIds) {}
 
     public record RemoteNewsSummary(
             int id,
@@ -802,7 +890,7 @@ public class NewsRoutes implements Routes {
             String authorName,
             String publishedAt,
             int commentCount,
-            String visibilityRole) {}
+            NewsVisibilityRole visibilityRole) {}
 
     public record RemoteNewsDetail(
             int id,
@@ -812,12 +900,13 @@ public class NewsRoutes implements Routes {
             String authorName,
             String publishedAt,
             int commentCount,
-            String visibilityRole) {}
+            NewsVisibilityRole visibilityRole) {}
 
     /**
      * Request body for setting news federation sharing.
      */
-    public record SetNewsFederationShareRequest(String scope, String visibilityRole, List<Integer> partnerIds) {}
+    public record SetNewsFederationShareRequest(
+            ShareScope scope, NewsVisibilityRole visibilityRole, List<Integer> partnerIds) {}
 
     /**
      * Request body for creating a comment from a remote federated partner.
@@ -887,4 +976,16 @@ public class NewsRoutes implements Routes {
     }
 
     public record PublicBlogEntry(int id, String title, String contentHtml, String authorName, Instant publishedAt) {}
+
+    /** Response shape for {@code GET /api/v1/news/{id}/views} (editors only). */
+    public record NewsViewsResponse(List<NewsViewerEntry> seen, List<NewsViewerEntry> unseen) {}
+
+    /**
+     * One viewer entry in the seen/unseen lists. {@code seenAt} is {@code null} for the
+     * unseen branch, otherwise the moment of the first view.
+     */
+    public record NewsViewerEntry(MemberIdentity member, Instant seenAt) {}
+
+    /** Lightweight response for {@code GET /api/v1/news/{id}/view-count} (editors only). */
+    public record NewsViewCountResponse(int count) {}
 }

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.news.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.BulkMentionedInComment;
 import dev.chojo.ember.event.events.CommentCreated;
@@ -20,6 +21,7 @@ import dev.chojo.ember.feature.comment.entity.MentionType;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
+import dev.chojo.ember.feature.news.entity.NewsViewer;
 import dev.chojo.ember.feature.news.repository.NewsRepository;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
@@ -81,15 +83,57 @@ public class NewsService {
             String contentMarkdown,
             String contentHtml,
             MemberIdentity author,
-            List<String> userTypes,
+            List<StationUserType> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds) {
         var news = newsRepository.create(stationId, title, contentMarkdown, contentHtml, author);
         setRestrictions(news.id(), userTypes, groupIds, tagIds, memberIds);
         String authorName = resolveAuthorName(stationId, author);
-        eventBus.publish(new NewsCreated(stationId, news.id(), title, authorName));
+        eventBus.publish(new NewsCreated(stationId, news.id(), title, authorName, previewOf(contentMarkdown)));
         return news;
+    }
+
+    /**
+     * Derives a plain-text preview from a Markdown article body. Strips the most common
+     * formatting (headings, emphasis, lists, code fences, links → label) but preserves
+     * paragraph structure (single newlines kept, runs of 3+ newlines collapsed to a single
+     * paragraph break) so the feed renderer can re-flow it as multi-line HTML. Markdown
+     * tables are converted to {@code "col · col · col"} lines so they read as structured
+     * key/value pairs instead of dumping raw {@code |} characters. The renderer applies its
+     * own length cap on top — we just hand it readable plain text. Returns {@code null}
+     * when the input is blank.
+     */
+    static String previewOf(String markdown) {
+        if (markdown == null || markdown.isBlank()) return null;
+        String stripped = markdown
+                // Fenced code blocks add nothing useful in plain text — drop them entirely.
+                .replaceAll("(?s)```.*?```", "")
+                // `[label](url)` → keep the label.
+                .replaceAll("\\[([^\\]]+)]\\([^)]+\\)", "$1")
+                // Markdown table separator rows (|---|---|---|, with optional spaces / colons
+                // for alignment) carry no content; strip the whole line.
+                .replaceAll("(?m)^\\s*\\|?[\\s:|-]+\\|?\\s*$\\n?", "")
+                // Trim leading / trailing pipes from each table data row.
+                .replaceAll("(?m)^\\s*\\|", "")
+                .replaceAll("(?m)\\|\\s*$", "")
+                // Cell separator: convert " | " into a middle-dot so columns stay visually
+                // grouped without dumping bare pipes into the body.
+                .replace(" | ", " · ")
+                // Heading markers and blockquote arrows at line start.
+                .replaceAll("(?m)^\\s*#{1,6}\\s+", "")
+                .replaceAll("(?m)^\\s*>\\s+", "")
+                // Inline emphasis / inline-code markers.
+                .replaceAll("[*_`]+", "")
+                // Bullet / numbered list markers at line start — keep a bullet glyph so the
+                // structure survives the strip.
+                .replaceAll("(?m)^\\s*[-+]\\s+", "• ")
+                .replaceAll("(?m)^\\s*\\d+\\.\\s+", "")
+                // Collapse runs of 3+ newlines into a single paragraph break, but keep
+                // single newlines so the source's line structure flows into the body.
+                .replaceAll("\\n{3,}", "\n\n")
+                .trim();
+        return stripped.isBlank() ? null : stripped;
     }
 
     private String resolveAuthorName(int stationId, MemberIdentity author) {
@@ -154,7 +198,7 @@ public class NewsService {
             String title,
             String contentMarkdown,
             String contentHtml,
-            List<String> userTypes,
+            List<StationUserType> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds) {
@@ -193,6 +237,44 @@ public class NewsService {
     }
 
     /**
+     * Records that a member fully saw a news entry in their viewport. Idempotent —
+     * repeated views by the same member are silently ignored.
+     */
+    public void recordView(int newsId, int memberId) {
+        newsRepository.recordView(newsId, memberId);
+    }
+
+    /**
+     * Counts how many distinct members have viewed a news entry.
+     */
+    public int countViews(int newsId) {
+        return newsRepository.countViews(newsId);
+    }
+
+    /**
+     * Checks whether a specific member has viewed a news entry.
+     */
+    public boolean hasViewed(int newsId, int memberId) {
+        return newsRepository.hasViewed(newsId, memberId);
+    }
+
+    /**
+     * Returns the two lists shown in the views modal: who has seen the news (with the
+     * timestamp of their first view, newest first) and who is eligible to see it but
+     * has not yet been observed viewing it.
+     */
+    public ViewerSummary findViewerSummary(int newsId, int stationId) {
+        return new ViewerSummary(
+                newsRepository.findSeenViewers(newsId), newsRepository.findUnseenViewers(newsId, stationId));
+    }
+
+    /**
+     * The two halves of the news-views modal: members who have seen the news (with
+     * timestamps) and members who have not.
+     */
+    public record ViewerSummary(List<NewsViewer> seen, List<NewsViewer> unseen) {}
+
+    /**
      * Retrieves the restriction set for a news article.
      */
     public RestrictionSet findRestrictions(int newsId) {
@@ -206,7 +288,11 @@ public class NewsService {
      * Sets all restrictions for a news article.
      */
     public void setRestrictions(
-            int newsId, List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {
+            int newsId,
+            List<StationUserType> userTypes,
+            List<Integer> groupIds,
+            List<Integer> tagIds,
+            List<Integer> memberIds) {
         restrictionRepository.setRestrictions(
                 RestrictionType.NEWS.table(),
                 RestrictionType.NEWS.fkColumn(),

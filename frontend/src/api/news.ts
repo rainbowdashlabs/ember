@@ -149,6 +149,32 @@ export async function deleteComment(commentId: number): Promise<void> {
     await client.delete(`/news/comments/${commentId}`)
 }
 
+// --- View tracking ---
+
+export interface NewsViewerEntry {
+    member: import('./types').MemberIdentity
+    seenAt: string | null
+}
+
+export interface NewsViewsResponse {
+    seen: NewsViewerEntry[]
+    unseen: NewsViewerEntry[]
+}
+
+export async function recordNewsView(newsId: number): Promise<void> {
+    await client.post(`/news/${newsId}/view`)
+}
+
+export async function listNewsViewers(newsId: number): Promise<NewsViewsResponse> {
+    const res = await client.get<NewsViewsResponse>(`/news/${newsId}/views`)
+    return res.data
+}
+
+export async function getNewsViewCount(newsId: number): Promise<number> {
+    const res = await client.get<{count: number}>(`/news/${newsId}/view-count`)
+    return res.data.count
+}
+
 // --- Public Blog ---
 
 export async function listPublicBlog(stationUid: string, offset = 0, limit = 20): Promise<PublicBlogEntry[]> {

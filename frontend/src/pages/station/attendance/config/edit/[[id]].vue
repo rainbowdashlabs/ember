@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import RolesHelp from '~/views/helpcenter/basics/RolesHelp'
+import AttendanceConfigEditView from '~/views/stationview/manage/AttendanceConfigEditView'
 
 definePageMeta({
-  layout: 'helpcenter',
-  name: 'help-basics-roles',
+  layout: 'station',
+  name: 'station-attendance-config-edit',
 })
 </script>
 
 <template>
-  <RolesHelp />
+  <AttendanceConfigEditView />
 </template>

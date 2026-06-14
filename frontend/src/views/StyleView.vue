@@ -430,7 +430,7 @@ function toggleDisplay(name: string) {
         <ExchangeStatusBadge :status="ExchangeStatus.RECEIVED" />
         <ExchangeStatusBadge :status="ExchangeStatus.SHIPPED" />
         <ExchangeStatusBadge :status="ExchangeStatus.ARRIVED" />
-        <ExchangeStatusBadge :status="ExchangeStatus.EXCHANGED" />
+        <ExchangeStatusBadge :status="ExchangeStatus.DONE" />
       </div>
     </section>
 

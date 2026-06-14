@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.feed.route;
 
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.roles.InstancePermission;
+import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.feature.feed.repository.FeedMetricsRepository;
 import dev.chojo.ember.feature.feed.service.FeedMetricsService;
 import io.javalin.http.Context;

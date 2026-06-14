@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
@@ -726,7 +726,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         assertEquals("Preview", service.resolveDetail(ncNotif));
 
         var esc = NotificationData.of(
-                new NotificationParams.ExchangeStatusChange(ExchangeStatus.EXCHANGED, "Inv", "Reason"),
+                new NotificationParams.ExchangeStatusChange(ExchangeStatus.DONE, "Inv", "Reason"),
                 new NotificationData.NotificationLink("dashboard-overview"));
         var escNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
                 21, member1.id(), NotificationType.EXCHANGE_STATUS_CHANGE, esc, java.time.Instant.now(), null);
@@ -810,7 +810,7 @@ class NotificationServiceTest extends RepositoryTestBase {
 
         // EXCHANGE_STATUS_CHANGE — labelled reason
         var esc = NotificationData.of(
-                new NotificationParams.ExchangeStatusChange(ExchangeStatus.EXCHANGED, "Inv", "Approved"),
+                new NotificationParams.ExchangeStatusChange(ExchangeStatus.DONE, "Inv", "Approved"),
                 new NotificationData.NotificationLink("dashboard-overview"));
         var escNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
                 36, member1.id(), NotificationType.EXCHANGE_STATUS_CHANGE, esc, java.time.Instant.now(), null);
@@ -895,7 +895,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         // Word-boundary cut: stays within budget, doesn't break mid-word.
         var truncated =
                 NotificationService.truncateSnippet("The quick brown fox jumps over the lazy dog and runs further", 20);
-        assertTrue(truncated.endsWith("\u2026"), "Should append ellipsis when truncating: " + truncated);
+        assertTrue(truncated.endsWith("…"), "Should append ellipsis when truncating: " + truncated);
         assertTrue(truncated.length() <= 21, "Length should stay near cap: " + truncated);
         assertFalse(truncated.contains("jumps"), "Should cut before the next word");
 
@@ -905,7 +905,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         assertNull(NotificationService.truncateSnippet(null, 10));
         // No space within budget — hard truncate.
         var hard = NotificationService.truncateSnippet("aaaaaaaaaaaaaaaaaaaa", 5);
-        assertEquals("aaaaa\u2026", hard);
+        assertEquals("aaaaa…", hard);
     }
 
     @Test
@@ -936,7 +936,7 @@ class NotificationServiceTest extends RepositoryTestBase {
                 203);
         var regTitle = service.resolveFeedTitle("en", reg);
         assertTrue(regTitle.contains("Accepted"), "Should contain localised status: " + regTitle);
-        assertTrue(regTitle.contains("\u2713"), "Should contain check-mark symbol: " + regTitle);
+        assertTrue(regTitle.contains("✓"), "Should contain check-mark symbol: " + regTitle);
         assertTrue(regTitle.contains("Open Training"));
 
         // EVENT_REMINDER routes via daysBefore plural.
@@ -977,8 +977,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         var n = notificationWith(
                 NotificationType.NEW_NEWS, new NotificationParams.NewNews(longTitle, "Alice", "p"), 301);
         var title = service.resolveFeedTitle("en", n);
-        assertTrue(
-                title.endsWith("\u2026") || title.length() < longTitle.length(), "Title should be truncated: " + title);
+        assertTrue(title.endsWith("…") || title.length() < longTitle.length(), "Title should be truncated: " + title);
         // Total title still reasonable.
         assertTrue(title.length() < 120, "Title shouldn't blow past the cap: " + title);
     }
@@ -986,8 +985,8 @@ class NotificationServiceTest extends RepositoryTestBase {
     @Test
     @Order(108)
     void resolveStatusWithSymbolUsesLocalisedLabelAndIcon() {
-        assertEquals("\u2713 Accepted", service.resolveStatusWithSymbol("en", "ACCEPTED"));
-        assertEquals("\u2713 Angenommen", service.resolveStatusWithSymbol("de", "ACCEPTED"));
+        assertEquals("✓ Accepted", service.resolveStatusWithSymbol("en", "ACCEPTED"));
+        assertEquals("✓ Angenommen", service.resolveStatusWithSymbol("de", "ACCEPTED"));
         // Unknown enum value: fall back to raw name with no symbol.
         assertEquals("MYSTERY", service.resolveStatusWithSymbol("en", "MYSTERY"));
         // Null guard.

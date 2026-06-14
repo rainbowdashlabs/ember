@@ -53,7 +53,12 @@ class LendingRepositoryTest extends RepositoryTestBase {
         // Create inventory on station A for lent-out tests
         var inv = inventoryRepo.create(stationA.id(), "LendRepoInventory", InventoryType.INTERNAL, false);
         inventoryIdA = inv.id();
-        var item = inventoryRepo.createItem(inventoryIdA, "LEND-001", "Lend Item", null, "{}");
+        var item = inventoryRepo.createItem(
+                inventoryIdA,
+                "LEND-001",
+                "Lend Item",
+                null,
+                (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null);
         itemIdA = item.id();
     }
 

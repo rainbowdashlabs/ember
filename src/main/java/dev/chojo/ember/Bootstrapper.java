@@ -8,7 +8,7 @@ package dev.chojo.ember;
 import com.google.inject.Guice;
 import de.chojo.sadu.queries.api.configuration.QueryConfiguration;
 import dev.chojo.ember.api.ApiServer;
-import dev.chojo.ember.api.roles.InstanceUserType;
+import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.event.DomainEventBus;

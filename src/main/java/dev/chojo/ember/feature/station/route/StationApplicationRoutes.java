@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.station.route;
 
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.roles.InstancePermission;
+import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.feature.station.service.StationApplicationService;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import io.javalin.http.BadRequestResponse;
