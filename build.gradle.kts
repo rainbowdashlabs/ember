@@ -287,6 +287,16 @@ tasks {
                     "*.StorageQuotaService*",
                     // Federation version broadcaster (daemon thread, startup-only)
                     "*.FederationVersionBroadcaster*",
+                    // Discovery chain (HTTP + daemon threads, exercised by integration tests)
+                    "*.DiscoveryHttpClient*",
+                    "*.DiscoveryPingScheduler*",
+                    "*.DiscoveryStationRefreshScheduler*",
+                    "*.DiscoveryMaintenanceScheduler*",
+                    "*.DiscoveryPingService*",
+                    "*.DiscoveryStationFetcher*",
+                    "*.FederationPartnerSeeder*",
+                    "*.DiscoveryKeyService*",
+                    "*.DiscoveryStationProjectionService*",
                 )
                 limit {
                     counter = "LINE"

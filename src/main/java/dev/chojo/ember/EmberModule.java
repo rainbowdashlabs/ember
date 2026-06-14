@@ -63,6 +63,12 @@ import dev.chojo.ember.feature.board.route.BoardRoutes;
 import dev.chojo.ember.feature.board.route.BoardTicketRoutes;
 import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
 import dev.chojo.ember.feature.comment.route.NoteRoutes;
+import dev.chojo.ember.feature.discovery.route.AdminDiscoveryRoutes;
+import dev.chojo.ember.feature.discovery.route.PublicDiscoveryRoutes;
+import dev.chojo.ember.feature.discovery.service.DiscoveryMaintenanceScheduler;
+import dev.chojo.ember.feature.discovery.service.DiscoveryPingScheduler;
+import dev.chojo.ember.feature.discovery.service.DiscoveryStationRefreshScheduler;
+import dev.chojo.ember.feature.discovery.service.FederationPartnerSeeder;
 import dev.chojo.ember.feature.events.route.EventRoutes;
 import dev.chojo.ember.feature.events.route.EventTemplateRoutes;
 import dev.chojo.ember.feature.events.route.PublicEventRoutes;
@@ -204,6 +210,8 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(FederationRemoteRoutes.class);
         routesBinder.addBinding().to(LendingRoutes.class);
         routesBinder.addBinding().to(DiscoveryRoutes.class);
+        routesBinder.addBinding().to(PublicDiscoveryRoutes.class);
+        routesBinder.addBinding().to(AdminDiscoveryRoutes.class);
         routesBinder.addBinding().to(FeedTokenRoutes.class);
         routesBinder.addBinding().to(UserFeedRoutes.class);
         routesBinder.addBinding().to(FeedMetricsRoutes.class);
@@ -256,6 +264,11 @@ public class EmberModule extends AbstractModule {
         bind(StorageReconciliationService.class).asEagerSingleton();
         bind(FederationVersionBroadcaster.class).asEagerSingleton();
         bind(FeedMetricsService.class).asEagerSingleton();
+        // Discovery chain — see .concept/discovery.md
+        bind(FederationPartnerSeeder.class).asEagerSingleton();
+        bind(DiscoveryPingScheduler.class).asEagerSingleton();
+        bind(DiscoveryStationRefreshScheduler.class).asEagerSingleton();
+        bind(DiscoveryMaintenanceScheduler.class).asEagerSingleton();
     }
 
     @Provides
