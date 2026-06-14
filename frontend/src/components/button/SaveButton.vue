@@ -13,6 +13,7 @@ const props = withDefaults(defineProps<{
   action: () => Promise<unknown> | unknown
   disabled?: boolean
   fullWidth?: boolean
+  compact?: boolean
   /** Milliseconds to display the "saved" confirmation before returning to idle. */
   confirmDuration?: number
 }>(), {
@@ -50,6 +51,7 @@ async function handleClick() {
   <BaseButton
       :disabled="disabled || state !== 'idle'"
       :full-width="fullWidth"
+      :compact="compact"
       :class="state === 'saved'
         ? 'bg-success text-success-text hover:brightness-110'
         : 'bg-primary text-primary-text hover:bg-primary-accent hover:text-primary-accent-text'"
