@@ -99,6 +99,64 @@ A new admin observability panel under "Monitoring → Feed-Telemetrie" charts fe
 - **Atom `<summary>` / `<content>` swap** — ROME's `entry.setDescription` maps to Atom's `<summary>` and `setContents` to `<content>`, but we had them reversed: the rich HTML body lived in `<summary>` (too much for inbox rows) and the multi-line plain text lived in `<content>` (HTML readers ignored it). Swapped so the short headline goes in `<summary>` (one-line preview for inbox rows) and the rich HTML lives in `<content type="html">` (the full body on expand).
 - **Duplicate-`term` categories disambiguated** — entries used to expose two `<category term="…"/>` elements with no `scheme` attribute (one localised, one raw enum). Feed readers that collapse same-`term` entries dropped the localised one and showed the technical enum name. The enum-name category now carries `scheme="urn:ember:notification-type"` so readers preserve both and the localised one stays primary in the row.
 
+### Permission model cleanup
+
+- **`api.roles` → `api.auth` package rename** — the post-patch_6 model is `StationUserType` (categorical) + `StationPermission` (hierarchical), so the legacy `api.roles` package name no longer fit. Moved `StationPermission`, `StationUserType`, `InstancePermission`, `InstanceUserType` into `dev.chojo.ember.api.auth`; ~160 import sites auto-rewritten. Internal parameter names `roles` → `permissions` and the matching Javadoc swept across the four enums.
+- **`RoleValidation` → `PermissionValidation`** — the class only validates permissions (its method is `validatePermissionChanges`); name now matches. Test renamed alongside (`RoleValidationTest` → `PermissionValidationTest`).
+- **`RolesTest` → `PermissionsTest`** — sibling test against `StationPermission`.
+- **Frontend file renames** — deleted unused `RoleSelector.vue` (functionality already covered by `PermissionPicker`). `RoleStep.vue` → `UserTypeStep.vue` (the step only picks a `StationUserType`, not roles). `RolesHelp.vue` → `PermissionsHelp.vue`; corresponding page at `/helpcenter/station/basics/permissions`, route name `help-basics-permissions`. Wave 1 of the i18n key sweep moved `helpCenter.basics.roles.*` → `helpCenter.basics.permissions.*` with the inner `role.{member|guardian|…}` subtree → `userType.{…}`.
+
+### New Features (additional)
+
+#### News view tracking
+
+- **`news_view` table** — auto-recorded by the client when a news entry is fully visible in the viewport (IntersectionObserver, 1.0 threshold, 800 ms dwell). Distinct from `news_acknowledgement` (an explicit "I've read this" gesture); `news_view` is silent telemetry.
+- **Editor-only views modal** — `GET /api/v1/news/{id}/views` returns two lists (seen with timestamps; unseen members eligible per the news restriction). NEWS_EDIT users see a new eye icon next to each entry; clicking opens a `NewsViewsModal` showing both lists with `MemberName` rendering.
+
+#### Backend-driven search
+
+- **`/events/upcoming` accepts `search`** — the upcoming-events search bar now hits the backend (debounced 250 ms client-side, case-insensitive contains on `name` / `description` server-side) instead of filtering the already-loaded page. Category and the search query are now both server-side filters.
+- **Prominent `SearchInput` component** — primary-color 2px border + magnifying-glass prefix + ✕ clear button + `type="search"` semantics. Migrated 11 page-level search bars (events upcoming, help center, board ticket search + federated variant, procedures, protocols, KB + public KB, lending offers, quiz catalogs, frozen-question picker) to the new component. Dropdown-internal search inputs (`SearchSelectInput`, `MultiSelectDropdown`) intentionally left as is.
+
+### Improvements (additional)
+
+- **`ExchangeStatus.EXCHANGED` → `ExchangeStatus.DONE`** — enum constant renamed across the backend (`InventoryItem`, `ExchangeService`, `ExchangeRoutes`, demo seeders, notifications), the frontend (`api/types.ts`, all Vue files), i18n keys (German `Getauscht` → `Erledigt`), and a `patch_12.sql` migration that rewrites stored `equipment_exchange_request.status` and `equipment_exchange_log.{old,new}_status` from `'EXCHANGED'` to `'DONE'`.
+- **`MemberIdentity.sameMember(other)` helper** — `equals` on `MemberIdentity` compares all six fields including enrichment (name, color, displayTag, stationName); a bare DB-loaded identity never matched the fully-enriched session identity even for the same member. `sameMember` compares only the two stable UIDs (`stationUid` + `memberUid`). Adopted at every ownership check: `NewsRoutes.updateComment`/`deleteComment`/their federation variants, `EventCommentRoutes.update`/`delete`, `EventFederationService.update`/`delete`/their federation variants, `KnowledgeBaseRoutes.update`/`delete`/their federation variants. Fixes self-edit on comments across news, knowledge base and events.
+- **Event notes require `EVENT_EDIT`** — `/api/v1/notes/{entityType}/{entityId}` (and the `/versions` sibling) now widen the route-level gate to accept either `MEMBER_NOTES` or `EVENT_EDIT`, and a per-entity-type check in the handler picks the right one (`EVENT` → `EVENT_EDIT`, otherwise `MEMBER_NOTES`). Event managers no longer need member-notes permission to attach notes to events.
+- **`/quiz/catalogs` (and `/quiz/catalogs/{id}`) accept `TEST_RESULT_READ`** — reviewers hitting the test detail page on the way to `/evaluate` can now list catalog names without needing `TEST_CATALOG_VIEW`.
+- **Calendar view multi-day events** — `EventsCalendar.eventsForDate` treats `ONE_TIME` events with multi-day `endTime` as spanning every day from start to end (was rendering only on the start date). The list view (`UpcomingView`) renders the end date alongside the start when they differ.
+- **Calendar event chip space** — Vue's template whitespace compressor was eating the boundary space between the time and title in each calendar chip. Replaced the trailing literal space with `&nbsp;` so the chip reads `15:00 Open Training` consistently.
+- **Guardian sees own inventory page** — `SidebarCountService.myInventoryCount` now also surfaces a 1 when a `MEMBER_GUARDIAN` user owns nothing themselves but at least one of their managed members owns something. The "my inventory" sidebar entry surfaces for guardians accordingly.
+- **Exchange type column gated by `INVENTORY_EXCHANGE`** — the type column on `/station/inventory/exchanges` (desktop table + mobile card) only renders for users with `INVENTORY_EXCHANGE`.
+- **Notification settings shortcut from dashboard** — small gear icon next to the dashboard notifications panel header navigates to `/station/profile/settings/notifications` (route name `profile-notifications`).
+- **Reactive item state after exchange request** — submitting an exchange request on `/station/inventory/my` now appends the created request to `activeExchanges` so the item card flips into its "exchange pending" state immediately, no reload required.
+- **`/station/quiz/tests` accessible to anyone** — sidebar entry no longer gated by `TEST_RESULT_READ`. The page itself already shows tabs/buttons conditionally based on permissions.
+- **Calendar view event display** — for the upcoming events grid: per-status badge summary in event header; restriction filter applying to export uncheck; the "today" list still uses the client-side `matchesTextSearch` since `/events/today` doesn't take a search param yet.
+
+### Frontend (additional)
+
+- **`RestrictionPicker` UX** — AND/OR toggle is now two side-by-side `SelectionToggleButton`s with both words always visible, instead of a single button that flipped its label. Reset button styled as `ErrorButton` (danger color).
+- **Rich text editor toolbar** — active icon now glows in primary color (`text-primary bg-primary/10`) instead of the previous unreadable black-on-primary (`--color-primary-text` was undefined and resolved to black). Markdown raw-view toggle removed alongside its dead `showRawMarkdown` / `rawMarkdown` / `toggleRawView` state in `MarkdownEditor`.
+- **Help link for `/station/events/new`** — `help-event-new` was redirecting to `help-event-edit` (which requires an `:id` path param it never received). Now resolves to a dedicated `EventNewHelp.vue` wrapper that re-renders `EventEditHelp` (new + edit share the same form). Missing Nuxt page file at `pages/helpcenter/station/events/new.vue` added.
+- **Settings intro tour step** — the tour's settings step navigated to `profile-settings`, which redirects to `profile-theming` (only the appearance settings). The tour body actually describes notifications + sessions + restart-tour, which live in `profile-sessions`. Step now navigates to `profile-sessions`; orphaned `SettingsView.vue` (a stale copy whose content was migrated into `SessionsView`) deleted.
+- **Comment line breaks preserved** — `MentionInput.htmlToRaw` now treats `DIV`/`P` block-level boundaries as `\n`. Chrome and Edge wrap each line after Enter in a `<div>` (Firefox uses `<br>`); the previous implementation only handled `<br>` and silently dropped the line breaks when submitting.
+- **Profile absences alignment** — the row mixing `MemberName` (avatar+name in `inline-flex`) with plain date text aligned by baseline, dropping the date below the avatar's vertical center. Row container is now `flex flex-wrap items-center` so the date stays centered with the name.
+
+### Bug fixes (additional)
+
+- **`StationIdModule` round-trip broken** — the module had a serializer (int → UUID string) but no matching deserializer, so every inbound body that the API itself round-tripped with UUID strings failed with `InvalidFormatException` ("Cannot deserialize value of type `int` from String '…'") on the int field. Added a `ValueDeserializerModifier.updateBuilder` hook that wraps the deserializer for any `int`/`Integer` property in the auto-converted set with a `UuidStringToIntDeserializer` resolving UUID → int via `StationRepository.findByUid`. `partnerStationId` was also missing from the field-name set on the serializer side; added.
+- **`PAGE_EDIT` / `PAGE_MANAGER` not grantable** — the constants exist on `StationPermission` but were never inserted into the `station_permission` lookup table, so `listAllPermissions` skipped them and `PermissionPicker` couldn't expose them. `patch_12.sql` backfills the rows.
+- **`.gitignore` `config/` / `data/` patterns too broad** — the unanchored entries matched every nested `config/` and `data/` directory anywhere in the repo, silently dropping the attendance-config page files (and their helpcenter siblings) from VCS. Demo deploys then 404'd on `/station/attendance/config` even though the sidebar linked to it. `.gitignore` adds an explicit negation for `frontend/src/**/{config,data}/**` and the four previously-shadowed page files are committed.
+- **Quick-check skipping hung the process** — `RapidCheckMode.vue` kept a local `checkIndex` that advanced on skip while the parent's `uncheckedEntries` computed only dropped entries on confirm/mark. The displayed entry drifted from the array index the parent handlers wrote to, eventually pushing `checkIndex` past the array length and leaving nothing rendered. Replaced with a `skippedKeys` set + child-exposed `currentEntry` consumed by the parent handlers.
+- **KB tag filter not filtering** — `filteredSearchResults` had `r.stationName || true` (always true) so the tag filter did nothing on search results. Browse mode had no tag filtering at all. Added a per-file tag cache (`useKbTagFilter` composable) that lazily fetches tags when a tag filter is active; folders are hidden while filtering since the browse data doesn't carry tags on folders.
+
+### Internal / Infrastructure (additional)
+
+- **patch_12 contents** — rename of `EXCHANGED` → `DONE` across the three `equipment_exchange_*` status columns; new `news_view` table (composite PK + per-member index, tracked in `data_tracking.json` as `STATION` scope, `IGNORED` for transfer/GDPR mirroring `news_acknowledgement`'s policy); backfill of `PAGE_EDIT` / `PAGE_MANAGER` into `station_permission`.
+- **`data_tracking.json`** — refreshed for `news_view`; verified flag flipped to `true` for all three columns.
+- **`./gradlew jacocoCoverageCheck` + `testTracking`** — both green after the changes above.
+- **Component extractions to satisfy the 500-line view-size lint** — `KnowledgeBaseView` + `KbFileView` exceeded the limit after the KB tag-filter + KB metadata-edit additions. Split into focused components: `useKbTagFilter` composable, `KbDeleteModals.vue`, `KbFiltersBar.vue`, `KbFileContent.vue`.
+
 ## v26.7.0
 
 ### New Features
