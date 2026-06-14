@@ -1,5 +1,33 @@
 # Changelog
 
+## v26.8.0
+
+### New Features
+
+#### Discovery Chain (Cross-instance Catalog)
+
+A new two-layer protocol lets every Ember instance build an organic, asynchronously-refreshed catalog of *other Ember instances* and surface their `PUBLIC`-scoped stations on a single discovery page — including stations the local instance has never federated with. See `.concept/discovery.md` for the full design.
+
+- **Ed25519-signed gossip** — every instance owns a long-lived Ed25519 keypair generated on first boot under `data/discovery/`. The fingerprint `sha256(publicKey)[:16]` is the stable instance id used in logs and the admin UI. Distinct from the per-partner RSA keys used by federation, so discovery and federation key rotations stay independent.
+- **Async-first ping/callback** — pinging another instance returns `204` immediately; the actual peer list comes back via a delayed `POST` to the originator's callback URL. No long-lived HTTP connections on either side, and slow peers can't pile up against the requester. Replay-protected per-nonce, drift-checked ±5 min.
+- **Public station catalog endpoint** — `GET /public/discovery/stations` returns every `PUBLIC`-scoped station with bucketed member count (`<10 / 10-50 / 50-200 / 200+`) so small stations don't leak exact size. `INSTANCE` and `NONE` scopes are filtered at the SQL level, never trusted to the application layer alone. Cacheable for 5 min.
+- **Instance info probe** — unauthenticated `GET /public/discovery/info` returns `{baseUrl, instanceId, publicKey, softwareVersion, discoveryEnabled}`. Drives manual peer addition, admin "test connectivity" checks, and any future external aggregator.
+- **Bootstrap via federation** — on boot the instance walks its active federation partners, probes their info endpoint, and seeds the peer registry as `BOOTSTRAP` source. No global seed list — operators stay in control of who they federate with first.
+- **Manual admin add** — admins can register a known instance by base URL; the discovery public key is fetched from the peer's info endpoint and may optionally be pinned to an admin-supplied value so URL/key drift is caught at add time.
+- **Reputation + back-off** — signature failures (−20), timeouts (−1), invalid announcements (−2), and admin downvotes (−50) accumulate per peer; reputations below −50 trigger a 24h ping back-off. Successful callbacks and station fetches each add +1; a daily decay pulls negative scores toward zero by 5/day so transient outages don't permanently degrade a peer.
+- **Hard blocklist** — admin-managed list of base URLs or public keys that are refused on both sides of the protocol regardless of reputation. Outbound pings, inbound pings, callbacks, and station fetches all consult the list.
+- **Per-instance admin settings** — `discovery_enabled` (kill switch for outbound pings and the public stations endpoint), `discovery_max_depth` (0..10, default 2 — fan-out hint attached to pings), `discovery_ping_interval_minutes` (default 60, minimum 60).
+- **Schedulers** — ping cycle (60 min), station-listing refresh (6 h), nonce GC (5 min), reputation decay (24 h). All initial delays staggered so federation seeding fills the registry before the first ping cycle.
+- **Admin UI** under `/admin/discovery` — identity card (showing our own instanceId, publicKey, baseUrl), settings panel, peer registry with per-row actions (upvote / downvote / block / unblock / ping now / delete), manual add with probe, blocklist editor, "Discover now" trigger that pings every usable peer and refreshes the station cache in one shot, and "Seed from federation" trigger that rescans the federation partner list.
+
+### Changes
+
+#### Calendar Multi-day Events
+
+- **Google-calendar-style spanning bars** on `/station/events/upcoming` — multi-day events render as a single continuous bar across the week grid instead of one chip per day. Bars carry the event's category colour, round only on the start/end sides, and pack into lanes so multiple overlapping multi-day events stay readable.
+- **Recurring multi-day events** — the same spanning logic now enumerates per occurrence of recurring events (weekly, monthly-first, quarterly, yearly), so a multi-day recurring meeting spans correctly on every occurrence and not just the first.
+- **Fix `multiDayEndDate` in the upcoming list view** — recurring events no longer display absurd ranges like `Samstag, 2026-07-04 – Sonntag, 2026-06-14`; recurring entries skip the range entirely and one-time events whose end falls on the start day collapse to a single date.
+
 ## v26.7.1
 
 ### Changes
@@ -56,22 +84,6 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 
 - The upcoming-events search bar now hits the backend (debounced 250 ms, case-insensitive) instead of filtering the already-loaded page.
 - A new prominent `SearchInput` component (primary-color border, magnifying-glass prefix, clear button) replaces 11 page-level search bars (events, help center, board tickets, procedures, protocols, KB, lending offers, quiz catalogs, …).
-
-#### Discovery Chain (Cross-instance Catalog)
-
-A new two-layer protocol lets every Ember instance build an organic, asynchronously-refreshed catalog of *other Ember instances* and surface their `PUBLIC`-scoped stations on a single discovery page — including stations the local instance has never federated with. See `.concept/discovery.md` for the full design.
-
-- **Ed25519-signed gossip** — instances sign pings and callbacks with their own per-instance Ed25519 keypair, generated on first boot under `data/discovery/`. The fingerprint `sha256(publicKey)[:16]` is the stable instance id used in logs and the admin UI. Distinct from the per-partner RSA keys used by federation.
-- **Async-first ping/callback** — pinging another instance returns `204` immediately; the actual peer list comes back via a delayed `POST` to the originator's callback URL. No long-lived HTTP connections on either side. Replay-protected per-nonce, drift-checked ±5 min.
-- **Public station endpoint** — every instance exposes `GET /public/discovery/stations` returning its `PUBLIC`-scoped stations with bucketed member count (`<10 / 10-50 / 50-200 / 200+`) to avoid leaking exact size. `INSTANCE` and `NONE` scopes are filtered at the SQL level. Aggressively cacheable (5 min).
-- **Instance info probe** — `GET /public/discovery/info` returns `{baseUrl, instanceId, publicKey, softwareVersion, discoveryEnabled}` for manual peer addition and connectivity tests.
-- **Bootstrap via federation** — on boot the instance walks its active federation partners, probes their info endpoint, and seeds the peer registry as `BOOTSTRAP` source. No global seed list.
-- **Manual admin add** — admins can register a known instance by base URL; the discovery public key is fetched from the peer's info endpoint and optionally pinned to an admin-supplied value.
-- **Reputation + back-off** — signature failures (-20), timeouts (-1), invalid announcements (-2), and admin downvotes (-50) accumulate; reputations below -50 trigger a 24h ping back-off. Successful callbacks and station fetches each add +1; a daily decay pulls negative scores toward zero by 5/day.
-- **Hard blocklist** — admin-managed list of base URLs or public keys we refuse to interact with on either side of the protocol.
-- **Per-instance admin settings** — `discovery_enabled` (kill switch for outbound pings and the public stations endpoint), `discovery_max_depth` (0..10, default 2 — fan-out hint attached to pings), `discovery_ping_interval_minutes` (default 60, minimum 60).
-- **Schedulers** — ping cycle (60 min), station-listing refresh (6 h), nonce GC (5 min), reputation decay (24 h).
-- **Admin UI** under `/admin/discovery` — identity card, settings panel, peer registry with per-row actions (upvote/downvote/block/unblock/ping/delete), manual add with probe, blocklist editor, "Discover now" trigger, "Seed from federation" trigger.
 
 #### Other Improvements
 

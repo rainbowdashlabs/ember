@@ -108,11 +108,16 @@ function dayLabel(dateStr: string): string {
 }
 
 // For multi-day one-time events, returns the YYYY-MM-DD of the endTime if it differs from
-// the start date; otherwise null. Recurring events always end on the same day.
+// the start date; otherwise null. Recurring events are NEVER multi-day per occurrence — their
+// `endTime` is the recurrence-series cut-off, not the occurrence's end. Treating that as a
+// multi-day span produced nonsense ranges like "Sat 2026-07-04 – Sun 2026-06-14".
 function multiDayEndDate(event: StationEvent, startDateStr: string): string | null {
+  if (isRecurringEvent(event.eventType)) return null
   if (!event.endTime) return null
   const endStr = new Date(event.endTime).toISOString().slice(0, 10)
-  return endStr !== startDateStr ? endStr : null
+  // Guard against series cut-offs that land before the start.
+  if (endStr <= startDateStr) return null
+  return endStr
 }
 
 // Upcoming list is server-filtered (category + needs-action + search). Frontend additionally:
