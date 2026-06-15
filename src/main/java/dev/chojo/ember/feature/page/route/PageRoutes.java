@@ -47,6 +47,10 @@ public class PageRoutes implements Routes {
         routes.put(prefix + "/pages/{pid}/publish", this::togglePublish, StationPermission.PAGE_MANAGER);
         routes.post(prefix + "/pages/{pid}/images", this::uploadImage, StationPermission.PAGE_EDIT);
         routes.delete(prefix + "/pages/{pid}/images/{imageId}", this::deleteImage, StationPermission.PAGE_EDIT);
+        // Station-wide file browser. Returns every page file that belongs to the caller's station,
+        // including those whose original page has been deleted. Used by the URL pickers in the
+        // page editor to let the user reuse existing uploads instead of re-uploading.
+        routes.get(prefix + "/pages/files", this::listFiles, StationPermission.PAGE_EDIT);
     }
 
     private void list(Context ctx) {
@@ -186,6 +190,11 @@ public class PageRoutes implements Routes {
             throw new NotFoundResponse();
         }
         ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    private void listFiles(Context ctx) {
+        var session = UserSession.from(ctx);
+        ctx.json(pageService.listFilesByStation(session.stationId()));
     }
 
     // Response records

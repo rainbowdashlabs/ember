@@ -283,6 +283,10 @@ public class PageService {
         return imageStorage.read(image.stationId(), image.contentHash());
     }
 
+    public List<PageFile> listFilesByStation(int stationId) {
+        return pageRepository.findImagesByStation(stationId);
+    }
+
     public boolean hasPublishedPages(int stationId) {
         return !pageRepository.findPublishedByStation(stationId).isEmpty();
     }

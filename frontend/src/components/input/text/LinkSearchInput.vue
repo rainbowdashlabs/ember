@@ -8,6 +8,8 @@ import {computed, onBeforeUnmount, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import TextInput from './TextInput.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
+import IconButton from '@/components/button/IconButton.vue'
+import PageFileBrowseModal from '@/views/stationview/pages/pageeditorview/PageFileBrowseModal.vue'
 import {listPublicPages, type PublicPageSummary} from '@/api/publicPages'
 
 type LinkKind = 'page' | 'kb' | 'calendar' | 'url'
@@ -28,6 +30,7 @@ const props = defineProps<{
 
 const {t} = useI18n()
 const open = ref(false)
+const browseOpen = ref(false)
 const rootRef = ref<HTMLElement | null>(null)
 const pagesCache = ref<PublicPageSummary[] | null>(null)
 const loaded = ref(false)
@@ -95,10 +98,19 @@ if (typeof document !== 'undefined') {
 
 <template>
     <div ref="rootRef" class="relative w-full">
-        <div @focusin="onFocus" @click="onFocus">
-            <TextInput
-                v-model="model"
-                :placeholder="placeholder ?? t('stationPages.editor.linkSearchPlaceholder')"
+        <div class="flex items-center gap-1">
+            <div class="flex-1" @focusin="onFocus" @click="onFocus">
+                <TextInput
+                    v-model="model"
+                    :placeholder="placeholder ?? t('stationPages.editor.linkSearchPlaceholder')"
+                />
+            </div>
+            <IconButton
+                v-if="stationUid"
+                :icon="['fas', 'folder-open']"
+                :label="t('stationPages.editor.browseFiles')"
+                class="text-(--text-muted) hover:text-primary"
+                @click="browseOpen = true"
             />
         </div>
         <div
@@ -116,5 +128,11 @@ if (typeof document !== 'undefined') {
                 </span>
             </DropdownMenuItem>
         </div>
+        <PageFileBrowseModal
+            v-if="stationUid"
+            v-model:open="browseOpen"
+            :station-uid="stationUid"
+            @pick="(p: {url: string}) => { model = p.url; open = false }"
+        />
     </div>
 </template>

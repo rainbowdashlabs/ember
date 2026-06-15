@@ -372,12 +372,17 @@ export interface StationPage {
 
 export interface PageImage {
     id: number
-    pageId: number
+    pageId: number | null
+    stationId: string
+    contentHash: string | null
     fileName: string
     mimeType: string
     fileSize: number
     uploadedAt: string
 }
+
+/** Alias for clarity: page-files cover images and (eventually) PDFs, audio, etc. */
+export type PageFile = PageImage
 
 export interface SaveCellRequest {
     sortOrder: number
@@ -459,4 +464,10 @@ export async function deletePageImage(pageId: number, imageId: number): Promise<
 
 export function pageImageUrl(stationUid: string, imageId: number): string {
     return `/api/v1/public/pages/${stationUid}/images/${imageId}`
+}
+
+/** Lists every page-file (image / etc.) that belongs to the caller's station. */
+export async function listStationPageFiles(): Promise<PageFile[]> {
+    const res = await client.get<PageFile[]>('/pages/files')
+    return res.data
 }
