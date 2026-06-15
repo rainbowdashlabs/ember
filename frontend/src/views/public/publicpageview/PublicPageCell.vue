@@ -4,13 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import type {PageCell, ImageConfig} from '@/api/pageManage'
-import {CellContentType} from '@/api/pageManage'
+import type {PageCell, ImageConfig, LayoutKindName} from '@/api/pageManage'
+import {CellContentType, isLayoutKind} from '@/api/pageManage'
 import {publicPageImageUrl} from '@/api/publicPages'
 import CellLayoutRender from '@/views/stationview/pages/pageeditorview/CellLayoutRender.vue'
-
-const LAYOUT_KINDS = ['CALLOUT', 'QUOTE', 'DIVIDER', 'SPACER', 'ACCORDION', 'PDF', 'FILE_DOWNLOAD']
-function isLayoutKind(t: string): boolean { return LAYOUT_KINDS.includes(t) }
 
 defineProps<{
     cell: PageCell
@@ -104,8 +101,9 @@ function imageMaxHeight(cell: PageCell): string | undefined {
     <!-- Layout primitives -->
     <CellLayoutRender
         v-else-if="isLayoutKind(cell.contentType)"
-        :kind="cell.contentType as 'CALLOUT' | 'QUOTE' | 'DIVIDER' | 'SPACER' | 'ACCORDION' | 'PDF' | 'FILE_DOWNLOAD'"
+        :kind="cell.contentType as LayoutKindName"
         :content="cell.content"
         :config="cell.config as Record<string, unknown>"
+        :station-uid="stationUid"
     />
 </template>

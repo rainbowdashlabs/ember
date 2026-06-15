@@ -17,8 +17,46 @@ export const CellContentType = {
     ACCORDION: 'ACCORDION',
     PDF: 'PDF',
     FILE_DOWNLOAD: 'FILE_DOWNLOAD',
+    COUNTDOWN: 'COUNTDOWN',
+    FEATURED_EVENT: 'FEATURED_EVENT',
+    UPCOMING_EVENTS: 'UPCOMING_EVENTS',
+    KB_ARTICLE: 'KB_ARTICLE',
+    NEWS_TEASER: 'NEWS_TEASER',
+    PAGE_LINK: 'PAGE_LINK',
+    MAP: 'MAP',
+    ADDRESS_CARD: 'ADDRESS_CARD',
+    PARTNER_STATIONS: 'PARTNER_STATIONS',
+    FEDERATED_EVENT: 'FEDERATED_EVENT',
+    MEMBER_SPOTLIGHT: 'MEMBER_SPOTLIGHT',
+    OFFICERS_ROW: 'OFFICERS_ROW',
+    STATS_COUNTER: 'STATS_COUNTER',
+    IMAGE_GALLERY: 'IMAGE_GALLERY',
+    HERO_BANNER: 'HERO_BANNER',
+    PAST_EVENT_RECAP: 'PAST_EVENT_RECAP',
+    TABS: 'TABS',
+    ACHIEVEMENTS: 'ACHIEVEMENTS',
+    EXTERNAL_LINK_CARD: 'EXTERNAL_LINK_CARD',
+    NEWSLETTER_SIGNUP: 'NEWSLETTER_SIGNUP',
+    AUDIO_EMBED: 'AUDIO_EMBED',
+    POLL_EMBED: 'POLL_EMBED',
+    QUIZ_TEASER: 'QUIZ_TEASER',
+    APPLICATION_CTA: 'APPLICATION_CTA',
+    CODE_BLOCK: 'CODE_BLOCK',
 } as const
 export type CellContentTypeName = (typeof CellContentType)[keyof typeof CellContentType]
+
+export const LAYOUT_KINDS = [
+    'CALLOUT', 'QUOTE', 'DIVIDER', 'SPACER', 'ACCORDION', 'PDF', 'FILE_DOWNLOAD',
+    'COUNTDOWN', 'FEATURED_EVENT', 'UPCOMING_EVENTS', 'KB_ARTICLE', 'NEWS_TEASER', 'PAGE_LINK',
+    'MAP', 'ADDRESS_CARD', 'PARTNER_STATIONS', 'FEDERATED_EVENT', 'MEMBER_SPOTLIGHT',
+    'OFFICERS_ROW', 'STATS_COUNTER', 'IMAGE_GALLERY',
+    'HERO_BANNER', 'PAST_EVENT_RECAP', 'TABS', 'ACHIEVEMENTS', 'EXTERNAL_LINK_CARD',
+    'NEWSLETTER_SIGNUP', 'AUDIO_EMBED', 'POLL_EMBED', 'QUIZ_TEASER', 'APPLICATION_CTA', 'CODE_BLOCK',
+] as const
+export type LayoutKindName = (typeof LAYOUT_KINDS)[number]
+export function isLayoutKind(t: string): t is LayoutKindName {
+    return (LAYOUT_KINDS as readonly string[]).includes(t)
+}
 
 export const CalloutVariant = {
     INFO: 'INFO',
@@ -81,6 +119,197 @@ export interface FileDownloadConfig {
     url?: string | null
     label?: string | null
     description?: string | null
+}
+
+export interface CountdownConfig {
+    targetDate?: string | null
+    label?: string | null
+    sublabel?: string | null
+}
+
+export interface FeaturedEventConfig {
+    title?: string | null
+    date?: string | null
+    location?: string | null
+    description?: string | null
+    ctaText?: string | null
+    ctaUrl?: string | null
+}
+
+export interface EventItem {
+    title?: string
+    date?: string
+    location?: string
+    url?: string
+}
+
+export interface UpcomingEventsConfig {
+    title?: string | null
+    items?: EventItem[] | null
+}
+
+export interface KbArticleConfig {
+    articleId?: number | null
+    fallbackTitle?: string | null
+}
+
+export interface NewsTeaserConfig {
+    title?: string | null
+    date?: string | null
+    summary?: string | null
+    url?: string | null
+    imageUrl?: string | null
+}
+
+export interface PageLinkConfig {
+    pageId?: number | null
+    fallbackTitle?: string | null
+}
+
+export interface MapConfig {
+    latitude?: number | null
+    longitude?: number | null
+    zoom?: number | null
+    heightPx?: number | null
+    label?: string | null
+}
+
+export interface AddressCardConfig {
+    addressLine?: string | null
+    postalCode?: string | null
+    city?: string | null
+    country?: string | null
+    mapUrl?: string | null
+    label?: string | null
+}
+
+export interface PartnerStationItem {
+    name?: string
+    url?: string
+    distanceKm?: number
+}
+
+export interface PartnerStationsConfig {
+    title?: string | null
+    items?: PartnerStationItem[] | null
+}
+
+export interface FederatedEventConfig {
+    title?: string | null
+    date?: string | null
+    partnerName?: string | null
+    url?: string | null
+    description?: string | null
+}
+
+export interface MemberSpotlightConfig {
+    name?: string | null
+    role?: string | null
+    imageUrl?: string | null
+    blurb?: string | null
+}
+
+export interface OfficerItem {
+    name?: string
+    role?: string
+    imageUrl?: string
+}
+
+export interface OfficersRowConfig {
+    title?: string | null
+    items?: OfficerItem[] | null
+}
+
+export interface StatItem {
+    label?: string
+    value?: string
+    suffix?: string
+}
+
+export interface StatsCounterConfig {
+    items?: StatItem[] | null
+}
+
+export interface ImageGalleryConfig {
+    imageIds?: number[] | null
+    columns?: number | null
+}
+
+export interface HeroBannerConfig {
+    imageId?: number | null
+    headline?: string | null
+    subtitle?: string | null
+    ctaText?: string | null
+    ctaUrl?: string | null
+}
+
+export interface PastEventRecapConfig {
+    title?: string | null
+    date?: string | null
+    imageId?: number | null
+    summary?: string | null
+}
+
+export interface TabItem {
+    title?: string
+    body?: string
+}
+
+export interface TabsConfig {
+    items?: TabItem[] | null
+}
+
+export interface AchievementItem {
+    title?: string
+    description?: string
+    year?: string
+}
+
+export interface AchievementsConfig {
+    title?: string | null
+    items?: AchievementItem[] | null
+}
+
+export interface ExternalLinkCardConfig {
+    url?: string | null
+    title?: string | null
+    description?: string | null
+    imageUrl?: string | null
+}
+
+export interface NewsletterSignupConfig {
+    title?: string | null
+    description?: string | null
+    feedUrl?: string | null
+}
+
+export interface AudioEmbedConfig {
+    url?: string | null
+    title?: string | null
+}
+
+export interface PollEmbedConfig {
+    title?: string | null
+    description?: string | null
+    url?: string | null
+}
+
+export interface QuizTeaserConfig {
+    title?: string | null
+    description?: string | null
+    ctaText?: string | null
+    url?: string | null
+}
+
+export interface ApplicationCtaConfig {
+    headline?: string | null
+    body?: string | null
+    ctaText?: string | null
+    ctaUrl?: string | null
+}
+
+export interface CodeBlockConfig {
+    language?: string | null
 }
 
 export type CellConfig =

@@ -26,11 +26,7 @@ import {
     type VideoConfig,
 } from '@/api/pageManage'
 
-const LAYOUT_KINDS = ['CALLOUT', 'QUOTE', 'DIVIDER', 'SPACER', 'ACCORDION', 'PDF', 'FILE_DOWNLOAD'] as const
-type LayoutKind = (typeof LAYOUT_KINDS)[number]
-function isLayoutKind(t: string): t is LayoutKind {
-    return (LAYOUT_KINDS as readonly string[]).includes(t)
-}
+import {isLayoutKind, type LayoutKindName} from '@/api/pageManage'
 import {usePageClipboard} from '@/composables/usePageClipboard'
 
 export interface CellEditData {
@@ -185,7 +181,7 @@ const youtubeEmbedUrl = computed(() => {
         <!-- Layout types -->
         <CellLayoutRender
             v-else-if="isLayoutKind(cell.contentType)"
-            :kind="cell.contentType as 'CALLOUT' | 'QUOTE' | 'DIVIDER' | 'SPACER' | 'ACCORDION' | 'PDF' | 'FILE_DOWNLOAD'"
+            :kind="cell.contentType as LayoutKindName"
             :content="cell.content"
             :config="cell.config as Record<string, unknown>"
         />
@@ -300,6 +296,41 @@ const youtubeEmbedUrl = computed(() => {
                     <font-awesome-icon :icon="['fas', 'file']" class="text-lg text-primary"/>
                     <span class="text-xs">{{ t('stationPages.editor.chooseFile') }}</span>
                 </button>
+                <template v-for="entry in [
+                    {type: CellContentType.COUNTDOWN, icon: 'hourglass-half', key: 'chooseCountdown'},
+                    {type: CellContentType.FEATURED_EVENT, icon: 'calendar-days', key: 'chooseFeaturedEvent'},
+                    {type: CellContentType.UPCOMING_EVENTS, icon: 'calendar', key: 'chooseUpcomingEvents'},
+                    {type: CellContentType.KB_ARTICLE, icon: 'book', key: 'chooseKbArticle'},
+                    {type: CellContentType.NEWS_TEASER, icon: 'newspaper', key: 'chooseNewsTeaser'},
+                    {type: CellContentType.PAGE_LINK, icon: 'file-lines', key: 'choosePageLink'},
+                    {type: CellContentType.MAP, icon: 'map-location-dot', key: 'chooseMap'},
+                    {type: CellContentType.ADDRESS_CARD, icon: 'location-dot', key: 'chooseAddress'},
+                    {type: CellContentType.PARTNER_STATIONS, icon: 'handshake', key: 'choosePartners'},
+                    {type: CellContentType.FEDERATED_EVENT, icon: 'share-nodes', key: 'chooseFederatedEvent'},
+                    {type: CellContentType.MEMBER_SPOTLIGHT, icon: 'user', key: 'chooseMemberSpotlight'},
+                    {type: CellContentType.OFFICERS_ROW, icon: 'users', key: 'chooseOfficers'},
+                    {type: CellContentType.STATS_COUNTER, icon: 'chart-bar', key: 'chooseStats'},
+                    {type: CellContentType.IMAGE_GALLERY, icon: 'image', key: 'chooseGallery'},
+                    {type: CellContentType.HERO_BANNER, icon: 'rocket', key: 'chooseHero'},
+                    {type: CellContentType.PAST_EVENT_RECAP, icon: 'clock-rotate-left', key: 'choosePastEvent'},
+                    {type: CellContentType.TABS, icon: 'table-columns', key: 'chooseTabs'},
+                    {type: CellContentType.ACHIEVEMENTS, icon: 'trophy', key: 'chooseAchievements'},
+                    {type: CellContentType.EXTERNAL_LINK_CARD, icon: 'link', key: 'chooseExternalLink'},
+                    {type: CellContentType.NEWSLETTER_SIGNUP, icon: 'envelope', key: 'chooseNewsletter'},
+                    {type: CellContentType.AUDIO_EMBED, icon: 'paper-plane', key: 'chooseAudio'},
+                    {type: CellContentType.POLL_EMBED, icon: 'square-poll-vertical', key: 'choosePoll'},
+                    {type: CellContentType.QUIZ_TEASER, icon: 'graduation-cap', key: 'chooseQuiz'},
+                    {type: CellContentType.APPLICATION_CTA, icon: 'hand-holding', key: 'chooseApplication'},
+                    {type: CellContentType.CODE_BLOCK, icon: 'code', key: 'chooseCode'},
+                ]" :key="entry.type">
+                    <button
+                        class="flex flex-col items-center gap-1 rounded-theme border border-[var(--border)] hover:border-primary hover:bg-primary/5 transition-colors px-3 py-4"
+                        @click="onContentTypeChange(entry.type)"
+                    >
+                        <font-awesome-icon :icon="['fas', entry.icon]" class="text-lg text-primary"/>
+                        <span class="text-xs">{{ t(`stationPages.editor.${entry.key}`) }}</span>
+                    </button>
+                </template>
                 <button
                     v-if="hasClipboard && clipboardType === 'cell'"
                     class="flex flex-col items-center gap-1 rounded-theme border border-primary/40 hover:border-primary hover:bg-primary/5 transition-colors px-3 py-4 text-primary"
@@ -360,13 +391,14 @@ const youtubeEmbedUrl = computed(() => {
         <template v-else-if="isLayoutKind(cell.contentType)">
             <div class="rounded-theme border border-dashed border-(--border) p-3 bg-bg-light-accent/20 dark:bg-bg-dark-accent/10">
                 <CellLayoutRender
-                    :kind="cell.contentType as 'CALLOUT' | 'QUOTE' | 'DIVIDER' | 'SPACER' | 'ACCORDION' | 'PDF' | 'FILE_DOWNLOAD'"
+                    :kind="cell.contentType as LayoutKindName"
                     :content="cell.content"
                     :config="cell.config as Record<string, unknown>"
+                    :station-uid="stationUid"
                 />
             </div>
             <CellLayoutEditors
-                :kind="cell.contentType as 'CALLOUT' | 'QUOTE' | 'DIVIDER' | 'SPACER' | 'ACCORDION' | 'PDF' | 'FILE_DOWNLOAD'"
+                :kind="cell.contentType as LayoutKindName"
                 :content="cell.content"
                 :config="cell.config as Record<string, unknown>"
                 @update:content="updateField('content', $event)"
