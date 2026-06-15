@@ -401,6 +401,8 @@ const youtubeEmbedUrl = computed(() => {
                 :kind="cell.contentType as LayoutKindName"
                 :content="cell.content"
                 :config="cell.config as Record<string, unknown>"
+                :page-id="pageId"
+                :station-uid="stationUid"
                 @update:content="updateField('content', $event)"
                 @update:config="updateField('config', $event)"
             />

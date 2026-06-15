@@ -4,8 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref, onMounted} from 'vue'
+import {computed, ref, onMounted, watch} from 'vue'
 import {marked} from 'marked'
+import * as publicKb from '@/api/publicKb'
+import * as publicPages from '@/api/publicPages'
 import {
     CalloutVariant,
     pageImageUrl,
@@ -105,6 +107,9 @@ onMounted(() => {
         tickCountdown()
         countdownTimer = setInterval(tickCountdown, 1000)
     }
+    if (props.kind === 'KB_ARTICLE') resolveKbArticle()
+    if (props.kind === 'PAGE_LINK') resolvePageLink()
+    if (props.kind === 'PARTNER_STATIONS') resolvePartnerStations()
 })
 
 const mapUrl = computed(() => {
@@ -118,6 +123,58 @@ const mapUrl = computed(() => {
 const galleryColumns = computed(() => Math.max(1, Math.min(6, gallery.value.columns ?? 3)))
 
 const activeTab = ref(0)
+
+// KB article auto-resolve: fetch title + slug from the public API once we have stationUid + articleId.
+const kbResolvedTitle = ref<string | null>(null)
+const kbResolvedHref = ref<string | null>(null)
+async function resolveKbArticle() {
+    if (!props.stationUid || !kbArticle.value.articleId) return
+    try {
+        const file = await publicKb.getFile(props.stationUid, kbArticle.value.articleId)
+        kbResolvedTitle.value = file.name ?? null
+        kbResolvedHref.value = `/public/station/${props.stationUid}/knowledge/file/${file.id}`
+    } catch { /* fall back to config defaults */ }
+}
+
+// Page link auto-resolve: pull the public page list and look up by id.
+const pageResolvedTitle = ref<string | null>(null)
+const pageResolvedHref = ref<string | null>(null)
+async function resolvePageLink() {
+    if (!props.stationUid || !pageLink.value.pageId) return
+    try {
+        const pages = await publicPages.listPublicPages(props.stationUid)
+        const match = pages.find(p => p.id === pageLink.value.pageId)
+        if (match) {
+            pageResolvedTitle.value = match.title
+            pageResolvedHref.value = `/public/station/${props.stationUid}/page/${match.path}`
+        }
+    } catch { /* fall back to config defaults */ }
+}
+
+watch(() => [props.stationUid, kbArticle.value.articleId], resolveKbArticle, {immediate: false})
+watch(() => [props.stationUid, pageLink.value.pageId], resolvePageLink, {immediate: false})
+
+const kbTitle = computed(() => kbResolvedTitle.value || kbArticle.value.fallbackTitle || 'Wiki-Artikel')
+const kbHref = computed(() => kbResolvedHref.value || (props.stationUid ? `/public/station/${props.stationUid}/knowledge` : '#'))
+const pageLinkTitle = computed(() => pageResolvedTitle.value || pageLink.value.fallbackTitle || 'Seite')
+const pageLinkHref = computed(() => pageResolvedHref.value || '#')
+
+// Partner stations: when no curated items, auto-fetch from the public federation endpoint.
+const partnersResolved = ref<Array<{name?: string; url?: string; distanceKm?: number}> | null>(null)
+async function resolvePartnerStations() {
+    if (!props.stationUid) return
+    if (partners.value.items && partners.value.items.length > 0) return
+    try {
+        const list = await publicPages.listPartnerStations(props.stationUid)
+        partnersResolved.value = list.map(p => ({
+            name: p.name,
+            url: p.slug ? `/public/station/${p.slug}` : `/public/station/${p.uid}`,
+            distanceKm: p.distanceKm ?? undefined,
+        }))
+    } catch { /* config-driven fallback */ }
+}
+const partnerItems = computed(() =>
+    (partners.value.items && partners.value.items.length > 0) ? partners.value.items : (partnersResolved.value ?? []))
 </script>
 
 <template>
@@ -226,10 +283,10 @@ const activeTab = ref(0)
     </div>
 
     <!-- KB_ARTICLE -->
-    <a v-else-if="kind === 'KB_ARTICLE'" :href="stationUid ? `/public/${stationUid}/kb/${kbArticle.articleId ?? ''}` : '#'" class="flex items-center gap-3 rounded-theme border border-(--border) hover:border-primary hover:bg-primary/5 transition-colors px-4 py-3">
+    <a v-else-if="kind === 'KB_ARTICLE'" :href="kbHref" class="flex items-center gap-3 rounded-theme border border-(--border) hover:border-primary hover:bg-primary/5 transition-colors px-4 py-3">
         <font-awesome-icon :icon="['fas', 'book']" class="text-xl text-primary"/>
         <div class="flex-1 min-w-0">
-            <p class="font-medium truncate">{{ kbArticle.fallbackTitle || 'Wiki-Artikel' }}</p>
+            <p class="font-medium truncate">{{ kbTitle }}</p>
             <p class="text-xs text-(--text-muted) truncate">Wissensdatenbank</p>
         </div>
         <font-awesome-icon :icon="['fas', 'arrow-right']" class="text-(--text-muted)"/>
@@ -246,10 +303,10 @@ const activeTab = ref(0)
     </a>
 
     <!-- PAGE_LINK -->
-    <a v-else-if="kind === 'PAGE_LINK'" :href="stationUid && pageLink.pageId ? `/public/${stationUid}/page/${pageLink.pageId}` : '#'" class="flex items-center gap-3 rounded-theme border border-(--border) hover:border-primary hover:bg-primary/5 transition-colors px-4 py-3">
+    <a v-else-if="kind === 'PAGE_LINK'" :href="pageLinkHref" class="flex items-center gap-3 rounded-theme border border-(--border) hover:border-primary hover:bg-primary/5 transition-colors px-4 py-3">
         <font-awesome-icon :icon="['fas', 'file-lines']" class="text-xl text-primary"/>
         <div class="flex-1 min-w-0">
-            <p class="font-medium truncate">{{ pageLink.fallbackTitle || 'Seite' }}</p>
+            <p class="font-medium truncate">{{ pageLinkTitle }}</p>
         </div>
         <font-awesome-icon :icon="['fas', 'arrow-right']" class="text-(--text-muted)"/>
     </a>
@@ -277,7 +334,7 @@ const activeTab = ref(0)
     <div v-else-if="kind === 'PARTNER_STATIONS'" class="space-y-2">
         <p v-if="partners.title" class="font-semibold">{{ partners.title }}</p>
         <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <li v-for="(p, i) in partners.items ?? []" :key="i" class="rounded-theme border border-(--border) px-3 py-2">
+            <li v-for="(p, i) in partnerItems" :key="i" class="rounded-theme border border-(--border) px-3 py-2">
                 <a v-if="p.url" :href="p.url" target="_blank" rel="noopener noreferrer" class="font-medium hover:text-primary hover:underline">{{ p.name }}</a>
                 <span v-else class="font-medium">{{ p.name }}</span>
                 <p v-if="p.distanceKm != null" class="text-xs text-(--text-muted)">{{ p.distanceKm.toFixed(1) }} km entfernt</p>

@@ -35,3 +35,15 @@ export async function getPublicLandingPage(stationUid: string): Promise<StationP
 export function publicPageImageUrl(stationUid: string, imageId: number): string {
     return `/api/v1/public/pages/${stationUid}/images/${imageId}`
 }
+
+export interface PublicPartnerSummary {
+    uid: string
+    name: string
+    slug: string | null
+    distanceKm: number | null
+}
+
+export async function listPartnerStations(stationUid: string): Promise<PublicPartnerSummary[]> {
+    const res = await client.get<PublicPartnerSummary[]>(`/public/pages/${stationUid}/partners`)
+    return res.data
+}

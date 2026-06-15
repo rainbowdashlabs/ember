@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.page.route;
 
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -22,11 +23,14 @@ import java.util.UUID;
 public class PublicPageRoutes implements Routes {
     private final PageService pageService;
     private final StationRepository stationRepository;
+    private final FederationRepository federationRepository;
 
     @Inject
-    public PublicPageRoutes(PageService pageService, StationRepository stationRepository) {
+    public PublicPageRoutes(
+            PageService pageService, StationRepository stationRepository, FederationRepository federationRepository) {
         this.pageService = pageService;
         this.stationRepository = stationRepository;
+        this.federationRepository = federationRepository;
     }
 
     @Override
@@ -35,6 +39,12 @@ public class PublicPageRoutes implements Routes {
         routes.get(prefix + "/public/pages/{stationUid}/landing", this::getLandingPage);
         routes.get(prefix + "/public/pages/{stationUid}/images/{imageId}", this::serveImage);
         routes.get(prefix + "/public/pages/{stationUid}/page/<pagePath>", this::getPage);
+        routes.get(prefix + "/public/pages/{stationUid}/partners", this::listPartners);
+    }
+
+    private void listPartners(Context ctx) {
+        int stationId = resolveStation(ctx);
+        ctx.json(federationRepository.findActivePartnerSummaries(stationId));
     }
 
     private void listPages(Context ctx) {

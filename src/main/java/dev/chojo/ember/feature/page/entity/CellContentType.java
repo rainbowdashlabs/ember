@@ -23,43 +23,31 @@ public enum CellContentType {
             new CellConfig.FeaturedEventConfig(null, null, null, null, null, null)),
     UPCOMING_EVENTS(CellConfig.UpcomingEventsConfig.class, new CellConfig.UpcomingEventsConfig(null, null)),
     KB_ARTICLE(CellConfig.KbArticleConfig.class, new CellConfig.KbArticleConfig(null, null)),
-    NEWS_TEASER(
-            CellConfig.NewsTeaserConfig.class, new CellConfig.NewsTeaserConfig(null, null, null, null, null)),
+    NEWS_TEASER(CellConfig.NewsTeaserConfig.class, new CellConfig.NewsTeaserConfig(null, null, null, null, null)),
     PAGE_LINK(CellConfig.PageLinkConfig.class, new CellConfig.PageLinkConfig(null, null)),
     MAP(CellConfig.MapConfig.class, new CellConfig.MapConfig(null, null, null, null, null)),
     ADDRESS_CARD(
-            CellConfig.AddressCardConfig.class,
-            new CellConfig.AddressCardConfig(null, null, null, null, null, null)),
+            CellConfig.AddressCardConfig.class, new CellConfig.AddressCardConfig(null, null, null, null, null, null)),
     PARTNER_STATIONS(CellConfig.PartnerStationsConfig.class, new CellConfig.PartnerStationsConfig(null, null)),
     FEDERATED_EVENT(
-            CellConfig.FederatedEventConfig.class,
-            new CellConfig.FederatedEventConfig(null, null, null, null, null)),
+            CellConfig.FederatedEventConfig.class, new CellConfig.FederatedEventConfig(null, null, null, null, null)),
     MEMBER_SPOTLIGHT(
-            CellConfig.MemberSpotlightConfig.class,
-            new CellConfig.MemberSpotlightConfig(null, null, null, null)),
+            CellConfig.MemberSpotlightConfig.class, new CellConfig.MemberSpotlightConfig(null, null, null, null)),
     OFFICERS_ROW(CellConfig.OfficersRowConfig.class, new CellConfig.OfficersRowConfig(null, null)),
     STATS_COUNTER(CellConfig.StatsCounterConfig.class, new CellConfig.StatsCounterConfig(null)),
     IMAGE_GALLERY(CellConfig.ImageGalleryConfig.class, new CellConfig.ImageGalleryConfig(null, null)),
-    HERO_BANNER(
-            CellConfig.HeroBannerConfig.class,
-            new CellConfig.HeroBannerConfig(null, null, null, null, null)),
+    HERO_BANNER(CellConfig.HeroBannerConfig.class, new CellConfig.HeroBannerConfig(null, null, null, null, null)),
     PAST_EVENT_RECAP(
-            CellConfig.PastEventRecapConfig.class,
-            new CellConfig.PastEventRecapConfig(null, null, null, null)),
+            CellConfig.PastEventRecapConfig.class, new CellConfig.PastEventRecapConfig(null, null, null, null)),
     TABS(CellConfig.TabsConfig.class, new CellConfig.TabsConfig(null)),
     ACHIEVEMENTS(CellConfig.AchievementsConfig.class, new CellConfig.AchievementsConfig(null, null)),
     EXTERNAL_LINK_CARD(
-            CellConfig.ExternalLinkCardConfig.class,
-            new CellConfig.ExternalLinkCardConfig(null, null, null, null)),
-    NEWSLETTER_SIGNUP(
-            CellConfig.NewsletterSignupConfig.class,
-            new CellConfig.NewsletterSignupConfig(null, null, null)),
+            CellConfig.ExternalLinkCardConfig.class, new CellConfig.ExternalLinkCardConfig(null, null, null, null)),
+    NEWSLETTER_SIGNUP(CellConfig.NewsletterSignupConfig.class, new CellConfig.NewsletterSignupConfig(null, null, null)),
     AUDIO_EMBED(CellConfig.AudioEmbedConfig.class, new CellConfig.AudioEmbedConfig(null, null)),
     POLL_EMBED(CellConfig.PollEmbedConfig.class, new CellConfig.PollEmbedConfig(null, null, null)),
     QUIZ_TEASER(CellConfig.QuizTeaserConfig.class, new CellConfig.QuizTeaserConfig(null, null, null, null)),
-    APPLICATION_CTA(
-            CellConfig.ApplicationCtaConfig.class,
-            new CellConfig.ApplicationCtaConfig(null, null, null, null)),
+    APPLICATION_CTA(CellConfig.ApplicationCtaConfig.class, new CellConfig.ApplicationCtaConfig(null, null, null, null)),
     CODE_BLOCK(CellConfig.CodeBlockConfig.class, new CellConfig.CodeBlockConfig(null));
 
     private final Class<? extends CellConfig> configClass;

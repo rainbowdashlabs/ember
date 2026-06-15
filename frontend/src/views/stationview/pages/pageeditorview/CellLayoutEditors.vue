@@ -13,11 +13,15 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import {CalloutVariant, type LayoutKindName} from '@/api/pageManage'
+import CellListItemsEditor, {type ItemFieldDef} from './CellListItemsEditor.vue'
+import CellImagePicker from './CellImagePicker.vue'
 
 const props = defineProps<{
     kind: LayoutKindName
     content: string
     config: Record<string, unknown>
+    pageId: number
+    stationUid: string
 }>()
 
 const emit = defineEmits<{
@@ -49,6 +53,38 @@ function writeJsonItems(key: string, raw: string) {
 }
 
 const TS = (k: string) => t(`stationPages.editor.${k}`)
+
+// Reusable field definitions for the inline list editor.
+const EVENT_FIELDS: ItemFieldDef[] = [
+    {key: 'title', label: TS('eventTitle'), type: 'text', span: 2},
+    {key: 'date', label: TS('eventDate'), type: 'text'},
+    {key: 'location', label: TS('eventLocation'), type: 'text'},
+    {key: 'url', label: TS('linkUrl'), type: 'text', span: 2},
+]
+const PARTNER_FIELDS: ItemFieldDef[] = [
+    {key: 'name', label: TS('partnerName'), type: 'text'},
+    {key: 'url', label: TS('linkUrl'), type: 'text'},
+    {key: 'distanceKm', label: TS('partnerDistance'), type: 'number'},
+]
+const OFFICER_FIELDS: ItemFieldDef[] = [
+    {key: 'name', label: TS('memberName'), type: 'text'},
+    {key: 'role', label: TS('memberRole'), type: 'text'},
+    {key: 'imageUrl', label: TS('imageUrl'), type: 'text', span: 2},
+]
+const STAT_FIELDS: ItemFieldDef[] = [
+    {key: 'label', label: TS('statLabel'), type: 'text'},
+    {key: 'value', label: TS('statValue'), type: 'text'},
+    {key: 'suffix', label: TS('statSuffix'), type: 'text'},
+]
+const TAB_FIELDS: ItemFieldDef[] = [
+    {key: 'title', label: TS('tabTitle'), type: 'text'},
+    {key: 'body', label: TS('tabBody'), type: 'textarea', span: 2},
+]
+const ACHIEVEMENT_FIELDS: ItemFieldDef[] = [
+    {key: 'title', label: TS('achievementTitle'), type: 'text'},
+    {key: 'year', label: TS('achievementYear'), type: 'text'},
+    {key: 'description', label: TS('achievementDescription'), type: 'textarea', span: 2},
+]
 </script>
 
 <template>
@@ -149,32 +185,88 @@ const TS = (k: string) => t(`stationPages.editor.${k}`)
             </div>
         </template>
 
-        <!-- UPCOMING_EVENTS, PARTNER_STATIONS, OFFICERS_ROW, STATS_COUNTER, TABS, ACHIEVEMENTS, IMAGE_GALLERY → JSON list -->
-        <template v-else-if="['UPCOMING_EVENTS', 'PARTNER_STATIONS', 'OFFICERS_ROW', 'STATS_COUNTER', 'TABS', 'ACHIEVEMENTS', 'IMAGE_GALLERY'].includes(kind)">
-            <div v-if="kind !== 'STATS_COUNTER' && kind !== 'IMAGE_GALLERY'">
-                <FieldLabel hint class="mb-1">{{ TS('listTitle') }}</FieldLabel>
-                <TextInput :model-value="(cfg.title as string) ?? ''" @update:model-value="patch({title: $event})"/>
-            </div>
-            <div v-if="kind === 'IMAGE_GALLERY'">
-                <FieldLabel hint class="mb-1">{{ TS('galleryColumns') }}</FieldLabel>
-                <NumberInput :model-value="(cfg.columns as number) ?? 3" @update:model-value="patch({columns: $event || null})"/>
-                <FieldLabel hint class="mb-1 mt-2">{{ TS('galleryImageIds') }}</FieldLabel>
-                <TextAreaInput
-                    :model-value="JSON.stringify(cfg.imageIds ?? [])"
-                    rows="3"
-                    placeholder="[1, 2, 3]"
-                    @update:model-value="(v: string | undefined) => { try { patch({imageIds: JSON.parse(v ?? '[]')}) } catch {} }"
-                />
-            </div>
-            <div v-else>
-                <FieldLabel hint class="mb-1">{{ TS('jsonItems') }}</FieldLabel>
-                <TextAreaInput
-                    :model-value="readJsonItems('items')"
-                    rows="6"
-                    @update:model-value="(v: string | undefined) => writeJsonItems('items', v ?? '[]')"
-                />
-                <p class="text-xs text-(--text-muted) italic">{{ TS('jsonItemsHint') }}</p>
-            </div>
+        <!-- UPCOMING_EVENTS -->
+        <template v-else-if="kind === 'UPCOMING_EVENTS'">
+            <FieldLabel hint class="mb-1">{{ TS('listTitle') }}</FieldLabel>
+            <TextInput :model-value="(cfg.title as string) ?? ''" @update:model-value="patch({title: $event})"/>
+            <CellListItemsEditor
+                :items="cfg.items as Record<string, unknown>[]"
+                :fields="EVENT_FIELDS"
+                :add-label="TS('addEvent')"
+                @update:items="patch({items: $event})"
+            />
+        </template>
+
+        <!-- PARTNER_STATIONS -->
+        <template v-else-if="kind === 'PARTNER_STATIONS'">
+            <FieldLabel hint class="mb-1">{{ TS('listTitle') }}</FieldLabel>
+            <TextInput :model-value="(cfg.title as string) ?? ''" @update:model-value="patch({title: $event})"/>
+            <CellListItemsEditor
+                :items="cfg.items as Record<string, unknown>[]"
+                :fields="PARTNER_FIELDS"
+                :add-label="TS('addPartner')"
+                :grid-cols="3"
+                @update:items="patch({items: $event})"
+            />
+        </template>
+
+        <!-- OFFICERS_ROW -->
+        <template v-else-if="kind === 'OFFICERS_ROW'">
+            <FieldLabel hint class="mb-1">{{ TS('listTitle') }}</FieldLabel>
+            <TextInput :model-value="(cfg.title as string) ?? ''" @update:model-value="patch({title: $event})"/>
+            <CellListItemsEditor
+                :items="cfg.items as Record<string, unknown>[]"
+                :fields="OFFICER_FIELDS"
+                :add-label="TS('addOfficer')"
+                @update:items="patch({items: $event})"
+            />
+        </template>
+
+        <!-- STATS_COUNTER -->
+        <template v-else-if="kind === 'STATS_COUNTER'">
+            <CellListItemsEditor
+                :items="cfg.items as Record<string, unknown>[]"
+                :fields="STAT_FIELDS"
+                :add-label="TS('addStat')"
+                :grid-cols="3"
+                @update:items="patch({items: $event})"
+            />
+        </template>
+
+        <!-- TABS -->
+        <template v-else-if="kind === 'TABS'">
+            <CellListItemsEditor
+                :items="cfg.items as Record<string, unknown>[]"
+                :fields="TAB_FIELDS"
+                :add-label="TS('addTab')"
+                @update:items="patch({items: $event})"
+            />
+        </template>
+
+        <!-- ACHIEVEMENTS -->
+        <template v-else-if="kind === 'ACHIEVEMENTS'">
+            <FieldLabel hint class="mb-1">{{ TS('listTitle') }}</FieldLabel>
+            <TextInput :model-value="(cfg.title as string) ?? ''" @update:model-value="patch({title: $event})"/>
+            <CellListItemsEditor
+                :items="cfg.items as Record<string, unknown>[]"
+                :fields="ACHIEVEMENT_FIELDS"
+                :add-label="TS('addAchievement')"
+                @update:items="patch({items: $event})"
+            />
+        </template>
+
+        <!-- IMAGE_GALLERY -->
+        <template v-else-if="kind === 'IMAGE_GALLERY'">
+            <FieldLabel hint class="mb-1">{{ TS('galleryColumns') }}</FieldLabel>
+            <NumberInput :model-value="(cfg.columns as number) ?? 3" @update:model-value="patch({columns: $event || null})"/>
+            <FieldLabel hint class="mb-1 mt-2">{{ TS('galleryImages') }}</FieldLabel>
+            <CellImagePicker
+                multi
+                :image-ids="cfg.imageIds as number[]"
+                :page-id="pageId"
+                :station-uid="stationUid"
+                @update:image-ids="patch({imageIds: $event})"
+            />
         </template>
 
         <!-- KB_ARTICLE -->
@@ -259,8 +351,13 @@ const TS = (k: string) => t(`stationPages.editor.${k}`)
 
         <!-- HERO_BANNER -->
         <template v-else-if="kind === 'HERO_BANNER'">
-            <FieldLabel hint class="mb-1">{{ TS('imageId') }}</FieldLabel>
-            <NumberInput :model-value="(cfg.imageId as number) ?? undefined" @update:model-value="patch({imageId: $event || null})"/>
+            <FieldLabel hint class="mb-1">{{ TS('heroImage') }}</FieldLabel>
+            <CellImagePicker
+                :image-id="(cfg.imageId as number) ?? null"
+                :page-id="pageId"
+                :station-uid="stationUid"
+                @update:image-id="patch({imageId: $event})"
+            />
             <FieldLabel hint class="mb-1">{{ TS('headline') }}</FieldLabel>
             <TextInput :model-value="(cfg.headline as string) ?? ''" @update:model-value="patch({headline: $event})"/>
             <FieldLabel hint class="mb-1">{{ TS('subtitle') }}</FieldLabel>
@@ -277,8 +374,14 @@ const TS = (k: string) => t(`stationPages.editor.${k}`)
             <TextInput :model-value="(cfg.title as string) ?? ''" @update:model-value="patch({title: $event})"/>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><FieldLabel hint class="mb-1">{{ TS('eventDate') }}</FieldLabel><TextInput :model-value="(cfg.date as string) ?? ''" @update:model-value="patch({date: $event})"/></div>
-                <div><FieldLabel hint class="mb-1">{{ TS('imageId') }}</FieldLabel><NumberInput :model-value="(cfg.imageId as number) ?? undefined" @update:model-value="patch({imageId: $event || null})"/></div>
             </div>
+            <FieldLabel hint class="mb-1">{{ TS('recapImage') }}</FieldLabel>
+            <CellImagePicker
+                :image-id="(cfg.imageId as number) ?? null"
+                :page-id="pageId"
+                :station-uid="stationUid"
+                @update:image-id="patch({imageId: $event})"
+            />
             <FieldLabel hint class="mb-1">{{ TS('eventDescription') }}</FieldLabel>
             <TextAreaInput :model-value="(cfg.summary as string) ?? ''" rows="4" @update:model-value="patch({summary: $event ?? ''})"/>
         </template>
