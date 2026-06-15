@@ -57,12 +57,16 @@ function updateConfig(patch: Record<string, unknown>) {
 
 <template>
     <div class="space-y-3 overflow-hidden">
-        <div v-if="imageUrl" class="relative overflow-hidden">
+        <div v-if="imageUrl" class="relative overflow-hidden space-y-1">
             <img
                 :src="imageUrl"
                 :alt="(imageConfig.altText as string) ?? ''"
+                :title="(imageConfig.altText as string) ?? ''"
                 class="max-h-48 w-full rounded-theme object-contain"
             />
+            <p v-if="imageConfig.description" class="text-xs text-(--text-muted) italic text-center">
+                {{ imageConfig.description }}
+            </p>
         </div>
         <FileUploadButton accept="image/*" :disabled="uploading" @select="onImageUpload">
             {{ uploading ? t('common.loading') : t('stationPages.editor.uploadImage') }}
@@ -85,6 +89,14 @@ function updateConfig(patch: Record<string, unknown>) {
                     :model-value="(imageConfig.altText as string) ?? ''"
                     :placeholder="t('stationPages.editor.altTextPlaceholder')"
                     @update:model-value="updateConfig({altText: $event})"
+                />
+            </div>
+            <div>
+                <label class="text-xs text-[var(--text-muted)] mb-1 block">{{ t('stationPages.editor.imageDescription') }}</label>
+                <TextInput
+                    :model-value="(imageConfig.description as string) ?? ''"
+                    :placeholder="t('stationPages.editor.imageDescriptionPlaceholder')"
+                    @update:model-value="updateConfig({description: $event})"
                 />
             </div>
             <div>

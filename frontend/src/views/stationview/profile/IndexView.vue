@@ -19,8 +19,8 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PasswordInput from '@/components/input/text/PasswordInput.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
-import FileUploadButton from '@/components/button/FileUploadButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import FileUploadField from '@/components/input/FileUploadField.vue'
 import type { ProfileField } from '@/api/types'
 import { StationUserType, parseFieldConfig } from '@/api/types'
 import { profileFields, auth, members, session as sessionApi } from '@/api'
@@ -53,21 +53,19 @@ const loading = ref(true)
 const error = ref('')
 
 // Avatar
+const AVATAR_MAX_SIZE = 2 * 1024 * 1024
 const avatarKey = ref(0)
 const uploadingAvatar = ref(false)
+const avatarError = ref<string | null>(null)
 
 async function handleAvatarUpload(file: File) {
-  if (file.size > 2 * 1024 * 1024) {
-    error.value = t('profile.avatarTooLarge')
-    return
-  }
   uploadingAvatar.value = true
-  error.value = ''
+  avatarError.value = null
   try {
     await sessionApi.uploadAvatar(file)
     avatarKey.value++
   } catch {
-    error.value = t('common.error')
+    avatarError.value = t('fileUpload.uploadFailed')
   } finally {
     uploadingAvatar.value = false
   }
@@ -233,14 +231,19 @@ onMounted(loadProfile)
                 :name="(editFirstName + ' ' + editLastName).trim()"
                 size="lg"
             />
-            <div class="flex items-center gap-2">
-              <FileUploadButton accept="image/png,image/jpeg,image/webp" :disabled="uploadingAvatar" @select="handleAvatarUpload">
-                {{ uploadingAvatar ? t('common.loading') : t('profile.uploadAvatar') }}
-              </FileUploadButton>
+            <div class="flex items-start gap-2">
+              <FileUploadField
+                  accept="image/png,image/jpeg,image/webp"
+                  :max-size="AVATAR_MAX_SIZE"
+                  :disabled="uploadingAvatar"
+                  :error="avatarError"
+                  :hint="t('profile.avatarHint')"
+                  :label="uploadingAvatar ? t('common.loading') : t('profile.uploadAvatar')"
+                  @select="handleAvatarUpload"
+              />
               <DeleteButton @click="removeAvatar"/>
             </div>
           </div>
-          <p class="text-xs text-(--text-muted)">{{ t('profile.avatarHint') }}</p>
         </NeutralContainer>
 
         <!-- Account details -->

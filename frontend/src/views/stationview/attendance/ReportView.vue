@@ -8,6 +8,7 @@ import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
@@ -207,8 +208,9 @@ async function savePreset() {
     presets.value = await attendance.listPresets()
     showSavePreset.value = false
     presetName.value = ''
-  } catch {
+  } catch (e) {
     error.value = t('common.error')
+    throw e
   }
 }
 
@@ -336,7 +338,7 @@ watch(loaded, (isLoaded) => {
             </SecondaryButton>
             <template v-if="showSavePreset">
               <TextInput v-model="presetName" :placeholder="t('attendanceReport.presetName')" class="w-48"/>
-              <PrimaryButton :disabled="!presetName" @click="savePreset">{{ t('common.save') }}</PrimaryButton>
+              <SaveButton :disabled="!presetName" :action="savePreset"/>
               <SecondaryButton @click="showSavePreset = false">{{ t('common.cancel') }}</SecondaryButton>
             </template>
           </div>

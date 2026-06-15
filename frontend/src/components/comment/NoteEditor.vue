@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import type {NoteVersion} from '@/api/types'
 import {comments as notesApi} from '@/api'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -29,9 +29,7 @@ const content = ref('')
 const originalContent = ref('')
 const versions = ref<NoteVersion[]>([])
 const loading = ref(true)
-const saving = ref(false)
 const error = ref('')
-const saved = ref(false)
 const showHistory = ref(false)
 
 const hasChanges = ref(false)
@@ -51,17 +49,15 @@ async function loadNote() {
 }
 
 async function save() {
-  saving.value = true
-  saved.value = false
   error.value = ''
   try {
     const note = await notesApi.updateNote(props.entityType, props.entityId, {content: content.value})
     originalContent.value = note.content
     hasChanges.value = false
-    saved.value = true
-    setTimeout(() => { saved.value = false }, 2000)
-  } catch { error.value = t('common.error') }
-  finally { saving.value = false }
+  } catch (e) {
+    error.value = t('common.error')
+    throw e
+  }
 }
 
 async function loadVersions() {
@@ -97,7 +93,6 @@ onMounted(loadNote)
     </div>
 
     <Alert v-if="error" variant="error">{{ error }}</Alert>
-    <Alert v-if="saved" variant="success">{{ t('notes.saved') }}</Alert>
     <Spinner v-if="loading" size="sm"/>
 
     <template v-if="!loading">
@@ -107,9 +102,7 @@ onMounted(loadNote)
         :placeholder="t('notes.placeholder')"
         @input="checkChanges"
       />
-      <PrimaryButton :disabled="saving || !hasChanges" compact @click="save">
-        {{ saving ? t('common.loading') : t('notes.save') }}
-      </PrimaryButton>
+      <SaveButton :disabled="!hasChanges" compact :action="save"/>
     </template>
 
     <!-- Version history -->

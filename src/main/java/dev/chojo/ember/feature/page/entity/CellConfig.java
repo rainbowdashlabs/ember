@@ -38,7 +38,8 @@ public sealed interface CellConfig {
     record MarkdownConfig() implements CellConfig {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record ImageConfig(ImageFit imageFit, String altText, Integer maxHeight) implements CellConfig {}
+    record ImageConfig(ImageFit imageFit, String altText, Integer maxHeight, String description)
+            implements CellConfig {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record VideoConfig(Boolean autoplay, Boolean loop) implements CellConfig {}

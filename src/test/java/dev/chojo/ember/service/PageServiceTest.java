@@ -105,7 +105,7 @@ class PageServiceTest extends RepositoryTestBase {
                                 40.0,
                                 CellContentType.IMAGE,
                                 "999",
-                                new CellConfig.ImageConfig(CellConfig.ImageFit.COVER, "alt", null)))));
+                                new CellConfig.ImageConfig(CellConfig.ImageFit.COVER, "alt", null, null)))));
         assertTrue(service.savePage(pageId, "Welcome", "welcome-page", null, "Test desc", null, rows));
 
         var page = service.getPage(pageId).orElseThrow();

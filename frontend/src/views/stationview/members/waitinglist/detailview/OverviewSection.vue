@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -48,7 +48,6 @@ const editTestingGroupId = ref<number | null>(null)
 const editJoinGroupId = ref<number | null>(null)
 const editAttendanceThreshold = ref(5)
 const editIsPublic = ref(false)
-const saving = ref(false)
 
 function startEditing() {
   editName.value = props.list.name
@@ -68,7 +67,6 @@ function cancelEditing() {
 
 async function saveEditing() {
   if (!editName.value.trim()) return
-  saving.value = true
   try {
     const updated = await waitingListApi.update(props.listId, {
       name: editName.value.trim(),
@@ -86,8 +84,7 @@ async function saveEditing() {
   } catch (e: unknown) {
     const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
     emit('error', msg || t('common.error'))
-  } finally {
-    saving.value = false
+    throw e
   }
 }
 
@@ -193,9 +190,7 @@ function groupName(groupId: number | null | undefined): string {
         </div>
         <div class="flex justify-end gap-2">
           <SecondaryButton @click="cancelEditing">{{ t('common.cancel') }}</SecondaryButton>
-          <PrimaryButton :disabled="saving || !editName.trim()" @click="saveEditing">
-            {{ saving ? t('common.loading') : t('common.save') }}
-          </PrimaryButton>
+          <SaveButton :disabled="!editName.trim()" :action="saveEditing"/>
         </div>
       </div>
     </template>

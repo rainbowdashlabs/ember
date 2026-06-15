@@ -284,7 +284,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 new AccessData(List.of(dev.chojo.ember.api.auth.StationUserType.MEMBER), List.of(), List.of()));
         when(memberService.findById(memberId))
                 .thenReturn(Optional.of(new StationMember(
-                        memberId, station1.id(), null, null, false, null, null, StationUserType.MEMBER)));
+                        memberId, station1.id(), null, null, false, null, null, StationUserType.MEMBER, null)));
         assertTrue(proxyService.passesLocalViewOverride(partnerId, boardUid, memberId));
     }
 
@@ -293,7 +293,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     void failsLocalViewOverrideWithWrongUserType() {
         when(memberService.findById(memberId))
                 .thenReturn(Optional.of(new StationMember(
-                        memberId, station1.id(), null, null, false, null, null, StationUserType.TRIAL)));
+                        memberId, station1.id(), null, null, false, null, null, StationUserType.TRIAL, null)));
         when(groupService.findGroupsForMember(memberId)).thenReturn(List.of());
         when(tagService.findTagsForMember(memberId)).thenReturn(List.of());
         assertFalse(proxyService.passesLocalViewOverride(partnerId, boardUid, memberId));
@@ -342,7 +342,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 new AccessData(List.of(dev.chojo.ember.api.auth.StationUserType.MEMBER), List.of(), List.of()));
         when(memberService.findById(memberId))
                 .thenReturn(Optional.of(new StationMember(
-                        memberId, station1.id(), null, null, false, null, null, StationUserType.MEMBER)));
+                        memberId, station1.id(), null, null, false, null, null, StationUserType.MEMBER, null)));
         assertTrue(proxyService.passesLocalEditOverride(partnerId, boardUid, memberId));
     }
 
@@ -351,7 +351,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     void failsLocalEditOverrideWithWrongUserType() {
         when(memberService.findById(memberId))
                 .thenReturn(Optional.of(new StationMember(
-                        memberId, station1.id(), null, null, false, null, null, StationUserType.TRIAL)));
+                        memberId, station1.id(), null, null, false, null, null, StationUserType.TRIAL, null)));
         when(groupService.findGroupsForMember(memberId)).thenReturn(List.of());
         when(tagService.findTagsForMember(memberId)).thenReturn(List.of());
         assertFalse(proxyService.passesLocalEditOverride(partnerId, boardUid, memberId));
@@ -412,7 +412,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 new AccessData(List.of(dev.chojo.ember.api.auth.StationUserType.MANAGER), List.of(), List.of()));
         when(memberService.findById(memberId))
                 .thenReturn(Optional.of(new StationMember(
-                        memberId, station1.id(), null, null, false, null, null, StationUserType.MEMBER)));
+                        memberId, station1.id(), null, null, false, null, null, StationUserType.MEMBER, null)));
         when(groupService.findGroupsForMember(memberId)).thenReturn(List.of());
         when(tagService.findTagsForMember(memberId)).thenReturn(List.of());
         assertFalse(proxyService.canWrite(partnerId, boardUid, boardId, memberId));
@@ -430,7 +430,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 new AccessData(List.of(dev.chojo.ember.api.auth.StationUserType.MANAGER), List.of(), List.of()));
         when(memberService.findById(memberId))
                 .thenReturn(Optional.of(new StationMember(
-                        memberId, station1.id(), null, null, false, null, null, StationUserType.MEMBER)));
+                        memberId, station1.id(), null, null, false, null, null, StationUserType.MEMBER, null)));
         when(groupService.findGroupsForMember(memberId)).thenReturn(List.of());
         when(tagService.findTagsForMember(memberId)).thenReturn(List.of());
         assertFalse(proxyService.canWrite(partnerId, boardUid, boardId, memberId));

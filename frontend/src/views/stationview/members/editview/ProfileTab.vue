@@ -8,7 +8,7 @@ import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -34,9 +34,7 @@ const editFirstName = ref(props.member.name?.split(' ')[0] ?? '')
 const editLastName = ref(props.member.name?.split(' ').slice(1).join(' ') ?? '')
 const editEmail = ref(props.member.email ?? '')
 const editValues = ref(new Map(props.initialValues))
-const saving = ref(false)
 const error = ref('')
-const success = ref('')
 
 function getEditValue(fieldId: number): string {
   return editValues.value.get(fieldId) ?? ''
@@ -47,9 +45,7 @@ function setEditValue(fieldId: number, val: string) {
 }
 
 async function save() {
-  saving.value = true
   error.value = ''
-  success.value = ''
   try {
     await members.updateAccount(props.member.accountId, {
       email: editEmail.value,
@@ -58,11 +54,9 @@ async function save() {
     })
     const entries = props.fields.map(f => ({fieldId: f.id, value: JSON.stringify(getEditValue(f.id))}))
     await profileFields.setValues(props.memberId, {values: entries})
-    success.value = t('memberEdit.saved')
-  } catch {
+  } catch (e) {
     error.value = t('common.error')
-  } finally {
-    saving.value = false
+    throw e
   }
 }
 </script>
@@ -70,7 +64,6 @@ async function save() {
 <template>
   <div class="space-y-6">
     <Alert v-if="error" variant="error">{{ error }}</Alert>
-    <Alert v-if="success" variant="success">{{ success }}</Alert>
 
     <!-- Base fields -->
     <NeutralContainer class="space-y-4">
@@ -121,9 +114,7 @@ async function save() {
 
     <!-- Save -->
     <div class="flex items-center">
-      <PrimaryButton :disabled="saving" @click="save">
-        {{ saving ? t('common.loading') : t('memberEdit.save') }}
-      </PrimaryButton>
+      <SaveButton :action="save"/>
     </div>
   </div>
 </template>

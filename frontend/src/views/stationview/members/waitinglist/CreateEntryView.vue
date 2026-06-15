@@ -8,7 +8,7 @@ import {ref, computed, onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -39,7 +39,6 @@ const lastname = ref('')
 const guardians = ref<GuardianInput[]>([{firstname: '', lastname: '', email: '', phone: ''}])
 const notes = ref('')
 const fieldValues = ref<Record<number, string>>({})
-const saving = ref(false)
 const error = ref('')
 
 async function loadFields() {
@@ -70,7 +69,6 @@ const canSave = computed(() =>
 
 async function save() {
   if (!canSave.value) return
-  saving.value = true
   error.value = ''
   try {
     const values: Record<number, unknown> = {}
@@ -85,10 +83,9 @@ async function save() {
       notes: notes.value.trim(),
     })
     router.push({name: 'waiting-list-detail', params: {id: listId.value}})
-  } catch {
+  } catch (e) {
     error.value = t('common.error')
-  } finally {
-    saving.value = false
+    throw e
   }
 }
 
@@ -178,9 +175,7 @@ onMounted(loadFields)
 
         <div class="flex justify-end gap-2">
           <SecondaryButton @click="goBack">{{ t('common.cancel') }}</SecondaryButton>
-          <PrimaryButton :disabled="saving || !canSave" @click="save">
-            {{ saving ? t('common.loading') : t('waitingList.addEntry') }}
-          </PrimaryButton>
+          <SaveButton :disabled="!canSave" :action="save">{{ t('waitingList.addEntry') }}</SaveButton>
         </div>
       </template>
     </div>

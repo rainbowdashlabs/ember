@@ -62,7 +62,10 @@ const tree = computed<TreeNode[]>(() => {
         .map(n => ({...n, children: filterHidden(n.children)}))
   }
 
-  return filterHidden([buildNode('STATION_ADMINISTRATOR'), ...admin.children.map(buildNode)])
+  // STATION_ADMINISTRATOR transitively grants every other permission, so listing its
+  // descendants under the group header is just noise — keep the toggle but render it as a leaf.
+  const adminNode: TreeNode = {name: 'STATION_ADMINISTRATOR', children: []}
+  return filterHidden([adminNode, ...admin.children.map(buildNode)])
 })
 
 // Map permission name -> PermissionGrant (db id)

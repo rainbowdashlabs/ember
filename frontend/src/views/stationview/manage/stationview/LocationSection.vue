@@ -11,7 +11,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -74,7 +74,6 @@ async function load() {
 }
 
 async function save() {
-  saving.value = true
   localError.value = ''
   try {
     const saved = await stationManage.updateStationLocation({
@@ -96,8 +95,7 @@ async function save() {
     const msg = err?.response?.data?.title || t('common.error')
     localError.value = msg
     emit('error', msg)
-  } finally {
-    saving.value = false
+    throw err
   }
 }
 
@@ -179,9 +177,7 @@ onMounted(load)
         <DeleteButton :disabled="saving" @click="clear">
           {{ t('geolocation.clear') }}
         </DeleteButton>
-        <PrimaryButton :disabled="saving" @click="save">
-          {{ saving ? t('common.loading') : t('geolocation.save') }}
-        </PrimaryButton>
+        <SaveButton :action="save"/>
       </div>
     </template>
   </NeutralContainer>

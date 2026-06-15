@@ -121,6 +121,7 @@ public class StationMemberRoutes implements Routes {
         routes.put(prefix + "/station-members/{id}/managers", this::setManagers, StationPermission.MEMBER_EDIT);
 
         routes.put(prefix + "/station-members/{id}/user-type", this::setUserType, StationPermission.MEMBER_EDIT);
+        routes.put(prefix + "/station-members/{id}/join-date", this::setJoinDate, StationPermission.MEMBER_EDIT);
         routes.post(prefix + "/station-members/{id}/mark-former", this::markFormer, StationPermission.MEMBER_EDIT);
         routes.post(prefix + "/station-members/{id}/reactivate", this::reactivate, StationPermission.MEMBER_EDIT);
 
@@ -425,6 +426,26 @@ public class StationMemberRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    // -- Join Date --
+
+    @OpenApi(
+            path = "/api/v1/station-members/{id}/join-date",
+            methods = HttpMethod.PUT,
+            summary = "Set the join date of a station member",
+            tags = {"Station Members"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetJoinDateRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
+    private void setJoinDate(Context ctx) {
+        int memberId = ctx.pathParamAsClass("id", Integer.class).get();
+        var request = ctx.bodyAsClass(SetJoinDateRequest.class);
+        if (request.joinDate() == null) {
+            throw new BadRequestResponse("joinDate is required");
+        }
+        stationMemberRepository.setJoinDate(memberId, request.joinDate());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
     // -- User Type Permissions --
 
     @OpenApi(
@@ -492,6 +513,8 @@ public class StationMemberRoutes implements Routes {
     public record FormerCheckResponse(boolean canMarkFormer, String reason) {}
 
     public record SetUserTypeRequest(StationUserType userType) {}
+
+    public record SetJoinDateRequest(java.time.LocalDate joinDate) {}
 
     public record SetUserTypePermissionsRequest(List<Integer> permissionIds) {}
 }

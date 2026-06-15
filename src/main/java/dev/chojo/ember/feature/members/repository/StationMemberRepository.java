@@ -179,7 +179,7 @@ public class StationMemberRepository {
      */
     public List<RichMember> findRichMembers(int stationId, boolean includeFormer) {
         return query("""
-                        SELECT sm.id, sm.station_id, sm.uid, sm.account_id, sm.former, sm.user_type,
+                        SELECT sm.id, sm.station_id, sm.uid, sm.account_id, sm.former, sm.user_type, sm.join_date,
                                COALESCE(a.full_name, sm.display_name, '') AS name,
                                COALESCE(a.email, '') AS email,
                                COALESCE((SELECT json_agg(sp.name) FROM station_member_permission smp JOIN station_permission sp ON sp.id = smp.permission_id WHERE smp.member_id = sm.id), '[]'::json)::text AS roles,
@@ -375,6 +375,15 @@ public class StationMemberRepository {
     public boolean setUserType(int memberId, StationUserType userType) {
         return query("UPDATE station_member SET user_type = :user_type WHERE id = :id;")
                 .single(call().bind("user_type", userType).bind("id", memberId))
+                .update()
+                .changed();
+    }
+
+    // -- Join Date --
+
+    public boolean setJoinDate(int memberId, java.time.LocalDate joinDate) {
+        return query("UPDATE station_member SET join_date = :join_date WHERE id = :id;")
+                .single(call().bind("join_date", joinDate).bind("id", memberId))
                 .update()
                 .changed();
     }

@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
+import DateInput from '@/components/input/datetime/DateInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import PermissionPicker from '@/components/input/PermissionPicker.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -53,6 +54,20 @@ async function onUserTypeChange(value: string) {
     await stationMembers.setUserType(props.memberId, value)
     editUserType.value = value
     emit('userTypeChanged', value)
+  } catch {
+    error.value = t('common.error')
+  }
+}
+
+// -- Join date --
+const editJoinDate = ref(props.member.joinDate ?? '')
+
+async function onJoinDateChange(value: string | undefined) {
+  if (!value) return
+  error.value = ''
+  try {
+    await stationMembers.setJoinDate(props.memberId, value)
+    editJoinDate.value = value
   } catch {
     error.value = t('common.error')
   }
@@ -172,6 +187,13 @@ async function confirmMarkFormer() {
         <option :value="StationUserType.MANAGER">{{ t('memberEdit.userTypeManager') }}</option>
         <option :value="StationUserType.TRIAL">{{ t('memberEdit.userTypeTrial') }}</option>
       </SelectInput>
+    </NeutralContainer>
+
+    <!-- Join date -->
+    <NeutralContainer class="space-y-3">
+      <SubHeader class="text-sm">{{ t('memberEdit.joinDate') }}</SubHeader>
+      <DateInput :model-value="editJoinDate" class="max-w-xs" @update:model-value="onJoinDateChange"/>
+      <p class="text-xs text-(--text-muted)">{{ t('memberEdit.joinDateHint') }}</p>
     </NeutralContainer>
 
     <!-- Permissions -->

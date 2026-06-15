@@ -10,7 +10,7 @@ import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -18,6 +18,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import Modal from '@/components/feedback/Modal.vue'
 import EditorRow from './pageeditorview/EditorRow.vue'
 import type {RowEditData} from './pageeditorview/EditorRow.vue'
 import type {CellEditData} from './pageeditorview/EditorCell.vue'
@@ -45,7 +46,6 @@ const {pasteRow, hasClipboard, clipboardType} = usePageClipboard()
 const page = ref<StationPage | null>(null)
 const allPages = ref<StationPage[]>([])
 const loading = ref(true)
-const saving = ref(false)
 const error = ref('')
 const preview = ref(false)
 const hasUnsavedChanges = ref(false)
@@ -92,7 +92,7 @@ async function loadData() {
             listPages(),
         ])
         page.value = p
-        allPages.value = pages
+        allPages.value = pages.pages
         title.value = p.title
         slug.value = p.slug
         parentId.value = p.parentId
@@ -132,24 +132,36 @@ function moveRow(index: number, direction: number) {
     markDirty()
 }
 
-function addRow(atIndex?: number) {
+// Add-row dialog: pick column count first, then create the row with that many empty cells.
+const addRowAt = ref<number | null>(null)
+const showAddRowDialog = ref(false)
+
+function openAddRowDialog(atIndex?: number) {
+    addRowAt.value = atIndex ?? null
+    showAddRowDialog.value = true
+}
+
+function addRow(columns: number) {
+    const widthPercent = 100 / columns
     const newRow: RowEditData = {
         id: 0,
         sortOrder: rows.value.length,
-        cells: [{
+        cells: Array.from({length: columns}, (_, i) => ({
             id: 0,
-            sortOrder: 0,
-            widthPercent: 100,
-            contentType: CellContentType.MARKDOWN,
+            sortOrder: i,
+            widthPercent,
+            contentType: CellContentType.EMPTY,
             content: '',
             config: {},
-        }],
+        })),
     }
-    if (atIndex != null) {
-        rows.value.splice(atIndex, 0, newRow)
+    if (addRowAt.value != null) {
+        rows.value.splice(addRowAt.value, 0, newRow)
     } else {
         rows.value.push(newRow)
     }
+    showAddRowDialog.value = false
+    addRowAt.value = null
     markDirty()
 }
 
@@ -175,7 +187,6 @@ function togglePreview() {
 }
 
 async function save() {
-    saving.value = true
     error.value = ''
     try {
         const saveRows: SaveRowRequest[] = rows.value.map((r, ri) => ({
@@ -201,10 +212,9 @@ async function save() {
         rows.value = pageToRows(updated)
         hasUnsavedChanges.value = false
         showToast(t('common.saved'), 'success')
-    } catch {
+    } catch (e) {
         error.value = t('common.error')
-    } finally {
-        saving.value = false
+        throw e
     }
 }
 
@@ -239,10 +249,7 @@ onMounted(() => loadData())
                             <font-awesome-icon :icon="['fas', preview ? 'pen' : 'eye']" class="mr-1"/>
                             {{ preview ? t('stationPages.editor.edit') : t('stationPages.editor.preview') }}
                         </SecondaryButton>
-                        <PrimaryButton :disabled="saving" @click="save">
-                            <font-awesome-icon :icon="['fas', 'floppy-disk']" class="mr-1"/>
-                            {{ saving ? t('common.saving') : t('common.save') }}
-                        </PrimaryButton>
+                        <SaveButton :action="save"/>
                     </div>
                 </div>
 
@@ -286,7 +293,7 @@ onMounted(() => loadData())
                 <!-- Add row before first -->
                 <div v-if="!preview" class="flex items-center justify-center gap-2 py-1">
                     <div class="flex-1 h-px bg-[var(--border)]"/>
-                    <SecondaryButton compact @click="addRow(0)">
+                    <SecondaryButton compact @click="openAddRowDialog(0)">
                         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
                         {{ t('stationPages.editor.addRow') }}
                     </SecondaryButton>
@@ -320,7 +327,7 @@ onMounted(() => loadData())
                         <!-- Add row after each row -->
                         <div v-if="!preview" class="flex items-center justify-center gap-2 py-1">
                             <div class="flex-1 h-px bg-[var(--border)]"/>
-                            <SecondaryButton compact @click="addRow(index + 1)">
+                            <SecondaryButton compact @click="openAddRowDialog(index + 1)">
                                 <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
                                 {{ t('stationPages.editor.addRow') }}
                             </SecondaryButton>
@@ -338,5 +345,28 @@ onMounted(() => loadData())
                 </div>
             </template>
         </div>
+
+        <!-- Add-row column-count dialog -->
+        <Modal v-model="showAddRowDialog">
+            <div class="space-y-4">
+                <SectionHeader>{{ t('stationPages.editor.addRowTitle') }}</SectionHeader>
+                <p class="text-sm text-(--text-muted)">{{ t('stationPages.editor.addRowHint') }}</p>
+                <div class="grid grid-cols-4 gap-2">
+                    <button
+                        v-for="n in 4" :key="n"
+                        class="flex flex-col items-center gap-2 rounded-theme border border-[var(--border)] hover:border-primary hover:bg-primary/5 transition-colors p-3"
+                        @click="addRow(n)"
+                    >
+                        <span class="inline-flex gap-1 h-8 w-full">
+                            <span v-for="i in n" :key="i" class="flex-1 rounded-sm bg-primary/20"/>
+                        </span>
+                        <span class="text-xs font-medium">{{ n }}</span>
+                    </button>
+                </div>
+                <div class="flex justify-end">
+                    <SecondaryButton @click="showAddRowDialog = false">{{ t('common.cancel') }}</SecondaryButton>
+                </div>
+            </div>
+        </Modal>
     </ViewContent>
 </template>

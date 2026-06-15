@@ -8,7 +8,7 @@ import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -37,7 +37,6 @@ const manager = ref<ManagerDetail | null>(null)
 const managerEmail = ref('')
 const editingManager = ref(false)
 const loading = ref(false)
-const saving = ref(false)
 const error = ref('')
 
 const hasManager = computed(() => manager.value !== null)
@@ -60,7 +59,6 @@ async function loadStation() {
 }
 
 async function save() {
-  saving.value = true
   error.value = ''
   try {
     const emailToSend = editingManager.value ? managerEmail.value : undefined
@@ -73,10 +71,9 @@ async function save() {
       const created = await stations.createStation({name: name.value, managerEmail: managerEmail.value || undefined})
       await router.replace({name: 'admin-station-edit', params: {id: created.id}})
     }
-  } catch {
+  } catch (e) {
     error.value = t('common.error')
-  } finally {
-    saving.value = false
+    throw e
   }
 }
 
@@ -155,9 +152,9 @@ onMounted(loadStation)
           </template>
         </div>
 
-        <PrimaryButton :disabled="saving || !name" @click="save">
-          {{ saving ? t('common.loading') : (isEdit ? t('adminStations.save') : t('adminStations.createSubmit')) }}
-        </PrimaryButton>
+        <SaveButton :disabled="!name" :action="save">
+          {{ isEdit ? t('adminStations.save') : t('adminStations.createSubmit') }}
+        </SaveButton>
       </NeutralContainer>
     </div>
   </ViewContent>

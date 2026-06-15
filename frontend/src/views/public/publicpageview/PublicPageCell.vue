@@ -46,6 +46,11 @@ function imageAlt(cell: PageCell): string {
     return config?.altText ?? ''
 }
 
+function imageDescription(cell: PageCell): string {
+    const config = cell.config as ImageConfig
+    return config?.description ?? ''
+}
+
 function imageMaxHeight(cell: PageCell): string | undefined {
     const config = cell.config as ImageConfig
     return config?.maxHeight ? `${config.maxHeight}px` : undefined
@@ -59,15 +64,20 @@ function imageMaxHeight(cell: PageCell): string | undefined {
          class="markdown-content"/>
 
     <!-- IMAGE -->
-    <img v-else-if="cell.contentType === CellContentType.IMAGE"
-         :src="publicPageImageUrl(stationUid, parseInt(cell.content))"
-         :alt="imageAlt(cell)"
-         :style="{
-             objectFit: imageFitStyle(cell),
-             maxHeight: imageMaxHeight(cell),
-         }"
-         loading="lazy"
-         class="w-full rounded"/>
+    <figure v-else-if="cell.contentType === CellContentType.IMAGE" class="space-y-1">
+        <img :src="publicPageImageUrl(stationUid, parseInt(cell.content))"
+             :alt="imageAlt(cell)"
+             :title="imageAlt(cell)"
+             :style="{
+                 objectFit: imageFitStyle(cell),
+                 maxHeight: imageMaxHeight(cell),
+             }"
+             loading="lazy"
+             class="w-full rounded"/>
+        <figcaption v-if="imageDescription(cell)" class="text-xs text-(--text-muted) italic text-center">
+            {{ imageDescription(cell) }}
+        </figcaption>
+    </figure>
 
     <!-- VIDEO -->
     <template v-else-if="cell.contentType === CellContentType.VIDEO">

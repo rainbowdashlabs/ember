@@ -11,6 +11,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
@@ -40,7 +41,6 @@ const error = ref('')
 const markdownData = ref<MarkdownHtmlResponse | null>(null)
 const editing = ref(false)
 const editContent = ref('')
-const saving = ref(false)
 const textContent = ref('')
 const fileTags = ref<KbTag[]>([])
 const allStationTags = ref<KbTag[]>([])
@@ -163,7 +163,6 @@ function onContentInput() {
 
 async function saveContent() {
     if (!file.value) return
-    saving.value = true
     try {
         await knowledgeBase.updateMarkdownContent(file.value.id, editContent.value)
         // Refresh rendered HTML
@@ -174,10 +173,9 @@ async function saveContent() {
         }
         hasUnsavedChanges.value = false
         editing.value = false
-    } catch {
+    } catch (e) {
         error.value = t('common.error')
-    } finally {
-        saving.value = false
+        throw e
     }
 }
 async function addTag(name: string) {
@@ -366,10 +364,7 @@ onMounted(() => {
 
             <!-- Save bar -->
             <div v-if="editing" class="flex items-center gap-2 mb-3">
-                <PrimaryButton :disabled="saving || !hasUnsavedChanges" @click="saveContent">
-                    <font-awesome-icon :icon="['fas', saving ? 'spinner' : 'check']" :spin="saving"/>
-                    {{ t('kb.save') }}
-                </PrimaryButton>
+                <SaveButton :disabled="!hasUnsavedChanges" :action="saveContent"/>
                 <span v-if="hasUnsavedChanges" class="text-sm text-[var(--text-muted)]">
                     {{ t('kb.unsavedChanges') }}
                 </span>

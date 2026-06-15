@@ -112,7 +112,15 @@ class UserFeedRoutesIntegrationTest {
         // Minimal fixture: real token, member, station for the rss/atom handlers to resolve.
         token = new FeedToken(MEMBER_ID, TOKEN_VALUE, Instant.EPOCH, null, null);
         member = new StationMember(
-                MEMBER_ID, STATION_ID, UUID.randomUUID(), null, false, null, "Test Member", StationUserType.MEMBER);
+                MEMBER_ID,
+                STATION_ID,
+                UUID.randomUUID(),
+                null,
+                false,
+                null,
+                "Test Member",
+                StationUserType.MEMBER,
+                null);
         station = new Station(
                 STATION_ID,
                 UUID.randomUUID(),

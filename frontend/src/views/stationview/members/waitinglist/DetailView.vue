@@ -76,6 +76,11 @@ const showDeleteEntryModal = ref(false)
 const deleteEntryTarget = ref<WaitingListEntryWithScore | null>(null)
 const deletingEntry = ref(false)
 
+// State transition confirmation
+type TransitionKind = 'invite' | 'testing' | 'join' | 'approve' | 'reject' | 'withdraw'
+const pendingTransition = ref<{ entry: WaitingListEntryWithScore; kind: TransitionKind } | null>(null)
+const runningTransition = ref(false)
+
 // Computed entry groups
 const sortedEntries = computed(() =>
   [...entries.value].sort((a, b) => b.score - a.score),
@@ -181,86 +186,61 @@ function navigateToCreateEntry() {
   router.push({ name: 'waiting-list-create-entry', params: { id: listId.value } })
 }
 
-// State transitions
-async function doInviteEntry(entryId: number) {
-  error.value = ''
-  try {
-    await waitingList.inviteEntry(listId.value, entryId)
-    entries.value = await waitingList.listEntries(listId.value)
-    success.value = t('waitingList.entryInvited')
-    setTimeout(() => { success.value = '' }, 3000)
-    refreshSidebarCounts()
-  } catch {
-    error.value = t('common.error')
-  }
+// State transitions — open a confirmation modal first, run on confirm.
+function requestTransition(entryId: number, kind: TransitionKind) {
+  const entry = entries.value.find(e => e.entry.id === entryId)
+  if (!entry) return
+  pendingTransition.value = { entry, kind }
+}
+const doInviteEntry = (id: number) => requestTransition(id, 'invite')
+const doMoveToTesting = (id: number) => requestTransition(id, 'testing')
+const doMoveToJoined = (id: number) => requestTransition(id, 'join')
+const doApproveEntry = (id: number) => requestTransition(id, 'approve')
+const doRejectEntry = (id: number) => requestTransition(id, 'reject')
+const doWithdrawEntry = (id: number) => requestTransition(id, 'withdraw')
+
+const transitionTextKey: Record<TransitionKind, string> = {
+  invite: 'waitingList.transitionInviteText',
+  testing: 'waitingList.transitionTestingText',
+  join: 'waitingList.transitionJoinText',
+  approve: 'waitingList.transitionApproveText',
+  reject: 'waitingList.transitionRejectText',
+  withdraw: 'waitingList.transitionWithdrawText',
 }
 
-async function doMoveToTesting(entryId: number) {
+async function confirmTransition() {
+  if (!pendingTransition.value || runningTransition.value) return
+  const { entry, kind } = pendingTransition.value
+  const entryId = entry.entry.id
+  runningTransition.value = true
   error.value = ''
   try {
-    await waitingList.moveToTesting(listId.value, entryId)
-    entries.value = await waitingList.listEntries(listId.value)
-    success.value = t('waitingList.entryTesting')
-    setTimeout(() => { success.value = '' }, 3000)
-    refreshSidebarCounts()
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
-async function doMoveToJoined(entryId: number) {
-  error.value = ''
-  try {
-    const result = await waitingList.moveToJoined(listId.value, entryId)
-    refreshSidebarCounts()
-    if (result.memberId && hasPermission(StationPermission.MEMBER_EDIT)) {
-      router.push({ name: 'members-edit', params: { id: result.memberId } })
-    } else {
-      entries.value = await waitingList.listEntries(listId.value)
-      success.value = t('waitingList.entryJoined')
-      setTimeout(() => { success.value = '' }, 3000)
+    if (kind === 'invite') {
+      await waitingList.inviteEntry(listId.value, entryId)
+    } else if (kind === 'testing') {
+      await waitingList.moveToTesting(listId.value, entryId)
+    } else if (kind === 'join') {
+      const result = await waitingList.moveToJoined(listId.value, entryId)
+      refreshSidebarCounts()
+      pendingTransition.value = null
+      if (result.memberId && hasPermission(StationPermission.MEMBER_EDIT)) {
+        router.push({ name: 'members-edit', params: { id: result.memberId } })
+        return
+      }
+    } else if (kind === 'approve') {
+      await waitingList.approveEntry(listId.value, entryId)
+    } else if (kind === 'reject') {
+      await waitingList.rejectEntry(listId.value, entryId)
+    } else if (kind === 'withdraw') {
+      await waitingList.withdrawEntry(listId.value, entryId)
     }
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
-async function doApproveEntry(entryId: number) {
-  error.value = ''
-  try {
-    await waitingList.approveEntry(listId.value, entryId)
     entries.value = await waitingList.listEntries(listId.value)
-    success.value = t('waitingList.entryApproved')
-    setTimeout(() => { success.value = '' }, 3000)
     refreshSidebarCounts()
+    pendingTransition.value = null
   } catch {
     error.value = t('common.error')
-  }
-}
-
-async function doRejectEntry(entryId: number) {
-  error.value = ''
-  try {
-    await waitingList.rejectEntry(listId.value, entryId)
-    entries.value = await waitingList.listEntries(listId.value)
-    success.value = t('waitingList.entryRejected')
-    setTimeout(() => { success.value = '' }, 3000)
-    refreshSidebarCounts()
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
-async function doWithdrawEntry(entryId: number) {
-  error.value = ''
-  try {
-    await waitingList.withdrawEntry(listId.value, entryId)
-    entries.value = await waitingList.listEntries(listId.value)
-    success.value = t('waitingList.entryWithdrawn')
-    setTimeout(() => { success.value = '' }, 3000)
-    refreshSidebarCounts()
-  } catch {
-    error.value = t('common.error')
+  } finally {
+    runningTransition.value = false
   }
 }
 
@@ -447,6 +427,20 @@ onMounted(loadData)
             <ErrorButton :disabled="deletingList" @click="confirmDeleteList">
               {{ deletingList ? t('common.loading') : t('waitingList.deleteList') }}
             </ErrorButton>
+          </div>
+        </div>
+      </Modal>
+
+      <!-- State transition confirmation modal -->
+      <Modal :model-value="pendingTransition !== null" @update:model-value="(v: boolean) => { if (!v) pendingTransition = null }">
+        <div v-if="pendingTransition" class="space-y-4">
+          <SectionHeader>{{ t('waitingList.transitionConfirmTitle') }}</SectionHeader>
+          <p class="text-sm">{{ t(transitionTextKey[pendingTransition.kind], { name: entryFullName(pendingTransition.entry) }) }}</p>
+          <div class="flex justify-end gap-2">
+            <SecondaryButton @click="pendingTransition = null">{{ t('common.cancel') }}</SecondaryButton>
+            <PrimaryButton :disabled="runningTransition" @click="confirmTransition">
+              {{ runningTransition ? t('common.loading') : t('waitingList.transitionConfirmAction') }}
+            </PrimaryButton>
           </div>
         </div>
       </Modal>

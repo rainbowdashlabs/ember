@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 /**
  * Enriched member representation for API responses.
@@ -25,6 +26,7 @@ public record MemberWithName(
         StationUserType userType,
         boolean profileComplete,
         Instant formerAt,
+        LocalDate joinDate,
         MemberIdentity identity) {
 
     /**
@@ -51,6 +53,7 @@ public record MemberWithName(
                     m.userType(),
                     profileComplete,
                     m.formerAt(),
+                    m.joinDate(),
                     identity);
         }
         var account = accountRepository.findById(m.accountId()).orElse(null);
@@ -65,6 +68,7 @@ public record MemberWithName(
                 m.userType(),
                 profileComplete,
                 m.formerAt(),
+                m.joinDate(),
                 identity);
     }
 }

@@ -37,6 +37,10 @@ function entryFullName(item: WaitingListEntryWithScore): string {
   const e = item.entry
   return e.lastname ? `${e.firstname} ${e.lastname}` : e.firstname
 }
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })
+}
 </script>
 
 <template>
@@ -59,6 +63,7 @@ function entryFullName(item: WaitingListEntryWithScore): string {
           </span>
           <PrimaryBadge>{{ t('waitingList.status_TESTING') }}</PrimaryBadge>
         </div>
+        <div class="text-xs text-(--text-muted)">{{ t('waitingList.createdAt') }}: {{ formatDate(item.entry.createdAt) }}</div>
         <div v-if="expandedId === item.entry.id" class="border-t border-bg-light-accent dark:border-bg-dark-accent pt-2 space-y-1">
           <template v-if="item.guardians && item.guardians.length > 0">
             <span class="text-xs font-semibold uppercase text-(--text-muted)">{{ t('waitingList.guardians') }}</span>

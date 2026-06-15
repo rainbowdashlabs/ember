@@ -11,7 +11,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -35,7 +35,6 @@ const {t} = useI18n()
 const {reload} = useMapsConfig()
 
 const loading = ref(true)
-const saving = ref(false)
 const error = ref('')
 const flash = ref('')
 
@@ -86,7 +85,6 @@ async function loadAll() {
 }
 
 async function save() {
-  saving.value = true
   flash.value = ''
   error.value = ''
   try {
@@ -99,12 +97,10 @@ async function save() {
     tiles.value = saved.tiles
     geocoding.value = saved.geocoding
     tileCacheMaxMb.value = saved.tileCacheMaxMb
-    flash.value = t('adminMaps.saved')
     await reload()
   } catch (err: any) {
     error.value = err?.response?.data?.title || t('common.error')
-  } finally {
-    saving.value = false
+    throw err
   }
 }
 
@@ -273,9 +269,7 @@ onMounted(loadAll)
         </NeutralContainer>
 
         <div class="flex justify-end">
-          <PrimaryButton :disabled="saving" @click="save">
-            {{ saving ? t('common.loading') : t('adminMaps.save') }}
-          </PrimaryButton>
+          <SaveButton :action="save"/>
         </div>
       </template>
     </div>

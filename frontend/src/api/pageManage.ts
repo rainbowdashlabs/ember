@@ -6,6 +6,7 @@
 import client from './client'
 
 export const CellContentType = {
+    EMPTY: 'EMPTY',
     MARKDOWN: 'MARKDOWN',
     IMAGE: 'IMAGE',
     VIDEO: 'VIDEO',
@@ -25,6 +26,7 @@ export interface ImageConfig {
     imageFit?: ImageFitName | null
     altText?: string | null
     maxHeight?: number | null
+    description?: string | null
 }
 
 export interface VideoConfig {

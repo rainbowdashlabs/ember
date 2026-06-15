@@ -138,7 +138,9 @@ const videoDialogPos = ref({ top: 0, left: 0 })
 
 const editor = useEditor({
   extensions: [
-    StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
+    // StarterKit bundles Link and Underline; we register them explicitly with custom config,
+    // so disable the bundled versions to avoid the "duplicate extension names" warning.
+    StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false, underline: false }),
     Underline,
     Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { class: 'text-[var(--primary)] underline cursor-text' } }),
     Placeholder.configure({ placeholder: props.placeholder ?? '' }),

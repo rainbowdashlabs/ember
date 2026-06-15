@@ -5,6 +5,14 @@
  */
 import {computed, ref} from 'vue'
 
+// JSON-clone instead of structuredClone — the inputs are Vue reactive Proxies whose hidden
+// reactivity metadata makes structuredClone throw. The clipboard data is plain JSON (row
+// definitions with primitives/strings/numbers) so JSON round-tripping is safe and strips
+// any reactivity along the way.
+function deepClone<T>(value: T): T {
+    return JSON.parse(JSON.stringify(value)) as T
+}
+
 export interface ClipboardEntry {
     type: 'row' | 'cell'
     data: unknown
@@ -16,11 +24,11 @@ const clipboard = ref<ClipboardEntry | null>(null)
 
 export function usePageClipboard() {
     function copyRow(row: unknown) {
-        clipboard.value = {type: 'row', data: structuredClone(row), isCut: false}
+        clipboard.value = {type: 'row', data: deepClone(row), isCut: false}
     }
 
     function cutRow(row: unknown, removeCallback: () => void) {
-        clipboard.value = {type: 'row', data: structuredClone(row), isCut: true, removeCallback}
+        clipboard.value = {type: 'row', data: deepClone(row), isCut: true, removeCallback}
     }
 
     function pasteRow(): unknown | null {
@@ -29,7 +37,7 @@ export function usePageClipboard() {
         if (entry.isCut && entry.removeCallback) {
             entry.removeCallback()
         }
-        const data = structuredClone(entry.data)
+        const data = deepClone(entry.data)
         if (entry.isCut) {
             clipboard.value = null
         }
@@ -37,11 +45,11 @@ export function usePageClipboard() {
     }
 
     function copyCell(cell: unknown) {
-        clipboard.value = {type: 'cell', data: structuredClone(cell), isCut: false}
+        clipboard.value = {type: 'cell', data: deepClone(cell), isCut: false}
     }
 
     function cutCell(cell: unknown, removeCallback: () => void) {
-        clipboard.value = {type: 'cell', data: structuredClone(cell), isCut: true, removeCallback}
+        clipboard.value = {type: 'cell', data: deepClone(cell), isCut: true, removeCallback}
     }
 
     function pasteCell(): unknown | null {
@@ -50,7 +58,7 @@ export function usePageClipboard() {
         if (entry.isCut && entry.removeCallback) {
             entry.removeCallback()
         }
-        const data = structuredClone(entry.data)
+        const data = deepClone(entry.data)
         if (entry.isCut) {
             clipboard.value = null
         }

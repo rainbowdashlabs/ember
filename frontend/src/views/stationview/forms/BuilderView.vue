@@ -10,7 +10,7 @@ import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -182,8 +182,9 @@ async function save() {
     })
 
     router.push({ name: 'forms-list' })
-  } catch {
+  } catch (e) {
     error.value = t('common.error')
+    throw e
   }
 }
 
@@ -267,7 +268,7 @@ onMounted(loadForm)
         <!-- Actions -->
         <div class="flex justify-end gap-3">
           <SecondaryButton @click="router.push({ name: 'forms-list' })">{{ t('common.cancel') }}</SecondaryButton>
-          <PrimaryButton @click="save">{{ t('common.save') }}</PrimaryButton>
+          <SaveButton :action="save"/>
         </div>
       </template>
     </div>

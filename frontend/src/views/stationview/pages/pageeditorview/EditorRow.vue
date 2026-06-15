@@ -50,15 +50,34 @@ function updateCell(index: number, cell: CellEditData) {
 }
 
 function deleteCell(index: number) {
-    const cells = props.row.cells.filter((_, i) => i !== index)
-    if (cells.length === 0) {
+    // Single-column row → fall back to deleting the whole row.
+    if (props.row.cells.length <= 1) {
         emit('delete')
         return
     }
-    // Redistribute widths
-    const totalWidth = cells.reduce((sum, c) => sum + c.widthPercent, 0)
-    const adjusted = cells.map(c => ({...c, widthPercent: (c.widthPercent / totalWidth) * 100}))
-    updateCells(adjusted)
+    const current = props.row.cells[index]
+    // Multi-column row, cell already empty → drop the column and redistribute widths.
+    if (current.contentType === CellContentType.EMPTY) {
+        const remaining = props.row.cells.filter((_, i) => i !== index)
+        const total = remaining.reduce((sum, c) => sum + c.widthPercent, 0)
+        const redistributed = remaining.map((c, i) => ({
+            ...c,
+            widthPercent: total === 0 ? 100 / remaining.length : (c.widthPercent / total) * 100,
+            sortOrder: i,
+        }))
+        updateCells(redistributed)
+        return
+    }
+    // Multi-column row with content → reset the cell to an empty container so the column count
+    // and widths are preserved and the user can pick a new content type for that slot.
+    const cells = [...props.row.cells]
+    cells[index] = {
+        ...cells[index],
+        contentType: CellContentType.EMPTY,
+        content: '',
+        config: {},
+    }
+    updateCells(cells)
 }
 
 function splitColumns(count: number) {
@@ -72,7 +91,7 @@ function splitColumns(count: number) {
                 id: 0,
                 sortOrder: i,
                 widthPercent,
-                contentType: CellContentType.MARKDOWN,
+                contentType: CellContentType.EMPTY,
                 content: '',
                 config: {},
             })
@@ -85,6 +104,23 @@ function onResize(cellIndex: number, leftDelta: number) {
     const cells = [...props.row.cells]
     cells[cellIndex] = {...cells[cellIndex], widthPercent: cells[cellIndex].widthPercent + leftDelta}
     cells[cellIndex + 1] = {...cells[cellIndex + 1], widthPercent: cells[cellIndex + 1].widthPercent - leftDelta}
+    updateCells(cells)
+}
+
+function setCellWidth(cellIndex: number, widthPercent: number) {
+    if (props.row.cells.length < 2) return
+    const clamped = Math.max(10, Math.min(100 - 10 * (props.row.cells.length - 1), widthPercent))
+    const remainingTotal = 100 - clamped
+    const otherCells = props.row.cells.filter((_, i) => i !== cellIndex)
+    const otherTotal = otherCells.reduce((sum, c) => sum + c.widthPercent, 0)
+    const cells = props.row.cells.map((c, i) => {
+        if (i === cellIndex) return {...c, widthPercent: clamped}
+        // Scale the rest proportionally so the row still sums to 100.
+        const newWidth = otherTotal === 0
+            ? remainingTotal / otherCells.length
+            : (c.widthPercent / otherTotal) * remainingTotal
+        return {...c, widthPercent: Math.max(10, newWidth)}
+    })
     updateCells(cells)
 }
 
@@ -209,21 +245,23 @@ function onPasteCell() {
                         :page-id="pageId"
                         :station-uid="stationUid"
                         :preview="false"
+                        :can-resize="row.cells.length > 1"
                         @update:cell="updateCell(ci, $event)"
+                        @update:width="setCellWidth(ci, $event)"
                         @delete="deleteCell(ci)"
                     />
                 </div>
-                <div v-if="ci < row.cells.length - 1" class="flex flex-col items-center justify-center gap-1">
-                    <IconButton
-                        :icon="['fas', 'arrow-right-arrow-left']"
-                        :label="t('stationPages.editor.swapCells')"
-                        class="text-[var(--text-muted)] hover:text-[var(--text)] text-xs"
-                        @click="swapCells(ci)"
-                    />
+                <div v-if="ci < row.cells.length - 1" class="relative flex items-center justify-center">
                     <ColumnResizeHandle
                         :left-percent="cell.widthPercent"
                         :right-percent="row.cells[ci + 1].widthPercent"
                         @resize="onResize(ci, $event)"
+                    />
+                    <IconButton
+                        :icon="['fas', 'arrow-right-arrow-left']"
+                        :label="t('stationPages.editor.swapCells')"
+                        class="absolute top-1 left-1/2 -translate-x-1/2 text-[var(--text-muted)] hover:text-[var(--text)] text-xs bg-(--bg) rounded-full"
+                        @click="swapCells(ci)"
                     />
                 </div>
             </template>

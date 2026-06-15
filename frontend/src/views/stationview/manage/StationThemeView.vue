@@ -22,7 +22,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
@@ -41,9 +41,7 @@ const themeCtrl = useTheme()
 const themeOptions = Object.entries(THEMES).map(([key, theme]) => ({value: key, label: theme.label}))
 
 const loading = ref(true)
-const saving = ref(false)
 const error = ref('')
-const success = ref('')
 const stationName = ref('')
 
 const lockTheme = ref(false)
@@ -119,9 +117,7 @@ async function loadStation() {
 }
 
 async function save() {
-  saving.value = true
   error.value = ''
-  success.value = ''
   try {
     await stationManage.updateStationName({
       name: stationName.value,
@@ -131,12 +127,9 @@ async function save() {
       allowUserFeel: !lockFeel.value,
       customThemeColors: customEnabled.value ? JSON.stringify(customColors.value) : null,
     })
-    success.value = t('theme.saved')
-    setTimeout(() => { success.value = '' }, 3000)
-  } catch {
+  } catch (e) {
     error.value = t('common.error')
-  } finally {
-    saving.value = false
+    throw e
   }
 }
 
@@ -158,7 +151,6 @@ onMounted(loadStation)
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
-      <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <template v-if="!loading">
         <!-- Theme + Feel + Lock toggles -->
@@ -251,9 +243,7 @@ onMounted(loadStation)
           </template>
         </NeutralContainer>
 
-        <PrimaryButton :disabled="saving" @click="save">
-          {{ saving ? t('common.loading') : t('stationManage.save') }}
-        </PrimaryButton>
+        <SaveButton :action="save"/>
       </template>
     </div>
   </ViewContent>

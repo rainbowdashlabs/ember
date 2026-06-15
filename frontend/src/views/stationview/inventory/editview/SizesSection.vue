@@ -10,7 +10,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -38,7 +38,6 @@ const showSizeModal = ref(false)
 const editingSize = ref<InventorySize | null>(null)
 const sizeLabel = ref('')
 const sizeNote = ref('')
-const sizeSaving = ref(false)
 
 function openAddSize() {
   editingSize.value = null
@@ -55,7 +54,6 @@ function openEditSize(size: InventorySize) {
 }
 
 async function saveSize() {
-  sizeSaving.value = true
   try {
     if (editingSize.value) {
       await inventory.updateSize(props.inventoryId, editingSize.value.id, {
@@ -72,10 +70,9 @@ async function saveSize() {
     }
     showSizeModal.value = false
     emit('updated')
-  } catch {
+  } catch (e) {
     emit('error', t('common.error'))
-  } finally {
-    sizeSaving.value = false
+    throw e
   }
 }
 
@@ -154,9 +151,7 @@ async function onSizeReorder(fromIndex: number, toIndex: number) {
       </div>
       <div class="flex justify-end gap-3">
         <SecondaryButton @click="showSizeModal = false">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton :disabled="sizeSaving || !sizeLabel.trim()" @click="saveSize">
-          {{ sizeSaving ? t('common.loading') : t('common.save') }}
-        </PrimaryButton>
+        <SaveButton :disabled="!sizeLabel.trim()" :action="saveSize"/>
       </div>
     </div>
   </Modal>

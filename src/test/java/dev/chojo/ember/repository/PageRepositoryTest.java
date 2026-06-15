@@ -128,7 +128,7 @@ class PageRepositoryTest extends RepositoryTestBase {
                 40.0,
                 CellContentType.IMAGE,
                 "1",
-                new CellConfig.ImageConfig(CellConfig.ImageFit.COVER, null, null));
+                new CellConfig.ImageConfig(CellConfig.ImageFit.COVER, null, null, null));
 
         var rows = pageRepo.findRowsByPage(pageId);
         assertEquals(1, rows.size());

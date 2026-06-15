@@ -406,7 +406,8 @@ class BoardServiceTest extends RepositoryTestBase {
                         false,
                         null,
                         null,
-                        StationUserType.MEMBER)));
+                        StationUserType.MEMBER,
+                        null)));
         assertTrue(boardService.canView(boardId, member.id()));
     }
 
@@ -424,7 +425,8 @@ class BoardServiceTest extends RepositoryTestBase {
                         false,
                         null,
                         null,
-                        StationUserType.MEMBER)));
+                        StationUserType.MEMBER,
+                        null)));
         assertFalse(boardService.canView(boardId, member.id()));
     }
 
@@ -461,7 +463,8 @@ class BoardServiceTest extends RepositoryTestBase {
                         false,
                         null,
                         null,
-                        StationUserType.MEMBER)));
+                        StationUserType.MEMBER,
+                        null)));
         assertTrue(boardService.canEdit(boardId, member.id()));
     }
 

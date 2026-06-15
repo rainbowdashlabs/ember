@@ -4,7 +4,27 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
+
 const model = defineModel<boolean>({default: false})
+
+const props = withDefaults(defineProps<{
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full'
+}>(), {
+  size: 'md',
+})
+
+const sizeClass = computed(() => {
+  switch (props.size) {
+    case 'sm': return 'max-w-md'
+    case 'lg': return 'max-w-2xl'
+    case 'xl': return 'max-w-5xl'
+    case '2xl': return 'max-w-7xl'
+    case 'full': return 'max-w-[95vw]'
+    case 'md':
+    default: return 'max-w-lg'
+  }
+})
 </script>
 
 <template>
@@ -21,7 +41,7 @@ const model = defineModel<boolean>({default: false})
         />
         <!-- Content -->
         <div
-            class="relative z-10 w-full max-w-lg mx-4 rounded-theme border border-bg-light-accent bg-bg-light p-6 shadow-xl dark:border-bg-dark-accent dark:bg-bg-dark">
+            :class="['relative z-10 w-full mx-4 rounded-theme border border-bg-light-accent bg-bg-light p-6 shadow-xl dark:border-bg-dark-accent dark:bg-bg-dark', sizeClass]">
           <button
               class="absolute top-3 right-3 p-1 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
               @click="model = false"

@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import {reportCaughtError} from '@/util/devErrorReporter'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
@@ -40,9 +40,7 @@ const categories = ref<EventCategory[]>([])
 const attendanceTemplates = ref<AttendanceTemplate[]>([])
 const attendanceFields = ref<AttendanceTemplateField[]>([])
 const loading = ref(true)
-const saving = ref(false)
 const error = ref('')
-const success = ref('')
 
 // Form state
 const name = ref('')
@@ -106,9 +104,7 @@ async function loadData() {
 }
 
 async function save() {
-  saving.value = true
   error.value = ''
-  success.value = ''
   try {
     await events.updateTemplate(templateId.value, {
       name: name.value,
@@ -133,13 +129,10 @@ async function save() {
         attendanceFieldId: f.attendanceFieldId,
       })),
     })
-    success.value = t('eventTemplates.saved')
-    setTimeout(() => { success.value = '' }, 3000)
   } catch (e) {
     reportCaughtError(e, 'TemplateEditView.save')
     error.value = t('common.error')
-  } finally {
-    saving.value = false
+    throw e
   }
 }
 </script>
@@ -154,7 +147,6 @@ async function save() {
 
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
-      <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <template v-if="!loading">
         <!-- Basic info -->
@@ -228,9 +220,7 @@ async function save() {
         </NeutralContainer>
 
         <!-- Save -->
-        <PrimaryButton :disabled="saving || !name.trim()" @click="save">
-          {{ saving ? t('common.loading') : t('stationManage.save') }}
-        </PrimaryButton>
+        <SaveButton :disabled="!name.trim()" :action="save"/>
       </template>
     </div>
   </ViewContent>

@@ -9,7 +9,7 @@ ALTER TABLE ember_schema.station
     ADD COLUMN longitude    NUMERIC(9, 6);
 
 COMMENT ON COLUMN ember_schema.station.country
-    IS 'ISO-3166-1 alpha-2 (e.g. ''DE''). Free-form text but admin UI restricts the input set.';
+    IS 'ISO-3166-1 alpha-2 (e.g. ''DE''). Free-form text.';
 COMMENT ON COLUMN ember_schema.station.latitude
     IS 'WGS-84 latitude in degrees, [-90, 90]. NULL if the station has not opted into geolocation.';
 COMMENT ON COLUMN ember_schema.station.longitude
@@ -39,3 +39,12 @@ $$;
 
 COMMENT ON FUNCTION ember_schema.haversine_km(NUMERIC, NUMERIC, NUMERIC, NUMERIC)
     IS 'Great-circle distance in kilometres between two WGS-84 coordinates. ~0.5% error vs ellipsoid.';
+
+-- Member join date: when the member joined the station. Editable by managers, defaults to the
+-- date the membership row was created. Existing rows have no historical create timestamp on
+-- station_member, so backfill with the current date as a best-effort baseline.
+ALTER TABLE ember_schema.station_member
+    ADD COLUMN join_date DATE NOT NULL DEFAULT CURRENT_DATE;
+
+COMMENT ON COLUMN ember_schema.station_member.join_date
+    IS 'When the member joined the station. Editable; defaults to today on insert.';

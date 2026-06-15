@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:e458c7e29965a231198ae4f584851c9baafcc8b2974fcd877aead69f0f9b861d",
-  "generatedAt" : "2026-06-14T22:20:17Z",
+  "schemaHash" : "sha256:ef2c0da4addb8ffaa39d4d475ee10fe52b49577a83c45ff0ea75d2049ce4d727",
+  "generatedAt" : "2026-06-14T23:25:02Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -10488,7 +10488,7 @@
         "type" : "text",
         "nullable" : true,
         "verified" : true,
-        "description" : "ISO-3166-1 alpha-2 (e.g. 'DE'). Free-form text but admin UI restricts the input set."
+        "description" : "ISO-3166-1 alpha-2 (e.g. 'DE'). Free-form text."
       }, {
         "name" : "latitude",
         "type" : "numeric",
@@ -11118,7 +11118,7 @@
     "station_member" : {
       "feature" : "station",
       "scope" : "STATION",
-      "tableHash" : "sha256:3238129c2a2bc6c0f9a9cbec17daf5e6915f19251f55185867565407f77ff2d3",
+      "tableHash" : "sha256:339347be2d3167b34895a75a4f3d4a995d9a4cfae168cac38489a1ea0688b386",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -11165,6 +11165,12 @@
         "type" : "timestamptz",
         "nullable" : true,
         "verified" : true
+      }, {
+        "name" : "join_date",
+        "type" : "date",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the member joined the station. Editable; defaults to today on insert."
       } ],
       "foreignKeys" : [ {
         "column" : "account_id",

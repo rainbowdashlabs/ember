@@ -126,7 +126,7 @@ class EventReminderCheckerTest {
 
     private StationMember member(int id) {
         return new StationMember(
-                id, STATION_ID, UUID.randomUUID(), id, false, null, "Member " + id, StationUserType.MEMBER);
+                id, STATION_ID, UUID.randomUUID(), id, false, null, "Member " + id, StationUserType.MEMBER, null);
     }
 
     @Test
