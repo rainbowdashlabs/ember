@@ -10,8 +10,23 @@ export const CellContentType = {
     MARKDOWN: 'MARKDOWN',
     IMAGE: 'IMAGE',
     VIDEO: 'VIDEO',
+    CALLOUT: 'CALLOUT',
+    QUOTE: 'QUOTE',
+    DIVIDER: 'DIVIDER',
+    SPACER: 'SPACER',
+    ACCORDION: 'ACCORDION',
+    PDF: 'PDF',
+    FILE_DOWNLOAD: 'FILE_DOWNLOAD',
 } as const
 export type CellContentTypeName = (typeof CellContentType)[keyof typeof CellContentType]
+
+export const CalloutVariant = {
+    INFO: 'INFO',
+    WARNING: 'WARNING',
+    SUCCESS: 'SUCCESS',
+    TIP: 'TIP',
+} as const
+export type CalloutVariantName = (typeof CalloutVariant)[keyof typeof CalloutVariant]
 
 export const ImageFit = {
     COVER: 'COVER',
@@ -34,7 +49,51 @@ export interface VideoConfig {
     loop?: boolean | null
 }
 
-export type CellConfig = MarkdownConfig | ImageConfig | VideoConfig
+export interface CalloutConfig {
+    variant?: CalloutVariantName | null
+    title?: string | null
+}
+
+export interface QuoteConfig {
+    author?: string | null
+    attributionUrl?: string | null
+}
+
+export interface DividerConfig {
+    label?: string | null
+}
+
+export interface SpacerConfig {
+    heightPx?: number | null
+}
+
+export interface AccordionConfig {
+    title?: string | null
+    openByDefault?: boolean | null
+}
+
+export interface PdfConfig {
+    url?: string | null
+    heightPx?: number | null
+}
+
+export interface FileDownloadConfig {
+    url?: string | null
+    label?: string | null
+    description?: string | null
+}
+
+export type CellConfig =
+    | MarkdownConfig
+    | ImageConfig
+    | VideoConfig
+    | CalloutConfig
+    | QuoteConfig
+    | DividerConfig
+    | SpacerConfig
+    | AccordionConfig
+    | PdfConfig
+    | FileDownloadConfig
 
 export interface PageCell {
     id: number

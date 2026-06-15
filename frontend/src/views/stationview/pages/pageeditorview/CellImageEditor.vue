@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import FileUploadButton from '@/components/button/FileUploadButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import {
     ImageFit,
@@ -73,7 +74,7 @@ function updateConfig(patch: Record<string, unknown>) {
         </FileUploadButton>
         <div class="grid grid-cols-1 gap-3">
             <div>
-                <label class="text-xs text-[var(--text-muted)] mb-1 block">{{ t('stationPages.editor.imageFit') }}</label>
+                <FieldLabel hint class="mb-1">{{ t('stationPages.editor.imageFit') }}</FieldLabel>
                 <SelectInput
                     :model-value="(imageConfig.imageFit as string) ?? ImageFit.CONTAIN"
                     @update:model-value="updateConfig({imageFit: $event})"
@@ -84,7 +85,7 @@ function updateConfig(patch: Record<string, unknown>) {
                 </SelectInput>
             </div>
             <div>
-                <label class="text-xs text-[var(--text-muted)] mb-1 block">{{ t('stationPages.editor.altText') }}</label>
+                <FieldLabel hint class="mb-1">{{ t('stationPages.editor.altText') }}</FieldLabel>
                 <TextInput
                     :model-value="(imageConfig.altText as string) ?? ''"
                     :placeholder="t('stationPages.editor.altTextPlaceholder')"
@@ -92,7 +93,7 @@ function updateConfig(patch: Record<string, unknown>) {
                 />
             </div>
             <div>
-                <label class="text-xs text-[var(--text-muted)] mb-1 block">{{ t('stationPages.editor.imageDescription') }}</label>
+                <FieldLabel hint class="mb-1">{{ t('stationPages.editor.imageDescription') }}</FieldLabel>
                 <TextInput
                     :model-value="(imageConfig.description as string) ?? ''"
                     :placeholder="t('stationPages.editor.imageDescriptionPlaceholder')"
@@ -100,7 +101,7 @@ function updateConfig(patch: Record<string, unknown>) {
                 />
             </div>
             <div>
-                <label class="text-xs text-[var(--text-muted)] mb-1 block">{{ t('stationPages.editor.maxHeight') }}</label>
+                <FieldLabel hint class="mb-1">{{ t('stationPages.editor.maxHeight') }}</FieldLabel>
                 <NumberInput
                     :model-value="(imageConfig.maxHeight as number) ?? undefined"
                     :placeholder="t('stationPages.editor.maxHeightPlaceholder')"

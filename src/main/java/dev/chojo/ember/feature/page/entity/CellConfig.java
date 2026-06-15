@@ -35,6 +35,13 @@ public sealed interface CellConfig {
         FILL
     }
 
+    enum CalloutVariant {
+        INFO,
+        WARNING,
+        SUCCESS,
+        TIP
+    }
+
     record MarkdownConfig() implements CellConfig {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -43,6 +50,34 @@ public sealed interface CellConfig {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record VideoConfig(Boolean autoplay, Boolean loop) implements CellConfig {}
+
+    /** Callout box. The body text lives in cell.content (markdown). */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record CalloutConfig(CalloutVariant variant, String title) implements CellConfig {}
+
+    /** Quote block. The quote text lives in cell.content. */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record QuoteConfig(String author, String attributionUrl) implements CellConfig {}
+
+    /** Horizontal divider with optional centred label. */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record DividerConfig(String label) implements CellConfig {}
+
+    /** Vertical spacer. Height in CSS pixels. */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record SpacerConfig(Integer heightPx) implements CellConfig {}
+
+    /** Collapsible accordion. The body markdown lives in cell.content. */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record AccordionConfig(String title, Boolean openByDefault) implements CellConfig {}
+
+    /** Embedded PDF viewer. url is required; height is in CSS pixels. */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record PdfConfig(String url, Integer heightPx) implements CellConfig {}
+
+    /** Download card pointing at any file URL. */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record FileDownloadConfig(String url, String label, String description) implements CellConfig {}
 
     static CellConfig parse(CellContentType type, String json) {
         if (json == null || json.isBlank() || "{}".equals(json)) {

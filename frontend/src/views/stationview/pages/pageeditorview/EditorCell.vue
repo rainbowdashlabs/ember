@@ -16,6 +16,8 @@ import Modal from '@/components/feedback/Modal.vue'
 import CellMarkdownEditor from './CellMarkdownEditor.vue'
 import CellImageEditor from './CellImageEditor.vue'
 import CellVideoEditor from './CellVideoEditor.vue'
+import CellLayoutEditors from './CellLayoutEditors.vue'
+import CellLayoutRender from './CellLayoutRender.vue'
 import {
     CellContentType,
     pageImageUrl,
@@ -23,6 +25,12 @@ import {
     type ImageConfig,
     type VideoConfig,
 } from '@/api/pageManage'
+
+const LAYOUT_KINDS = ['CALLOUT', 'QUOTE', 'DIVIDER', 'SPACER', 'ACCORDION', 'PDF', 'FILE_DOWNLOAD'] as const
+type LayoutKind = (typeof LAYOUT_KINDS)[number]
+function isLayoutKind(t: string): t is LayoutKind {
+    return (LAYOUT_KINDS as readonly string[]).includes(t)
+}
 import {usePageClipboard} from '@/composables/usePageClipboard'
 
 export interface CellEditData {
@@ -173,6 +181,14 @@ const youtubeEmbedUrl = computed(() => {
                 class="w-full rounded-theme"
             />
         </div>
+
+        <!-- Layout types -->
+        <CellLayoutRender
+            v-else-if="isLayoutKind(cell.contentType)"
+            :kind="cell.contentType as 'CALLOUT' | 'QUOTE' | 'DIVIDER' | 'SPACER' | 'ACCORDION' | 'PDF' | 'FILE_DOWNLOAD'"
+            :content="cell.content"
+            :config="cell.config as Record<string, unknown>"
+        />
     </div>
 
     <!-- Edit mode -->
@@ -236,6 +252,55 @@ const youtubeEmbedUrl = computed(() => {
                     <span class="text-xs">{{ t('stationPages.editor.chooseVideo') }}</span>
                 </button>
                 <button
+                    class="flex flex-col items-center gap-1 rounded-theme border border-[var(--border)] hover:border-primary hover:bg-primary/5 transition-colors px-3 py-4"
+                    @click="onContentTypeChange(CellContentType.CALLOUT)"
+                >
+                    <font-awesome-icon :icon="['fas', 'circle-info']" class="text-lg text-primary"/>
+                    <span class="text-xs">{{ t('stationPages.editor.chooseCallout') }}</span>
+                </button>
+                <button
+                    class="flex flex-col items-center gap-1 rounded-theme border border-[var(--border)] hover:border-primary hover:bg-primary/5 transition-colors px-3 py-4"
+                    @click="onContentTypeChange(CellContentType.QUOTE)"
+                >
+                    <font-awesome-icon :icon="['fas', 'quote-left']" class="text-lg text-primary"/>
+                    <span class="text-xs">{{ t('stationPages.editor.chooseQuote') }}</span>
+                </button>
+                <button
+                    class="flex flex-col items-center gap-1 rounded-theme border border-[var(--border)] hover:border-primary hover:bg-primary/5 transition-colors px-3 py-4"
+                    @click="onContentTypeChange(CellContentType.DIVIDER)"
+                >
+                    <font-awesome-icon :icon="['fas', 'minus']" class="text-lg text-primary"/>
+                    <span class="text-xs">{{ t('stationPages.editor.chooseDivider') }}</span>
+                </button>
+                <button
+                    class="flex flex-col items-center gap-1 rounded-theme border border-[var(--border)] hover:border-primary hover:bg-primary/5 transition-colors px-3 py-4"
+                    @click="onContentTypeChange(CellContentType.SPACER)"
+                >
+                    <font-awesome-icon :icon="['fas', 'arrows-up-down']" class="text-lg text-primary"/>
+                    <span class="text-xs">{{ t('stationPages.editor.chooseSpacer') }}</span>
+                </button>
+                <button
+                    class="flex flex-col items-center gap-1 rounded-theme border border-[var(--border)] hover:border-primary hover:bg-primary/5 transition-colors px-3 py-4"
+                    @click="onContentTypeChange(CellContentType.ACCORDION)"
+                >
+                    <font-awesome-icon :icon="['fas', 'chevron-down']" class="text-lg text-primary"/>
+                    <span class="text-xs">{{ t('stationPages.editor.chooseAccordion') }}</span>
+                </button>
+                <button
+                    class="flex flex-col items-center gap-1 rounded-theme border border-[var(--border)] hover:border-primary hover:bg-primary/5 transition-colors px-3 py-4"
+                    @click="onContentTypeChange(CellContentType.PDF)"
+                >
+                    <font-awesome-icon :icon="['fas', 'file-pdf']" class="text-lg text-primary"/>
+                    <span class="text-xs">{{ t('stationPages.editor.choosePdf') }}</span>
+                </button>
+                <button
+                    class="flex flex-col items-center gap-1 rounded-theme border border-[var(--border)] hover:border-primary hover:bg-primary/5 transition-colors px-3 py-4"
+                    @click="onContentTypeChange(CellContentType.FILE_DOWNLOAD)"
+                >
+                    <font-awesome-icon :icon="['fas', 'file']" class="text-lg text-primary"/>
+                    <span class="text-xs">{{ t('stationPages.editor.chooseFile') }}</span>
+                </button>
+                <button
                     v-if="hasClipboard && clipboardType === 'cell'"
                     class="flex flex-col items-center gap-1 rounded-theme border border-primary/40 hover:border-primary hover:bg-primary/5 transition-colors px-3 py-4 text-primary"
                     @click="onPasteHere"
@@ -290,5 +355,23 @@ const youtubeEmbedUrl = computed(() => {
             @update:content="updateField('content', $event)"
             @update:config="updateField('config', $event)"
         />
+
+        <!-- Layout types: live preview + config form -->
+        <template v-else-if="isLayoutKind(cell.contentType)">
+            <div class="rounded-theme border border-dashed border-(--border) p-3 bg-bg-light-accent/20 dark:bg-bg-dark-accent/10">
+                <CellLayoutRender
+                    :kind="cell.contentType as 'CALLOUT' | 'QUOTE' | 'DIVIDER' | 'SPACER' | 'ACCORDION' | 'PDF' | 'FILE_DOWNLOAD'"
+                    :content="cell.content"
+                    :config="cell.config as Record<string, unknown>"
+                />
+            </div>
+            <CellLayoutEditors
+                :kind="cell.contentType as 'CALLOUT' | 'QUOTE' | 'DIVIDER' | 'SPACER' | 'ACCORDION' | 'PDF' | 'FILE_DOWNLOAD'"
+                :content="cell.content"
+                :config="cell.config as Record<string, unknown>"
+                @update:content="updateField('content', $event)"
+                @update:config="updateField('config', $event)"
+            />
+        </template>
     </NeutralContainer>
 </template>

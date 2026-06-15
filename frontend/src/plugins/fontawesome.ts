@@ -35,7 +35,7 @@ import {
     faFlask, faPlay, faBookOpen, faFolder, faFolderOpen, faFile, faMagnifyingGlass, faCompass,
     faFileCsv, faReply, faShieldHalved, faAt, faPaste, faClone, faHourglassHalf, faArrowUp,
     faSatelliteDish, faMapLocationDot, faUserClock, faFloppyDisk, faBoxArchive,
-    faFilePowerpoint, faDisplay, faKey,
+    faFilePowerpoint, faDisplay, faKey, faArrowsUpDown, faLightbulb,
 } from '@fortawesome/free-solid-svg-icons'
 import {
     faGithub, faWindows, faApple, faLinux, faAndroid, faChrome, faFirefoxBrowser, faSafari,
@@ -71,6 +71,7 @@ library.add(
     faArrowDownWideShort, faArrowUpWideShort, faFileCsv, faReply, faShieldHalved, faAt,
     faPaste, faClone, faHourglassHalf, faArrowUp, faSatelliteDish, faMapLocationDot,
     faUserClock, faFloppyDisk, faBoxArchive, faFilePowerpoint, faDisplay, faKey,
+    faArrowsUpDown, faLightbulb,
 )
 
 export default defineNuxtPlugin((nuxtApp) => {
