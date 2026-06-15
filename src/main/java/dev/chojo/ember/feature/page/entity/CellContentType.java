@@ -8,7 +8,9 @@ package dev.chojo.ember.feature.page.entity;
 public enum CellContentType {
     EMPTY(CellConfig.MarkdownConfig.class, new CellConfig.MarkdownConfig()),
     MARKDOWN(CellConfig.MarkdownConfig.class, new CellConfig.MarkdownConfig()),
-    IMAGE(CellConfig.ImageConfig.class, new CellConfig.ImageConfig(null, null, null, null)),
+    IMAGE(
+            CellConfig.ImageConfig.class,
+            new CellConfig.ImageConfig(null, null, null, null, null, null, null, null, null, null, null)),
     VIDEO(CellConfig.VideoConfig.class, new CellConfig.VideoConfig(null, null)),
     CALLOUT(CellConfig.CalloutConfig.class, new CellConfig.CalloutConfig(null, null)),
     QUOTE(CellConfig.QuoteConfig.class, new CellConfig.QuoteConfig(null, null)),
@@ -48,7 +50,8 @@ public enum CellContentType {
     POLL_EMBED(CellConfig.PollEmbedConfig.class, new CellConfig.PollEmbedConfig(null, null, null)),
     QUIZ_TEASER(CellConfig.QuizTeaserConfig.class, new CellConfig.QuizTeaserConfig(null, null, null, null)),
     APPLICATION_CTA(CellConfig.ApplicationCtaConfig.class, new CellConfig.ApplicationCtaConfig(null, null, null, null)),
-    CODE_BLOCK(CellConfig.CodeBlockConfig.class, new CellConfig.CodeBlockConfig(null));
+    CODE_BLOCK(CellConfig.CodeBlockConfig.class, new CellConfig.CodeBlockConfig(null)),
+    NESTED_ROWS(CellConfig.NestedRowsConfig.class, new CellConfig.NestedRowsConfig(null));
 
     private final Class<? extends CellConfig> configClass;
     private final CellConfig emptyConfig;

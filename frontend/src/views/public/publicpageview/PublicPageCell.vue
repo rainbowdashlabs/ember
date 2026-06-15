@@ -4,16 +4,24 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {computed} from 'vue'
 import type {PageCell, ImageConfig, LayoutKindName} from '@/api/pageManage'
 import {CellContentType, isLayoutKind} from '@/api/pageManage'
 import {publicPageImageUrl} from '@/api/publicPages'
 import CellLayoutRender from '@/views/stationview/pages/pageeditorview/CellLayoutRender.vue'
 
-defineProps<{
+const props = defineProps<{
     cell: PageCell
     stationUid: string
     pageTitle: string
 }>()
+
+interface NestedRow { cells: PageCell[] }
+const nestedRows = computed<NestedRow[]>(() => {
+    if (props.cell.contentType !== CellContentType.NESTED_ROWS) return []
+    const raw = (props.cell.config as {rows?: NestedRow[]})?.rows
+    return Array.isArray(raw) ? raw : []
+})
 
 function isYouTube(url: string): boolean {
     return /youtube\.com|youtu\.be/.test(url)
@@ -106,4 +114,20 @@ function imageMaxHeight(cell: PageCell): string | undefined {
         :config="cell.config as Record<string, unknown>"
         :station-uid="stationUid"
     />
+
+    <!-- Nested rows: recursively render each nested row as its own row of public cells. -->
+    <div v-else-if="cell.contentType === CellContentType.NESTED_ROWS" class="space-y-3">
+        <div
+            v-for="(row, ri) in nestedRows" :key="ri"
+            class="flex flex-wrap gap-2"
+        >
+            <div
+                v-for="(child, ci) in (row.cells ?? [])" :key="ci"
+                :style="{flex: `0 0 calc(${child.widthPercent}% - 0.5rem)`}"
+                class="min-w-0"
+            >
+                <PublicPageCell :cell="child as PageCell" :station-uid="stationUid" :page-title="pageTitle"/>
+            </div>
+        </div>
+    </div>
 </template>

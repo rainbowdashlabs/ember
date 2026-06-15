@@ -8,6 +8,10 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
+import LinkSearchInput from '@/components/input/text/LinkSearchInput.vue'
+import MarkdownFieldInput from '@/components/input/text/MarkdownFieldInput.vue'
+import DateInput from '@/components/input/datetime/DateInput.vue'
+import TimeInput from '@/components/input/datetime/TimeInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
@@ -107,16 +111,16 @@ const ACHIEVEMENT_FIELDS: ItemFieldDef[] = [
                 </div>
             </div>
             <FieldLabel hint class="mb-1">{{ TS('calloutBody') }}</FieldLabel>
-            <TextAreaInput :model-value="content" rows="4" @update:model-value="emit('update:content', $event ?? '')"/>
+            <MarkdownFieldInput :model-value="content" @update:model-value="emit('update:content', $event ?? '')"/>
         </template>
 
         <!-- QUOTE -->
         <template v-else-if="kind === 'QUOTE'">
             <FieldLabel hint class="mb-1">{{ TS('quoteText') }}</FieldLabel>
-            <TextAreaInput :model-value="content" rows="4" @update:model-value="emit('update:content', $event ?? '')"/>
+            <MarkdownFieldInput :model-value="content" @update:model-value="emit('update:content', $event ?? '')"/>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><FieldLabel hint class="mb-1">{{ TS('quoteAuthor') }}</FieldLabel><TextInput :model-value="(cfg.author as string) ?? ''" @update:model-value="patch({author: $event})"/></div>
-                <div><FieldLabel hint class="mb-1">{{ TS('quoteAttribution') }}</FieldLabel><TextInput :model-value="(cfg.attributionUrl as string) ?? ''" placeholder="https://…" @update:model-value="patch({attributionUrl: $event})"/></div>
+                <div><FieldLabel hint class="mb-1">{{ TS('quoteAttribution') }}</FieldLabel><LinkSearchInput :model-value="(cfg.attributionUrl as string) ?? ''" :station-uid="stationUid" @update:model-value="patch({attributionUrl: $event})"/></div>
             </div>
         </template>
 
@@ -138,13 +142,13 @@ const ACHIEVEMENT_FIELDS: ItemFieldDef[] = [
             <TextInput :model-value="(cfg.title as string) ?? ''" @update:model-value="patch({title: $event})"/>
             <label class="flex items-center gap-2 text-xs"><ToggleInput :model-value="!!cfg.openByDefault" @update:model-value="patch({openByDefault: $event})"/>{{ TS('accordionOpenByDefault') }}</label>
             <FieldLabel hint class="mb-1">{{ TS('accordionBody') }}</FieldLabel>
-            <TextAreaInput :model-value="content" rows="6" @update:model-value="emit('update:content', $event ?? '')"/>
+            <MarkdownFieldInput :model-value="content" @update:model-value="emit('update:content', $event ?? '')"/>
         </template>
 
         <!-- PDF -->
         <template v-else-if="kind === 'PDF'">
             <FieldLabel hint class="mb-1">{{ TS('pdfUrl') }}</FieldLabel>
-            <TextInput :model-value="(cfg.url as string) ?? ''" placeholder="https://…/datei.pdf" @update:model-value="patch({url: $event})"/>
+            <LinkSearchInput :model-value="(cfg.url as string) ?? ''" :station-uid="stationUid" @update:model-value="patch({url: $event})"/>
             <FieldLabel hint class="mb-1">{{ TS('pdfHeight') }}</FieldLabel>
             <NumberInput :model-value="(cfg.heightPx as number) ?? 600" @update:model-value="patch({heightPx: $event || null})"/>
         </template>
@@ -152,7 +156,7 @@ const ACHIEVEMENT_FIELDS: ItemFieldDef[] = [
         <!-- FILE_DOWNLOAD -->
         <template v-else-if="kind === 'FILE_DOWNLOAD'">
             <FieldLabel hint class="mb-1">{{ TS('fileUrl') }}</FieldLabel>
-            <TextInput :model-value="(cfg.url as string) ?? ''" placeholder="https://…" @update:model-value="patch({url: $event})"/>
+            <LinkSearchInput :model-value="(cfg.url as string) ?? ''" :station-uid="stationUid" @update:model-value="patch({url: $event})"/>
             <FieldLabel hint class="mb-1">{{ TS('fileLabel') }}</FieldLabel>
             <TextInput :model-value="(cfg.label as string) ?? ''" @update:model-value="patch({label: $event})"/>
             <FieldLabel hint class="mb-1">{{ TS('fileDescription') }}</FieldLabel>
@@ -178,10 +182,10 @@ const ACHIEVEMENT_FIELDS: ItemFieldDef[] = [
                 <div><FieldLabel hint class="mb-1">{{ TS('eventLocation') }}</FieldLabel><TextInput :model-value="(cfg.location as string) ?? ''" @update:model-value="patch({location: $event})"/></div>
             </div>
             <FieldLabel hint class="mb-1">{{ TS('eventDescription') }}</FieldLabel>
-            <TextAreaInput :model-value="(cfg.description as string) ?? ''" rows="3" @update:model-value="patch({description: $event ?? ''})"/>
+            <MarkdownFieldInput :model-value="(cfg.description as string) ?? ''" @update:model-value="patch({description: $event ?? ''})"/>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><FieldLabel hint class="mb-1">{{ TS('ctaText') }}</FieldLabel><TextInput :model-value="(cfg.ctaText as string) ?? ''" @update:model-value="patch({ctaText: $event})"/></div>
-                <div><FieldLabel hint class="mb-1">{{ TS('ctaUrl') }}</FieldLabel><TextInput :model-value="(cfg.ctaUrl as string) ?? ''" @update:model-value="patch({ctaUrl: $event})"/></div>
+                <div><FieldLabel hint class="mb-1">{{ TS('ctaUrl') }}</FieldLabel><LinkSearchInput :model-value="(cfg.ctaUrl as string) ?? ''" :station-uid="stationUid" @update:model-value="patch({ctaUrl: $event})"/></div>
             </div>
         </template>
 
@@ -283,10 +287,10 @@ const ACHIEVEMENT_FIELDS: ItemFieldDef[] = [
             <TextInput :model-value="(cfg.title as string) ?? ''" @update:model-value="patch({title: $event})"/>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><FieldLabel hint class="mb-1">{{ TS('newsDate') }}</FieldLabel><TextInput :model-value="(cfg.date as string) ?? ''" @update:model-value="patch({date: $event})"/></div>
-                <div><FieldLabel hint class="mb-1">{{ TS('linkUrl') }}</FieldLabel><TextInput :model-value="(cfg.url as string) ?? ''" @update:model-value="patch({url: $event})"/></div>
+                <div><FieldLabel hint class="mb-1">{{ TS('linkUrl') }}</FieldLabel><LinkSearchInput :model-value="(cfg.url as string) ?? ''" :station-uid="stationUid" @update:model-value="patch({url: $event})"/></div>
             </div>
             <FieldLabel hint class="mb-1">{{ TS('newsSummary') }}</FieldLabel>
-            <TextAreaInput :model-value="(cfg.summary as string) ?? ''" rows="3" @update:model-value="patch({summary: $event ?? ''})"/>
+            <MarkdownFieldInput :model-value="(cfg.summary as string) ?? ''" @update:model-value="patch({summary: $event ?? ''})"/>
             <FieldLabel hint class="mb-1">{{ TS('imageUrl') }}</FieldLabel>
             <TextInput :model-value="(cfg.imageUrl as string) ?? ''" @update:model-value="patch({imageUrl: $event})"/>
         </template>
@@ -332,9 +336,9 @@ const ACHIEVEMENT_FIELDS: ItemFieldDef[] = [
                 <div><FieldLabel hint class="mb-1">{{ TS('partnerName') }}</FieldLabel><TextInput :model-value="(cfg.partnerName as string) ?? ''" @update:model-value="patch({partnerName: $event})"/></div>
             </div>
             <FieldLabel hint class="mb-1">{{ TS('linkUrl') }}</FieldLabel>
-            <TextInput :model-value="(cfg.url as string) ?? ''" @update:model-value="patch({url: $event})"/>
+            <LinkSearchInput :model-value="(cfg.url as string) ?? ''" :station-uid="stationUid" @update:model-value="patch({url: $event})"/>
             <FieldLabel hint class="mb-1">{{ TS('eventDescription') }}</FieldLabel>
-            <TextAreaInput :model-value="(cfg.description as string) ?? ''" rows="3" @update:model-value="patch({description: $event ?? ''})"/>
+            <MarkdownFieldInput :model-value="(cfg.description as string) ?? ''" @update:model-value="patch({description: $event ?? ''})"/>
         </template>
 
         <!-- MEMBER_SPOTLIGHT -->
@@ -346,7 +350,7 @@ const ACHIEVEMENT_FIELDS: ItemFieldDef[] = [
             <FieldLabel hint class="mb-1">{{ TS('imageUrl') }}</FieldLabel>
             <TextInput :model-value="(cfg.imageUrl as string) ?? ''" @update:model-value="patch({imageUrl: $event})"/>
             <FieldLabel hint class="mb-1">{{ TS('memberBlurb') }}</FieldLabel>
-            <TextAreaInput :model-value="(cfg.blurb as string) ?? ''" rows="3" @update:model-value="patch({blurb: $event ?? ''})"/>
+            <MarkdownFieldInput :model-value="(cfg.blurb as string) ?? ''" @update:model-value="patch({blurb: $event ?? ''})"/>
         </template>
 
         <!-- HERO_BANNER -->
@@ -364,7 +368,7 @@ const ACHIEVEMENT_FIELDS: ItemFieldDef[] = [
             <TextInput :model-value="(cfg.subtitle as string) ?? ''" @update:model-value="patch({subtitle: $event})"/>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><FieldLabel hint class="mb-1">{{ TS('ctaText') }}</FieldLabel><TextInput :model-value="(cfg.ctaText as string) ?? ''" @update:model-value="patch({ctaText: $event})"/></div>
-                <div><FieldLabel hint class="mb-1">{{ TS('ctaUrl') }}</FieldLabel><TextInput :model-value="(cfg.ctaUrl as string) ?? ''" @update:model-value="patch({ctaUrl: $event})"/></div>
+                <div><FieldLabel hint class="mb-1">{{ TS('ctaUrl') }}</FieldLabel><LinkSearchInput :model-value="(cfg.ctaUrl as string) ?? ''" :station-uid="stationUid" @update:model-value="patch({ctaUrl: $event})"/></div>
             </div>
         </template>
 
@@ -383,17 +387,17 @@ const ACHIEVEMENT_FIELDS: ItemFieldDef[] = [
                 @update:image-id="patch({imageId: $event})"
             />
             <FieldLabel hint class="mb-1">{{ TS('eventDescription') }}</FieldLabel>
-            <TextAreaInput :model-value="(cfg.summary as string) ?? ''" rows="4" @update:model-value="patch({summary: $event ?? ''})"/>
+            <MarkdownFieldInput :model-value="(cfg.summary as string) ?? ''" @update:model-value="patch({summary: $event ?? ''})"/>
         </template>
 
         <!-- EXTERNAL_LINK_CARD -->
         <template v-else-if="kind === 'EXTERNAL_LINK_CARD'">
             <FieldLabel hint class="mb-1">{{ TS('linkUrl') }}</FieldLabel>
-            <TextInput :model-value="(cfg.url as string) ?? ''" @update:model-value="patch({url: $event})"/>
+            <LinkSearchInput :model-value="(cfg.url as string) ?? ''" :station-uid="stationUid" @update:model-value="patch({url: $event})"/>
             <FieldLabel hint class="mb-1">{{ TS('linkTitle') }}</FieldLabel>
             <TextInput :model-value="(cfg.title as string) ?? ''" @update:model-value="patch({title: $event})"/>
             <FieldLabel hint class="mb-1">{{ TS('linkDescription') }}</FieldLabel>
-            <TextAreaInput :model-value="(cfg.description as string) ?? ''" rows="2" @update:model-value="patch({description: $event ?? ''})"/>
+            <MarkdownFieldInput :model-value="(cfg.description as string) ?? ''" @update:model-value="patch({description: $event ?? ''})"/>
             <FieldLabel hint class="mb-1">{{ TS('imageUrl') }}</FieldLabel>
             <TextInput :model-value="(cfg.imageUrl as string) ?? ''" @update:model-value="patch({imageUrl: $event})"/>
         </template>
@@ -403,7 +407,7 @@ const ACHIEVEMENT_FIELDS: ItemFieldDef[] = [
             <FieldLabel hint class="mb-1">{{ TS('newsletterTitle') }}</FieldLabel>
             <TextInput :model-value="(cfg.title as string) ?? ''" @update:model-value="patch({title: $event})"/>
             <FieldLabel hint class="mb-1">{{ TS('newsletterDescription') }}</FieldLabel>
-            <TextAreaInput :model-value="(cfg.description as string) ?? ''" rows="2" @update:model-value="patch({description: $event ?? ''})"/>
+            <MarkdownFieldInput :model-value="(cfg.description as string) ?? ''" @update:model-value="patch({description: $event ?? ''})"/>
             <FieldLabel hint class="mb-1">{{ TS('feedUrl') }}</FieldLabel>
             <TextInput :model-value="(cfg.feedUrl as string) ?? ''" @update:model-value="patch({feedUrl: $event})"/>
         </template>
@@ -411,7 +415,7 @@ const ACHIEVEMENT_FIELDS: ItemFieldDef[] = [
         <!-- AUDIO_EMBED -->
         <template v-else-if="kind === 'AUDIO_EMBED'">
             <FieldLabel hint class="mb-1">{{ TS('audioUrl') }}</FieldLabel>
-            <TextInput :model-value="(cfg.url as string) ?? ''" @update:model-value="patch({url: $event})"/>
+            <LinkSearchInput :model-value="(cfg.url as string) ?? ''" :station-uid="stationUid" @update:model-value="patch({url: $event})"/>
             <FieldLabel hint class="mb-1">{{ TS('audioTitle') }}</FieldLabel>
             <TextInput :model-value="(cfg.title as string) ?? ''" @update:model-value="patch({title: $event})"/>
         </template>
@@ -421,9 +425,9 @@ const ACHIEVEMENT_FIELDS: ItemFieldDef[] = [
             <FieldLabel hint class="mb-1">{{ TS('pollTitle') }}</FieldLabel>
             <TextInput :model-value="(cfg.title as string) ?? ''" @update:model-value="patch({title: $event})"/>
             <FieldLabel hint class="mb-1">{{ TS('linkUrl') }}</FieldLabel>
-            <TextInput :model-value="(cfg.url as string) ?? ''" @update:model-value="patch({url: $event})"/>
+            <LinkSearchInput :model-value="(cfg.url as string) ?? ''" :station-uid="stationUid" @update:model-value="patch({url: $event})"/>
             <FieldLabel hint class="mb-1">{{ TS('pollDescription') }}</FieldLabel>
-            <TextAreaInput :model-value="(cfg.description as string) ?? ''" rows="2" @update:model-value="patch({description: $event ?? ''})"/>
+            <MarkdownFieldInput :model-value="(cfg.description as string) ?? ''" @update:model-value="patch({description: $event ?? ''})"/>
         </template>
 
         <!-- QUIZ_TEASER -->
@@ -431,10 +435,10 @@ const ACHIEVEMENT_FIELDS: ItemFieldDef[] = [
             <FieldLabel hint class="mb-1">{{ TS('quizTitle') }}</FieldLabel>
             <TextInput :model-value="(cfg.title as string) ?? ''" @update:model-value="patch({title: $event})"/>
             <FieldLabel hint class="mb-1">{{ TS('quizDescription') }}</FieldLabel>
-            <TextAreaInput :model-value="(cfg.description as string) ?? ''" rows="2" @update:model-value="patch({description: $event ?? ''})"/>
+            <MarkdownFieldInput :model-value="(cfg.description as string) ?? ''" @update:model-value="patch({description: $event ?? ''})"/>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><FieldLabel hint class="mb-1">{{ TS('ctaText') }}</FieldLabel><TextInput :model-value="(cfg.ctaText as string) ?? ''" @update:model-value="patch({ctaText: $event})"/></div>
-                <div><FieldLabel hint class="mb-1">{{ TS('linkUrl') }}</FieldLabel><TextInput :model-value="(cfg.url as string) ?? ''" @update:model-value="patch({url: $event})"/></div>
+                <div><FieldLabel hint class="mb-1">{{ TS('linkUrl') }}</FieldLabel><LinkSearchInput :model-value="(cfg.url as string) ?? ''" :station-uid="stationUid" @update:model-value="patch({url: $event})"/></div>
             </div>
         </template>
 
@@ -443,10 +447,10 @@ const ACHIEVEMENT_FIELDS: ItemFieldDef[] = [
             <FieldLabel hint class="mb-1">{{ TS('headline') }}</FieldLabel>
             <TextInput :model-value="(cfg.headline as string) ?? ''" @update:model-value="patch({headline: $event})"/>
             <FieldLabel hint class="mb-1">{{ TS('body') }}</FieldLabel>
-            <TextAreaInput :model-value="(cfg.body as string) ?? ''" rows="3" @update:model-value="patch({body: $event ?? ''})"/>
+            <MarkdownFieldInput :model-value="(cfg.body as string) ?? ''" @update:model-value="patch({body: $event ?? ''})"/>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><FieldLabel hint class="mb-1">{{ TS('ctaText') }}</FieldLabel><TextInput :model-value="(cfg.ctaText as string) ?? ''" @update:model-value="patch({ctaText: $event})"/></div>
-                <div><FieldLabel hint class="mb-1">{{ TS('ctaUrl') }}</FieldLabel><TextInput :model-value="(cfg.ctaUrl as string) ?? ''" @update:model-value="patch({ctaUrl: $event})"/></div>
+                <div><FieldLabel hint class="mb-1">{{ TS('ctaUrl') }}</FieldLabel><LinkSearchInput :model-value="(cfg.ctaUrl as string) ?? ''" :station-uid="stationUid" @update:model-value="patch({ctaUrl: $event})"/></div>
             </div>
         </template>
 

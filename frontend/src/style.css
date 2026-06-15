@@ -409,6 +409,22 @@ a:not(:has(button)):hover {
     text-decoration: underline;
 }
 
+/* Compact variant: tighter spacing for inline previews (e.g. MarkdownFieldInput).
+   The first child never carries a top margin so the preview hugs its container. */
+.markdown-content--compact > :first-child {
+    margin-top: 0;
+}
+.markdown-content--compact h1,
+.markdown-content--compact h2,
+.markdown-content--compact h3 {
+    margin-top: 0.75rem;
+    margin-bottom: 0.25rem;
+}
+.markdown-content--compact p {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
 /* Search snippet highlight */
 .search-snippet mark {
     background-color: #fef08a;

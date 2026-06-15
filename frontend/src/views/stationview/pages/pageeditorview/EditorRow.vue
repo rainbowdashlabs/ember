@@ -6,10 +6,10 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EditorCell from './EditorCell.vue'
 import ColumnResizeHandle from './ColumnResizeHandle.vue'
+import RowActionsMenu from './RowActionsMenu.vue'
 import type {CellEditData} from './EditorCell.vue'
 import {CellContentType} from '@/api/pageManage'
 import {usePageClipboard} from '@/composables/usePageClipboard'
@@ -20,14 +20,17 @@ export interface RowEditData {
     cells: CellEditData[]
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
     row: RowEditData
     pageId: number
     stationUid: string
     preview: boolean
     isFirst: boolean
     isLast: boolean
-}>()
+    depth?: number
+}>(), {
+    depth: 0,
+})
 
 const emit = defineEmits<{
     'update:row': [row: RowEditData]
@@ -50,12 +53,15 @@ function updateCell(index: number, cell: CellEditData) {
 }
 
 function deleteCell(index: number) {
-    // Single-column row → fall back to deleting the whole row.
+    const current = props.row.cells[index]
+    // Single-column row → reset the cell to EMPTY instead of dropping the row.
+    // The row is preserved so the user can keep using its column layout.
     if (props.row.cells.length <= 1) {
-        emit('delete')
+        const cells = [...props.row.cells]
+        cells[index] = {...current, contentType: CellContentType.EMPTY, content: '', config: {}}
+        updateCells(cells)
         return
     }
-    const current = props.row.cells[index]
     // Multi-column row, cell already empty → drop the column and redistribute widths.
     if (current.contentType === CellContentType.EMPTY) {
         const remaining = props.row.cells.filter((_, i) => i !== index)
@@ -80,24 +86,27 @@ function deleteCell(index: number) {
     updateCells(cells)
 }
 
-function splitColumns(count: number) {
+function cumulativeWidth(index: number): number {
+    let sum = 0
+    for (let i = 0; i < index; i++) sum += props.row.cells[i].widthPercent
+    return sum
+}
+
+function insertColumn(index: number) {
+    if (props.row.cells.length >= 4) return
+    const count = props.row.cells.length + 1
     const widthPercent = 100 / count
-    const cells: CellEditData[] = []
-    for (let i = 0; i < count; i++) {
-        if (i < props.row.cells.length) {
-            cells.push({...props.row.cells[i], widthPercent, sortOrder: i})
-        } else {
-            cells.push({
-                id: 0,
-                sortOrder: i,
-                widthPercent,
-                contentType: CellContentType.EMPTY,
-                content: '',
-                config: {},
-            })
-        }
+    const newCell: CellEditData = {
+        id: 0,
+        sortOrder: index,
+        widthPercent,
+        contentType: CellContentType.EMPTY,
+        content: '',
+        config: {},
     }
-    updateCells(cells)
+    const next = [...props.row.cells]
+    next.splice(index, 0, newCell)
+    updateCells(next.map((c, i) => ({...c, widthPercent, sortOrder: i})))
 }
 
 function onResize(cellIndex: number, leftDelta: number) {
@@ -171,6 +180,7 @@ function onPasteCell() {
                 :page-id="pageId"
                 :station-uid="stationUid"
                 :preview="true"
+                :depth="depth"
                 @update:cell="updateCell(ci, $event)"
                 @delete="deleteCell(ci)"
             />
@@ -178,66 +188,21 @@ function onPasteCell() {
     </div>
 
     <!-- Edit mode -->
-    <NeutralContainer v-else class="space-y-2">
-        <!-- Row toolbar -->
-        <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-1">
-                <!-- Column split buttons -->
-                <IconButton
-                    v-for="n in 4" :key="n"
-                    :icon="['fas', 'square']"
-                    :label="t(`stationPages.editor.${['oneColumn','twoColumns','threeColumns','fourColumns'][n-1]}`)"
-                    @click="splitColumns(n)"
-                >
-                    <span class="inline-flex gap-0.5 h-4 w-5">
-                        <span v-for="i in n" :key="i"
-                              class="flex-1 min-w-0.5 self-stretch rounded-sm"
-                              :class="row.cells.length === n ? 'bg-primary' : 'bg-[var(--text-muted)]'"
-                        />
-                    </span>
-                </IconButton>
-            </div>
-
-            <div class="flex items-center gap-1">
-                <IconButton
-                    :icon="['fas', 'angle-up']"
-                    :label="t('common.moveUp')"
-                    class="text-[var(--text-muted)] hover:text-[var(--text)]"
-                    :class="{'opacity-30 pointer-events-none': isFirst}"
-                    @click="$emit('move-up')"
-                />
-                <IconButton
-                    :icon="['fas', 'angle-down']"
-                    :label="t('common.moveDown')"
-                    class="text-[var(--text-muted)] hover:text-[var(--text)]"
-                    :class="{'opacity-30 pointer-events-none': isLast}"
-                    @click="$emit('move-down')"
-                />
-                <IconButton
-                    :icon="['fas', 'copy']"
-                    :label="t('stationPages.editor.copyRow')"
-                    class="text-[var(--text-muted)] hover:text-[var(--text)]"
-                    @click="onCopy"
-                />
-                <IconButton
-                    :icon="['fas', 'scissors']"
-                    :label="t('stationPages.editor.cutRow')"
-                    class="text-[var(--text-muted)] hover:text-[var(--text)]"
-                    @click="onCut"
-                />
-                <IconButton
-                    v-if="hasClipboard && clipboardType === 'cell'"
-                    :icon="['fas', 'paste']"
-                    :label="t('stationPages.editor.pasteCell')"
-                    class="text-primary hover:text-primary-accent"
-                    @click="onPasteCell"
-                />
-                <DeleteButton @click="$emit('delete')"/>
-            </div>
-        </div>
+    <NeutralContainer v-else class="group relative space-y-2">
+        <RowActionsMenu
+            :is-first="isFirst"
+            :is-last="isLast"
+            :can-paste-cell="hasClipboard && clipboardType === 'cell'"
+            @copy="onCopy"
+            @cut="onCut"
+            @delete="$emit('delete')"
+            @move-up="$emit('move-up')"
+            @move-down="$emit('move-down')"
+            @paste-cell="onPasteCell"
+        />
 
         <!-- Cells -->
-        <div class="editor-row-cells flex items-stretch gap-0">
+        <div class="editor-row-cells relative flex items-stretch gap-0">
             <template v-for="(cell, ci) in row.cells" :key="ci">
                 <div :style="{width: `${cell.widthPercent}%`}" class="min-w-0 flex flex-col">
                     <EditorCell
@@ -246,6 +211,7 @@ function onPasteCell() {
                         :station-uid="stationUid"
                         :preview="false"
                         :can-resize="row.cells.length > 1"
+                        :depth="depth"
                         @update:cell="updateCell(ci, $event)"
                         @update:width="setCellWidth(ci, $event)"
                         @delete="deleteCell(ci)"
@@ -255,6 +221,7 @@ function onPasteCell() {
                     <ColumnResizeHandle
                         :left-percent="cell.widthPercent"
                         :right-percent="row.cells[ci + 1].widthPercent"
+                        :compact="depth >= 2"
                         @resize="onResize(ci, $event)"
                     />
                     <IconButton
@@ -264,6 +231,29 @@ function onPasteCell() {
                         @click="swapCells(ci)"
                     />
                 </div>
+            </template>
+            <!-- Always-visible floating + buttons overlapping column edges -->
+            <template v-if="row.cells.length < 4">
+                <IconButton
+                    :icon="['fas', 'plus']"
+                    :label="t('stationPages.editor.addColumn')"
+                    class="absolute -left-2 top-1/2 -translate-y-1/2 z-10 rounded-full bg-(--bg) border border-(--border) text-(--text-muted) hover:text-primary hover:border-primary !p-1 text-xs shadow-sm"
+                    @click="insertColumn(0)"
+                />
+                <IconButton
+                    v-for="ci in (row.cells.length - 1)" :key="`mid-${ci}`"
+                    :icon="['fas', 'plus']"
+                    :label="t('stationPages.editor.addColumn')"
+                    :style="{left: `${cumulativeWidth(ci)}%`}"
+                    class="absolute bottom-1 -translate-x-1/2 z-10 rounded-full bg-(--bg) border border-(--border) text-(--text-muted) hover:text-primary hover:border-primary !p-0.5 text-xs shadow-sm"
+                    @click="insertColumn(ci)"
+                />
+                <IconButton
+                    :icon="['fas', 'plus']"
+                    :label="t('stationPages.editor.addColumn')"
+                    class="absolute -right-2 top-1/2 -translate-y-1/2 z-10 rounded-full bg-(--bg) border border-(--border) text-(--text-muted) hover:text-primary hover:border-primary !p-1 text-xs shadow-sm"
+                    @click="insertColumn(row.cells.length)"
+                />
             </template>
         </div>
     </NeutralContainer>

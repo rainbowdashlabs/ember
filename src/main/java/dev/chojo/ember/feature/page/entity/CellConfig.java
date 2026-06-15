@@ -45,7 +45,18 @@ public sealed interface CellConfig {
     record MarkdownConfig() implements CellConfig {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record ImageConfig(ImageFit imageFit, String altText, Integer maxHeight, String description)
+    record ImageConfig(
+            ImageFit imageFit,
+            String altText,
+            Integer maxHeight,
+            String description,
+            Double cropTop,
+            Double cropRight,
+            Double cropBottom,
+            Double cropLeft,
+            Integer borderRadiusPx,
+            Integer borderWidthPx,
+            String borderColor)
             implements CellConfig {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -205,6 +216,14 @@ public sealed interface CellConfig {
     /** Syntax-highlighted code block. Code lives in cell.content. */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record CodeBlockConfig(String language) implements CellConfig {}
+
+    /**
+     * Cell that contains nested rows. The rows are stored opaquely as JSON nodes so the existing
+     * PageRow shape (rows of cells of … nested rows) round-trips without a dedicated record type.
+     * The frontend treats this as a recursive RowEditData[].
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record NestedRowsConfig(tools.jackson.databind.JsonNode rows) implements CellConfig {}
 
     static CellConfig parse(CellContentType type, String json) {
         if (json == null || json.isBlank() || "{}".equals(json)) {

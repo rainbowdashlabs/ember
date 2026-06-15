@@ -42,6 +42,7 @@ export const CellContentType = {
     QUIZ_TEASER: 'QUIZ_TEASER',
     APPLICATION_CTA: 'APPLICATION_CTA',
     CODE_BLOCK: 'CODE_BLOCK',
+    NESTED_ROWS: 'NESTED_ROWS',
 } as const
 export type CellContentTypeName = (typeof CellContentType)[keyof typeof CellContentType]
 
@@ -80,6 +81,13 @@ export interface ImageConfig {
     altText?: string | null
     maxHeight?: number | null
     description?: string | null
+    cropTop?: number | null
+    cropRight?: number | null
+    cropBottom?: number | null
+    cropLeft?: number | null
+    borderRadiusPx?: number | null
+    borderWidthPx?: number | null
+    borderColor?: string | null
 }
 
 export interface VideoConfig {
@@ -310,6 +318,11 @@ export interface ApplicationCtaConfig {
 
 export interface CodeBlockConfig {
     language?: string | null
+}
+
+/** Stored as the recursive RowEditData[] (forward declaration; defined where used). */
+export interface NestedRowsConfig {
+    rows?: unknown[] | null
 }
 
 export type CellConfig =
