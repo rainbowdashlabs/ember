@@ -39,7 +39,7 @@ import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsService;
-import dev.chojo.ember.feature.page.service.PageImageStorageService;
+import dev.chojo.ember.feature.page.service.PageFileStorageService;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
@@ -227,7 +227,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var boardSeeder = new DemoBoardSeeder(
                 boardRepo, boardTicketRepo, federatedBoardService, federationService, memberIdentityFactory);
         var procedureSeeder = new DemoProcedureSeeder(procedureRepo);
-        var pageSeeder = new DemoPageSeeder(new PageService(pageRepo, new PageImageStorageService()));
+        var pageSeeder = new DemoPageSeeder(new PageService(pageRepo, new PageFileStorageService(stationRepo)));
         var newsSeeder = new DemoNewsSeeder(newsService, stationMemberRepo);
         var lostAndFoundSeederLocal = new DemoLostAndFoundSeeder(lostAndFoundService);
 

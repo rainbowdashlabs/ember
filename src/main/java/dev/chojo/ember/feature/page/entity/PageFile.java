@@ -11,12 +11,22 @@ import java.time.Instant;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
-public record PageImage(int id, int pageId, String fileName, String mimeType, long fileSize, Instant uploadedAt) {
+public record PageFile(
+        int id,
+        int pageId,
+        int stationId,
+        String contentHash,
+        String fileName,
+        String mimeType,
+        long fileSize,
+        Instant uploadedAt) {
 
-    public static RowMapping<PageImage> map() {
-        return row -> new PageImage(
+    public static RowMapping<PageFile> map() {
+        return row -> new PageFile(
                 row.getInt("id"),
                 row.getInt("page_id"),
+                row.getInt("station_id"),
+                row.getString("content_hash"),
                 row.getString("file_name"),
                 row.getString("mime_type"),
                 row.getLong("file_size"),

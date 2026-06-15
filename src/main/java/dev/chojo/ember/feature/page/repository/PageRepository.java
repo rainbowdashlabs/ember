@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.page.repository;
 import dev.chojo.ember.feature.page.entity.CellConfig;
 import dev.chojo.ember.feature.page.entity.CellContentType;
 import dev.chojo.ember.feature.page.entity.PageCell;
-import dev.chojo.ember.feature.page.entity.PageImage;
+import dev.chojo.ember.feature.page.entity.PageFile;
 import dev.chojo.ember.feature.page.entity.PageRow;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import jakarta.inject.Singleton;
@@ -243,54 +243,55 @@ public class PageRepository {
 
     // --- Image operations ---
 
-    public PageImage createImage(int pageId, String fileName, String mimeType, long fileSize) {
+    public PageFile createImage(
+            int pageId, int stationId, String contentHash, String fileName, String mimeType, long fileSize) {
         return query("""
                 INSERT
                 INTO
-                    page_image(page_id, file_name, mime_type, file_size)
+                    page_image(page_id, station_id, content_hash, file_name, mime_type, file_size)
                 VALUES
-                    (:page_id, :file_name, :mime_type, :file_size)
-                RETURNING id, page_id, file_name, mime_type, file_size, uploaded_at;""")
+                    (:page_id, :station_id, :content_hash, :file_name, :mime_type, :file_size)
+                RETURNING *;""")
                 .single(call().bind("page_id", pageId)
+                        .bind("station_id", stationId)
+                        .bind("content_hash", contentHash)
                         .bind("file_name", fileName)
                         .bind("mime_type", mimeType)
                         .bind("file_size", fileSize))
-                .map(PageImage.map())
+                .map(PageFile.map())
                 .first()
                 .orElseThrow();
     }
 
-    public Optional<PageImage> findImage(int imageId) {
-        return query("""
-                SELECT
-                    id,
-                    page_id,
-                    file_name,
-                    mime_type,
-                    file_size,
-                    uploaded_at
-                FROM
-                    page_image
-                WHERE id = :id;""")
+    public Optional<PageFile> findImage(int imageId) {
+        return query("SELECT * FROM page_image WHERE id = :id;")
                 .single(call().bind("id", imageId))
-                .map(PageImage.map())
+                .map(PageFile.map())
                 .first();
     }
 
-    public List<PageImage> findImagesByPage(int pageId) {
+    public Optional<PageFile> findByStationAndHash(int stationId, String contentHash) {
         return query("""
-                SELECT
-                    id,
-                    page_id,
-                    file_name,
-                    mime_type,
-                    file_size,
-                    uploaded_at
-                FROM
-                    page_image
-                WHERE page_id = :page_id;""")
+                SELECT *
+                FROM page_image
+                WHERE station_id = :station_id AND content_hash = :content_hash
+                LIMIT 1;""")
+                .single(call().bind("station_id", stationId).bind("content_hash", contentHash))
+                .map(PageFile.map())
+                .first();
+    }
+
+    public List<PageFile> findImagesByPage(int pageId) {
+        return query("SELECT * FROM page_image WHERE page_id = :page_id;")
                 .single(call().bind("page_id", pageId))
-                .map(PageImage.map())
+                .map(PageFile.map())
+                .all();
+    }
+
+    public List<PageFile> findImagesByStation(int stationId) {
+        return query("SELECT * FROM page_image WHERE station_id = :station_id ORDER BY uploaded_at DESC;")
+                .single(call().bind("station_id", stationId))
+                .map(PageFile.map())
                 .all();
     }
 
@@ -314,6 +315,13 @@ public class PageRepository {
                     }
                 })
                 .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+    }
+
+    /** Union of {@link #findReferencedImageIds(int)} across all pages in the station. */
+    public Set<Integer> findReferencedImageIdsByStation(int stationId) {
+        return findByStation(stationId).stream()
+                .flatMap(p -> findReferencedImageIds(p.id()).stream())
                 .collect(Collectors.toSet());
     }
 

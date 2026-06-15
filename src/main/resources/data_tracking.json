@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:ef2c0da4addb8ffaa39d4d475ee10fe52b49577a83c45ff0ea75d2049ce4d727",
-  "generatedAt" : "2026-06-14T23:25:02Z",
+  "schemaHash" : "sha256:89417c8184cfabf91c76c254e466446f4feeef7a43cbb259b281d0f6366cc945",
+  "generatedAt" : "2026-06-15T10:38:23Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -8297,7 +8297,7 @@
     "page_image" : {
       "feature" : "page",
       "scope" : "STATION",
-      "tableHash" : "sha256:a63ca4dde5887252435587ecedcf8a75a9860cee273d600c09a585c7f42bfa82",
+      "tableHash" : "sha256:e4611ebbf802a7ff9fddef8057a12c9918779fc9825663a760c9573446e097dc",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -8306,8 +8306,9 @@
       }, {
         "name" : "page_id",
         "type" : "int4",
-        "nullable" : false,
-        "verified" : true
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The page that originally owned this image. Nullable so a row survives the deletion of its owning page when other pages in the same station reference the same image via dedup."
       }, {
         "name" : "file_name",
         "type" : "text",
@@ -8328,10 +8329,27 @@
         "type" : "timestamptz",
         "nullable" : false,
         "verified" : true
+      }, {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Owning station. Mirrors station_page.station_id; lets the storage layer build paths and enforce per-station dedup without joining."
+      }, {
+        "name" : "content_hash",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Lowercase hex SHA-256 of the file bytes. NULL for legacy rows. Combined with station_id forms the on-disk filename."
       } ],
       "foreignKeys" : [ {
         "column" : "page_id",
         "refTable" : "station_page",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "station_id",
+        "refTable" : "station",
         "refColumn" : "id",
         "onDelete" : "CASCADE"
       } ],

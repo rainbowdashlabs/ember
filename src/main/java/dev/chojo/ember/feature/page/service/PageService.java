@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.page.service;
 import dev.chojo.ember.feature.page.entity.CellConfig;
 import dev.chojo.ember.feature.page.entity.CellContentType;
 import dev.chojo.ember.feature.page.entity.PageCell;
-import dev.chojo.ember.feature.page.entity.PageImage;
+import dev.chojo.ember.feature.page.entity.PageFile;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.repository.PageRepository;
 import jakarta.inject.Inject;
@@ -39,12 +39,12 @@ public class PageService {
     private static final long MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
 
     private final PageRepository pageRepository;
-    private final PageImageStorageService imageStorage;
+    private final PageFileStorageService imageStorage;
     private final Parser markdownParser;
     private final HtmlRenderer htmlRenderer;
 
     @Inject
-    public PageService(PageRepository pageRepository, PageImageStorageService imageStorage) {
+    public PageService(PageRepository pageRepository, PageFileStorageService imageStorage) {
         this.pageRepository = pageRepository;
         this.imageStorage = imageStorage;
         List<Extension> extensions = List.of(
@@ -173,8 +173,15 @@ public class PageService {
     public boolean deletePage(int pageId) {
         var page = pageRepository.findById(pageId).orElse(null);
         if (page == null) return false;
-        imageStorage.deleteAllForPage(pageId);
-        return pageRepository.delete(pageId);
+        int stationId = page.stationId();
+        boolean deleted = pageRepository.delete(pageId);
+        if (deleted) {
+            // The page is gone; any image that was only referenced by it is now orphaned. With
+            // per-station dedup we have to compare against every other page in the station, not
+            // just this one.
+            cleanupOrphanedImagesForStation(stationId);
+        }
+        return deleted;
     }
 
     public StationPage duplicatePage(int pageId, int createdBy) {
@@ -236,26 +243,44 @@ public class PageService {
 
     // --- Images ---
 
-    public PageImage uploadImage(int pageId, String fileName, String mimeType, byte[] data) throws IOException {
+    public PageFile uploadImage(int pageId, String fileName, String mimeType, byte[] data) throws IOException {
         if (data.length > MAX_IMAGE_SIZE) {
             throw new IllegalArgumentException("Image exceeds maximum size of 5 MB");
         }
-        var image = pageRepository.createImage(pageId, fileName, mimeType, data.length);
-        imageStorage.store(pageId, image.id(), data, mimeType);
+        var page = pageRepository
+                .findById(pageId)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown page id: " + pageId));
+        int stationId = page.stationId();
+        String contentHash = PageFileStorageService.hash(data);
+        // Per-station dedup: if the same bytes were already uploaded for this station, reuse the
+        // existing row + on-disk file instead of creating a duplicate. Cells just reference the
+        // existing image id.
+        var existing = pageRepository.findByStationAndHash(stationId, contentHash);
+        if (existing.isPresent()) {
+            // Make sure the file is still on disk (defensive: a crashed migration could have left
+            // the row orphaned). store() is idempotent for identical bytes.
+            imageStorage.store(stationId, contentHash, data, mimeType);
+            return existing.get();
+        }
+        var image = pageRepository.createImage(pageId, stationId, contentHash, fileName, mimeType, data.length);
+        imageStorage.store(stationId, contentHash, data, mimeType);
         return image;
     }
 
     public boolean deleteImage(int imageId) {
         var image = pageRepository.findImage(imageId).orElse(null);
         if (image == null) return false;
-        imageStorage.delete(image.pageId(), image.id());
-        return pageRepository.deleteImage(imageId);
+        boolean deleted = pageRepository.deleteImage(imageId);
+        if (deleted && image.contentHash() != null) {
+            imageStorage.delete(image.stationId(), image.contentHash());
+        }
+        return deleted;
     }
 
-    public Optional<PageImageStorageService.FileData> readImage(int imageId) {
+    public Optional<PageFileStorageService.FileData> readImage(int imageId) {
         var image = pageRepository.findImage(imageId).orElse(null);
-        if (image == null) return Optional.empty();
-        return imageStorage.read(image.pageId(), image.id());
+        if (image == null || image.contentHash() == null) return Optional.empty();
+        return imageStorage.read(image.stationId(), image.contentHash());
     }
 
     public boolean hasPublishedPages(int stationId) {
@@ -303,11 +328,18 @@ public class PageService {
     // --- Internal helpers ---
 
     private void cleanupOrphanedImages(int pageId) {
-        Set<Integer> referenced = pageRepository.findReferencedImageIds(pageId);
-        var allImages = pageRepository.findImagesByPage(pageId);
-        for (var image : allImages) {
+        var page = pageRepository.findById(pageId).orElse(null);
+        if (page == null) return;
+        cleanupOrphanedImagesForStation(page.stationId());
+    }
+
+    private void cleanupOrphanedImagesForStation(int stationId) {
+        Set<Integer> referenced = pageRepository.findReferencedImageIdsByStation(stationId);
+        for (var image : pageRepository.findImagesByStation(stationId)) {
             if (!referenced.contains(image.id())) {
-                imageStorage.delete(pageId, image.id());
+                if (image.contentHash() != null) {
+                    imageStorage.delete(image.stationId(), image.contentHash());
+                }
                 pageRepository.deleteImage(image.id());
             }
         }

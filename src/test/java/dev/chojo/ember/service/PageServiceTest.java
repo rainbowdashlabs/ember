@@ -9,7 +9,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.page.entity.CellConfig;
 import dev.chojo.ember.feature.page.entity.CellContentType;
-import dev.chojo.ember.feature.page.service.PageImageStorageService;
+import dev.chojo.ember.feature.page.service.PageFileStorageService;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -36,7 +36,7 @@ class PageServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new PageService(pageRepo, new PageImageStorageService());
+        service = new PageService(pageRepo, new PageFileStorageService(stationRepo));
         station = stationRepo.create("PageServiceStation");
         account = accountRepo.create("page-svc@test.com", "Page", "Author");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -106,8 +106,17 @@ class PageServiceTest extends RepositoryTestBase {
                                 CellContentType.IMAGE,
                                 "999",
                                 new CellConfig.ImageConfig(
-                                        CellConfig.ImageFit.COVER, "alt", null, null, null, null, null, null, null,
-                                        null, null)))));
+                                        CellConfig.ImageFit.COVER,
+                                        "alt",
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        null)))));
         assertTrue(service.savePage(pageId, "Welcome", "welcome-page", null, "Test desc", null, rows));
 
         var page = service.getPage(pageId).orElseThrow();

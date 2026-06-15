@@ -159,7 +159,7 @@ class PageRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(13)
     void createImage() {
-        var image = pageRepo.createImage(pageId, "test.png", "image/png", 1024);
+        var image = pageRepo.createImage(pageId, station.id(), "abc123", "test.png", "image/png", 1024);
         assertNotNull(image);
         assertEquals("test.png", image.fileName());
         assertEquals(1024, image.fileSize());
