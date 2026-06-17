@@ -35,4 +35,24 @@ public enum FormQuestionType {
     public Class<? extends FormQuestionConfig> questionClass() {
         return questionClass;
     }
+
+    /**
+     * Whether this question type may be used on a form with the given purpose.
+     *
+     * <p>The whitelist (see concept §4.1):
+     * <ul>
+     *   <li>{@link FormPurpose#INTERNAL} — all types.</li>
+     *   <li>{@link FormPurpose#CONTACT} — {@link #TEXT}, {@link #CHOICE}, {@link #DATE} only.</li>
+     *   <li>{@link FormPurpose#POLL} — all types.</li>
+     * </ul>
+     *
+     * @param purpose the form's purpose
+     * @return {@code true} if this type is allowed
+     */
+    public boolean allowedFor(FormPurpose purpose) {
+        return switch (purpose) {
+            case INTERNAL, POLL -> true;
+            case CONTACT -> this == TEXT || this == CHOICE || this == DATE;
+        };
+    }
 }

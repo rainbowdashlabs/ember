@@ -12,6 +12,7 @@ import dev.chojo.ember.event.events.FormPublished;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
+import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
@@ -36,6 +37,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -119,6 +121,17 @@ public class FormService {
     }
 
     /**
+     * Retrieves all forms for a station with the given purpose.
+     *
+     * @param stationId the station ID
+     * @param purpose   the purpose to filter by
+     * @return list of forms ordered by creation date descending
+     */
+    public List<Form> findByStationAndPurpose(int stationId, FormPurpose purpose) {
+        return repository.findByStationAndPurpose(stationId, purpose);
+    }
+
+    /**
      * Retrieves forms for a station that the given member is allowed to see.
      *
      * @param stationId the station ID
@@ -137,6 +150,16 @@ public class FormService {
      */
     public Optional<Form> findById(int id) {
         return repository.findById(id);
+    }
+
+    /**
+     * Finds a form by its public UUID.
+     *
+     * @param publicUid the public UUID
+     * @return the form, or empty if not found
+     */
+    public Optional<Form> findByPublicUid(UUID publicUid) {
+        return repository.findByPublicUid(publicUid);
     }
 
     public List<RequirementsService.RequirementItem> findForcedPending(int stationId, int memberId) {
@@ -166,8 +189,10 @@ public class FormService {
             boolean allowEdit,
             Instant startAt,
             Instant endAt,
-            int createdBy) {
-        return repository.create(stationId, title, description, shuffleQuestions, allowEdit, startAt, endAt, createdBy);
+            int createdBy,
+            FormPurpose purpose) {
+        return repository.create(
+                stationId, title, description, shuffleQuestions, allowEdit, startAt, endAt, createdBy, purpose);
     }
 
     /**
@@ -334,6 +359,19 @@ public class FormService {
         return repository.findResponse(formId, memberId);
     }
 
+    /** Looks up a single response by its primary key (any form / any submitter). */
+    public Optional<FormResponse> findResponseById(int responseId) {
+        return repository.findResponseById(responseId);
+    }
+
+    /**
+     * Marks a CONTACT-form submission as acknowledged by the supplied member. Idempotent — the
+     * first call wins so a later viewer does not overwrite the original handler.
+     */
+    public void acknowledgeResponse(int responseId, int acknowledgerMemberId) {
+        repository.acknowledgeResponse(responseId, acknowledgerMemberId);
+    }
+
     /**
      * Counts the total number of responses for a form.
      *
@@ -367,6 +405,44 @@ public class FormService {
      */
     public FormResponse submitResponse(
             int formId, int memberId, int submittedBy, Map<Integer, FormAnswerValue> answers) {
+        validateAnswers(formId, answers);
+        var response = repository.createResponse(formId, memberId, submittedBy);
+        for (var entry : answers.entrySet()) {
+            repository.upsertAnswer(response.id(), entry.getKey(), entry.getValue());
+        }
+        return response;
+    }
+
+    /**
+     * Stores an anonymous public form submission identified only by its submitter hash.
+     * For POLL forms this also enforces single-submission dedup; CONTACT allows repeats.
+     *
+     * @param formId        the form ID
+     * @param submitterHash SHA-256 hash identifying the submitter
+     * @param answers       map of question ID to answer value
+     * @return the created response
+     * @throws IllegalArgumentException if any answer fails validation
+     * @throws IllegalStateException    if the visitor already submitted a POLL response
+     */
+    public FormResponse submitAnonymousResponse(
+            int formId, byte[] submitterHash, Map<Integer, FormAnswerValue> answers) {
+        validateAnswers(formId, answers);
+        var response = repository.createAnonymousResponse(formId, submitterHash);
+        for (var entry : answers.entrySet()) {
+            repository.upsertAnswer(response.id(), entry.getKey(), entry.getValue());
+        }
+        return response;
+    }
+
+    /**
+     * Returns {@code true} when the given hash already produced a response for this form.
+     * Used by the public submit endpoint to enforce poll dedup.
+     */
+    public boolean hasAnonymousResponded(int formId, byte[] submitterHash) {
+        return repository.findAnonymousResponse(formId, submitterHash).isPresent();
+    }
+
+    private void validateAnswers(int formId, Map<Integer, FormAnswerValue> answers) {
         var questions = repository.findQuestions(formId);
         var questionMap = questions.stream().collect(Collectors.toMap(FormQuestion::id, q -> q));
 
@@ -395,12 +471,6 @@ public class FormService {
         if (!errors.isEmpty()) {
             throw new IllegalArgumentException(String.join("; ", errors));
         }
-
-        var response = repository.createResponse(formId, memberId, submittedBy);
-        for (var entry : answers.entrySet()) {
-            repository.upsertAnswer(response.id(), entry.getKey(), entry.getValue());
-        }
-        return response;
     }
 
     // -- Answers --

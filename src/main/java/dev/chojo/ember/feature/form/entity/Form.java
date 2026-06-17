@@ -6,9 +6,11 @@
 package dev.chojo.ember.feature.form.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
@@ -28,7 +30,9 @@ public record Form(
         Instant createdAt,
         Instant updatedAt,
         RestrictionMode restrictionMode,
-        boolean restricted) {
+        boolean restricted,
+        FormPurpose purpose,
+        UUID publicUid) {
 
     public boolean isAcceptingResponses() {
         if (status != FormStatus.OPEN) return false;
@@ -54,7 +58,9 @@ public record Form(
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.get("updated_at", INSTANT_TIMESTAMP),
                 RestrictionMode.valueOf(row.getString("restriction_mode")),
-                row.getBoolean("restricted"));
+                row.getBoolean("restricted"),
+                FormPurpose.valueOf(row.getString("purpose")),
+                row.get("public_uid", StandardValueConverter.UUID_STRING));
     }
 
     public enum FormStatus {

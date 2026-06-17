@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.form.repository;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
+import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
@@ -18,10 +19,12 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
+import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING;
 
 /**
  * Repository for form-related database operations including forms, questions, responses, answers, and access restrictions.
@@ -30,9 +33,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class FormRepository {
 
     private static final String FORM_COLUMNS =
-            "f.id, f.station_id, f.title, f.description, f.status, f.shuffle_questions, f.allow_edit, f.forced, f.start_at, f.end_at, f.closed_at, f.created_by, f.created_at, f.updated_at, f.restriction_mode, EXISTS(SELECT 1 FROM form_restriction r WHERE r.form_id = f.id) AS restricted";
+            "f.id, f.station_id, f.title, f.description, f.status, f.shuffle_questions, f.allow_edit, f.forced, f.start_at, f.end_at, f.closed_at, f.created_by, f.created_at, f.updated_at, f.restriction_mode, EXISTS(SELECT 1 FROM form_restriction r WHERE r.form_id = f.id) AS restricted, f.purpose, f.public_uid";
     private static final String FORM_COLUMNS_BARE =
-            "id, station_id, title, description, status, shuffle_questions, allow_edit, forced, start_at, end_at, closed_at, created_by, created_at, updated_at, restriction_mode, EXISTS(SELECT 1 FROM form_restriction r WHERE r.form_id = id) AS restricted";
+            "id, station_id, title, description, status, shuffle_questions, allow_edit, forced, start_at, end_at, closed_at, created_by, created_at, updated_at, restriction_mode, EXISTS(SELECT 1 FROM form_restriction r WHERE r.form_id = id) AS restricted, purpose, public_uid";
 
     // -- Forms --
 
@@ -43,11 +46,55 @@ public class FormRepository {
      * @return list of forms belonging to the station
      */
     public List<Form> findByStation(int stationId) {
-        return query("SELECT " + FORM_COLUMNS
-                        + " FROM form f WHERE f.station_id = :station_id ORDER BY f.created_at DESC;")
+        return query("""
+                SELECT
+                    %s
+                FROM
+                    form f
+                WHERE f.station_id = :station_id
+                ORDER BY f.created_at DESC;""", FORM_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(Form.map())
                 .all();
+    }
+
+    /**
+     * Retrieves all forms for a station with the given purpose, ordered by creation date descending.
+     *
+     * @param stationId the station to query
+     * @param purpose   the purpose to filter by
+     * @return list of forms belonging to the station with the given purpose
+     */
+    public List<Form> findByStationAndPurpose(int stationId, FormPurpose purpose) {
+        return query("""
+                SELECT
+                    %s
+                FROM
+                    form f
+                WHERE f.station_id = :station_id
+                  AND f.purpose = :purpose
+                ORDER BY f.created_at DESC;""", FORM_COLUMNS)
+                .single(call().bind("station_id", stationId).bind("purpose", purpose))
+                .map(Form.map())
+                .all();
+    }
+
+    /**
+     * Finds a form by its public UUID.
+     *
+     * @param publicUid the public UUID
+     * @return the form, or empty if not found
+     */
+    public Optional<Form> findByPublicUid(UUID publicUid) {
+        return query("""
+                SELECT
+                    %s
+                FROM
+                    form f
+                WHERE f.public_uid = :public_uid::uuid;""", FORM_COLUMNS)
+                .single(call().bind("public_uid", publicUid, UUID_STRING))
+                .map(Form.map())
+                .first();
     }
 
     /**
@@ -113,10 +160,11 @@ public class FormRepository {
             boolean allowEdit,
             Instant startAt,
             Instant endAt,
-            int createdBy) {
+            int createdBy,
+            FormPurpose purpose) {
         return query("""
-                            INSERT INTO form(station_id, title, description, shuffle_questions, allow_edit, start_at, end_at, created_by)
-                            VALUES (:station_id, :title, :description, :shuffle_questions, :allow_edit, :start_at, :end_at, :created_by)
+                            INSERT INTO form(station_id, title, description, shuffle_questions, allow_edit, start_at, end_at, created_by, purpose)
+                            VALUES (:station_id, :title, :description, :shuffle_questions, :allow_edit, :start_at, :end_at, :created_by, :purpose)
                             RETURNING\s""" + FORM_COLUMNS_BARE + ";")
                 .single(call().bind("station_id", stationId)
                         .bind("title", title)
@@ -125,7 +173,8 @@ public class FormRepository {
                         .bind("allow_edit", allowEdit)
                         .bind("start_at", startAt, INSTANT_TIMESTAMP)
                         .bind("end_at", endAt, INSTANT_TIMESTAMP)
-                        .bind("created_by", createdBy))
+                        .bind("created_by", createdBy)
+                        .bind("purpose", purpose.name()))
                 .map(Form.map())
                 .first()
                 .orElseThrow();
@@ -345,6 +394,33 @@ public class FormRepository {
     }
 
     /**
+     * Looks up a single response by primary key. Used by the acknowledge endpoint when verifying
+     * a {@code responseId} actually belongs to the form being acknowledged.
+     */
+    public Optional<FormResponse> findResponseById(int responseId) {
+        return query("SELECT * FROM form_response WHERE id = :id;")
+                .single(call().bind("id", responseId))
+                .map(FormResponse.map())
+                .first();
+    }
+
+    /**
+     * Marks a CONTACT-form submission as acknowledged. Idempotent — the first acknowledgement
+     * wins (later calls leave {@code acknowledged_at} / {@code acknowledged_by} untouched), so a
+     * second viewer doesn't overwrite the original handler's identity.
+     */
+    public void acknowledgeResponse(int responseId, int acknowledgerMemberId) {
+        query("""
+                        UPDATE form_response
+                        SET acknowledged_at = now(),
+                            acknowledged_by = :member_id
+                        WHERE id = :id
+                          AND acknowledged_at IS NULL;""")
+                .single(call().bind("id", responseId).bind("member_id", acknowledgerMemberId))
+                .update();
+    }
+
+    /**
      * Creates or updates a response for a member. Uses upsert to handle re-submissions.
      *
      * @param formId      the form ID
@@ -371,6 +447,46 @@ public class FormRepository {
                 .map(FormResponse.map())
                 .first()
                 .orElseThrow();
+    }
+
+    /**
+     * Creates an anonymous response for a public form submission.
+     *
+     * @param formId        the form ID
+     * @param submitterHash SHA-256 hash identifying the submitter
+     * @return the newly created response
+     */
+    public FormResponse createAnonymousResponse(int formId, byte[] submitterHash) {
+        return query("""
+                INSERT INTO form_response(form_id, member_id, submitted_by, submitter_hash)
+                VALUES (:form_id, NULL, NULL, :submitter_hash)
+                RETURNING *;""")
+                .single(call().bind("form_id", formId).bind("submitter_hash", submitterHash))
+                .map(FormResponse.map())
+                .first()
+                .orElseThrow();
+    }
+
+    /**
+     * Finds the most recent anonymous response for a form by submitter hash.
+     *
+     * @param formId        the form ID
+     * @param submitterHash SHA-256 hash identifying the submitter
+     * @return the response, or empty if no such submission exists
+     */
+    public Optional<FormResponse> findAnonymousResponse(int formId, byte[] submitterHash) {
+        return query("""
+                SELECT
+                    *
+                FROM
+                    form_response
+                WHERE form_id = :form_id
+                  AND submitter_hash = :submitter_hash
+                ORDER BY submitted_at DESC
+                LIMIT 1;""")
+                .single(call().bind("form_id", formId).bind("submitter_hash", submitterHash))
+                .map(FormResponse.map())
+                .first();
     }
 
     /**

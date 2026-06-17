@@ -84,6 +84,7 @@ import dev.chojo.ember.feature.feed.route.FeedTokenRoutes;
 import dev.chojo.ember.feature.feed.route.UserFeedRoutes;
 import dev.chojo.ember.feature.feed.service.FeedMetricsService;
 import dev.chojo.ember.feature.form.route.FormRoutes;
+import dev.chojo.ember.feature.form.route.PublicFormRoutes;
 import dev.chojo.ember.feature.inventory.route.ExchangeRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryCheckRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryRoutes;
@@ -192,6 +193,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(UserTagRoutes.class);
         routesBinder.addBinding().to(NotificationRoutes.class);
         routesBinder.addBinding().to(FormRoutes.class);
+        routesBinder.addBinding().to(PublicFormRoutes.class);
         routesBinder.addBinding().to(ConsentRoutes.class);
         routesBinder.addBinding().to(LostAndFoundRoutes.class);
         routesBinder.addBinding().to(TransferRoutes.class);

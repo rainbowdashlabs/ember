@@ -21,8 +21,8 @@ import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import QuestionEditor from './builderview/QuestionEditor.vue'
 import type { QuestionDraft } from './builderview/types'
-import type { FormQuestionRequest, QuestionType, MemberGroup, StationMember, UserTag } from '@/api/types'
-import { QuestionTypes } from '@/api/types'
+import type { FormPurposeName, FormQuestionRequest, QuestionType, MemberGroup, StationMember, UserTag } from '@/api/types'
+import { FormPurpose, QuestionTypes, QUESTION_TYPES_BY_PURPOSE } from '@/api/types'
 import { forms, memberGroups, userTags, stationMembers } from '@/api'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 
@@ -34,6 +34,19 @@ const formId = computed(() => route.params.id ? Number(route.params.id) : null)
 
 const loading = ref(false)
 const error = ref('')
+
+/**
+ * The form's purpose. Loaded from the form when editing, derived from the
+ * `?purpose=…` query when creating, defaults to INTERNAL.
+ */
+const purpose = ref<FormPurposeName>(FormPurpose.INTERNAL)
+
+/** Route name to return to after save/cancel, derived from the current form's purpose. */
+const returnRouteName = computed(() => {
+  if (purpose.value === FormPurpose.CONTACT) return 'pages-forms'
+  if (purpose.value === FormPurpose.POLL) return 'pages-polls'
+  return 'forms-list'
+})
 
 // Form metadata
 const title = ref('')
@@ -57,7 +70,7 @@ const selectedMemberIds = ref<number[]>([])
 const questions = ref<QuestionDraft[]>([])
 let nextTempId = 1
 
-const questionTypes: QuestionType[] = [QuestionTypes.CHOICE, QuestionTypes.TEXT, QuestionTypes.RATING, QuestionTypes.DATE, QuestionTypes.RANKING, QuestionTypes.LIKERT]
+const questionTypes = computed<QuestionType[]>(() => QUESTION_TYPES_BY_PURPOSE[purpose.value])
 
 function addQuestion(type: QuestionType) {
   const defaultConfig = getDefaultConfig(type)
@@ -107,7 +120,14 @@ async function loadForm() {
     allTags.value = tags
     allMembers.value = members
 
-    if (!formId.value) { loading.value = false; return }
+    if (!formId.value) {
+      const queryPurpose = typeof route.query.purpose === 'string' ? route.query.purpose : null
+      if (queryPurpose && queryPurpose in FormPurpose) {
+        purpose.value = queryPurpose as FormPurposeName
+      }
+      loading.value = false
+      return
+    }
 
     const [form, qs, restrictions] = await Promise.all([
       forms.getForm(formId.value),
@@ -121,6 +141,7 @@ async function loadForm() {
     forced.value = form.forced ?? false
     startAt.value = form.startAt ? form.startAt.slice(0, 16) : ''
     endAt.value = form.endAt ? form.endAt.slice(0, 16) : ''
+    purpose.value = form.purpose
 
     selectedUserTypes.value = restrictions.userTypes ?? []
     selectedGroupIds.value = restrictions.groupIds ?? []
@@ -155,6 +176,7 @@ async function save() {
       forced: forced.value,
       startAt: startAt.value ? new Date(startAt.value).toISOString() : null,
       endAt: endAt.value ? new Date(endAt.value).toISOString() : null,
+      purpose: purpose.value,
     }
 
     if (id) {
@@ -181,7 +203,7 @@ async function save() {
       memberIds: selectedMemberIds.value,
     })
 
-    router.push({ name: 'forms-list' })
+    router.push({ name: returnRouteName.value })
   } catch (e) {
     error.value = t('common.error')
     throw e
@@ -267,7 +289,7 @@ onMounted(loadForm)
 
         <!-- Actions -->
         <div class="flex justify-end gap-3">
-          <SecondaryButton @click="router.push({ name: 'forms-list' })">{{ t('common.cancel') }}</SecondaryButton>
+          <SecondaryButton @click="router.push({ name: returnRouteName })">{{ t('common.cancel') }}</SecondaryButton>
           <SaveButton :action="save"/>
         </div>
       </template>
