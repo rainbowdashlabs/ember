@@ -1,5 +1,53 @@
 # Changelog
 
+## v26.9.0
+
+### New Features
+
+#### Public Form Submission
+
+- **Anonymous and authenticated public submissions** — every form now carries a `FormPurpose` (CONTACT / POLL / …) and can be exposed under `/public/station/{stationUid}/forms/{publicUid}` for visitors that may not have an account, or embedded inside a page via the new `PublicFormCell`.
+- **Submitter hashing** — a per-submission salted hash de-duplicates repeated submissions from the same IP without storing the IP itself, so contact forms can detect floods and polls can prevent double-voting while staying privacy-friendly.
+- **Public-form rate limiter** — a token-bucket gate on the public submission endpoint caps abuse from any single client and surfaces graceful errors instead of leaking server state.
+- **Form analytics assembler** — per-question aggregates power a poll-analytics view (`/station/pages/polls/{id}/analytics`) and the form contact-submissions view, with a dedicated help-center entry alongside.
+
+#### Per-Station Page File Browser
+
+- **Files, folders, and tags** — every station now has a dedicated `/station/pages/files` view with a folder hierarchy and tag metadata persisted in a new `PageFileMetaRepository`. The page editor's `PageFileBrowseModal` walks the same tree so existing uploads can be reused across pages instead of being re-uploaded.
+- **Help-center coverage** — a `PageFilesHelp` article and `/helpcenter/station/pages/files` route mirror the new view.
+
+#### Page Editor Cell Architecture
+
+- **Per-cell components with a uniform prop shape** — the monolithic dispatcher is replaced with renderers under `pageeditorview/cells/` and editors under `pageeditorview/editors/`, each taking `(config, content?, stationUid?, pageId?)`. The parent stays a thin `v-if`/switch and the public renderer reuses the same cell components.
+- **New cell types** — callout, quote, divider, spacer, accordion, PDF, file download, countdown, partner stations, stats counter, tabs, achievements, image gallery, KB article, news teaser, page link, map, address card, member spotlight, hero banner, external link card, blog signup, audio embed, poll embed, forms CTA, code block, and a nested-rows layout primitive that lets cells be split or wrapped in-place.
+- **Cut / copy / paste** — `usePageClipboard` powers cross-row clipboard ops; the cell context menu adds paste-over for non-empty cells, and the empty chooser surfaces a paste-here shortcut.
+- **Backend support** — a richer `CellConfig` type system and a `MemberListResolver` back the new member-list cell, with seeder updates for the demo data.
+
+#### Public Quiz Teaser Route
+
+- A new `/public/.../quiz` endpoint exposes a teaser projection of catalogs marked public, backed by `PublicQuizRoutes` and a small frontend client (`api/publicQuiz.ts`).
+
+#### Collapsible Desktop Sidebar
+
+- A desktop-only toggle animates the sidebar from full width to an icon-only rail. The header row (logo + station name) stays; only the top-level icons remain in the nav. The collapsed state persists across reloads via a new `useSidebarCollapse` composable. Mobile drawer behaviour is unchanged.
+
+#### Trusted-Proxy and Cloudflare-Aware Client IP
+
+- A new `Network` conf block adds `trustedProxies` (CIDR list) and a `cloudflare` flag. The `ClientIp` utility resolves the real visitor IP across four deployment shapes — direct, Traefik, Cloudflare, Cloudflare → Traefik — honouring `X-Forwarded-For`, `X-Real-IP`, and `CF-Connecting-IP` only when the immediate hop is trusted. `ConsentRoutes` now uses this instead of `ctx.ip()`.
+- **Build-time Cloudflare ranges** — a `fetchCloudflareRanges` Gradle task downloads `ips-v4` and `ips-v6` into `build/generated/resources/cloudflare-ranges.txt` (cached 7 days, falls back to the cached file when offline) so the snapshot is never a hard copy in the repo.
+- **Startup refresh** — `CloudflareRangesService` hot-swaps the in-memory list from the latest upstream snapshot on every boot, leaving the bundled snapshot in place when the upstream is unreachable.
+
+#### Shared Search Pickers
+
+- A family of `EntitySearchPicker`-based components (event, form, member, news, page, partner station, wiki) is now consumed by the new page editor cells and several existing views, alongside `UserTagBadge`, `EmptyHint`, and `Heading` typography primitives.
+
+### Changes
+
+- **Schema** — `patch_14` is extended with the tables and columns required for public forms, page files, and the page editor refactor; `data_tracking.json` is refreshed to mark every new column as verified.
+- **Inline `ref<>` types** — the project's `Inline object type in ref<>` lint warnings are eliminated across the station, board, inventory, news, members, manage, and quiz views by extracting each inline shape into a named interface.
+- **Test cleanup** — `RepositoryTestBase` wiring is tightened, per-test setup that moved to the base is deduplicated, and spotless formatting is applied across the affected test files.
+- **Asset trim** — unused demo avatar and logo PNGs are dropped from `src/main/resources/`; logo composition lives entirely in the frontend's `LayeredEmberLogo` component.
+
 ## v26.8.0
 
 ### New Features
