@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.maps.service;
 
+import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.maps.entity.MapTileProvider;
 import dev.chojo.ember.feature.maps.entity.MapsTilesConfig;
 import jakarta.inject.Inject;
@@ -19,6 +20,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
@@ -75,7 +77,7 @@ public class MapTileCacheService {
         Path tilePath = tilePath(tiles.provider(), z, x, y);
         if (Files.isRegularFile(tilePath)) {
             try {
-                Files.setLastModifiedTime(tilePath, java.nio.file.attribute.FileTime.from(Instant.now()));
+                Files.setLastModifiedTime(tilePath, FileTime.from(Instant.now()));
                 return new TileResponse(Files.readAllBytes(tilePath), "image/png", CacheStatus.HIT);
             } catch (IOException e) {
                 log.debug("Cached tile {}/{}/{} unreadable, refetching", z, x, y);
@@ -202,8 +204,7 @@ public class MapTileCacheService {
     }
 
     private static String userAgent() {
-        return "Ember/" + dev.chojo.ember.feature.federation.service.FederationService.FEDERATION_VERSION
-                + " (https://github.com/RainbowDashLabs/ember)";
+        return "Ember/" + FederationService.FEDERATION_VERSION + " (https://github.com/RainbowDashLabs/ember)";
     }
 
     /**

@@ -117,21 +117,25 @@ public class StorageQuotaPresetRepository {
     }
 
     /**
-     * Returns a map of station ID → preset name for all stations with an assigned preset.
+     * Returns a map of station ID → assigned preset (id + name) for all stations with an assigned preset.
      */
-    public Map<Integer, String> findStationPresetNames() {
-        var result = new HashMap<Integer, String>();
+    public Map<Integer, StationPresetAssignment> findStationPresetAssignments() {
+        var result = new HashMap<Integer, StationPresetAssignment>();
         query("""
-                SELECT s.id AS station_id, p.name AS preset_name
+                SELECT s.id AS station_id, p.id AS preset_id, p.name AS preset_name
                 FROM station s
                 JOIN storage_quota_preset p ON p.id = s.storage_preset_id;
                 """)
                 .single(call())
-                .map(row -> Map.entry(row.getInt("station_id"), row.getString("preset_name")))
+                .map(row -> Map.entry(
+                        row.getInt("station_id"),
+                        new StationPresetAssignment(row.getInt("preset_id"), row.getString("preset_name"))))
                 .all()
                 .forEach(e -> result.put(e.getKey(), e.getValue()));
         return result;
     }
+
+    public record StationPresetAssignment(int presetId, String presetName) {}
 
     /**
      * Resets a station's quota overrides to NULL (use instance defaults).

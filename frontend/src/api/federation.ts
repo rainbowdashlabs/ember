@@ -203,3 +203,21 @@ export async function getFederationInfo(): Promise<{ federationVersion: string; 
     const res = await client.get<{ federationVersion: string; supportedCapabilities: string[] }>('/federation/info')
     return res.data
 }
+
+// -- Page-editor PARTNER_STATIONS picker (concept §4.5). PAGE_EDIT-gated. --
+
+export interface StationPickerResult {
+    stationUid: string
+    name: string
+    city: string | null
+    country: string | null
+    logoUrl: string | null
+    selectable: boolean
+}
+
+export async function searchFederationStations(query?: string, limit = 20): Promise<StationPickerResult[]> {
+    const params: Record<string, string | number> = {limit}
+    if (query) params.q = query
+    const res = await client.get<StationPickerResult[]>('/federation/stations/search', {params})
+    return res.data
+}

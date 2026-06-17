@@ -547,3 +547,25 @@ export async function setFederationShare(eventId: number, scope: string, partner
 export async function removeFederationShare(eventId: number): Promise<void> {
     await client.delete(`/events/${eventId}/federation`)
 }
+
+// -- Page-editor picker (concept §4.5). PAGE_EDIT-gated. --
+
+export type EventPickerMode = 'FUTURE' | 'PAST' | 'ALL'
+
+export interface EventSearchResult {
+    eventUid: string
+    name: string
+    startTime: string | null
+    categoryName: string | null
+}
+
+export async function searchEvents(
+    query?: string,
+    mode: EventPickerMode = 'FUTURE',
+    limit = 10,
+): Promise<EventSearchResult[]> {
+    const params: Record<string, string | number> = {mode, limit}
+    if (query) params.q = query
+    const res = await client.get<EventSearchResult[]>('/events/search', {params})
+    return res.data
+}

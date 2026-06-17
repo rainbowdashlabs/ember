@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Service providing business logic for station events, including CRUD operations for events, breaks, categories,
@@ -71,6 +72,31 @@ public class EventService {
      */
     public List<StationEvent> findByStation(int stationId) {
         return eventRepository.findByStation(stationId);
+    }
+
+    /**
+     * Event picker for the {@code FEATURED_EVENT} / {@code UPCOMING_EVENTS} /
+     * {@code PAST_EVENT_RECAP} cells — see concept §4.5. Returns a compact picker shape filtered
+     * to public events (per-event {@code public = TRUE} or category-default).
+     */
+    public List<EventRepository.PickerEvent> searchEventPicker(
+            int stationId, String search, EventRepository.PickerMode mode, int limit) {
+        return eventRepository.searchForPicker(stationId, search, mode, limit);
+    }
+
+    /**
+     * Bulk-resolves the public UUIDs for a set of event ids — see
+     * {@link EventRepository#findPublicUidsByIds}.
+     */
+    public Map<Integer, UUID> findPublicUidsByIds(int stationId, Collection<Integer> ids) {
+        return eventRepository.findPublicUidsByIds(stationId, ids);
+    }
+
+    /**
+     * Resolves a single station event by its public UUID — used by cell renderers.
+     */
+    public Optional<StationEvent> findByPublicUid(int stationId, UUID publicUid) {
+        return eventRepository.findByPublicUid(stationId, publicUid);
     }
 
     /**

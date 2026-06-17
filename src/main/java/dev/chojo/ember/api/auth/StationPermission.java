@@ -333,9 +333,21 @@ public enum StationPermission implements RouteRole {
     PAGE_EDIT,
 
     /**
+     * Allows viewing the submissions of CONTACT forms embedded in pages (via the FORMS_CTA cell)
+     * and acknowledging them on behalf of the station.
+     */
+    PAGE_FORMS_VIEW,
+
+    /**
+     * Allows viewing the analytics + individual responses of POLL forms embedded in pages (via
+     * the POLL_EMBED cell).
+     */
+    PAGE_POLLS_VIEW,
+
+    /**
      * Allows publishing/unpublishing and deleting public pages, and setting the landing page.
      */
-    PAGE_MANAGER(PAGE_EDIT),
+    PAGE_MANAGER(PAGE_EDIT, PAGE_FORMS_VIEW, PAGE_POLLS_VIEW),
 
     /**
      * Allows reading procedures assigned to the member.

@@ -26,7 +26,7 @@ public class Storage {
     private String defaultImages = "1G";
 
     @Overwrite(env = @Env)
-    private String defaultPages = "500M";
+    private String defaultPages = "1G";
 
     @Overwrite(env = @Env)
     private String defaultPerFile = "50M";

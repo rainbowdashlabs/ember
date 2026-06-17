@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.StationLocationService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -355,7 +356,7 @@ public class LendingService {
             Double distance = null;
             var partnerStation = stationRepository.findById(entry.stationId()).orElse(null);
             if (partnerStation != null && partnerStation.latitude() != null && partnerStation.longitude() != null) {
-                distance = dev.chojo.ember.feature.station.service.StationLocationService.distanceKm(
+                distance = StationLocationService.distanceKm(
                         localLat,
                         localLon,
                         partnerStation.latitude().doubleValue(),

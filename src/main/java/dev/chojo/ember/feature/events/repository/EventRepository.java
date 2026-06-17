@@ -56,6 +56,96 @@ public class EventRepository {
     }
 
     /**
+     * Bulk-resolves the public UUIDs for a set of event ids belonging to a single station. Used by
+     * the public-events list endpoint to expose the {@code public_uid} column without bloating
+     * every {@code new StationEvent(...)} call site (concept §2.3).
+     */
+    public java.util.Map<Integer, java.util.UUID> findPublicUidsByIds(int stationId, Collection<Integer> ids) {
+        if (ids.isEmpty()) return java.util.Map.of();
+        var result = new java.util.HashMap<Integer, java.util.UUID>();
+        query("SELECT id, public_uid FROM station_event WHERE station_id = :station_id" + " AND id = ANY(:ids);")
+                .single(call().bind("station_id", stationId).bind("ids", ids, PostgreSqlTypes.INTEGER))
+                .map(row -> java.util.Map.entry(
+                        row.getInt("id"),
+                        row.get("public_uid", de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING)))
+                .all()
+                .forEach(e -> result.put(e.getKey(), e.getValue()));
+        return result;
+    }
+
+    /**
+     * Resolves a single station event by its public UUID. Used by the cell renderers to look up
+     * the event a FEATURED_EVENT / PAST_EVENT_RECAP cell references.
+     */
+    public Optional<StationEvent> findByPublicUid(int stationId, java.util.UUID publicUid) {
+        return query("SELECT " + EVENT_COLUMNS
+                        + " FROM station_event e WHERE e.station_id = :station_id"
+                        + " AND e.public_uid = :public_uid;")
+                .single(call().bind("station_id", stationId)
+                        .bind(
+                                "public_uid",
+                                publicUid,
+                                de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING))
+                .map(StationEvent.map())
+                .first();
+    }
+
+    /**
+     * Editor's event picker (concept §4.5). Returns a compact public shape — UUID, name, start
+     * time, category name — for the supplied station's events. {@code mode} filters by start time
+     * (FUTURE/PAST/ALL). {@code search} is a case-insensitive substring match on the event name.
+     * Only events that resolve as public are returned (per-event {@code public = TRUE} or
+     * inherited from a public category).
+     */
+    public List<PickerEvent> searchForPicker(int stationId, String search, PickerMode mode, int limit) {
+        boolean hasSearch = search != null && !search.isBlank();
+        String namePredicate = hasSearch ? " AND LOWER(e.name) LIKE :q" : "";
+        String timePredicate =
+                switch (mode) {
+                    case FUTURE -> " AND e.start_time > NOW()";
+                    case PAST -> " AND e.end_time < NOW()";
+                    case ALL -> "";
+                };
+        String order = mode == PickerMode.PAST ? "e.start_time DESC" : "e.start_time ASC";
+        String sql = "SELECT e.public_uid, e.name, e.start_time, c.name AS category_name"
+                + " FROM station_event e"
+                + " LEFT JOIN event_category c ON c.id = e.category_id"
+                + " WHERE e.station_id = :station_id"
+                + " AND (e.\"public\" = TRUE OR (e.\"public\" IS NULL AND c.public = TRUE))"
+                + namePredicate
+                + timePredicate
+                + " ORDER BY " + order
+                + " LIMIT :limit;";
+        var c = call().bind("station_id", stationId).bind("limit", limit);
+        if (hasSearch) {
+            c = c.bind("q", "%" + search.trim().toLowerCase() + "%");
+        }
+        return query(sql)
+                .single(c)
+                .map(row -> new PickerEvent(
+                        row.get("public_uid", de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING),
+                        row.getString("name"),
+                        row.get("start_time", INSTANT_TIMESTAMP),
+                        row.getString("category_name")))
+                .all();
+    }
+
+    /**
+     * Time-window filter for the event picker.
+     */
+    public enum PickerMode {
+        FUTURE,
+        PAST,
+        ALL
+    }
+
+    /**
+     * Lightweight picker result row. Exposes only the public UUID — never the internal id
+     * (concept §2.3).
+     */
+    public record PickerEvent(java.util.UUID eventUid, String name, Instant startTime, String categoryName) {}
+
+    /**
      * Retrieves events for a station that the given member is allowed to see.
      * Uses the DB restriction check function which resolves role inheritance, mode, and manager bypass.
      *

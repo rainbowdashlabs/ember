@@ -54,12 +54,33 @@ public final class LeakyBucket {
 
     /** Visible-for-testing constructor that lets tests drive time deterministically. */
     public LeakyBucket(int capacity, int refillPerMinute, Duration pruneAfter, Clock clock) {
+        this(capacity, refillIntervalFromPerMinute(refillPerMinute), pruneAfter, clock);
+    }
+
+    /**
+     * Constructor for rates that don't divide evenly into per-minute tokens — e.g. five
+     * tokens per hour. The refill interval is the wall-clock gap between two single-token
+     * top-ups; an interval of 12 minutes yields five tokens per hour.
+     *
+     * @param capacity       maximum tokens the bucket holds (also the burst size)
+     * @param refillInterval wall-clock gap between two single-token refills
+     * @param pruneAfter     buckets idle longer than this are dropped from the map
+     * @param clock          clock used for refill / prune timing (visible for tests)
+     */
+    public LeakyBucket(int capacity, Duration refillInterval, Duration pruneAfter, Clock clock) {
         if (capacity < 1) throw new IllegalArgumentException("capacity must be >= 1");
-        if (refillPerMinute < 1) throw new IllegalArgumentException("refillPerMinute must be >= 1");
+        if (refillInterval.isZero() || refillInterval.isNegative()) {
+            throw new IllegalArgumentException("refillInterval must be positive");
+        }
         this.capacity = capacity;
-        this.refillInterval = Duration.ofSeconds(60).dividedBy(refillPerMinute);
+        this.refillInterval = refillInterval;
         this.pruneAfter = pruneAfter;
         this.clock = clock;
+    }
+
+    private static Duration refillIntervalFromPerMinute(int refillPerMinute) {
+        if (refillPerMinute < 1) throw new IllegalArgumentException("refillPerMinute must be >= 1");
+        return Duration.ofSeconds(60).dividedBy(refillPerMinute);
     }
 
     /**

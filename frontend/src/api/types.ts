@@ -530,6 +530,39 @@ export const QuestionTypes = {
 } as const
 
 export type QuestionType = (typeof QuestionTypes)[keyof typeof QuestionTypes]
+
+export const FormPurpose = {
+    INTERNAL: 'INTERNAL',
+    CONTACT: 'CONTACT',
+    POLL: 'POLL',
+} as const
+
+export type FormPurposeName = (typeof FormPurpose)[keyof typeof FormPurpose]
+
+/**
+ * Whitelist of question types allowed per form purpose. Mirrors
+ * {@code FormQuestionType.allowedFor(FormPurpose)} on the backend; the
+ * editor hides non-whitelisted types in the question-type picker.
+ */
+export const QUESTION_TYPES_BY_PURPOSE: Record<FormPurposeName, QuestionType[]> = {
+    INTERNAL: [
+        QuestionTypes.CHOICE,
+        QuestionTypes.TEXT,
+        QuestionTypes.RATING,
+        QuestionTypes.DATE,
+        QuestionTypes.RANKING,
+        QuestionTypes.LIKERT,
+    ],
+    CONTACT: [QuestionTypes.TEXT, QuestionTypes.CHOICE, QuestionTypes.DATE],
+    POLL: [
+        QuestionTypes.CHOICE,
+        QuestionTypes.TEXT,
+        QuestionTypes.RATING,
+        QuestionTypes.DATE,
+        QuestionTypes.RANKING,
+        QuestionTypes.LIKERT,
+    ],
+}
 export type MultiLimitType = 'NONE' | 'EQUAL_TO' | 'AT_MOST' | 'AT_LEAST'
 export type RatingIcon = 'STAR' | 'NUMBER' | 'HEART' | 'THUMB_UP'
 
@@ -550,6 +583,8 @@ export interface Form {
     updatedAt: string
     restrictionMode?: string
     restricted?: boolean
+    purpose: FormPurposeName
+    publicUid: string
 }
 
 export interface FormListEntry {
@@ -580,12 +615,20 @@ export interface FormQuestion {
 export interface FormResponse {
     id: number
     formId: number
-    memberId: number
-    submittedBy: number
+    /** {@code null} for anonymous CONTACT / POLL submissions. */
+    memberId: number | null
+    /** {@code null} for anonymous CONTACT / POLL submissions. */
+    submittedBy: number | null
     submittedByName?: string | null
     submittedAt: string
     updatedAt: string
     memberIdentity?: MemberIdentity | null
+    /** Set when a manager has acknowledged a CONTACT submission. */
+    acknowledgedAt?: string | null
+    /** Set together with {@code acknowledgedAt} — kept around for backwards compat with code that asks for the id. */
+    acknowledgedBy?: number | null
+    /** Enriched identity of the acknowledger so the UI can render it via {@code MemberName}. */
+    acknowledgedByIdentity?: MemberIdentity | null
 }
 
 export interface FormAnswer {
@@ -602,6 +645,7 @@ export interface FormRequest {
     allowEdit?: boolean
     startAt?: string | null
     endAt?: string | null
+    purpose?: FormPurposeName
 }
 
 export interface FormQuestionRequest {
@@ -1300,6 +1344,8 @@ export interface NewsRequest {
 
 export interface PublicBlogEntry {
     id: number
+    /** Stable opaque public identifier — referenced by NEWS_TEASER cells (concept §2.3). */
+    publicUid: string
     title: string
     contentHtml: string
     authorName: string

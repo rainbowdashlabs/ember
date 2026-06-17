@@ -148,7 +148,11 @@ public class DiscoveryRoutes implements Routes {
                 s.publicCalendarEnabled(),
                 partnerUids.contains(s.uid()),
                 isOwnStation,
-                s.publicSlug());
+                s.publicSlug(),
+                s.city(),
+                s.country(),
+                s.latitude() != null ? s.latitude().doubleValue() : null,
+                s.longitude() != null ? s.longitude().doubleValue() : null);
     }
 
     public record DiscoveryEntry(
@@ -160,7 +164,11 @@ public class DiscoveryRoutes implements Routes {
             boolean hasPublicCalendar,
             boolean alreadyFederated,
             boolean isOwnStation,
-            String publicSlug) {}
+            String publicSlug,
+            String city,
+            String country,
+            Double latitude,
+            Double longitude) {}
 
     public record FederationRequestBody(UUID stationUid) {}
 

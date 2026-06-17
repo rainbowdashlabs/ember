@@ -19,6 +19,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * Represents a news article published within a station.
  *
  * @param id              unique identifier of the news entry
+ * @param publicUid       stable opaque public identifier (UUID) — survives station transfer and is what
+ *                        public page cells / external deep-links reference
  * @param stationId       the station this news belongs to
  * @param title           headline of the news article
  * @param contentMarkdown article body in Markdown format
@@ -29,6 +31,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  */
 public record News(
         int id,
+        UUID publicUid,
         int stationId,
         String title,
         String contentMarkdown,
@@ -52,6 +55,7 @@ public record News(
 
             return new News(
                     row.getInt("id"),
+                    row.get("public_uid", StandardValueConverter.UUID_STRING),
                     row.getInt("station_id"),
                     row.getString("title"),
                     row.getString("content_markdown"),

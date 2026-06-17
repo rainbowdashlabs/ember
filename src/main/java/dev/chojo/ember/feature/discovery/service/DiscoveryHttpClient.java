@@ -94,7 +94,7 @@ public class DiscoveryHttpClient {
             var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             return response.statusCode() >= 200 && response.statusCode() < 300;
         } catch (Exception e) {
-            log.debug("Discovery POST {} on {} failed: {}", path, baseUrl, e.getMessage());
+            log.debug("Discovery POST {} on {} failed: {}", path, baseUrl, e.getMessage(), e);
             return false;
         }
     }

@@ -15,6 +15,7 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -27,9 +28,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class NewsRepository {
 
     private static final String NEWS_COLUMNS =
-            "n.id, n.station_id, n.title, n.content_markdown, n.content_html, n.author_station_uid, n.author_member_uid, n.published_at, n.created_at, n.restriction_mode, EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = n.id) AS restricted, n.public_blog";
+            "n.id, n.public_uid, n.station_id, n.title, n.content_markdown, n.content_html, n.author_station_uid, n.author_member_uid, n.published_at, n.created_at, n.restriction_mode, EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = n.id) AS restricted, n.public_blog";
     private static final String NEWS_COLUMNS_BARE =
-            "id, station_id, title, content_markdown, content_html, author_station_uid, author_member_uid, published_at, created_at, restriction_mode, EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = id) AS restricted, public_blog";
+            "id, public_uid, station_id, title, content_markdown, content_html, author_station_uid, author_member_uid, published_at, created_at, restriction_mode, EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = id) AS restricted, public_blog";
 
     /**
      * Creates a new news article and returns the persisted entity.
@@ -162,16 +163,59 @@ public class NewsRepository {
     }
 
     public List<News> findPublicBlogEntries(int stationId, int offset, int limit) {
-        return query("SELECT " + NEWS_COLUMNS
-                        + " FROM news n WHERE n.station_id = :station_id"
-                        + " AND n.public_blog = TRUE AND n.published_at IS NOT NULL"
-                        + " AND NOT EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = n.id)"
-                        + " ORDER BY n.published_at DESC LIMIT :limit OFFSET :offset;")
+        return findPublicBlogEntries(stationId, null, offset, limit);
+    }
+
+    /**
+     * Lists published, unrestricted news for the public blog, optionally filtered by a
+     * case-insensitive substring match on title or markdown body. Used by the public news
+     * search endpoint that backs the page-editor {@code NEWS_TEASER} picker. A blank or
+     * {@code null} search term returns the most recent entries.
+     */
+    public List<News> findPublicBlogEntries(int stationId, String search, int offset, int limit) {
+        boolean hasSearch = search != null && !search.isBlank();
+        String filter = hasSearch ? " AND (LOWER(n.title) LIKE :q OR LOWER(n.content_markdown) LIKE :q)" : "";
+        var c = call().bind("station_id", stationId).bind("limit", limit).bind("offset", offset);
+        if (hasSearch) {
+            c = c.bind("q", "%" + search.trim().toLowerCase() + "%");
+        }
+        return query("""
+                SELECT
+                    %s
+                FROM
+                    news n
+                WHERE n.station_id = :station_id
+                  AND n.public_blog = TRUE
+                  AND n.published_at IS NOT NULL
+                  AND NOT EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = n.id)
+                    %s
+                ORDER BY n.published_at DESC
+                LIMIT :limit OFFSET :offset;""", NEWS_COLUMNS, filter).single(c).map(News.map()).all();
+    }
+
+    /**
+     * Resolves a published, unrestricted news entry by its public UUID. Returns empty if no row
+     * matches or the row is not eligible for public display.
+     */
+    public Optional<News> findPublicByUid(int stationId, UUID publicUid) {
+        return query("""
+                SELECT
+                    %s
+                FROM
+                    news n
+                WHERE n.station_id = :station_id
+                  AND n.public_uid = :public_uid
+                  AND n.public_blog = TRUE
+                  AND n.published_at IS NOT NULL
+                  AND NOT exists(
+                    SELECT 1
+                    FROM news_restriction r
+                    WHERE r.news_id = n.id
+                                );""", NEWS_COLUMNS)
                 .single(call().bind("station_id", stationId)
-                        .bind("limit", limit)
-                        .bind("offset", offset))
+                        .bind("public_uid", publicUid, StandardValueConverter.UUID_STRING))
                 .map(News.map())
-                .all();
+                .first();
     }
 
     public boolean hasPublicBlogEntries(int stationId) {

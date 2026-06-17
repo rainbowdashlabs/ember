@@ -74,4 +74,44 @@ public class DiscoveryStationCacheRepository {
                 .map(CachedDiscoveryStation.map())
                 .all();
     }
+
+    /**
+     * Editor's PARTNER_STATIONS picker (concept §3.9 / §4.5). Searches the discovery cache by
+     * the cached card's name, country, or city — all case-insensitive. Only stations on
+     * reachable, non-blocked peers are returned; the cache only contains public stations to
+     * begin with (the `/public/discovery/stations` source endpoint excludes private ones), so
+     * every result is selectable. Empty {@code search} returns the most recently fetched rows.
+     */
+    /** Look up cached station cards by their UUIDs (across all reachable peers). */
+    public List<CachedDiscoveryStation> findByStationUids(List<String> stationUids) {
+        if (stationUids == null || stationUids.isEmpty()) return List.of();
+        return query("""
+                                SELECT c.*
+                                FROM discovery_station_cache c
+                                JOIN discovery_peer p ON p.public_key = c.instance_public_key
+                                WHERE p.reachable = true AND p.blocked = false
+                                  AND c.station_uid = ANY(:uids);""")
+                .single(call().bind("uids", stationUids, PostgreSqlTypes.VARCHAR))
+                .map(CachedDiscoveryStation.map())
+                .all();
+    }
+
+    public List<CachedDiscoveryStation> searchForPicker(String search, int limit) {
+        boolean hasSearch = search != null && !search.isBlank();
+        String predicate = hasSearch
+                ? " AND (LOWER(c.payload->>'name') LIKE :q OR LOWER(COALESCE(c.payload->>'city', '')) LIKE :q"
+                        + " OR LOWER(COALESCE(c.payload->>'country', '')) LIKE :q)"
+                : "";
+        String sql = "SELECT c.*"
+                + " FROM discovery_station_cache c"
+                + " JOIN discovery_peer p ON p.public_key = c.instance_public_key"
+                + " WHERE p.reachable = true AND p.blocked = false"
+                + predicate
+                + " ORDER BY c.fetched_at DESC LIMIT :limit;";
+        var c = call().bind("limit", limit);
+        if (hasSearch) {
+            c = c.bind("q", "%" + search.trim().toLowerCase() + "%");
+        }
+        return query(sql).single(c).map(CachedDiscoveryStation.map()).all();
+    }
 }

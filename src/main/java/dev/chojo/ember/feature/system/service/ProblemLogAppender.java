@@ -10,6 +10,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.IThrowableProxy;
 import ch.qos.logback.classic.spi.StackTraceElementProxy;
 import ch.qos.logback.core.AppenderBase;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -151,11 +152,21 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
 
     /**
      * Represents an aggregated problem with occurrence count and optional distinct messages.
+     * Field visibility is set to ANY so Jackson serializes the private fields directly without
+     * needing JavaBean-style getters.
      */
+    @JsonAutoDetect(
+            fieldVisibility = JsonAutoDetect.Visibility.ANY,
+            getterVisibility = JsonAutoDetect.Visibility.NONE,
+            isGetterVisibility = JsonAutoDetect.Visibility.NONE)
     public static class ProblemEntry {
         private final long id;
         private final String level;
         private final String logger;
+        private final String stacktrace;
+        private final String exceptionClass;
+        private final String exceptionMessage;
+        private final Instant firstOccurrence;
         private final List<String> distinctMessages = Collections.synchronizedList(new ArrayList<>());
         private volatile Instant lastOccurrence;
         private volatile int count;
@@ -173,6 +184,10 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
             this.id = id;
             this.level = level;
             this.logger = logger;
+            this.stacktrace = stacktrace;
+            this.exceptionClass = exceptionClass;
+            this.exceptionMessage = exceptionMessage;
+            this.firstOccurrence = timestamp;
             this.lastOccurrence = timestamp;
             this.count = 1;
             this.distinctMessages.add(message);

@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import jakarta.inject.Singleton;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -253,8 +254,8 @@ public class StationRepository {
             String postalCode,
             String city,
             String country,
-            java.math.BigDecimal latitude,
-            java.math.BigDecimal longitude) {
+            BigDecimal latitude,
+            BigDecimal longitude) {
         return query("""
                                 UPDATE station
                                 SET address_line = :address_line,
@@ -280,8 +281,7 @@ public class StationRepository {
      * origin, sorted ascending. Honors the partial coordinate index via a bounding-box
      * pre-filter; calls {@code haversine_km} for the precise distance.
      */
-    public java.util.List<StationDistance> findStationsWithinRadius(
-            java.math.BigDecimal originLat, java.math.BigDecimal originLon, double radiusKm) {
+    public List<StationDistance> findStationsWithinRadius(BigDecimal originLat, BigDecimal originLon, double radiusKm) {
         return query("""
                                 WITH bbox AS (
                                     SELECT :lat::NUMERIC AS lat0,

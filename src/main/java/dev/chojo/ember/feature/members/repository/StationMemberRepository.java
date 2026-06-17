@@ -218,6 +218,166 @@ public class StationMemberRepository {
     }
 
     /**
+     * Page-editor picker: case-insensitive substring search on the resolved display name with a
+     * small cap. Empty {@code search} returns the most recently joined active members so the
+     * picker has something to show on first focus. Used by the §3.10 / §3.11 search pickers
+     * (concept §4.5). Returns active members only (former excluded).
+     */
+    public List<PickerMember> searchForPicker(int stationId, String search, int limit) {
+        boolean hasSearch = search != null && !search.isBlank();
+        String predicate = hasSearch ? " AND LOWER(COALESCE(a.full_name, sm.display_name, '')) LIKE :q" : "";
+        String order = hasSearch ? "display_name" : "sm.join_date DESC";
+        String sql = """
+                SELECT sm.uid AS member_uid,
+                       COALESCE(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
+                       sm.user_type,
+                       %s AS display_tag,
+                       %s AS display_tag_color,
+                       sm.join_date AS join_date
+                FROM station_member sm
+                LEFT JOIN account a ON sm.account_id = a.id
+                WHERE sm.station_id = :station_id AND sm.former = FALSE
+                %s
+                ORDER BY %s
+                LIMIT :limit;
+                """.formatted(PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY, predicate, order);
+        var c = call().bind("station_id", stationId).bind("limit", limit);
+        if (hasSearch) {
+            c = c.bind("q", "%" + search.trim().toLowerCase() + "%");
+        }
+        return query(sql).single(c).map(PickerMember.map()).all();
+    }
+
+    /**
+     * Single-lookup variant of {@link #searchForPicker} used to resolve a stored {@code memberUid}
+     * back to its picker shape. Scoped to the same station and active-only predicate so editors
+     * cannot accidentally reveal former-member rows by guessing a UUID.
+     */
+    public Optional<PickerMember> findPickerByUid(int stationId, UUID memberUid) {
+        String sql = """
+                SELECT sm.uid AS member_uid,
+                       COALESCE(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
+                       sm.user_type,
+                       %s AS display_tag,
+                       %s AS display_tag_color,
+                       sm.join_date AS join_date
+                FROM station_member sm
+                LEFT JOIN account a ON sm.account_id = a.id
+                WHERE sm.station_id = :station_id
+                  AND sm.uid = :uid::uuid
+                  AND sm.former = FALSE;
+                """.formatted(PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY);
+        return query(sql)
+                .single(call().bind("station_id", stationId).bind("uid", memberUid, StandardValueConverter.UUID_STRING))
+                .map(PickerMember.map())
+                .first();
+    }
+
+    /** Active members of the given group, ordered by the membership's stored sort order. */
+    public List<PickerMember> findOfficersByGroup(int stationId, int groupId) {
+        String sql = """
+                SELECT sm.uid AS member_uid,
+                       COALESCE(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
+                       sm.user_type,
+                       %s AS display_tag,
+                       %s AS display_tag_color,
+                       sm.join_date AS join_date
+                FROM station_member sm
+                LEFT JOIN account a ON sm.account_id = a.id
+                JOIN member_group_entry mge ON mge.member_id = sm.id
+                WHERE sm.station_id = :station_id
+                  AND sm.former = FALSE
+                  AND mge.group_id = :group_id
+                ORDER BY display_name;
+                """.formatted(PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY);
+        return query(sql)
+                .single(call().bind("station_id", stationId).bind("group_id", groupId))
+                .map(PickerMember.map())
+                .all();
+    }
+
+    /** Active members carrying the given tag, ordered alphabetically. */
+    public List<PickerMember> findOfficersByTag(int stationId, int tagId) {
+        String sql = """
+                SELECT sm.uid AS member_uid,
+                       COALESCE(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
+                       sm.user_type,
+                       %s AS display_tag,
+                       %s AS display_tag_color,
+                       sm.join_date AS join_date
+                FROM station_member sm
+                LEFT JOIN account a ON sm.account_id = a.id
+                JOIN user_tag_entry ute ON ute.member_id = sm.id
+                WHERE sm.station_id = :station_id
+                  AND sm.former = FALSE
+                  AND ute.tag_id = :tag_id
+                ORDER BY display_name;
+                """.formatted(PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY);
+        return query(sql)
+                .single(call().bind("station_id", stationId).bind("tag_id", tagId))
+                .map(PickerMember.map())
+                .all();
+    }
+
+    /** Active members for an explicit list of UUIDs (manual officers source). */
+    public List<PickerMember> findOfficersByUids(int stationId, List<UUID> memberUids) {
+        if (memberUids == null || memberUids.isEmpty()) return List.of();
+        String sql = """
+                SELECT sm.uid AS member_uid,
+                       COALESCE(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
+                       sm.user_type,
+                       %s AS display_tag,
+                       %s AS display_tag_color,
+                       sm.join_date AS join_date
+                FROM station_member sm
+                LEFT JOIN account a ON sm.account_id = a.id
+                WHERE sm.station_id = :station_id
+                  AND sm.former = FALSE
+                  AND sm.uid::text = ANY(:uids);
+                """.formatted(PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY);
+        var uidStrings = memberUids.stream().map(UUID::toString).toList();
+        return query(sql)
+                .single(call().bind("station_id", stationId)
+                        .bind("uids", uidStrings, de.chojo.sadu.postgresql.types.PostgreSqlTypes.VARCHAR))
+                .map(PickerMember.map())
+                .all();
+    }
+
+    private static final String PRIMARY_TAG_NAME_SUBQUERY =
+            "(SELECT ut.name FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id"
+                    + " WHERE ute.member_id = sm.id AND ut.visible = TRUE"
+                    + " ORDER BY ut.position DESC LIMIT 1)";
+
+    private static final String PRIMARY_TAG_COLOR_SUBQUERY =
+            "(SELECT ut.color FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id"
+                    + " WHERE ute.member_id = sm.id AND ut.visible = TRUE"
+                    + " ORDER BY ut.position DESC LIMIT 1)";
+
+    /**
+     * Lightweight result row for the editor's member-search picker. Exposes the member UUID —
+     * never the internal id — so cell configs survive station transfer. {@code displayTag}
+     * carries the member's highest-priority visible tag name (and color), or {@code null} when
+     * the member has no visible tag.
+     */
+    public record PickerMember(
+            UUID memberUid,
+            String displayName,
+            dev.chojo.ember.api.auth.StationUserType userType,
+            String displayTag,
+            String displayTagColor,
+            java.time.LocalDate joinDate) {
+        public static de.chojo.sadu.mapper.rowmapper.RowMapping<PickerMember> map() {
+            return row -> new PickerMember(
+                    row.get("member_uid", StandardValueConverter.UUID_STRING),
+                    row.getString("display_name"),
+                    row.getEnum("user_type", dev.chojo.ember.api.auth.StationUserType.class),
+                    row.getString("display_tag"),
+                    row.getString("display_tag_color"),
+                    row.getObject("join_date", java.time.LocalDate.class));
+        }
+    }
+
+    /**
      * Find former members of a station.
      */
     public List<StationMember> findFormerByStation(int stationId) {

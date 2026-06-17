@@ -113,7 +113,7 @@ public class StorageReconciliationService {
     private void reconcilePageImages(int stationId) {
         var result = query("""
                 SELECT COALESCE(SUM(file_size), 0) AS total_bytes, COUNT(*) AS file_count
-                FROM page_image
+                FROM page_file
                 WHERE station_id = :station_id;
                 """)
                 .single(call().bind("station_id", stationId))

@@ -459,7 +459,7 @@ public class DemoService {
                     executor));
 
             // Quiz
-            tasks.add(CompletableFuture.runAsync(
+            CompletableFuture<Void> quizFuture = CompletableFuture.runAsync(
                     () -> {
                         var quizTestTakers = new ArrayList<Integer>();
                         for (var m : members.anfaenger()) quizTestTakers.add(m.id());
@@ -467,7 +467,8 @@ public class DemoService {
                         quizSeeder.seedQuiz(station.id(), adminMember.id(), quizTestTakers);
                         log.info("Demo: Created Quiz entries");
                     },
-                    executor));
+                    executor);
+            tasks.add(quizFuture);
 
             // Knowledge Base
             tasks.add(CompletableFuture.runAsync(
@@ -477,8 +478,7 @@ public class DemoService {
                     },
                     executor));
 
-            // Public Pages
-            tasks.add(CompletableFuture.runAsync(
+            tasks.add(quizFuture.thenRunAsync(
                     () -> {
                         pageSeeder.seed(station.id(), adminMember.id());
                         log.info("Demo: Created Public Pages");

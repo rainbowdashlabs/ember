@@ -607,6 +607,32 @@ const router = createRouter({
                     component: () => import('@/views/stationview/pages/PagesListView.vue'),
                 },
                 {
+                    path: 'pages/files',
+                    name: 'pages-files',
+                    component: () => import('@/views/stationview/pages/PageFilesView.vue'),
+                },
+                {
+                    path: 'pages/forms',
+                    name: 'pages-forms',
+                    component: () => import('@/views/stationview/pages/PageFormsView.vue'),
+                },
+                {
+                    path: 'pages/forms/:id/submissions',
+                    name: 'pages-forms-submissions',
+                    component: () => import('@/views/stationview/forms/ContactSubmissionsView.vue'),
+                },
+                {
+                    path: 'pages/polls',
+                    name: 'pages-polls',
+                    component: () => import('@/views/stationview/pages/PagePollsView.vue'),
+                },
+                {
+                    path: 'pages/polls/forms/:id/analytics',
+                    name: 'pages-polls-analytics',
+                    component: () => import('@/views/stationview/forms/AnalyticsView.vue'),
+                    meta: {formAnalyticsBase: '/pages/polls/forms'},
+                },
+                {
                     path: 'pages/:id',
                     name: 'page-editor',
                     component: () => import('@/views/stationview/pages/PageEditorView.vue'),
@@ -1553,6 +1579,31 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/stationview/pages/PagesHelp.vue')
                 },
                 {
+                    path: 'pages/files',
+                    name: 'help-pages-files',
+                    component: () => import('@/views/helpcenter/stationview/pages/PageFilesHelp.vue')
+                },
+                {
+                    path: 'pages/forms',
+                    name: 'help-pages-forms',
+                    component: () => import('@/views/helpcenter/stationview/pages/PageFormsHelp.vue')
+                },
+                {
+                    path: 'pages/forms/:id/submissions',
+                    name: 'help-pages-forms-submissions',
+                    component: () => import('@/views/helpcenter/stationview/pages/PageFormsSubmissionsHelp.vue')
+                },
+                {
+                    path: 'pages/polls',
+                    name: 'help-pages-polls',
+                    component: () => import('@/views/helpcenter/stationview/pages/PagePollsHelp.vue')
+                },
+                {
+                    path: 'pages/polls/forms/:id/analytics',
+                    name: 'help-pages-polls-analytics',
+                    component: () => import('@/views/helpcenter/stationview/pages/PagePollsAnalyticsHelp.vue')
+                },
+                {
                     path: 'pages/:id',
                     name: 'help-page-editor',
                     component: () => import('@/views/helpcenter/stationview/pages/PageEditorHelp.vue')
@@ -1802,6 +1853,11 @@ const router = createRouter({
                     path: 'blog/:blogId',
                     name: 'public-blog-detail',
                     component: () => import('@/views/public/PublicBlogDetailView.vue'),
+                },
+                {
+                    path: 'forms/:publicUid',
+                    name: 'public-form-submit',
+                    component: () => import('@/views/public/PublicFormSubmitView.vue'),
                 },
             ],
         },

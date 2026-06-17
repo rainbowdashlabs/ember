@@ -57,6 +57,8 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -1054,13 +1056,13 @@ public class KnowledgeBaseRoutes implements Routes {
         }
 
         // Build parent lookup map for folder ancestry traversal.
-        var folderParent = new java.util.HashMap<Integer, Integer>();
+        var folderParent = new HashMap<Integer, Integer>();
         for (var folder : allFolders) {
             folderParent.put(folder.id(), folder.parentId());
         }
 
         var matchingFileIds = matchingFiles.stream().map(KbFile::id).toList();
-        var ancestorFolderIds = new java.util.HashSet<Integer>();
+        var ancestorFolderIds = new HashSet<Integer>();
         for (var file : matchingFiles) {
             Integer cur = file.folderId();
             while (cur != null && !ancestorFolderIds.contains(cur)) {
@@ -1069,7 +1071,7 @@ public class KnowledgeBaseRoutes implements Routes {
             }
         }
 
-        ctx.json(new TagScopeResponse(matchingFileIds, new java.util.ArrayList<>(ancestorFolderIds)));
+        ctx.json(new TagScopeResponse(matchingFileIds, new ArrayList<>(ancestorFolderIds)));
     }
 
     public record TagScopeResponse(List<Integer> matchingFileIds, List<Integer> ancestorFolderIds) {}

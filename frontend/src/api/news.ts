@@ -6,6 +6,22 @@
 import client from './client'
 import type { CommentRequest, NewsComment, NewsEntry, NewsRequest, PublicBlogEntry } from './types'
 
+// -- Page-editor picker (concept §4.2). PAGE_EDIT-gated. --
+
+export interface NewsSearchResult {
+    publicUid: string
+    title: string
+    summary: string
+    publishedAt: string | null
+}
+
+export async function searchNews(query?: string, limit = 5): Promise<NewsSearchResult[]> {
+    const params: Record<string, string | number> = {limit}
+    if (query) params.q = query
+    const res = await client.get<NewsSearchResult[]>('/news/search', {params})
+    return res.data
+}
+
 // -- Federation share management --
 
 export interface NewsFederationShareInfo {

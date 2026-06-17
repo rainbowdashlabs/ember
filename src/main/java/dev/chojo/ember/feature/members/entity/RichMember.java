@@ -14,6 +14,7 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -46,7 +47,7 @@ public record RichMember(
         String email,
         boolean former,
         StationUserType userType,
-        java.time.LocalDate joinDate,
+        LocalDate joinDate,
         List<String> roles,
         List<GroupEntry> groups,
         List<TagEntry> tags,

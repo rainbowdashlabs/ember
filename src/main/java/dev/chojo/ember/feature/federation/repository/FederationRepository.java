@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.federation.repository;
 
+import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ChangeType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
@@ -64,14 +65,14 @@ public class FederationRepository {
                         ORDER BY distance_km NULLS LAST, partner_name;""")
                 .single(call().bind("station_id", stationId))
                 .map(row -> new PublicPartnerSummary(
-                        row.get("partner_uid", de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING),
+                        row.get("partner_uid", StandardValueConverter.UUID_STRING),
                         row.getString("partner_name"),
                         row.getString("partner_slug"),
                         row.getObject("distance_km", Double.class)))
                 .all();
     }
 
-    public record PublicPartnerSummary(java.util.UUID uid, String name, String slug, Double distanceKm) {}
+    public record PublicPartnerSummary(UUID uid, String name, String slug, Double distanceKm) {}
 
     public Optional<FederationPartner> findPartnerById(int id) {
         return query("SELECT * FROM federation_partner WHERE id = :id;")

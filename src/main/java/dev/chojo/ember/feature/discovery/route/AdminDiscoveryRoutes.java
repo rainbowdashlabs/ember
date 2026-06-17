@@ -6,7 +6,9 @@
 package dev.chojo.ember.feature.discovery.route;
 
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.discovery.entity.BlocklistKind;
 import dev.chojo.ember.feature.discovery.entity.CachedDiscoveryStation;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryBlocklistEntry;
@@ -24,6 +26,7 @@ import dev.chojo.ember.feature.discovery.service.DiscoveryReputationService;
 import dev.chojo.ember.feature.discovery.service.DiscoverySettingsService;
 import dev.chojo.ember.feature.discovery.service.DiscoveryStationFetcher;
 import dev.chojo.ember.feature.discovery.service.FederationPartnerSeeder;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.NotFoundResponse;
@@ -31,8 +34,10 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 /**
@@ -55,6 +60,7 @@ public class AdminDiscoveryRoutes implements Routes {
     private final DiscoveryPingService pingService;
     private final DiscoveryStationFetcher stationFetcher;
     private final FederationPartnerSeeder federationPartnerSeeder;
+    private final FederationRepository federationRepository;
     private final DiscoveryHttpClient httpClient;
     private final DiscoveryKeyService keyService;
 
@@ -68,6 +74,7 @@ public class AdminDiscoveryRoutes implements Routes {
             DiscoveryPingService pingService,
             DiscoveryStationFetcher stationFetcher,
             FederationPartnerSeeder federationPartnerSeeder,
+            FederationRepository federationRepository,
             DiscoveryHttpClient httpClient,
             DiscoveryKeyService keyService) {
         this.peerRepository = peerRepository;
@@ -78,6 +85,7 @@ public class AdminDiscoveryRoutes implements Routes {
         this.pingService = pingService;
         this.stationFetcher = stationFetcher;
         this.federationPartnerSeeder = federationPartnerSeeder;
+        this.federationRepository = federationRepository;
         this.httpClient = httpClient;
         this.keyService = keyService;
     }
@@ -121,6 +129,11 @@ public class AdminDiscoveryRoutes implements Routes {
 
         // Authenticated user-facing endpoint for the /station/discovery page.
         routes.get(prefix + "/discovery/stations", this::listCachedStations);
+
+        // Editor-facing picker for the PARTNER_STATIONS cell (concept §4.5). Auth-gated by
+        // PAGE_EDIT so it never escapes the editor surface — public scrapers cannot use it to
+        // enumerate the federation network.
+        routes.get(prefix + "/federation/stations/search", this::searchStationPicker, StationPermission.PAGE_EDIT);
     }
 
     // -- Identity & settings --
@@ -308,6 +321,53 @@ public class AdminDiscoveryRoutes implements Routes {
         ctx.json(responses);
     }
 
+    private void searchStationPicker(Context ctx) {
+        var session = UserSession.from(ctx);
+        String q = ctx.queryParam("q");
+        int requested = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(20);
+        int limit = Math.clamp(requested, 1, 50);
+
+        LinkedHashMap<String, StationPickerResult> byUid = new LinkedHashMap<>();
+
+        for (var partner : federationRepository.findActivePartnerSummaries(session.stationId())) {
+            if (matchesQuery(partner.name(), q)) {
+                byUid.put(
+                        partner.uid().toString(),
+                        new StationPickerResult(partner.uid().toString(), partner.name(), null, null, null, true));
+            }
+        }
+
+        for (var c : cacheRepository.searchForPicker(q, limit)) {
+            var card = c.card();
+            byUid.putIfAbsent(
+                    card.stationUid(),
+                    new StationPickerResult(
+                            card.stationUid(), card.name(), card.city(), card.country(), card.logoUrl(), true));
+        }
+
+        List<StationPickerResult> results = new ArrayList<>(byUid.values());
+        if (results.size() > limit) {
+            results = results.subList(0, limit);
+        }
+        ctx.json(results);
+    }
+
+    private static boolean matchesQuery(String name, String query) {
+        if (query == null || query.isBlank()) return true;
+        if (name == null) return false;
+        return name.toLowerCase().contains(query.trim().toLowerCase());
+    }
+
+    /**
+     * Lightweight picker result row. {@code selectable} mirrors whether the cell should let
+     * the editor pick this station — the discovery cache only contains stations that already
+     * opted-in to public discovery, so this is always {@code true} today. The flag is part of
+     * the contract so the frontend stays stable when (and if) we later widen the picker to
+     * include federation partners that aren't discoverable.
+     */
+    public record StationPickerResult(
+            String stationUid, String name, String city, String country, String logoUrl, boolean selectable) {}
+
     private static PeerResponse toResponse(DiscoveryPeer p) {
         return new PeerResponse(
                 p.publicKey(),
@@ -369,8 +429,8 @@ public class AdminDiscoveryRoutes implements Routes {
             String memberCount,
             Instant publishedAt,
             String addressLine,
-            java.math.BigDecimal latitude,
-            java.math.BigDecimal longitude,
+            BigDecimal latitude,
+            BigDecimal longitude,
             String instancePublicKey,
             Instant fetchedAt) {}
 

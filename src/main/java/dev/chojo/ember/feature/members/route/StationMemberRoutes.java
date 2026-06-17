@@ -12,6 +12,8 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
+import dev.chojo.ember.feature.media.service.ImageCategory;
+import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.entity.MemberWithName;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.RichMember;
@@ -23,6 +25,7 @@ import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -38,11 +41,14 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Routes for station member management including listing, creating, deleting members,
@@ -58,6 +64,8 @@ public class StationMemberRoutes implements Routes {
     private final GdprDeletionService gdprDeletionService;
     private final MemberIdentityFactory memberIdentityFactory;
     private final RestrictionRepository restrictionRepository;
+    private final StationRepository stationRepository;
+    private final ImageService imageService;
 
     @Inject
     public StationMemberRoutes(
@@ -68,7 +76,9 @@ public class StationMemberRoutes implements Routes {
             ProfileFieldService profileFieldService,
             GdprDeletionService gdprDeletionService,
             MemberIdentityFactory memberIdentityFactory,
-            RestrictionRepository restrictionRepository) {
+            RestrictionRepository restrictionRepository,
+            StationRepository stationRepository,
+            ImageService imageService) {
         this.memberService = memberService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -77,12 +87,15 @@ public class StationMemberRoutes implements Routes {
         this.gdprDeletionService = gdprDeletionService;
         this.memberIdentityFactory = memberIdentityFactory;
         this.restrictionRepository = restrictionRepository;
+        this.stationRepository = stationRepository;
+        this.imageService = imageService;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/permissions", this::listAllPermissions, StationPermission.LOGIN);
         routes.get(prefix + "/station-members/completions", this::completions, StationPermission.LOGIN);
+        routes.get(prefix + "/members/search", this::searchPicker, StationPermission.PAGE_EDIT);
         routes.get(
                 prefix + "/station-members",
                 this::listByStation,
@@ -149,6 +162,83 @@ public class StationMemberRoutes implements Routes {
     private void listAllPermissions(Context ctx) {
         ctx.json(stationMemberRepository.findAllPermissions());
     }
+
+    @OpenApi(
+            path = "/api/v1/members/search",
+            methods = HttpMethod.GET,
+            summary = "Search active members of the caller's station for the page-editor pickers",
+            description = "Lightweight result shape (memberUid, displayName, userType, avatarUrl)"
+                    + " scoped to the caller's own station. Empty query returns the 20 most"
+                    + " recently joined active members.",
+            tags = {"Station Members"},
+            queryParams = {
+                @OpenApiParam(name = "q", type = String.class),
+                @OpenApiParam(name = "limit", type = Integer.class)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberSearchResult[].class)))
+    private void searchPicker(Context ctx) {
+        var session = UserSession.from(ctx);
+        String q = ctx.queryParam("q");
+        String uidParam = ctx.queryParam("uid");
+        int requested = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(20);
+        int limit = Math.clamp(requested, 1, 20);
+        if (uidParam != null && !uidParam.isBlank()) {
+            UUID lookup;
+            try {
+                lookup = UUID.fromString(uidParam);
+            } catch (IllegalArgumentException e) {
+                ctx.json(List.of());
+                return;
+            }
+            var result = stationMemberRepository
+                    .findPickerByUid(session.stationId(), lookup)
+                    .map(this::toSearchResult)
+                    .map(List::of)
+                    .orElseGet(List::of);
+            ctx.json(result);
+            return;
+        }
+        var results = stationMemberRepository.searchForPicker(session.stationId(), q, limit).stream()
+                .map(this::toSearchResult)
+                .toList();
+        ctx.json(results);
+    }
+
+    private MemberSearchResult toSearchResult(StationMemberRepository.PickerMember m) {
+        return new MemberSearchResult(
+                m.memberUid(),
+                m.displayName(),
+                m.userType() != null ? m.userType().name() : null,
+                m.displayTag(),
+                m.displayTagColor(),
+                avatarDataUrlFor(m.memberUid()));
+    }
+
+    /**
+     * Inlines the member's avatar as a {@code data:} URL so it can be rendered without
+     * re-authenticating against the protected avatar endpoint. Returns {@code null} when the
+     * member has no avatar on disk.
+     */
+    private String avatarDataUrlFor(UUID memberUid) {
+        return imageService
+                .read(ImageCategory.AVATARS, memberUid.toString(), 64)
+                .map(img -> "data:" + img.contentType() + ";base64,"
+                        + Base64.getEncoder().encodeToString(img.data()))
+                .orElse(null);
+    }
+
+    /**
+     * Picker result shape — avatar is inlined as a {@code data:} URL so the frontend can render
+     * it without a separate authenticated request. {@code displayTag} carries the member's
+     * highest-priority visible tag (and color); {@code null} when none is set.
+     */
+    public record MemberSearchResult(
+            UUID memberUid,
+            String displayName,
+            String userType,
+            String displayTag,
+            String displayTagColor,
+            String avatarUrl) {}
 
     private void completions(Context ctx) {
         var session = UserSession.from(ctx);
@@ -514,7 +604,7 @@ public class StationMemberRoutes implements Routes {
 
     public record SetUserTypeRequest(StationUserType userType) {}
 
-    public record SetJoinDateRequest(java.time.LocalDate joinDate) {}
+    public record SetJoinDateRequest(LocalDate joinDate) {}
 
     public record SetUserTypePermissionsRequest(List<Integer> permissionIds) {}
 }

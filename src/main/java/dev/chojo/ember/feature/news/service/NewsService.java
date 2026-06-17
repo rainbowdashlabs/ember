@@ -222,6 +222,22 @@ public class NewsService {
         return newsRepository.findPublicBlogEntries(stationId, offset, limit);
     }
 
+    /**
+     * Lists published, unrestricted public news with optional case-insensitive search on title or
+     * body. Backs the public news search endpoint used by the {@code NEWS_TEASER} cell picker.
+     */
+    public List<News> findPublicBlogEntries(int stationId, String search, int offset, int limit) {
+        return newsRepository.findPublicBlogEntries(stationId, search, offset, limit);
+    }
+
+    /**
+     * Resolves a public news entry by its public UUID, returning empty when the entry is not
+     * eligible for public display.
+     */
+    public Optional<News> findPublicByUid(int stationId, UUID publicUid) {
+        return newsRepository.findPublicByUid(stationId, publicUid);
+    }
+
     public boolean hasPublicBlogEntries(int stationId) {
         return newsRepository.hasPublicBlogEntries(stationId);
     }

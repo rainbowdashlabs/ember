@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
@@ -156,7 +157,7 @@ public class DiscoveryKeyService {
             yBytes[i] = raw[31 - i];
         }
         yBytes[0] = (byte) (yBytes[0] & 0x7f);
-        var y = new java.math.BigInteger(1, yBytes);
+        var y = new BigInteger(1, yBytes);
         return new EdECPublicKeySpec(NamedParameterSpec.ED25519, new EdECPoint(xOdd, y));
     }
 
