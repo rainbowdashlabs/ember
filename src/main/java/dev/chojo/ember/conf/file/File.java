@@ -11,6 +11,7 @@ import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.conf.file.elements.Metrics;
+import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.conf.file.elements.Theming;
 
@@ -29,6 +30,7 @@ public class File {
     private Theming theming = new Theming();
     private Storage storage = new Storage();
     private Metrics metrics = new Metrics();
+    private Network network = new Network();
 
     public Database database() {
         return database;
@@ -62,6 +64,10 @@ public class File {
         return metrics;
     }
 
+    public Network network() {
+        return network;
+    }
+
     @Override
     public String toString() {
         return "File{" + "database="
@@ -72,6 +78,7 @@ public class File {
                 + demo + ", theming="
                 + theming + ", storage="
                 + storage + ", metrics="
-                + metrics + '}';
+                + metrics + ", network="
+                + network + '}';
     }
 }

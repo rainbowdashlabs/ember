@@ -9,7 +9,9 @@ import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.legal.service.ConsentService;
+import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
@@ -32,10 +34,12 @@ import java.time.Instant;
 @Singleton
 public class ConsentRoutes implements Routes {
     private final ConsentService consentService;
+    private final Network network;
 
     @Inject
-    public ConsentRoutes(ConsentService consentService) {
+    public ConsentRoutes(ConsentService consentService, Network network) {
         this.consentService = consentService;
+        this.network = network;
     }
 
     @Override
@@ -136,7 +140,7 @@ public class ConsentRoutes implements Routes {
             throw new BadRequestResponse("consentVersion is required");
         }
 
-        String ipAddress = ctx.ip();
+        String ipAddress = ClientIp.resolve(ctx, network).getHostAddress();
         String country = ctx.header("CF-IPCountry");
         String userAgent = ctx.userAgent();
 

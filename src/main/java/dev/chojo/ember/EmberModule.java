@@ -25,6 +25,7 @@ import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.conf.file.elements.Metrics;
+import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.handlers.BoardTicketChangedHandler;
@@ -330,6 +331,12 @@ public class EmberModule extends AbstractModule {
     @Singleton
     Metrics metrics(File config) {
         return config.metrics();
+    }
+
+    @Provides
+    @Singleton
+    Network network(File config) {
+        return config.network();
     }
 
     @Provides
