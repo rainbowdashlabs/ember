@@ -114,6 +114,7 @@ import dev.chojo.ember.feature.page.route.PublicPageRoutes;
 import dev.chojo.ember.feature.procedure.route.ProcedureRoutes;
 import dev.chojo.ember.feature.protocol.route.TestProtocolRoutes;
 import dev.chojo.ember.feature.quiz.route.AiRoutes;
+import dev.chojo.ember.feature.quiz.route.PublicQuizRoutes;
 import dev.chojo.ember.feature.quiz.route.QuizRoutes;
 import dev.chojo.ember.feature.station.route.DiscoveryRoutes;
 import dev.chojo.ember.feature.station.route.PublicStationRoutes;
@@ -204,6 +205,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(ApiStatusRoutes.class);
         routesBinder.addBinding().to(WaitingListRoutes.class);
         routesBinder.addBinding().to(QuizRoutes.class);
+        routesBinder.addBinding().to(PublicQuizRoutes.class);
         routesBinder.addBinding().to(AiRoutes.class);
         routesBinder.addBinding().to(KnowledgeBaseRoutes.class);
         routesBinder.addBinding().to(PublicKnowledgeBaseRoutes.class);

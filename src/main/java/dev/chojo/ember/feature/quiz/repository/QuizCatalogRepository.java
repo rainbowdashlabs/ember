@@ -71,6 +71,57 @@ public class QuizCatalogRepository {
                 .changed();
     }
 
+    /**
+     * Flips the {@code public_render} flag — opts the catalog into (or out of) being eligible
+     * for the public QUIZ_TEASER random endpoint (concept §3.15 / §4.7).
+     */
+    public boolean setPublicRender(int id, boolean publicRender) {
+        return query("""
+                        UPDATE quiz_catalog
+                        SET public_render = :public_render, updated_at = now()
+                        WHERE id = :id;""")
+                .single(call().bind("id", id).bind("public_render", publicRender))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Returns catalogs of the given station whose {@code public_render} flag is on. Backs the
+     * editor's catalog picker and the public quiz random endpoint (concept §3.15 / §4.7).
+     */
+    public List<QuizCatalog> findPublicByStation(int stationId) {
+        return query("""
+                        SELECT * FROM quiz_catalog
+                        WHERE station_id = :station_id AND public_render = TRUE
+                        ORDER BY name;""")
+                .single(call().bind("station_id", stationId))
+                .map(QuizCatalog.map())
+                .all();
+    }
+
+    /**
+     * Picks one random {@link QuizQuestion} from the given catalog ids, restricted to catalogs
+     * that belong to {@code stationId} and have {@code public_render = TRUE}. The station scoping
+     * stops a cell on station A from rendering questions of an unrelated station B by guessing
+     * its catalog ids. Returns {@link Optional#empty()} when no eligible catalogs / questions
+     * exist.
+     */
+    public Optional<QuizQuestion> findRandomPublicQuestion(int stationId, List<Integer> catalogIds) {
+        if (catalogIds == null || catalogIds.isEmpty()) return Optional.empty();
+        return query("""
+                        SELECT q.* FROM quiz_question q
+                        JOIN quiz_catalog c ON c.id = q.catalog_id
+                        WHERE c.station_id = :station_id
+                          AND c.public_render = TRUE
+                          AND q.catalog_id = ANY(:catalog_ids)
+                        ORDER BY random()
+                        LIMIT 1;""")
+                .single(call().bind("station_id", stationId)
+                        .bind("catalog_ids", catalogIds, PostgreSqlTypes.INTEGER))
+                .map(QuizQuestion.map())
+                .first();
+    }
+
     // -- Categories --
 
     public List<QuizCategory> findCategoriesByStation(int stationId) {

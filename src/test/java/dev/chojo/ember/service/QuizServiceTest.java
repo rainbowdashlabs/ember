@@ -1102,7 +1102,7 @@ class QuizServiceTest extends RepositoryTestBase {
     @Order(211)
     void getFederatedQuizCatalogRemote() {
         var remoteResult = new QuizService.FederatedCatalogDetail(
-                new QuizCatalog(88, 0, "RemoteCatalog", "desc", false, null, null), List.of(), List.of());
+                new QuizCatalog(88, 0, "RemoteCatalog", "desc", false, false, null, null), List.of(), List.of());
         when(httpClient.get(
                         eq("https://remote-quiz.example.com"),
                         eq("/remote/quiz/catalogs/88"),

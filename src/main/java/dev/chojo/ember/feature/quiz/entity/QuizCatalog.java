@@ -17,6 +17,7 @@ public record QuizCatalog(
         String name,
         String description,
         boolean trainingEnabled,
+        boolean publicRender,
         Instant createdAt,
         Instant updatedAt) {
 
@@ -27,6 +28,7 @@ public record QuizCatalog(
                 row.getString("name"),
                 row.getString("description"),
                 row.getBoolean("training_enabled"),
+                row.getBoolean("public_render"),
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.get("updated_at", INSTANT_TIMESTAMP));
     }
