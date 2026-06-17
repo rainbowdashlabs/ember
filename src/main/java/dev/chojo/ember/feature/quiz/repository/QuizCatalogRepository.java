@@ -116,8 +116,7 @@ public class QuizCatalogRepository {
                           AND q.catalog_id = ANY(:catalog_ids)
                         ORDER BY random()
                         LIMIT 1;""")
-                .single(call().bind("station_id", stationId)
-                        .bind("catalog_ids", catalogIds, PostgreSqlTypes.INTEGER))
+                .single(call().bind("station_id", stationId).bind("catalog_ids", catalogIds, PostgreSqlTypes.INTEGER))
                 .map(QuizQuestion.map())
                 .first();
     }

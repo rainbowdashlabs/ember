@@ -109,10 +109,5 @@ public class PublicQuizRoutes implements Routes {
      * the answer on click, so the client legitimately needs it.
      */
     public record PublicQuestion(
-            int id,
-            String questionType,
-            String title,
-            String description,
-            String imageUrl,
-            JsonNode config) {}
+            int id, String questionType, String title, String description, String imageUrl, JsonNode config) {}
 }

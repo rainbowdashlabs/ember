@@ -193,8 +193,7 @@ public class FormRoutes implements Routes {
                     .findByPublicUid(lookup)
                     .filter(f -> f.stationId() == session.stationId())
                     .filter(f -> f.purpose() == purpose)
-                    .map(f ->
-                            List.of(new FormSearchResult(f.publicUid(), f.title(), f.purpose(), f.status())))
+                    .map(f -> List.of(new FormSearchResult(f.publicUid(), f.title(), f.purpose(), f.status())))
                     .orElseGet(List::of);
             ctx.json(result);
             return;
@@ -205,8 +204,8 @@ public class FormRoutes implements Routes {
         int limit = Math.clamp(requested, 1, 20);
 
         var results = formService.findByStationAndPurpose(session.stationId(), purpose).stream()
-                .filter(f -> needle.isEmpty()
-                        || f.title().toLowerCase(Locale.ROOT).contains(needle))
+                .filter(f ->
+                        needle.isEmpty() || f.title().toLowerCase(Locale.ROOT).contains(needle))
                 .limit(limit)
                 .map(f -> new FormSearchResult(f.publicUid(), f.title(), f.purpose(), f.status()))
                 .toList();
@@ -820,8 +819,7 @@ public class FormRoutes implements Routes {
      * Lightweight picker result shape for {@code GET /api/v1/forms/search}. Used by the
      * POLL_EMBED and FORMS_CTA cell pickers in the page editor.
      */
-    public record FormSearchResult(
-            UUID publicUid, String title, FormPurpose purpose, Form.FormStatus status) {}
+    public record FormSearchResult(UUID publicUid, String title, FormPurpose purpose, Form.FormStatus status) {}
 
     public record FormListEntry(
             int id,
