@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:89417c8184cfabf91c76c254e466446f4feeef7a43cbb259b281d0f6366cc945",
-  "generatedAt" : "2026-06-15T10:38:23Z",
+  "schemaHash" : "sha256:9f9a74c08d03986cc810bda2e36a19a132adf67c4985b502b00feb6c2632311f",
+  "generatedAt" : "2026-06-17T14:19:51Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -5467,7 +5467,7 @@
     "form" : {
       "feature" : "forms",
       "scope" : "STATION",
-      "tableHash" : "sha256:a6dced3bd982f5c77f0a598f712009f144c86cc30fe1f9b55a207be7eccae6e6",
+      "tableHash" : "sha256:8fdea2fe96cbbfb797f144ca2e1ec91bcc7fa223c4a60427e1dbfcbad1dee829",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -5558,6 +5558,18 @@
         "nullable" : false,
         "verified" : true,
         "description" : "Whether members are required to fill out this form."
+      }, {
+        "name" : "purpose",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Form audience and sidebar entry point. INTERNAL = members-only (legacy /station/forms admin). CONTACT = publicly answerable contact form (/station/pages/forms). POLL = publicly answerable poll (/station/pages/polls). Constrains the allowed FormQuestionType set via FormQuestionType.allowedFor(purpose)."
+      }, {
+        "name" : "public_uid",
+        "type" : "uuid",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Stable opaque public identifier referenced from public page cells (FORMS_CTA, POLL_EMBED) and the public form-response endpoint. The integer id stays internal."
       } ],
       "foreignKeys" : [ {
         "column" : "created_by",
@@ -5724,7 +5736,7 @@
     "form_response" : {
       "feature" : "forms",
       "scope" : "STATION",
-      "tableHash" : "sha256:71700c9fa702207237cdd93bcd3a47cba271403bcf83f28cca94551a561aab38",
+      "tableHash" : "sha256:81c456148e8bd0938e2932e9ccdad544e7660bb721123c089f883695f1db4fad",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -5740,13 +5752,13 @@
       }, {
         "name" : "member_id",
         "type" : "int4",
-        "nullable" : false,
+        "nullable" : true,
         "verified" : true,
-        "description" : "Member who the response is for."
+        "description" : "The member this response belongs to. NULL for anonymous public submissions (CONTACT / POLL purposes via the public submit endpoint); in that case submitter_hash carries the pseudonymous identifier instead."
       }, {
         "name" : "submitted_by",
         "type" : "int4",
-        "nullable" : false,
+        "nullable" : true,
         "verified" : true,
         "description" : "Member who submitted the response (may differ for guardians)."
       }, {
@@ -5761,8 +5773,31 @@
         "nullable" : false,
         "verified" : true,
         "description" : "When the response was last updated."
+      }, {
+        "name" : "submitter_hash",
+        "type" : "bytea",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "SHA-256 of (real client IP || form id || instance salt) for anonymous public submissions. Pseudonymous — non-reversible without the salt. Used for poll dedup (single response per visitor per poll) and contact-form rate-limiting; never persisted as a raw IP. NULL for member responses. The salt is stored as Base64 in application_setting under the key 'form_response.submitter_hash_salt', generated on first use."
+      }, {
+        "name" : "acknowledged_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When a CONTACT-form submission was first marked as read/handled by a member with PAGE_FORMS_VIEW. NULL until acknowledged. POLL submissions are never acknowledged (analytics-only)."
+      }, {
+        "name" : "acknowledged_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Member who acknowledged a CONTACT-form submission. Set together with acknowledged_at; FK retains the history even after the acknowledger leaves the station (SET NULL on delete)."
       } ],
       "foreignKeys" : [ {
+        "column" : "acknowledged_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
         "column" : "form_id",
         "refTable" : "form",
         "refColumn" : "id",
@@ -6725,7 +6760,7 @@
     "kb_file" : {
       "feature" : "knowledgebase",
       "scope" : "STATION",
-      "tableHash" : "sha256:30f6b71ec5c47f5b58f25138e4f7766b8a456d080e718f24ea0a54503b728f2c",
+      "tableHash" : "sha256:c7d8b27dde40f9b45e26930d11d17cdd16db9edbe6ad3a1895f6915ad2009811",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -6839,6 +6874,12 @@
         "type" : "text",
         "nullable" : true,
         "verified" : true
+      }, {
+        "name" : "public_uid",
+        "type" : "uuid",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Stable opaque public identifier referenced from public page cells (KB_ARTICLE) and external deep-links."
       } ],
       "foreignKeys" : [ {
         "column" : "created_by",
@@ -7724,7 +7765,7 @@
     "news" : {
       "feature" : "news",
       "scope" : "STATION",
-      "tableHash" : "sha256:6d1f2f735b1bed4e84eec45f90cdae18796deb596f499b3a2d6cef7169ffc2e0",
+      "tableHash" : "sha256:8591cd905f9040b29f1f4905b1515b626911eb87cb76ecd2f5daf4dfde9853f7",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -7788,6 +7829,12 @@
         "type" : "bool",
         "nullable" : false,
         "verified" : true
+      }, {
+        "name" : "public_uid",
+        "type" : "uuid",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Stable opaque public identifier. Used by public page cells (e.g. NEWS_TEASER) and any external link that should survive station transfer without renumbering. The integer id stays internal."
       } ],
       "foreignKeys" : [ {
         "column" : "station_id",
@@ -8294,10 +8341,10 @@
         "reason" : "Public page content, not per-member"
       }
     },
-    "page_image" : {
+    "page_file" : {
       "feature" : "page",
       "scope" : "STATION",
-      "tableHash" : "sha256:e4611ebbf802a7ff9fddef8057a12c9918779fc9825663a760c9573446e097dc",
+      "tableHash" : "sha256:c1c192d3bc032e0bc2754cc8d1a6c90ff4258ab35ebecd9005eec816cee6790a",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -8308,7 +8355,7 @@
         "type" : "int4",
         "nullable" : true,
         "verified" : true,
-        "description" : "The page that originally owned this image. Nullable so a row survives the deletion of its owning page when other pages in the same station reference the same image via dedup."
+        "description" : "The page that originally owned this file. Nullable so a row survives the deletion of its owning page when other pages in the same station reference the same file via dedup."
       }, {
         "name" : "file_name",
         "type" : "text",
@@ -8340,9 +8387,32 @@
         "type" : "text",
         "nullable" : true,
         "verified" : true,
-        "description" : "Lowercase hex SHA-256 of the file bytes. NULL for legacy rows. Combined with station_id forms the on-disk filename."
+        "description" : "Lowercase hex SHA-256 of the file bytes. Combined with station_id forms the on-disk filename."
+      }, {
+        "name" : "default_alt_text",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Default alt text applied to gallery / image cells that pick this file unless the user overrides it."
+      }, {
+        "name" : "default_description",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Default caption / description applied to gallery / image cells that pick this file unless the user overrides it."
+      }, {
+        "name" : "folder_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Optional folder this file lives in. NULL means the file sits at the station-level root."
       } ],
       "foreignKeys" : [ {
+        "column" : "folder_id",
+        "refTable" : "page_file_folder",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
         "column" : "page_id",
         "refTable" : "station_page",
         "refColumn" : "id",
@@ -8365,6 +8435,151 @@
         "status" : "IGNORED",
         "reason" : "Public page content, not per-member"
       }
+    },
+    "page_file_folder" : {
+      "feature" : "page",
+      "scope" : "STATION",
+      "tableHash" : "sha256:c7b34e464e8ff6e4b846b3b333e793786ca08a2ad36202583f032877eb4731ab",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "parent_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true
+      }, {
+        "name" : "name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "sort_order",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "created_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true
+      } ],
+      "foreignKeys" : [ {
+        "column" : "parent_id",
+        "refTable" : "page_file_folder",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED",
+        "rationale" : "Folder hierarchy is per-station; transfer handler not yet implemented."
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Folder names are organizational metadata, not per-member."
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Folder names are organizational metadata, not per-member."
+      },
+      "description" : "Hierarchical folder tree per station for organising page files. Each folder is scoped to one station; parent_id forms the tree (NULL = top level)."
+    },
+    "page_file_tag" : {
+      "feature" : "page",
+      "scope" : "STATION",
+      "tableHash" : "sha256:f10a1a9689ed3f8fbf7bc399bc7d2628a7af958b53f80a4b7f8ce9322beb9bc8",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "color",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true
+      } ],
+      "foreignKeys" : [ {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED",
+        "rationale" : "Tag definitions are per-station; transfer handler not yet implemented."
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Tags are organizational metadata, not per-member."
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Tags are organizational metadata, not per-member."
+      },
+      "description" : "Free-form labels attached to page files. Unique per (station, name) so duplicates inside a single station are not possible."
+    },
+    "page_file_tag_assignment" : {
+      "feature" : "page",
+      "scope" : "STATION",
+      "tableHash" : "sha256:da06d9c4983364ff3f76444144e26efb3cd1f59e5f57de923c9e12da4bfda3bb",
+      "columns" : [ {
+        "name" : "file_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "tag_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      } ],
+      "foreignKeys" : [ {
+        "column" : "file_id",
+        "refTable" : "page_file",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "tag_id",
+        "refTable" : "page_file_tag",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED",
+        "rationale" : "Belongs in station transfer alongside page_file and page_file_tag; handler not yet implemented."
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Join table for file-tag relationships, no per-member data."
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Join table for file-tag relationships, no per-member data."
+      },
+      "description" : "Many-to-many join between page files and tags."
     },
     "page_row" : {
       "feature" : "page",
@@ -9213,7 +9428,7 @@
     "quiz_catalog" : {
       "feature" : "quiz",
       "scope" : "STATION",
-      "tableHash" : "sha256:32c83d6584000a1b3543668acfdba0863b782ff7f0f8d1dbfac81ac76bd70a10",
+      "tableHash" : "sha256:d4b64ae635c1eb7759ef4758857afd7b168be380036c8406ae380f692914a828",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -9256,6 +9471,12 @@
         "nullable" : false,
         "verified" : true,
         "description" : "When the catalog was last updated."
+      }, {
+        "name" : "public_render",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When true, the catalog's questions are eligible for the public quiz random endpoint that backs the QUIZ_TEASER cell. Defaults to FALSE; catalog managers opt-in per catalog from the catalog settings view."
       } ],
       "foreignKeys" : [ {
         "column" : "station_id",
@@ -10780,7 +11001,7 @@
     "station_event" : {
       "feature" : "events",
       "scope" : "STATION",
-      "tableHash" : "sha256:49850f2f700bba475b8f590c8ea7b1af90c20258d8c87d3abd949e94bd5641bd",
+      "tableHash" : "sha256:681950ba2568ac18ac6034a71e9acb688cf0debd8873bcb081853a08507bf4b8",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -10931,6 +11152,12 @@
         "nullable" : false,
         "verified" : true,
         "description" : "When the event was last modified. Used as a freshness signal for cached feed renders."
+      }, {
+        "name" : "public_uid",
+        "type" : "uuid",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Stable opaque public identifier referenced from public page cells (FEATURED_EVENT, UPCOMING_EVENTS, PAST_EVENT_RECAP) and the public event-detail route."
       } ],
       "foreignKeys" : [ {
         "column" : "category_id",
@@ -11289,7 +11516,7 @@
     "station_page" : {
       "feature" : "page",
       "scope" : "STATION",
-      "tableHash" : "sha256:44c20d5d549321b1e47e34aab7c70ccc5f77f84fcf9fcb9e4c2fe404118b5441",
+      "tableHash" : "sha256:13a415f3ec31caa54eec78f6a4c08b5eccf73d14e64ab051a7dc4a90cd08ebf3",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -11350,6 +11577,12 @@
         "type" : "timestamptz",
         "nullable" : false,
         "verified" : true
+      }, {
+        "name" : "public_uid",
+        "type" : "uuid",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Stable opaque public identifier referenced from public page cells (PAGE_LINK) and external deep-links."
       } ],
       "foreignKeys" : [ {
         "column" : "created_by",
@@ -11358,7 +11591,7 @@
         "onDelete" : "SET NULL"
       }, {
         "column" : "og_image_id",
-        "refTable" : "page_image",
+        "refTable" : "page_file",
         "refColumn" : "id",
         "onDelete" : "SET NULL"
       }, {
