@@ -34,13 +34,13 @@ jobs:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
       - name: Run repository tests
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           timeout_minutes: 15
           max_attempts: 2
           command: ./gradlew --build-cache testRepositories
       - name: Upload coverage data
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: jacoco-repositories
           path: build/jacoco/testRepositories.exec
@@ -62,13 +62,13 @@ jobs:
           sudo apt-get install -y --no-install-recommends libreoffice-core libreoffice-impress pandoc
           curl -fsSL https://github.com/typst/typst/releases/download/v0.14.2/typst-x86_64-unknown-linux-musl.tar.xz | sudo tar -xJ -C /usr/local/bin --strip-components=1 typst-x86_64-unknown-linux-musl/typst
       - name: Run service tests
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           timeout_minutes: 15
           max_attempts: 2
           command: ./gradlew --build-cache testServices
       - name: Upload coverage data
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: jacoco-services
           path: build/jacoco/testServices.exec
@@ -89,14 +89,14 @@ jobs:
       # no UNVERIFIED statuses remain, RETAIN strategies carry a legal basis, etc. They use a
       # testcontainer to spin up PostgreSQL.
       - name: Run data tracking tests
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           timeout_minutes: 15
           max_attempts: 2
           command: ./gradlew --build-cache testTracking
       - name: Upload coverage data
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: jacoco-tracking
           path: build/jacoco/testTracking.exec
@@ -113,14 +113,14 @@ jobs:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
       - name: Run other tests
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           timeout_minutes: 15
           max_attempts: 2
           command: ./gradlew --build-cache testOther
       - name: Upload coverage data
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: jacoco-other
           path: build/jacoco/testOther.exec
@@ -137,7 +137,7 @@ jobs:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
       - name: Download coverage data
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: jacoco-*
           path: build/jacoco
