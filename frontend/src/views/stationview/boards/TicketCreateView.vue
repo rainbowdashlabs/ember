@@ -41,7 +41,14 @@ const board = ref<Board | null>(null)
 const lanes = ref<BoardLane[]>([])
 const members = ref<MemberCompletion[]>([])
 const allLabels = ref<BoardLabel[]>([])
-const allTickets = ref<{ id: number; ticketNumber: number; title: string }[]>([])
+
+interface TicketOption {
+  id: number
+  ticketNumber: number
+  title: string
+}
+
+const allTickets = ref<TicketOption[]>([])
 const loading = ref(true)
 const submitting = ref(false)
 const error = ref('')

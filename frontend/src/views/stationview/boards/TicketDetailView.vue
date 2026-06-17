@@ -74,7 +74,13 @@ const ticketHistory = ref<BoardTicketHistoryEntry[]>([])
 const kbLinks = ref<BoardTicketKbLink[]>([])
 const showKbSearch = ref(false)
 const kbSearchQuery = ref('')
-const kbSearchResults = ref<{ id: number; title: string; path: string }[]>([])
+interface KbSearchResult {
+  id: number
+  title: string
+  path: string
+}
+
+const kbSearchResults = ref<KbSearchResult[]>([])
 const comments = ref<BoardComment[]>([])
 const weblinks = ref<BoardWeblink[]>([])
 const attachments = ref<BoardTicketAttachment[]>([])

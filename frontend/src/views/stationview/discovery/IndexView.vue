@@ -35,11 +35,17 @@ const radius = ref(100)
 const nearMeOnly = ref(false)
 
 const stations = ref<DiscoveredStation[]>([])
-const localCoords = ref<{lat: number; lon: number} | null>(null)
+
+interface LatLon {
+  lat: number
+  lon: number
+}
+
+const localCoords = ref<LatLon | null>(null)
 
 const stationMap = ref<InstanceType<typeof StationMap> | null>(null)
 
-function distanceKm(a: {lat: number; lon: number}, b: {lat: number; lon: number}): number {
+function distanceKm(a: LatLon, b: LatLon): number {
   const R = 6371
   const dLat = (b.lat - a.lat) * Math.PI / 180
   const dLon = (b.lon - a.lon) * Math.PI / 180

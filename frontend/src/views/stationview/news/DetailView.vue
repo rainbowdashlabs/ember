@@ -34,7 +34,11 @@ const loading = ref(true)
 const error = ref('')
 const showDeleteModal = ref(false)
 const highlightCommentId = ref<number | null>(null)
-const viewBadge = ref<{refresh: () => Promise<void>} | null>(null)
+interface ViewBadgeRef {
+  refresh: () => Promise<void>
+}
+
+const viewBadge = ref<ViewBadgeRef | null>(null)
 const recordedViewIds = new Set<number>()
 
 async function loadData() {

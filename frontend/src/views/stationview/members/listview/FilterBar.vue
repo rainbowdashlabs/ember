@@ -65,7 +65,11 @@ const emit = defineEmits<{
   filter: [criteria: FilterCriteria]
 }>()
 
-const searchInput = ref<{ $el: HTMLInputElement } | null>(null)
+interface SearchInputRef {
+  $el: HTMLInputElement
+}
+
+const searchInput = ref<SearchInputRef | null>(null)
 const showColumnPicker = ref(false)
 const showSaveFilter = ref(false)
 const filterPresetName = ref('')

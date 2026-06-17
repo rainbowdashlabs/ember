@@ -53,7 +53,13 @@ const geocoding = ref<MapsGeocodingConfig>({
 })
 const tileCacheMaxMb = ref(500)
 const cacheStats = ref<maps.TileCacheStats | null>(null)
-const testResult = ref<{ok: boolean; status: number} | null>(null)
+
+interface GeocodingTestResult {
+  ok: boolean
+  status: number
+}
+
+const testResult = ref<GeocodingTestResult | null>(null)
 const showApiKey = ref(false)
 const showPurgeModal = ref(false)
 

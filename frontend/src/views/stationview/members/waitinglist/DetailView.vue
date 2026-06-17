@@ -78,7 +78,13 @@ const deletingEntry = ref(false)
 
 // State transition confirmation
 type TransitionKind = 'invite' | 'testing' | 'join' | 'approve' | 'reject' | 'withdraw'
-const pendingTransition = ref<{ entry: WaitingListEntryWithScore; kind: TransitionKind } | null>(null)
+
+interface PendingTransition {
+  entry: WaitingListEntryWithScore
+  kind: TransitionKind
+}
+
+const pendingTransition = ref<PendingTransition | null>(null)
 const runningTransition = ref(false)
 
 // Computed entry groups

@@ -43,7 +43,12 @@ const mailMonthlyLimit = ref(2000)
 const mailSentToday = ref(0)
 const mailSentThisMonth = ref(0)
 const mailTesting = ref(false)
-const mailTestResult = ref<{success: boolean, error?: string | null} | null>(null)
+interface MailTestResult {
+  success: boolean
+  error?: string | null
+}
+
+const mailTestResult = ref<MailTestResult | null>(null)
 
 async function loadMailConfig() {
   try {
