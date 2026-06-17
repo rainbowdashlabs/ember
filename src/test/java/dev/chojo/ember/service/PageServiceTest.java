@@ -5,13 +5,18 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.conf.file.elements.Storage;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.page.entity.CellConfig;
 import dev.chojo.ember.feature.page.entity.CellContentType;
+import dev.chojo.ember.feature.page.repository.PageFileMetaRepository;
 import dev.chojo.ember.feature.page.service.PageFileStorageService;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -21,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -36,7 +42,13 @@ class PageServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new PageService(pageRepo, new PageFileStorageService(stationRepo));
+        service = new PageService(
+                pageRepo,
+                new PageFileMetaRepository(),
+                new PageFileStorageService(stationRepo),
+                new StorageQuotaService(storageUsageRepo, new Storage(), new DomainEventBus(Set.of())),
+                stationMemberRepo,
+                new ImageService());
         station = stationRepo.create("PageServiceStation");
         account = accountRepo.create("page-svc@test.com", "Page", "Author");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -248,9 +260,9 @@ class PageServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(20)
-    void uploadImage() throws Exception {
+    void uploadPageFile() throws Exception {
         byte[] data = new byte[1024];
-        var image = service.uploadImage(pageId, "test.png", "image/png", data);
+        var image = service.uploadPageFile(pageId, "test.png", "image/png", data);
         assertNotNull(image);
         assertEquals("test.png", image.fileName());
         imageId = image.id();
@@ -258,8 +270,8 @@ class PageServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(21)
-    void readImage() {
-        var fileData = service.readImage(imageId);
+    void readFileById() {
+        var fileData = service.readFileById(imageId);
         assertTrue(fileData.isPresent());
         assertEquals("image/png", fileData.orElseThrow().contentType());
     }
@@ -269,32 +281,38 @@ class PageServiceTest extends RepositoryTestBase {
     void imageSizeLimit() {
         byte[] tooLarge = new byte[6 * 1024 * 1024];
         assertThrows(
-                IllegalArgumentException.class, () -> service.uploadImage(pageId, "big.png", "image/png", tooLarge));
+                StorageQuotaService.StorageQuotaExceededException.class,
+                () -> service.uploadPageFile(pageId, "big.png", "image/png", tooLarge));
     }
 
     @Test
     @Order(23)
-    void deleteImage() {
-        assertTrue(service.deleteImage(imageId));
-        assertTrue(service.readImage(imageId).isEmpty());
+    void deleteFile() {
+        assertTrue(service.deleteFile(imageId));
+        assertTrue(service.readFileById(imageId).isEmpty());
     }
 
     @Test
     @Order(24)
-    void orphanedImageCleanup() throws Exception {
-        // Upload an image
+    void orphanedImageSurvivesSaveAndIsPrunedOnRequest() throws Exception {
         byte[] data = new byte[512];
-        var image = service.uploadImage(pageId, "orphan.png", "image/png", data);
+        var image = service.uploadPageFile(pageId, "orphan.png", "image/png", data);
         int orphanId = image.id();
 
-        // Save page without referencing the image -> image gets cleaned up
         var rows = List.of(new PageService.RowData(
                 0,
                 List.of(new PageService.CellData(
                         0, 100.0, CellContentType.MARKDOWN, "<p>No images</p>", CellConfig.EMPTY))));
         service.savePage(pageId, "Welcome", "welcome-page", null, null, null, rows);
 
-        assertTrue(service.readImage(orphanId).isEmpty());
+        // Save no longer auto-cleans. The file must still be there.
+        assertTrue(service.readFileById(orphanId).isPresent());
+        assertTrue(service.findUnusedFileIds(station.id()).contains(orphanId));
+
+        // Manual prune removes the orphan.
+        int removed = service.pruneUnusedFiles(station.id());
+        assertTrue(removed >= 1);
+        assertTrue(service.readFileById(orphanId).isEmpty());
     }
 
     @Test
@@ -312,13 +330,13 @@ class PageServiceTest extends RepositoryTestBase {
     @Test
     @Order(27)
     void deleteImageNotFound() {
-        assertFalse(service.deleteImage(99999));
+        assertFalse(service.deleteFile(99999));
     }
 
     @Test
     @Order(28)
     void readImageNotFound() {
-        assertTrue(service.readImage(99999).isEmpty());
+        assertTrue(service.readFileById(99999).isEmpty());
     }
 
     @Test

@@ -8,10 +8,11 @@ import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EditorCell from './EditorCell.vue'
-import ColumnResizeHandle from './ColumnResizeHandle.vue'
+import ColumnGutter from './ColumnGutter.vue'
 import RowActionsMenu from './RowActionsMenu.vue'
+import PublicPageRow from '@/views/public/publicpageview/PublicPageRow.vue'
 import type {CellEditData} from './EditorCell.vue'
-import {CellContentType} from '@/api/pageManage'
+import {CellContentType, type PageRow} from '@/api/pageManage'
 import {usePageClipboard} from '@/composables/usePageClipboard'
 
 export interface RowEditData {
@@ -54,16 +55,12 @@ function updateCell(index: number, cell: CellEditData) {
 
 function deleteCell(index: number) {
     const current = props.row.cells[index]
-    // Single-column row → reset the cell to EMPTY instead of dropping the row.
-    // The row is preserved so the user can keep using its column layout.
-    if (props.row.cells.length <= 1) {
-        const cells = [...props.row.cells]
-        cells[index] = {...current, contentType: CellContentType.EMPTY, content: '', config: {}}
-        updateCells(cells)
+    const isEmpty = current.contentType === CellContentType.EMPTY
+    if (isEmpty && props.row.cells.length <= 1) {
+        emit('delete')
         return
     }
-    // Multi-column row, cell already empty → drop the column and redistribute widths.
-    if (current.contentType === CellContentType.EMPTY) {
+    if (isEmpty) {
         const remaining = props.row.cells.filter((_, i) => i !== index)
         const total = remaining.reduce((sum, c) => sum + c.widthPercent, 0)
         const redistributed = remaining.map((c, i) => ({
@@ -74,22 +71,15 @@ function deleteCell(index: number) {
         updateCells(redistributed)
         return
     }
-    // Multi-column row with content → reset the cell to an empty container so the column count
-    // and widths are preserved and the user can pick a new content type for that slot.
-    const cells = [...props.row.cells]
-    cells[index] = {
-        ...cells[index],
-        contentType: CellContentType.EMPTY,
-        content: '',
-        config: {},
+    if (props.row.cells.length <= 1) {
+        const cells = [...props.row.cells]
+        cells[index] = {...current, contentType: CellContentType.EMPTY, content: '', config: {}}
+        updateCells(cells)
+        return
     }
+    const cells = [...props.row.cells]
+    cells[index] = {...cells[index], contentType: CellContentType.EMPTY, content: '', config: {}}
     updateCells(cells)
-}
-
-function cumulativeWidth(index: number): number {
-    let sum = 0
-    for (let i = 0; i < index; i++) sum += props.row.cells[i].widthPercent
-    return sum
 }
 
 function insertColumn(index: number) {
@@ -167,29 +157,22 @@ function onPasteCell() {
 </script>
 
 <template>
-    <!-- Preview mode -->
-    <div v-if="preview" class="flex gap-2">
-        <div
-            v-for="(cell, ci) in row.cells"
-            :key="ci"
-            :style="{width: `${cell.widthPercent}%`}"
-            class="min-w-0"
-        >
-            <EditorCell
-                :cell="cell"
-                :page-id="pageId"
-                :station-uid="stationUid"
-                :preview="true"
-                :depth="depth"
-                @update:cell="updateCell(ci, $event)"
-                @delete="deleteCell(ci)"
-            />
-        </div>
-    </div>
+    <PublicPageRow
+        v-if="preview"
+        :row="(row as unknown as PageRow)"
+        :station-uid="stationUid"
+        :page-title="''"
+    />
 
     <!-- Edit mode -->
-    <NeutralContainer v-else class="group relative space-y-2">
+    <NeutralContainer
+        v-else
+        :padded="row.cells.length > 1"
+        class="group relative space-y-2"
+        :class="row.cells.length === 1 ? '!border-transparent !bg-transparent' : ''"
+    >
         <RowActionsMenu
+            v-if="row.cells.length > 1"
             :is-first="isFirst"
             :is-last="isLast"
             :can-paste-cell="hasClipboard && clipboardType === 'cell'"
@@ -217,44 +200,30 @@ function onPasteCell() {
                         @delete="deleteCell(ci)"
                     />
                 </div>
-                <div v-if="ci < row.cells.length - 1" class="relative flex items-center justify-center">
-                    <ColumnResizeHandle
-                        :left-percent="cell.widthPercent"
-                        :right-percent="row.cells[ci + 1].widthPercent"
-                        :compact="depth >= 2"
-                        @resize="onResize(ci, $event)"
-                    />
-                    <IconButton
-                        :icon="['fas', 'arrow-right-arrow-left']"
-                        :label="t('stationPages.editor.swapCells')"
-                        class="absolute top-1 left-1/2 -translate-x-1/2 text-[var(--text-muted)] hover:text-[var(--text)] text-xs bg-(--bg) rounded-full"
-                        @click="swapCells(ci)"
-                    />
-                </div>
-            </template>
-            <!-- Always-visible floating + buttons overlapping column edges -->
-            <template v-if="row.cells.length < 4">
-                <IconButton
-                    :icon="['fas', 'plus']"
-                    :label="t('stationPages.editor.addColumn')"
-                    class="absolute -left-2 top-1/2 -translate-y-1/2 z-10 rounded-full bg-(--bg) border border-(--border) text-(--text-muted) hover:text-primary hover:border-primary !p-1 text-xs shadow-sm"
-                    @click="insertColumn(0)"
-                />
-                <IconButton
-                    v-for="ci in (row.cells.length - 1)" :key="`mid-${ci}`"
-                    :icon="['fas', 'plus']"
-                    :label="t('stationPages.editor.addColumn')"
-                    :style="{left: `${cumulativeWidth(ci)}%`}"
-                    class="absolute bottom-1 -translate-x-1/2 z-10 rounded-full bg-(--bg) border border-(--border) text-(--text-muted) hover:text-primary hover:border-primary !p-0.5 text-xs shadow-sm"
-                    @click="insertColumn(ci)"
-                />
-                <IconButton
-                    :icon="['fas', 'plus']"
-                    :label="t('stationPages.editor.addColumn')"
-                    class="absolute -right-2 top-1/2 -translate-y-1/2 z-10 rounded-full bg-(--bg) border border-(--border) text-(--text-muted) hover:text-primary hover:border-primary !p-1 text-xs shadow-sm"
-                    @click="insertColumn(row.cells.length)"
+                <ColumnGutter
+                    v-if="ci < row.cells.length - 1"
+                    :left-percent="cell.widthPercent"
+                    :right-percent="row.cells[ci + 1].widthPercent"
+                    :can-add-column="row.cells.length < 4"
+                    @resize="onResize(ci, $event)"
+                    @swap="swapCells(ci)"
+                    @add-column="insertColumn(ci + 1)"
                 />
             </template>
+            <IconButton
+                v-if="row.cells.length < 4"
+                :icon="['fas', 'plus']"
+                :label="t('stationPages.editor.addColumn')"
+                class="absolute -left-2 top-1/2 -translate-y-1/2 z-10 rounded-full bg-(--bg) border border-(--border) text-(--text-muted) hover:text-primary hover:border-primary !p-1 text-xs shadow-sm"
+                @click="insertColumn(0)"
+            />
+            <IconButton
+                v-if="row.cells.length < 4"
+                :icon="['fas', 'plus']"
+                :label="t('stationPages.editor.addColumn')"
+                class="absolute -right-2 top-1/2 -translate-y-1/2 z-10 rounded-full bg-(--bg) border border-(--border) text-(--text-muted) hover:text-primary hover:border-primary !p-1 text-xs shadow-sm"
+                @click="insertColumn(row.cells.length)"
+            />
         </div>
     </NeutralContainer>
 </template>

@@ -5,16 +5,23 @@
  */
 <script setup lang="ts">
 import {computed} from 'vue'
+import {marked} from 'marked'
 import type {PageCell, ImageConfig, LayoutKindName} from '@/api/pageManage'
 import {CellContentType, isLayoutKind} from '@/api/pageManage'
 import {publicPageImageUrl} from '@/api/publicPages'
 import CellLayoutRender from '@/views/stationview/pages/pageeditorview/CellLayoutRender.vue'
+import CellImagePreview from '@/views/stationview/pages/pageeditorview/CellImagePreview.vue'
 
 const props = defineProps<{
     cell: PageCell
     stationUid: string
     pageTitle: string
 }>()
+
+const markdownHtml = computed(() => {
+    if (props.cell.contentType !== CellContentType.MARKDOWN || !props.cell.content) return ''
+    return marked.parse(props.cell.content) as string
+})
 
 interface NestedRow { cells: PageCell[] }
 const nestedRows = computed<NestedRow[]>(() => {
@@ -45,44 +52,31 @@ function youtubeEmbedUrl(url: string): string | null {
     return id ? `https://www.youtube-nocookie.com/embed/${id}` : null
 }
 
-function imageFitStyle(cell: PageCell): string {
-    const config = cell.config as ImageConfig
-    return config?.imageFit?.toLowerCase() ?? 'cover'
+function imageConfig(cell: PageCell): ImageConfig {
+    return (cell.config as ImageConfig) ?? {}
 }
 
 function imageAlt(cell: PageCell): string {
-    const config = cell.config as ImageConfig
-    return config?.altText ?? ''
+    return imageConfig(cell).altText ?? ''
 }
 
 function imageDescription(cell: PageCell): string {
-    const config = cell.config as ImageConfig
-    return config?.description ?? ''
-}
-
-function imageMaxHeight(cell: PageCell): string | undefined {
-    const config = cell.config as ImageConfig
-    return config?.maxHeight ? `${config.maxHeight}px` : undefined
+    return imageConfig(cell).description ?? ''
 }
 </script>
 
 <template>
     <!-- MARKDOWN -->
     <div v-if="cell.contentType === CellContentType.MARKDOWN"
-         v-html="cell.content"
+         v-html="markdownHtml"
          class="markdown-content"/>
 
-    <!-- IMAGE -->
     <figure v-else-if="cell.contentType === CellContentType.IMAGE" class="space-y-1">
-        <img :src="publicPageImageUrl(stationUid, parseInt(cell.content))"
-             :alt="imageAlt(cell)"
-             :title="imageAlt(cell)"
-             :style="{
-                 objectFit: imageFitStyle(cell),
-                 maxHeight: imageMaxHeight(cell),
-             }"
-             loading="lazy"
-             class="w-full rounded"/>
+        <CellImagePreview
+            :src="publicPageImageUrl(stationUid, cell.content)"
+            :alt="imageAlt(cell)"
+            :config="imageConfig(cell)"
+        />
         <figcaption v-if="imageDescription(cell)" class="text-xs text-(--text-muted) italic text-center">
             {{ imageDescription(cell) }}
         </figcaption>

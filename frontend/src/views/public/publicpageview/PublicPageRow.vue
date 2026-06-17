@@ -17,8 +17,12 @@ defineProps<{
 <template>
     <div class="flex flex-row max-sm:flex-col">
         <div v-for="cell in row.cells" :key="cell.id"
-             :style="{ flex: `0 0 ${cell.widthPercent}%` }"
-             class="max-sm:!flex-[1_1_100%] p-2">
+             :style="{
+                 flexGrow: 0,
+                 flexShrink: 0,
+                 flexBasis: `${cell.widthPercent ?? 100}%`,
+             }"
+             class="max-sm:!grow max-sm:!basis-full p-2 min-w-0">
             <PublicPageCell :cell="cell" :station-uid="stationUid" :page-title="pageTitle"/>
         </div>
     </div>

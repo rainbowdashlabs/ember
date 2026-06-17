@@ -8,6 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
+import MarkdownFieldInput from '@/components/input/text/MarkdownFieldInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -16,7 +17,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 export interface ItemFieldDef {
     key: string
     label: string
-    type: 'text' | 'textarea' | 'number'
+    type: 'text' | 'textarea' | 'markdown' | 'number'
     placeholder?: string
     span?: 1 | 2 | 3
 }
@@ -90,6 +91,12 @@ const gridClass = computed(() => `grid-cols-1 sm:grid-cols-${props.gridCols}`)
                         :model-value="(item[f.key] as string) ?? ''"
                         :placeholder="f.placeholder"
                         rows="3"
+                        @update:model-value="setField(i, f.key, $event ?? '')"
+                    />
+                    <MarkdownFieldInput
+                        v-else-if="f.type === 'markdown'"
+                        :model-value="(item[f.key] as string) ?? ''"
+                        :placeholder="f.placeholder"
                         @update:model-value="setField(i, f.key, $event ?? '')"
                     />
                     <NumberInput

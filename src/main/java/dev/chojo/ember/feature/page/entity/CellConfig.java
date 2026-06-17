@@ -11,9 +11,13 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
+
+import java.util.List;
+import java.util.Map;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -42,6 +46,53 @@ public sealed interface CellConfig {
         TIP
     }
 
+    enum GalleryAspectMode {
+        /**
+         * All gallery items rendered as square thumbnails (object-fit: cover).
+         */
+        SQUARE,
+        /**
+         * Each item keeps its natural aspect ratio; max height limits row height and items flow into the next column.
+         */
+        PRESERVE
+    }
+
+    /**
+     * How the optional preview image of an external link card is rendered.
+     */
+    enum ExternalLinkImageDisplay {
+        /**
+         * Full-width banner above the text (default).
+         */
+        BANNER,
+        /**
+         * Square thumbnail to the left of the text.
+         */
+        ICON
+    }
+
+    /**
+     * Sort order applied to the resolved member list of an {@code MEMBER_LIST_SPOTLIGHT}.
+     */
+    enum MemberListSortBy {
+        /**
+         * Preserve the natural source order or the persistent {@code memberOrder} overlay.
+         */
+        ORDER,
+        /**
+         * Alphabetical by display name.
+         */
+        NAME,
+        /**
+         * Alphabetical by user type.
+         */
+        ROLE,
+        /**
+         * Oldest member first.
+         */
+        JOIN_DATE
+    }
+
     record MarkdownConfig() implements CellConfig {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -54,7 +105,7 @@ public sealed interface CellConfig {
             Double cropRight,
             Double cropBottom,
             Double cropLeft,
-            Integer borderRadiusPx,
+            Integer borderRadiusPercent,
             Integer borderWidthPx,
             String borderColor)
             implements CellConfig {}
@@ -62,158 +113,266 @@ public sealed interface CellConfig {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record VideoConfig(Boolean autoplay, Boolean loop) implements CellConfig {}
 
-    /** Callout box. The body text lives in cell.content (markdown). */
+    /**
+     * Callout box. The body text lives in cell.content (markdown).
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record CalloutConfig(CalloutVariant variant, String title) implements CellConfig {}
 
-    /** Quote block. The quote text lives in cell.content. */
+    /**
+     * Quote block. The quote text lives in cell.content.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record QuoteConfig(String author, String attributionUrl) implements CellConfig {}
 
-    /** Horizontal divider with optional centred label. */
+    /**
+     * Horizontal divider with optional centred label.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record DividerConfig(String label) implements CellConfig {}
 
-    /** Vertical spacer. Height in CSS pixels. */
+    /**
+     * Vertical spacer. Height in CSS pixels.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record SpacerConfig(Integer heightPx) implements CellConfig {}
 
-    /** Collapsible accordion. The body markdown lives in cell.content. */
+    /**
+     * Collapsible accordion. The body markdown lives in cell.content.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record AccordionConfig(String title, Boolean openByDefault) implements CellConfig {}
 
-    /** Embedded PDF viewer. url is required; height is in CSS pixels. */
+    /**
+     * Embedded PDF viewer. url is required; height is in CSS pixels.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record PdfConfig(String url, Integer heightPx) implements CellConfig {}
 
-    /** Download card pointing at any file URL. */
+    /**
+     * Download card pointing at any file URL.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record FileDownloadConfig(String url, String label, String description) implements CellConfig {}
 
-    /** Countdown to a target date. */
+    /**
+     * Countdown to a target date.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record CountdownConfig(String targetDate, String label, String sublabel) implements CellConfig {}
 
-    /** Featured event card. Admin-curated; all fields are content-driven. */
+    /**
+     * Featured event card. Admin-curated; all fields are content-driven.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record FeaturedEventConfig(
             String title, String date, String location, String description, String ctaText, String ctaUrl)
             implements CellConfig {}
 
-    /** Curated list of upcoming events. */
+    /**
+     * Curated list of upcoming events.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record UpcomingEventsConfig(String title, java.util.List<EventItem> items) implements CellConfig {}
+    record UpcomingEventsConfig(String title, List<EventItem> items) implements CellConfig {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record EventItem(String title, String date, String location, String url) {}
 
-    /** Link card pointing at a public KB article. */
+    /**
+     * Link card pointing at a public KB article.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record KbArticleConfig(Integer articleId, String fallbackTitle) implements CellConfig {}
 
-    /** Static news teaser. */
+    /**
+     * Static news teaser.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record NewsTeaserConfig(String title, String date, String summary, String url, String imageUrl)
             implements CellConfig {}
 
-    /** Link card pointing at another public StationPage. */
+    /**
+     * Link card pointing at another public StationPage.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record PageLinkConfig(Integer pageId, String fallbackTitle) implements CellConfig {}
 
-    /** OpenStreetMap embed via configurable coordinates. */
+    /**
+     * OpenStreetMap embed via configurable coordinates.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record MapConfig(Double latitude, Double longitude, Integer zoom, Integer heightPx, String label)
             implements CellConfig {}
 
-    /** Address card with formatted postal address. */
+    /**
+     * Address card with formatted postal address.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record AddressCardConfig(
             String addressLine, String postalCode, String city, String country, String mapUrl, String label)
             implements CellConfig {}
 
-    /** Manually curated list of partner stations. */
+    /**
+     * Partner stations cell. Either renders an explicit list of station UUIDs, or — when
+     * {@code autoFillFromPartners} is {@code true} — every federated partner of the host station.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record PartnerStationsConfig(String title, java.util.List<PartnerStationItem> items) implements CellConfig {}
-
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    record PartnerStationItem(String name, String url, Double distanceKm) {}
-
-    /** Federated event reference (manually curated). */
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    record FederatedEventConfig(String title, String date, String partnerName, String url, String description)
+    record PartnerStationsConfig(String title, List<String> stationUids, Boolean autoFillFromPartners)
             implements CellConfig {}
 
-    /** Member spotlight (manually curated). */
+    /**
+     * Member spotlight referencing an existing station member by UUID. The displayed name and
+     * avatar are resolved live from the member's record. {@code blurb} is an editor-supplied
+     * free-form note. {@code showUserType} (default {@code true}) and {@code showTag}
+     * (default {@code false}) independently control whether the user type line and the primary
+     * visible tag badge are rendered next to the name.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record MemberSpotlightConfig(String name, String role, String imageUrl, String blurb) implements CellConfig {}
+    record MemberSpotlightConfig(String memberUid, String blurb, Boolean showUserType, Boolean showTag)
+            implements CellConfig {}
 
-    /** Officers row — list of named roles. */
+    /**
+     * Officers row (a.k.a. member-list spotlight) sourced from a group, tag, or manual UUID
+     * list. {@code source} is stored as a pass-through {@link JsonNode} so the polymorphic
+     * {@code {kind, …}} discriminator survives round-tripping. {@code showUserType} and
+     * {@code showTag} independently control whether the user type and the member's primary tag
+     * are shown on each card. {@code memberOrder} is the persistent display order applied when
+     * {@code sortBy == ORDER}: UUIDs listed there are rendered first in the given order, with
+     * members not in the list falling back to the natural source order (memberUids for manual;
+     * alphabetical for group / tag).
+     *
+     * <p>{@code resolvedMembers} is a render-time injection populated by {@code PageService}
+     * when the page is served via {@code getPageRendered} so the public visitor never needs to
+     * call the auth-gated avatar endpoint. It is never persisted; saves round-trip the same
+     * Jackson record and the renderer always replaces it.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record OfficersRowConfig(String title, java.util.List<OfficerItem> items) implements CellConfig {}
+    record MemberListConfig(
+            String title,
+            JsonNode source,
+            MemberListSortBy sortBy,
+            Boolean showUserType,
+            Boolean showTag,
+            Map<String, String> memberDescriptions,
+            List<String> memberOrder,
+            List<ResolvedMember> resolvedMembers)
+            implements CellConfig {}
 
+    /**
+     * Render-time card data for a single resolved member-list entry. Mirrors the
+     * {@code MemberSearchResult} shape used by the picker so the public renderer can display
+     * everything without a follow-up auth-gated request. {@code avatarUrl}, when present,
+     * carries the avatar inlined as a {@code data:} URL.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record OfficerItem(String name, String role, String imageUrl) {}
+    record ResolvedMember(
+            String memberUid,
+            String displayName,
+            String userType,
+            String displayTag,
+            String displayTagColor,
+            String avatarUrl,
+            String description) {}
 
-    /** Big-number stats counter row. */
+    /**
+     * Big-number stats counter row.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record StatsCounterConfig(java.util.List<StatItem> items) implements CellConfig {}
+    record StatsCounterConfig(List<StatItem> items) implements CellConfig {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record StatItem(String label, String value, String suffix) {}
 
-    /** Image gallery using uploaded page images. */
+    /**
+     * Image gallery — list of items, each with its own image hash + alt + subtext.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record ImageGalleryConfig(java.util.List<Integer> imageIds, Integer columns) implements CellConfig {}
-
-    /** Hero banner — full-width image with overlay text. */
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    record HeroBannerConfig(Integer imageId, String headline, String subtitle, String ctaText, String ctaUrl)
+    record ImageGalleryConfig(
+            List<GalleryItem> items, Integer columns, GalleryAspectMode aspectMode, Integer maxItemHeightPx)
             implements CellConfig {}
 
-    /** Past event recap. */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record PastEventRecapConfig(String title, String date, Integer imageId, String summary) implements CellConfig {}
+    record GalleryItem(String imageHash, String altText, String subtext) {}
 
-    /** Tabbed sections. */
+    /**
+     * Hero banner — full-width image with overlay text.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record TabsConfig(java.util.List<TabItem> items) implements CellConfig {}
+    record HeroBannerConfig(String imageHash, String headline, String subtitle, String ctaText, String ctaUrl)
+            implements CellConfig {}
+
+    /**
+     * Past event recap.
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record PastEventRecapConfig(String title, String date, String imageHash, String summary) implements CellConfig {}
+
+    /**
+     * Tabbed sections.
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record TabsConfig(List<TabItem> items) implements CellConfig {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record TabItem(String title, String body) {}
 
-    /** Achievements / badges showcase. */
+    /**
+     * Achievements / badges showcase.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record AchievementsConfig(String title, java.util.List<AchievementItem> items) implements CellConfig {}
+    record AchievementsConfig(String title, List<AchievementItem> items) implements CellConfig {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record AchievementItem(String title, String description, String year) {}
 
-    /** External link card with OG-style preview metadata supplied by the admin. */
+    /**
+     * External link card with OG-style preview metadata supplied by the admin.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record ExternalLinkCardConfig(String url, String title, String description, String imageUrl)
+    record ExternalLinkCardConfig(
+            String url, String title, String description, String imageUrl, ExternalLinkImageDisplay imageDisplay)
             implements CellConfig {}
 
-    /** Newsletter / feed signup card. */
+    /**
+     * Blog feed signup card. Renders the station's public blog RSS/Atom feed URLs together
+     * with editor-supplied title + description so visitors can subscribe in their reader of
+     * choice. Feed URLs are composed at render time from the host station UID.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record NewsletterSignupConfig(String title, String description, String feedUrl) implements CellConfig {}
+    record BlogSignupConfig(String title, String description) implements CellConfig {}
 
-    /** Embedded audio player. */
+    /**
+     * Embedded audio player.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record AudioEmbedConfig(String url, String title) implements CellConfig {}
 
-    /** Poll embed teaser. */
+    /**
+     * Embedded poll. The cell references a public form (purpose = POLL) by its public UUID and
+     * the render component fetches the form definition and submits anonymously via the public
+     * form endpoints (concept §3.14, §4.4).
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record PollEmbedConfig(String title, String description, String url) implements CellConfig {}
+    record PollEmbedConfig(String formPublicUid, Boolean showResultsAfterVote) implements CellConfig {}
 
-    /** Quiz teaser. */
+    /**
+     * Quiz teaser. References one or more public quiz catalogs by id; the renderer pulls a
+     * random question from them and reveals the answer on click (concept §3.15).
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record QuizTeaserConfig(String title, String description, String ctaText, String url) implements CellConfig {}
+    record QuizTeaserConfig(String title, String description, List<Integer> catalogIds) implements CellConfig {}
 
-    /** Application / "join us" call-to-action. */
+    /**
+     * Contact form call-to-action. References a public form (purpose = CONTACT) by its public
+     * UUID; the cell renders that form for in-page anonymous submission. Headline and body are
+     * editor-supplied overrides shown above the form fields (concept §3.16).
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record ApplicationCtaConfig(String headline, String body, String ctaText, String ctaUrl) implements CellConfig {}
+    record FormsCtaConfig(String formPublicUid, String headlineOverride, String bodyOverride) implements CellConfig {}
 
-    /** Syntax-highlighted code block. Code lives in cell.content. */
+    /**
+     * Syntax-highlighted code block. Code lives in cell.content.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record CodeBlockConfig(String language) implements CellConfig {}
 
@@ -223,7 +382,7 @@ public sealed interface CellConfig {
      * The frontend treats this as a recursive RowEditData[].
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record NestedRowsConfig(tools.jackson.databind.JsonNode rows) implements CellConfig {}
+    record NestedRowsConfig(JsonNode rows) implements CellConfig {}
 
     static CellConfig parse(CellContentType type, String json) {
         if (json == null || json.isBlank() || "{}".equals(json)) {

@@ -6,7 +6,6 @@
 <script setup lang="ts">
 import {ref, computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import FileUploadButton from '@/components/button/FileUploadButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -14,11 +13,13 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
+import PageFileBrowseButton from './PageFileBrowseButton.vue'
+import CellImagePreview from './CellImagePreview.vue'
 import {
     ImageFit,
-    uploadPageImage,
     pageImageUrl,
     type ImageConfig,
+    type PageFile,
 } from '@/api/pageManage'
 
 const props = defineProps<{
@@ -34,49 +35,18 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
-const uploading = ref(false)
 const settingsOpen = ref(false)
+
+function onPick(p: {file: PageFile; url: string}) {
+    emit('update:content', p.file.contentHash ?? '')
+}
 
 const imageConfig = computed<ImageConfig>(() => (props.config as ImageConfig) ?? {})
 
 const imageUrl = computed(() => {
     if (!props.content) return ''
-    return pageImageUrl(props.stationUid, Number(props.content))
+    return pageImageUrl(props.stationUid, props.content)
 })
-
-const previewStyle = computed(() => buildStyle(imageConfig.value))
-
-function buildStyle(cfg: ImageConfig): Record<string, string> {
-    const T = clampPct(cfg.cropTop)
-    const R = clampPct(cfg.cropRight)
-    const B = clampPct(cfg.cropBottom)
-    const L = clampPct(cfg.cropLeft)
-    const style: Record<string, string> = {}
-    if (T + R + B + L > 0) {
-        style.objectViewBox = `inset(${T}% ${R}% ${B}% ${L}%)`
-    }
-    if (cfg.borderRadiusPx != null) style.borderRadius = `${cfg.borderRadiusPx}px`
-    if (cfg.borderWidthPx != null && cfg.borderWidthPx > 0) {
-        style.border = `${cfg.borderWidthPx}px solid ${cfg.borderColor ?? 'var(--border)'}`
-    }
-    return style
-}
-
-function clampPct(v: number | null | undefined): number {
-    if (v == null) return 0
-    return Math.max(0, Math.min(90, v))
-}
-
-async function onImageUpload(file: File) {
-    if (!props.pageId) return
-    uploading.value = true
-    try {
-        const image = await uploadPageImage(props.pageId, file)
-        emit('update:content', String(image.id))
-    } finally {
-        uploading.value = false
-    }
-}
 
 function updateConfig(patch: Record<string, unknown>) {
     emit('update:config', {...props.config, ...patch})
@@ -85,22 +55,22 @@ function updateConfig(patch: Record<string, unknown>) {
 
 <template>
     <div class="space-y-2 overflow-hidden">
-        <div v-if="imageUrl" class="relative overflow-hidden space-y-1">
-            <img
+        <div v-if="imageUrl" class="space-y-1">
+            <CellImagePreview
                 :src="imageUrl"
                 :alt="imageConfig.altText ?? ''"
-                :title="imageConfig.altText ?? ''"
-                :style="previewStyle"
-                class="max-h-48 w-full object-contain"
+                :config="imageConfig"
             />
             <p v-if="imageConfig.description" class="text-xs text-(--text-muted) italic text-center">
                 {{ imageConfig.description }}
             </p>
         </div>
         <div class="flex items-center gap-2">
-            <FileUploadButton accept="image/*" :disabled="uploading" @select="onImageUpload">
-                {{ uploading ? t('common.loading') : t('stationPages.editor.uploadImage') }}
-            </FileUploadButton>
+            <PageFileBrowseButton
+                :station-uid="stationUid"
+                mime-prefix="image/"
+                @pick="onPick"
+            />
             <IconButton
                 v-if="imageUrl"
                 :icon="['fas', 'sliders']"
@@ -114,11 +84,10 @@ function updateConfig(patch: Record<string, unknown>) {
             <SectionHeader class="mb-4">{{ t('stationPages.editor.imageSettings') }}</SectionHeader>
             <div v-if="imageUrl" class="mb-4">
                 <p class="text-xs uppercase tracking-wider text-(--text-muted) mb-1">{{ t('stationPages.editor.cropPreview') }}</p>
-                <img
+                <CellImagePreview
                     :src="imageUrl"
                     :alt="imageConfig.altText ?? ''"
-                    :style="previewStyle"
-                    class="max-h-64 w-full object-contain border border-(--border) rounded-theme"
+                    :config="imageConfig"
                 />
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -189,11 +158,11 @@ function updateConfig(patch: Record<string, unknown>) {
                 <div class="space-y-3 sm:col-span-2">
                     <p class="text-xs uppercase tracking-wider text-(--text-muted)">{{ t('stationPages.editor.imageSectionStyle') }}</p>
                     <div>
-                        <FieldLabel hint class="mb-1">{{ t('stationPages.editor.borderRadiusPx') }}</FieldLabel>
+                        <FieldLabel hint class="mb-1">{{ t('stationPages.editor.borderRadiusPercent') }}</FieldLabel>
                         <NumberInput
-                            :model-value="imageConfig.borderRadiusPx ?? 0"
-                            :min="0" :max="500"
-                            @update:model-value="updateConfig({borderRadiusPx: $event || null})"
+                            :model-value="imageConfig.borderRadiusPercent ?? 0"
+                            :min="0" :max="50"
+                            @update:model-value="updateConfig({borderRadiusPercent: $event || null})"
                         />
                     </div>
                     <div class="grid grid-cols-2 gap-3">

@@ -158,8 +158,8 @@ class PageRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(13)
-    void createImage() {
-        var image = pageRepo.createImage(pageId, station.id(), "abc123", "test.png", "image/png", 1024);
+    void createFile() {
+        var image = pageRepo.createFile(pageId, station.id(), "abc123", "test.png", "image/png", 1024);
         assertNotNull(image);
         assertEquals("test.png", image.fileName());
         assertEquals(1024, image.fileSize());
@@ -168,39 +168,39 @@ class PageRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(14)
-    void findImage() {
-        assertTrue(pageRepo.findImage(imageId).isPresent());
-        assertTrue(pageRepo.findImage(99999).isEmpty());
+    void findFile() {
+        assertTrue(pageRepo.findFile(imageId).isPresent());
+        assertTrue(pageRepo.findFile(99999).isEmpty());
     }
 
     @Test
     @Order(15)
-    void findImagesByPage() {
-        var list = pageRepo.findImagesByPage(pageId);
+    void findFilesByPage() {
+        var list = pageRepo.findFilesByPage(pageId);
         assertEquals(1, list.size());
     }
 
     @Test
     @Order(16)
-    void findReferencedImageIds() {
-        // Add a row with an IMAGE cell referencing the uploaded image
+    void findAllCellsByPage() {
         int rowId = pageRepo.insertRow(pageId, 0);
         pageRepo.insertCell(rowId, 0, 50.0, CellContentType.IMAGE, String.valueOf(imageId), CellConfig.EMPTY);
         pageRepo.insertCell(rowId, 1, 50.0, CellContentType.MARKDOWN, "text", CellConfig.EMPTY);
 
-        var referenced = pageRepo.findReferencedImageIds(pageId);
-        assertEquals(1, referenced.size());
-        assertTrue(referenced.contains(imageId));
+        var cells = pageRepo.findAllCellsByPage(pageId);
+        assertEquals(2, cells.size());
+        assertTrue(cells.stream()
+                .anyMatch(c -> c.contentType() == CellContentType.IMAGE
+                        && String.valueOf(imageId).equals(c.content())));
 
-        // Clean up row
         pageRepo.deleteRowsByPage(pageId);
     }
 
     @Test
     @Order(17)
-    void deleteImage() {
-        assertTrue(pageRepo.deleteImage(imageId));
-        assertTrue(pageRepo.findImage(imageId).isEmpty());
+    void deleteFile() {
+        assertTrue(pageRepo.deleteFile(imageId));
+        assertTrue(pageRepo.findFile(imageId).isEmpty());
     }
 
     @Test

@@ -15,10 +15,7 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -103,6 +100,41 @@ public class PageRepository {
                 .map(StationPage.mapFlat())
                 .all();
     }
+
+    /**
+     * Editor's PAGE_LINK picker (concept §4.5). Returns a compact shape — {@code publicUid},
+     * {@code title}, {@code slug}, {@code updatedAt} — for the published pages of the supplied
+     * station, optionally filtered by case-insensitive title substring. Empty {@code search}
+     * returns the most recently updated pages so the picker has something on first focus.
+     */
+    public List<PickerPage> searchForPicker(int stationId, String search, int limit) {
+        boolean hasSearch = search != null && !search.isBlank();
+        String predicate = hasSearch ? " AND LOWER(title) LIKE :q" : "";
+        String sql = "SELECT public_uid, title, slug, updated_at FROM station_page"
+                + " WHERE station_id = :station_id AND published"
+                + predicate
+                + " ORDER BY updated_at DESC LIMIT :limit;";
+        var c = call().bind("station_id", stationId).bind("limit", limit);
+        if (hasSearch) {
+            c = c.bind("q", "%" + search.trim().toLowerCase() + "%");
+        }
+        return query(sql)
+                .single(c)
+                .map(row -> new PickerPage(
+                        row.get("public_uid", de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING),
+                        row.getString("title"),
+                        row.getString("slug"),
+                        row.get(
+                                "updated_at",
+                                de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP)))
+                .all();
+    }
+
+    /**
+     * Lightweight picker result row for the page picker. Exposes only the public UUID — never the
+     * internal integer id (concept §2.3).
+     */
+    public record PickerPage(java.util.UUID pageUid, String title, String slug, java.time.Instant updatedAt) {}
 
     public boolean updateMeta(
             int id, String title, String slug, Integer parentId, String metaDescription, Integer ogImageId) {
@@ -243,14 +275,16 @@ public class PageRepository {
 
     // --- Image operations ---
 
-    public PageFile createImage(
-            int pageId, int stationId, String contentHash, String fileName, String mimeType, long fileSize) {
+    public PageFile createFile(
+            Integer pageId, int stationId, String contentHash, String fileName, String mimeType, long fileSize) {
         return query("""
                 INSERT
                 INTO
-                    page_image(page_id, station_id, content_hash, file_name, mime_type, file_size)
+                    page_file(
+                        page_id, station_id, content_hash, file_name, mime_type, file_size,
+                        default_alt_text, default_description, folder_id)
                 VALUES
-                    (:page_id, :station_id, :content_hash, :file_name, :mime_type, :file_size)
+                    (:page_id, :station_id, :content_hash, :file_name, :mime_type, :file_size, NULL, NULL, NULL)
                 RETURNING *;""")
                 .single(call().bind("page_id", pageId)
                         .bind("station_id", stationId)
@@ -263,9 +297,9 @@ public class PageRepository {
                 .orElseThrow();
     }
 
-    public Optional<PageFile> findImage(int imageId) {
-        return query("SELECT * FROM page_image WHERE id = :id;")
-                .single(call().bind("id", imageId))
+    public Optional<PageFile> findFile(int fileId) {
+        return query("SELECT * FROM page_file WHERE id = :id;")
+                .single(call().bind("id", fileId))
                 .map(PageFile.map())
                 .first();
     }
@@ -273,7 +307,7 @@ public class PageRepository {
     public Optional<PageFile> findByStationAndHash(int stationId, String contentHash) {
         return query("""
                 SELECT *
-                FROM page_image
+                FROM page_file
                 WHERE station_id = :station_id AND content_hash = :content_hash
                 LIMIT 1;""")
                 .single(call().bind("station_id", stationId).bind("content_hash", contentHash))
@@ -281,48 +315,47 @@ public class PageRepository {
                 .first();
     }
 
-    public List<PageFile> findImagesByPage(int pageId) {
-        return query("SELECT * FROM page_image WHERE page_id = :page_id;")
+    public List<PageFile> findFilesByPage(int pageId) {
+        return query("SELECT * FROM page_file WHERE page_id = :page_id;")
                 .single(call().bind("page_id", pageId))
                 .map(PageFile.map())
                 .all();
     }
 
-    public List<PageFile> findImagesByStation(int stationId) {
-        return query("SELECT * FROM page_image WHERE station_id = :station_id ORDER BY uploaded_at DESC;")
+    public List<PageFile> findFilesByStation(int stationId) {
+        return query("SELECT * FROM page_file WHERE station_id = :station_id ORDER BY uploaded_at DESC;")
                 .single(call().bind("station_id", stationId))
                 .map(PageFile.map())
                 .all();
     }
 
-    public boolean deleteImage(int imageId) {
-        return query("DELETE FROM page_image WHERE id = :id;")
-                .single(call().bind("id", imageId))
+    public boolean deleteFile(int fileId) {
+        return query("DELETE FROM page_file WHERE id = :id;")
+                .single(call().bind("id", fileId))
                 .delete()
                 .changed();
     }
 
-    public Set<Integer> findReferencedImageIds(int pageId) {
-        var rows = findRowsByPage(pageId);
-        return rows.stream()
-                .flatMap(r -> findCellsByRow(r.id()).stream())
-                .filter(c -> c.contentType() == CellContentType.IMAGE)
-                .map(c -> {
-                    try {
-                        return Integer.parseInt(c.content().trim());
-                    } catch (NumberFormatException e) {
-                        return null;
-                    }
-                })
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+    public boolean updateFileMeta(int fileId, String altText, String description) {
+        return query("""
+                UPDATE page_file
+                SET default_alt_text = :alt, default_description = :description
+                WHERE id = :id;""")
+                .single(call().bind("id", fileId).bind("alt", altText).bind("description", description))
+                .update()
+                .changed();
     }
 
-    /** Union of {@link #findReferencedImageIds(int)} across all pages in the station. */
-    public Set<Integer> findReferencedImageIdsByStation(int stationId) {
+    public List<PageCell> findAllCellsByPage(int pageId) {
+        return findRowsByPage(pageId).stream()
+                .flatMap(r -> findCellsByRow(r.id()).stream())
+                .toList();
+    }
+
+    public List<PageCell> findAllCellsByStation(int stationId) {
         return findByStation(stationId).stream()
-                .flatMap(p -> findReferencedImageIds(p.id()).stream())
-                .collect(Collectors.toSet());
+                .flatMap(p -> findAllCellsByPage(p.id()).stream())
+                .toList();
     }
 
     // --- Landing page ---

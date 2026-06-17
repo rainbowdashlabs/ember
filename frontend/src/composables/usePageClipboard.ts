@@ -3,12 +3,14 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, ref} from 'vue'
+import {computed, nextTick, ref} from 'vue'
 
-// JSON-clone instead of structuredClone — the inputs are Vue reactive Proxies whose hidden
-// reactivity metadata makes structuredClone throw. The clipboard data is plain JSON (row
-// definitions with primitives/strings/numbers) so JSON round-tripping is safe and strips
-// any reactivity along the way.
+/**
+ * JSON-clone instead of structuredClone — the inputs are Vue reactive Proxies whose hidden
+ * reactivity metadata makes structuredClone throw. The clipboard data is plain JSON (row
+ * definitions with primitives/strings/numbers) so JSON round-tripping is safe and strips any
+ * reactivity along the way.
+ */
 function deepClone<T>(value: T): T {
     return JSON.parse(JSON.stringify(value)) as T
 }
@@ -34,12 +36,10 @@ export function usePageClipboard() {
     function pasteRow(): unknown | null {
         if (!clipboard.value || clipboard.value.type !== 'row') return null
         const entry = clipboard.value
-        if (entry.isCut && entry.removeCallback) {
-            entry.removeCallback()
-        }
         const data = deepClone(entry.data)
         if (entry.isCut) {
             clipboard.value = null
+            if (entry.removeCallback) nextTick(entry.removeCallback)
         }
         return data
     }
@@ -55,12 +55,10 @@ export function usePageClipboard() {
     function pasteCell(): unknown | null {
         if (!clipboard.value || clipboard.value.type !== 'cell') return null
         const entry = clipboard.value
-        if (entry.isCut && entry.removeCallback) {
-            entry.removeCallback()
-        }
         const data = deepClone(entry.data)
         if (entry.isCut) {
             clipboard.value = null
+            if (entry.removeCallback) nextTick(entry.removeCallback)
         }
         return data
     }

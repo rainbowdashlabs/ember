@@ -290,22 +290,23 @@ onMounted(() => loadData())
                     </div>
                 </NeutralContainer>
 
-                <!-- Add row before first -->
-                <div v-if="!preview" class="flex items-center justify-center gap-2 py-1">
-                    <div class="flex-1 h-px bg-[var(--border)]"/>
-                    <SecondaryButton compact @click="openAddRowDialog(0)">
-                        <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
-                        {{ t('stationPages.editor.addRow') }}
-                    </SecondaryButton>
-                    <SecondaryButton
-                        v-if="hasClipboard && clipboardType === 'row'"
-                        compact
-                        @click="onPasteRow(0)"
-                    >
-                        <font-awesome-icon :icon="['fas', 'paste']" class="mr-1"/>
-                        {{ t('stationPages.editor.pasteRow') }}
-                    </SecondaryButton>
-                    <div class="flex-1 h-px bg-[var(--border)]"/>
+                <div v-if="!preview" class="relative flex items-center justify-center py-2">
+                    <div class="absolute inset-x-0 top-1/2 h-px bg-(--border)"/>
+                    <div class="relative flex items-center gap-2">
+                        <IconButton
+                            :icon="['fas', 'plus']"
+                            :label="t('stationPages.editor.addRow')"
+                            class="rounded-full bg-(--bg) border border-(--border) text-(--text-muted) hover:text-primary hover:border-primary !p-1 text-xs shadow-sm"
+                            @click="openAddRowDialog(0)"
+                        />
+                        <IconButton
+                            v-if="hasClipboard && clipboardType === 'row'"
+                            :icon="['fas', 'paste']"
+                            :label="t('stationPages.editor.pasteRow')"
+                            class="rounded-full bg-(--bg) border border-(--border) text-primary hover:border-primary !p-1 text-xs shadow-sm"
+                            @click="onPasteRow(0)"
+                        />
+                    </div>
                 </div>
 
                 <!-- Rows -->
@@ -324,22 +325,23 @@ onMounted(() => loadData())
                             @move-down="moveRow(index, 1)"
                         />
 
-                        <!-- Add row after each row -->
-                        <div v-if="!preview" class="flex items-center justify-center gap-2 py-1">
-                            <div class="flex-1 h-px bg-[var(--border)]"/>
-                            <SecondaryButton compact @click="openAddRowDialog(index + 1)">
-                                <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
-                                {{ t('stationPages.editor.addRow') }}
-                            </SecondaryButton>
-                            <SecondaryButton
-                                v-if="hasClipboard && clipboardType === 'row'"
-                                compact
-                                @click="onPasteRow(index + 1)"
-                            >
-                                <font-awesome-icon :icon="['fas', 'paste']" class="mr-1"/>
-                                {{ t('stationPages.editor.pasteRow') }}
-                            </SecondaryButton>
-                            <div class="flex-1 h-px bg-[var(--border)]"/>
+                        <div v-if="!preview" class="relative flex items-center justify-center py-2">
+                            <div class="absolute inset-x-0 top-1/2 h-px bg-(--border)"/>
+                            <div class="relative flex items-center gap-2">
+                                <IconButton
+                                    :icon="['fas', 'plus']"
+                                    :label="t('stationPages.editor.addRow')"
+                                    class="rounded-full bg-(--bg) border border-(--border) text-(--text-muted) hover:text-primary hover:border-primary !p-1 text-xs shadow-sm"
+                                    @click="openAddRowDialog(index + 1)"
+                                />
+                                <IconButton
+                                    v-if="hasClipboard && clipboardType === 'row'"
+                                    :icon="['fas', 'paste']"
+                                    :label="t('stationPages.editor.pasteRow')"
+                                    class="rounded-full bg-(--bg) border border-(--border) text-primary hover:border-primary !p-1 text-xs shadow-sm"
+                                    @click="onPasteRow(index + 1)"
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>

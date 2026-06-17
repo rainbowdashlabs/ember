@@ -8,6 +8,8 @@ import type {StationPage} from './pageManage'
 
 export interface PublicPageSummary {
     id: number
+    /** Stable opaque public identifier — referenced by PAGE_LINK cells (concept §2.3). */
+    publicUid: string
     parentId: number | null
     title: string
     slug: string
@@ -32,8 +34,8 @@ export async function getPublicLandingPage(stationUid: string): Promise<StationP
     return res.data
 }
 
-export function publicPageImageUrl(stationUid: string, imageId: number): string {
-    return `/api/v1/public/pages/${stationUid}/images/${imageId}`
+export function publicPageImageUrl(stationUid: string, contentHash: string): string {
+    return `/api/v1/public/pages/${stationUid}/files/${contentHash}`
 }
 
 export interface PublicPartnerSummary {
@@ -45,5 +47,16 @@ export interface PublicPartnerSummary {
 
 export async function listPartnerStations(stationUid: string): Promise<PublicPartnerSummary[]> {
     const res = await client.get<PublicPartnerSummary[]>(`/public/pages/${stationUid}/partners`)
+    return res.data
+}
+
+export async function resolvePartnerStations(
+    stationUid: string,
+    uids: string[],
+): Promise<PublicPartnerSummary[]> {
+    if (uids.length === 0) return []
+    const res = await client.get<PublicPartnerSummary[]>(`/public/pages/${stationUid}/partners`, {
+        params: {uids: uids.join(',')},
+    })
     return res.data
 }

@@ -14,15 +14,19 @@ const props = withDefaults(defineProps<{
     widthPercent?: number | null
     /** True when the surrounding row has more than one cell (so width and split make sense). */
     canResize?: boolean
+    /** True when the clipboard currently holds a cell that can be pasted over this one. */
+    canPaste?: boolean
     /** Optional label shown at the top of the menu (e.g. the cell type). */
     label?: string
 }>(), {
     canResize: false,
+    canPaste: false,
 })
 
 const emit = defineEmits<{
     copy: []
     cut: []
+    paste: []
     delete: []
     split: [columns: number]
     'update:widthPercent': [value: number]
@@ -101,6 +105,7 @@ defineExpose({close})
             <div class="border-t border-(--border) my-1"/>
             <DropdownMenuItem :icon="['fas', 'copy']" @click="emit('copy'); close()">{{ t('stationPages.editor.copyCell') }}</DropdownMenuItem>
             <DropdownMenuItem :icon="['fas', 'scissors']" @click="emit('cut'); close()">{{ t('stationPages.editor.cutCell') }}</DropdownMenuItem>
+            <DropdownMenuItem v-if="canPaste" :icon="['fas', 'paste']" @click="emit('paste'); close()">{{ t('stationPages.editor.pasteCell') }}</DropdownMenuItem>
             <DropdownMenuItem :icon="['fas', 'table-columns']" @click="doSplit(2)">{{ t('stationPages.editor.splitCell') }}</DropdownMenuItem>
             <div class="border-t border-(--border) my-1"/>
             <DropdownMenuItem :icon="['fas', 'trash']" class="text-error" @click="emit('delete'); close()">{{ t('common.delete') }}</DropdownMenuItem>
