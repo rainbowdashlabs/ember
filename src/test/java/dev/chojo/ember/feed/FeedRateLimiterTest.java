@@ -10,7 +10,12 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -88,11 +93,11 @@ class FeedRateLimiterTest {
         var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
         var limiter = new FeedRateLimiter(clock);
         int threads = 64;
-        var ready = new java.util.concurrent.CountDownLatch(threads);
-        var go = new java.util.concurrent.CountDownLatch(1);
-        var admitted = new java.util.concurrent.atomic.AtomicInteger();
+        var ready = new CountDownLatch(threads);
+        var go = new CountDownLatch(1);
+        var admitted = new AtomicInteger();
 
-        var pool = java.util.concurrent.Executors.newFixedThreadPool(threads);
+        var pool = Executors.newFixedThreadPool(threads);
         try {
             for (int i = 0; i < threads; i++) {
                 pool.submit(() -> {
@@ -105,7 +110,7 @@ class FeedRateLimiterTest {
             ready.await();
             go.countDown();
             pool.shutdown();
-            assertTrue(pool.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS));
+            assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS));
         } finally {
             pool.shutdownNow();
         }
@@ -130,12 +135,12 @@ class FeedRateLimiterTest {
         }
 
         @Override
-        public java.time.ZoneId getZone() {
+        public ZoneId getZone() {
             return ZoneOffset.UTC;
         }
 
         @Override
-        public Clock withZone(java.time.ZoneId zone) {
+        public Clock withZone(ZoneId zone) {
             return this;
         }
 

@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -28,6 +29,8 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -604,8 +607,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         var data = NotificationData.of(
                 new NotificationParams.NewEvent("Sprechstunde", "Etwas Beschreibung"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var notif = new dev.chojo.ember.feature.notifications.entity.Notification(
-                1, member1.id(), NotificationType.NEW_EVENT, data, java.time.Instant.now(), null);
+        var notif = new Notification(1, member1.id(), NotificationType.NEW_EVENT, data, Instant.now(), null);
         String msg = service.resolveMessage("de", notif);
         assertTrue(msg.contains("Sprechstunde"));
 
@@ -613,8 +615,8 @@ class NotificationServiceTest extends RepositoryTestBase {
         var storageData = NotificationData.of(
                 new NotificationParams.StorageWarning(95, "9.5 GB", "10 GB"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var storageNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
-                2, member1.id(), NotificationType.STORAGE_WARNING, storageData, java.time.Instant.now(), null);
+        var storageNotif =
+                new Notification(2, member1.id(), NotificationType.STORAGE_WARNING, storageData, Instant.now(), null);
         String storageMsg = service.resolveMessage("de", storageNotif);
         assertTrue(storageMsg.contains("95"));
     }
@@ -625,15 +627,14 @@ class NotificationServiceTest extends RepositoryTestBase {
         var data = NotificationData.of(
                 new NotificationParams.NewNews("Titel", "Autor", "Preview"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var notif = new dev.chojo.ember.feature.notifications.entity.Notification(
-                3, member1.id(), NotificationType.NEW_NEWS, data, java.time.Instant.now(), null);
+        var notif = new Notification(3, member1.id(), NotificationType.NEW_NEWS, data, Instant.now(), null);
         assertEquals("Preview", service.resolveDetail(notif));
 
         var none = NotificationData.of(
                 new NotificationParams.MemberAddedToGroup("Alpha", null),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var noneNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
-                4, member1.id(), NotificationType.MEMBER_ADDED_TO_GROUP, none, java.time.Instant.now(), null);
+        var noneNotif =
+                new Notification(4, member1.id(), NotificationType.MEMBER_ADDED_TO_GROUP, none, Instant.now(), null);
         assertNull(service.resolveDetail(noneNotif));
     }
 
@@ -644,8 +645,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         var ne = NotificationData.of(
                 new NotificationParams.NewEvent("Probe", "Wir üben für das Konzert"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var neNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
-                10, member1.id(), NotificationType.NEW_EVENT, ne, java.time.Instant.now(), null);
+        var neNotif = new Notification(10, member1.id(), NotificationType.NEW_EVENT, ne, Instant.now(), null);
         String neBody = service.resolveFeedBody("de", neNotif);
         assertTrue(neBody.contains("Probe"));
         assertTrue(neBody.contains("Wir üben"));
@@ -654,8 +654,8 @@ class NotificationServiceTest extends RepositoryTestBase {
         var batchData = NotificationData.of(
                 new NotificationParams.NewEventsBatch(3, "A, B, C", null),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var batchNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
-                11, member1.id(), NotificationType.NEW_EVENTS_BATCH, batchData, java.time.Instant.now(), null);
+        var batchNotif =
+                new Notification(11, member1.id(), NotificationType.NEW_EVENTS_BATCH, batchData, Instant.now(), null);
         String batchBody = service.resolveFeedBody("de", batchNotif);
         assertTrue(batchBody.contains("3"));
         assertTrue(batchBody.contains("A, B, C"));
@@ -665,8 +665,8 @@ class NotificationServiceTest extends RepositoryTestBase {
         var btu = NotificationData.of(
                 new NotificationParams.BoardTicketUpdate("Vorstand", "VORSTAND-12", "Status changed"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var btuNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
-                12, member1.id(), NotificationType.BOARD_TICKET_UPDATE, btu, java.time.Instant.now(), null);
+        var btuNotif =
+                new Notification(12, member1.id(), NotificationType.BOARD_TICKET_UPDATE, btu, Instant.now(), null);
         String btuBody = service.resolveFeedBody("en", btuNotif);
         assertTrue(btuBody.contains("VORSTAND-12"));
         assertTrue(btuBody.contains("Vorstand"));
@@ -675,8 +675,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         var sw = NotificationData.of(
                 new NotificationParams.StorageWarning(91, "9.1 GB", "10 GB"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var swNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
-                13, member1.id(), NotificationType.STORAGE_WARNING, sw, java.time.Instant.now(), null);
+        var swNotif = new Notification(13, member1.id(), NotificationType.STORAGE_WARNING, sw, Instant.now(), null);
         String swBody = service.resolveFeedBody("en", swNotif);
         assertTrue(swBody.contains("91"));
         assertTrue(swBody.contains("9.1 GB"));
@@ -686,8 +685,8 @@ class NotificationServiceTest extends RepositoryTestBase {
         var rde = NotificationData.of(
                 new NotificationParams.RegistrationDeadlineExpired("Probe", 5),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var rdeNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
-                14, member1.id(), NotificationType.REGISTRATION_DEADLINE_EXPIRED, rde, java.time.Instant.now(), null);
+        var rdeNotif = new Notification(
+                14, member1.id(), NotificationType.REGISTRATION_DEADLINE_EXPIRED, rde, Instant.now(), null);
         String rdeBody = service.resolveFeedBody("en", rdeNotif);
         assertTrue(rdeBody.contains("5"));
     }
@@ -721,36 +720,34 @@ class NotificationServiceTest extends RepositoryTestBase {
         var nc = NotificationData.of(
                 new NotificationParams.NewsComment("Titel", "Autor", "Preview"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var ncNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
-                20, member1.id(), NotificationType.NEWS_COMMENT, nc, java.time.Instant.now(), null);
+        var ncNotif = new Notification(20, member1.id(), NotificationType.NEWS_COMMENT, nc, Instant.now(), null);
         assertEquals("Preview", service.resolveDetail(ncNotif));
 
         var esc = NotificationData.of(
                 new NotificationParams.ExchangeStatusChange(ExchangeStatus.DONE, "Inv", "Reason"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var escNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
-                21, member1.id(), NotificationType.EXCHANGE_STATUS_CHANGE, esc, java.time.Instant.now(), null);
+        var escNotif =
+                new Notification(21, member1.id(), NotificationType.EXCHANGE_STATUS_CHANGE, esc, Instant.now(), null);
         assertEquals("Reason", service.resolveDetail(escNotif));
 
         var enr = NotificationData.of(
                 new NotificationParams.ExchangeNewRequest("Name", "Inv", "Why"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var enrNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
-                22, member1.id(), NotificationType.EXCHANGE_NEW_REQUEST, enr, java.time.Instant.now(), null);
+        var enrNotif =
+                new Notification(22, member1.id(), NotificationType.EXCHANGE_NEW_REQUEST, enr, Instant.now(), null);
         assertEquals("Why", service.resolveDetail(enrNotif));
 
         var ers = NotificationData.of(
                 new NotificationParams.EventRegistrationStatus("Probe", RegistrationStatus.ACCEPTED, "Konzert"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var ersNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
-                23, member1.id(), NotificationType.EVENT_REGISTRATION_STATUS, ers, java.time.Instant.now(), null);
+        var ersNotif = new Notification(
+                23, member1.id(), NotificationType.EVENT_REGISTRATION_STATUS, ers, Instant.now(), null);
         assertEquals("Konzert", service.resolveDetail(ersNotif));
 
         var ne = NotificationData.of(
                 new NotificationParams.NewEvent("Probe", "Konzert"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var neNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
-                24, member1.id(), NotificationType.NEW_EVENT, ne, java.time.Instant.now(), null);
+        var neNotif = new Notification(24, member1.id(), NotificationType.NEW_EVENT, ne, Instant.now(), null);
         assertEquals("Konzert", service.resolveDetail(neNotif));
     }
 
@@ -761,41 +758,37 @@ class NotificationServiceTest extends RepositoryTestBase {
         var news = NotificationData.of(
                 new NotificationParams.NewNews("Titel", "Autor", "Preview"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var newsNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
-                30, member1.id(), NotificationType.NEW_NEWS, news, java.time.Instant.now(), null);
+        var newsNotif = new Notification(30, member1.id(), NotificationType.NEW_NEWS, news, Instant.now(), null);
         assertTrue(service.resolveFeedBody("de", newsNotif).contains("Preview"));
 
         // NEWS_COMMENT — appends preview
         var nc = NotificationData.of(
                 new NotificationParams.NewsComment("Titel", "Autor", "Kommentartext"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var ncNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
-                31, member1.id(), NotificationType.NEWS_COMMENT, nc, java.time.Instant.now(), null);
+        var ncNotif = new Notification(31, member1.id(), NotificationType.NEWS_COMMENT, nc, Instant.now(), null);
         assertTrue(service.resolveFeedBody("de", ncNotif).contains("Kommentartext"));
 
         // EVENT_REGISTRATION_STATUS — appends event description
         var ers = NotificationData.of(
                 new NotificationParams.EventRegistrationStatus("Probe", RegistrationStatus.ACCEPTED, "Konzertprobe"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var ersNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
-                32, member1.id(), NotificationType.EVENT_REGISTRATION_STATUS, ers, java.time.Instant.now(), null);
+        var ersNotif = new Notification(
+                32, member1.id(), NotificationType.EVENT_REGISTRATION_STATUS, ers, Instant.now(), null);
         assertTrue(service.resolveFeedBody("en", ersNotif).contains("Konzertprobe"));
 
         // EVENT_CANCELLED — labelled reason
         var ec = NotificationData.of(
                 new NotificationParams.EventCancelled("Probe", "Wetter"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var ecNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
-                33, member1.id(), NotificationType.EVENT_CANCELLED, ec, java.time.Instant.now(), null);
+        var ecNotif = new Notification(33, member1.id(), NotificationType.EVENT_CANCELLED, ec, Instant.now(), null);
         var ecBody = service.resolveFeedBody("en", ecNotif);
         assertTrue(ecBody.contains("Wetter"));
 
         // EVENT_REMINDER — labelled eventDate + daysBefore
         var er = NotificationData.of(
-                new NotificationParams.EventReminder("Probe", 3, java.time.LocalDate.parse("2026-08-01")),
+                new NotificationParams.EventReminder("Probe", 3, LocalDate.parse("2026-08-01")),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var erNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
-                34, member1.id(), NotificationType.EVENT_REMINDER, er, java.time.Instant.now(), null);
+        var erNotif = new Notification(34, member1.id(), NotificationType.EVENT_REMINDER, er, Instant.now(), null);
         var erBody = service.resolveFeedBody("en", erNotif);
         assertTrue(erBody.contains("2026-08-01"));
         assertTrue(erBody.contains("3"));
@@ -804,40 +797,39 @@ class NotificationServiceTest extends RepositoryTestBase {
         var enr = NotificationData.of(
                 new NotificationParams.ExchangeNewRequest("Name", "Inv", "Need it"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var enrNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
-                35, member1.id(), NotificationType.EXCHANGE_NEW_REQUEST, enr, java.time.Instant.now(), null);
+        var enrNotif =
+                new Notification(35, member1.id(), NotificationType.EXCHANGE_NEW_REQUEST, enr, Instant.now(), null);
         assertTrue(service.resolveFeedBody("en", enrNotif).contains("Need it"));
 
         // EXCHANGE_STATUS_CHANGE — labelled reason
         var esc = NotificationData.of(
                 new NotificationParams.ExchangeStatusChange(ExchangeStatus.DONE, "Inv", "Approved"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var escNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
-                36, member1.id(), NotificationType.EXCHANGE_STATUS_CHANGE, esc, java.time.Instant.now(), null);
+        var escNotif =
+                new Notification(36, member1.id(), NotificationType.EXCHANGE_STATUS_CHANGE, esc, Instant.now(), null);
         assertTrue(service.resolveFeedBody("en", escNotif).contains("Approved"));
 
         // LOST_AND_FOUND_NEW — appends description
         var lf = NotificationData.of(
                 new NotificationParams.LostAndFoundNew("Blue jacket"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var lfNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
-                37, member1.id(), NotificationType.LOST_AND_FOUND_NEW, lf, java.time.Instant.now(), null);
+        var lfNotif = new Notification(37, member1.id(), NotificationType.LOST_AND_FOUND_NEW, lf, Instant.now(), null);
         assertTrue(service.resolveFeedBody("en", lfNotif).contains("Blue jacket"));
 
         // LENDING_NEW_REQUEST — labelled itemSummary
         var lnr = NotificationData.of(
                 new NotificationParams.LendingNewRequest("Station", "Drum kit"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var lnrNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
-                38, member1.id(), NotificationType.LENDING_NEW_REQUEST, lnr, java.time.Instant.now(), null);
+        var lnrNotif =
+                new Notification(38, member1.id(), NotificationType.LENDING_NEW_REQUEST, lnr, Instant.now(), null);
         assertTrue(service.resolveFeedBody("en", lnrNotif).contains("Drum kit"));
 
         // PROCEDURE_ITEM_CHECKED — labelled item + by
         var pic = NotificationData.of(
                 new NotificationParams.ProcedureItemCheckedParams("Proc", "Item A", "Alice"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var picNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
-                39, member1.id(), NotificationType.PROCEDURE_ITEM_CHECKED, pic, java.time.Instant.now(), null);
+        var picNotif =
+                new Notification(39, member1.id(), NotificationType.PROCEDURE_ITEM_CHECKED, pic, Instant.now(), null);
         var picBody = service.resolveFeedBody("en", picNotif);
         assertTrue(picBody.contains("Item A"));
         assertTrue(picBody.contains("Alice"));
@@ -846,8 +838,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         var nf = NotificationData.of(
                 new NotificationParams.NewForm("Application"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var nfNotif = new dev.chojo.ember.feature.notifications.entity.Notification(
-                40, member1.id(), NotificationType.NEW_FORM, nf, java.time.Instant.now(), null);
+        var nfNotif = new Notification(40, member1.id(), NotificationType.NEW_FORM, nf, Instant.now(), null);
         // resolveDetail returns null for NEW_FORM, so body is just the headline
         var nfBody = service.resolveFeedBody("en", nfNotif);
         assertFalse(nfBody.isBlank());
@@ -882,11 +873,9 @@ class NotificationServiceTest extends RepositoryTestBase {
         assertTrue(msg.contains("Probe"));
     }
 
-    private dev.chojo.ember.feature.notifications.entity.Notification notificationWith(
-            NotificationType type, NotificationParams params, int id) {
+    private Notification notificationWith(NotificationType type, NotificationParams params, int id) {
         var data = NotificationData.of(params, new NotificationData.NotificationLink("dashboard-overview"));
-        return new dev.chojo.ember.feature.notifications.entity.Notification(
-                id, member1.id(), type, data, java.time.Instant.now(), null);
+        return new Notification(id, member1.id(), type, data, Instant.now(), null);
     }
 
     @Test
@@ -942,12 +931,12 @@ class NotificationServiceTest extends RepositoryTestBase {
         // EVENT_REMINDER routes via daysBefore plural.
         var tomorrow = notificationWith(
                 NotificationType.EVENT_REMINDER,
-                new NotificationParams.EventReminder("Probe", 1, java.time.LocalDate.parse("2026-09-15")),
+                new NotificationParams.EventReminder("Probe", 1, LocalDate.parse("2026-09-15")),
                 204);
         assertTrue(service.resolveFeedTitle("en", tomorrow).contains("tomorrow"));
         var later = notificationWith(
                 NotificationType.EVENT_REMINDER,
-                new NotificationParams.EventReminder("Probe", 5, java.time.LocalDate.parse("2026-09-20")),
+                new NotificationParams.EventReminder("Probe", 5, LocalDate.parse("2026-09-20")),
                 205);
         assertTrue(service.resolveFeedTitle("en", later).contains("5 days"));
     }
@@ -958,12 +947,12 @@ class NotificationServiceTest extends RepositoryTestBase {
         // Synthesize a notification with a type but inject a malformed/empty params shape so
         // every placeholder strips out — the helper must fall back to the bare category rather
         // than render a broken "News: " row.
-        var malformed = new dev.chojo.ember.feature.notifications.entity.Notification(
+        var malformed = new Notification(
                 300,
                 member1.id(),
                 NotificationType.NEW_NEWS,
                 new NotificationData(new NotificationParams.NewNews(null, null, null), null),
-                java.time.Instant.now(),
+                Instant.now(),
                 null);
         var title = service.resolveFeedTitle("en", malformed);
         assertEquals("News", title, "Should fall back to bare category, not 'News: '");

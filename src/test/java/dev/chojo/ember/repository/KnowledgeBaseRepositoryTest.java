@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.repository;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -317,8 +318,7 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(86)
     void accessRestrictions() {
-        var restriction = knowledgeBaseRepo.addRestriction(
-                folderId, null, dev.chojo.ember.api.auth.StationUserType.MEMBER, null, null, null);
+        var restriction = knowledgeBaseRepo.addRestriction(folderId, null, StationUserType.MEMBER, null, null, null);
         assertNotNull(restriction);
 
         var restrictions = knowledgeBaseRepo.findRestrictions(folderId, null);

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.repository;
 
+import dev.chojo.ember.feature.discovery.entity.CachedDiscoveryStation;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryStationCard;
 import dev.chojo.ember.feature.discovery.entity.PeerSource;
 import org.junit.jupiter.api.Test;
@@ -84,7 +85,7 @@ class DiscoveryStationCacheRepositoryTest extends RepositoryTestBase {
         int removed = discoveryStationCacheRepo.deleteMissing("k-cache-keep", List.of("uid-1", "uid-2"));
         assertEquals(1, removed);
         var remaining = discoveryStationCacheRepo.findForPeer("k-cache-keep").stream()
-                .map(r -> r.stationUid())
+                .map(CachedDiscoveryStation::stationUid)
                 .toList();
         assertTrue(remaining.contains("uid-1"));
         assertTrue(remaining.contains("uid-2"));
@@ -101,7 +102,7 @@ class DiscoveryStationCacheRepositoryTest extends RepositoryTestBase {
         discoveryStationCacheRepo.upsert("k-cache-all-bad", card("uid-hid", "Hidden"), Instant.now());
 
         var all = discoveryStationCacheRepo.findAll();
-        var uids = all.stream().map(r -> r.stationUid()).toList();
+        var uids = all.stream().map(CachedDiscoveryStation::stationUid).toList();
         assertTrue(uids.contains("uid-vis"));
         assertFalse(uids.contains("uid-hid"));
     }

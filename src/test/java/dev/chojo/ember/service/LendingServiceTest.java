@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -74,12 +75,7 @@ class LendingServiceTest extends RepositoryTestBase {
         // Create inventory
         var inv = inventoryRepo.create(stationA.id(), "LendSvcInventory", InventoryType.INTERNAL, false);
         inventoryIdA = inv.id();
-        var item = inventoryRepo.createItem(
-                inventoryIdA,
-                "LSVC-001",
-                "Lend Svc Item",
-                null,
-                (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null);
+        var item = inventoryRepo.createItem(inventoryIdA, "LSVC-001", "Lend Svc Item", null, null);
         itemIdA = item.id();
 
         // Create federation between A and B (local, remoteHost = null)
@@ -500,8 +496,8 @@ class LendingServiceTest extends RepositoryTestBase {
         assertTrue(messages.stream().anyMatch(m -> m.message().equals("Msg from B side")));
         // Messages should be sorted by createdAt
         for (int i = 1; i < messages.size(); i++) {
-            assertTrue(
-                    !messages.get(i).createdAt().isBefore(messages.get(i - 1).createdAt()),
+            assertFalse(
+                    messages.get(i).createdAt().isBefore(messages.get(i - 1).createdAt()),
                     "Messages should be sorted by createdAt");
         }
     }
@@ -528,21 +524,9 @@ class LendingServiceTest extends RepositoryTestBase {
 
         // Give both stations coordinates: Munich and Berlin.
         stationRepo.updateLocation(
-                stationB.id(),
-                null,
-                null,
-                null,
-                null,
-                new java.math.BigDecimal("52.520008"),
-                new java.math.BigDecimal("13.404954"));
+                stationB.id(), null, null, null, null, new BigDecimal("52.520008"), new BigDecimal("13.404954"));
         stationRepo.updateLocation(
-                stationA.id(),
-                null,
-                null,
-                null,
-                null,
-                new java.math.BigDecimal("48.137154"),
-                new java.math.BigDecimal("11.576124"));
+                stationA.id(), null, null, null, null, new BigDecimal("48.137154"), new BigDecimal("11.576124"));
 
         var enriched = service.findAvailableInventory(stationB.id(), "LendSvc", null, null);
         var aEntry = enriched.stream()
@@ -604,8 +588,8 @@ class LendingServiceTest extends RepositoryTestBase {
         assertFalse(messages.isEmpty());
         // Verify sorted by createdAt
         for (int i = 1; i < messages.size(); i++) {
-            assertTrue(
-                    !messages.get(i).createdAt().isBefore(messages.get(i - 1).createdAt()),
+            assertFalse(
+                    messages.get(i).createdAt().isBefore(messages.get(i - 1).createdAt()),
                     "Messages should be sorted by createdAt");
         }
         // Verify both local and remote messages present

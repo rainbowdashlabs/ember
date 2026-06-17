@@ -53,12 +53,7 @@ class LendingRepositoryTest extends RepositoryTestBase {
         // Create inventory on station A for lent-out tests
         var inv = inventoryRepo.create(stationA.id(), "LendRepoInventory", InventoryType.INTERNAL, false);
         inventoryIdA = inv.id();
-        var item = inventoryRepo.createItem(
-                inventoryIdA,
-                "LEND-001",
-                "Lend Item",
-                null,
-                (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null);
+        var item = inventoryRepo.createItem(inventoryIdA, "LEND-001", "Lend Item", null, null);
         itemIdA = item.id();
     }
 
@@ -206,7 +201,7 @@ class LendingRepositoryTest extends RepositoryTestBase {
         assertTrue(localA.stream().allMatch(m -> m.senderStationId() == stationA.id()));
 
         var localB = lendingRepo.findLocalMessages(requestId, stationB.id());
-        assertTrue(!localB.isEmpty());
+        assertFalse(localB.isEmpty());
         assertTrue(localB.stream().allMatch(m -> m.senderStationId() == stationB.id()));
     }
 

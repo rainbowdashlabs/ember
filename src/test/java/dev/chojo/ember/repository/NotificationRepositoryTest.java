@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -142,7 +143,7 @@ class NotificationRepositoryTest extends RepositoryTestBase {
         try {
             var stamp = notificationRepo.findMaxStamp(freshMember.id());
             assertEquals(0, stamp.maxId());
-            assertEquals(java.time.Instant.EPOCH, stamp.maxCreatedAt());
+            assertEquals(Instant.EPOCH, stamp.maxCreatedAt());
         } finally {
             stationMemberRepo.delete(freshMember.id());
             accountRepo.delete(freshAcc.id());
@@ -157,13 +158,11 @@ class NotificationRepositoryTest extends RepositoryTestBase {
         try {
             var n = notificationRepo.create(
                     freshMember.id(),
-                    dev.chojo.ember.feature.notifications.entity.NotificationType.MEMBER_ADDED_TO_GROUP,
-                    dev.chojo.ember.feature.notifications.entity.NotificationData.of(
-                            new dev.chojo.ember.feature.notifications.entity.NotificationParams.MemberAddedToGroup(
-                                    "Alpha", null)));
+                    NotificationType.MEMBER_ADDED_TO_GROUP,
+                    NotificationData.of(new NotificationParams.MemberAddedToGroup("Alpha", null)));
             var stamp = notificationRepo.findMaxStamp(freshMember.id());
             assertEquals(n.id(), stamp.maxId());
-            assertTrue(stamp.maxCreatedAt().isAfter(java.time.Instant.EPOCH));
+            assertTrue(stamp.maxCreatedAt().isAfter(Instant.EPOCH));
         } finally {
             stationMemberRepo.delete(freshMember.id());
             accountRepo.delete(freshAcc.id());

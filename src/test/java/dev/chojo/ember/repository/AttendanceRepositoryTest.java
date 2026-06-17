@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.repository;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
@@ -304,7 +305,7 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(41)
     void findMemberIdsByUserType() {
-        var ids = attendanceRepo.findMemberIdsByUserType(station.id(), dev.chojo.ember.api.auth.StationUserType.MEMBER);
+        var ids = attendanceRepo.findMemberIdsByUserType(station.id(), StationUserType.MEMBER);
         assertNotNull(ids);
     }
 

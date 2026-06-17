@@ -10,11 +10,13 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.news.entity.News;
+import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
 import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsFederationService.FederatedNewsData;
@@ -133,15 +135,11 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void setShareAllPartners() {
-        var share = service.setShare(
-                news1.id(),
-                dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS,
-                dev.chojo.ember.feature.news.entity.NewsVisibilityRole.MEMBER,
-                List.of());
+        var share = service.setShare(news1.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER, List.of());
         assertNotNull(share);
         assertEquals(news1.id(), share.newsId());
-        assertEquals(dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS, share.scope());
-        assertEquals(dev.chojo.ember.feature.news.entity.NewsVisibilityRole.MEMBER, share.visibilityRole());
+        assertEquals(ShareScope.ALL_PARTNERS, share.scope());
+        assertEquals(NewsVisibilityRole.MEMBER, share.visibilityRole());
     }
 
     @Test
@@ -149,9 +147,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     void findShareByNews() {
         var found = service.findShareByNews(news1.id());
         assertTrue(found.isPresent());
-        assertEquals(
-                dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS,
-                found.get().scope());
+        assertEquals(ShareScope.ALL_PARTNERS, found.get().scope());
     }
 
     @Test
@@ -163,13 +159,9 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(4)
     void setShareSpecificWithTargets() {
-        var share = service.setShare(
-                news1.id(),
-                dev.chojo.ember.feature.federation.entity.ShareScope.SPECIFIC,
-                dev.chojo.ember.feature.news.entity.NewsVisibilityRole.TEAM,
-                List.of(partnerIdAB));
-        assertEquals(dev.chojo.ember.feature.federation.entity.ShareScope.SPECIFIC, share.scope());
-        assertEquals(dev.chojo.ember.feature.news.entity.NewsVisibilityRole.TEAM, share.visibilityRole());
+        var share = service.setShare(news1.id(), ShareScope.SPECIFIC, NewsVisibilityRole.TEAM, List.of(partnerIdAB));
+        assertEquals(ShareScope.SPECIFIC, share.scope());
+        assertEquals(NewsVisibilityRole.TEAM, share.visibilityRole());
 
         var targets = service.findShareTargets(share.id());
         assertEquals(1, targets.size());
@@ -195,7 +187,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     void findVisibilityRole() {
         var role = service.findVisibilityRole(news1.id());
         assertTrue(role.isPresent());
-        assertEquals(dev.chojo.ember.feature.news.entity.NewsVisibilityRole.TEAM, role.get());
+        assertEquals(NewsVisibilityRole.TEAM, role.get());
     }
 
     @Test
@@ -240,11 +232,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     @Order(20)
     void browseFederatedNewsLocalPartner() {
         // Share news1 with ALL_PARTNERS
-        service.setShare(
-                news1.id(),
-                dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS,
-                dev.chojo.ember.feature.news.entity.NewsVisibilityRole.MEMBER,
-                List.of());
+        service.setShare(news1.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER, List.of());
 
         // Mock httpClient.getList for the remote partner to return empty
         when(httpClient.getList(anyString(), anyString(), anyInt(), any(), any()))
@@ -274,16 +262,8 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(22)
     void browseFederatedNewsMultipleShared() {
-        service.setShare(
-                news1.id(),
-                dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS,
-                dev.chojo.ember.feature.news.entity.NewsVisibilityRole.MEMBER,
-                List.of());
-        service.setShare(
-                news2.id(),
-                dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS,
-                dev.chojo.ember.feature.news.entity.NewsVisibilityRole.TEAM,
-                List.of());
+        service.setShare(news1.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER, List.of());
+        service.setShare(news2.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.TEAM, List.of());
 
         when(httpClient.getList(anyString(), anyString(), anyInt(), any(), any()))
                 .thenReturn(List.of());
@@ -299,11 +279,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     @Order(25)
     @SuppressWarnings("unchecked")
     void browseFederatedNewsViaHttp() throws Exception {
-        service.setShare(
-                news1.id(),
-                dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS,
-                dev.chojo.ember.feature.news.entity.NewsVisibilityRole.MEMBER,
-                List.of());
+        service.setShare(news1.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER, List.of());
 
         // Construct RemoteNewsListEntry via reflection (it's a private record)
         var entryClass =
@@ -311,13 +287,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         Constructor<?> ctor = entryClass.getDeclaredConstructors()[0];
         ctor.setAccessible(true);
         var remoteEntry = ctor.newInstance(
-                9999,
-                "Remote Title",
-                "<p>content</p>",
-                "Remote Author",
-                "2026-01-01",
-                5,
-                dev.chojo.ember.feature.news.entity.NewsVisibilityRole.MEMBER);
+                9999, "Remote Title", "<p>content</p>", "Remote Author", "2026-01-01", 5, NewsVisibilityRole.MEMBER);
 
         when(httpClient.getList(
                         eq("https://remote-news.example.com"), eq("/remote/news"), eq(stationA.id()), any(), any()))
@@ -352,18 +322,14 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(30)
     void getFederatedNewsLocal() {
-        service.setShare(
-                news1.id(),
-                dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS,
-                dev.chojo.ember.feature.news.entity.NewsVisibilityRole.MEMBER,
-                List.of());
+        service.setShare(news1.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER, List.of());
 
         var result = service.getFederatedNews(stationB.id(), stationA.uid(), news1.id());
         assertNotNull(result);
         assertEquals(news1.id(), result.id());
         assertEquals("News One", result.title());
         assertNotNull(result.authorName());
-        assertEquals(dev.chojo.ember.feature.news.entity.NewsVisibilityRole.MEMBER, result.visibilityRole());
+        assertEquals(NewsVisibilityRole.MEMBER, result.visibilityRole());
     }
 
     @Test
@@ -387,14 +353,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     @Order(35)
     void getFederatedNewsRemote() {
         var remoteData = new FederatedNewsData(
-                42,
-                "Remote Single",
-                "# md",
-                "<p>html</p>",
-                "Author",
-                "2026-03-15",
-                3,
-                dev.chojo.ember.feature.news.entity.NewsVisibilityRole.TEAM);
+                42, "Remote Single", "# md", "<p>html</p>", "Author", "2026-03-15", 3, NewsVisibilityRole.TEAM);
 
         when(httpClient.get(
                         eq("https://remote-news.example.com"),
@@ -408,7 +367,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         assertNotNull(result);
         assertEquals(42, result.id());
         assertEquals("Remote Single", result.title());
-        assertEquals(dev.chojo.ember.feature.news.entity.NewsVisibilityRole.TEAM, result.visibilityRole());
+        assertEquals(NewsVisibilityRole.TEAM, result.visibilityRole());
     }
 
     @Test
@@ -449,15 +408,8 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(50)
     void federatedNewsItemRecord() {
-        var data = new FederatedNewsData(
-                1,
-                "Title",
-                "md",
-                "html",
-                "Author",
-                "2026-01-01",
-                0,
-                dev.chojo.ember.feature.news.entity.NewsVisibilityRole.MEMBER);
+        var data =
+                new FederatedNewsData(1, "Title", "md", "html", "Author", "2026-01-01", 0, NewsVisibilityRole.MEMBER);
         var item = new FederatedNewsItem(10, "StationName", "uid-123", data);
         assertEquals(10, item.partnerId());
         assertEquals("StationName", item.partnerStationName());
@@ -469,14 +421,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     @Order(51)
     void federatedNewsDataRecord() {
         var data = new FederatedNewsData(
-                5,
-                "Title",
-                "# md",
-                "<h1>html</h1>",
-                "Author Name",
-                "2026-06-15",
-                10,
-                dev.chojo.ember.feature.news.entity.NewsVisibilityRole.TEAM);
+                5, "Title", "# md", "<h1>html</h1>", "Author Name", "2026-06-15", 10, NewsVisibilityRole.TEAM);
         assertEquals(5, data.id());
         assertEquals("Title", data.title());
         assertEquals("# md", data.contentMarkdown());
@@ -484,7 +429,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         assertEquals("Author Name", data.authorName());
         assertEquals("2026-06-15", data.publishedAt());
         assertEquals(10, data.commentCount());
-        assertEquals(dev.chojo.ember.feature.news.entity.NewsVisibilityRole.TEAM, data.visibilityRole());
+        assertEquals(NewsVisibilityRole.TEAM, data.visibilityRole());
     }
 
     @Test
@@ -501,11 +446,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(55)
     void getFederatedNewsLocalWithComments() {
-        service.setShare(
-                news1.id(),
-                dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS,
-                dev.chojo.ember.feature.news.entity.NewsVisibilityRole.MEMBER,
-                List.of());
+        service.setShare(news1.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER, List.of());
 
         var result = service.getFederatedNews(stationB.id(), stationA.uid(), news1.id());
         assertNotNull(result);
@@ -518,11 +459,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(56)
     void browseFederatedNewsChecksPartnerStationName() {
-        service.setShare(
-                news1.id(),
-                dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS,
-                dev.chojo.ember.feature.news.entity.NewsVisibilityRole.MEMBER,
-                List.of());
+        service.setShare(news1.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER, List.of());
 
         when(httpClient.getList(anyString(), anyString(), anyInt(), any(), any()))
                 .thenReturn(List.of());

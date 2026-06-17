@@ -364,7 +364,7 @@ class StationServiceTest extends RepositoryTestBase {
     @Order(54)
     void updatePublicSlugDuplicateThrows() {
         var other = stationRepo.create("Other Station");
-        service.updatePublicSlug(other.id(), "taken-slug-" + java.util.UUID.randomUUID());
+        service.updatePublicSlug(other.id(), "taken-slug-" + UUID.randomUUID());
         var slug = stationRepo.findById(other.id()).orElseThrow().publicSlug();
         assertThrows(IllegalArgumentException.class, () -> service.updatePublicSlug(stationId, slug));
         stationRepo.delete(other.id());

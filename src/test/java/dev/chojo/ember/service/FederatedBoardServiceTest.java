@@ -8,6 +8,7 @@ package dev.chojo.ember.service;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.AccessData;
@@ -238,36 +239,24 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     void canFederatedEditNoUserTypesRestriction() {
         // partner2 is FULL, no edit user types set => any user type can edit
         assertTrue(service.canFederatedEdit(
-                boardId,
-                partner2Id,
-                List.of(
-                        dev.chojo.ember.api.auth.StationUserType.MEMBER,
-                        dev.chojo.ember.api.auth.StationUserType.GUARDIAN,
-                        dev.chojo.ember.api.auth.StationUserType.TEAM)));
+                boardId, partner2Id, List.of(StationUserType.MEMBER, StationUserType.GUARDIAN, StationUserType.TEAM)));
     }
 
     @Test
     @Order(15)
     void canFederatedEditWithUserTypesRestriction() {
-        service.setFederatedEditUserTypes(
-                boardId,
-                List.of(
-                        dev.chojo.ember.api.auth.StationUserType.TEAM,
-                        dev.chojo.ember.api.auth.StationUserType.MANAGER));
+        service.setFederatedEditUserTypes(boardId, List.of(StationUserType.TEAM, StationUserType.MANAGER));
         // partner2 has FULL mode, user type TEAM is allowed
-        assertTrue(
-                service.canFederatedEdit(boardId, partner2Id, List.of(dev.chojo.ember.api.auth.StationUserType.TEAM)));
+        assertTrue(service.canFederatedEdit(boardId, partner2Id, List.of(StationUserType.TEAM)));
         // user type MEMBER is not allowed
-        assertFalse(service.canFederatedEdit(
-                boardId, partner2Id, List.of(dev.chojo.ember.api.auth.StationUserType.MEMBER)));
+        assertFalse(service.canFederatedEdit(boardId, partner2Id, List.of(StationUserType.MEMBER)));
     }
 
     @Test
     @Order(16)
     void canFederatedEditReadOnlyDenied() {
         // partnerId is READ_ONLY, should be denied even with matching user types
-        assertFalse(
-                service.canFederatedEdit(boardId, partnerId, List.of(dev.chojo.ember.api.auth.StationUserType.TEAM)));
+        assertFalse(service.canFederatedEdit(boardId, partnerId, List.of(StationUserType.TEAM)));
     }
 
     @Test
@@ -275,8 +264,8 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     void findFederatedEditUserTypes() {
         var userTypes = service.findFederatedEditUserTypes(boardId);
         assertEquals(2, userTypes.size());
-        assertTrue(userTypes.contains(dev.chojo.ember.api.auth.StationUserType.TEAM));
-        assertTrue(userTypes.contains(dev.chojo.ember.api.auth.StationUserType.MANAGER));
+        assertTrue(userTypes.contains(StationUserType.TEAM));
+        assertTrue(userTypes.contains(StationUserType.MANAGER));
     }
 
     @Test
@@ -354,21 +343,14 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(70)
     void setAndGetLocalViewOverride() {
-        var access = new AccessData(
-                List.of(
-                        dev.chojo.ember.api.auth.StationUserType.MEMBER,
-                        dev.chojo.ember.api.auth.StationUserType.GUARDIAN),
-                List.of(3),
-                List.of(4, 5));
+        var access =
+                new AccessData(List.of(StationUserType.MEMBER, StationUserType.GUARDIAN), List.of(3), List.of(4, 5));
         service.setLocalViewOverride(partnerId, REMOTE_BOARD_UID_1, access);
 
         assertTrue(service.hasLocalViewOverride(partnerId, REMOTE_BOARD_UID_1));
         var result = service.getLocalViewOverride(partnerId, REMOTE_BOARD_UID_1);
         assertEquals(2, result.userTypes().size());
-        assertTrue(result.userTypes()
-                .containsAll(List.of(
-                        dev.chojo.ember.api.auth.StationUserType.MEMBER,
-                        dev.chojo.ember.api.auth.StationUserType.GUARDIAN)));
+        assertTrue(result.userTypes().containsAll(List.of(StationUserType.MEMBER, StationUserType.GUARDIAN)));
         assertEquals(List.of(3), result.groupIds());
         assertEquals(List.of(4, 5), result.tagIds());
     }
@@ -384,12 +366,12 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(72)
     void setAndGetLocalEditOverride() {
-        var access = new AccessData(List.of(dev.chojo.ember.api.auth.StationUserType.TEAM), List.of(20, 30), List.of());
+        var access = new AccessData(List.of(StationUserType.TEAM), List.of(20, 30), List.of());
         service.setLocalEditOverride(partnerId, REMOTE_BOARD_UID_1, access);
 
         assertTrue(service.hasLocalEditOverride(partnerId, REMOTE_BOARD_UID_1));
         var result = service.getLocalEditOverride(partnerId, REMOTE_BOARD_UID_1);
-        assertEquals(List.of(dev.chojo.ember.api.auth.StationUserType.TEAM), result.userTypes());
+        assertEquals(List.of(StationUserType.TEAM), result.userTypes());
         assertEquals(List.of(20, 30), result.groupIds());
         assertTrue(result.tagIds().isEmpty());
     }
@@ -405,10 +387,10 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(74)
     void overwriteLocalViewOverride() {
-        var newAccess = new AccessData(List.of(dev.chojo.ember.api.auth.StationUserType.MANAGER), List.of(), List.of());
+        var newAccess = new AccessData(List.of(StationUserType.MANAGER), List.of(), List.of());
         service.setLocalViewOverride(partnerId, REMOTE_BOARD_UID_1, newAccess);
         var result = service.getLocalViewOverride(partnerId, REMOTE_BOARD_UID_1);
-        assertEquals(List.of(dev.chojo.ember.api.auth.StationUserType.MANAGER), result.userTypes());
+        assertEquals(List.of(StationUserType.MANAGER), result.userTypes());
         assertTrue(result.groupIds().isEmpty());
     }
 
@@ -441,11 +423,10 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         var config = new PartnerShareConfig(partnerId, BoardShareMode.FULL);
         assertEquals(partnerId, config.partnerId());
         assertEquals(BoardShareMode.FULL, config.shareMode());
-        assertEquals(dev.chojo.ember.api.auth.StationUserType.MEMBER, config.requiredUserType());
+        assertEquals(StationUserType.MEMBER, config.requiredUserType());
 
-        var configWithType = new PartnerShareConfig(
-                partnerId, BoardShareMode.FULL, dev.chojo.ember.api.auth.StationUserType.MANAGER);
-        assertEquals(dev.chojo.ember.api.auth.StationUserType.MANAGER, configWithType.requiredUserType());
+        var configWithType = new PartnerShareConfig(partnerId, BoardShareMode.FULL, StationUserType.MANAGER);
+        assertEquals(StationUserType.MANAGER, configWithType.requiredUserType());
     }
 
     // ============================================================

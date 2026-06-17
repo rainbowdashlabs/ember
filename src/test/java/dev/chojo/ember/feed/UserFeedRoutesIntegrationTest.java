@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.feed.render.NotificationFeedRenderer;
 import dev.chojo.ember.feature.feed.route.UserFeedRoutes;
 import dev.chojo.ember.feature.feed.service.FeedMetricsService;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
+import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.media.service.ImageService;
@@ -22,15 +23,19 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.Context;
+import io.javalin.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
@@ -131,11 +136,11 @@ class UserFeedRoutesIntegrationTest {
                 null,
                 false,
                 null,
-                dev.chojo.ember.feature.station.entity.ThemeFeel.ROUNDED,
+                ThemeFeel.ROUNDED,
                 false,
-                dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode.OFF,
+                PublicKbMode.OFF,
                 null,
-                dev.chojo.ember.feature.station.entity.DiscoveryVisibility.NONE,
+                DiscoveryVisibility.NONE,
                 null,
                 false,
                 false,
@@ -214,7 +219,7 @@ class UserFeedRoutesIntegrationTest {
     @Test
     void rateLimitRejectsTheCallThatExceedsTheBurstCapacity() throws Exception {
         // Drain the burst — every call within it must be admitted.
-        for (int i = 0; i < dev.chojo.ember.feature.feed.FeedRateLimiter.BURST_CAPACITY; i++) {
+        for (int i = 0; i < FeedRateLimiter.BURST_CAPACITY; i++) {
             var ctx = new RecordingContext();
             ctx.pathParams.put("token", TOKEN_VALUE);
             invokeRss(ctx.ctx);
@@ -242,7 +247,7 @@ class UserFeedRoutesIntegrationTest {
         assertEquals("noindex", ok.headers.get("X-Robots-Tag"));
 
         // 429 path — drain the rest of the burst, then trip the limit.
-        for (int i = 1; i < dev.chojo.ember.feature.feed.FeedRateLimiter.BURST_CAPACITY; i++) {
+        for (int i = 1; i < FeedRateLimiter.BURST_CAPACITY; i++) {
             var burn = new RecordingContext();
             burn.pathParams.put("token", TOKEN_VALUE);
             invokeRss(burn.ctx);
@@ -281,12 +286,12 @@ class UserFeedRoutesIntegrationTest {
         }
 
         @Override
-        public java.time.ZoneId getZone() {
+        public ZoneId getZone() {
             return ZoneOffset.UTC;
         }
 
         @Override
-        public Clock withZone(java.time.ZoneId zone) {
+        public Clock withZone(ZoneId zone) {
             return this;
         }
 
@@ -333,7 +338,7 @@ class UserFeedRoutesIntegrationTest {
             // status() (no args) returns the current HttpStatus — used by metrics recording.
             when(c.status()).thenAnswer(inv -> {
                 Integer s = status.get();
-                return s == null ? io.javalin.http.HttpStatus.OK : io.javalin.http.HttpStatus.forStatus(s);
+                return s == null ? HttpStatus.OK : HttpStatus.forStatus(s);
             });
             return c;
         }

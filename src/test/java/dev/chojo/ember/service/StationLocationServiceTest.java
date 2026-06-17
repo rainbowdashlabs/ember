@@ -191,8 +191,8 @@ class StationLocationServiceTest extends RepositoryTestBase {
                         null, null, "Munich", "DE", new BigDecimal("48.137154"), new BigDecimal("11.576124")));
         var results = service.findStationsWithinRadius(new BigDecimal("52.520008"), new BigDecimal("13.404954"), 1000);
         assertFalse(results.isEmpty());
-        assertEquals(station.id(), results.get(0).stationId());
-        assertTrue(results.get(0).distanceKm() > 400);
-        assertTrue(results.get(0).distanceKm() < 600);
+        assertEquals(station.id(), results.getFirst().stationId());
+        assertTrue(results.getFirst().distanceKm() > 400);
+        assertTrue(results.getFirst().distanceKm() < 600);
     }
 }

@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
+import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -884,14 +885,10 @@ class AttendanceServiceTest extends RepositoryTestBase {
         eventRepo.setFieldDefaults(
                 event.id(),
                 List.of(
-                        new dev.chojo.ember.feature.events.entity.EventFieldDefault(
-                                event.id(), nameFieldId, "EVENT_NAME", null),
-                        new dev.chojo.ember.feature.events.entity.EventFieldDefault(
-                                event.id(), descFieldId, "EVENT_DESCRIPTION", null),
-                        new dev.chojo.ember.feature.events.entity.EventFieldDefault(
-                                event.id(), startFieldId, "EVENT_START_TIME", null),
-                        new dev.chojo.ember.feature.events.entity.EventFieldDefault(
-                                event.id(), endFieldId, "EVENT_END_TIME", null)));
+                        new EventFieldDefault(event.id(), nameFieldId, "EVENT_NAME", null),
+                        new EventFieldDefault(event.id(), descFieldId, "EVENT_DESCRIPTION", null),
+                        new EventFieldDefault(event.id(), startFieldId, "EVENT_START_TIME", null),
+                        new EventFieldDefault(event.id(), endFieldId, "EVENT_END_TIME", null)));
 
         var session = service.createSession(fieldTemplate.id(), null, null, event.id(), null);
         assertNotNull(session);
@@ -922,10 +919,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         memberGroupRepo.addMember(group.id(), member.id());
 
         var autoTemplate = service.createTemplate(station.id(), "Group Auto Template");
-        service.setTemplateGroups(
-                autoTemplate.id(),
-                List.of(new dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup(
-                        group.id(), 1)));
+        service.setTemplateGroups(autoTemplate.id(), List.of(new AttendanceRepository.TemplateGroup(group.id(), 1)));
 
         var session = service.createSession(
                 autoTemplate.id(), Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, "Group Session");
@@ -964,12 +958,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        eventRepo.createRegistration(
-                event.id(),
-                member9.id(),
-                LocalDate.now(),
-                dev.chojo.ember.feature.events.entity.RegistrationStatus.PENDING,
-                null);
+        eventRepo.createRegistration(event.id(), member9.id(), LocalDate.now(), RegistrationStatus.PENDING, null);
 
         var session = service.createSession(templateId, null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());

@@ -6,6 +6,7 @@
 package dev.chojo.ember.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
@@ -457,8 +458,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        service.setRestrictions(
-                event.id(), List.of(dev.chojo.ember.api.auth.StationUserType.MEMBER), List.of(), List.of(), List.of());
+        service.setRestrictions(event.id(), List.of(StationUserType.MEMBER), List.of(), List.of(), List.of());
         var restrictions = service.findRestrictions(event.id());
         assertNotNull(restrictions);
     }

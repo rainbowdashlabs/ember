@@ -48,12 +48,7 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
             stationMemberRepo.grantPermission(member2.id(), r.id());
         });
         inventory = inventoryRepo.create(station.id(), "Check Inv", InventoryType.EXTERNAL, false);
-        item = inventoryRepo.createItem(
-                inventory.id(),
-                "C-001",
-                "Check Item",
-                null,
-                (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null);
+        item = inventoryRepo.createItem(inventory.id(), "C-001", "Check Item", null, null);
         inventoryRepo.assignItem(item.id(), member1.id());
     }
 

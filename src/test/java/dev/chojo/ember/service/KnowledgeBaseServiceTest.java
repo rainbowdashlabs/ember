@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -400,8 +401,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         // Member without role 1 should be denied
         assertFalse(service.canAccess(member.id(), folderId, null, null, List.of(), List.of()));
         // Member with role 1 should be allowed
-        assertTrue(service.canAccess(
-                member.id(), folderId, null, dev.chojo.ember.api.auth.StationUserType.MEMBER, List.of(), List.of()));
+        assertTrue(service.canAccess(member.id(), folderId, null, StationUserType.MEMBER, List.of(), List.of()));
         // Clear
         service.setRestrictions(folderId, null, List.of(), List.of(), List.of(), List.of());
     }
@@ -413,8 +413,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         service.setRestrictions(folderId, null, List.of("MEMBER"), List.of(), List.of(), List.of());
         // Access to file in that folder checks parent folder restriction
         assertFalse(service.canAccess(member.id(), null, fileId, null, List.of(), List.of()));
-        assertTrue(service.canAccess(
-                member.id(), null, fileId, dev.chojo.ember.api.auth.StationUserType.MEMBER, List.of(), List.of()));
+        assertTrue(service.canAccess(member.id(), null, fileId, StationUserType.MEMBER, List.of(), List.of()));
         // Clear
         service.setRestrictions(folderId, null, List.of(), List.of(), List.of(), List.of());
     }

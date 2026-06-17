@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -116,13 +117,12 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
         Map<String, Object> bundle = new LinkedHashMap<>();
         bundle.put(
                 "account",
-                java.util.List.of(Map.of(
+                List.of(Map.of(
                         "email", email,
                         "first_name", "Source Bea",
                         "last_name", "Berger")));
         bundle.put(
-                "account_credential",
-                java.util.List.of(Map.of("account_email", email, "password_hash", "$bcrypt$source-only")));
+                "account_credential", List.of(Map.of("account_email", email, "password_hash", "$bcrypt$source-only")));
         bundle.put("station", Map.of("name", "Existing-Wins Station"));
 
         importService.importStation(bundle);

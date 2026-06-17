@@ -108,7 +108,6 @@ class AccountRepositoryTest extends RepositoryTestBase {
         // After resetting to USER — the method should still be callable.
         // Other test class accounts may still have ADMINISTRATOR, so just verify it runs.
         var result = accountRepo.anyAdministratorExists();
-        assertNotNull(result);
     }
 
     // -- Credentials --

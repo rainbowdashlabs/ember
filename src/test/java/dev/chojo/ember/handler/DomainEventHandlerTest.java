@@ -29,6 +29,8 @@ import dev.chojo.ember.event.events.NewsDeleted;
 import dev.chojo.ember.event.events.ProcurementCreated;
 import dev.chojo.ember.event.events.ProcurementFulfilled;
 import dev.chojo.ember.event.events.RegistrationDeadlineExpired;
+import dev.chojo.ember.event.events.StorageWarningEvent;
+import dev.chojo.ember.event.events.WaitlistPublicRegistration;
 import dev.chojo.ember.event.handlers.BoardTicketChangedHandler;
 import dev.chojo.ember.event.handlers.BulkMentionedInCommentHandler;
 import dev.chojo.ember.event.handlers.CommentCreatedHandler;
@@ -51,6 +53,8 @@ import dev.chojo.ember.event.handlers.NewsDeletedHandler;
 import dev.chojo.ember.event.handlers.ProcurementCreatedHandler;
 import dev.chojo.ember.event.handlers.ProcurementFulfilledHandler;
 import dev.chojo.ember.event.handlers.RegistrationDeadlineExpiredHandler;
+import dev.chojo.ember.event.handlers.StorageWarningHandler;
+import dev.chojo.ember.event.handlers.WaitlistPublicRegistrationHandler;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.MentionType;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
@@ -934,11 +938,10 @@ class DomainEventHandlerTest {
 
     @Test
     void storageWarningNotifiesStationManagers() {
-        var handler = new dev.chojo.ember.event.handlers.StorageWarningHandler(notificationService);
-        var event =
-                new dev.chojo.ember.event.events.StorageWarningEvent(STATION_ID, 85, 4_500_000_000L, 5_368_709_120L);
+        var handler = new StorageWarningHandler(notificationService);
+        var event = new StorageWarningEvent(STATION_ID, 85, 4_500_000_000L, 5_368_709_120L);
 
-        assertEquals(dev.chojo.ember.event.events.StorageWarningEvent.class, handler.eventType());
+        assertEquals(StorageWarningEvent.class, handler.eventType());
 
         handler.handle(event);
 
@@ -952,11 +955,10 @@ class DomainEventHandlerTest {
 
     @Test
     void waitlistPublicRegistrationHandlerNotifiesWaitlistEditRole() {
-        var handler = new dev.chojo.ember.event.handlers.WaitlistPublicRegistrationHandler(notificationService);
-        var event = new dev.chojo.ember.event.events.WaitlistPublicRegistration(
-                STATION_ID, "Max Müller", "Warteliste 2026");
+        var handler = new WaitlistPublicRegistrationHandler(notificationService);
+        var event = new WaitlistPublicRegistration(STATION_ID, "Max Müller", "Warteliste 2026");
 
-        assertEquals(dev.chojo.ember.event.events.WaitlistPublicRegistration.class, handler.eventType());
+        assertEquals(WaitlistPublicRegistration.class, handler.eventType());
 
         handler.handle(event);
 

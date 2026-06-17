@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -255,20 +256,18 @@ class EventCommentRepositoryTest extends RepositoryTestBase {
         // Whole-event comment (event_date IS NULL)
         var whole = eventCommentRepo.create(eventId, null, author, "Whole event", null);
         // Two different occurrence dates
-        var june =
-                eventCommentRepo.create(eventId, null, author, "June occurrence", java.time.LocalDate.of(2026, 6, 1));
-        var july =
-                eventCommentRepo.create(eventId, null, author, "July occurrence", java.time.LocalDate.of(2026, 7, 1));
+        var june = eventCommentRepo.create(eventId, null, author, "June occurrence", LocalDate.of(2026, 6, 1));
+        var july = eventCommentRepo.create(eventId, null, author, "July occurrence", LocalDate.of(2026, 7, 1));
 
         var wholeOnly = eventCommentRepo.findByEventAndDate(eventId, null);
         assertEquals(1, wholeOnly.size());
         assertEquals("Whole event", wholeOnly.getFirst().content());
         assertNull(wholeOnly.getFirst().eventDate());
 
-        var juneOnly = eventCommentRepo.findByEventAndDate(eventId, java.time.LocalDate.of(2026, 6, 1));
+        var juneOnly = eventCommentRepo.findByEventAndDate(eventId, LocalDate.of(2026, 6, 1));
         assertEquals(1, juneOnly.size());
         assertEquals("June occurrence", juneOnly.getFirst().content());
-        assertEquals(java.time.LocalDate.of(2026, 6, 1), juneOnly.getFirst().eventDate());
+        assertEquals(LocalDate.of(2026, 6, 1), juneOnly.getFirst().eventDate());
 
         // findByEvent still returns everything regardless of date.
         var all = eventCommentRepo.findByEvent(eventId);

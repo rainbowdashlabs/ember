@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -378,7 +379,7 @@ class CommentServiceTest extends RepositoryTestBase {
     @Test
     @Order(22)
     void findByEventAndDateScopesToOccurrence() {
-        var date = java.time.LocalDate.of(2027, 6, 1);
+        var date = LocalDate.of(2027, 6, 1);
         // Whole-event comment + same-event occurrence comment.
         service.create(station.id(), eventId, null, identity1, "Alice", "Whole event", "Test Event", null);
         service.create(station.id(), eventId, null, identity1, "Alice", "On June 1", "Test Event", date);

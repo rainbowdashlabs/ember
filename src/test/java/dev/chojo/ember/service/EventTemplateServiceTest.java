@@ -5,11 +5,14 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
+import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -82,11 +85,11 @@ class EventTemplateServiceTest extends RepositoryTestBase {
                 "Weekly Training",
                 "Regular training session",
                 null,
-                dev.chojo.ember.feature.events.entity.StationEvent.EventType.RECURRING,
+                StationEvent.EventType.RECURRING,
                 true,
                 "1 day",
                 false,
-                dev.chojo.ember.feature.restriction.RestrictionMode.AND,
+                RestrictionMode.AND,
                 null,
                 null);
         assertTrue(updated);
@@ -135,11 +138,7 @@ class EventTemplateServiceTest extends RepositoryTestBase {
     @Order(20)
     void setAndFindRestrictions() {
         service.setRestrictions(
-                templateId,
-                List.of(
-                        dev.chojo.ember.api.auth.StationUserType.MEMBER,
-                        dev.chojo.ember.api.auth.StationUserType.TEAM,
-                        dev.chojo.ember.api.auth.StationUserType.MANAGER));
+                templateId, List.of(StationUserType.MEMBER, StationUserType.TEAM, StationUserType.MANAGER));
         var restrictions = service.findRestrictions(templateId);
         assertEquals(3, restrictions.size());
         assertTrue(restrictions.containsAll(List.of("MEMBER", "TEAM", "MANAGER")));
@@ -148,7 +147,7 @@ class EventTemplateServiceTest extends RepositoryTestBase {
     @Test
     @Order(21)
     void setRestrictionsReplaces() {
-        service.setRestrictions(templateId, List.of(dev.chojo.ember.api.auth.StationUserType.GUARDIAN));
+        service.setRestrictions(templateId, List.of(StationUserType.GUARDIAN));
         var restrictions = service.findRestrictions(templateId);
         assertEquals(1, restrictions.size());
         assertEquals("GUARDIAN", restrictions.getFirst());

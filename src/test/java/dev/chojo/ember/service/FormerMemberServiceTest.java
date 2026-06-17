@@ -132,12 +132,7 @@ class FormerMemberServiceTest extends RepositoryTestBase {
                 .ifPresent(r -> stationMemberRepo.grantPermission(mem.id(), r.id()));
 
         var inv = inventoryRepo.create(station.id(), "FormerTestInv", InventoryType.INTERNAL, false);
-        var item = inventoryRepo.createItem(
-                inv.id(),
-                "FT-001",
-                "Former Test Item",
-                null,
-                (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null);
+        var item = inventoryRepo.createItem(inv.id(), "FT-001", "Former Test Item", null, null);
         inventoryRepo.assignItem(item.id(), mem.id());
 
         String result = service.canMarkFormer(mem.id());
