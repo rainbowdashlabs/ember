@@ -78,7 +78,7 @@ public class PageFileStorageService {
     /**
      * Deletes the on-disk file for a (station, hash) pair. Caller is responsible for ensuring no
      * other DB rows reference the same hash within the same station before calling this — the
-     * dedup index in {@code page_image} guarantees that at most one row per (station, hash)
+     * dedup index in {@code page_file} guarantees that at most one row per (station, hash)
      * exists at any time, so deletion is safe whenever the corresponding row is removed.
      */
     public void delete(int stationId, String contentHash) {

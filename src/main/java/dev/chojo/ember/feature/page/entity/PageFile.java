@@ -19,7 +19,10 @@ public record PageFile(
         String fileName,
         String mimeType,
         long fileSize,
-        Instant uploadedAt) {
+        Instant uploadedAt,
+        String defaultAltText,
+        String defaultDescription,
+        Integer folderId) {
 
     public static RowMapping<PageFile> map() {
         return row -> new PageFile(
@@ -30,6 +33,9 @@ public record PageFile(
                 row.getString("file_name"),
                 row.getString("mime_type"),
                 row.getLong("file_size"),
-                row.get("uploaded_at", INSTANT_TIMESTAMP));
+                row.get("uploaded_at", INSTANT_TIMESTAMP),
+                row.getString("default_alt_text"),
+                row.getString("default_description"),
+                row.getObject("folder_id") != null ? row.getInt("folder_id") : null);
     }
 }
