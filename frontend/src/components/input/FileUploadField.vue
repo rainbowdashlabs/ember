@@ -9,26 +9,22 @@ import { useI18n } from 'vue-i18n'
 import FileUploadButton from '@/components/button/FileUploadButton.vue'
 
 const props = withDefaults(defineProps<{
-  /** Comma-separated list of accepted MIME types or file extensions (passed to <input accept>). */
   accept?: string
-  /** Maximum file size in bytes. Files exceeding this are rejected with an inline error. */
   maxSize: number
   disabled?: boolean
-  /** External error message (e.g. from a failed upload request); takes precedence over the local size error. */
   error?: string | null
-  /** Optional override for the button label. Defaults to "Datei wählen". */
   label?: string
-  /** Optional hint shown beneath the row (e.g. file format guidance). The size limit is always appended. */
   hint?: string
+  multiple?: boolean
 }>(), {
   disabled: false,
   error: null,
+  multiple: false,
 })
 
 const emit = defineEmits<{
-  /** Fired only when the picked file is within the size budget. */
   select: [file: File]
-  /** Fired when a file is too large; parents that want to do their own error handling can listen. */
+  selectMany: [files: File[]]
   tooLarge: [file: File]
 }>()
 
@@ -64,6 +60,23 @@ function onSelect(file: File) {
   emit('select', file)
 }
 
+function onSelectMany(files: File[]) {
+  sizeError.value = null
+  const accepted: File[] = []
+  for (const f of files) {
+    if (f.size > props.maxSize) {
+      sizeError.value = t('fileUpload.tooLarge', { size: formatBytes(props.maxSize) })
+      emit('tooLarge', f)
+      continue
+    }
+    accepted.push(f)
+  }
+  if (accepted.length > 0) {
+    lastFileName.value = accepted.length === 1 ? accepted[0].name : `${accepted.length} Dateien`
+    emit('selectMany', accepted)
+  }
+}
+
 // Clear the local size error when the parent's error message changes (assume a fresh attempt).
 watch(() => props.error, () => { if (props.error) sizeError.value = null })
 </script>
@@ -71,7 +84,7 @@ watch(() => props.error, () => { if (props.error) sizeError.value = null })
 <template>
   <div class="space-y-1">
     <div class="flex flex-wrap items-center gap-2">
-      <FileUploadButton :accept="accept" :disabled="disabled" @select="onSelect">
+      <FileUploadButton :accept="accept" :disabled="disabled" :multiple="multiple" @select="onSelect" @select-many="onSelectMany">
         <slot>{{ label || t('fileUpload.choose') }}</slot>
       </FileUploadButton>
       <span v-if="lastFileName && !displayedError" class="text-xs text-(--text-muted) truncate max-w-xs">{{ lastFileName }}</span>

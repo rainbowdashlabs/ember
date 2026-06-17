@@ -16,6 +16,8 @@
     --color-info-accent: #af7501;
     --color-success: #00C507;
     --color-error: #ec2929;
+    --color-warning: #e89c1a;
+    --color-warning-accent: #b8730a;
 
     /* Light backgrounds */
     --color-bg-light: #eaeaea;
@@ -34,6 +36,8 @@
     --color-info-accent-text: #ffffff;
     --color-success-text: #ffffff;
     --color-error-text: #ffffff;
+    --color-warning-text: #1a1a1a;
+    --color-warning-accent-text: #ffffff;
 
     /* Contrast-safe colors for badges/labels on page backgrounds (computed per-theme) */
     --color-primary-badge: #C71100;
@@ -41,6 +45,7 @@
     --color-info-badge: #af7501;
     --color-success-badge: #00C507;
     --color-error-badge: #ec2929;
+    --color-warning-badge: #b8730a;
 
     /* Border radius */
     --radius-theme: 0.5rem;
