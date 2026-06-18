@@ -55,7 +55,7 @@ public record FormResponse(
                 row.get("submitted_at", INSTANT_TIMESTAMP),
                 row.get("updated_at", INSTANT_TIMESTAMP),
                 row.getBytes("submitter_hash"),
-                row.getObject("acknowledged_at", Instant.class),
+                row.get("acknowledged_at", INSTANT_TIMESTAMP),
                 row.getObject("acknowledged_by", Integer.class));
     }
 }
