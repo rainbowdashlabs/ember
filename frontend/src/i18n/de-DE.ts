@@ -7847,6 +7847,7 @@ volumes:
             ingress: 'Eingang (Bytes)',
             egress: 'Ausgang (Bytes)',
             requests: 'Anfragen',
+            inout: 'Ein- und Ausgang',
         },
         bucket: {
             ALL: 'Alle',
@@ -7859,10 +7860,16 @@ volumes:
             egress: 'Ausgang insgesamt',
             requests: 'Anfragen insgesamt',
         },
+        unitBytes: 'Bytes',
+        unitRequests: 'Anfragen',
         chart: {
             title: 'Verlauf',
             hint: 'Pro Stunde aufgeschlüsselt nach Zugriffsart. Bei mehr als 24 Stunden lässt sich der Bereich zoomen.',
             stationHint: 'Pro Stunde aufgeschlüsselt nach Zugriffsart deiner Wache.',
+            directionBucket: {
+                in: 'Eingang · {bucket}',
+                out: 'Ausgang · {bucket}',
+            },
         },
         stationLeaderboard: {
             title: 'Top-Wachen im Zeitraum',

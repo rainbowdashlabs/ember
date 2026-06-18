@@ -18,6 +18,7 @@ import org.mockito.Mockito;
 
 import java.awt.Color;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -255,7 +256,7 @@ class PageImageVariantServiceTest {
     void webpSourceDoesNotEmitDoubleEncodedWebp() throws IOException {
         Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available — skipping webp-source test");
         byte[] png = pngBytes(800, 600);
-        BufferedImage decoded = ImageIO.read(new java.io.ByteArrayInputStream(png));
+        BufferedImage decoded = ImageIO.read(new ByteArrayInputStream(png));
         byte[] webpSource;
         try {
             webpSource = WebpEncoder.encode(decoded, 80);

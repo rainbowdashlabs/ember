@@ -17,7 +17,9 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Comparator;
 import java.util.HexFormat;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -223,7 +225,7 @@ public class PageFileStorageService {
         Path sidecar = dir.resolve(CONTENT_TYPE_FILE);
         String name = file.getFileName().toString();
         int dot = name.lastIndexOf('.');
-        String ext = dot < 0 ? "" : name.substring(dot + 1).toLowerCase(java.util.Locale.ROOT);
+        String ext = dot < 0 ? "" : name.substring(dot + 1).toLowerCase(Locale.ROOT);
         if (ext.equals("webp")) return "image/webp";
         if (Files.exists(sidecar)) return Files.readString(sidecar).trim();
         return mimeForExtension(ext);
@@ -243,7 +245,7 @@ public class PageFileStorageService {
 
     private static String extensionFor(String mimeType) {
         if (mimeType == null) return "bin";
-        return switch (mimeType.toLowerCase(java.util.Locale.ROOT)) {
+        return switch (mimeType.toLowerCase(Locale.ROOT)) {
             case "image/jpeg" -> "jpg";
             case "image/png" -> "png";
             case "image/gif" -> "gif";
@@ -265,7 +267,7 @@ public class PageFileStorageService {
     private void deleteDirectoryQuietly(Path dir) {
         if (!Files.isDirectory(dir)) return;
         try (Stream<Path> entries = Files.walk(dir)) {
-            entries.sorted(java.util.Comparator.reverseOrder()).forEach(this::deleteQuietly);
+            entries.sorted(Comparator.reverseOrder()).forEach(this::deleteQuietly);
         } catch (IOException e) {
             log.warn("Failed to delete directory {}", dir, e);
         }

@@ -10,6 +10,9 @@ import dev.chojo.ocular.override.Env;
 import dev.chojo.ocular.override.Overwrite;
 import dev.chojo.ocular.override.OverwritePrefix;
 
+import java.util.List;
+import java.util.TreeSet;
+
 @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
 @OverwritePrefix("STORAGE")
 public class Storage {
@@ -169,8 +172,8 @@ public class Storage {
      * integers. Invalid tokens are silently skipped — the config is operator-supplied and the
      * application should never crash because of an extra comma.
      */
-    public java.util.List<Integer> imageVariantsWidthList() {
-        var out = new java.util.TreeSet<Integer>();
+    public List<Integer> imageVariantsWidthList() {
+        var out = new TreeSet<Integer>();
         if (imageVariantsWidths != null) {
             for (String token : imageVariantsWidths.split(",")) {
                 String trimmed = token.trim();
@@ -182,6 +185,6 @@ public class Storage {
                 }
             }
         }
-        return java.util.List.copyOf(out);
+        return List.copyOf(out);
     }
 }

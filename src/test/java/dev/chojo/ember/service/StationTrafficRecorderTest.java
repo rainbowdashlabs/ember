@@ -8,15 +8,21 @@ package dev.chojo.ember.service;
 import dev.chojo.ember.conf.file.elements.Metrics;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.traffic.entity.AuthBucket;
+import dev.chojo.ember.feature.traffic.entity.TrafficBucket;
+import dev.chojo.ember.feature.traffic.repository.StationTrafficRepository;
 import dev.chojo.ember.feature.traffic.service.StationTrafficRecorder;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
+import java.lang.reflect.Field;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -113,7 +119,7 @@ class StationTrafficRecorderTest extends RepositoryTestBase {
 
     @Test
     void flushSwallowsRepositoryExceptionsAndKeepsBucket() {
-        var failingRepo = Mockito.mock(dev.chojo.ember.feature.traffic.repository.StationTrafficRepository.class);
+        var failingRepo = Mockito.mock(StationTrafficRepository.class);
         Mockito.doThrow(new RuntimeException("simulated db outage"))
                 .when(failingRepo)
                 .upsert(Mockito.any());
@@ -127,7 +133,7 @@ class StationTrafficRecorderTest extends RepositoryTestBase {
     void pruneDelegatesToRepositoryWithRetentionCutoff() throws Exception {
         var rec = new StationTrafficRecorder(stationTrafficRepo, metrics);
         Instant ancient = Instant.now().minus(120, ChronoUnit.DAYS);
-        stationTrafficRepo.upsert(new dev.chojo.ember.feature.traffic.entity.TrafficBucket(
+        stationTrafficRepo.upsert(new TrafficBucket(
                 ancient.truncatedTo(ChronoUnit.HOURS), station.id(), AuthBucket.AUTHENTICATED, 1, 1, 1));
         invokePrune(rec);
         var rows = stationTrafficRepo.findHourly(ancient.minus(1, ChronoUnit.HOURS), ancient, station.id(), null);
@@ -136,7 +142,7 @@ class StationTrafficRecorderTest extends RepositoryTestBase {
 
     @Test
     void pruneSwallowsRepositoryExceptions() throws Exception {
-        var failingRepo = Mockito.mock(dev.chojo.ember.feature.traffic.repository.StationTrafficRepository.class);
+        var failingRepo = Mockito.mock(StationTrafficRepository.class);
         Mockito.when(failingRepo.pruneBefore(Mockito.any())).thenThrow(new RuntimeException("simulated db outage"));
         var rec = new StationTrafficRecorder(failingRepo, metrics);
         assertDoesNotThrow(() -> invokePrune(rec));
@@ -147,7 +153,7 @@ class StationTrafficRecorderTest extends RepositoryTestBase {
             var bucketsField = StationTrafficRecorder.class.getDeclaredField("buckets");
             bucketsField.setAccessible(true);
             @SuppressWarnings("unchecked")
-            var map = (java.util.concurrent.ConcurrentHashMap<Object, Object>) bucketsField.get(rec);
+            var map = (ConcurrentHashMap<Object, Object>) bucketsField.get(rec);
 
             var accClass =
                     Class.forName("dev.chojo.ember.feature.traffic.service.StationTrafficRecorder$TrafficAccumulator");
@@ -157,7 +163,12 @@ class StationTrafficRecorderTest extends RepositoryTestBase {
             var keyCtor = keyClass.getDeclaredConstructor(Instant.class, Integer.class, AuthBucket.class);
             keyCtor.setAccessible(true);
 
-            map.put(keyCtor.newInstance(agedHour, 1, AuthBucket.AUTHENTICATED), accCtor.newInstance());
+            Object acc = accCtor.newInstance();
+            var ingress = acc.getClass().getDeclaredField("ingress");
+            ingress.setAccessible(true);
+            ((AtomicLong) ingress.get(acc)).set(1);
+
+            map.put(keyCtor.newInstance(agedHour, 1, AuthBucket.AUTHENTICATED), acc);
         } catch (ReflectiveOperationException e) {
             throw new AssertionError(e);
         }
@@ -178,13 +189,47 @@ class StationTrafficRecorderTest extends RepositoryTestBase {
     }
 
     @Test
+    void flushUpsertsCurrentHourDeltaAndAvoidsDoubleCounting() {
+        var failingRepo = Mockito.mock(StationTrafficRepository.class);
+        var rec = new StationTrafficRecorder(failingRepo, metrics);
+        rec.record(station.id(), AuthBucket.AUTHENTICATED, 100, 200);
+        rec.flush();
+        Mockito.verify(failingRepo, Mockito.times(1))
+                .upsert(ArgumentMatchers.argThat(b -> b.ingressBytes() == 100 && b.egressBytes() == 200));
+
+        rec.flush();
+        Mockito.verifyNoMoreInteractions(failingRepo);
+
+        rec.record(station.id(), AuthBucket.AUTHENTICATED, 50, 75);
+        rec.flush();
+        Mockito.verify(failingRepo, Mockito.times(1))
+                .upsert(ArgumentMatchers.argThat(b -> b.ingressBytes() == 50 && b.egressBytes() == 75));
+    }
+
+    @Test
+    void flushFailureLeavesLastFlushedUnchangedForRetry() {
+        var failingRepo = Mockito.mock(StationTrafficRepository.class);
+        Mockito.doThrow(new RuntimeException("simulated outage"))
+                .doNothing()
+                .when(failingRepo)
+                .upsert(Mockito.any());
+
+        var rec = new StationTrafficRecorder(failingRepo, metrics);
+        rec.record(station.id(), AuthBucket.AUTHENTICATED, 100, 200);
+        assertDoesNotThrow(rec::flush);
+        rec.flush();
+        Mockito.verify(failingRepo, Mockito.times(2))
+                .upsert(ArgumentMatchers.argThat(b -> b.ingressBytes() == 100 && b.egressBytes() == 200));
+    }
+
+    @Test
     void flushPersistsAgedBuckets() {
         var rec = new StationTrafficRecorder(stationTrafficRepo, metrics);
         Instant pastHour = Instant.parse("2026-06-17T05:00:00Z");
         var keyField = privateBucketsField(rec);
         try {
             @SuppressWarnings("unchecked")
-            var map = (java.util.concurrent.ConcurrentHashMap<Object, Object>) keyField.get(rec);
+            var map = (ConcurrentHashMap<Object, Object>) keyField.get(rec);
             map.clear();
             rec.record(station.id(), AuthBucket.AUTHENTICATED, 1, 1);
             var current = rec.snapshot().getFirst();
@@ -202,13 +247,13 @@ class StationTrafficRecorderTest extends RepositoryTestBase {
             Object acc = accCtor.newInstance();
             var ingress = acc.getClass().getDeclaredField("ingress");
             ingress.setAccessible(true);
-            ((java.util.concurrent.atomic.AtomicLong) ingress.get(acc)).set(11);
+            ((AtomicLong) ingress.get(acc)).set(11);
             var egress = acc.getClass().getDeclaredField("egress");
             egress.setAccessible(true);
-            ((java.util.concurrent.atomic.AtomicLong) egress.get(acc)).set(13);
+            ((AtomicLong) egress.get(acc)).set(13);
             var requests = acc.getClass().getDeclaredField("requests");
             requests.setAccessible(true);
-            ((java.util.concurrent.atomic.AtomicLong) requests.get(acc)).set(3);
+            ((AtomicLong) requests.get(acc)).set(3);
 
             Object key = keyCtor.newInstance(pastHour, station.id(), AuthBucket.AUTHENTICATED);
             map.put(key, acc);
@@ -226,7 +271,7 @@ class StationTrafficRecorderTest extends RepositoryTestBase {
         }
     }
 
-    private static java.lang.reflect.Field privateBucketsField(StationTrafficRecorder rec) {
+    private static Field privateBucketsField(StationTrafficRecorder rec) {
         try {
             var field = StationTrafficRecorder.class.getDeclaredField("buckets");
             field.setAccessible(true);

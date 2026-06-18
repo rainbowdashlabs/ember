@@ -42,6 +42,8 @@ import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.storage.service.PdfCompressor;
+import dev.chojo.ember.feature.storage.service.PresentationCompressor;
 import dev.chojo.ember.util.PresentationConverter;
 import dev.chojo.ember.util.TextDiff;
 import jakarta.inject.Inject;
@@ -112,8 +114,8 @@ public class KnowledgeBaseService {
     private final MemberIdentityFactory memberIdentityFactory;
     private final DomainEventBus eventBus;
     private final StationMemberService stationMemberService;
-    private final dev.chojo.ember.feature.storage.service.PresentationCompressor officeCompressor;
-    private final dev.chojo.ember.feature.storage.service.PdfCompressor pdfCompressor;
+    private final PresentationCompressor officeCompressor;
+    private final PdfCompressor pdfCompressor;
     private final Parser markdownParser;
     private final HtmlRenderer htmlRenderer;
 
@@ -130,8 +132,8 @@ public class KnowledgeBaseService {
             MemberIdentityFactory memberIdentityFactory,
             DomainEventBus eventBus,
             StationMemberService stationMemberService,
-            dev.chojo.ember.feature.storage.service.PresentationCompressor officeCompressor,
-            dev.chojo.ember.feature.storage.service.PdfCompressor pdfCompressor) {
+            PresentationCompressor officeCompressor,
+            PdfCompressor pdfCompressor) {
         this.repository = repository;
         this.stationRepository = stationRepository;
         this.fileStorage = fileStorage;

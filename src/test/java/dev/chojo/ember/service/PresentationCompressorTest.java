@@ -13,6 +13,7 @@ import org.mockito.Mockito;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.zip.Deflater;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -94,7 +95,7 @@ class PresentationCompressorTest {
         assertTrue(
                 recompressed.length >= original.length
                         || recompressed == original
-                        || java.util.Arrays.equals(recompressed, original),
+                        || Arrays.equals(recompressed, original),
                 "Already-tight zip should not grow when recompressed");
     }
 

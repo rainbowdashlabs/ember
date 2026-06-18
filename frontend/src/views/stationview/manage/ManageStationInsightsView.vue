@@ -82,67 +82,69 @@ watch(windowHours, async () => {
 
 <template>
   <ViewContent>
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <PageHeader>{{ t('insights.title') }}</PageHeader>
-        <MutedText tag="p" size="sm">{{ t('insights.subtitle') }}</MutedText>
-      </div>
-      <HelpCenterHint :to="{name: 'help-station-insights'}">
-        {{ t('insights.help') }}
-      </HelpCenterHint>
-    </div>
-
-    <InsightsWindowSelector
-        v-model:window-hours="windowHours"
-        v-model:include-bots="includeBots"/>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-      <NeutralContainer class="space-y-1">
-        <MutedText tag="div" size="sm">{{ t('insights.totals.hits') }}</MutedText>
-        <div class="text-2xl font-semibold">{{ n(totalHits) }}</div>
-      </NeutralContainer>
-      <NeutralContainer class="space-y-1">
-        <MutedText tag="div" size="sm">{{ t('insights.totals.pagesWithHits') }}</MutedText>
-        <div class="text-2xl font-semibold">{{ n(totalPages) }}</div>
-      </NeutralContainer>
-      <NeutralContainer class="space-y-1">
-        <MutedText tag="div" size="sm">{{ t('insights.totals.publicPages') }}</MutedText>
-        <div class="text-2xl font-semibold">{{ n(leaderboard.length) }}</div>
-      </NeutralContainer>
-    </div>
-
-    <NeutralContainer class="space-y-2">
-      <SectionHeader>{{ t('insights.leaderboard.title') }}</SectionHeader>
-      <MutedText tag="p" size="sm">{{ t('insights.leaderboard.subtitle') }}</MutedText>
-      <Spinner v-if="loadingLeaderboard"/>
-      <PageLeaderboardTable
-          v-else
-          :include-bots="includeBots"
-          :rows="leaderboard"
-          :selected-page-id="selectedPageId"
-          @select="loadDetail"/>
-    </NeutralContainer>
-
-    <NeutralContainer v-if="selectedPage || loadingDetail" class="space-y-3">
-      <SectionHeader v-if="selectedPage">
-        {{ t('insights.detail.title', {page: selectedPage.title}) }}
-      </SectionHeader>
-      <Spinner v-if="loadingDetail"/>
-      <template v-else-if="detail">
-        <InsightsHourlyChart :rows="hourlySeries"/>
-        <MutedText v-if="hourlySeries.length === 0" tag="div" size="sm">{{ t('insights.noData') }}</MutedText>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div class="space-y-2">
-            <SectionHeader>{{ t('insights.detail.countries') }}</SectionHeader>
-            <DimensionBreakdown :rows="detail.countries"/>
-          </div>
-          <div class="space-y-2">
-            <SectionHeader>{{ t('insights.detail.referrers') }}</SectionHeader>
-            <DimensionBreakdown :rows="detail.referrers"/>
-          </div>
+    <div class="space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <PageHeader>{{ t('insights.title') }}</PageHeader>
+          <MutedText tag="p" size="sm">{{ t('insights.subtitle') }}</MutedText>
         </div>
-      </template>
-    </NeutralContainer>
+        <HelpCenterHint :to="{name: 'help-station-insights'}">
+          {{ t('insights.help') }}
+        </HelpCenterHint>
+      </div>
+
+      <InsightsWindowSelector
+          v-model:window-hours="windowHours"
+          v-model:include-bots="includeBots"/>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <NeutralContainer class="space-y-1">
+          <MutedText tag="div" size="sm">{{ t('insights.totals.hits') }}</MutedText>
+          <div class="text-2xl font-semibold">{{ n(totalHits) }}</div>
+        </NeutralContainer>
+        <NeutralContainer class="space-y-1">
+          <MutedText tag="div" size="sm">{{ t('insights.totals.pagesWithHits') }}</MutedText>
+          <div class="text-2xl font-semibold">{{ n(totalPages) }}</div>
+        </NeutralContainer>
+        <NeutralContainer class="space-y-1">
+          <MutedText tag="div" size="sm">{{ t('insights.totals.publicPages') }}</MutedText>
+          <div class="text-2xl font-semibold">{{ n(leaderboard.length) }}</div>
+        </NeutralContainer>
+      </div>
+
+      <NeutralContainer class="space-y-2">
+        <SectionHeader>{{ t('insights.leaderboard.title') }}</SectionHeader>
+        <MutedText tag="p" size="sm">{{ t('insights.leaderboard.subtitle') }}</MutedText>
+        <Spinner v-if="loadingLeaderboard"/>
+        <PageLeaderboardTable
+            v-else
+            :include-bots="includeBots"
+            :rows="leaderboard"
+            :selected-page-id="selectedPageId"
+            @select="loadDetail"/>
+      </NeutralContainer>
+
+      <NeutralContainer v-if="selectedPage || loadingDetail" class="space-y-3">
+        <SectionHeader v-if="selectedPage">
+          {{ t('insights.detail.title', {page: selectedPage.title}) }}
+        </SectionHeader>
+        <Spinner v-if="loadingDetail"/>
+        <template v-else-if="detail">
+          <InsightsHourlyChart :rows="hourlySeries"/>
+          <MutedText v-if="hourlySeries.length === 0" tag="div" size="sm">{{ t('insights.noData') }}</MutedText>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="space-y-2">
+              <SectionHeader>{{ t('insights.detail.countries') }}</SectionHeader>
+              <DimensionBreakdown :rows="detail.countries"/>
+            </div>
+            <div class="space-y-2">
+              <SectionHeader>{{ t('insights.detail.referrers') }}</SectionHeader>
+              <DimensionBreakdown :rows="detail.referrers"/>
+            </div>
+          </div>
+        </template>
+      </NeutralContainer>
+    </div>
   </ViewContent>
 </template>

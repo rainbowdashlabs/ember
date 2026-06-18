@@ -19,7 +19,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -93,29 +92,41 @@ public class StationTrafficRecorder {
     }
 
     /**
-     * Persists every bucket whose hour is strictly older than the current one, then drops
-     * those entries from the in-memory map. Current-hour buckets stay in memory so further
-     * requests in the same hour keep aggregating without an UPSERT per call.
+     * Persists deltas for every bucket on every tick, so the dashboard sees near-real-time
+     * data instead of waiting for the hour to roll over. Each {@link TrafficAccumulator}
+     * remembers what was already upserted; only the {@code current - lastFlushed} delta is
+     * written each cycle, so the same hits are never counted twice no matter how often the
+     * flusher runs.
+     *
+     * <p>Past-hour buckets are removed from the in-memory map after their final delta lands;
+     * current-hour buckets stay so further requests in the same hour keep aggregating without
+     * an UPSERT per request.
      *
      * <p>Visible for tests / forced flush from {@code stop()}.
      */
     public void flush() {
         Instant currentHour = currentHour();
-        var toFlush = new ArrayList<Map.Entry<BucketKey, TrafficAccumulator>>();
         for (var entry : buckets.entrySet()) {
-            if (!entry.getKey().hour.equals(currentHour)) {
-                toFlush.add(entry);
-            }
-        }
-        for (var entry : toFlush) {
             BucketKey key = entry.getKey();
             TrafficAccumulator acc = entry.getValue();
             long ingress = acc.ingress.get();
             long egress = acc.egress.get();
             long requests = acc.requests.get();
+            long deltaIngress = ingress - acc.lastFlushedIngress;
+            long deltaEgress = egress - acc.lastFlushedEgress;
+            long deltaRequests = requests - acc.lastFlushedRequests;
+            boolean pastHour = !key.hour.equals(currentHour);
+            if (deltaIngress == 0 && deltaEgress == 0 && deltaRequests == 0) {
+                if (pastHour) buckets.remove(key, acc);
+                continue;
+            }
             try {
-                repository.upsert(new TrafficBucket(key.hour, key.stationId, key.auth, ingress, egress, requests));
-                buckets.remove(key, acc);
+                repository.upsert(
+                        new TrafficBucket(key.hour, key.stationId, key.auth, deltaIngress, deltaEgress, deltaRequests));
+                acc.lastFlushedIngress = ingress;
+                acc.lastFlushedEgress = egress;
+                acc.lastFlushedRequests = requests;
+                if (pastHour) buckets.remove(key, acc);
             } catch (Exception e) {
                 log.warn("Failed to flush traffic bucket {} — will retry on next tick", key, e);
             }
@@ -168,8 +179,8 @@ public class StationTrafficRecorder {
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (!(o instanceof BucketKey b)) return false;
-            return hour.equals(b.hour) && Objects.equals(stationId, b.stationId) && auth == b.auth;
+            if (!(o instanceof BucketKey(Instant hour1, Integer id, AuthBucket auth1))) return false;
+            return hour.equals(hour1) && Objects.equals(stationId, id) && auth == auth1;
         }
 
         @Override
@@ -182,5 +193,14 @@ public class StationTrafficRecorder {
         final AtomicLong ingress = new AtomicLong();
         final AtomicLong egress = new AtomicLong();
         final AtomicLong requests = new AtomicLong();
+
+        /**
+         * Cumulative values already written to the DB by the most recent flush. Mutated only
+         * from the single-threaded flusher, so no atomicity is required.
+         */
+        long lastFlushedIngress = 0;
+
+        long lastFlushedEgress = 0;
+        long lastFlushedRequests = 0;
     }
 }

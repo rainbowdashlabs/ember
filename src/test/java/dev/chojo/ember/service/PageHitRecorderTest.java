@@ -21,6 +21,8 @@ import org.mockito.Mockito;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -167,7 +169,7 @@ class PageHitRecorderTest extends RepositoryTestBase {
         var bucketsField = PageHitRecorder.class.getDeclaredField("buckets");
         bucketsField.setAccessible(true);
         @SuppressWarnings("unchecked")
-        var map = (java.util.concurrent.ConcurrentHashMap<Object, Object>) bucketsField.get(rec);
+        var map = (ConcurrentHashMap<Object, Object>) bucketsField.get(rec);
 
         var keyClass = Class.forName("dev.chojo.ember.feature.insights.service.PageHitRecorder$BucketKey");
         var keyCtor =
@@ -175,7 +177,7 @@ class PageHitRecorderTest extends RepositoryTestBase {
         keyCtor.setAccessible(true);
         Object key = keyCtor.newInstance(hour, pageId, country, referer, isBot);
 
-        var atomic = new java.util.concurrent.atomic.AtomicLong(hits);
+        var atomic = new AtomicLong(hits);
         map.put(key, atomic);
     }
 

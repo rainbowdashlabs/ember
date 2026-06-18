@@ -22,7 +22,7 @@ import TrafficWindowSelector from '@/views/adminview/admintrafficview/TrafficWin
 const {t} = useI18n()
 
 const windowHours = ref(72)
-const metric = ref<'ingressBytes' | 'egressBytes' | 'requests'>('egressBytes')
+const metric = ref<'ingressBytes' | 'egressBytes' | 'requests' | 'inout'>('egressBytes')
 const authFilter = ref<AuthBucketName | ''>('')
 const rows = ref<HourlyTrafficRow[]>([])
 const loading = ref(false)
@@ -49,31 +49,33 @@ watch([windowHours, authFilter], load)
 
 <template>
   <ViewContent>
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <PageHeader>{{ t('traffic.station.title') }}</PageHeader>
-        <MutedText tag="p" size="sm">{{ t('traffic.station.subtitle') }}</MutedText>
+    <div class="space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <PageHeader>{{ t('traffic.station.title') }}</PageHeader>
+          <MutedText tag="p" size="sm">{{ t('traffic.station.subtitle') }}</MutedText>
+        </div>
+        <HelpCenterHint :to="{name: 'help-station-traffic'}">
+          {{ t('traffic.help') }}
+        </HelpCenterHint>
       </div>
-      <HelpCenterHint :to="{name: 'help-station-traffic'}">
-        {{ t('traffic.help') }}
-      </HelpCenterHint>
+
+      <TrafficWindowSelector
+          v-model:window-hours="windowHours"
+          v-model:metric="metric"
+          v-model:auth-filter="authFilter"/>
+
+      <Spinner v-if="loading"/>
+      <template v-else>
+        <TrafficTotals :rows="rows"/>
+
+        <NeutralContainer class="space-y-2">
+          <SectionHeader>{{ t('traffic.chart.title') }}</SectionHeader>
+          <MutedText tag="p" size="sm">{{ t('traffic.chart.stationHint') }}</MutedText>
+          <TrafficChart v-if="rows.length > 0" :rows="rows" :metric="metric"/>
+          <MutedText v-else tag="div" size="sm">{{ t('traffic.noData') }}</MutedText>
+        </NeutralContainer>
+      </template>
     </div>
-
-    <TrafficWindowSelector
-        v-model:window-hours="windowHours"
-        v-model:metric="metric"
-        v-model:auth-filter="authFilter"/>
-
-    <Spinner v-if="loading"/>
-    <template v-else>
-      <TrafficTotals :rows="rows"/>
-
-      <NeutralContainer class="space-y-2">
-        <SectionHeader>{{ t('traffic.chart.title') }}</SectionHeader>
-        <MutedText tag="p" size="sm">{{ t('traffic.chart.stationHint') }}</MutedText>
-        <TrafficChart v-if="rows.length > 0" :rows="rows" :metric="metric"/>
-        <MutedText v-else tag="div" size="sm">{{ t('traffic.noData') }}</MutedText>
-      </NeutralContainer>
-    </template>
   </ViewContent>
 </template>

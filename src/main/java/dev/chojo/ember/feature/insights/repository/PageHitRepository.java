@@ -5,9 +5,11 @@
  */
 package dev.chojo.ember.feature.insights.repository;
 
+import de.chojo.sadu.mapper.wrapper.Row;
 import dev.chojo.ember.feature.insights.entity.PageHitBucket;
 import jakarta.inject.Singleton;
 
+import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
 
@@ -197,7 +199,7 @@ public class PageHitRepository {
                 .rows();
     }
 
-    private static PageHitBucket mapBucket(de.chojo.sadu.mapper.wrapper.Row row) throws java.sql.SQLException {
+    private static PageHitBucket mapBucket(Row row) throws SQLException {
         return new PageHitBucket(
                 row.get("hour", INSTANT_TIMESTAMP),
                 row.getInt("page_id"),

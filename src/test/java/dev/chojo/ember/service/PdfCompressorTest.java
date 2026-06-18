@@ -7,6 +7,7 @@ package dev.chojo.ember.service;
 
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.storage.service.PdfCompressor;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
@@ -66,7 +67,7 @@ class PdfCompressorTest {
         byte[] result = compressor.compress(pdf);
         assertNotNull(result);
         assertTrue(result.length > 0);
-        try (var doc = org.apache.pdfbox.Loader.loadPDF(result)) {
+        try (var doc = Loader.loadPDF(result)) {
             assertEquals(1, doc.getNumberOfPages());
         }
     }

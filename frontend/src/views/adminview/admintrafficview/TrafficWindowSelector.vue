@@ -9,15 +9,18 @@ import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import {AuthBucket, type AuthBucketName} from '@/api/traffic'
 
+/** Allowed metrics, mirrors {@code TrafficChart}'s prop type. */
+type Metric = 'ingressBytes' | 'egressBytes' | 'requests' | 'inout'
+
 const props = defineProps<{
   windowHours: number
-  metric: 'ingressBytes' | 'egressBytes' | 'requests'
+  metric: Metric
   authFilter: AuthBucketName | ''
 }>()
 
 const emit = defineEmits<{
   (e: 'update:windowHours', value: number): void
-  (e: 'update:metric', value: 'ingressBytes' | 'egressBytes' | 'requests'): void
+  (e: 'update:metric', value: Metric): void
   (e: 'update:authFilter', value: AuthBucketName | ''): void
 }>()
 
@@ -29,7 +32,7 @@ const windowHoursModel = computed({
 })
 const metricModel = computed({
   get: () => props.metric,
-  set: v => emit('update:metric', v as 'ingressBytes' | 'egressBytes' | 'requests'),
+  set: v => emit('update:metric', v as Metric),
 })
 const authModel = computed({
   get: () => props.authFilter,
@@ -53,6 +56,7 @@ const authModel = computed({
       <SelectInput v-model="metricModel">
         <option value="egressBytes">{{ t('traffic.metric.egress') }}</option>
         <option value="ingressBytes">{{ t('traffic.metric.ingress') }}</option>
+        <option value="inout">{{ t('traffic.metric.inout') }}</option>
         <option value="requests">{{ t('traffic.metric.requests') }}</option>
       </SelectInput>
     </label>

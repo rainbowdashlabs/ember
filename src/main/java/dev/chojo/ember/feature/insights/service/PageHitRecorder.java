@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -186,7 +187,7 @@ public class PageHitRecorder {
         if (country == null || country.isBlank()) return "XX";
         String trimmed = country.trim();
         if (trimmed.length() != 2) return "XX";
-        return trimmed.toUpperCase(java.util.Locale.ROOT);
+        return trimmed.toUpperCase(Locale.ROOT);
     }
 
     private Instant currentHour() {

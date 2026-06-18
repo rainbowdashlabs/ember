@@ -17,10 +17,14 @@ export const AuthBucket = {
 
 export type AuthBucketName = (typeof AuthBucket)[keyof typeof AuthBucket]
 
-/** One row of {@code station_traffic_hourly} as exposed by the admin / station endpoints. */
+/**
+ * One row of {@code station_traffic_hourly} as exposed by the admin / station endpoints.
+ * {@code stationId} is the public UUID string (serialized via {@code StationIdModule} on the
+ * backend), or {@code null} for instance-global rows.
+ */
 export interface HourlyTrafficRow {
     hour: string
-    stationId: number | null
+    stationId: string | null
     auth: AuthBucketName
     ingressBytes: number
     egressBytes: number
@@ -34,7 +38,7 @@ export interface HourlyTrafficResponse {
 export interface TrafficQuery {
     from: string
     to: string
-    stationId?: number
+    stationId?: string
     auth?: AuthBucketName
 }
 

@@ -13,8 +13,9 @@ import MutedText from '@/components/typography/MutedText.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import HelpCenterHint from '@/components/help/HelpCenterHint.vue'
-import {traffic} from '@/api'
+import {stations, traffic} from '@/api'
 import type {AuthBucketName, HourlyTrafficRow} from '@/api/traffic'
+import type {Station} from '@/api/types'
 import TrafficChart from './admintrafficview/TrafficChart.vue'
 import TrafficTotals from './admintrafficview/TrafficTotals.vue'
 import TrafficWindowSelector from './admintrafficview/TrafficWindowSelector.vue'
@@ -22,9 +23,10 @@ import TrafficWindowSelector from './admintrafficview/TrafficWindowSelector.vue'
 const {t, n} = useI18n()
 
 const windowHours = ref(72)
-const metric = ref<'ingressBytes' | 'egressBytes' | 'requests'>('egressBytes')
+const metric = ref<'ingressBytes' | 'egressBytes' | 'requests' | 'inout'>('egressBytes')
 const authFilter = ref<AuthBucketName | ''>('')
 const rows = ref<HourlyTrafficRow[]>([])
+const stationNames = ref<Map<string, string>>(new Map())
 const loading = ref(false)
 
 async function load() {
@@ -43,18 +45,35 @@ async function load() {
   }
 }
 
-onMounted(load)
+async function loadStationNames() {
+  try {
+    const list: Station[] = await stations.listStations()
+    const map = new Map<string, string>()
+    for (const s of list) {
+      const uid = String((s as unknown as {id: unknown}).id)
+      map.set(uid, s.name ?? uid)
+    }
+    stationNames.value = map
+  } catch {
+    stationNames.value = new Map()
+  }
+}
+
+onMounted(async () => {
+  await loadStationNames()
+  await load()
+})
 watch([windowHours, authFilter], load)
 
 interface StationTotal {
-  stationId: number | null
+  stationId: string | null
   ingressBytes: number
   egressBytes: number
   requests: number
 }
 
 const stationLeaderboard = computed<StationTotal[]>(() => {
-  const byStation = new Map<number | null, StationTotal>()
+  const byStation = new Map<string | null, StationTotal>()
   for (const row of rows.value) {
     const key = row.stationId
     let existing = byStation.get(key)
@@ -66,7 +85,10 @@ const stationLeaderboard = computed<StationTotal[]>(() => {
     existing.egressBytes += row.egressBytes
     existing.requests += row.requests
   }
-  return [...byStation.values()].sort((a, b) => b[metric.value] - a[metric.value])
+  const sortKey: 'ingressBytes' | 'egressBytes' | 'requests' = metric.value === 'inout'
+      ? 'egressBytes'
+      : metric.value
+  return [...byStation.values()].sort((a, b) => b[sortKey] - a[sortKey])
 })
 
 function formatBytes(bytes: number): string {
@@ -77,14 +99,15 @@ function formatBytes(bytes: number): string {
   return `${value.toFixed(value >= 100 ? 0 : 1)} ${units[i]}`
 }
 
-function stationLabel(stationId: number | null): string {
+function stationLabel(stationId: string | null): string {
   if (stationId === null) return t('traffic.stationLeaderboard.global')
-  return `#${stationId}`
+  return stationNames.value.get(stationId) ?? stationId
 }
 </script>
 
 <template>
   <ViewContent>
+    <div class="space-y-4">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
         <PageHeader>{{ t('traffic.admin.title') }}</PageHeader>
@@ -137,5 +160,6 @@ function stationLabel(stationId: number | null): string {
         <MutedText v-else tag="div" size="sm">{{ t('traffic.noData') }}</MutedText>
       </NeutralContainer>
     </template>
+    </div>
   </ViewContent>
 </template>

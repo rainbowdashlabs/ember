@@ -9,16 +9,28 @@ import {useI18n} from 'vue-i18n'
 import VChart from 'vue-echarts'
 import {use} from 'echarts/core'
 import {CanvasRenderer} from 'echarts/renderers'
-import {BarChart, LineChart} from 'echarts/charts'
+import {LineChart} from 'echarts/charts'
 import {DataZoomComponent, GridComponent, LegendComponent, TooltipComponent} from 'echarts/components'
 import {AuthBucket, type AuthBucketName, type HourlyTrafficRow} from '@/api/traffic'
 
-use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
+use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
+
+/**
+ * Metric the chart visualises.
+ *
+ * <ul>
+ *   <li>{@code ingressBytes} / {@code egressBytes} / {@code requests} — single-metric stacked
+ *       area chart, one stack per auth bucket.</li>
+ *   <li>{@code inout} — bidirectional view: ingress is drawn positive, egress is drawn
+ *       negative, both stacked by auth bucket, so the chart shows a mirrored skyline around
+ *       the zero axis.</li>
+ * </ul>
+ */
+type Metric = 'ingressBytes' | 'egressBytes' | 'requests' | 'inout'
 
 const props = defineProps<{
   rows: HourlyTrafficRow[]
-  /** Which byte metric the chart should visualise. */
-  metric: 'ingressBytes' | 'egressBytes' | 'requests'
+  metric: Metric
 }>()
 
 const {t, n} = useI18n()
@@ -27,15 +39,14 @@ const isDark = computed(() => typeof document !== 'undefined' && document.docume
 const textColor = computed(() => (isDark.value ? '#ccc' : '#333'))
 
 interface AuthSeries {
-  name: string
   bucket: AuthBucketName
   color: string
 }
 
 const seriesDefs: AuthSeries[] = [
-  {name: 'AUTHENTICATED', bucket: AuthBucket.AUTHENTICATED, color: '#FF6421'},
-  {name: 'UNAUTHENTICATED', bucket: AuthBucket.UNAUTHENTICATED, color: '#3694FF'},
-  {name: 'FEDERATION', bucket: AuthBucket.FEDERATION, color: '#00C507'},
+  {bucket: AuthBucket.AUTHENTICATED, color: '#FF6421'},
+  {bucket: AuthBucket.UNAUTHENTICATED, color: '#3694FF'},
+  {bucket: AuthBucket.FEDERATION, color: '#00C507'},
 ]
 
 const hours = computed(() => {
@@ -57,19 +68,49 @@ function formatHourLabel(iso: string): string {
   })
 }
 
-function bucketSum(hour: string, auth: AuthBucketName): number {
+function bucketSum(hour: string, auth: AuthBucketName, field: 'ingressBytes' | 'egressBytes' | 'requests'): number {
   return props.rows
       .filter(r => r.hour === hour && r.auth === auth)
-      .reduce((sum, r) => sum + (r[props.metric] ?? 0), 0)
+      .reduce((sum, r) => sum + (r[field] ?? 0), 0)
 }
 
-const series = computed(() => seriesDefs.map(def => ({
-  name: t(`traffic.bucket.${def.bucket}`),
-  type: 'bar' as const,
-  stack: 'total',
-  data: hours.value.map(h => bucketSum(h, def.bucket)),
-  itemStyle: {color: def.color},
-})))
+interface SeriesOption {
+  name: string
+  type: 'line'
+  stack: string
+  areaStyle: object
+  smooth: boolean
+  showSymbol: boolean
+  data: number[]
+  itemStyle: {color: string}
+  lineStyle: {color: string}
+}
+
+function buildSeries(field: 'ingressBytes' | 'egressBytes' | 'requests', stackId: string, sign: 1 | -1, labelKey: 'in' | 'out' | null): SeriesOption[] {
+  return seriesDefs.map(def => ({
+    name: labelKey === null
+        ? t(`traffic.bucket.${def.bucket}`)
+        : t(`traffic.chart.directionBucket.${labelKey}`, {bucket: t(`traffic.bucket.${def.bucket}`)}),
+    type: 'line' as const,
+    stack: stackId,
+    areaStyle: {opacity: 0.55},
+    smooth: false,
+    showSymbol: false,
+    data: hours.value.map(h => bucketSum(h, def.bucket, field) * sign),
+    itemStyle: {color: def.color},
+    lineStyle: {color: def.color},
+  }))
+}
+
+const series = computed<SeriesOption[]>(() => {
+  if (props.metric === 'inout') {
+    return [
+      ...buildSeries('ingressBytes', 'in', 1, 'in'),
+      ...buildSeries('egressBytes', 'out', -1, 'out'),
+    ]
+  }
+  return buildSeries(props.metric, 'total', 1, null)
+})
 
 const yAxisName = computed(() => {
   if (props.metric === 'requests') return t('traffic.unitRequests')
@@ -78,7 +119,7 @@ const yAxisName = computed(() => {
 
 const valueFormatter = (value: number): string => {
   if (props.metric === 'requests') return n(value)
-  return formatBytes(value)
+  return formatBytes(Math.abs(value))
 }
 
 function formatBytes(bytes: number): string {
@@ -95,12 +136,13 @@ const option = computed(() => ({
     valueFormatter: (v: unknown) => typeof v === 'number' ? valueFormatter(v) : String(v),
   },
   legend: {
-    data: seriesDefs.map(s => t(`traffic.bucket.${s.bucket}`)),
+    data: series.value.map(s => s.name),
     textStyle: {color: textColor.value},
   },
   grid: {left: 70, right: 20, bottom: 60, top: 40},
   xAxis: {
     type: 'category',
+    boundaryGap: false,
     data: hourLabels.value,
     axisLabel: {color: textColor.value, rotate: 30, fontSize: 10},
   },
