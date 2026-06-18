@@ -11,6 +11,9 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.insights.service.BotClassifier;
+import dev.chojo.ember.feature.insights.service.PageHitRecorder;
+import dev.chojo.ember.feature.insights.service.RefererDomainExtractor;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
@@ -22,8 +25,14 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.system.service.ApiRequestLogger;
 import dev.chojo.ember.feature.system.service.DemoService;
+import dev.chojo.ember.feature.traffic.service.AuthBucketClassifier;
+import dev.chojo.ember.feature.traffic.service.StationResolver;
+import dev.chojo.ember.feature.traffic.service.StationTrafficRecorder;
 import dev.chojo.ember.util.DevErrorWriter;
 import io.javalin.Javalin;
+import io.javalin.compression.CompressionStrategy;
+import io.javalin.compression.Gzip;
+import io.javalin.config.JavalinConfig;
 import io.javalin.config.RoutesConfig;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -41,6 +50,8 @@ import io.javalin.plugin.bundled.CorsPluginConfig;
 import io.javalin.security.RouteRole;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponseWrapper;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,6 +99,12 @@ public class ApiServer {
     private final UserTagRepository userTagRepository;
     private final ApiRequestLogger apiRequestLogger;
     private final DemoService demoService;
+    private final StationTrafficRecorder trafficRecorder;
+    private final StationResolver stationResolver;
+    private final AuthBucketClassifier authClassifier;
+    private final PageHitRecorder pageHitRecorder;
+    private final RefererDomainExtractor refererExtractor;
+    private final BotClassifier botClassifier;
 
     @Inject
     public ApiServer(
@@ -102,7 +119,13 @@ public class ApiServer {
             MemberGroupRepository memberGroupRepository,
             UserTagRepository userTagRepository,
             ApiRequestLogger apiRequestLogger,
-            DemoService demoService) {
+            DemoService demoService,
+            StationTrafficRecorder trafficRecorder,
+            StationResolver stationResolver,
+            AuthBucketClassifier authClassifier,
+            PageHitRecorder pageHitRecorder,
+            RefererDomainExtractor refererExtractor,
+            BotClassifier botClassifier) {
         this.routes = routes;
         this.apiConfig = apiConfig;
         this.demoConfig = demoConfig;
@@ -115,7 +138,15 @@ public class ApiServer {
         this.userTagRepository = userTagRepository;
         this.apiRequestLogger = apiRequestLogger;
         this.demoService = demoService;
+        this.trafficRecorder = trafficRecorder;
+        this.stationResolver = stationResolver;
+        this.authClassifier = authClassifier;
+        this.pageHitRecorder = pageHitRecorder;
+        this.refererExtractor = refererExtractor;
+        this.botClassifier = botClassifier;
         this.apiRequestLogger.start();
+        this.trafficRecorder.start();
+        this.pageHitRecorder.start();
     }
 
     /**
@@ -128,6 +159,7 @@ public class ApiServer {
         var app = Javalin.create(config -> {
             config.http.defaultContentType = "application/json";
             config.jsonMapper(jacksonMapper());
+            configureCompression(config);
 
             var publicDir = Path.of(System.getenv().getOrDefault("EMBER_PUBLIC_DIR", "public"));
             if (Files.isDirectory(publicDir)) {
@@ -207,6 +239,30 @@ public class ApiServer {
                     long duration = System.currentTimeMillis() - start;
                     apiRequestLogger.record(ctx.method().name(), ctx.path(), ctx.statusCode(), duration);
                 }
+            });
+
+            // Per-station traffic counters (concept §2-5). Recorded after the response is
+            // committed so Jetty has populated content-length on the response side.
+            config.routes.after(ctx -> {
+                if (ctx.method() == HandlerType.OPTIONS) return;
+                long ingress = estimateIngressBytes(ctx);
+                long egress = estimateEgressBytes(ctx);
+                trafficRecorder.record(
+                        stationResolver.resolve(ctx).orElse(null), authClassifier.classify(ctx), ingress, egress);
+            });
+
+            // Per-public-page hit counters (concept §7). Only fires when a public page
+            // handler has resolved the page row and stashed its id on the context — file
+            // serves, partner lookups, and 404s are excluded by construction.
+            config.routes.after(ctx -> {
+                if (ctx.method() != HandlerType.GET) return;
+                if (ctx.statusCode() >= 400) return;
+                Object pageIdAttr = ctx.attribute(PageHitRecorder.ATTR_PAGE_HIT_PAGE_ID);
+                if (!(pageIdAttr instanceof Integer pageId)) return;
+                String country = ctx.header("CF-IPCountry");
+                String referer = refererExtractor.extract(ctx.header("Referer"));
+                boolean isBot = botClassifier.isBot(ctx.userAgent());
+                pageHitRecorder.record(pageId, country, referer, isBot);
             });
 
             if (demoConfig.enabled()) {
@@ -516,12 +572,123 @@ public class ApiServer {
     }
 
     /**
+     * Installs a gzip-only compression strategy on the Javalin HTTP config. Concept §11.3:
+     * universal gzip, brotli explicitly out of scope. The default Javalin {@code excludedMimeTypes}
+     * already covers the binary types we want to skip (already-compressed media), so the
+     * level + threshold are the only knobs we expose.
+     */
+    private void configureCompression(JavalinConfig config) {
+        if (!apiConfig.httpGzipEnabled()) {
+            config.http.compressionStrategy = CompressionStrategy.NONE;
+            return;
+        }
+        var strategy = new CompressionStrategy(null, new Gzip(apiConfig.httpGzipLevel()));
+        strategy.setDefaultMinSizeForCompression(apiConfig.httpGzipMinSizeBytes());
+        config.http.compressionStrategy = strategy;
+    }
+
+    /**
+     * Estimates the inbound byte count for a request: declared content length (zero when
+     * not set or unknown) plus a cheap header-bytes approximation. Used by the per-station
+     * traffic recorder; the precision is operational-observability grade, not billing-grade.
+     */
+    private static long estimateIngressBytes(Context ctx) {
+        long bodyBytes = Math.max(0, ctx.req().getContentLengthLong());
+        long headerBytes = 0;
+        for (var entry : ctx.headerMap().entrySet()) {
+            String name = entry.getKey();
+            String value = entry.getValue();
+            if (name != null) headerBytes += name.length();
+            if (value != null) headerBytes += value.length();
+            headerBytes += 4;
+        }
+        String method = ctx.method() != null ? ctx.method().name() : "";
+        String path = ctx.path() != null ? ctx.path() : "";
+        return bodyBytes + headerBytes + method.length() + path.length() + 12;
+    }
+
+    /**
+     * Estimates the outbound byte count for a response. Resolution order:
+     *
+     * <ol>
+     *   <li>{@link #jettyContentCount Jetty's response-side content counter}, which covers
+     *       streamed downloads (page files, feeds, large JSON) that never set a
+     *       {@code Content-Length} header.</li>
+     *   <li>The declared {@code Content-Length} response header for fixed-length responses.</li>
+     *   <li>The length of {@code ctx.result()} for legacy {@code String}-bodied routes.</li>
+     * </ol>
+     *
+     * <p>Adds an approximation of response header bytes on top — same precision target as
+     * ingress.
+     */
+    private static long estimateEgressBytes(Context ctx) {
+        long bodyBytes = jettyContentCount(ctx);
+        if (bodyBytes <= 0) {
+            String contentLength = ctx.res().getHeader("Content-Length");
+            if (contentLength != null) {
+                try {
+                    bodyBytes = Long.parseLong(contentLength);
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+        if (bodyBytes <= 0 && ctx.result() != null) {
+            bodyBytes = ctx.result().length();
+        }
+        long headerBytes = 0;
+        for (String name : ctx.res().getHeaderNames()) {
+            headerBytes += name.length();
+            String value = ctx.res().getHeader(name);
+            if (value != null) headerBytes += value.length();
+            headerBytes += 4;
+        }
+        return Math.max(0, bodyBytes) + headerBytes + 12;
+    }
+
+    /**
+     * Returns the number of bytes Jetty has written for the current response, by walking the
+     * servlet response wrapper chain and reflectively invoking
+     * {@code org.eclipse.jetty.server.Response#getContentCount()}. Returns {@code -1} when
+     * the lookup fails — callers must fall back to {@code Content-Length} / {@code ctx.result()}.
+     *
+     * <p>Reflection lets the recorder stay independent of the Jetty version pinned by Javalin
+     * — Jetty 11 named the method {@code getContentCount}; Jetty 12 added
+     * {@code getBytesWritten}. We try both.
+     */
+    private static long jettyContentCount(Context ctx) {
+        HttpServletResponse res = ctx.res();
+        while (res instanceof HttpServletResponseWrapper wrapper
+                && wrapper.getResponse() instanceof HttpServletResponse inner) {
+            res = inner;
+        }
+        for (String method : new String[] {"getContentCount", "getBytesWritten"}) {
+            try {
+                var m = res.getClass().getMethod(method);
+                Object value = m.invoke(res);
+                if (value instanceof Long l) return l;
+            } catch (ReflectiveOperationException ignored) {
+            }
+        }
+        return -1;
+    }
+
+    /**
      * After-handler that sets appropriate Cache-Control and ETag headers based on the request path.
      */
     private void applyCacheHeaders(@NotNull Context ctx) {
         if (ctx.method() != HandlerType.GET) return;
 
         String path = ctx.path();
+
+        // Content-hashed page files — concept §11.4. The hash makes the URL
+        // content-addressed, so a year-long immutable cache is safe; repeat visits drop to
+        // 304 / cache hits with zero body bytes. Must come before the generic /public/
+        // branch so the long max-age sticks.
+        if (path.startsWith(API_PREFIX + "/public/pages/") && path.contains("/files/")) {
+            ctx.header("Cache-Control", "public, max-age=31536000, immutable");
+            ctx.header("Vary", "Accept");
+            return;
+        }
 
         // Binary resources (images, avatars, logos) — private short cache
         if (path.contains("/avatar") || path.contains("/logo") || path.contains("/image")) {

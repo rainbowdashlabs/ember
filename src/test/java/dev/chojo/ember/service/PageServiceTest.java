@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.page.entity.CellConfig;
 import dev.chojo.ember.feature.page.entity.CellContentType;
 import dev.chojo.ember.feature.page.repository.PageFileMetaRepository;
 import dev.chojo.ember.feature.page.service.PageFileStorageService;
+import dev.chojo.ember.feature.page.service.PageImageVariantService;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
@@ -45,11 +46,14 @@ class PageServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
+        var storage = new PageFileStorageService(stationRepo);
+        var storageConfig = new Storage();
         service = new PageService(
                 pageRepo,
                 new PageFileMetaRepository(),
-                new PageFileStorageService(stationRepo),
-                new StorageQuotaService(storageUsageRepo, new Storage(), new DomainEventBus(Set.of())),
+                storage,
+                new PageImageVariantService(storage, storageConfig),
+                new StorageQuotaService(storageUsageRepo, storageConfig, new DomainEventBus(Set.of())),
                 stationMemberRepo,
                 new ImageService());
         station = stationRepo.create("PageServiceStation");

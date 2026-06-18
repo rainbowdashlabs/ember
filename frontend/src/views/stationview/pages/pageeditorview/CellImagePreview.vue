@@ -5,13 +5,26 @@
  */
 <script lang="ts" setup>
 import {computed, onBeforeUnmount, onMounted, ref, watch} from 'vue'
-import {ImageFit, type ImageConfig} from '@/api/pageManage'
+import {ImageFit, pageImageSrcset, type ImageConfig} from '@/api/pageManage'
 
 const props = defineProps<{
     src: string
     alt?: string
     title?: string
     config: ImageConfig | null | undefined
+    /**
+     * Optional station UID + content hash. When both are supplied, the component emits a
+     * 1x/2x {@code srcset} so the browser fetches the smallest pre-generated variant for the
+     * client's viewport / DPR. Missing pair → render the plain {@code src}, no srcset.
+     */
+    stationUid?: string
+    contentHash?: string
+    /**
+     * Target rendered CSS width in pixels at 1x DPR. Used to build the {@code srcset}. The
+     * matching {@code sizes} hint is "{widthHint}px" so the browser picks the right variant.
+     * Concept defaults: editor preview 256, public cell 2048, markdown inline 1024.
+     */
+    widthHint?: number
 }>()
 
 const containerRef = ref<HTMLElement | null>(null)
@@ -124,6 +137,16 @@ const frameStyle = computed(() => {
     return style
 })
 
+const responsiveSrcset = computed(() => {
+    if (!props.stationUid || !props.contentHash || !props.widthHint) return undefined
+    return pageImageSrcset(props.stationUid, props.contentHash, props.widthHint)
+})
+
+const responsiveSizes = computed(() => {
+    if (!props.widthHint) return undefined
+    return `${props.widthHint}px`
+})
+
 /** Image style: uniform scale + translate when cropped, object-fit otherwise. */
 const imageStyle = computed(() => {
     const {T, R, B, L} = cropPercents.value
@@ -150,9 +173,13 @@ const imageStyle = computed(() => {
         <div :style="frameStyle">
             <img
                 :src="src"
+                :srcset="responsiveSrcset"
+                :sizes="responsiveSizes"
                 :alt="alt ?? ''"
                 :title="title ?? alt ?? ''"
                 :style="imageStyle"
+                loading="lazy"
+                decoding="async"
                 @load="onImgLoad"
             />
         </div>

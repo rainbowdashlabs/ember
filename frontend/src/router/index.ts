@@ -203,6 +203,16 @@ const router = createRouter({
                     component: () => import('@/views/stationview/manage/StationModulesView.vue'),
                 },
                 {
+                    path: 'manage/traffic',
+                    name: 'station-traffic',
+                    component: () => import('@/views/stationview/manage/ManageStationTrafficView.vue'),
+                },
+                {
+                    path: 'manage/insights',
+                    name: 'station-insights',
+                    component: () => import('@/views/stationview/manage/ManageStationInsightsView.vue'),
+                },
+                {
                     path: 'manage/import',
                     name: 'station-import',
                     component: () => import('@/views/stationview/manage/StationImportView.vue'),
@@ -903,6 +913,11 @@ const router = createRouter({
                     component: () => import('@/views/adminview/AdminFeedMetricsView.vue'),
                 },
                 {
+                    path: 'traffic',
+                    name: 'admin-traffic',
+                    component: () => import('@/views/adminview/AdminTrafficView.vue'),
+                },
+                {
                     path: 'discovery',
                     name: 'admin-discovery',
                     component: () => import('@/views/adminview/AdminDiscoveryView.vue'),
@@ -1102,6 +1117,16 @@ const router = createRouter({
                     path: 'manage/modules',
                     name: 'help-station-modules',
                     component: () => import('@/views/helpcenter/stationview/manage/ModulesHelp.vue')
+                },
+                {
+                    path: 'manage/traffic',
+                    name: 'help-station-traffic',
+                    component: () => import('@/views/helpcenter/stationview/manage/StationTrafficHelp.vue')
+                },
+                {
+                    path: 'manage/insights',
+                    name: 'help-station-insights',
+                    component: () => import('@/views/helpcenter/stationview/manage/StationInsightsHelp.vue')
                 },
                 {
                     path: 'manage/import',
@@ -1771,6 +1796,11 @@ const router = createRouter({
                     path: 'feed-metrics',
                     name: 'help-admin-feed-metrics',
                     component: () => import('@/views/helpcenter/adminview/FeedMetricsHelp.vue')
+                },
+                {
+                    path: 'traffic',
+                    name: 'help-admin-traffic',
+                    component: () => import('@/views/helpcenter/adminview/AdminTrafficHelp.vue')
                 },
                 {
                     path: 'discovery',

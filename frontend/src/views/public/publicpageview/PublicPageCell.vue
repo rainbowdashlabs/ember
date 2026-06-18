@@ -11,6 +11,7 @@ import {CellContentType, isLayoutKind} from '@/api/pageManage'
 import {publicPageImageUrl} from '@/api/publicPages'
 import CellLayoutRender from '@/views/stationview/pages/pageeditorview/CellLayoutRender.vue'
 import CellImagePreview from '@/views/stationview/pages/pageeditorview/CellImagePreview.vue'
+import {enhancePageMarkdownImages} from '@/util/pageMarkdownImages'
 
 const props = defineProps<{
     cell: PageCell
@@ -20,7 +21,7 @@ const props = defineProps<{
 
 const markdownHtml = computed(() => {
     if (props.cell.contentType !== CellContentType.MARKDOWN || !props.cell.content) return ''
-    return marked.parse(props.cell.content) as string
+    return enhancePageMarkdownImages(marked.parse(props.cell.content) as string)
 })
 
 interface NestedRow { cells: PageCell[] }
@@ -76,6 +77,9 @@ function imageDescription(cell: PageCell): string {
             :src="publicPageImageUrl(stationUid, cell.content)"
             :alt="imageAlt(cell)"
             :config="imageConfig(cell)"
+            :station-uid="stationUid"
+            :content-hash="cell.content"
+            :width-hint="2048"
         />
         <figcaption v-if="imageDescription(cell)" class="text-xs text-(--text-muted) italic text-center">
             {{ imageDescription(cell) }}

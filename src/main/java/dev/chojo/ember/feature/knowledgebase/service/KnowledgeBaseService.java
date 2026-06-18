@@ -42,6 +42,8 @@ import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.storage.service.PdfCompressor;
+import dev.chojo.ember.feature.storage.service.PresentationCompressor;
 import dev.chojo.ember.util.PresentationConverter;
 import dev.chojo.ember.util.TextDiff;
 import jakarta.inject.Inject;
@@ -112,6 +114,8 @@ public class KnowledgeBaseService {
     private final MemberIdentityFactory memberIdentityFactory;
     private final DomainEventBus eventBus;
     private final StationMemberService stationMemberService;
+    private final PresentationCompressor officeCompressor;
+    private final PdfCompressor pdfCompressor;
     private final Parser markdownParser;
     private final HtmlRenderer htmlRenderer;
 
@@ -127,7 +131,9 @@ public class KnowledgeBaseService {
             EventFederationRepository eventFederationRepository,
             MemberIdentityFactory memberIdentityFactory,
             DomainEventBus eventBus,
-            StationMemberService stationMemberService) {
+            StationMemberService stationMemberService,
+            PresentationCompressor officeCompressor,
+            PdfCompressor pdfCompressor) {
         this.repository = repository;
         this.stationRepository = stationRepository;
         this.fileStorage = fileStorage;
@@ -139,6 +145,8 @@ public class KnowledgeBaseService {
         this.memberIdentityFactory = memberIdentityFactory;
         this.eventBus = eventBus;
         this.stationMemberService = stationMemberService;
+        this.officeCompressor = officeCompressor;
+        this.pdfCompressor = pdfCompressor;
         List<Extension> extensions = List.of(
                 TablesExtension.create(),
                 HeadingAnchorExtension.create(),
@@ -228,29 +236,46 @@ public class KnowledgeBaseService {
             String mimeType,
             int createdBy) {
         KbFileType fileType = detectFileType(mimeType, name);
+        byte[] payload = compressForStorage(data, mimeType);
         var file = repository.createFile(
-                stationId, folderId, name, description, fileType, mimeType, data.length, null, createdBy);
+                stationId, folderId, name, description, fileType, mimeType, payload.length, null, createdBy);
         if (fileType == KbFileType.TEXT) {
-            String text = new String(data);
+            String text = new String(payload);
             repository.storeTextContent(file.id(), text);
             updateSearchIndex(file.id(), text);
         } else if (fileType == KbFileType.PDF) {
-            storeBinaryFile(file.id(), data, mimeType);
-            String pdfText = extractPdfText(data);
+            storeBinaryFile(file.id(), payload, mimeType);
+            String pdfText = extractPdfText(payload);
             if (pdfText != null && !pdfText.isBlank()) {
                 repository.storeTextContent(file.id(), pdfText);
             }
             updateSearchIndex(file.id(), pdfText);
         } else if (fileType == KbFileType.PRESENTATION) {
-            storeBinaryFile(file.id(), data, mimeType);
+            storeBinaryFile(file.id(), payload, mimeType);
             repository.updateConversionStatus(file.id(), ConversionStatus.PENDING);
-            triggerPresentationConversion(file.id(), data, name);
+            triggerPresentationConversion(file.id(), payload, name);
             updateSearchIndex(file.id(), null);
         } else {
-            storeBinaryFile(file.id(), data, mimeType);
+            storeBinaryFile(file.id(), payload, mimeType);
             updateSearchIndex(file.id(), null);
         }
         return file;
+    }
+
+    /**
+     * Routes a freshly-uploaded blob through the at-rest compressors registered in
+     * {@code feature/storage/service} (concept §11.3). Office archives and PDFs are
+     * recompressed losslessly; everything else is returned untouched. Failures fall back to
+     * the original bytes — compression is opportunistic, never a hard requirement.
+     */
+    private byte[] compressForStorage(byte[] data, String mimeType) {
+        if (officeCompressor.shouldCompress(mimeType, data.length)) {
+            return officeCompressor.compress(data);
+        }
+        if (pdfCompressor.shouldCompress(mimeType, data.length)) {
+            return pdfCompressor.compress(data);
+        }
+        return data;
     }
 
     public KbFile createLinkFile(

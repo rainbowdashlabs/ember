@@ -29,6 +29,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -1350,9 +1351,8 @@ class EventRepositoryTest extends RepositoryTestBase {
             var byUid = eventRepo.findByPublicUid(station.id(), uid);
             assertTrue(byUid.isPresent());
             assertEquals(event.id(), byUid.orElseThrow().id());
-            assertTrue(eventRepo
-                    .findByPublicUid(station.id(), java.util.UUID.randomUUID())
-                    .isEmpty());
+            assertTrue(
+                    eventRepo.findByPublicUid(station.id(), UUID.randomUUID()).isEmpty());
         } finally {
             eventRepo.delete(event.id());
         }

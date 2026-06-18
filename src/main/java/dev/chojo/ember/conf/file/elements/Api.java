@@ -42,6 +42,33 @@ public class Api {
     @Overwrite(env = @Env)
     private String imprintDir = "data/imprint";
 
+    /**
+     * Whether to gzip text-shaped responses (JSON, HTML, CSS, XML/RSS/Atom, SVG, plain text,
+     * ICS feeds, …) before sending them to the client. Concept §11.3: the largest single
+     * egress win after image variants, universally supported, ~70% reduction on JSON. Switch
+     * off only for deployments behind a reverse proxy that already handles compression.
+     */
+    @Overwrite(env = @Env)
+    private boolean httpGzipEnabled = true;
+
+    /**
+     * Gzip compression level. Range 0–9 (mirrors Javalin's underlying knob); 6 is the
+     * standard speed-vs-size trade-off and matches Javalin's default. Bump to 9 if CPU is
+     * cheap and bandwidth costs more; drop to 1 on tiny instances if compression CPU shows
+     * up in profiles.
+     */
+    @Overwrite(env = @Env)
+    private int httpGzipLevel = 6;
+
+    /**
+     * Minimum response body size, in bytes, before compression kicks in. Smaller responses
+     * cost more CPU than they save in bytes — concept §11.3 settles on ~1 KB, slightly above
+     * the typical MTU. Set to a higher value if many responses fall just over the threshold
+     * and the overhead shows up; never set below ~256 B.
+     */
+    @Overwrite(env = @Env)
+    private int httpGzipMinSizeBytes = 1024;
+
     public String host() {
         return host;
     }
@@ -76,6 +103,18 @@ public class Api {
 
     public String imprintDir() {
         return imprintDir;
+    }
+
+    public boolean httpGzipEnabled() {
+        return httpGzipEnabled;
+    }
+
+    public int httpGzipLevel() {
+        return httpGzipLevel;
+    }
+
+    public int httpGzipMinSizeBytes() {
+        return httpGzipMinSizeBytes;
     }
 
     @Override

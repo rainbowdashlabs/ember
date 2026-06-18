@@ -17,6 +17,7 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -136,7 +137,7 @@ public class PageRepository {
      * Lightweight picker result row for the page picker. Exposes only the public UUID — never the
      * internal integer id (concept §2.3).
      */
-    public record PickerPage(java.util.UUID pageUid, String title, String slug, java.time.Instant updatedAt) {}
+    public record PickerPage(UUID pageUid, String title, String slug, Instant updatedAt) {}
 
     public boolean updateMeta(
             int id, String title, String slug, Integer parentId, String metaDescription, Integer ogImageId) {

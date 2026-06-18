@@ -371,6 +371,12 @@ async function handleLogout() {
         <SidebarLink v-if="hasPermission(StationPermission.STATION_MANAGER)" :icon="['fas', 'hard-drive']" name="station-storage" to="/station/manage/storage" @navigate="close">
           {{ t('sidebar.storage') }}
         </SidebarLink>
+        <SidebarLink v-if="hasPermission(StationPermission.STATION_ADMINISTRATOR)" :icon="['fas', 'tower-broadcast']" name="station-traffic" to="/station/manage/traffic" @navigate="close">
+          {{ t('sidebar.stationTraffic') }}
+        </SidebarLink>
+        <SidebarLink v-if="hasPermission(StationPermission.STATION_ADMINISTRATOR)" :icon="['fas', 'chart-pie']" name="station-insights" to="/station/manage/insights" @navigate="close">
+          {{ t('sidebar.stationInsights') }}
+        </SidebarLink>
       </SidebarGroup>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="canManageFederation()" :badge="counts.federationRequests" :icon="['fas', 'arrow-right-arrow-left']" :label="t('sidebar.federation')" :prefix="['/station/federate', '/station/federate/discovery']" to="/station/federate" name="station-federation" @navigate="close">

@@ -21,17 +21,29 @@ import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 /**
- * Lossless recompression of presentation files (PPTX, ODP).
- * These formats are ZIP archives — re-packing with maximum deflate typically saves 10-30%.
+ * Lossless recompression of ZIP-based office documents (PPTX, ODP, DOCX, XLSX, ODT, ODS,
+ * legacy {@code .ppt}). Re-packing with maximum deflate typically saves 10–30% on these
+ * formats because office editors emit at speed=fast levels by default.
+ *
+ * <p>Toggles live in {@link Storage}: {@link Storage#compressPresentations()} gates the
+ * presentation family ({@code pptx}, {@code odp}, {@code ppt}); {@link
+ * Storage#compressOfficeDocs()} gates the office-doc family ({@code docx}, {@code xlsx},
+ * {@code odt}, {@code ods}). Both are on by default per concept §11.3.
  */
 @Singleton
 public class PresentationCompressor {
     private static final Logger log = LoggerFactory.getLogger(PresentationCompressor.class);
 
-    private static final Set<String> COMPRESSIBLE_MIME_TYPES = Set.of(
+    private static final Set<String> PRESENTATION_MIME_TYPES = Set.of(
             "application/vnd.openxmlformats-officedocument.presentationml.presentation",
             "application/vnd.oasis.opendocument.presentation",
             "application/vnd.ms-powerpoint");
+
+    private static final Set<String> OFFICE_DOC_MIME_TYPES = Set.of(
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.oasis.opendocument.text",
+            "application/vnd.oasis.opendocument.spreadsheet");
 
     private final Storage storageConfig;
 
@@ -41,13 +53,17 @@ public class PresentationCompressor {
     }
 
     /**
-     * Checks if a file should be compressed based on config, MIME type, and size.
+     * Checks if a file should be compressed based on config, MIME type, and size. Returns
+     * {@code true} for presentations when {@link Storage#compressPresentations()} is on, and
+     * for office docs when {@link Storage#compressOfficeDocs()} is on. Files below the
+     * configured {@link Storage#compressThresholdBytes()} are left untouched — recompressing
+     * tiny files burns CPU for no net win.
      */
     public boolean shouldCompress(String mimeType, long fileSize) {
-        return storageConfig.compressPresentations()
-                && mimeType != null
-                && COMPRESSIBLE_MIME_TYPES.contains(mimeType)
-                && fileSize > storageConfig.compressThresholdBytes();
+        if (mimeType == null) return false;
+        if (fileSize <= storageConfig.compressThresholdBytes()) return false;
+        if (storageConfig.compressPresentations() && PRESENTATION_MIME_TYPES.contains(mimeType)) return true;
+        return storageConfig.compressOfficeDocs() && OFFICE_DOC_MIME_TYPES.contains(mimeType);
     }
 
     /**
@@ -60,13 +76,13 @@ public class PresentationCompressor {
             if (recompressed.length < data.length) {
                 long saved = data.length - recompressed.length;
                 log.info(
-                        "Presentation compressed: {} -> {} (saved {} bytes, {}%)",
+                        "Office archive compressed: {} -> {} (saved {} bytes, {}%)",
                         data.length, recompressed.length, saved, String.format("%.1f", saved * 100.0 / data.length));
                 return recompressed;
             }
             return data;
         } catch (IOException e) {
-            log.warn("Failed to recompress presentation, using original", e);
+            log.warn("Failed to recompress office archive, using original", e);
             return data;
         }
     }

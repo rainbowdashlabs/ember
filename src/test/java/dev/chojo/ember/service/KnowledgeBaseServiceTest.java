@@ -7,6 +7,7 @@ package dev.chojo.ember.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -27,6 +28,8 @@ import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.storage.service.PdfCompressor;
+import dev.chojo.ember.feature.storage.service.PresentationCompressor;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -69,6 +72,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         httpClient = mock(FederationHttpClient.class);
         var kbCommentRepo = mock(KbCommentRepository.class);
         var eventFedRepo = mock(EventFederationRepository.class);
+        var storageConfig = new Storage();
         service = new KnowledgeBaseService(
                 knowledgeBaseRepo,
                 stationRepo,
@@ -80,7 +84,9 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 eventFedRepo,
                 memberIdentityFactory,
                 mock(DomainEventBus.class),
-                mock(StationMemberService.class));
+                mock(StationMemberService.class),
+                new PresentationCompressor(storageConfig),
+                new PdfCompressor(storageConfig));
         station = stationRepo.create("KbSvcStation");
         stationB = stationRepo.create("KbSvcStationB");
         account = accountRepo.create("kb-svc@test.com", "Kb", "SvcTester");

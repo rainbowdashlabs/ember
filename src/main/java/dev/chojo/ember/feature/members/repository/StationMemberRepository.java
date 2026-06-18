@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.members.repository;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
@@ -20,6 +22,7 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -330,8 +333,7 @@ public class StationMemberRepository {
                 WHERE sm.station_id = :station_id
                   AND sm.former = FALSE
                   AND sm.uid::text = ANY(:uids);""", PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY)
-                .single(call().bind("station_id", stationId)
-                        .bind("uids", uidStrings, de.chojo.sadu.postgresql.types.PostgreSqlTypes.VARCHAR))
+                .single(call().bind("station_id", stationId).bind("uids", uidStrings, PostgreSqlTypes.VARCHAR))
                 .map(PickerMember.map())
                 .all();
     }
@@ -355,18 +357,18 @@ public class StationMemberRepository {
     public record PickerMember(
             UUID memberUid,
             String displayName,
-            dev.chojo.ember.api.auth.StationUserType userType,
+            StationUserType userType,
             String displayTag,
             String displayTagColor,
-            java.time.LocalDate joinDate) {
-        public static de.chojo.sadu.mapper.rowmapper.RowMapping<PickerMember> map() {
+            LocalDate joinDate) {
+        public static RowMapping<PickerMember> map() {
             return row -> new PickerMember(
                     row.get("member_uid", StandardValueConverter.UUID_STRING),
                     row.getString("display_name"),
-                    row.getEnum("user_type", dev.chojo.ember.api.auth.StationUserType.class),
+                    row.getEnum("user_type", StationUserType.class),
                     row.getString("display_tag"),
                     row.getString("display_tag_color"),
-                    row.getObject("join_date", java.time.LocalDate.class));
+                    row.getObject("join_date", LocalDate.class));
         }
     }
 
@@ -534,7 +536,7 @@ public class StationMemberRepository {
 
     // -- Join Date --
 
-    public boolean setJoinDate(int memberId, java.time.LocalDate joinDate) {
+    public boolean setJoinDate(int memberId, LocalDate joinDate) {
         return query("UPDATE station_member SET join_date = :join_date WHERE id = :id;")
                 .single(call().bind("join_date", joinDate).bind("id", memberId))
                 .update()

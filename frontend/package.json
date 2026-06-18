@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "nuxi dev",
-    "dev:spa": "vite",
+    "dev": "nuxi dev --host 0.0.0.0",
+    "dev:spa": "vite --host 0.0.0.0",
     "lint:conventions": "node scripts/lint-conventions.mjs",
     "lint:helpcenter": "node scripts/lint-helpcenter.mjs",
     "lint:icons": "node scripts/lint-icons.mjs",

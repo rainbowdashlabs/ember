@@ -46,11 +46,14 @@ import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.page.repository.PageFileMetaRepository;
 import dev.chojo.ember.feature.page.service.PageFileStorageService;
+import dev.chojo.ember.feature.page.service.PageImageVariantService;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
 import dev.chojo.ember.feature.station.service.StationService;
+import dev.chojo.ember.feature.storage.service.PdfCompressor;
+import dev.chojo.ember.feature.storage.service.PresentationCompressor;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.system.service.DemoAttendanceSeeder;
 import dev.chojo.ember.feature.system.service.DemoBoardSeeder;
@@ -121,7 +124,8 @@ class DemoServiceTest extends RepositoryTestBase {
 
         var memberSvc = new StationMemberService(stationMemberRepo, stationRepo, accountRepo, mock(AuthService.class));
         var commentService = new CommentService(eventCommentRepo, noOpBus, memberSvc, stationRepo);
-        var kbFileStorage = new KbFileStorageService();
+        var kbStorageConfig = new Storage();
+        var kbFileStorage = new KbFileStorageService(kbStorageConfig);
         var kbService = new KnowledgeBaseService(
                 knowledgeBaseRepo,
                 stationRepo,
@@ -133,7 +137,9 @@ class DemoServiceTest extends RepositoryTestBase {
                 eventFederationRepo,
                 memberIdentityFactory,
                 noOpBus,
-                memberSvc);
+                memberSvc,
+                new PresentationCompressor(kbStorageConfig),
+                new PdfCompressor(kbStorageConfig));
         var quizService = new QuizService(
                 quizCatalogRepo,
                 quizTestRepo,
@@ -233,12 +239,15 @@ class DemoServiceTest extends RepositoryTestBase {
         var boardSeeder = new DemoBoardSeeder(
                 boardRepo, boardTicketRepo, federatedBoardService, federationService, memberIdentityFactory);
         var procedureSeeder = new DemoProcedureSeeder(procedureRepo);
+        var demoStorageConfig = new Storage();
+        var demoStorage = new PageFileStorageService(stationRepo);
         var pageSeeder = new DemoPageSeeder(
                 new PageService(
                         pageRepo,
                         new PageFileMetaRepository(),
-                        new PageFileStorageService(stationRepo),
-                        new StorageQuotaService(storageUsageRepo, new Storage(), noOpBus),
+                        demoStorage,
+                        new PageImageVariantService(demoStorage, demoStorageConfig),
+                        new StorageQuotaService(storageUsageRepo, demoStorageConfig, noOpBus),
                         stationMemberRepo,
                         new ImageService()),
                 formRepo,

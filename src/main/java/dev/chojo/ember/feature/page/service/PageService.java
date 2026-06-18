@@ -49,6 +49,7 @@ public class PageService {
     private final PageRepository pageRepository;
     private final PageFileMetaRepository metaRepository;
     private final PageFileStorageService imageStorage;
+    private final PageImageVariantService variantService;
     private final StorageQuotaService quotaService;
     private final StationMemberRepository stationMemberRepository;
     private final ImageService imageService;
@@ -60,12 +61,14 @@ public class PageService {
             PageRepository pageRepository,
             PageFileMetaRepository metaRepository,
             PageFileStorageService imageStorage,
+            PageImageVariantService variantService,
             StorageQuotaService quotaService,
             StationMemberRepository stationMemberRepository,
             ImageService imageService) {
         this.pageRepository = pageRepository;
         this.metaRepository = metaRepository;
         this.imageStorage = imageStorage;
+        this.variantService = variantService;
         this.quotaService = quotaService;
         this.stationMemberRepository = stationMemberRepository;
         this.imageService = imageService;
@@ -297,8 +300,21 @@ public class PageService {
         quotaService.checkQuota(stationId, StorageCategory.PAGE_IMAGES, data.length);
         var image = pageRepository.createFile(pageId, stationId, contentHash, fileName, mimeType, data.length);
         imageStorage.store(stationId, contentHash, data, mimeType);
+        if (isImage) {
+            variantService.generateVariants(stationId, contentHash, data, mimeType);
+        }
         quotaService.trackDelta(stationId, StorageCategory.PAGE_IMAGES, data.length, 1);
         return image;
+    }
+
+    /**
+     * Returns the best-fit variant of an uploaded page file for the given (requested width,
+     * {@code Accept} header). Non-image files always return the original. Used by the public
+     * file-serving route to swap in WebP and resized variants transparently.
+     */
+    public Optional<PageFileStorageService.FileData> readFileVariant(
+            int stationId, String contentHash, Integer requestedWidth, String acceptHeader) {
+        return variantService.readBest(stationId, contentHash, requestedWidth, acceptHeader);
     }
 
     public boolean deleteFile(int fileId) {
