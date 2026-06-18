@@ -431,26 +431,18 @@ public class ApiServer {
             return;
         }
 
-        // Extract session token from Authorization header or query param (for iframe/download URLs)
         String authHeader = ctx.header("Authorization");
         String token = null;
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
-        }
-        if ((token == null || token.isBlank()) && ctx.queryParam("token") != null) {
-            token = ctx.queryParam("token");
         }
 
         if (token == null || token.isBlank()) {
             throw new UnauthorizedResponse("Missing or invalid Authorization header");
         }
 
-        // Parse optional station UID from header or query param
         Station station = null;
         String stationIdHeader = ctx.header("X-Station-Id");
-        if ((stationIdHeader == null || stationIdHeader.isBlank()) && ctx.queryParam("stationId") != null) {
-            stationIdHeader = ctx.queryParam("stationId");
-        }
         if (stationIdHeader != null && !stationIdHeader.isBlank()) {
             try {
                 var uid = UUID.fromString(stationIdHeader);
