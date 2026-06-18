@@ -19,6 +19,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import PublicConsentCheckbox from '@/components/public/PublicConsentCheckbox.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -43,6 +44,10 @@ const lastname = ref('')
 const guardians = ref<GuardianInput[]>([{ firstname: '', lastname: '', email: '', phone: '' }])
 const notes = ref('')
 const fieldValues = ref<Map<number, string>>(new Map())
+const consentAccepted = ref(false)
+const consentVersion = ref('')
+const privacyVersion = ref('')
+const tosVersion = ref('')
 
 function getFieldValue(fieldId: number): string {
   return fieldValues.value.get(fieldId) ?? ''
@@ -100,6 +105,10 @@ async function submit() {
     error.value = t('waitingList.register.requiredFields')
     return
   }
+  if (!consentAccepted.value) {
+    error.value = t('publicConsent.required')
+    return
+  }
 
   // Validate required custom fields
   if (inviteInfo.value) {
@@ -127,6 +136,9 @@ async function submit() {
       guardians: guardians.value.map(g => ({ firstname: g.firstname.trim(), lastname: g.lastname.trim(), email: g.email.trim(), phone: g.phone.trim() })),
       notes: notes.value.trim(),
       values,
+      consentVersion: consentVersion.value,
+      privacyVersion: privacyVersion.value,
+      tosVersion: tosVersion.value,
     })
     accessToken.value = result.accessToken
     submitted.value = true
@@ -238,7 +250,15 @@ onMounted(loadInviteInfo)
             <TextAreaInput v-model="notes" :placeholder="t('waitingList.register.notesPlaceholder')" />
           </div>
 
-          <PrimaryButton :disabled="submitting" class="w-full" type="submit">
+          <NeutralContainer>
+            <PublicConsentCheckbox
+                v-model:accepted="consentAccepted"
+                v-model:consent-version="consentVersion"
+                v-model:privacy-version="privacyVersion"
+                v-model:tos-version="tosVersion"/>
+          </NeutralContainer>
+
+          <PrimaryButton :disabled="submitting || !consentAccepted" class="w-full" type="submit">
             {{ submitting ? t('common.loading') : t('waitingList.register.submit') }}
           </PrimaryButton>
         </form>

@@ -57,7 +57,7 @@ class ConsentServiceTest extends RepositoryTestBase {
         when(apiConfig.consentDir()).thenReturn(consentDir.toString());
         when(apiConfig.imprintDir()).thenReturn(imprintDir.toString());
 
-        service = new ConsentService(accountRepo, apiConfig);
+        service = new ConsentService(accountRepo, apiConfig, new dev.chojo.ember.conf.file.elements.Network());
         service.initialize();
 
         account = accountRepo.create("consent-svc@test.com", "Consent", "SvcTester");
@@ -250,7 +250,7 @@ class ConsentServiceTest extends RepositoryTestBase {
         when(apiConfig2.consentDir()).thenReturn(freshConsent.toString());
         when(apiConfig2.imprintDir()).thenReturn(freshImprint.toString());
 
-        var service2 = new ConsentService(accountRepo, apiConfig2);
+        var service2 = new ConsentService(accountRepo, apiConfig2, new dev.chojo.ember.conf.file.elements.Network());
         // First init — all documents are new, so changed=true
         assertDoesNotThrow(service2::initialize);
         // Second init — same content, so changed=false (exercises the else branch)
@@ -259,5 +259,62 @@ class ConsentServiceTest extends RepositoryTestBase {
         // Modify one doc and re-init to trigger the log.warn with mixed changed/unchanged
         Files.writeString(freshPrivacy.resolve("de").resolve("01-privacy.md"), "# Privacy v3\nUpdated again.");
         assertDoesNotThrow(service2::initialize);
+    }
+
+    @Test
+    @Order(40)
+    void requireAcceptanceRejectsMissingVersions() {
+        var ctx = mock(io.javalin.http.Context.class);
+        when(ctx.ip()).thenReturn("127.0.0.1");
+        when(ctx.userAgent()).thenReturn("test-agent");
+        when(ctx.header("CF-IPCountry")).thenReturn("DE");
+
+        var current = service.getCurrentVersions();
+        assertThrows(
+                io.javalin.http.BadRequestResponse.class,
+                () -> service.requireAcceptance(ctx, null, current.privacyVersion(), current.tosVersion()));
+        assertThrows(
+                io.javalin.http.BadRequestResponse.class,
+                () -> service.requireAcceptance(ctx, "", current.privacyVersion(), current.tosVersion()));
+        assertThrows(
+                io.javalin.http.BadRequestResponse.class,
+                () -> service.requireAcceptance(ctx, current.consentVersion(), null, current.tosVersion()));
+        assertThrows(
+                io.javalin.http.BadRequestResponse.class,
+                () -> service.requireAcceptance(ctx, current.consentVersion(), current.privacyVersion(), null));
+    }
+
+    @Test
+    @Order(41)
+    void requireAcceptanceRejectsStaleVersions() {
+        var ctx = mock(io.javalin.http.Context.class);
+        when(ctx.ip()).thenReturn("127.0.0.1");
+        when(ctx.userAgent()).thenReturn("test-agent");
+        when(ctx.header("CF-IPCountry")).thenReturn("DE");
+
+        var current = service.getCurrentVersions();
+        assertThrows(
+                io.javalin.http.BadRequestResponse.class,
+                () -> service.requireAcceptance(ctx, "old-consent", current.privacyVersion(), current.tosVersion()));
+    }
+
+    @Test
+    @Order(42)
+    void requireAcceptanceCapturesContext() {
+        var ctx = mock(io.javalin.http.Context.class);
+        when(ctx.ip()).thenReturn("203.0.113.7");
+        when(ctx.userAgent()).thenReturn("Mozilla/5.0 (test)");
+        when(ctx.header("CF-IPCountry")).thenReturn("AT");
+
+        var current = service.getCurrentVersions();
+        var proof = service.requireAcceptance(
+                ctx, current.consentVersion(), current.privacyVersion(), current.tosVersion());
+        assertEquals(current.consentVersion(), proof.consentVersion());
+        assertEquals(current.privacyVersion(), proof.privacyVersion());
+        assertEquals(current.tosVersion(), proof.tosVersion());
+        assertEquals("203.0.113.7", proof.ipAddress());
+        assertEquals("AT", proof.country());
+        assertEquals("Mozilla/5.0 (test)", proof.userAgent());
+        assertNotNull(proof.consentedAt());
     }
 }

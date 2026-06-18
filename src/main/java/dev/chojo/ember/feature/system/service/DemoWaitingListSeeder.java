@@ -192,7 +192,8 @@ public class DemoWaitingListSeeder {
                     kid.parentFirstname + " " + kid.lastname,
                     kid.email,
                     UUID.randomUUID().toString(),
-                    "");
+                    "",
+                    null);
             waitingListRepository.upsertEntryValue(entry.id(), nameField.id(), StringNode.valueOf(kid.firstname));
             waitingListRepository.upsertEntryValue(
                     entry.id(), ageField.id(), IntNode.valueOf(Integer.parseInt(kid.alter)));

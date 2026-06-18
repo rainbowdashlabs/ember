@@ -35,6 +35,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class WaitingListServiceTest extends RepositoryTestBase {
+    private static final dev.chojo.ember.feature.legal.entity.ConsentProof TEST_CONSENT =
+            new dev.chojo.ember.feature.legal.entity.ConsentProof(
+                    "c", "p", "t", "127.0.0.1", "DE", "test-agent", java.time.Instant.now());
+
     private static WaitingListService service;
     private static Station station;
     private int listId;
@@ -131,7 +135,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 "Müller",
                 guardians("Sabine", "test@test.com"),
                 Map.of(field.id(), IntNode.valueOf(8)),
-                "Test note");
+                "Test note",
+                TEST_CONSENT);
 
         assertNotNull(entry);
         assertEquals("Max", entry.firstname());
@@ -151,11 +156,12 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void registerViaInviteRejectsUsedUpCode() {
         var invite = service.createInvite(listId, 1, null);
-        service.registerViaInvite(invite.code(), "A", "", guardians("", "a@test.com"), Map.of(), null);
+        service.registerViaInvite(invite.code(), "A", "", guardians("", "a@test.com"), Map.of(), null, TEST_CONSENT);
 
         assertThrows(
                 IllegalStateException.class,
-                () -> service.registerViaInvite(invite.code(), "B", "", guardians("", "b@test.com"), Map.of(), null));
+                () -> service.registerViaInvite(
+                        invite.code(), "B", "", guardians("", "b@test.com"), Map.of(), null, TEST_CONSENT));
     }
 
     @Test
@@ -180,7 +186,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void selfServiceByToken() {
         var invite = service.createInvite(listId, 1, null);
-        var entry = service.registerViaInvite(invite.code(), "Max", "", guardians("", "test@test.com"), Map.of(), null);
+        var entry = service.registerViaInvite(
+                invite.code(), "Max", "", guardians("", "test@test.com"), Map.of(), null, TEST_CONSENT);
 
         // Find by token
         var found = service.findEntryByToken(entry.accessToken());
@@ -465,7 +472,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> service.registerViaInvite(
-                        "nonexistent-code", "A", "", guardians("", "a@test.com"), Map.of(), null));
+                        "nonexistent-code", "A", "", guardians("", "a@test.com"), Map.of(), null, TEST_CONSENT));
     }
 
     @Test
@@ -483,7 +490,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var invite = service.createInvite(listId, 1, Instant.now().minusSeconds(3600));
         assertThrows(
                 IllegalStateException.class,
-                () -> service.registerViaInvite(invite.code(), "A", "", guardians("", "a@test.com"), Map.of(), null));
+                () -> service.registerViaInvite(
+                        invite.code(), "A", "", guardians("", "a@test.com"), Map.of(), null, TEST_CONSENT));
     }
 
     @Test
@@ -661,7 +669,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 "verify-test@test.com",
                 List.of(new GuardianInput("Parent", "Last", "parent@test.com", "")),
                 Map.of(),
-                "notes");
+                "notes",
+                TEST_CONSENT);
 
         // Retrieve the token from the repository (via the verification table)
         var token = waitingListRepo.findPublicByStation(station.id()).stream()
@@ -700,7 +709,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 "pending@test.com",
                 UUID.randomUUID().toString(),
                 "",
-                WaitingListEntryStatus.PENDING);
+                WaitingListEntryStatus.PENDING,
+                null);
 
         var approved = service.approvePendingEntry(entry.id());
         assertEquals(WaitingListEntryStatus.WAITING, approved.status());
@@ -718,7 +728,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 "reject@test.com",
                 UUID.randomUUID().toString(),
                 "",
-                WaitingListEntryStatus.PENDING);
+                WaitingListEntryStatus.PENDING,
+                null);
 
         service.rejectPendingEntry(entry.id());
         assertTrue(service.findEntryById(entry.id()).isEmpty());
@@ -729,7 +740,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
         // listId is not public
         assertThrows(
                 IllegalStateException.class,
-                () -> service.submitPublicRegistration(listId, "Test", "", "t@t.com", List.of(), Map.of(), ""));
+                () -> service.submitPublicRegistration(
+                        listId, "Test", "", "t@t.com", List.of(), Map.of(), "", TEST_CONSENT));
     }
 
     @Test
@@ -741,7 +753,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
     void submitPublicRegistrationListNotFoundThrows() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> service.submitPublicRegistration(99999, "A", "", "a@a.com", List.of(), Map.of(), ""));
+                () -> service.submitPublicRegistration(
+                        99999, "A", "", "a@a.com", List.of(), Map.of(), "", TEST_CONSENT));
     }
 
     @Test

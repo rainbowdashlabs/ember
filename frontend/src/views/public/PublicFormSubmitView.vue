@@ -18,6 +18,7 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import PublicConsentCheckbox from '@/components/public/PublicConsentCheckbox.vue'
 import {publicForms} from '@/api'
 import type {PublicForm, PublicFormQuestion} from '@/api/publicForms'
 import {QuestionTypes} from '@/api/types'
@@ -34,6 +35,10 @@ const error = ref('')
 const submitted = ref(false)
 const form = ref<PublicForm | null>(null)
 const answers = ref<Record<number, Record<string, unknown>>>({})
+const consentAccepted = ref(false)
+const consentVersion = ref('')
+const privacyVersion = ref('')
+const tosVersion = ref('')
 
 function initAnswerDefaults(questions: PublicFormQuestion[]) {
   for (const q of questions) {
@@ -73,6 +78,10 @@ function toggleChoice(q: PublicFormQuestion, optionIndex: number) {
 
 async function submit() {
   if (!form.value) return
+  if (!consentAccepted.value) {
+    error.value = t('publicConsent.required')
+    return
+  }
   submitting.value = true
   error.value = ''
   try {
@@ -82,7 +91,12 @@ async function submit() {
       if (value === undefined) continue
       answerMap[q.id] = {type: q.questionType, ...value}
     }
-    await publicForms.submitPublicResponse(stationUid.value, publicUid.value, {answers: answerMap})
+    await publicForms.submitPublicResponse(stationUid.value, publicUid.value, {
+      answers: answerMap,
+      consentVersion: consentVersion.value,
+      privacyVersion: privacyVersion.value,
+      tosVersion: tosVersion.value,
+    })
     submitted.value = true
   } catch (e: unknown) {
     const status = (e as {response?: {status?: number}}).response?.status
@@ -168,8 +182,16 @@ onMounted(load)
           </NeutralContainer>
         </div>
 
+        <NeutralContainer>
+          <PublicConsentCheckbox
+              v-model:accepted="consentAccepted"
+              v-model:consent-version="consentVersion"
+              v-model:privacy-version="privacyVersion"
+              v-model:tos-version="tosVersion"/>
+        </NeutralContainer>
+
         <div class="flex justify-end">
-          <PrimaryButton :disabled="submitting" @click="submit">
+          <PrimaryButton :disabled="submitting || !consentAccepted" @click="submit">
             {{ submitting ? t('publicForm.submitting') : t('publicForm.submit') }}
           </PrimaryButton>
         </div>

@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
+import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import jakarta.inject.Singleton;
 
@@ -456,12 +457,25 @@ public class FormRepository {
      * @param submitterHash SHA-256 hash identifying the submitter
      * @return the newly created response
      */
-    public FormResponse createAnonymousResponse(int formId, byte[] submitterHash) {
+    public FormResponse createAnonymousResponse(int formId, byte[] submitterHash, ConsentProof consent) {
         return query("""
-                INSERT INTO form_response(form_id, member_id, submitted_by, submitter_hash)
-                VALUES (:form_id, NULL, NULL, :submitter_hash)
+                INSERT INTO form_response(
+                        form_id, member_id, submitted_by, submitter_hash,
+                        consent_version, privacy_version, tos_version,
+                        consent_ip, consent_country, consent_user_agent, consented_at)
+                VALUES (:form_id, NULL, NULL, :submitter_hash,
+                        :consent_version, :privacy_version, :tos_version,
+                        :consent_ip, :consent_country, :consent_user_agent, :consented_at)
                 RETURNING *;""")
-                .single(call().bind("form_id", formId).bind("submitter_hash", submitterHash))
+                .single(call().bind("form_id", formId)
+                        .bind("submitter_hash", submitterHash)
+                        .bind("consent_version", consent.consentVersion())
+                        .bind("privacy_version", consent.privacyVersion())
+                        .bind("tos_version", consent.tosVersion())
+                        .bind("consent_ip", consent.ipAddress())
+                        .bind("consent_country", consent.country())
+                        .bind("consent_user_agent", consent.userAgent())
+                        .bind("consented_at", consent.consentedAt(), INSTANT_TIMESTAMP))
                 .map(FormResponse.map())
                 .first()
                 .orElseThrow();

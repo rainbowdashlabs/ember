@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.waitinglist.route;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
@@ -55,11 +56,14 @@ public class WaitingListRoutes implements Routes {
 
     private final WaitingListService service;
     private final StationRepository stationRepository;
+    private final ConsentService consentService;
 
     @Inject
-    public WaitingListRoutes(WaitingListService service, StationRepository stationRepository) {
+    public WaitingListRoutes(
+            WaitingListService service, StationRepository stationRepository, ConsentService consentService) {
         this.service = service;
         this.stationRepository = stationRepository;
+        this.consentService = consentService;
     }
 
     private void verifyListOwnership(int listId, UserSession session) {
@@ -178,6 +182,8 @@ public class WaitingListRoutes implements Routes {
         if (request.inviteCode() == null || request.firstname() == null) {
             throw new BadRequestResponse("inviteCode and firstname are required");
         }
+        var consent = consentService.requireAcceptance(
+                ctx, request.consentVersion(), request.privacyVersion(), request.tosVersion());
         var guardians = resolveGuardians(request.guardians(), request.parentName(), request.email());
         try {
             var entry = service.registerViaInvite(
@@ -186,7 +192,8 @@ public class WaitingListRoutes implements Routes {
                     request.lastname() != null ? request.lastname() : "",
                     guardians,
                     request.values() != null ? request.values() : Map.of(),
-                    request.notes());
+                    request.notes(),
+                    consent);
             ctx.status(HttpStatus.CREATED).json(new PublicEntryResponse(entry.accessToken()));
         } catch (IllegalArgumentException e) {
             log.warn("Invalid argument registering via waiting list invite", e);
@@ -612,7 +619,10 @@ public class WaitingListRoutes implements Routes {
             String email,
             List<GuardianRequest> guardians,
             Map<Integer, JsonNode> values,
-            String notes) {}
+            String notes,
+            String consentVersion,
+            String privacyVersion,
+            String tosVersion) {}
 
     public record PublicEntryResponse(String accessToken) {}
 
@@ -740,6 +750,8 @@ public class WaitingListRoutes implements Routes {
         if (request.email() == null || request.email().isBlank()) {
             throw new BadRequestResponse("email is required");
         }
+        var consent = consentService.requireAcceptance(
+                ctx, request.consentVersion(), request.privacyVersion(), request.tosVersion());
         var guardianInputs = request.guardians() != null
                 ? request.guardians().stream()
                         .map(g -> new GuardianInput(
@@ -756,7 +768,8 @@ public class WaitingListRoutes implements Routes {
                 request.email(),
                 guardianInputs,
                 request.values() != null ? request.values() : Map.of(),
-                request.notes());
+                request.notes(),
+                consent);
         ctx.status(HttpStatus.ACCEPTED).json(new StatusResponse("verification_email_sent"));
     }
 
@@ -797,5 +810,8 @@ public class WaitingListRoutes implements Routes {
             String email,
             List<GuardianRequest> guardians,
             Map<Integer, JsonNode> values,
-            String notes) {}
+            String notes,
+            String consentVersion,
+            String privacyVersion,
+            String tosVersion) {}
 }

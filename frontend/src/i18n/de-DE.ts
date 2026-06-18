@@ -140,6 +140,13 @@ export default {
         selfHostCta: 'Hosting-Anleitung',
         helpCenter: 'Hilfe-Center',
     },
+    publicConsent: {
+        label: 'Ich habe die {privacy} und die {tos} gelesen und stimme ihnen zu.',
+        privacy: 'Datenschutzerklärung',
+        tos: 'Nutzungsbedingungen',
+        loadError: 'Die Rechtsdokumente konnten nicht geladen werden. Bitte später erneut versuchen.',
+        required: 'Bitte stimme der Datenschutzerklärung und den Nutzungsbedingungen zu.',
+    },
     landingAlt: {
         meta: {
             title: 'Ember — Verwaltung für Jugendfeuerwehren',

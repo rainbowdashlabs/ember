@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
 import dev.chojo.ember.feature.form.repository.FormRepository;
+import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
@@ -420,14 +421,15 @@ public class FormService {
      * @param formId        the form ID
      * @param submitterHash SHA-256 hash identifying the submitter
      * @param answers       map of question ID to answer value
+     * @param consent       proof that the submitter accepted privacy / ToS / consent
      * @return the created response
      * @throws IllegalArgumentException if any answer fails validation
      * @throws IllegalStateException    if the visitor already submitted a POLL response
      */
     public FormResponse submitAnonymousResponse(
-            int formId, byte[] submitterHash, Map<Integer, FormAnswerValue> answers) {
+            int formId, byte[] submitterHash, Map<Integer, FormAnswerValue> answers, ConsentProof consent) {
         validateAnswers(formId, answers);
-        var response = repository.createAnonymousResponse(formId, submitterHash);
+        var response = repository.createAnonymousResponse(formId, submitterHash, consent);
         for (var entry : answers.entrySet()) {
             repository.upsertAnswer(response.id(), entry.getKey(), entry.getValue());
         }

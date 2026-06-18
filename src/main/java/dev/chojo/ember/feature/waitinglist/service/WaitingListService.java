@@ -11,6 +11,7 @@ import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.WaitlistPublicRegistration;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -216,7 +217,8 @@ public class WaitingListService {
             String lastname,
             List<GuardianInput> guardians,
             Map<Integer, JsonNode> fieldValues,
-            String notes) {
+            String notes,
+            ConsentProof consent) {
         var invite = repository
                 .findInviteByCode(inviteCode)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid invite code"));
@@ -235,7 +237,14 @@ public class WaitingListService {
 
         String accessToken = UUID.randomUUID().toString();
         var entry = repository.createEntry(
-                invite.listId(), firstname, lastname, parentName, email, accessToken, notes != null ? notes : "");
+                invite.listId(),
+                firstname,
+                lastname,
+                parentName,
+                email,
+                accessToken,
+                notes != null ? notes : "",
+                consent);
         repository.incrementInviteUses(invite.id());
 
         if (guardians != null) {
@@ -329,7 +338,7 @@ public class WaitingListService {
                 guardians != null && !guardians.isEmpty() ? guardians.getFirst().email() : "";
         String accessToken = UUID.randomUUID().toString();
         var entry = repository.createEntry(
-                listId, firstname, lastname, parentName, email, accessToken, notes != null ? notes : "");
+                listId, firstname, lastname, parentName, email, accessToken, notes != null ? notes : "", null);
         if (guardians != null) {
             insertGuardians(entry.id(), guardians);
         }
@@ -708,7 +717,8 @@ public class WaitingListService {
             String email,
             List<GuardianInput> guardians,
             Map<Integer, JsonNode> fieldValues,
-            String notes) {
+            String notes,
+            ConsentProof consent) {
         var list = repository.findById(listId).orElseThrow(() -> new IllegalArgumentException("List not found"));
         if (!list.isPublic()) {
             throw new IllegalStateException("List is not public");
@@ -723,7 +733,8 @@ public class WaitingListService {
                 email,
                 guardians != null ? guardians : List.of(),
                 fieldValues != null ? fieldValues : Map.of(),
-                notes != null ? notes : "");
+                notes != null ? notes : "",
+                consent);
 
         String stationName = resolveStationName(list.stationId());
         emailService.sendWaitlistVerifyEmail(email, firstname, stationName, token, "de", list.stationId());
@@ -752,7 +763,8 @@ public class WaitingListService {
                 verification.email(),
                 accessToken,
                 verification.notes(),
-                WaitingListEntryStatus.PENDING);
+                WaitingListEntryStatus.PENDING,
+                verification.consent());
 
         if (guardians != null) {
             insertGuardians(entry.id(), guardians);

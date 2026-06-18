@@ -43,6 +43,10 @@ import static org.mockito.Mockito.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class FormServiceTest extends RepositoryTestBase {
+    private static final dev.chojo.ember.feature.legal.entity.ConsentProof TEST_CONSENT =
+            new dev.chojo.ember.feature.legal.entity.ConsentProof(
+                    "c", "p", "t", "127.0.0.1", "DE", "test-agent", java.time.Instant.now());
+
     private static FormService service;
     private static Station station;
     private static Account account;
@@ -449,7 +453,7 @@ class FormServiceTest extends RepositoryTestBase {
             for (int i = 0; i < 32; i++) hash[i] = (byte) (i + 1);
 
             assertFalse(service.hasAnonymousResponded(pollForm.id(), hash));
-            var response = service.submitAnonymousResponse(pollForm.id(), hash, Map.of());
+            var response = service.submitAnonymousResponse(pollForm.id(), hash, Map.of(), TEST_CONSENT);
             assertNotNull(response);
             assertNull(response.memberId());
             assertNull(response.submittedBy());

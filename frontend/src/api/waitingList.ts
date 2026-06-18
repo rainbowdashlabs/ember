@@ -158,7 +158,17 @@ export async function getInviteInfo(code: string): Promise<WaitingListInviteInfo
     return res.data
 }
 
-export async function register(data: { inviteCode: string; firstname: string; lastname?: string; guardians?: GuardianInput[]; values?: Record<number, unknown>; notes?: string }): Promise<{ accessToken: string }> {
+export async function register(data: {
+    inviteCode: string
+    firstname: string
+    lastname?: string
+    guardians?: GuardianInput[]
+    values?: Record<number, unknown>
+    notes?: string
+    consentVersion: string
+    privacyVersion: string
+    tosVersion: string
+}): Promise<{ accessToken: string }> {
     const res = await client.post<{ accessToken: string }>('/public/waiting-list/register', data)
     return res.data
 }
@@ -206,6 +216,9 @@ export async function submitPublicRegistration(stationUid: string, listId: numbe
     guardians?: GuardianInput[]
     values?: Record<number, unknown>
     notes?: string
+    consentVersion: string
+    privacyVersion: string
+    tosVersion: string
 }): Promise<{ status: string }> {
     const res = await client.post<{ status: string }>(`/public/station/${stationUid}/waitlists/${listId}/register`, data)
     return res.data

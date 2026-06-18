@@ -24,6 +24,7 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
+import PublicConsentCheckbox from '@/components/public/PublicConsentCheckbox.vue'
 import type {GuardianInput, PublicWaitlistSummary, PublicWaitlistFormResponse, WaitingListField} from '@/api/types'
 import {waitingList} from '@/api'
 
@@ -98,9 +99,15 @@ function setFieldValue(field: WaitingListField, value: string) {
   fieldValues.value[field.id] = value
 }
 
+const consentAccepted = ref(false)
+const consentVersion = ref('')
+const privacyVersion = ref('')
+const tosVersion = ref('')
+
 const canSubmit = computed(() => {
   if (!firstname.value.trim() || !email.value.trim()) return false
   if (!form.value) return false
+  if (!consentAccepted.value) return false
   for (const f of form.value.fields) {
     if (f.required && !fieldValues.value[f.id]?.trim()) return false
   }
@@ -126,6 +133,9 @@ async function submit() {
       guardians: guardianData,
       values,
       notes: notes.value.trim() || undefined,
+      consentVersion: consentVersion.value,
+      privacyVersion: privacyVersion.value,
+      tosVersion: tosVersion.value,
     })
     submitted.value = true
   } catch {
@@ -245,7 +255,14 @@ onMounted(loadLists)
             <TextAreaInput v-model="notes" :placeholder="t('waitingList.publicRegistration.notesPlaceholder')"/>
           </div>
 
-          <PrimaryButton :disabled="!canSubmit || submitting" class="w-full" @click="submit">
+          <PublicConsentCheckbox
+              v-model:accepted="consentAccepted"
+              v-model:consent-version="consentVersion"
+              v-model:privacy-version="privacyVersion"
+              v-model:tos-version="tosVersion"
+              class="block mt-4"/>
+
+          <PrimaryButton :disabled="!canSubmit || submitting" class="w-full mt-4" @click="submit">
             {{ submitting ? t('common.loading') : t('waitingList.publicRegistration.submit') }}
           </PrimaryButton>
         </NeutralContainer>

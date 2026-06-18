@@ -32,6 +32,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class FormRepositoryTest extends RepositoryTestBase {
+    private static final dev.chojo.ember.feature.legal.entity.ConsentProof TEST_CONSENT =
+            new dev.chojo.ember.feature.legal.entity.ConsentProof(
+                    "c", "p", "t", "127.0.0.1", "DE", "test-agent", java.time.Instant.now());
+
     private static Station station;
     private static Account account;
     private static StationMember member;
@@ -205,7 +209,7 @@ class FormRepositoryTest extends RepositoryTestBase {
         byte[] hashB = new byte[32];
         for (int i = 0; i < 32; i++) hashB[i] = (byte) (i + 1);
 
-        var anonymous = formRepo.createAnonymousResponse(formId, hashA);
+        var anonymous = formRepo.createAnonymousResponse(formId, hashA, TEST_CONSENT);
         assertNotNull(anonymous);
         assertNull(anonymous.memberId());
         assertNull(anonymous.submittedBy());

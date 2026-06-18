@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.waitinglist.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import org.slf4j.Logger;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.JsonNode;
@@ -30,7 +31,8 @@ public record WaitlistVerificationToken(
         Map<Integer, JsonNode> fieldValues,
         String notes,
         Instant createdAt,
-        Instant expiresAt) {
+        Instant expiresAt,
+        ConsentProof consent) {
 
     private static final Logger log = getLogger(WaitlistVerificationToken.class);
     private static final ObjectMapper MAPPER = JsonMapper.builder().build();
@@ -42,18 +44,32 @@ public record WaitlistVerificationToken(
     }
 
     public static RowMapping<WaitlistVerificationToken> map() {
-        return row -> new WaitlistVerificationToken(
-                row.getInt("id"),
-                row.getString("token"),
-                row.getInt("list_id"),
-                row.getString("firstname"),
-                row.getString("lastname"),
-                row.getString("email"),
-                parseGuardians(row.getString("guardians")),
-                parseFieldValues(row.getString("field_values")),
-                row.getString("notes"),
-                row.get("created_at", INSTANT_TIMESTAMP),
-                row.get("expires_at", INSTANT_TIMESTAMP));
+        return row -> {
+            Instant consentedAt = row.get("consented_at", INSTANT_TIMESTAMP);
+            ConsentProof consent = consentedAt == null
+                    ? null
+                    : new ConsentProof(
+                            row.getString("consent_version"),
+                            row.getString("privacy_version"),
+                            row.getString("tos_version"),
+                            row.getString("consent_ip"),
+                            row.getString("consent_country"),
+                            row.getString("consent_user_agent"),
+                            consentedAt);
+            return new WaitlistVerificationToken(
+                    row.getInt("id"),
+                    row.getString("token"),
+                    row.getInt("list_id"),
+                    row.getString("firstname"),
+                    row.getString("lastname"),
+                    row.getString("email"),
+                    parseGuardians(row.getString("guardians")),
+                    parseFieldValues(row.getString("field_values")),
+                    row.getString("notes"),
+                    row.get("created_at", INSTANT_TIMESTAMP),
+                    row.get("expires_at", INSTANT_TIMESTAMP),
+                    consent);
+        };
     }
 
     private static List<GuardianInput> parseGuardians(String json) {

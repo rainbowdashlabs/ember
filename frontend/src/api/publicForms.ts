@@ -25,6 +25,9 @@ export interface PublicForm {
 
 export interface PublicFormSubmitRequest {
     answers: Record<number, Record<string, unknown>>
+    consentVersion: string
+    privacyVersion: string
+    tosVersion: string
 }
 
 export interface PublicFormSubmitResponse {

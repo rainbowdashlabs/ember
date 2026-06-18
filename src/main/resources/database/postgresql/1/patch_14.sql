@@ -215,3 +215,64 @@ COMMENT ON COLUMN ember_schema.form_response.acknowledged_by IS 'Member who ackn
 UPDATE ember_schema.page_cell
 SET content_type = 'MEMBER_LIST_SPOTLIGHT'
 WHERE content_type = 'OFFICERS_ROW';
+
+-- Consent proof for anonymous public submissions (form responses + waitlist entries).
+-- For account-bound users, GDPR consent lives in gdpr_consent. For anonymous public
+-- submitters there is no account, so the proof of acceptance is captured inline on
+-- the row itself. All columns are nullable so manager-created entries and member-
+-- attached responses remain unaffected; the public routes always populate them, and
+-- the service layer rejects public requests that arrive without matching version
+-- hashes.
+ALTER TABLE ember_schema.form_response
+    ADD COLUMN consent_version    TEXT,
+    ADD COLUMN privacy_version    TEXT,
+    ADD COLUMN tos_version        TEXT,
+    ADD COLUMN consent_ip         TEXT,
+    ADD COLUMN consent_country    TEXT,
+    ADD COLUMN consent_user_agent TEXT,
+    ADD COLUMN consented_at       TIMESTAMPTZ;
+
+COMMENT ON COLUMN ember_schema.form_response.consent_version    IS 'Version hash of the consent text accepted by an anonymous submitter at the time of submission. NULL for member-attached responses (whose consent lives in gdpr_consent).';
+COMMENT ON COLUMN ember_schema.form_response.privacy_version    IS 'Version hash of the privacy policy accepted by an anonymous submitter. NULL for member-attached responses.';
+COMMENT ON COLUMN ember_schema.form_response.tos_version        IS 'Version hash of the terms of service accepted by an anonymous submitter. NULL for member-attached responses.';
+COMMENT ON COLUMN ember_schema.form_response.consent_ip         IS 'Client IP resolved via ClientIp.resolve at submission time. Captured only for anonymous submissions as legal proof; member responses leave this NULL.';
+COMMENT ON COLUMN ember_schema.form_response.consent_country    IS 'CF-IPCountry header value at submission time, NULL when not behind Cloudflare.';
+COMMENT ON COLUMN ember_schema.form_response.consent_user_agent IS 'User-Agent header value at the time of an anonymous submission.';
+COMMENT ON COLUMN ember_schema.form_response.consented_at       IS 'Timestamp at which the anonymous submitter ticked the consent checkbox; equals submission time within request latency.';
+
+ALTER TABLE ember_schema.waiting_list_entry
+    ADD COLUMN consent_version    TEXT,
+    ADD COLUMN privacy_version    TEXT,
+    ADD COLUMN tos_version        TEXT,
+    ADD COLUMN consent_ip         TEXT,
+    ADD COLUMN consent_country    TEXT,
+    ADD COLUMN consent_user_agent TEXT,
+    ADD COLUMN consented_at       TIMESTAMPTZ;
+
+COMMENT ON COLUMN ember_schema.waiting_list_entry.consent_version    IS 'Version hash of the consent text accepted at the time the public entry was created. NULL for entries created by managers via the admin UI.';
+COMMENT ON COLUMN ember_schema.waiting_list_entry.privacy_version    IS 'Version hash of the privacy policy accepted by the public submitter. NULL for admin-created entries.';
+COMMENT ON COLUMN ember_schema.waiting_list_entry.tos_version        IS 'Version hash of the terms of service accepted by the public submitter. NULL for admin-created entries.';
+COMMENT ON COLUMN ember_schema.waiting_list_entry.consent_ip         IS 'Client IP resolved via ClientIp.resolve at the time of public submission. NULL for admin-created entries.';
+COMMENT ON COLUMN ember_schema.waiting_list_entry.consent_country    IS 'CF-IPCountry header value at the time of public submission, NULL when not behind Cloudflare.';
+COMMENT ON COLUMN ember_schema.waiting_list_entry.consent_user_agent IS 'User-Agent header value at the time of public submission.';
+COMMENT ON COLUMN ember_schema.waiting_list_entry.consented_at       IS 'Timestamp at which the public submitter ticked the consent checkbox; equals submission time within request latency.';
+
+-- Public-station waitlist signups go through an e-mail verification step before they land
+-- in waiting_list_entry. The consent proof is captured at the original submission, so we
+-- stash it on the pending token and move it onto the entry once the e-mail link is clicked.
+ALTER TABLE ember_schema.waitlist_verification_token
+    ADD COLUMN consent_version    TEXT,
+    ADD COLUMN privacy_version    TEXT,
+    ADD COLUMN tos_version        TEXT,
+    ADD COLUMN consent_ip         TEXT,
+    ADD COLUMN consent_country    TEXT,
+    ADD COLUMN consent_user_agent TEXT,
+    ADD COLUMN consented_at       TIMESTAMPTZ;
+
+COMMENT ON COLUMN ember_schema.waitlist_verification_token.consent_version IS 'Version hash of the consent text accepted at the original public submission. Carried forward to waiting_list_entry once the submitter confirms via the verification email.';
+COMMENT ON COLUMN ember_schema.waitlist_verification_token.privacy_version IS 'Version hash of the privacy policy accepted at submission.';
+COMMENT ON COLUMN ember_schema.waitlist_verification_token.tos_version     IS 'Version hash of the terms of service accepted at submission.';
+COMMENT ON COLUMN ember_schema.waitlist_verification_token.consent_ip      IS 'Client IP at the original submission. Captured before the verification e-mail is sent and carried onto the entry.';
+COMMENT ON COLUMN ember_schema.waitlist_verification_token.consent_country IS 'CF-IPCountry header at the original submission, NULL when not behind Cloudflare.';
+COMMENT ON COLUMN ember_schema.waitlist_verification_token.consent_user_agent IS 'User-Agent header at the original public submission.';
+COMMENT ON COLUMN ember_schema.waitlist_verification_token.consented_at    IS 'Timestamp at which the submitter ticked the consent checkbox; preserved across the e-mail verification step.';

@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.form.service.PublicFormRateLimiter;
 import dev.chojo.ember.feature.form.service.SubmitterHashService;
+import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.BadRequestResponse;
@@ -55,6 +56,7 @@ public class PublicFormRoutes implements Routes {
     private final StationRepository stationRepository;
     private final SubmitterHashService hashService;
     private final PublicFormRateLimiter rateLimiter;
+    private final ConsentService consentService;
     private final Network network;
 
     @Inject
@@ -63,11 +65,13 @@ public class PublicFormRoutes implements Routes {
             StationRepository stationRepository,
             SubmitterHashService hashService,
             PublicFormRateLimiter rateLimiter,
+            ConsentService consentService,
             Network network) {
         this.formService = formService;
         this.stationRepository = stationRepository;
         this.hashService = hashService;
         this.rateLimiter = rateLimiter;
+        this.consentService = consentService;
         this.network = network;
     }
 
@@ -139,8 +143,10 @@ public class PublicFormRoutes implements Routes {
         }
 
         var req = ctx.bodyAsClass(PublicSubmitRequest.class);
+        var consent =
+                consentService.requireAcceptance(ctx, req.consentVersion(), req.privacyVersion(), req.tosVersion());
         try {
-            var response = formService.submitAnonymousResponse(form.id(), submitterHash, req.answers());
+            var response = formService.submitAnonymousResponse(form.id(), submitterHash, req.answers(), consent);
             ctx.status(HttpStatus.CREATED).json(new PublicSubmitResponse(response.id()));
         } catch (IllegalArgumentException e) {
             throw new BadRequestResponse(e.getMessage());
@@ -192,7 +198,8 @@ public class PublicFormRoutes implements Routes {
             FormQuestionConfig config) {}
 
     @OpenApiName("PublicFormSubmitRequest")
-    public record PublicSubmitRequest(Map<Integer, FormAnswerValue> answers) {}
+    public record PublicSubmitRequest(
+            Map<Integer, FormAnswerValue> answers, String consentVersion, String privacyVersion, String tosVersion) {}
 
     @OpenApiName("PublicFormSubmitResponse")
     public record PublicSubmitResponse(int responseId) {}
