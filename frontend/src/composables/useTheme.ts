@@ -106,9 +106,10 @@ function applyDarkMode(mode: DarkModeValue) {
 }
 
 function initFromLocalStorage() {
-    const savedTheme = getItem('theme_name')
-    const savedDarkMode = getItem('dark_mode') as DarkModeValue | null
-    const savedFeel = getItem('feel') as FeelValue | null
+    const hasSession = !!getItem('session_token')
+    const savedTheme = hasSession ? getItem('theme_name') : null
+    const savedDarkMode = (hasSession ? getItem('dark_mode') : null) as DarkModeValue | null
+    const savedFeel = (hasSession ? getItem('feel') : null) as FeelValue | null
     if (savedTheme && THEMES[savedTheme]) {
         activeTheme.value = savedTheme
     }
@@ -124,28 +125,28 @@ function initFromLocalStorage() {
     if (savedDarkMode) {
         darkMode.value = savedDarkMode
     } else {
-        const old = getItem('theme')
+        const old = hasSession ? getItem('theme') : null
         if (old === 'dark' || old === 'light') {
             darkMode.value = old
         }
     }
     applyDarkMode(darkMode.value)
 
-    // Always fetch instance defaults — applies as baseline for unauthenticated pages,
-    // and will be overridden by initFromSession when the user logs in.
-    fetchPublicTheme()
+    return fetchPublicTheme()
 }
 
 let publicThemeFetched = false
+let stationOverrideActive = false
 
 async function fetchPublicTheme() {
     if (publicThemeFetched) return
     publicThemeFetched = true
 
-    // Apply cached instance theme immediately to avoid flash
+    const hasSession = !!getItem('session_token')
     const cachedTheme = getItem('instance_theme')
     const cachedFeel = getItem('instance_feel') as FeelValue | null
-    if (cachedTheme && !getItem('theme_name')) {
+    const userSavedTheme = hasSession ? getItem('theme_name') : null
+    if (!stationOverrideActive && cachedTheme && !userSavedTheme) {
         activeTheme.value = cachedTheme
         applyTheme(cachedTheme)
         if (cachedFeel) {
@@ -165,8 +166,8 @@ async function fetchPublicTheme() {
         setItem('instance_theme', pub.defaultTheme)
         setItem('instance_feel', pub.defaultFeel ?? 'ROUNDED')
 
-        const savedTheme = getItem('theme_name')
-        if (!savedTheme || !THEMES[savedTheme]) {
+        const savedTheme = hasSession ? getItem('theme_name') : null
+        if (!stationOverrideActive && (!savedTheme || !THEMES[savedTheme])) {
             activeTheme.value = pub.defaultTheme
             applyTheme(pub.defaultTheme)
             const feel = resolveEffectiveFeel(instanceFeel.value, pub.defaultTheme)
@@ -175,6 +176,50 @@ async function fetchPublicTheme() {
         }
     } catch {
         /* ignore — server may not be reachable */
+    }
+}
+
+let previousState: {
+    theme: string
+    feel: FeelValue
+    customColors: ThemeColors | null
+} | null = null
+
+function applyStationOverride(
+    themeKey: string | null,
+    feel: string | null,
+    customColorsJson: string | null,
+) {
+    if (!stationOverrideActive) {
+        previousState = {
+            theme: activeTheme.value,
+            feel: activeFeel.value,
+            customColors: customThemeColors.value,
+        }
+    }
+    stationOverrideActive = true
+    if (customColorsJson) applyCustomColors(customColorsJson)
+    const theme = themeKey ?? activeTheme.value
+    activeTheme.value = theme
+    applyTheme(theme)
+    const resolvedFeel = resolveEffectiveFeel(
+        (feel ?? activeFeel.value) as FeelValue,
+        theme,
+    )
+    activeFeel.value = resolvedFeel
+    applyFeel(resolvedFeel)
+}
+
+function clearStationOverride() {
+    if (!stationOverrideActive) return
+    stationOverrideActive = false
+    if (previousState) {
+        customThemeColors.value = previousState.customColors
+        activeTheme.value = previousState.theme
+        applyTheme(previousState.theme)
+        activeFeel.value = previousState.feel
+        applyFeel(previousState.feel)
+        previousState = null
     }
 }
 
@@ -318,6 +363,8 @@ export function useTheme() {
         applyTheme,
         applyFeel,
         applyCustomColors,
+        applyStationOverride,
+        clearStationOverride,
         applyDarkMode,
         resolveEffectiveFeel,
         initFromLocalStorage,

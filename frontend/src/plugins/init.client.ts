@@ -7,9 +7,12 @@ import {initTokenRefresh} from '~/api/client'
 import {useTheme} from '~/composables/useTheme'
 import {installDevErrorHandlers} from '~/util/devErrorReporter'
 
-export default defineNuxtPlugin((nuxtApp) => {
+export default defineNuxtPlugin(async (nuxtApp) => {
     initTokenRefresh()
-    useTheme().initFromLocalStorage()
+
+    const themeReady = useTheme().initFromLocalStorage()
+    const timeout = new Promise<void>(resolve => setTimeout(resolve, 1000))
+    await Promise.race([themeReady, timeout])
 
     const devErrorHandler = installDevErrorHandlers()
     if (devErrorHandler) {

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, provide, ref} from 'vue'
+import {computed, onMounted, onUnmounted, provide, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
@@ -58,11 +58,12 @@ onMounted(async () => {
     const uid = stationUid.value
     station.value = await getPublicStationInfo(uid)
 
-    // Apply station-specific theming
-    const {applyTheme, applyFeel, applyCustomColors} = useTheme()
-    if (station.value.customThemeColors) applyCustomColors(station.value.customThemeColors)
-    if (station.value.defaultTheme) applyTheme(station.value.defaultTheme)
-    if (station.value.defaultFeel) applyFeel(station.value.defaultFeel)
+    const {applyStationOverride} = useTheme()
+    applyStationOverride(
+        station.value.defaultTheme,
+        station.value.defaultFeel,
+        station.value.customThemeColors,
+    )
 
     if (station.value.hasPublicPages) {
       publicPages.value = await listPublicPages(station.value.stationUid)
@@ -81,6 +82,10 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+})
+
+onUnmounted(() => {
+  useTheme().clearStationOverride()
 })
 
 provide('publicStation', station)
