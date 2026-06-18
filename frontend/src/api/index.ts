@@ -54,6 +54,7 @@ export * as dataTracking from './dataTracking'
 export * as data from './data'
 export * as maps from './maps'
 export * as traffic from './traffic'
+export * as insights from './insights'
 
 export {default as client} from './client'
 export type * from './types'

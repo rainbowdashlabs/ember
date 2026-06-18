@@ -85,6 +85,7 @@ import dev.chojo.ember.feature.feed.route.UserFeedRoutes;
 import dev.chojo.ember.feature.feed.service.FeedMetricsService;
 import dev.chojo.ember.feature.form.route.FormRoutes;
 import dev.chojo.ember.feature.form.route.PublicFormRoutes;
+import dev.chojo.ember.feature.insights.route.StationInsightsRoutes;
 import dev.chojo.ember.feature.inventory.route.ExchangeRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryCheckRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryRoutes;
@@ -238,6 +239,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(StorageRoutes.class);
         routesBinder.addBinding().to(AdminTrafficRoutes.class);
         routesBinder.addBinding().to(StationTrafficRoutes.class);
+        routesBinder.addBinding().to(StationInsightsRoutes.class);
 
         // Domain event handlers
         Multibinder<DomainEventHandler<?>> eventBinder = Multibinder.newSetBinder(binder(), new TypeLiteral<>() {});

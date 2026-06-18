@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:5972b700ab898d8a52497fd06e404bcb19c10f084e202ea8bc86cc354fa29a77",
-  "generatedAt" : "2026-06-18T12:11:33Z",
+  "schemaHash" : "sha256:4071e191dc859d8931df75d2a46db097619b950c9d9628d365de2501f4ad4bf5",
+  "generatedAt" : "2026-06-18T20:37:08Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -8587,6 +8587,67 @@
       },
       "description" : "Many-to-many join between page files and tags."
     },
+    "page_hit_hourly" : {
+      "feature" : "insights",
+      "scope" : "STATION",
+      "tableHash" : "sha256:9f8aa03941f4a4440fff40e98491183113c097b4dabfc031a62463f0f8589098",
+      "columns" : [ {
+        "name" : "hour",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Bucket start, truncated to the hour (UTC)."
+      }, {
+        "name" : "page_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Public station_page that was hit."
+      }, {
+        "name" : "country",
+        "type" : "bpchar",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "ISO-3166 alpha-2 country code from CF-IPCountry; \"XX\" when missing or unknown."
+      }, {
+        "name" : "referer_domain",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "eTLD+1 of the Referer header; \"direct\" if absent, \"internal\" if our own host."
+      }, {
+        "name" : "is_bot",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "True when the User-Agent matched the bot denylist; counted separately so the dashboard can exclude bots."
+      }, {
+        "name" : "hits",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Number of hits that contributed to this bucket."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "page_id",
+        "refTable" : "station_page",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Operational analytics, not user data; new instance starts fresh."
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Aggregate hit counters with no personal data — no IPs, no cookies, no per-visitor identifier."
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Aggregate hit counters with no personal data — no IPs, no cookies, no per-visitor identifier."
+      },
+      "description" : "Hourly hit counters per public station_page, dimensioned by country, referer domain, and bot flag. No IPs or visitor identifiers."
+    },
     "page_row" : {
       "feature" : "page",
       "scope" : "STATION",
@@ -11715,32 +11776,38 @@
         "name" : "hour",
         "type" : "timestamptz",
         "nullable" : false,
-        "verified" : true
+        "verified" : true,
+        "description" : "Bucket start, truncated to the hour (UTC)."
       }, {
         "name" : "station_id",
         "type" : "int4",
         "nullable" : true,
-        "verified" : true
+        "verified" : true,
+        "description" : "Owning station, or NULL for instance-global traffic."
       }, {
         "name" : "auth",
         "type" : "text",
         "nullable" : false,
-        "verified" : true
+        "verified" : true,
+        "description" : "AuthBucket enum: AUTHENTICATED, UNAUTHENTICATED, FEDERATION."
       }, {
         "name" : "ingress_bytes",
         "type" : "int8",
         "nullable" : false,
-        "verified" : true
+        "verified" : true,
+        "description" : "Sum of estimated request bytes (headers + body) in this bucket."
       }, {
         "name" : "egress_bytes",
         "type" : "int8",
         "nullable" : false,
-        "verified" : true
+        "verified" : true,
+        "description" : "Sum of estimated response bytes (headers + body) in this bucket."
       }, {
         "name" : "requests",
         "type" : "int8",
         "nullable" : false,
-        "verified" : true
+        "verified" : true,
+        "description" : "Number of requests that contributed to this bucket."
       } ],
       "foreignKeys" : [ {
         "column" : "station_id",
@@ -11759,7 +11826,8 @@
       "gdprDeletion" : {
         "status" : "IGNORED",
         "reason" : "Aggregate byte counters with no personal data."
-      }
+      },
+      "description" : "Hourly aggregated traffic counters per (station, auth bucket). Written by StationTrafficRecorder, pruned by retention."
     },
     "station_user_type_permission" : {
       "feature" : "station",

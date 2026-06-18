@@ -91,37 +91,20 @@ class PageFileStorageServiceTest {
     }
 
     @Test
-    void deleteQuietlySwallowsIoException() throws IOException {
+    void deleteRemovesEntireHashDirectory() throws IOException {
         byte[] data = "swallow".getBytes();
         String hash = PageFileStorageService.hash(data);
         storage.store(1, hash, data, "image/png");
 
-        Path target =
-                tempDir.resolve("page-files").resolve(stationOneUid.toString()).resolve(hash);
-        Files.delete(target);
-        Files.createDirectory(target);
-        Files.write(target.resolve("sentinel"), new byte[] {1});
-
+        storage.storeVariant(1, hash, "w128", "webp", new byte[] {1, 2, 3});
         storage.delete(1, hash);
 
-        Files.delete(target.resolve("sentinel"));
-        Files.delete(target);
+        assertFalse(Files.exists(storage.hashDir(1, hash)));
     }
 
     @Test
-    void readReturnsEmptyOnIoFailure() throws IOException {
-        byte[] data = "ioerr".getBytes();
-        String hash = PageFileStorageService.hash(data);
-        storage.store(1, hash, data, "image/png");
-
-        Path target =
-                tempDir.resolve("page-files").resolve(stationOneUid.toString()).resolve(hash);
-        Files.delete(target);
-        Files.createDirectory(target);
-
-        assertTrue(storage.read(1, hash).isEmpty());
-
-        Files.delete(target);
+    void readReturnsEmptyWhenHashDirIsMissing() {
+        assertTrue(storage.read(1, "deadbeef").isEmpty());
     }
 
     @Test
@@ -131,9 +114,96 @@ class PageFileStorageServiceTest {
         storage.store(1, hash, data, "image/png");
         storage.store(2, hash, data, "image/png");
 
-        // Deleting in station 1 must not affect station 2's copy.
         storage.delete(1, hash);
         assertTrue(storage.read(1, hash).isEmpty());
         assertTrue(storage.read(2, hash).isPresent());
+    }
+
+    @Test
+    void legacyFlatFileMigratesOnRead() throws IOException {
+        byte[] data = "legacy-bytes".getBytes();
+        String hash = PageFileStorageService.hash(data);
+        Path stationDir = tempDir.resolve("page-files").resolve(stationOneUid.toString());
+        Files.createDirectories(stationDir);
+        Path legacyFile = stationDir.resolve(hash);
+        Path legacyType = stationDir.resolve(hash + ".content-type");
+        Files.write(legacyFile, data);
+        Files.writeString(legacyType, "image/png");
+
+        var result = storage.read(1, hash);
+        assertTrue(result.isPresent());
+        assertArrayEquals(data, result.orElseThrow().data());
+        assertEquals("image/png", result.orElseThrow().contentType());
+
+        assertFalse(Files.isRegularFile(legacyFile), "Legacy flat file should have been promoted to a directory");
+        assertFalse(Files.exists(legacyType), "Legacy content-type sidecar should have been deleted");
+        assertTrue(Files.isDirectory(stationDir.resolve(hash)), "Hash directory should exist after migration");
+    }
+
+    @Test
+    void legacyFileWithoutContentTypeFallsBackToOctetStream() throws IOException {
+        byte[] data = "no-ct".getBytes();
+        String hash = PageFileStorageService.hash(data);
+        Path stationDir = tempDir.resolve("page-files").resolve(stationOneUid.toString());
+        Files.createDirectories(stationDir);
+        Files.write(stationDir.resolve(hash), data);
+
+        var result = storage.read(1, hash);
+        assertTrue(result.isPresent());
+        assertEquals("application/octet-stream", result.orElseThrow().contentType());
+    }
+
+    @Test
+    void readVariantByExtensionReturnsExactMatch() throws IOException {
+        byte[] data = "orig-bytes".getBytes();
+        String hash = PageFileStorageService.hash(data);
+        storage.store(1, hash, data, "image/png");
+
+        byte[] webp = new byte[] {0x52, 0x49, 0x46, 0x46};
+        storage.storeVariant(1, hash, "w128", "webp", webp);
+        byte[] resized = new byte[] {1, 2, 3};
+        storage.storeVariant(1, hash, "w128", "png", resized);
+
+        var asWebp = storage.readVariant(1, hash, "w128", "webp");
+        assertTrue(asWebp.isPresent());
+        assertArrayEquals(webp, asWebp.orElseThrow().data());
+        assertEquals("image/webp", asWebp.orElseThrow().contentType());
+
+        var asPng = storage.readVariant(1, hash, "w128", "png");
+        assertTrue(asPng.isPresent());
+        assertArrayEquals(resized, asPng.orElseThrow().data());
+        assertEquals("image/png", asPng.orElseThrow().contentType());
+    }
+
+    @Test
+    void readVariantWithoutExtensionMatchesByBaseName() throws IOException {
+        byte[] data = "orig-bytes".getBytes();
+        String hash = PageFileStorageService.hash(data);
+        storage.store(1, hash, data, "image/jpeg");
+
+        var any = storage.readVariant(1, hash, "orig", null);
+        assertTrue(any.isPresent());
+        assertEquals("image/jpeg", any.orElseThrow().contentType());
+    }
+
+    @Test
+    void readVariantReturnsEmptyForUnknownBase() throws IOException {
+        byte[] data = "x".getBytes();
+        String hash = PageFileStorageService.hash(data);
+        storage.store(1, hash, data, "image/png");
+        assertTrue(storage.readVariant(1, hash, "w9999", null).isEmpty());
+        assertTrue(storage.readVariant(1, hash, "w9999", "webp").isEmpty());
+    }
+
+    @Test
+    void storeOverwritesPreviousOriginalExtension() throws IOException {
+        byte[] data = "first".getBytes();
+        String hash = PageFileStorageService.hash(data);
+        storage.store(1, hash, data, "image/png");
+        storage.store(1, hash, data, "image/jpeg");
+
+        Path dir = storage.hashDir(1, hash);
+        assertFalse(Files.exists(dir.resolve("orig.png")), "Stale orig.png should be removed");
+        assertTrue(Files.exists(dir.resolve("orig.jpg")));
     }
 }

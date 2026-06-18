@@ -69,6 +69,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         httpClient = mock(FederationHttpClient.class);
         var kbCommentRepo = mock(KbCommentRepository.class);
         var eventFedRepo = mock(EventFederationRepository.class);
+        var storageConfig = new dev.chojo.ember.conf.file.elements.Storage();
         service = new KnowledgeBaseService(
                 knowledgeBaseRepo,
                 stationRepo,
@@ -80,7 +81,9 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 eventFedRepo,
                 memberIdentityFactory,
                 mock(DomainEventBus.class),
-                mock(StationMemberService.class));
+                mock(StationMemberService.class),
+                new dev.chojo.ember.feature.storage.service.PresentationCompressor(storageConfig),
+                new dev.chojo.ember.feature.storage.service.PdfCompressor(storageConfig));
         station = stationRepo.create("KbSvcStation");
         stationB = stationRepo.create("KbSvcStationB");
         account = accountRepo.create("kb-svc@test.com", "Kb", "SvcTester");

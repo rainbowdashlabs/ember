@@ -18,6 +18,7 @@ import {
     type LayoutKindName,
     type VideoConfig,
 } from '@/api/pageManage'
+import {enhancePageMarkdownImages} from '@/util/pageMarkdownImages'
 
 /**
  * Read-only render of a cell exactly as it appears on the public page. Mirrors the renderer for
@@ -41,7 +42,7 @@ const imageUrl = computed(() => {
 
 const renderedHtml = computed(() => {
     if (props.cell.contentType !== CellContentType.MARKDOWN || !props.cell.content) return ''
-    return marked.parse(props.cell.content) as string
+    return enhancePageMarkdownImages(marked.parse(props.cell.content) as string)
 })
 
 const isYouTube = computed(() => {
@@ -73,6 +74,9 @@ const nestedRows = computed<RowEditData[]>(() => {
                 :src="imageUrl"
                 :alt="(imageConfig.altText as string) ?? ''"
                 :config="imageConfig"
+                :station-uid="stationUid"
+                :content-hash="cell.content"
+                :width-hint="1024"
             />
             <p v-if="imageConfig.description" class="text-xs text-(--text-muted) italic text-center">
                 {{ imageConfig.description }}

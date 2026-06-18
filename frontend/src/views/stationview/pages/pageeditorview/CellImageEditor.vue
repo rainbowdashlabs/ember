@@ -60,6 +60,9 @@ function updateConfig(patch: Record<string, unknown>) {
                 :src="imageUrl"
                 :alt="imageConfig.altText ?? ''"
                 :config="imageConfig"
+                :station-uid="stationUid"
+                :content-hash="content"
+                :width-hint="256"
             />
             <p v-if="imageConfig.description" class="text-xs text-(--text-muted) italic text-center">
                 {{ imageConfig.description }}
@@ -88,6 +91,9 @@ function updateConfig(patch: Record<string, unknown>) {
                     :src="imageUrl"
                     :alt="imageConfig.altText ?? ''"
                     :config="imageConfig"
+                    :station-uid="stationUid"
+                    :content-hash="content"
+                    :width-hint="512"
                 />
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

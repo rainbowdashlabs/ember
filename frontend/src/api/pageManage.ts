@@ -570,6 +570,24 @@ export function pageFileUrl(stationUid: string, contentHash: string): string {
     return `/api/v1/public/pages/${stationUid}/files/${contentHash}`
 }
 
+/**
+ * Public URL for a page-image at a requested CSS-pixel width. The backend picks the
+ * smallest pre-generated variant ≥ {@code width} and, when the client's {@code Accept}
+ * header advertises WebP, prefers the WebP encoding.
+ */
+export function pageImageUrlAt(stationUid: string, contentHash: string, width: number): string {
+    return `${pageFileUrl(stationUid, contentHash)}?w=${width}`
+}
+
+/**
+ * Builds a 1x/2x {@code srcset} string for a page image at the supplied 1x CSS width.
+ * Renderers should set this on every {@code <img>} so the browser can pick the right
+ * resolution on Retina displays.
+ */
+export function pageImageSrcset(stationUid: string, contentHash: string, width1x: number): string {
+    return `${pageImageUrlAt(stationUid, contentHash, width1x)} 1x, ${pageImageUrlAt(stationUid, contentHash, width1x * 2)} 2x`
+}
+
 export const pageImageUrl = pageFileUrl
 
 /** Lists every page-file with an `inUse` flag (true when still referenced from some cell). */

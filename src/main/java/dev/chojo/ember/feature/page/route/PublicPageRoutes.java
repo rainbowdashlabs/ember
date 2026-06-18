@@ -9,6 +9,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryStationCacheRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository.PublicPartnerSummary;
+import dev.chojo.ember.feature.insights.service.PageHitRecorder;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -117,22 +118,39 @@ public class PublicPageRoutes implements Routes {
                 .filter(StationPage::published)
                 .orElseThrow(NotFoundResponse::new);
 
-        ctx.json(pageService.getPageRendered(page.id()).orElseThrow(NotFoundResponse::new));
+        var rendered = pageService.getPageRendered(page.id()).orElseThrow(NotFoundResponse::new);
+        ctx.attribute(PageHitRecorder.ATTR_PAGE_HIT_PAGE_ID, page.id());
+        ctx.json(rendered);
     }
 
     private void getLandingPage(Context ctx) {
         int stationId = resolveStation(ctx);
         var page = pageService.getLandingPage(stationId).orElseThrow(NotFoundResponse::new);
+        ctx.attribute(PageHitRecorder.ATTR_PAGE_HIT_PAGE_ID, page.id());
         ctx.json(page);
     }
 
     private void serveFile(Context ctx) {
         int stationId = resolveStation(ctx);
         String hash = ctx.pathParam("hash");
-        var fileData = pageService.readFile(stationId, hash).orElseThrow(NotFoundResponse::new);
+        Integer width = parseOptionalWidth(ctx.queryParam("w"));
+        String accept = ctx.header("Accept");
+        var fileData =
+                pageService.readFileVariant(stationId, hash, width, accept).orElseThrow(NotFoundResponse::new);
         ctx.contentType(fileData.contentType());
-        ctx.header("Cache-Control", "public, max-age=86400, immutable");
+        ctx.header("Cache-Control", "public, max-age=31536000, immutable");
+        ctx.header("Vary", "Accept");
         ctx.result(fileData.data());
+    }
+
+    private static Integer parseOptionalWidth(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            int value = Integer.parseInt(raw);
+            return value > 0 ? value : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private int resolveStation(Context ctx) {

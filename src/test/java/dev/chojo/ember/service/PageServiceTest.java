@@ -45,11 +45,14 @@ class PageServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
+        var storage = new PageFileStorageService(stationRepo);
+        var storageConfig = new Storage();
         service = new PageService(
                 pageRepo,
                 new PageFileMetaRepository(),
-                new PageFileStorageService(stationRepo),
-                new StorageQuotaService(storageUsageRepo, new Storage(), new DomainEventBus(Set.of())),
+                storage,
+                new dev.chojo.ember.feature.page.service.PageImageVariantService(storage, storageConfig),
+                new StorageQuotaService(storageUsageRepo, storageConfig, new DomainEventBus(Set.of())),
                 stationMemberRepo,
                 new ImageService());
         station = stationRepo.create("PageServiceStation");

@@ -32,6 +32,7 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.feed.repository.FeedMetricsRepository;
 import dev.chojo.ember.feature.feed.repository.FeedTokenRepository;
 import dev.chojo.ember.feature.form.repository.FormRepository;
+import dev.chojo.ember.feature.insights.repository.PageHitRepository;
 import dev.chojo.ember.feature.inventory.repository.ExchangeRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
@@ -143,6 +144,7 @@ public abstract class RepositoryTestBase {
     protected static DiscoveryStationCacheRepository discoveryStationCacheRepo;
     protected static DiscoveryBlocklistRepository discoveryBlocklistRepo;
     protected static StationTrafficRepository stationTrafficRepo;
+    protected static PageHitRepository pageHitRepo;
     protected static MemberIdentityFactory memberIdentityFactory;
     protected static MemberNameResolver memberNameResolver;
     protected static DataSource dataSource;
@@ -247,6 +249,7 @@ public abstract class RepositoryTestBase {
         discoveryStationCacheRepo = new DiscoveryStationCacheRepository();
         discoveryBlocklistRepo = new DiscoveryBlocklistRepository();
         stationTrafficRepo = new StationTrafficRepository();
+        pageHitRepo = new PageHitRepository();
         var eventFedRepo = new EventFederationRepository();
         var fedRepo = new FederationRepository();
         var memberSvc = new StationMemberService(stationMemberRepo, stationRepo, accountRepo, null);

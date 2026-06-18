@@ -208,6 +208,11 @@ const router = createRouter({
                     component: () => import('@/views/stationview/manage/ManageStationTrafficView.vue'),
                 },
                 {
+                    path: 'manage/insights',
+                    name: 'station-insights',
+                    component: () => import('@/views/stationview/manage/ManageStationInsightsView.vue'),
+                },
+                {
                     path: 'manage/import',
                     name: 'station-import',
                     component: () => import('@/views/stationview/manage/StationImportView.vue'),
@@ -1117,6 +1122,11 @@ const router = createRouter({
                     path: 'manage/traffic',
                     name: 'help-station-traffic',
                     component: () => import('@/views/helpcenter/stationview/manage/StationTrafficHelp.vue')
+                },
+                {
+                    path: 'manage/insights',
+                    name: 'help-station-insights',
+                    component: () => import('@/views/helpcenter/stationview/manage/StationInsightsHelp.vue')
                 },
                 {
                     path: 'manage/import',

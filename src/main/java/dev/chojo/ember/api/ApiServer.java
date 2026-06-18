@@ -11,6 +11,9 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.insights.service.BotClassifier;
+import dev.chojo.ember.feature.insights.service.PageHitRecorder;
+import dev.chojo.ember.feature.insights.service.RefererDomainExtractor;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
@@ -97,6 +100,9 @@ public class ApiServer {
     private final StationTrafficRecorder trafficRecorder;
     private final StationResolver stationResolver;
     private final AuthBucketClassifier authClassifier;
+    private final PageHitRecorder pageHitRecorder;
+    private final RefererDomainExtractor refererExtractor;
+    private final BotClassifier botClassifier;
 
     @Inject
     public ApiServer(
@@ -114,7 +120,10 @@ public class ApiServer {
             DemoService demoService,
             StationTrafficRecorder trafficRecorder,
             StationResolver stationResolver,
-            AuthBucketClassifier authClassifier) {
+            AuthBucketClassifier authClassifier,
+            PageHitRecorder pageHitRecorder,
+            RefererDomainExtractor refererExtractor,
+            BotClassifier botClassifier) {
         this.routes = routes;
         this.apiConfig = apiConfig;
         this.demoConfig = demoConfig;
@@ -130,8 +139,12 @@ public class ApiServer {
         this.trafficRecorder = trafficRecorder;
         this.stationResolver = stationResolver;
         this.authClassifier = authClassifier;
+        this.pageHitRecorder = pageHitRecorder;
+        this.refererExtractor = refererExtractor;
+        this.botClassifier = botClassifier;
         this.apiRequestLogger.start();
         this.trafficRecorder.start();
+        this.pageHitRecorder.start();
     }
 
     /**
@@ -234,6 +247,20 @@ public class ApiServer {
                 long egress = estimateEgressBytes(ctx);
                 trafficRecorder.record(
                         stationResolver.resolve(ctx).orElse(null), authClassifier.classify(ctx), ingress, egress);
+            });
+
+            // Per-public-page hit counters (concept §7). Only fires when a public page
+            // handler has resolved the page row and stashed its id on the context — file
+            // serves, partner lookups, and 404s are excluded by construction.
+            config.routes.after(ctx -> {
+                if (ctx.method() != HandlerType.GET) return;
+                if (ctx.statusCode() >= 400) return;
+                Object pageIdAttr = ctx.attribute(PageHitRecorder.ATTR_PAGE_HIT_PAGE_ID);
+                if (!(pageIdAttr instanceof Integer pageId)) return;
+                String country = ctx.header("CF-IPCountry");
+                String referer = refererExtractor.extract(ctx.header("Referer"));
+                boolean isBot = botClassifier.isBot(ctx.userAgent());
+                pageHitRecorder.record(pageId, country, referer, isBot);
             });
 
             if (demoConfig.enabled()) {
@@ -613,6 +640,16 @@ public class ApiServer {
         if (ctx.method() != HandlerType.GET) return;
 
         String path = ctx.path();
+
+        // Content-hashed page files — concept §11.4. The hash makes the URL
+        // content-addressed, so a year-long immutable cache is safe; repeat visits drop to
+        // 304 / cache hits with zero body bytes. Must come before the generic /public/
+        // branch so the long max-age sticks.
+        if (path.startsWith(API_PREFIX + "/public/pages/") && path.contains("/files/")) {
+            ctx.header("Cache-Control", "public, max-age=31536000, immutable");
+            ctx.header("Vary", "Accept");
+            return;
+        }
 
         // Binary resources (images, avatars, logos) — private short cache
         if (path.contains("/avatar") || path.contains("/logo") || path.contains("/image")) {

@@ -28,7 +28,7 @@ ENV GITHUB_SHA=$GITHUB_SHA
 
 ENV DOCKER=true
 
-RUN apk add --no-cache typst pandoc libreoffice-impress font-liberation
+RUN apk add --no-cache typst pandoc libreoffice-impress font-liberation libwebp-tools qpdf
 
 WORKDIR /app
 

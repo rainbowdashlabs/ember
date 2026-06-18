@@ -58,6 +58,31 @@ public class Metrics {
     @Overwrite(env = @Env)
     private int trafficFlushIntervalSeconds = 30;
 
+    /**
+     * Whether to record per-public-page hit counters into {@code page_hit_hourly}. Defaults
+     * to on; switch off only when public-page analytics are not desired. The recorder uses
+     * the same accumulator-plus-flush shape as the traffic recorder, never persists IPs,
+     * and never sets a tracking cookie.
+     */
+    @Overwrite(env = @Env)
+    private boolean webStatsEnabled = true;
+
+    /**
+     * How many days of pre-aggregated {@code page_hit_hourly} rows to keep. The table is
+     * small (hours × pages × countries × referer domains × 2) so the default keeps a year of
+     * visibility, which is what the concept document specifies.
+     */
+    @Overwrite(env = @Env)
+    private int webStatsRetentionDays = 365;
+
+    /**
+     * Cadence at which the {@code PageHitRecorder} flushes its in-memory bucket map to the
+     * database via UPSERT. Same default and semantics as the traffic recorder's flush
+     * interval.
+     */
+    @Overwrite(env = @Env)
+    private int webStatsFlushIntervalSeconds = 30;
+
     public int requestStatsRetentionDays() {
         return requestStatsRetentionDays;
     }
@@ -76,5 +101,17 @@ public class Metrics {
 
     public int trafficFlushIntervalSeconds() {
         return trafficFlushIntervalSeconds;
+    }
+
+    public boolean webStatsEnabled() {
+        return webStatsEnabled;
+    }
+
+    public int webStatsRetentionDays() {
+        return webStatsRetentionDays;
+    }
+
+    public int webStatsFlushIntervalSeconds() {
+        return webStatsFlushIntervalSeconds;
     }
 }

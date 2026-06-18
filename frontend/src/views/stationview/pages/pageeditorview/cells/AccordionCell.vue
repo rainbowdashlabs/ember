@@ -7,6 +7,7 @@
 import {computed, ref} from 'vue'
 import {marked} from 'marked'
 import type {AccordionConfig} from '@/api/pageManage'
+import {enhancePageMarkdownImages} from '@/util/pageMarkdownImages'
 
 const props = defineProps<{
     config: AccordionConfig
@@ -17,7 +18,11 @@ const open = ref<boolean>(!!props.config.openByDefault)
 
 const renderedContent = computed(() => {
     if (!props.content) return ''
-    try { return marked.parse(props.content) as string } catch { return props.content }
+    try {
+        return enhancePageMarkdownImages(marked.parse(props.content) as string)
+    } catch {
+        return props.content
+    }
 })
 </script>
 
