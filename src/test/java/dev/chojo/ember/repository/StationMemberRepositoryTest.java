@@ -339,6 +339,62 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(50)
+    void searchForPickerAndFindPickerByUid() {
+        var matches = stationMemberRepo.searchForPicker(station.id(), null, 50);
+        assertFalse(matches.isEmpty());
+        var first = matches.stream()
+                .filter(p -> p.memberUid().equals(stationMemberRepo.resolveUid(memberId1)))
+                .findFirst()
+                .orElseThrow();
+        assertNotNull(first.displayName());
+
+        var byName = stationMemberRepo.searchForPicker(station.id(), "member", 50);
+        assertFalse(byName.isEmpty());
+
+        var noHit = stationMemberRepo.searchForPicker(station.id(), "definitely-not-a-name-xyzqq", 50);
+        assertTrue(noHit.isEmpty());
+
+        var byUid = stationMemberRepo.findPickerByUid(station.id(), first.memberUid());
+        assertTrue(byUid.isPresent());
+        assertEquals(first.memberUid(), byUid.orElseThrow().memberUid());
+
+        assertTrue(stationMemberRepo
+                .findPickerByUid(station.id(), UUID.randomUUID())
+                .isEmpty());
+    }
+
+    @Test
+    @Order(51)
+    void findOfficersByGroupTagAndUids() {
+        var group = memberGroupRepo.create(station.id(), "Officer Group");
+        memberGroupRepo.addMember(group.id(), memberId1);
+        var tag = userTagRepo.create(station.id(), "Officer Tag");
+        userTagRepo.addMember(tag.id(), memberId1);
+        try {
+            var byGroup = stationMemberRepo.findOfficersByGroup(station.id(), group.id());
+            assertTrue(byGroup.stream().anyMatch(m -> m.memberUid().equals(stationMemberRepo.resolveUid(memberId1))));
+
+            var byTag = stationMemberRepo.findOfficersByTag(station.id(), tag.id());
+            assertTrue(byTag.stream().anyMatch(m -> m.memberUid().equals(stationMemberRepo.resolveUid(memberId1))));
+
+            var uid = stationMemberRepo.resolveUid(memberId1);
+            var byUids = stationMemberRepo.findOfficersByUids(station.id(), List.of(uid));
+            assertEquals(1, byUids.size());
+            assertEquals(uid, byUids.getFirst().memberUid());
+
+            assertTrue(stationMemberRepo
+                    .findOfficersByUids(station.id(), List.of())
+                    .isEmpty());
+            assertTrue(stationMemberRepo.findOfficersByUids(station.id(), null).isEmpty());
+        } finally {
+            userTagRepo.removeMember(tag.id(), memberId1);
+            userTagRepo.delete(tag.id());
+            memberGroupRepo.delete(group.id());
+        }
+    }
+
+    @Test
     @Order(99)
     void delete() {
         assertTrue(stationMemberRepo.delete(memberId1));

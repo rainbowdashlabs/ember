@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.page.repository;
 
+import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.page.entity.CellConfig;
 import dev.chojo.ember.feature.page.entity.CellContentType;
 import dev.chojo.ember.feature.page.entity.PageCell;
@@ -109,24 +110,25 @@ public class PageRepository {
      */
     public List<PickerPage> searchForPicker(int stationId, String search, int limit) {
         boolean hasSearch = search != null && !search.isBlank();
-        String predicate = hasSearch ? " AND LOWER(title) LIKE :q" : "";
-        String sql = "SELECT public_uid, title, slug, updated_at FROM station_page"
-                + " WHERE station_id = :station_id AND published"
-                + predicate
-                + " ORDER BY updated_at DESC LIMIT :limit;";
+        String predicate = hasSearch ? "AND LOWER(title) LIKE :q" : "";
         var c = call().bind("station_id", stationId).bind("limit", limit);
         if (hasSearch) {
             c = c.bind("q", "%" + search.trim().toLowerCase() + "%");
         }
-        return query(sql)
+        return query("""
+                SELECT public_uid, title, slug, updated_at
+                FROM station_page
+                WHERE station_id = :station_id
+                  AND published
+                  %s
+                ORDER BY updated_at DESC
+                LIMIT :limit;""", predicate)
                 .single(c)
                 .map(row -> new PickerPage(
-                        row.get("public_uid", de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING),
+                        row.get("public_uid", StandardValueConverter.UUID_STRING),
                         row.getString("title"),
                         row.getString("slug"),
-                        row.get(
-                                "updated_at",
-                                de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP)))
+                        row.get("updated_at", INSTANT_TIMESTAMP)))
                 .all();
     }
 

@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -179,6 +181,48 @@ class QuizCatalogRepositoryTest extends RepositoryTestBase {
     }
 
     // -- Cleanup --
+
+    @Test
+    @Order(30)
+    void setPublicRenderAndFindPublicByStation() {
+        assertTrue(quizCatalogRepo.findPublicByStation(station.id()).isEmpty());
+        assertTrue(quizCatalogRepo.setPublicRender(catalogId, true));
+        var publicCats = quizCatalogRepo.findPublicByStation(station.id());
+        assertTrue(publicCats.stream().anyMatch(c -> c.id() == catalogId));
+        assertTrue(quizCatalogRepo.setPublicRender(catalogId, false));
+        assertTrue(quizCatalogRepo.findPublicByStation(station.id()).isEmpty());
+        assertFalse(quizCatalogRepo.setPublicRender(99999, true));
+    }
+
+    @Test
+    @Order(31)
+    void findRandomPublicQuestion() {
+        assertTrue(quizCatalogRepo
+                .findRandomPublicQuestion(station.id(), List.of())
+                .isEmpty());
+        assertTrue(quizCatalogRepo.findRandomPublicQuestion(station.id(), null).isEmpty());
+
+        assertTrue(quizCatalogRepo
+                .findRandomPublicQuestion(station.id(), List.of(catalogId))
+                .isEmpty());
+
+        quizCatalogRepo.setPublicRender(catalogId, true);
+        try {
+            var picked = quizCatalogRepo.findRandomPublicQuestion(station.id(), List.of(catalogId));
+            assertTrue(picked.isPresent());
+            assertEquals(questionId, picked.orElseThrow().id());
+        } finally {
+            quizCatalogRepo.setPublicRender(catalogId, false);
+        }
+    }
+
+    @Test
+    @Order(32)
+    void findQuestionsByIds() {
+        assertTrue(quizCatalogRepo.findQuestionsByIds(List.of()).isEmpty());
+        var found = quizCatalogRepo.findQuestionsByIds(List.of(questionId));
+        assertEquals(1, found.size());
+    }
 
     @Test
     @Order(90)

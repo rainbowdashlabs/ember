@@ -60,37 +60,51 @@ public class BoardTicketRepository {
     // -- Ticket CRUD --
 
     public List<BoardTicket> findByBoard(int boardId) {
-        return query(TICKET_SELECT + " WHERE t.board_id = :board_id ORDER BY t.position;")
+        return query("""
+                %s
+                WHERE t.board_id = :board_id
+                ORDER BY t.position;""", TICKET_SELECT)
                 .single(call().bind("board_id", boardId))
                 .map(BoardTicket.map())
                 .all();
     }
 
     public List<BoardTicket> findByBoardAndLane(int boardId, int laneId) {
-        return query(TICKET_SELECT + " WHERE t.board_id = :board_id AND t.lane_id = :lane_id ORDER BY t.position;")
+        return query("""
+                %s
+                WHERE t.board_id = :board_id
+                  AND t.lane_id = :lane_id
+                ORDER BY t.position;""", TICKET_SELECT)
                 .single(call().bind("board_id", boardId).bind("lane_id", laneId))
                 .map(BoardTicket.map())
                 .all();
     }
 
     public Optional<BoardTicket> findById(int id) {
-        return query(TICKET_SELECT + " WHERE t.id = :id;")
+        return query("""
+                %s
+                WHERE t.id = :id;""", TICKET_SELECT)
                 .single(call().bind("id", id))
                 .map(BoardTicket.map())
                 .first();
     }
 
     public Optional<BoardTicket> findByBoardAndNumber(int boardId, int ticketNumber) {
-        return query(TICKET_SELECT + " WHERE t.board_id = :board_id AND t.ticket_number = :ticket_number;")
+        return query("""
+                %s
+                WHERE t.board_id = :board_id
+                  AND t.ticket_number = :ticket_number;""", TICKET_SELECT)
                 .single(call().bind("board_id", boardId).bind("ticket_number", ticketNumber))
                 .map(BoardTicket.map())
                 .first();
     }
 
     public List<BoardTicket> findByAssignee(int boardId, UUID memberUid) {
-        return query(
-                        TICKET_SELECT
-                                + " WHERE t.board_id = :board_id AND t.assignee_member_uid = :member_uid::uuid ORDER BY t.position;")
+        return query("""
+                %s
+                WHERE t.board_id = :board_id
+                  AND t.assignee_member_uid = :member_uid::uuid
+                ORDER BY t.position;""", TICKET_SELECT)
                 .single(call().bind("board_id", boardId)
                         .bind("member_uid", memberUid, StandardValueConverter.UUID_STRING))
                 .map(BoardTicket.map())
@@ -588,11 +602,14 @@ public class BoardTicketRepository {
 
     // -- Search --
 
-    public List<BoardTicket> search(int boardId, String query) {
-        String tsq = "to_tsquery('german', :tsquery)";
-        return query(TICKET_SELECT + " WHERE t.board_id = :board_id AND t.search_vector @@ " + tsq
-                        + " ORDER BY ts_rank(t.search_vector, " + tsq + ") DESC, t.position LIMIT 10;")
-                .single(call().bind("board_id", boardId).bind("tsquery", preparePrefixQuery(query)))
+    public List<BoardTicket> search(int boardId, String searchQuery) {
+        return query("""
+                %s
+                WHERE t.board_id = :board_id
+                  AND t.search_vector @@ to_tsquery('german', :tsquery)
+                ORDER BY ts_rank(t.search_vector, to_tsquery('german', :tsquery)) DESC, t.position
+                LIMIT 10;""", TICKET_SELECT)
+                .single(call().bind("board_id", boardId).bind("tsquery", preparePrefixQuery(searchQuery)))
                 .map(BoardTicket.map())
                 .all();
     }

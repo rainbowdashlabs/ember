@@ -33,7 +33,10 @@ public class ProfileFieldRepository {
      * Finds a profile field definition by its identifier.
      */
     public Optional<ProfileField> findById(int id) {
-        return query("SELECT " + COLUMNS + " FROM profile_field WHERE id = :id;")
+        return query("""
+                SELECT %s
+                FROM profile_field
+                WHERE id = :id;""", COLUMNS)
                 .single(call().bind("id", id))
                 .map(ProfileField.map())
                 .first();
@@ -43,8 +46,11 @@ public class ProfileFieldRepository {
      * Finds all profile field definitions for a station, ordered by scope and position.
      */
     public List<ProfileField> findByStation(int stationId) {
-        return query("SELECT " + COLUMNS
-                        + " FROM profile_field WHERE station_id = :station_id ORDER BY scope, position;")
+        return query("""
+                SELECT %s
+                FROM profile_field
+                WHERE station_id = :station_id
+                ORDER BY scope, position;""", COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(ProfileField.map())
                 .all();
@@ -54,8 +60,12 @@ public class ProfileFieldRepository {
      * Finds profile field definitions for a station filtered by scope, ordered by position.
      */
     public List<ProfileField> findByStationAndScope(int stationId, ProfileFieldScope scope) {
-        return query("SELECT " + COLUMNS
-                        + " FROM profile_field WHERE station_id = :station_id AND scope = :scope ORDER BY position;")
+        return query("""
+                SELECT %s
+                FROM profile_field
+                WHERE station_id = :station_id
+                  AND scope = :scope
+                ORDER BY position;""", COLUMNS)
                 .single(call().bind("station_id", stationId).bind("scope", scope))
                 .map(ProfileField.map())
                 .all();
@@ -72,9 +82,9 @@ public class ProfileFieldRepository {
             int position,
             ProfileFieldScope scope) {
         return query("""
-                            INSERT INTO profile_field(station_id, name, field_type, config, position, scope)
-                            VALUES (:station_id, :name, :field_type, :config::JSONB, :position, :scope)
-                            RETURNING\s""" + COLUMNS + ";")
+                INSERT INTO profile_field(station_id, name, field_type, config, position, scope)
+                VALUES (:station_id, :name, :field_type, :config::JSONB, :position, :scope)
+                RETURNING %s;""", COLUMNS)
                 .single(call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("field_type", fieldType)

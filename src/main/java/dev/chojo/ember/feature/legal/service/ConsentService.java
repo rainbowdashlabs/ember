@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Arrays;
@@ -247,7 +248,7 @@ public class ConsentService {
         }
         try {
             return InetAddress.getByAddress(bytes).getHostAddress();
-        } catch (java.net.UnknownHostException e) {
+        } catch (UnknownHostException e) {
             return address.getHostAddress();
         }
     }

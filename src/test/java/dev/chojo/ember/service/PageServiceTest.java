@@ -24,8 +24,11 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -383,6 +386,142 @@ class PageServiceTest extends RepositoryTestBase {
     void getPageByPathPartialNotFound() {
         var page = service.getPageByPath(station.id(), "welcome-page/nonexistent");
         assertTrue(page.isEmpty());
+    }
+
+    @Test
+    @Order(40)
+    void searchPagePicker() {
+        var results = service.searchPagePicker(station.id(), null, 50);
+        assertNotNull(results);
+        assertTrue(results.stream().anyMatch(p -> "welcome-page".equals(p.slug())));
+    }
+
+    @Test
+    @Order(41)
+    void getLandingPageIdAndSlug() {
+        service.setLandingPage(station.id(), pageId);
+        try {
+            assertEquals(pageId, service.getLandingPageId(station.id()).orElseThrow());
+            assertEquals(
+                    "welcome-page", service.getLandingPageSlug(station.id()).orElseThrow());
+        } finally {
+            service.setLandingPage(station.id(), null);
+        }
+    }
+
+    @Test
+    @Order(42)
+    void listFilesWithUsageAndPickerAndDedup() throws Exception {
+        byte[] data = new byte[16];
+        var f1 = service.uploadPageFile(pageId, "list.png", "image/png", data);
+        var dup = service.uploadPageFile(pageId, "dup.png", "image/png", data);
+        assertEquals(f1.id(), dup.id());
+
+        var listing = service.listFilesWithUsage(station.id());
+        assertFalse(listing.isEmpty());
+        var first = listing.getFirst();
+        assertNotNull(first.file());
+        assertNotNull(first.tagIds());
+
+        assertTrue(service.deleteFile(f1.id()));
+    }
+
+    @Test
+    @Order(43)
+    void uploadStationFileAndReadByHash() throws Exception {
+        byte[] data = "station-bytes".getBytes();
+        var img = service.uploadStationFile(station.id(), "sw.png", "image/png", data);
+        assertNotNull(img);
+
+        var byHash = service.readFile(station.id(), img.contentHash());
+        assertTrue(byHash.isPresent());
+
+        assertTrue(service.readFile(station.id(), null).isEmpty());
+        assertTrue(service.readFile(station.id(), "  ").isEmpty());
+        assertTrue(service.readFile(station.id(), "no-such-hash").isEmpty());
+
+        assertTrue(service.deleteFile(img.id()));
+    }
+
+    @Test
+    @Order(44)
+    void folderAndTagOperations() throws Exception {
+        var folder = service.createFolder(station.id(), null, "Documents", 0);
+        assertNotNull(folder);
+        assertTrue(service.listFolders(station.id()).stream().anyMatch(f -> f.id() == folder.id()));
+        assertTrue(service.updateFolder(station.id(), folder.id(), null, "Docs", 1));
+        assertFalse(service.updateFolder(99999, folder.id(), null, "Nope", 0));
+        assertFalse(service.deleteFolder(99999, folder.id()));
+
+        var tag = service.createTag(station.id(), "Hero", "#ff0000");
+        assertNotNull(tag);
+        assertTrue(service.listTags(station.id()).stream().anyMatch(t -> t.id() == tag.id()));
+        assertTrue(service.updateTag(station.id(), tag.id(), "Heroes", "#00ff00"));
+        assertFalse(service.updateTag(99999, tag.id(), "X", "Y"));
+
+        byte[] data = new byte[8];
+        var file = service.uploadPageFile(pageId, "tagged.png", "image/png", data);
+
+        assertTrue(service.assignTag(station.id(), file.id(), tag.id()));
+        assertFalse(service.assignTag(99999, file.id(), tag.id()));
+        assertFalse(service.assignTag(station.id(), 99999, tag.id()));
+        assertFalse(service.assignTag(station.id(), file.id(), 99999));
+
+        assertTrue(service.moveFileToFolder(station.id(), file.id(), folder.id()));
+        assertFalse(service.moveFileToFolder(99999, file.id(), folder.id()));
+
+        assertTrue(service.unassignTag(station.id(), file.id(), tag.id()));
+        assertFalse(service.unassignTag(99999, file.id(), tag.id()));
+
+        assertTrue(service.deleteFile(file.id()));
+        assertTrue(service.deleteTag(station.id(), tag.id()));
+        assertFalse(service.deleteTag(99999, tag.id()));
+        assertTrue(service.deleteFolder(station.id(), folder.id()));
+    }
+
+    @Test
+    @Order(47)
+    void getPageRenderedMemberListSpotlightCell() throws Exception {
+        var mapper = JsonMapper.builder().build();
+        JsonNode src = mapper.readTree("{\"kind\":\"manual\",\"memberUids\":[]}");
+        var memberListConfig = new CellConfig.MemberListConfig(
+                "Officers", src, CellConfig.MemberListSortBy.NAME, true, true, Map.of(), List.of(), List.of());
+        var rows = List.of(new PageService.RowData(
+                0,
+                List.of(new PageService.CellData(
+                        0, 100.0, CellContentType.MEMBER_LIST_SPOTLIGHT, "", memberListConfig))));
+        service.savePage(pageId, "Welcome", "welcome-page", null, null, null, rows);
+        var rendered = service.getPageRendered(pageId).orElseThrow();
+        var cell = rendered.rows().getFirst().cells().getFirst();
+        assertEquals(CellContentType.MEMBER_LIST_SPOTLIGHT, cell.contentType());
+        assertInstanceOf(CellConfig.MemberListConfig.class, cell.config());
+    }
+
+    @Test
+    @Order(45)
+    void getPageRenderedMarkdownCell() {
+        var rows = List.of(new PageService.RowData(
+                0,
+                List.of(new PageService.CellData(
+                        0, 100.0, CellContentType.MARKDOWN, "# Hello\n\nThis is **markdown**.", CellConfig.EMPTY))));
+        service.savePage(pageId, "Welcome", "welcome-page", null, null, null, rows);
+        var rendered = service.getPageRendered(pageId).orElseThrow();
+        String renderedHtml = rendered.rows().getFirst().cells().getFirst().content();
+        assertTrue(renderedHtml.contains("<h1") || renderedHtml.contains("<strong"));
+    }
+
+    @Test
+    @Order(46)
+    void updateFileMetaAccessChecks() throws Exception {
+        byte[] data = new byte[4];
+        var img = service.uploadPageFile(pageId, "meta.png", "image/png", data);
+        try {
+            assertTrue(service.updateFileMeta(station.id(), img.id(), "alt", "desc"));
+            assertFalse(service.updateFileMeta(99999, img.id(), "alt", "desc"));
+            assertFalse(service.updateFileMeta(station.id(), 99999, "alt", "desc"));
+        } finally {
+            service.deleteFile(img.id());
+        }
     }
 
     @Test

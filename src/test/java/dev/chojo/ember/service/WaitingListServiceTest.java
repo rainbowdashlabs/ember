@@ -9,6 +9,7 @@ import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -35,9 +36,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class WaitingListServiceTest extends RepositoryTestBase {
-    private static final dev.chojo.ember.feature.legal.entity.ConsentProof TEST_CONSENT =
-            new dev.chojo.ember.feature.legal.entity.ConsentProof(
-                    "c", "p", "t", "127.0.0.1", "DE", "test-agent", java.time.Instant.now());
+    private static final ConsentProof TEST_CONSENT =
+            new ConsentProof("c", "p", "t", "127.0.0.1", "DE", "test-agent", Instant.now());
 
     private static WaitingListService service;
     private static Station station;

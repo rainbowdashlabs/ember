@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.repository;
 
+import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
@@ -13,14 +14,15 @@ import org.junit.jupiter.api.Test;
 import tools.jackson.databind.node.IntNode;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class WaitingListRepositoryTest extends RepositoryTestBase {
-    private static final dev.chojo.ember.feature.legal.entity.ConsentProof TEST_CONSENT =
-            new dev.chojo.ember.feature.legal.entity.ConsentProof(
-                    "c", "p", "t", "127.0.0.1", "DE", "test-agent", java.time.Instant.now());
+    private static final ConsentProof TEST_CONSENT =
+            new ConsentProof("c", "p", "t", "127.0.0.1", "DE", "test-agent", Instant.now());
 
     private int stationId;
 
@@ -357,9 +359,9 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
                 "pending@test.com",
                 UUID.randomUUID().toString(),
                 "",
-                dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus.PENDING,
+                WaitingListEntryStatus.PENDING,
                 TEST_CONSENT);
-        assertEquals(dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus.PENDING, entry.status());
+        assertEquals(WaitingListEntryStatus.PENDING, entry.status());
     }
 
     @Test
@@ -367,15 +369,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
         var list = waitingListRepo.create(stationId, "TokenConsent", "", null, 180, null, null, 5, true);
         String token = UUID.randomUUID().toString();
         waitingListRepo.createVerificationToken(
-                token,
-                list.id(),
-                "First",
-                "Last",
-                "first@test.com",
-                java.util.List.of(),
-                java.util.Map.of(),
-                "",
-                TEST_CONSENT);
+                token, list.id(), "First", "Last", "first@test.com", List.of(), Map.of(), "", TEST_CONSENT);
         var found = waitingListRepo.findVerificationByToken(token).orElseThrow();
         assertNotNull(found.consent());
         assertEquals(TEST_CONSENT.consentVersion(), found.consent().consentVersion());

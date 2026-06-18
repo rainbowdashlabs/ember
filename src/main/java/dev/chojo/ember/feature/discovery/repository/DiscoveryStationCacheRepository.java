@@ -98,20 +98,22 @@ public class DiscoveryStationCacheRepository {
 
     public List<CachedDiscoveryStation> searchForPicker(String search, int limit) {
         boolean hasSearch = search != null && !search.isBlank();
-        String predicate = hasSearch
-                ? " AND (LOWER(c.payload->>'name') LIKE :q OR LOWER(COALESCE(c.payload->>'city', '')) LIKE :q"
-                        + " OR LOWER(COALESCE(c.payload->>'country', '')) LIKE :q)"
-                : "";
-        String sql = "SELECT c.*"
-                + " FROM discovery_station_cache c"
-                + " JOIN discovery_peer p ON p.public_key = c.instance_public_key"
-                + " WHERE p.reachable = true AND p.blocked = false"
-                + predicate
-                + " ORDER BY c.fetched_at DESC LIMIT :limit;";
+        String predicate = hasSearch ? """
+                AND (LOWER(c.payload->>'name') LIKE :q
+                     OR LOWER(COALESCE(c.payload->>'city', '')) LIKE :q
+                     OR LOWER(COALESCE(c.payload->>'country', '')) LIKE :q)""" : "";
         var c = call().bind("limit", limit);
         if (hasSearch) {
             c = c.bind("q", "%" + search.trim().toLowerCase() + "%");
         }
-        return query(sql).single(c).map(CachedDiscoveryStation.map()).all();
+        return query("""
+                SELECT c.*
+                FROM discovery_station_cache c
+                JOIN discovery_peer p ON p.public_key = c.instance_public_key
+                WHERE p.reachable = true
+                  AND p.blocked = false
+                  %s
+                ORDER BY c.fetched_at DESC
+                LIMIT :limit;""", predicate).single(c).map(CachedDiscoveryStation.map()).all();
     }
 }

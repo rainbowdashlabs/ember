@@ -225,9 +225,13 @@ public class StationMemberRepository {
      */
     public List<PickerMember> searchForPicker(int stationId, String search, int limit) {
         boolean hasSearch = search != null && !search.isBlank();
-        String predicate = hasSearch ? " AND LOWER(COALESCE(a.full_name, sm.display_name, '')) LIKE :q" : "";
+        String predicate = hasSearch ? "AND LOWER(COALESCE(a.full_name, sm.display_name, '')) LIKE :q" : "";
         String order = hasSearch ? "display_name" : "sm.join_date DESC";
-        String sql = """
+        var c = call().bind("station_id", stationId).bind("limit", limit);
+        if (hasSearch) {
+            c = c.bind("q", "%" + search.trim().toLowerCase() + "%");
+        }
+        return query("""
                 SELECT sm.uid AS member_uid,
                        COALESCE(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
                        sm.user_type,
@@ -237,15 +241,12 @@ public class StationMemberRepository {
                 FROM station_member sm
                 LEFT JOIN account a ON sm.account_id = a.id
                 WHERE sm.station_id = :station_id AND sm.former = FALSE
-                %s
+                  %s
                 ORDER BY %s
-                LIMIT :limit;
-                """.formatted(PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY, predicate, order);
-        var c = call().bind("station_id", stationId).bind("limit", limit);
-        if (hasSearch) {
-            c = c.bind("q", "%" + search.trim().toLowerCase() + "%");
-        }
-        return query(sql).single(c).map(PickerMember.map()).all();
+                LIMIT :limit;""", PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY, predicate, order)
+                .single(c)
+                .map(PickerMember.map())
+                .all();
     }
 
     /**
@@ -254,7 +255,7 @@ public class StationMemberRepository {
      * cannot accidentally reveal former-member rows by guessing a UUID.
      */
     public Optional<PickerMember> findPickerByUid(int stationId, UUID memberUid) {
-        String sql = """
+        return query("""
                 SELECT sm.uid AS member_uid,
                        COALESCE(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
                        sm.user_type,
@@ -265,9 +266,7 @@ public class StationMemberRepository {
                 LEFT JOIN account a ON sm.account_id = a.id
                 WHERE sm.station_id = :station_id
                   AND sm.uid = :uid::uuid
-                  AND sm.former = FALSE;
-                """.formatted(PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY);
-        return query(sql)
+                  AND sm.former = FALSE;""", PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY)
                 .single(call().bind("station_id", stationId).bind("uid", memberUid, StandardValueConverter.UUID_STRING))
                 .map(PickerMember.map())
                 .first();
@@ -275,7 +274,7 @@ public class StationMemberRepository {
 
     /** Active members of the given group, ordered by the membership's stored sort order. */
     public List<PickerMember> findOfficersByGroup(int stationId, int groupId) {
-        String sql = """
+        return query("""
                 SELECT sm.uid AS member_uid,
                        COALESCE(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
                        sm.user_type,
@@ -288,9 +287,7 @@ public class StationMemberRepository {
                 WHERE sm.station_id = :station_id
                   AND sm.former = FALSE
                   AND mge.group_id = :group_id
-                ORDER BY display_name;
-                """.formatted(PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY);
-        return query(sql)
+                ORDER BY display_name;""", PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY)
                 .single(call().bind("station_id", stationId).bind("group_id", groupId))
                 .map(PickerMember.map())
                 .all();
@@ -298,7 +295,7 @@ public class StationMemberRepository {
 
     /** Active members carrying the given tag, ordered alphabetically. */
     public List<PickerMember> findOfficersByTag(int stationId, int tagId) {
-        String sql = """
+        return query("""
                 SELECT sm.uid AS member_uid,
                        COALESCE(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
                        sm.user_type,
@@ -311,9 +308,7 @@ public class StationMemberRepository {
                 WHERE sm.station_id = :station_id
                   AND sm.former = FALSE
                   AND ute.tag_id = :tag_id
-                ORDER BY display_name;
-                """.formatted(PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY);
-        return query(sql)
+                ORDER BY display_name;""", PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY)
                 .single(call().bind("station_id", stationId).bind("tag_id", tagId))
                 .map(PickerMember.map())
                 .all();
@@ -322,7 +317,8 @@ public class StationMemberRepository {
     /** Active members for an explicit list of UUIDs (manual officers source). */
     public List<PickerMember> findOfficersByUids(int stationId, List<UUID> memberUids) {
         if (memberUids == null || memberUids.isEmpty()) return List.of();
-        String sql = """
+        var uidStrings = memberUids.stream().map(UUID::toString).toList();
+        return query("""
                 SELECT sm.uid AS member_uid,
                        COALESCE(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
                        sm.user_type,
@@ -333,25 +329,22 @@ public class StationMemberRepository {
                 LEFT JOIN account a ON sm.account_id = a.id
                 WHERE sm.station_id = :station_id
                   AND sm.former = FALSE
-                  AND sm.uid::text = ANY(:uids);
-                """.formatted(PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY);
-        var uidStrings = memberUids.stream().map(UUID::toString).toList();
-        return query(sql)
+                  AND sm.uid::text = ANY(:uids);""", PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY)
                 .single(call().bind("station_id", stationId)
                         .bind("uids", uidStrings, de.chojo.sadu.postgresql.types.PostgreSqlTypes.VARCHAR))
                 .map(PickerMember.map())
                 .all();
     }
 
-    private static final String PRIMARY_TAG_NAME_SUBQUERY =
-            "(SELECT ut.name FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id"
-                    + " WHERE ute.member_id = sm.id AND ut.visible = TRUE"
-                    + " ORDER BY ut.position DESC LIMIT 1)";
+    private static final String PRIMARY_TAG_NAME_SUBQUERY = """
+            (SELECT ut.name FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id
+             WHERE ute.member_id = sm.id AND ut.visible = TRUE
+             ORDER BY ut.position DESC LIMIT 1)""";
 
-    private static final String PRIMARY_TAG_COLOR_SUBQUERY =
-            "(SELECT ut.color FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id"
-                    + " WHERE ute.member_id = sm.id AND ut.visible = TRUE"
-                    + " ORDER BY ut.position DESC LIMIT 1)";
+    private static final String PRIMARY_TAG_COLOR_SUBQUERY = """
+            (SELECT ut.color FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id
+             WHERE ute.member_id = sm.id AND ut.visible = TRUE
+             ORDER BY ut.position DESC LIMIT 1)""";
 
     /**
      * Lightweight result row for the editor's member-search picker. Exposes the member UUID —

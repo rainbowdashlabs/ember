@@ -14,6 +14,7 @@ import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
 
@@ -87,6 +88,40 @@ class PageFileStorageServiceTest {
     void deleteNonExistent() {
         // Should not throw
         storage.delete(1, "0000");
+    }
+
+    @Test
+    void deleteQuietlySwallowsIoException() throws IOException {
+        byte[] data = "swallow".getBytes();
+        String hash = PageFileStorageService.hash(data);
+        storage.store(1, hash, data, "image/png");
+
+        Path target =
+                tempDir.resolve("page-files").resolve(stationOneUid.toString()).resolve(hash);
+        Files.delete(target);
+        Files.createDirectory(target);
+        Files.write(target.resolve("sentinel"), new byte[] {1});
+
+        storage.delete(1, hash);
+
+        Files.delete(target.resolve("sentinel"));
+        Files.delete(target);
+    }
+
+    @Test
+    void readReturnsEmptyOnIoFailure() throws IOException {
+        byte[] data = "ioerr".getBytes();
+        String hash = PageFileStorageService.hash(data);
+        storage.store(1, hash, data, "image/png");
+
+        Path target =
+                tempDir.resolve("page-files").resolve(stationOneUid.toString()).resolve(hash);
+        Files.delete(target);
+        Files.createDirectory(target);
+
+        assertTrue(storage.read(1, hash).isEmpty());
+
+        Files.delete(target);
     }
 
     @Test

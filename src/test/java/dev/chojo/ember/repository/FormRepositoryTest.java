@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
+import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -32,9 +33,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class FormRepositoryTest extends RepositoryTestBase {
-    private static final dev.chojo.ember.feature.legal.entity.ConsentProof TEST_CONSENT =
-            new dev.chojo.ember.feature.legal.entity.ConsentProof(
-                    "c", "p", "t", "127.0.0.1", "DE", "test-agent", java.time.Instant.now());
+    private static final ConsentProof TEST_CONSENT =
+            new ConsentProof("c", "p", "t", "127.0.0.1", "DE", "test-agent", Instant.now());
 
     private static Station station;
     private static Account account;
@@ -275,6 +275,69 @@ class FormRepositoryTest extends RepositoryTestBase {
     }
 
     // -- Cleanup --
+
+    @Test
+    @Order(60)
+    void findResponseByIdAndAcknowledge() {
+        var response = formRepo.findResponseById(responseId);
+        assertTrue(response.isPresent());
+        assertEquals(formId, response.get().formId());
+        assertTrue(formRepo.findResponseById(99999).isEmpty());
+
+        formRepo.acknowledgeResponse(responseId, member.id());
+        var acked = formRepo.findResponseById(responseId).orElseThrow();
+        assertNotNull(acked.acknowledgedAt());
+        assertEquals(member.id(), acked.acknowledgedBy());
+
+        formRepo.acknowledgeResponse(responseId, 99999);
+        var stillAcked = formRepo.findResponseById(responseId).orElseThrow();
+        assertEquals(member.id(), stillAcked.acknowledgedBy());
+    }
+
+    @Test
+    @Order(61)
+    void findForcedPendingEmpty() {
+        assertTrue(formRepo.findForcedPending(station.id(), member.id()).isEmpty());
+    }
+
+    @Test
+    @Order(62)
+    void findByStationForMember() {
+        var forms = formRepo.findByStationForMember(station.id(), member.id());
+        assertNotNull(forms);
+    }
+
+    @Test
+    @Order(63)
+    void deleteQuestionsByForm() {
+        var separateForm = formRepo.create(
+                station.id(), "Bulk Delete", "x", false, true, null, null, member.id(), FormPurpose.INTERNAL);
+        try {
+            formRepo.createQuestion(
+                    separateForm.id(),
+                    0,
+                    FormQuestionType.TEXT,
+                    "Q1",
+                    "",
+                    false,
+                    false,
+                    new FormQuestionConfig.Text(false));
+            formRepo.createQuestion(
+                    separateForm.id(),
+                    1,
+                    FormQuestionType.TEXT,
+                    "Q2",
+                    "",
+                    false,
+                    false,
+                    new FormQuestionConfig.Text(false));
+            assertEquals(2, formRepo.findQuestions(separateForm.id()).size());
+            formRepo.deleteQuestionsByForm(separateForm.id());
+            assertTrue(formRepo.findQuestions(separateForm.id()).isEmpty());
+        } finally {
+            formRepo.delete(separateForm.id());
+        }
+    }
 
     @Test
     @Order(90)

@@ -53,7 +53,7 @@ public class FederationRepository {
                                CASE
                                    WHEN home.latitude IS NOT NULL AND home.longitude IS NOT NULL
                                     AND s.latitude IS NOT NULL AND s.longitude IS NOT NULL
-                                   THEN ember_schema.haversine_km(
+                                   THEN haversine_km(
                                             home.latitude, home.longitude,
                                             s.latitude, s.longitude)
                                    ELSE NULL

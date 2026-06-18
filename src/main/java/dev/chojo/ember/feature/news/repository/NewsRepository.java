@@ -44,9 +44,9 @@ public class NewsRepository {
      */
     public News create(int stationId, String title, String contentMarkdown, String contentHtml, MemberIdentity author) {
         return query("""
-                            INSERT INTO news(station_id, title, content_markdown, content_html, author_station_uid, author_member_uid, published_at)
-                            VALUES(:station_id, :title, :content_markdown, :content_html, :author_station_uid::uuid, :author_member_uid::uuid, :published_at)
-                            RETURNING\s""" + NEWS_COLUMNS_BARE + ";")
+                INSERT INTO news(station_id, title, content_markdown, content_html, author_station_uid, author_member_uid, published_at)
+                VALUES (:station_id, :title, :content_markdown, :content_html, :author_station_uid::uuid, :author_member_uid::uuid, :published_at)
+                RETURNING %s;""", NEWS_COLUMNS_BARE)
                 .single(call().bind("station_id", stationId)
                         .bind("title", title)
                         .bind("content_markdown", contentMarkdown)
@@ -72,7 +72,10 @@ public class NewsRepository {
      * @return the news article, or empty if not found
      */
     public Optional<News> findById(int id) {
-        return query("SELECT " + NEWS_COLUMNS + " FROM news n WHERE n.id = :id;")
+        return query("""
+                SELECT %s
+                FROM news n
+                WHERE n.id = :id;""", NEWS_COLUMNS)
                 .single(call().bind("id", id))
                 .map(News.map())
                 .first();
@@ -87,9 +90,12 @@ public class NewsRepository {
      * @return list of news articles
      */
     public List<News> findByStation(int stationId, int offset, int limit) {
-        return query(
-                        "SELECT " + NEWS_COLUMNS
-                                + " FROM news n WHERE n.station_id = :station_id ORDER BY n.published_at DESC LIMIT :limit OFFSET :offset;")
+        return query("""
+                SELECT %s
+                FROM news n
+                WHERE n.station_id = :station_id
+                ORDER BY n.published_at DESC
+                LIMIT :limit OFFSET :offset;""", NEWS_COLUMNS)
                 .single(call().bind("station_id", stationId)
                         .bind("limit", limit)
                         .bind("offset", offset))
@@ -108,12 +114,14 @@ public class NewsRepository {
      * @return list of visible news articles
      */
     public List<News> findVisibleForMember(int stationId, int memberId, int offset, int limit) {
-        return query("SELECT " + NEWS_COLUMNS + " FROM news n"
-                        + " WHERE n.station_id = :station_id"
-                        + " AND n.published_at IS NOT NULL"
-                        + " AND check_restriction('news_restriction', 'news_id', 'news', 'id', n.id, :member_id, 'NEWS_MANAGER')"
-                        + " ORDER BY n.published_at DESC"
-                        + " LIMIT :limit OFFSET :offset;")
+        return query("""
+                SELECT %s
+                FROM news n
+                WHERE n.station_id = :station_id
+                  AND n.published_at IS NOT NULL
+                  AND check_restriction('news_restriction', 'news_id', 'news', 'id', n.id, :member_id, 'NEWS_MANAGER')
+                ORDER BY n.published_at DESC
+                LIMIT :limit OFFSET :offset;""", NEWS_COLUMNS)
                 .single(call().bind("station_id", stationId)
                         .bind("member_id", memberId)
                         .bind("limit", limit)

@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
 import dev.chojo.ember.feature.form.service.FormService;
+import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -43,9 +44,8 @@ import static org.mockito.Mockito.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class FormServiceTest extends RepositoryTestBase {
-    private static final dev.chojo.ember.feature.legal.entity.ConsentProof TEST_CONSENT =
-            new dev.chojo.ember.feature.legal.entity.ConsentProof(
-                    "c", "p", "t", "127.0.0.1", "DE", "test-agent", java.time.Instant.now());
+    private static final ConsentProof TEST_CONSENT =
+            new ConsentProof("c", "p", "t", "127.0.0.1", "DE", "test-agent", Instant.now());
 
     private static FormService service;
     private static Station station;
@@ -461,6 +461,37 @@ class FormServiceTest extends RepositoryTestBase {
         } finally {
             service.delete(pollForm.id());
         }
+    }
+
+    @Test
+    @Order(43)
+    void findResponseByIdAndAcknowledge() {
+        var contactForm =
+                service.create(station.id(), "Ack Form", "", false, true, null, null, member.id(), FormPurpose.CONTACT);
+        try {
+            service.publish(contactForm.id());
+            byte[] hash = new byte[32];
+            for (int i = 0; i < 32; i++) hash[i] = (byte) (50 + i);
+            var response = service.submitAnonymousResponse(contactForm.id(), hash, Map.of(), TEST_CONSENT);
+
+            var found = service.findResponseById(response.id());
+            assertTrue(found.isPresent());
+            assertEquals(response.id(), found.orElseThrow().id());
+            assertTrue(service.findResponseById(99999).isEmpty());
+
+            service.acknowledgeResponse(response.id(), member.id());
+            var acked = service.findResponseById(response.id()).orElseThrow();
+            assertNotNull(acked.acknowledgedAt());
+        } finally {
+            service.delete(contactForm.id());
+        }
+    }
+
+    @Test
+    @Order(44)
+    void findForcedPending() {
+        var pending = service.findForcedPending(station.id(), member.id());
+        assertNotNull(pending);
     }
 
     // -- Delete --

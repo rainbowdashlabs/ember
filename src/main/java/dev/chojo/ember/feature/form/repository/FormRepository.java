@@ -107,10 +107,12 @@ public class FormRepository {
      * @return the filtered list of forms
      */
     public List<Form> findByStationForMember(int stationId, int memberId) {
-        return query("SELECT " + FORM_COLUMNS + " FROM form f"
-                        + " WHERE f.station_id = :station_id"
-                        + " AND check_restriction('form_restriction', 'form_id', 'form', 'id', f.id, :member_id, 'POLL_MANAGER')"
-                        + " ORDER BY f.created_at DESC;")
+        return query("""
+                SELECT %s
+                FROM form f
+                WHERE f.station_id = :station_id
+                  AND check_restriction('form_restriction', 'form_id', 'form', 'id', f.id, :member_id, 'POLL_MANAGER')
+                ORDER BY f.created_at DESC;""", FORM_COLUMNS)
                 .single(call().bind("station_id", stationId).bind("member_id", memberId))
                 .map(Form.map())
                 .all();
@@ -123,18 +125,28 @@ public class FormRepository {
      * @return the form, or empty if not found
      */
     public Optional<Form> findById(int id) {
-        return query("SELECT " + FORM_COLUMNS + " FROM form f WHERE f.id = :id;")
+        return query("""
+                SELECT %s
+                FROM form f
+                WHERE f.id = :id;""", FORM_COLUMNS)
                 .single(call().bind("id", id))
                 .map(Form.map())
                 .first();
     }
 
     public List<Form> findForcedPending(int stationId, int memberId) {
-        return query("SELECT " + FORM_COLUMNS
-                        + " FROM form f WHERE f.station_id = :station_id AND f.forced = true AND f.status = 'OPEN'"
-                        + " AND (f.start_at IS NULL OR f.start_at <= now()) AND (f.end_at IS NULL OR f.end_at >= now())"
-                        + " AND NOT EXISTS (SELECT 1 FROM form_response fr WHERE fr.form_id = f.id AND fr.member_id = :member_id)"
-                        + " ORDER BY f.title;")
+        return query("""
+                SELECT %s
+                FROM form f
+                WHERE f.station_id = :station_id
+                  AND f.forced = true
+                  AND f.status = 'OPEN'
+                  AND (f.start_at IS NULL OR f.start_at <= now())
+                  AND (f.end_at IS NULL OR f.end_at >= now())
+                  AND NOT EXISTS (
+                      SELECT 1 FROM form_response fr
+                      WHERE fr.form_id = f.id AND fr.member_id = :member_id)
+                ORDER BY f.title;""", FORM_COLUMNS)
                 .single(call().bind("station_id", stationId).bind("member_id", memberId))
                 .map(Form.map())
                 .all();
@@ -164,9 +176,9 @@ public class FormRepository {
             int createdBy,
             FormPurpose purpose) {
         return query("""
-                            INSERT INTO form(station_id, title, description, shuffle_questions, allow_edit, start_at, end_at, created_by, purpose)
-                            VALUES (:station_id, :title, :description, :shuffle_questions, :allow_edit, :start_at, :end_at, :created_by, :purpose)
-                            RETURNING\s""" + FORM_COLUMNS_BARE + ";")
+                INSERT INTO form(station_id, title, description, shuffle_questions, allow_edit, start_at, end_at, created_by, purpose)
+                VALUES (:station_id, :title, :description, :shuffle_questions, :allow_edit, :start_at, :end_at, :created_by, :purpose)
+                RETURNING %s;""", FORM_COLUMNS_BARE)
                 .single(call().bind("station_id", stationId)
                         .bind("title", title)
                         .bind("description", description)

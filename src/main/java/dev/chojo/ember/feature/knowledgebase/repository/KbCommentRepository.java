@@ -30,9 +30,11 @@ public class KbCommentRepository {
      * @return the list of comments
      */
     public List<KbComment> findByFile(int fileId) {
-        return query(
-                        "SELECT id, file_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at"
-                                + " FROM kb_comment WHERE file_id = :file_id ORDER BY created_at;")
+        return query("""
+                        SELECT id, file_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at
+                        FROM kb_comment
+                        WHERE file_id = :file_id
+                        ORDER BY created_at;""")
                 .single(call().bind("file_id", fileId))
                 .map(KbComment.map())
                 .all();
@@ -45,12 +47,10 @@ public class KbCommentRepository {
      * @return the comment, if found
      */
     public Optional<KbComment> findById(int id) {
-        return query(
-                        "SELECT id, file_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at"
-                                + " FROM kb_comment WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(KbComment.map())
-                .first();
+        return query("""
+                        SELECT id, file_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at
+                        FROM kb_comment
+                        WHERE id = :id;""").single(call().bind("id", id)).map(KbComment.map()).first();
     }
 
     /**
@@ -63,10 +63,10 @@ public class KbCommentRepository {
      * @return the created comment
      */
     public KbComment create(int fileId, Integer parentId, MemberIdentity author, String content) {
-        return query(
-                        "INSERT INTO kb_comment (file_id, parent_id, author_station_uid, author_member_uid, content)"
-                                + " VALUES (:file_id, :parent_id, :author_station_uid::uuid, :author_member_uid::uuid, :content)"
-                                + " RETURNING id, file_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at;")
+        return query("""
+                        INSERT INTO kb_comment (file_id, parent_id, author_station_uid, author_member_uid, content)
+                        VALUES (:file_id, :parent_id, :author_station_uid::uuid, :author_member_uid::uuid, :content)
+                        RETURNING id, file_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at;""")
                 .single(call().bind("file_id", fileId)
                         .bind("parent_id", parentId)
                         .bind(

@@ -23,7 +23,11 @@ public class EventFieldRepository {
             "id, event_id, name, field_type, config, value, position, overview, attendance_field_id, \"public\"";
 
     public List<EventField> findByEvent(int eventId) {
-        return query("SELECT " + ALL_COLUMNS + " FROM event_field WHERE event_id = :event_id ORDER BY position;")
+        return query("""
+                        SELECT %s
+                        FROM event_field
+                        WHERE event_id = :event_id
+                        ORDER BY position;""", ALL_COLUMNS)
                 .single(call().bind("event_id", eventId))
                 .map(EventField.map())
                 .all();
@@ -31,9 +35,11 @@ public class EventFieldRepository {
 
     public List<EventField> findOverviewFieldsByEvents(List<Integer> eventIds) {
         if (eventIds.isEmpty()) return List.of();
-        return query(
-                        "SELECT " + ALL_COLUMNS
-                                + " FROM event_field WHERE event_id = ANY(:event_ids) AND overview ORDER BY event_id, position;")
+        return query("""
+                        SELECT %s
+                        FROM event_field
+                        WHERE event_id = ANY(:event_ids) AND overview
+                        ORDER BY event_id, position;""", ALL_COLUMNS)
                 .single(call().bind("event_ids", eventIds, PostgreSqlTypes.INTEGER))
                 .map(EventField.map())
                 .all();
@@ -61,10 +67,10 @@ public class EventFieldRepository {
             boolean overview,
             Integer attendanceFieldId,
             boolean isPublic) {
-        return query(
-                        "INSERT INTO event_field(event_id, name, field_type, config, value, position, overview, attendance_field_id, \"public\")"
-                                + " VALUES (:event_id, :name, :field_type, :config::jsonb, :value, :position, :overview, :attendance_field_id, :public)"
-                                + " RETURNING " + ALL_COLUMNS + ";")
+        return query("""
+                        INSERT INTO event_field(event_id, name, field_type, config, value, position, overview, attendance_field_id, "public")
+                        VALUES (:event_id, :name, :field_type, :config::jsonb, :value, :position, :overview, :attendance_field_id, :public)
+                        RETURNING %s;""", ALL_COLUMNS)
                 .single(call().bind("event_id", eventId)
                         .bind("name", name)
                         .bind("field_type", fieldType)
