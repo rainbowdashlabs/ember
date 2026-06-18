@@ -5,20 +5,18 @@
  */
 package dev.chojo.ember.feature.page.repository;
 
+import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.page.entity.CellConfig;
 import dev.chojo.ember.feature.page.entity.CellContentType;
 import dev.chojo.ember.feature.page.entity.PageCell;
-import dev.chojo.ember.feature.page.entity.PageImage;
+import dev.chojo.ember.feature.page.entity.PageFile;
 import dev.chojo.ember.feature.page.entity.PageRow;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -103,6 +101,42 @@ public class PageRepository {
                 .map(StationPage.mapFlat())
                 .all();
     }
+
+    /**
+     * Editor's PAGE_LINK picker (concept §4.5). Returns a compact shape — {@code publicUid},
+     * {@code title}, {@code slug}, {@code updatedAt} — for the published pages of the supplied
+     * station, optionally filtered by case-insensitive title substring. Empty {@code search}
+     * returns the most recently updated pages so the picker has something on first focus.
+     */
+    public List<PickerPage> searchForPicker(int stationId, String search, int limit) {
+        boolean hasSearch = search != null && !search.isBlank();
+        String predicate = hasSearch ? "AND LOWER(title) LIKE :q" : "";
+        var c = call().bind("station_id", stationId).bind("limit", limit);
+        if (hasSearch) {
+            c = c.bind("q", "%" + search.trim().toLowerCase() + "%");
+        }
+        return query("""
+                SELECT public_uid, title, slug, updated_at
+                FROM station_page
+                WHERE station_id = :station_id
+                  AND published
+                  %s
+                ORDER BY updated_at DESC
+                LIMIT :limit;""", predicate)
+                .single(c)
+                .map(row -> new PickerPage(
+                        row.get("public_uid", StandardValueConverter.UUID_STRING),
+                        row.getString("title"),
+                        row.getString("slug"),
+                        row.get("updated_at", INSTANT_TIMESTAMP)))
+                .all();
+    }
+
+    /**
+     * Lightweight picker result row for the page picker. Exposes only the public UUID — never the
+     * internal integer id (concept §2.3).
+     */
+    public record PickerPage(java.util.UUID pageUid, String title, String slug, java.time.Instant updatedAt) {}
 
     public boolean updateMeta(
             int id, String title, String slug, Integer parentId, String metaDescription, Integer ogImageId) {
@@ -243,78 +277,87 @@ public class PageRepository {
 
     // --- Image operations ---
 
-    public PageImage createImage(int pageId, String fileName, String mimeType, long fileSize) {
+    public PageFile createFile(
+            Integer pageId, int stationId, String contentHash, String fileName, String mimeType, long fileSize) {
         return query("""
                 INSERT
                 INTO
-                    page_image(page_id, file_name, mime_type, file_size)
+                    page_file(
+                        page_id, station_id, content_hash, file_name, mime_type, file_size,
+                        default_alt_text, default_description, folder_id)
                 VALUES
-                    (:page_id, :file_name, :mime_type, :file_size)
-                RETURNING id, page_id, file_name, mime_type, file_size, uploaded_at;""")
+                    (:page_id, :station_id, :content_hash, :file_name, :mime_type, :file_size, NULL, NULL, NULL)
+                RETURNING *;""")
                 .single(call().bind("page_id", pageId)
+                        .bind("station_id", stationId)
+                        .bind("content_hash", contentHash)
                         .bind("file_name", fileName)
                         .bind("mime_type", mimeType)
                         .bind("file_size", fileSize))
-                .map(PageImage.map())
+                .map(PageFile.map())
                 .first()
                 .orElseThrow();
     }
 
-    public Optional<PageImage> findImage(int imageId) {
-        return query("""
-                SELECT
-                    id,
-                    page_id,
-                    file_name,
-                    mime_type,
-                    file_size,
-                    uploaded_at
-                FROM
-                    page_image
-                WHERE id = :id;""")
-                .single(call().bind("id", imageId))
-                .map(PageImage.map())
+    public Optional<PageFile> findFile(int fileId) {
+        return query("SELECT * FROM page_file WHERE id = :id;")
+                .single(call().bind("id", fileId))
+                .map(PageFile.map())
                 .first();
     }
 
-    public List<PageImage> findImagesByPage(int pageId) {
+    public Optional<PageFile> findByStationAndHash(int stationId, String contentHash) {
         return query("""
-                SELECT
-                    id,
-                    page_id,
-                    file_name,
-                    mime_type,
-                    file_size,
-                    uploaded_at
-                FROM
-                    page_image
-                WHERE page_id = :page_id;""")
+                SELECT *
+                FROM page_file
+                WHERE station_id = :station_id AND content_hash = :content_hash
+                LIMIT 1;""")
+                .single(call().bind("station_id", stationId).bind("content_hash", contentHash))
+                .map(PageFile.map())
+                .first();
+    }
+
+    public List<PageFile> findFilesByPage(int pageId) {
+        return query("SELECT * FROM page_file WHERE page_id = :page_id;")
                 .single(call().bind("page_id", pageId))
-                .map(PageImage.map())
+                .map(PageFile.map())
                 .all();
     }
 
-    public boolean deleteImage(int imageId) {
-        return query("DELETE FROM page_image WHERE id = :id;")
-                .single(call().bind("id", imageId))
+    public List<PageFile> findFilesByStation(int stationId) {
+        return query("SELECT * FROM page_file WHERE station_id = :station_id ORDER BY uploaded_at DESC;")
+                .single(call().bind("station_id", stationId))
+                .map(PageFile.map())
+                .all();
+    }
+
+    public boolean deleteFile(int fileId) {
+        return query("DELETE FROM page_file WHERE id = :id;")
+                .single(call().bind("id", fileId))
                 .delete()
                 .changed();
     }
 
-    public Set<Integer> findReferencedImageIds(int pageId) {
-        var rows = findRowsByPage(pageId);
-        return rows.stream()
+    public boolean updateFileMeta(int fileId, String altText, String description) {
+        return query("""
+                UPDATE page_file
+                SET default_alt_text = :alt, default_description = :description
+                WHERE id = :id;""")
+                .single(call().bind("id", fileId).bind("alt", altText).bind("description", description))
+                .update()
+                .changed();
+    }
+
+    public List<PageCell> findAllCellsByPage(int pageId) {
+        return findRowsByPage(pageId).stream()
                 .flatMap(r -> findCellsByRow(r.id()).stream())
-                .filter(c -> c.contentType() == CellContentType.IMAGE)
-                .map(c -> {
-                    try {
-                        return Integer.parseInt(c.content().trim());
-                    } catch (NumberFormatException e) {
-                        return null;
-                    }
-                })
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+                .toList();
+    }
+
+    public List<PageCell> findAllCellsByStation(int stationId) {
+        return findByStation(stationId).stream()
+                .flatMap(p -> findAllCellsByPage(p.id()).stream())
+                .toList();
     }
 
     // --- Landing page ---

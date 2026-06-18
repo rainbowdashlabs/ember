@@ -5,17 +5,25 @@
  */
 package dev.chojo.ember.repository;
 
+import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.node.IntNode;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class WaitingListRepositoryTest extends RepositoryTestBase {
+    private static final ConsentProof TEST_CONSENT =
+            new ConsentProof("c", "p", "t", "127.0.0.1", "DE", "test-agent", Instant.now());
+
     private int stationId;
 
     @BeforeEach
@@ -66,13 +74,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
     void createAndFindFields() {
         var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5, false);
         var field = waitingListRepo.createField(
-                list.id(),
-                "Name",
-                dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType.TEXT,
-                WaitingListFieldConfig.parse("{}"),
-                0,
-                true,
-                true);
+                list.id(), "Name", WaitingListFieldType.TEXT, WaitingListFieldConfig.parse("{}"), 0, true, true);
         assertNotNull(field);
         assertEquals("Name", field.name());
         assertTrue(field.required());
@@ -85,21 +87,9 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
     void updateField() {
         var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5, false);
         var field = waitingListRepo.createField(
-                list.id(),
-                "Name",
-                dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType.TEXT,
-                WaitingListFieldConfig.parse("{}"),
-                0,
-                false,
-                true);
+                list.id(), "Name", WaitingListFieldType.TEXT, WaitingListFieldConfig.parse("{}"), 0, false, true);
         var updated = waitingListRepo.updateField(
-                field.id(),
-                "Full Name",
-                dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType.TEXT,
-                WaitingListFieldConfig.parse("{}"),
-                1,
-                true,
-                true);
+                field.id(), "Full Name", WaitingListFieldType.TEXT, WaitingListFieldConfig.parse("{}"), 1, true, true);
         assertTrue(updated.isPresent());
         assertEquals("Full Name", updated.get().name());
         assertTrue(updated.get().required());
@@ -133,7 +123,8 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
     void createAndFindEntry() {
         var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5, false);
         String token = UUID.randomUUID().toString();
-        var entry = waitingListRepo.createEntry(list.id(), "Max", "Müller", "Sabine", "test@test.com", token, "Notes");
+        var entry = waitingListRepo.createEntry(
+                list.id(), "Max", "Müller", "Sabine", "test@test.com", token, "Notes", null);
         assertNotNull(entry);
         assertEquals("Max", entry.firstname());
         assertEquals("Müller", entry.lastname());
@@ -154,7 +145,8 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
                 "",
                 "test@test.com",
                 UUID.randomUUID().toString(),
-                "");
+                "",
+                null);
         waitingListRepo.updateEntryStatus(entry.id(), WaitingListEntryStatus.JOINED);
 
         var found = waitingListRepo.findEntryById(entry.id()).orElseThrow();
@@ -165,26 +157,20 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
     void upsertAndFindEntryValues() {
         var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5, false);
         var field = waitingListRepo.createField(
-                list.id(),
-                "Age",
-                dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType.NUMBER,
-                WaitingListFieldConfig.parse("{}"),
-                0,
-                true,
-                true);
+                list.id(), "Age", WaitingListFieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 0, true, true);
         var entry = waitingListRepo.createEntry(
-                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "");
+                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "", null);
 
-        waitingListRepo.upsertEntryValue(entry.id(), field.id(), "8");
+        waitingListRepo.upsertEntryValue(entry.id(), field.id(), IntNode.valueOf(8));
         var values = waitingListRepo.findEntryValues(entry.id());
         assertEquals(1, values.size());
-        assertEquals("8", values.getFirst().value());
+        assertEquals(IntNode.valueOf(8), values.getFirst().value());
 
         // Upsert overwrites
-        waitingListRepo.upsertEntryValue(entry.id(), field.id(), "9");
+        waitingListRepo.upsertEntryValue(entry.id(), field.id(), IntNode.valueOf(9));
         values = waitingListRepo.findEntryValues(entry.id());
         assertEquals(1, values.size());
-        assertEquals("9", values.getFirst().value());
+        assertEquals(IntNode.valueOf(9), values.getFirst().value());
     }
 
     @Test
@@ -193,9 +179,9 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
         assertEquals(0, waitingListRepo.countEntriesByList(list.id()));
 
         waitingListRepo.createEntry(
-                list.id(), "A", "", "", "a@test.com", UUID.randomUUID().toString(), "");
+                list.id(), "A", "", "", "a@test.com", UUID.randomUUID().toString(), "", null);
         waitingListRepo.createEntry(
-                list.id(), "B", "", "", "b@test.com", UUID.randomUUID().toString(), "");
+                list.id(), "B", "", "", "b@test.com", UUID.randomUUID().toString(), "", null);
         assertEquals(2, waitingListRepo.countEntriesByList(list.id()));
     }
 
@@ -203,16 +189,10 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
     void cascadeDeleteListRemovesEntries() {
         var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5, false);
         var field = waitingListRepo.createField(
-                list.id(),
-                "Age",
-                dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType.NUMBER,
-                WaitingListFieldConfig.parse("{}"),
-                0,
-                false,
-                true);
+                list.id(), "Age", WaitingListFieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 0, false, true);
         var entry = waitingListRepo.createEntry(
-                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "");
-        waitingListRepo.upsertEntryValue(entry.id(), field.id(), "8");
+                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "", null);
+        waitingListRepo.upsertEntryValue(entry.id(), field.id(), IntNode.valueOf(8));
         waitingListRepo.createInvite(list.id(), UUID.randomUUID().toString(), 1, null);
 
         waitingListRepo.delete(list.id());
@@ -226,7 +206,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
     void updateConfirmedAtClearsReminder() {
         var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5, false);
         var entry = waitingListRepo.createEntry(
-                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "");
+                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "", null);
 
         waitingListRepo.updateReminderSentAt(entry.id(), Instant.now());
         var withReminder = waitingListRepo.findEntryById(entry.id()).orElseThrow();
@@ -241,13 +221,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
     void deleteField() {
         var list = waitingListRepo.create(stationId, "DelField List", "", null, 180, null, null, 5, false);
         var field = waitingListRepo.createField(
-                list.id(),
-                "ToDelete",
-                dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType.TEXT,
-                WaitingListFieldConfig.parse("{}"),
-                0,
-                false,
-                true);
+                list.id(), "ToDelete", WaitingListFieldType.TEXT, WaitingListFieldConfig.parse("{}"), 0, false, true);
         waitingListRepo.deleteField(field.id());
         assertTrue(waitingListRepo.findFieldsByList(list.id()).isEmpty());
     }
@@ -264,7 +238,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
     void deleteEntry() {
         var list = waitingListRepo.create(stationId, "DelEntry List", "", null, 180, null, null, 5, false);
         var entry = waitingListRepo.createEntry(
-                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "");
+                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "", null);
         waitingListRepo.deleteEntry(entry.id());
         assertTrue(waitingListRepo.findEntryById(entry.id()).isEmpty());
     }
@@ -273,7 +247,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
     void updateEntryStatusWithTimestamp() {
         var list = waitingListRepo.create(stationId, "StatusTs List", "", null, 180, null, null, 5, false);
         var entry = waitingListRepo.createEntry(
-                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "");
+                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "", null);
         waitingListRepo.updateEntryStatusWithTimestamp(entry.id(), WaitingListEntryStatus.WITHDRAWN, "withdrawn_at");
         var found = waitingListRepo.findEntryById(entry.id()).orElseThrow();
         assertEquals(WaitingListEntryStatus.WITHDRAWN, found.status());
@@ -289,7 +263,8 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
                 "Parent",
                 "old@test.com",
                 UUID.randomUUID().toString(),
-                "old");
+                "old",
+                null);
         waitingListRepo.updateEntry(entry.id(), "New", "Name", "NewParent", "new@test.com", "new notes");
         var found = waitingListRepo.findEntryById(entry.id()).orElseThrow();
         assertEquals("New", found.firstname());
@@ -300,7 +275,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
     void linkMember() {
         var list = waitingListRepo.create(stationId, "Link List", "", null, 180, null, null, 5, false);
         var entry = waitingListRepo.createEntry(
-                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "");
+                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "", null);
         // Create a station member to link
         var account = accountRepo.create("wl-link@test.com", "WL", "Link");
         var member = stationMemberRepo.create(stationId, account.id());
@@ -315,7 +290,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
     void incrementAttendanceCount() {
         var list = waitingListRepo.create(stationId, "Attendance List", "", null, 180, null, null, 5, false);
         var entry = waitingListRepo.createEntry(
-                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "");
+                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "", null);
         waitingListRepo.incrementAttendanceCount(entry.id());
         var found = waitingListRepo.findEntryById(entry.id()).orElseThrow();
         assertEquals(1, found.attendanceCount());
@@ -325,7 +300,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
     void findEntriesByStatus() {
         var list = waitingListRepo.create(stationId, "ByStatus List", "", null, 180, null, null, 5, false);
         waitingListRepo.createEntry(
-                list.id(), "A", "", "", "a@test.com", UUID.randomUUID().toString(), "");
+                list.id(), "A", "", "", "a@test.com", UUID.randomUUID().toString(), "", null);
         var waiting = waitingListRepo.findEntriesByStatus(list.id(), WaitingListEntryStatus.WAITING);
         assertFalse(waiting.isEmpty());
         var joined = waitingListRepo.findEntriesByStatus(list.id(), WaitingListEntryStatus.JOINED);
@@ -343,7 +318,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
     void updateCreatedAt() {
         var list = waitingListRepo.create(stationId, "CreatedAt List", "", null, 180, null, null, 5, false);
         var entry = waitingListRepo.createEntry(
-                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "");
+                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "", null);
         var newCreatedAt = Instant.parse("2020-06-15T10:00:00Z");
         waitingListRepo.updateCreatedAt(entry.id(), newCreatedAt);
         var found = waitingListRepo.findEntryById(entry.id()).orElseThrow();
@@ -355,5 +330,53 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
         // Should return at least the lists we've created
         var all = waitingListRepo.findAll();
         assertFalse(all.isEmpty());
+    }
+
+    @Test
+    void createEntryWithConsentProofPersistsAllColumns() {
+        var list = waitingListRepo.create(stationId, "Consent", "", null, 180, null, null, 5, false);
+        var entry = waitingListRepo.createEntry(
+                list.id(),
+                "Anna",
+                "Beispiel",
+                "Mama",
+                "anna@test.com",
+                UUID.randomUUID().toString(),
+                "",
+                TEST_CONSENT);
+        assertNotNull(entry);
+        assertEquals("Anna", entry.firstname());
+    }
+
+    @Test
+    void createEntryWithStatusWithConsentProof() {
+        var list = waitingListRepo.create(stationId, "ConsentStatus", "", null, 180, null, null, 5, true);
+        var entry = waitingListRepo.createEntryWithStatus(
+                list.id(),
+                "Pending",
+                "Person",
+                "",
+                "pending@test.com",
+                UUID.randomUUID().toString(),
+                "",
+                WaitingListEntryStatus.PENDING,
+                TEST_CONSENT);
+        assertEquals(WaitingListEntryStatus.PENDING, entry.status());
+    }
+
+    @Test
+    void verificationTokenRoundTripsConsentProof() {
+        var list = waitingListRepo.create(stationId, "TokenConsent", "", null, 180, null, null, 5, true);
+        String token = UUID.randomUUID().toString();
+        waitingListRepo.createVerificationToken(
+                token, list.id(), "First", "Last", "first@test.com", List.of(), Map.of(), "", TEST_CONSENT);
+        var found = waitingListRepo.findVerificationByToken(token).orElseThrow();
+        assertNotNull(found.consent());
+        assertEquals(TEST_CONSENT.consentVersion(), found.consent().consentVersion());
+        assertEquals(TEST_CONSENT.privacyVersion(), found.consent().privacyVersion());
+        assertEquals(TEST_CONSENT.tosVersion(), found.consent().tosVersion());
+        assertEquals(TEST_CONSENT.ipAddress(), found.consent().ipAddress());
+        assertEquals(TEST_CONSENT.country(), found.consent().country());
+        assertEquals(TEST_CONSENT.userAgent(), found.consent().userAgent());
     }
 }

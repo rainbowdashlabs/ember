@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -432,6 +433,39 @@ class FederationRepositoryTest extends RepositoryTestBase {
         // Partner was created with current version, so backfill should update 0 rows
         int updated = federationRepo.backfillPartnerVersions("new-version");
         assertEquals(0, updated);
+    }
+
+    @Test
+    @Order(60)
+    void findActivePartnerSummaries() {
+        var summaries = federationRepo.findActivePartnerSummaries(stationA.id());
+        assertFalse(summaries.isEmpty());
+        var summary = summaries.stream()
+                .filter(s -> s.uid().equals(stationB.uid()))
+                .findFirst()
+                .orElseThrow();
+        assertNotNull(summary.name());
+        assertNull(summary.distanceKm(), "Stations without coordinates should report null distance");
+    }
+
+    @Test
+    @Order(61)
+    void findPartnerByStationAndRemoteUid() {
+        var found = federationRepo.findPartnerByStationAndRemoteUid(stationA.id(), stationB.uid());
+        assertTrue(found.isPresent());
+        assertEquals(partnerId, found.get().id());
+        assertTrue(federationRepo
+                .findPartnerByStationAndRemoteUid(stationA.id(), UUID.randomUUID())
+                .isEmpty());
+    }
+
+    @Test
+    @Order(62)
+    void updateFederationVersionAndLastSync() {
+        federationRepo.updateFederationVersion(partnerId, "1.2.3");
+        assertEquals(
+                "1.2.3", federationRepo.findPartnerById(partnerId).orElseThrow().federationVersion());
+        federationRepo.updateLastSyncAt(partnerId);
     }
 
     @Test

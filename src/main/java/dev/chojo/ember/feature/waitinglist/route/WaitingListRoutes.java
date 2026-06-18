@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.waitinglist.route;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
@@ -37,6 +38,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.JsonNode;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -54,11 +56,14 @@ public class WaitingListRoutes implements Routes {
 
     private final WaitingListService service;
     private final StationRepository stationRepository;
+    private final ConsentService consentService;
 
     @Inject
-    public WaitingListRoutes(WaitingListService service, StationRepository stationRepository) {
+    public WaitingListRoutes(
+            WaitingListService service, StationRepository stationRepository, ConsentService consentService) {
         this.service = service;
         this.stationRepository = stationRepository;
+        this.consentService = consentService;
     }
 
     private void verifyListOwnership(int listId, UserSession session) {
@@ -177,6 +182,8 @@ public class WaitingListRoutes implements Routes {
         if (request.inviteCode() == null || request.firstname() == null) {
             throw new BadRequestResponse("inviteCode and firstname are required");
         }
+        var consent = consentService.requireAcceptance(
+                ctx, request.consentVersion(), request.privacyVersion(), request.tosVersion());
         var guardians = resolveGuardians(request.guardians(), request.parentName(), request.email());
         try {
             var entry = service.registerViaInvite(
@@ -185,7 +192,8 @@ public class WaitingListRoutes implements Routes {
                     request.lastname() != null ? request.lastname() : "",
                     guardians,
                     request.values() != null ? request.values() : Map.of(),
-                    request.notes());
+                    request.notes(),
+                    consent);
             ctx.status(HttpStatus.CREATED).json(new PublicEntryResponse(entry.accessToken()));
         } catch (IllegalArgumentException e) {
             log.warn("Invalid argument registering via waiting list invite", e);
@@ -209,17 +217,16 @@ public class WaitingListRoutes implements Routes {
         var guardians = service.findGuardiansByEntry(entry.id());
         var list = service.findById(entry.listId()).orElseThrow(NotFoundResponse::new);
         var fields = service.findFieldsByList(entry.listId());
-        int position = service.findEntriesByList(entry.listId()).stream()
-                        .filter(e -> e.status() == WaitingListEntryStatus.WAITING)
-                        .toList()
-                        .indexOf(entry)
-                + 1;
+        int position = service.findWaitingPositionByScore(entry);
         ctx.json(new PublicStatusResponse(
                 entry.firstname(),
                 entry.lastname(),
                 entry.parentName(),
+                entry.email(),
                 entry.status(),
                 entry.confirmedAt().toString(),
+                entry.createdAt().toString(),
+                list.confirmIntervalDays(),
                 position,
                 list.name(),
                 fields,
@@ -610,8 +617,11 @@ public class WaitingListRoutes implements Routes {
             String parentName,
             String email,
             List<GuardianRequest> guardians,
-            Map<Integer, String> values,
-            String notes) {}
+            Map<Integer, JsonNode> values,
+            String notes,
+            String consentVersion,
+            String privacyVersion,
+            String tosVersion) {}
 
     public record PublicEntryResponse(String accessToken) {}
 
@@ -620,8 +630,11 @@ public class WaitingListRoutes implements Routes {
             String firstname,
             String lastname,
             String parentName,
+            String email,
             WaitingListEntryStatus status,
             String confirmedAt,
+            String createdAt,
+            int confirmIntervalDays,
             int position,
             String listName,
             List<WaitingListField> fields,
@@ -659,7 +672,7 @@ public class WaitingListRoutes implements Routes {
             String parentName,
             String email,
             List<GuardianRequest> guardians,
-            Map<Integer, String> values,
+            Map<Integer, JsonNode> values,
             String notes) {}
 
     public record CreatedAtRequest(Instant createdAt) {}
@@ -739,6 +752,8 @@ public class WaitingListRoutes implements Routes {
         if (request.email() == null || request.email().isBlank()) {
             throw new BadRequestResponse("email is required");
         }
+        var consent = consentService.requireAcceptance(
+                ctx, request.consentVersion(), request.privacyVersion(), request.tosVersion());
         var guardianInputs = request.guardians() != null
                 ? request.guardians().stream()
                         .map(g -> new GuardianInput(
@@ -755,7 +770,8 @@ public class WaitingListRoutes implements Routes {
                 request.email(),
                 guardianInputs,
                 request.values() != null ? request.values() : Map.of(),
-                request.notes());
+                request.notes(),
+                consent);
         ctx.status(HttpStatus.ACCEPTED).json(new StatusResponse("verification_email_sent"));
     }
 
@@ -795,6 +811,9 @@ public class WaitingListRoutes implements Routes {
             String lastname,
             String email,
             List<GuardianRequest> guardians,
-            Map<Integer, String> values,
-            String notes) {}
+            Map<Integer, JsonNode> values,
+            String notes,
+            String consentVersion,
+            String privacyVersion,
+            String tosVersion) {}
 }

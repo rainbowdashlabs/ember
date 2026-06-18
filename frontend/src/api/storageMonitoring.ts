@@ -26,6 +26,7 @@ export interface AdminStationUsage {
     quotaBytes: number
     quotaUsedPercent: number
     categories: CategoryUsage[]
+    presetId: number | null
     presetName: string | null
 }
 

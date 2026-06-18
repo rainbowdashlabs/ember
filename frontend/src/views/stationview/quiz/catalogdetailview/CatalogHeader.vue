@@ -8,6 +8,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
@@ -102,7 +103,7 @@ defineExpose({ resetForm })
           {{ t('quiz.catalogs.trainingEnabled') }}
         </FieldLabel>
         <div v-if="catalogDirty" class="flex justify-end">
-          <PrimaryButton @click="saveCatalog">{{ t('common.save') }}</PrimaryButton>
+          <SaveButton :action="saveCatalog"/>
         </div>
       </template>
     </div>

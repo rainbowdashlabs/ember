@@ -11,7 +11,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
@@ -240,8 +240,9 @@ async function save() {
     })
 
     router.push({ name: 'quiz-test-detail', params: { id: id! } })
-  } catch {
+  } catch (e) {
     error.value = t('common.error')
+    throw e
   }
 }
 
@@ -384,7 +385,7 @@ onMounted(loadData)
         <!-- Actions -->
         <div class="flex justify-end gap-3">
           <SecondaryButton @click="router.push({ name: 'quiz-tests' })">{{ t('common.cancel') }}</SecondaryButton>
-          <PrimaryButton @click="save">{{ t('common.save') }}</PrimaryButton>
+          <SaveButton :action="save"/>
         </div>
       </template>
     </div>

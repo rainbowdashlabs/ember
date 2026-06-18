@@ -34,6 +34,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
+import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.events.service.BatchEventService;
 import dev.chojo.ember.feature.events.service.EventExportService;
 import dev.chojo.ember.feature.events.service.EventFederationService;
@@ -130,6 +131,7 @@ public class EventRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/events", this::list, StationPermission.USER);
+        routes.get(prefix + "/events/search", this::searchPicker, StationPermission.PAGE_EDIT);
         routes.get(prefix + "/events/upcoming", this::listUpcoming, StationPermission.USER);
         routes.get(prefix + "/events/today", this::listToday, StationPermission.USER);
         routes.post(prefix + "/events", this::create, StationPermission.EVENT_EDIT);
@@ -301,6 +303,23 @@ public class EventRoutes implements Routes {
         var events =
                 eventService.findFilteredForMembers(session.stationId(), memberIds, categoryId, requiresRegistration);
         ctx.json(events.stream().map(EventSummary::of).toList());
+    }
+
+    private void searchPicker(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        String q = ctx.queryParam("q");
+        String modeParam = ctx.queryParam("mode");
+        var mode = EventRepository.PickerMode.FUTURE;
+        if (modeParam != null) {
+            try {
+                mode = EventRepository.PickerMode.valueOf(modeParam.toUpperCase());
+            } catch (IllegalArgumentException ignored) {
+                // fall back to default
+            }
+        }
+        int requested = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10);
+        int limit = Math.clamp(requested, 1, 20);
+        ctx.json(eventService.searchEventPicker(session.stationId(), q, mode, limit));
     }
 
     @OpenApi(

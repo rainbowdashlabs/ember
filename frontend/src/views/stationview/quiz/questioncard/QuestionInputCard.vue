@@ -26,6 +26,13 @@ const props = defineProps<{
   connectPairs: Record<string, string>
   mcDisplayOrder?: number[]
   connectRightOrder?: number[]
+  /**
+   * When provided, the question image is rendered with a plain {@code <img>} pointing at this
+   * URL instead of going through the authenticated {@link AuthImage} loader. Used by public
+   * surfaces (e.g. the {@code QUIZ_TEASER} page cell) that already receive an absolute public
+   * image URL from the server.
+   */
+  directImageSrc?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -233,7 +240,15 @@ function getLinePoints(): { x1: number; y1: number; x2: number; y2: number; left
   return lines
 }
 
-const connectLines = ref<{ x1: number; y1: number; x2: number; y2: number; leftIdx: number }[]>([])
+interface ConnectLine {
+  x1: number
+  y1: number
+  x2: number
+  y2: number
+  leftIdx: number
+}
+
+const connectLines = ref<ConnectLine[]>([])
 
 function updateConnectLines() {
   requestAnimationFrame(() => {
@@ -253,7 +268,8 @@ onMounted(() => nextTick(updateConnectLines))
     <div class="space-y-1">
       <p class="font-semibold">{{ question.title }}</p>
       <p v-if="question.description" class="text-sm text-(--text-muted)">{{ question.description }}</p>
-      <AuthImage v-if="questionImageSrc" :src="questionImageSrc" class="max-h-48 rounded-lg object-contain" alt="" />
+      <img v-if="directImageSrc" :src="directImageSrc" class="max-h-48 rounded-lg object-contain" alt=""/>
+      <AuthImage v-else-if="questionImageSrc" :src="questionImageSrc" class="max-h-48 rounded-lg object-contain" alt="" />
     </div>
 
     <!-- Multiple Choice -->

@@ -105,7 +105,7 @@ public class QuizPdfService {
         if (showAnswers) sb.append(" — Lösungen");
         sb.append("],\n");
         sb.append("  footer: context align(center)[#counter(page).display()])\n");
-        sb.append("#set text(font: \"Noto Sans\", size: 11pt)\n");
+        sb.append("#set text(font: \"Liberation Sans\", size: 11pt)\n");
         sb.append("#set par(justify: true)\n\n");
 
         // Title

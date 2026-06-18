@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.system.service;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
+import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.repository.FormRepository;
@@ -59,7 +60,8 @@ public class DemoFormSeeder {
                 true,
                 null,
                 null,
-                admin.id());
+                admin.id(),
+                FormPurpose.INTERNAL);
         formRepository.updateStatus(survey.id(), Form.FormStatus.OPEN);
         formRepository.createQuestion(
                 survey.id(),
@@ -179,7 +181,8 @@ public class DemoFormSeeder {
                 true,
                 null,
                 null,
-                admin.id());
+                admin.id(),
+                FormPurpose.INTERNAL);
         formRepository.updateStatus(feedback.id(), Form.FormStatus.OPEN);
         formRepository.createQuestion(
                 feedback.id(),
@@ -287,7 +290,8 @@ public class DemoFormSeeder {
                 true,
                 null,
                 null,
-                admin.id());
+                admin.id(),
+                FormPurpose.INTERNAL);
         formRepository.updateStatus(memberOnly.id(), Form.FormStatus.OPEN);
         formRepository.createQuestion(
                 memberOnly.id(),
@@ -336,7 +340,8 @@ public class DemoFormSeeder {
                 true,
                 null,
                 null,
-                admin.id());
+                admin.id(),
+                FormPurpose.INTERNAL);
         formRepository.updateStatus(bothRoles.id(), Form.FormStatus.OPEN);
         formRepository.createQuestion(
                 bothRoles.id(),
@@ -376,7 +381,8 @@ public class DemoFormSeeder {
                 true,
                 null,
                 null,
-                admin.id());
+                admin.id(),
+                FormPurpose.INTERNAL);
         formRepository.updateStatus(wettkampfForm.id(), Form.FormStatus.OPEN);
         formRepository.createQuestion(
                 wettkampfForm.id(),
@@ -420,7 +426,8 @@ public class DemoFormSeeder {
                 true,
                 null,
                 null,
-                admin.id());
+                admin.id(),
+                FormPurpose.INTERNAL);
         formRepository.updateStatus(anfaengerForm.id(), Form.FormStatus.OPEN);
         formRepository.createQuestion(
                 anfaengerForm.id(),
@@ -460,7 +467,8 @@ public class DemoFormSeeder {
                 true,
                 null,
                 null,
-                admin.id());
+                admin.id(),
+                FormPurpose.INTERNAL);
         formRepository.updateStatus(showcase.id(), Form.FormStatus.OPEN);
 
         // 1. CHOICE — single select

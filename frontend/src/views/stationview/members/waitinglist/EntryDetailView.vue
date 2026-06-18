@@ -8,7 +8,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
@@ -45,8 +45,6 @@ const entry = ref<WaitingListEntryWithScore | null>(null)
 const fields = ref<WaitingListField[]>([])
 const loading = ref(true)
 const error = ref('')
-const success = ref('')
-const saving = ref(false)
 
 // Edit form
 const editFirstname = ref('')
@@ -83,7 +81,7 @@ async function loadData() {
 
     const valMap = new Map<number, string>()
     for (const v of found.values) {
-      valMap.set(v.fieldId, v.value ?? '')
+      valMap.set(v.fieldId, v.value == null ? '' : String(v.value))
     }
     editValues.value = valMap
   } catch {
@@ -139,10 +137,9 @@ const canSave = computed(() =>
 
 async function save() {
   if (!canSave.value) return
-  saving.value = true
   error.value = ''
   try {
-    const values: Record<number, string> = {}
+    const values: Record<number, unknown> = {}
     for (const [fieldId, value] of editValues.value) {
       values[fieldId] = value
     }
@@ -153,12 +150,9 @@ async function save() {
       notes: editNotes.value.trim(),
       values,
     })
-    success.value = t('waitingList.entrySaved')
-    setTimeout(() => { success.value = '' }, 3000)
-  } catch {
+  } catch (e) {
     error.value = t('common.error')
-  } finally {
-    saving.value = false
+    throw e
   }
 }
 
@@ -218,7 +212,6 @@ onMounted(loadData)
 
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
-      <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <template v-if="!loading && entry">
         <div class="flex items-center gap-2">
@@ -226,7 +219,7 @@ onMounted(loadData)
           <component :is="statusBadgeComponent(entry.entry.status)">{{ t('waitingList.status_' + entry.entry.status) }}</component>
         </div>
 
-        <div class="text-sm text-(--text-muted) flex flex-wrap gap-4">
+        <div class="text-sm text-(--text-muted) flex flex-wrap items-center gap-x-4 gap-y-2">
           <span>{{ t('waitingList.score') }}: <span class="font-mono font-medium">{{ entry.score }}</span></span>
           <span>{{ t('waitingList.confirmedAt') }}: {{ formatDateTime(entry.entry.confirmedAt) }}</span>
           <span class="inline-flex items-center gap-1">
@@ -330,9 +323,7 @@ onMounted(loadData)
         </NeutralContainer>
 
         <div class="flex justify-end">
-          <PrimaryButton :disabled="saving || !canSave" @click="save">
-            {{ saving ? t('common.loading') : t('common.save') }}
-          </PrimaryButton>
+          <SaveButton :disabled="!canSave" :action="save"/>
         </div>
       </template>
     </div>

@@ -6,20 +6,23 @@
 package dev.chojo.ember.feature.form.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.form.entity.Form;
-import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
+import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
+import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler;
+import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormAnalyticsDto;
+import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormResponseEntryDto;
+import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.ResponseDetailDto;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -48,8 +51,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -64,6 +69,7 @@ public class FormRoutes implements Routes {
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
     private final MemberIdentityFactory memberIdentityFactory;
+    private final FormAnalyticsAssembler analyticsAssembler;
 
     @Inject
     public FormRoutes(
@@ -71,12 +77,14 @@ public class FormRoutes implements Routes {
             StationMemberService stationMemberService,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
-            MemberIdentityFactory memberIdentityFactory) {
+            MemberIdentityFactory memberIdentityFactory,
+            FormAnalyticsAssembler analyticsAssembler) {
         this.formService = formService;
         this.stationMemberService = stationMemberService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.memberIdentityFactory = memberIdentityFactory;
+        this.analyticsAssembler = analyticsAssembler;
     }
 
     /**
@@ -88,6 +96,7 @@ public class FormRoutes implements Routes {
         routes.get(prefix + "/forms", this::list, StationPermission.POLL_VIEW_RESULTS);
         routes.post(prefix + "/forms", this::create, StationPermission.POLL_CREATE);
         routes.get(prefix + "/forms/available", this::listAvailable, StationPermission.USER);
+        routes.get(prefix + "/forms/search", this::search, StationPermission.PAGE_EDIT);
         routes.get(prefix + "/forms/{id}", this::get, StationPermission.USER);
         routes.put(prefix + "/forms/{id}", this::update, StationPermission.POLL_CREATE);
         routes.delete(prefix + "/forms/{id}", this::delete, StationPermission.POLL_CREATE);
@@ -130,7 +139,77 @@ public class FormRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Form[].class)))
     private void list(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(formService.findByStation(session.stationId()));
+        var purposeParam = ctx.queryParam("purpose");
+        if (purposeParam == null || purposeParam.isBlank()) {
+            ctx.json(formService.findByStation(session.stationId()));
+            return;
+        }
+        FormPurpose purpose;
+        try {
+            purpose = FormPurpose.valueOf(purposeParam);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse("Unknown form purpose: " + purposeParam);
+        }
+        ctx.json(formService.findByStationAndPurpose(session.stationId(), purpose));
+    }
+
+    @OpenApi(
+            path = "/api/v1/forms/search",
+            methods = HttpMethod.GET,
+            summary = "Search forms by title for the page-editor picker",
+            description = "Returns a lightweight result shape (publicUid, title, purpose, status)"
+                    + " scoped to the caller's station. Backs the POLL_EMBED and FORMS_CTA cell"
+                    + " pickers. The purpose query parameter is required; empty q returns the"
+                    + " most recent forms of the requested purpose.",
+            tags = {"Forms"},
+            queryParams = {
+                @OpenApiParam(name = "purpose", type = String.class, required = true),
+                @OpenApiParam(name = "q", type = String.class),
+                @OpenApiParam(name = "limit", type = Integer.class)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormSearchResult[].class)))
+    private void search(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        String purposeParam = ctx.queryParam("purpose");
+        if (purposeParam == null || purposeParam.isBlank()) {
+            throw new BadRequestResponse("purpose query parameter is required");
+        }
+        FormPurpose purpose;
+        try {
+            purpose = FormPurpose.valueOf(purposeParam);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse("Unknown form purpose: " + purposeParam);
+        }
+        String uidParam = ctx.queryParam("uid");
+        if (uidParam != null && !uidParam.isBlank()) {
+            UUID lookup;
+            try {
+                lookup = UUID.fromString(uidParam);
+            } catch (IllegalArgumentException e) {
+                ctx.json(List.of());
+                return;
+            }
+            var result = formService
+                    .findByPublicUid(lookup)
+                    .filter(f -> f.stationId() == session.stationId())
+                    .filter(f -> f.purpose() == purpose)
+                    .map(f -> List.of(new FormSearchResult(f.publicUid(), f.title(), f.purpose(), f.status())))
+                    .orElseGet(List::of);
+            ctx.json(result);
+            return;
+        }
+        String q = ctx.queryParam("q");
+        String needle = q == null ? "" : q.trim().toLowerCase(Locale.ROOT);
+        int requested = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10);
+        int limit = Math.clamp(requested, 1, 20);
+
+        var results = formService.findByStationAndPurpose(session.stationId(), purpose).stream()
+                .filter(f ->
+                        needle.isEmpty() || f.title().toLowerCase(Locale.ROOT).contains(needle))
+                .limit(limit)
+                .map(f -> new FormSearchResult(f.publicUid(), f.title(), f.purpose(), f.status()))
+                .toList();
+        ctx.json(results);
     }
 
     @OpenApi(
@@ -213,7 +292,8 @@ public class FormRoutes implements Routes {
                 req.allowEdit() == null || req.allowEdit(),
                 req.startAt(),
                 req.endAt(),
-                session.member().id());
+                session.member().id(),
+                req.purpose() != null ? req.purpose() : FormPurpose.INTERNAL);
         ctx.status(HttpStatus.CREATED).json(form);
     }
 
@@ -370,6 +450,15 @@ public class FormRoutes implements Routes {
             throw new ForbiddenResponse("Cannot access resources from another station");
         }
         var questions = ctx.bodyAsClass(QuestionRequest[].class);
+        var disallowed = Arrays.stream(questions)
+                .map(QuestionRequest::questionType)
+                .filter(t -> !t.allowedFor(form.purpose()))
+                .distinct()
+                .toList();
+        if (!disallowed.isEmpty()) {
+            throw new BadRequestResponse(
+                    "Question type(s) %s are not allowed for form purpose %s".formatted(disallowed, form.purpose()));
+        }
         formService.replaceQuestions(
                 id,
                 Arrays.stream(questions)
@@ -441,18 +530,17 @@ public class FormRoutes implements Routes {
             summary = "Get my response to a form",
             tags = {"Forms"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ResponseDetail.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ResponseDetailDto.class)))
     private void getMyResponse(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         UserSession session = UserSession.from(ctx);
         if (session.member() == null) throw new BadRequestResponse("Not a station member");
         var response = formService.findResponse(id, session.member().id());
         if (response.isEmpty()) {
-            ctx.json(new ResponseDetail(null, List.of()));
+            ctx.json(new ResponseDetailDto(null, List.of()));
             return;
         }
-        var answers = formService.findAnswers(response.get().id());
-        ctx.json(new ResponseDetail(toResponseEntry(response.get()), answers));
+        ctx.json(analyticsAssembler.getResponseDetail(id, response.get().id()));
     }
 
     @OpenApi(
@@ -631,70 +719,23 @@ public class FormRoutes implements Routes {
             summary = "Get form analytics",
             tags = {"Forms"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormAnalytics.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormAnalyticsDto.class)))
     private void getAnalytics(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var questions = formService.findQuestions(id);
-        var questionAnalytics = questions.stream()
-                .map(q -> {
-                    var answers = formService.findAllAnswersForQuestion(q.id());
-                    var values = answers.stream().map(FormAnswer::value).toList();
-                    return new QuestionAnalytics(q.id(), q.formQuestionType(), q.title(), q.config(), values);
-                })
-                .toList();
-        ctx.json(new FormAnalytics(id, formService.countResponses(id), questionAnalytics));
+        ctx.json(analyticsAssembler.buildAnalytics(id));
     }
 
-    /**
-     * Resolves a member ID to their full name by looking up the station member and account.
-     *
-     * @param memberId the member ID
-     * @return the member's full name, or {@code null} if the member or account cannot be found
-     */
     @OpenApi(
             path = "/api/v1/forms/{id}/responses",
             methods = HttpMethod.GET,
             summary = "List all responses for a form",
             tags = {"Forms"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponse[].class)))
-    private String resolveMemberName(int memberId) {
-        return stationMemberRepository
-                .findById(memberId)
-                .flatMap(m -> accountRepository.findById(m.accountId()))
-                .map(a -> (a.firstName() + " " + a.lastName()).trim())
-                .orElse(null);
-    }
-
-    /**
-     * Converts a {@link FormResponse} to a {@link FormResponseEntry}, resolving the submitter name
-     * when the response was submitted by a different member (e.g., a guardian).
-     *
-     * @param r the form response
-     * @return the enriched response entry
-     */
-    private FormResponseEntry toResponseEntry(FormResponse r) {
-        String submittedByName = r.submittedBy() != r.memberId() ? resolveMemberName(r.submittedBy()) : null;
-        MemberIdentity memberIdentity = stationMemberRepository
-                .findById(r.memberId())
-                .map(m -> memberIdentityFactory.local(m.stationId(), r.memberId()))
-                .orElse(null);
-        return new FormResponseEntry(
-                r.id(),
-                r.formId(),
-                r.memberId(),
-                r.submittedBy(),
-                submittedByName,
-                memberIdentity,
-                r.submittedAt(),
-                r.updatedAt());
-    }
-
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponseEntryDto[].class)))
     private void listResponses(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        ctx.json(formService.findResponses(id).stream()
-                .map(this::toResponseEntry)
-                .toList());
+        ctx.json(analyticsAssembler.listResponses(id));
     }
 
     @OpenApi(
@@ -706,16 +747,11 @@ public class FormRoutes implements Routes {
                 @OpenApiParam(name = "id", type = Integer.class, required = true),
                 @OpenApiParam(name = "responseId", type = Integer.class, required = true)
             },
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ResponseDetail.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ResponseDetailDto.class)))
     private void getResponseDetail(Context ctx) {
+        int formId = ctx.pathParamAsClass("id", Integer.class).get();
         int responseId = ctx.pathParamAsClass("responseId", Integer.class).get();
-        var answers = formService.findAnswers(responseId);
-        // Find the response object from the list
-        var responses = formService.findResponses(
-                ctx.pathParamAsClass("id", Integer.class).get());
-        var response =
-                responses.stream().filter(r -> r.id() == responseId).findFirst().orElseThrow(NotFoundResponse::new);
-        ctx.json(new ResponseDetail(toResponseEntry(response), answers));
+        ctx.json(analyticsAssembler.getResponseDetail(formId, responseId));
     }
 
     // -- Records --
@@ -736,7 +772,8 @@ public class FormRoutes implements Routes {
             Boolean shuffleQuestions,
             Boolean allowEdit,
             Instant startAt,
-            Instant endAt) {}
+            Instant endAt,
+            FormPurpose purpose) {}
 
     /**
      * Request body for creating a form question.
@@ -779,47 +816,11 @@ public class FormRoutes implements Routes {
     public record SubmitRequest(Map<Integer, FormAnswerValue> answers) {}
 
     /**
-     * Enriched form response entry with optional submitter name resolution.
-     *
-     * @param id              unique response identifier
-     * @param formId          the form this response belongs to
-     * @param memberId        the member this response is for
-     * @param submittedBy     the member who submitted the response
-     * @param submittedByName resolved name of the submitter, or {@code null} if submitted by the member themselves
-     * @param submittedAt     timestamp of submission
-     * @param updatedAt       timestamp of last update
+     * Lightweight picker result shape for {@code GET /api/v1/forms/search}. Used by the
+     * POLL_EMBED and FORMS_CTA cell pickers in the page editor.
      */
-    public record FormResponseEntry(
-            int id,
-            int formId,
-            int memberId,
-            int submittedBy,
-            String submittedByName,
-            MemberIdentity memberIdentity,
-            Instant submittedAt,
-            Instant updatedAt) {}
+    public record FormSearchResult(UUID publicUid, String title, FormPurpose purpose, Form.FormStatus status) {}
 
-    /**
-     * Detailed view of a form response including all individual answers.
-     *
-     * @param response the response metadata, or {@code null} if the member has not responded
-     * @param answers  list of answers within the response
-     */
-    public record ResponseDetail(FormResponseEntry response, List<FormAnswer> answers) {}
-
-    /**
-     * Summary entry for listing available forms, including response statistics for the current user.
-     *
-     * @param id            unique form identifier
-     * @param stationId     the station this form belongs to
-     * @param title         form title
-     * @param description   form description
-     * @param status        form status name
-     * @param startAt       optional start time
-     * @param endAt         optional end time
-     * @param responseCount total number of responses submitted
-     * @param hasResponded  whether the current user has already responded
-     */
     public record FormListEntry(
             int id,
             int stationId,
@@ -830,31 +831,6 @@ public class FormRoutes implements Routes {
             Instant endAt,
             int responseCount,
             boolean hasResponded) {}
-
-    /**
-     * Aggregated analytics for a form, including per-question answer data.
-     *
-     * @param formId         the form ID
-     * @param totalResponses total number of responses
-     * @param questions      analytics for each question
-     */
-    public record FormAnalytics(int formId, int totalResponses, List<QuestionAnalytics> questions) {}
-
-    /**
-     * Analytics data for a single question, containing all submitted answer values.
-     *
-     * @param questionId   the question ID
-     * @param questionType the question type name
-     * @param title        the question text
-     * @param config       type-specific configuration as JSON
-     * @param values       all answer values submitted for this question
-     */
-    public record QuestionAnalytics(
-            int questionId,
-            FormQuestionType questionType,
-            String title,
-            FormQuestionConfig config,
-            List<String> values) {}
 
     /**
      * Response indicating which members (self and managed) are eligible to respond to a form.

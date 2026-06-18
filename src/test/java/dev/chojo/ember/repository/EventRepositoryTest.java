@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -1077,6 +1078,38 @@ class EventRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(133)
+    void findEventsWithReminders() {
+        var event = eventRepo.create(
+                station.id(),
+                "ReminderListEvent",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.parse("2028-09-15T09:00:00Z"),
+                Instant.parse("2028-09-15T12:00:00Z"),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        try {
+            eventRepo.replaceReminders(event.id(), List.of(1, 3));
+            var result = eventRepo.findEventsWithReminders();
+            assertEquals(
+                    1,
+                    result.stream().filter(e -> e.id() == event.id()).count(),
+                    "EXISTS-based query should not duplicate the event row");
+        } finally {
+            eventRepo.delete(event.id());
+        }
+    }
+
+    @Test
+    @Order(134)
     void findReminderDaysEmpty() {
         assertTrue(eventRepo.findReminderDays(99999).isEmpty());
     }
@@ -1286,6 +1319,102 @@ class EventRepositoryTest extends RepositoryTestBase {
     void findMaxRegistrationCreatedAtIsEpochForEmptyMembers() {
         assertEquals(Instant.EPOCH, eventRepo.findMaxRegistrationCreatedAt(List.of()));
         assertEquals(Instant.EPOCH, eventRepo.findMaxRegistrationCreatedAt(List.of(99999)));
+    }
+
+    @Test
+    @Order(159)
+    void findPublicUidsByIdsAndFindByPublicUid() {
+        assertTrue(eventRepo.findPublicUidsByIds(station.id(), List.of()).isEmpty());
+        var event = eventRepo.create(
+                station.id(),
+                "PublicUidEvent",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.parse("2028-07-15T09:00:00Z"),
+                Instant.parse("2028-07-15T12:00:00Z"),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        try {
+            var map = eventRepo.findPublicUidsByIds(station.id(), List.of(event.id()));
+            assertTrue(map.containsKey(event.id()));
+            var uid = map.get(event.id());
+            assertNotNull(uid);
+            var byUid = eventRepo.findByPublicUid(station.id(), uid);
+            assertTrue(byUid.isPresent());
+            assertEquals(event.id(), byUid.orElseThrow().id());
+            assertTrue(eventRepo
+                    .findByPublicUid(station.id(), java.util.UUID.randomUUID())
+                    .isEmpty());
+        } finally {
+            eventRepo.delete(event.id());
+        }
+    }
+
+    @Test
+    @Order(160)
+    void searchForPicker() {
+        var cat = eventRepo.createCategory(station.id(), "PickerCat", 0, null);
+        eventRepo.updateCategory(cat.id(), "PickerCat", 0, null, true, null);
+        var future = eventRepo.create(
+                station.id(),
+                "Future-Picker-Event",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now().plus(30, ChronoUnit.DAYS),
+                Instant.now().plus(30, ChronoUnit.DAYS).plusSeconds(3600),
+                null,
+                false,
+                null,
+                false,
+                cat.id(),
+                null,
+                null,
+                null,
+                null);
+        var past = eventRepo.create(
+                station.id(),
+                "Past-Picker-Event",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now().minus(60, ChronoUnit.DAYS),
+                Instant.now().minus(60, ChronoUnit.DAYS).plusSeconds(3600),
+                null,
+                false,
+                null,
+                false,
+                cat.id(),
+                null,
+                null,
+                null,
+                null);
+        try {
+            var futureMatches =
+                    eventRepo.searchForPicker(station.id(), "Future", EventRepository.PickerMode.FUTURE, 20);
+            assertTrue(futureMatches.stream().anyMatch(e -> "Future-Picker-Event".equals(e.name())));
+            assertNotNull(futureMatches.getFirst().eventUid());
+            assertNotNull(futureMatches.getFirst().startTime());
+
+            var pastMatches = eventRepo.searchForPicker(station.id(), null, EventRepository.PickerMode.PAST, 20);
+            assertTrue(pastMatches.stream().anyMatch(e -> "Past-Picker-Event".equals(e.name())));
+
+            var all = eventRepo.searchForPicker(station.id(), "  ", EventRepository.PickerMode.ALL, 20);
+            assertTrue(all.stream().anyMatch(e -> "Future-Picker-Event".equals(e.name())));
+            assertTrue(all.stream().anyMatch(e -> "Past-Picker-Event".equals(e.name())));
+        } finally {
+            eventRepo.delete(future.id());
+            eventRepo.delete(past.id());
+            eventRepo.deleteCategory(cat.id());
+        }
     }
 
     @Test

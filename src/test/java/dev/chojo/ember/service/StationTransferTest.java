@@ -10,6 +10,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -38,6 +39,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -265,31 +267,15 @@ class StationTransferTest extends RepositoryTestBase {
         inventoryRepo.createSize(invHelme.id(), "S", 0, "");
         inventoryRepo.createSize(invHelme.id(), "M", 1, "");
         inventoryRepo.createSize(invHelme.id(), "L", 2, "");
-        inventoryRepo.createItem(
-                invHelme.id(), "H-001", "Helm 1", null, (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata)
-                        null);
-        inventoryRepo.createItem(
-                invHelme.id(), "H-002", "Helm 2", null, (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata)
-                        null);
-        inventoryRepo.createItem(
-                invHelme.id(), "H-003", "Helm 3", null, (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata)
-                        null);
+        inventoryRepo.createItem(invHelme.id(), "H-001", "Helm 1", null, null);
+        inventoryRepo.createItem(invHelme.id(), "H-002", "Helm 2", null, null);
+        inventoryRepo.createItem(invHelme.id(), "H-003", "Helm 3", null, null);
 
         var invStiefel = inventoryRepo.create(sourceStationId, "Stiefel", InventoryType.INTERNAL, true);
         inventoryRepo.createSize(invStiefel.id(), "38", 0, "");
         inventoryRepo.createSize(invStiefel.id(), "42", 1, "");
-        inventoryRepo.createItem(
-                invStiefel.id(),
-                "S-001",
-                "Stiefel 1",
-                null,
-                (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null);
-        inventoryRepo.createItem(
-                invStiefel.id(),
-                "S-002",
-                "Stiefel 2",
-                null,
-                (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null);
+        inventoryRepo.createItem(invStiefel.id(), "S-001", "Stiefel 1", null, null);
+        inventoryRepo.createItem(invStiefel.id(), "S-002", "Stiefel 2", null, null);
 
         // --- Forms ---
         var form = formRepo.create(
@@ -300,7 +286,8 @@ class StationTransferTest extends RepositoryTestBase {
                 true,
                 null,
                 null,
-                manager.id());
+                manager.id(),
+                FormPurpose.INTERNAL);
         formRepo.createQuestion(
                 form.id(),
                 0,
@@ -559,8 +546,8 @@ class StationTransferTest extends RepositoryTestBase {
         var bundle = new ArrayList<>(exportService.getTableOrder())
                 .stream()
                         .map(t -> Map.entry(t, exportService.exportTable(freshSourceStation.id(), t, 0, 10_000)))
-                        .collect(java.util.stream.Collectors.toMap(
-                                java.util.Map.Entry::getKey, e -> e.getValue().get(e.getKey())));
+                        .collect(Collectors.toMap(
+                                Map.Entry::getKey, e -> e.getValue().get(e.getKey())));
 
         // Remove source-side artefacts so the import has to recreate everything on the target
         stationRepo.delete(freshSourceStation.id());

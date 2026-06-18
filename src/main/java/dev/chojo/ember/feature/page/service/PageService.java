@@ -5,12 +5,19 @@
  */
 package dev.chojo.ember.feature.page.service;
 
+import dev.chojo.ember.feature.media.service.ImageService;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.page.entity.CellConfig;
 import dev.chojo.ember.feature.page.entity.CellContentType;
 import dev.chojo.ember.feature.page.entity.PageCell;
-import dev.chojo.ember.feature.page.entity.PageImage;
+import dev.chojo.ember.feature.page.entity.PageFile;
+import dev.chojo.ember.feature.page.entity.PageFileFolder;
+import dev.chojo.ember.feature.page.entity.PageFileTag;
 import dev.chojo.ember.feature.page.entity.StationPage;
+import dev.chojo.ember.feature.page.repository.PageFileMetaRepository;
 import dev.chojo.ember.feature.page.repository.PageRepository;
+import dev.chojo.ember.feature.storage.entity.StorageCategory;
+import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.commonmark.Extension;
@@ -22,6 +29,7 @@ import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.JsonNode;
 
 import java.io.IOException;
 import java.text.Normalizer;
@@ -29,6 +37,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -36,17 +45,30 @@ import java.util.Set;
 public class PageService {
     private static final Logger log = LoggerFactory.getLogger(PageService.class);
     private static final int MAX_DEPTH = 3;
-    private static final long MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
 
     private final PageRepository pageRepository;
-    private final PageImageStorageService imageStorage;
+    private final PageFileMetaRepository metaRepository;
+    private final PageFileStorageService imageStorage;
+    private final StorageQuotaService quotaService;
+    private final StationMemberRepository stationMemberRepository;
+    private final ImageService imageService;
     private final Parser markdownParser;
     private final HtmlRenderer htmlRenderer;
 
     @Inject
-    public PageService(PageRepository pageRepository, PageImageStorageService imageStorage) {
+    public PageService(
+            PageRepository pageRepository,
+            PageFileMetaRepository metaRepository,
+            PageFileStorageService imageStorage,
+            StorageQuotaService quotaService,
+            StationMemberRepository stationMemberRepository,
+            ImageService imageService) {
         this.pageRepository = pageRepository;
+        this.metaRepository = metaRepository;
         this.imageStorage = imageStorage;
+        this.quotaService = quotaService;
+        this.stationMemberRepository = stationMemberRepository;
+        this.imageService = imageService;
         List<Extension> extensions = List.of(
                 TablesExtension.create(),
                 HeadingAnchorExtension.create(),
@@ -76,6 +98,15 @@ public class PageService {
 
     public List<StationPage> listPages(int stationId) {
         return pageRepository.findByStation(stationId);
+    }
+
+    /**
+     * Page picker for the {@code PAGE_LINK} cell — see concept §4.5. Returns a compact
+     * {@code PickerPage} shape (public UUID + title + slug + updatedAt) for published pages of the
+     * supplied station, with optional case-insensitive title-substring filter.
+     */
+    public List<PageRepository.PickerPage> searchPagePicker(int stationId, String search, int limit) {
+        return pageRepository.searchForPicker(stationId, search, limit);
     }
 
     public List<StationPage> listPublishedPages(int stationId) {
@@ -152,9 +183,6 @@ public class PageService {
             }
         }
 
-        // Clean up orphaned images
-        cleanupOrphanedImages(pageId);
-
         return true;
     }
 
@@ -173,7 +201,6 @@ public class PageService {
     public boolean deletePage(int pageId) {
         var page = pageRepository.findById(pageId).orElse(null);
         if (page == null) return false;
-        imageStorage.deleteAllForPage(pageId);
         return pageRepository.delete(pageId);
     }
 
@@ -236,26 +263,154 @@ public class PageService {
 
     // --- Images ---
 
-    public PageImage uploadImage(int pageId, String fileName, String mimeType, byte[] data) throws IOException {
-        if (data.length > MAX_IMAGE_SIZE) {
-            throw new IllegalArgumentException("Image exceeds maximum size of 5 MB");
+    public PageFile uploadPageFile(int pageId, String fileName, String mimeType, byte[] data) throws IOException {
+        var page = pageRepository
+                .findById(pageId)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown page id: " + pageId));
+        return uploadFile(page.stationId(), pageId, fileName, mimeType, data);
+    }
+
+    /** Uploads a file scoped to the station (no owning page). Used by the station-wide browser. */
+    public PageFile uploadStationFile(int stationId, String fileName, String mimeType, byte[] data) throws IOException {
+        return uploadFile(stationId, null, fileName, mimeType, data);
+    }
+
+    private PageFile uploadFile(int stationId, Integer pageId, String fileName, String mimeType, byte[] data)
+            throws IOException {
+        boolean isImage = mimeType != null && mimeType.startsWith("image/");
+        if (isImage) {
+            quotaService.checkImageSize(stationId, data.length);
+        } else {
+            quotaService.checkFileSize(stationId, data.length);
         }
-        var image = pageRepository.createImage(pageId, fileName, mimeType, data.length);
-        imageStorage.store(pageId, image.id(), data, mimeType);
+        String contentHash = PageFileStorageService.hash(data);
+        // Per-station dedup: if the same bytes were already uploaded for this station, reuse the
+        // existing row + on-disk file instead of creating a duplicate. Cells just reference the
+        // existing image id.
+        var existing = pageRepository.findByStationAndHash(stationId, contentHash);
+        if (existing.isPresent()) {
+            // Make sure the file is still on disk (defensive: a crashed migration could have left
+            // the row orphaned). store() is idempotent for identical bytes.
+            imageStorage.store(stationId, contentHash, data, mimeType);
+            return existing.get();
+        }
+        quotaService.checkQuota(stationId, StorageCategory.PAGE_IMAGES, data.length);
+        var image = pageRepository.createFile(pageId, stationId, contentHash, fileName, mimeType, data.length);
+        imageStorage.store(stationId, contentHash, data, mimeType);
+        quotaService.trackDelta(stationId, StorageCategory.PAGE_IMAGES, data.length, 1);
         return image;
     }
 
-    public boolean deleteImage(int imageId) {
-        var image = pageRepository.findImage(imageId).orElse(null);
+    public boolean deleteFile(int fileId) {
+        var image = pageRepository.findFile(fileId).orElse(null);
         if (image == null) return false;
-        imageStorage.delete(image.pageId(), image.id());
-        return pageRepository.deleteImage(imageId);
+        boolean deleted = pageRepository.deleteFile(fileId);
+        if (deleted) {
+            if (image.contentHash() != null) {
+                imageStorage.delete(image.stationId(), image.contentHash());
+            }
+            quotaService.onFileDeleted(image.stationId(), StorageCategory.PAGE_IMAGES, image.fileSize());
+        }
+        return deleted;
     }
 
-    public Optional<PageImageStorageService.FileData> readImage(int imageId) {
-        var image = pageRepository.findImage(imageId).orElse(null);
-        if (image == null) return Optional.empty();
-        return imageStorage.read(image.pageId(), image.id());
+    public List<PageFile> listFilesByStation(int stationId) {
+        return pageRepository.findFilesByStation(stationId);
+    }
+
+    /** Lists files in the station with usage + tag-ids. */
+    public List<FileListing> listFilesWithUsage(int stationId) {
+        var files = pageRepository.findFilesByStation(stationId);
+        Set<Integer> unused = findUnusedFileIds(stationId);
+        var tagAssignments = metaRepository.findTagAssignments(
+                files.stream().map(PageFile::id).toList());
+        return files.stream()
+                .map(f -> new FileListing(f, !unused.contains(f.id()), tagAssignments.getOrDefault(f.id(), Set.of())))
+                .toList();
+    }
+
+    // --- Folder + tag delegations ---
+
+    public PageFileFolder createFolder(int stationId, Integer parentId, String name, int sortOrder) {
+        return metaRepository.createFolder(stationId, parentId, name, sortOrder);
+    }
+
+    public List<PageFileFolder> listFolders(int stationId) {
+        return metaRepository.findFoldersByStation(stationId);
+    }
+
+    public boolean updateFolder(int stationId, int folderId, Integer parentId, String name, int sortOrder) {
+        var folder = metaRepository.findFolder(folderId).orElse(null);
+        if (folder == null || folder.stationId() != stationId) return false;
+        return metaRepository.updateFolder(folderId, parentId, name, sortOrder);
+    }
+
+    public boolean deleteFolder(int stationId, int folderId) {
+        var folder = metaRepository.findFolder(folderId).orElse(null);
+        if (folder == null || folder.stationId() != stationId) return false;
+        return metaRepository.deleteFolder(folderId);
+    }
+
+    public PageFileTag createTag(int stationId, String name, String color) {
+        return metaRepository.createTag(stationId, name, color);
+    }
+
+    public List<PageFileTag> listTags(int stationId) {
+        return metaRepository.findTagsByStation(stationId);
+    }
+
+    public boolean updateTag(int stationId, int tagId, String name, String color) {
+        var tag = metaRepository.findTag(tagId).orElse(null);
+        if (tag == null || tag.stationId() != stationId) return false;
+        return metaRepository.updateTag(tagId, name, color);
+    }
+
+    public boolean deleteTag(int stationId, int tagId) {
+        var tag = metaRepository.findTag(tagId).orElse(null);
+        if (tag == null || tag.stationId() != stationId) return false;
+        return metaRepository.deleteTag(tagId);
+    }
+
+    public boolean assignTag(int stationId, int fileId, int tagId) {
+        var file = pageRepository.findFile(fileId).orElse(null);
+        var tag = metaRepository.findTag(tagId).orElse(null);
+        if (file == null || file.stationId() != stationId || tag == null || tag.stationId() != stationId) return false;
+        metaRepository.assignTag(fileId, tagId);
+        return true;
+    }
+
+    public boolean unassignTag(int stationId, int fileId, int tagId) {
+        var file = pageRepository.findFile(fileId).orElse(null);
+        if (file == null || file.stationId() != stationId) return false;
+        return metaRepository.unassignTag(fileId, tagId);
+    }
+
+    public boolean updateFileMeta(int stationId, int fileId, String altText, String description) {
+        var existing = pageRepository.findFile(fileId).orElse(null);
+        if (existing == null || existing.stationId() != stationId) return false;
+        return pageRepository.updateFileMeta(fileId, altText, description);
+    }
+
+    public record FileListing(PageFile file, boolean inUse, Set<Integer> tagIds) {}
+
+    public boolean moveFileToFolder(int stationId, int fileId, Integer folderId) {
+        var file = pageRepository.findFile(fileId).orElse(null);
+        if (file == null || file.stationId() != stationId) return false;
+        return metaRepository.moveFileToFolder(fileId, folderId);
+    }
+
+    public Optional<PageFileStorageService.FileData> readFileById(int fileId) {
+        var image = pageRepository.findFile(fileId).orElse(null);
+        if (image == null || image.contentHash() == null) return Optional.empty();
+        return imageStorage.read(image.stationId(), image.contentHash());
+    }
+
+    /** Reads a file by station + content hash. Used by the public hash-keyed delivery route. */
+    public Optional<PageFileStorageService.FileData> readFile(int stationId, String contentHash) {
+        if (contentHash == null || contentHash.isBlank()) return Optional.empty();
+        var file = pageRepository.findByStationAndHash(stationId, contentHash).orElse(null);
+        if (file == null) return Optional.empty();
+        return imageStorage.read(stationId, contentHash);
     }
 
     public boolean hasPublishedPages(int stationId) {
@@ -277,21 +432,54 @@ public class PageService {
     // --- Markdown rendering ---
 
     private StationPage renderMarkdownCells(StationPage page) {
+        int stationId = page.stationId();
         var renderedRows = page.rows().stream()
                 .map(row -> row.withCells(row.cells().stream()
-                        .map(cell -> cell.contentType() == CellContentType.MARKDOWN
-                                ? new PageCell(
-                                        cell.id(),
-                                        cell.rowId(),
-                                        cell.sortOrder(),
-                                        cell.widthPercent(),
-                                        cell.contentType(),
-                                        renderMarkdown(cell.content()),
-                                        cell.config())
-                                : cell)
+                        .map(cell -> renderCell(stationId, cell))
                         .toList()))
                 .toList();
         return page.withRows(renderedRows);
+    }
+
+    private PageCell renderCell(int stationId, PageCell cell) {
+        if (cell.contentType() == CellContentType.MARKDOWN) {
+            return new PageCell(
+                    cell.id(),
+                    cell.rowId(),
+                    cell.sortOrder(),
+                    cell.widthPercent(),
+                    cell.contentType(),
+                    renderMarkdown(cell.content()),
+                    cell.config());
+        }
+        if (cell.contentType() == CellContentType.MEMBER_LIST_SPOTLIGHT
+                && cell.config() instanceof CellConfig.MemberListConfig officers) {
+            var resolved = MemberListResolver.resolve(
+                    stationMemberRepository,
+                    imageService,
+                    stationId,
+                    officers.source(),
+                    officers.sortBy(),
+                    officers.memberDescriptions(),
+                    officers.memberOrder());
+            return new PageCell(
+                    cell.id(),
+                    cell.rowId(),
+                    cell.sortOrder(),
+                    cell.widthPercent(),
+                    cell.contentType(),
+                    cell.content(),
+                    new CellConfig.MemberListConfig(
+                            officers.title(),
+                            officers.source(),
+                            officers.sortBy(),
+                            officers.showUserType(),
+                            officers.showTag(),
+                            officers.memberDescriptions(),
+                            officers.memberOrder(),
+                            resolved));
+        }
+        return cell;
     }
 
     private String renderMarkdown(String markdown) {
@@ -300,16 +488,95 @@ public class PageService {
         return htmlRenderer.render(document);
     }
 
+    /**
+     * Returns the ids of files in the station that no cell currently references. Used by the
+     * listing endpoint to flag candidates for pruning in the file browser.
+     */
+    public Set<Integer> findUnusedFileIds(int stationId) {
+        Set<String> referenced = collectFileReferences(stationId);
+        Set<Integer> unused = new HashSet<>();
+        for (var file : pageRepository.findFilesByStation(stationId)) {
+            boolean inUse = (file.contentHash() != null && referenced.contains(file.contentHash()))
+                    || referenced.contains(String.valueOf(file.id()));
+            if (!inUse) unused.add(file.id());
+        }
+        return unused;
+    }
+
+    /**
+     * Deletes every page file in the station that is no longer referenced from any cell.
+     * Returns the number of files removed. Only invoked when the user explicitly asks to prune.
+     */
+    public int pruneUnusedFiles(int stationId) {
+        Set<String> referenced = collectFileReferences(stationId);
+        int removed = 0;
+        for (var file : pageRepository.findFilesByStation(stationId)) {
+            boolean inUse = (file.contentHash() != null && referenced.contains(file.contentHash()))
+                    || referenced.contains(String.valueOf(file.id()));
+            if (inUse) continue;
+            if (file.contentHash() != null) {
+                imageStorage.delete(file.stationId(), file.contentHash());
+            }
+            pageRepository.deleteFile(file.id());
+            quotaService.onFileDeleted(stationId, StorageCategory.PAGE_IMAGES, file.fileSize());
+            removed++;
+        }
+        return removed;
+    }
+
     // --- Internal helpers ---
 
-    private void cleanupOrphanedImages(int pageId) {
-        Set<Integer> referenced = pageRepository.findReferencedImageIds(pageId);
-        var allImages = pageRepository.findImagesByPage(pageId);
-        for (var image : allImages) {
-            if (!referenced.contains(image.id())) {
-                imageStorage.delete(pageId, image.id());
-                pageRepository.deleteImage(image.id());
+    /**
+     * Collects every page-file reference used anywhere in the station: IMAGE cell contents
+     * (which may be a content hash or a legacy numeric id) plus any {@code imageId} /
+     * {@code imageIds} fields inside cell config, including those buried inside NESTED_ROWS
+     * sub-cells.
+     */
+    private Set<String> collectFileReferences(int stationId) {
+        Set<String> out = new HashSet<>();
+        for (var cell : pageRepository.findAllCellsByStation(stationId)) {
+            collectFromCell(cell.contentType(), cell.content(), cell.config(), out);
+        }
+        return out;
+    }
+
+    private void collectFromCell(CellContentType type, String content, CellConfig config, Set<String> out) {
+        if (type == CellContentType.IMAGE && content != null && !content.isBlank()) {
+            out.add(content.trim());
+        }
+        if (config == null) return;
+        try {
+            var json = CellConfig.MAPPER.valueToTree(config);
+            walkJsonForImageRefs(json, out);
+        } catch (Exception e) {
+            log.debug("Failed to walk cell config for file refs", e);
+        }
+    }
+
+    private void walkJsonForImageRefs(JsonNode node, Set<String> out) {
+        if (node == null || node.isNull()) return;
+        if (node.isObject()) {
+            var typeNode = node.get("contentType");
+            if (typeNode != null && "IMAGE".equals(typeNode.asString())) {
+                var contentNode = node.get("content");
+                if (contentNode != null && !contentNode.isNull()) {
+                    String v = contentNode.asString();
+                    if (v != null && !v.isBlank()) out.add(v.trim());
+                }
             }
+            for (Map.Entry<String, JsonNode> entry : node.properties()) {
+                String name = entry.getKey();
+                var value = entry.getValue();
+                if (("imageHash".equals(name) || "ogImageId".equals(name)) && value != null && !value.isNull()) {
+                    out.add(value.asString());
+                } else if ("imageHashes".equals(name) && value != null && value.isArray()) {
+                    value.forEach(v -> out.add(v.asString()));
+                } else {
+                    walkJsonForImageRefs(value, out);
+                }
+            }
+        } else if (node.isArray()) {
+            node.forEach(child -> walkJsonForImageRefs(child, out));
         }
     }
 

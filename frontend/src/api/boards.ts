@@ -116,7 +116,6 @@ export interface BoardComment {
     ticketId: number
     parentId: number | null
     author: MemberIdentity | null
-    authorName: string
     content: string
     deleted: boolean
     createdAt: string

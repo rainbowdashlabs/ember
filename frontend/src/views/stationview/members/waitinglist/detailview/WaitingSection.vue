@@ -59,7 +59,12 @@ function entryFullName(item: WaitingListEntryWithScore): string {
 }
 
 function getEntryFieldValue(item: WaitingListEntryWithScore, fieldId: number): string {
-  return item.values.find(v => v.fieldId === fieldId)?.value ?? ''
+  const v = item.values.find(v => v.fieldId === fieldId)?.value
+  return v == null ? '' : String(v)
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })
 }
 
 function statusBadgeComponent(status: string) {
@@ -104,6 +109,7 @@ function statusBadgeComponent(status: string) {
             <Th class="\!px-2">#</th>
             <Th class="\!px-2">{{ t('waitingList.firstname') }}</th>
             <Th class="\!px-2">{{ t('waitingList.lastname') }}</th>
+            <Th class="px-2! whitespace-nowrap">{{ t('waitingList.createdAt') }}</Th>
             <Th class="px-2!" v-for="vf in visibleFields" :key="vf.id">{{ vf.name }}</Th>
             <Th class="px-2!">{{ t('waitingList.status') }}</Th>
             <Th class="px-2! text-right">{{ t('waitingList.score') }}</Th>
@@ -120,6 +126,7 @@ function statusBadgeComponent(status: string) {
                 </span>
               </td>
               <td class="py-2 px-2">{{ item.entry.lastname }}</td>
+              <td class="py-2 px-2 text-(--text-muted) whitespace-nowrap">{{ formatDate(item.entry.createdAt) }}</td>
               <td v-for="vf in visibleFields" :key="vf.id" class="py-2 px-2 text-(--text-muted)">{{ getEntryFieldValue(item, vf.id) || '–' }}</td>
               <td class="py-2 px-2">
                 <component :is="statusBadgeComponent(item.entry.status)">{{ t('waitingList.status_' + item.entry.status) }}</component>
@@ -145,7 +152,7 @@ function statusBadgeComponent(status: string) {
               </td>
             </TRow>
             <tr v-if="expandedId === item.entry.id">
-              <td :colspan="5 + visibleFields.length + (readonly ? 0 : 1)" class="px-4 py-3 bg-bg-light-accent/20 dark:bg-bg-dark-accent/20">
+              <td :colspan="6 + visibleFields.length + (readonly ? 0 : 1)" class="px-4 py-3 bg-bg-light-accent/20 dark:bg-bg-dark-accent/20">
                 <div class="space-y-2">
                   <template v-if="item.guardians && item.guardians.length > 0">
                     <span class="text-xs font-semibold uppercase text-(--text-muted)">{{ t('waitingList.guardians') }}</span>
@@ -181,6 +188,7 @@ function statusBadgeComponent(status: string) {
           </div>
           <component :is="statusBadgeComponent(item.entry.status)">{{ t('waitingList.status_' + item.entry.status) }}</component>
         </div>
+        <div class="text-xs text-(--text-muted)">{{ t('waitingList.createdAt') }}: {{ formatDate(item.entry.createdAt) }}</div>
         <div v-if="expandedId === item.entry.id" class="border-t border-bg-light-accent dark:border-bg-dark-accent pt-2 space-y-1">
           <template v-if="item.guardians && item.guardians.length > 0">
             <span class="text-xs font-semibold uppercase text-(--text-muted)">{{ t('waitingList.guardians') }}</span>

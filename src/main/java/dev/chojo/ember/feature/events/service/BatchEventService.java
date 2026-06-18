@@ -188,7 +188,6 @@ public class BatchEventService {
                 }
                 yield dates;
             }
-            default -> dates;
         };
     }
 }

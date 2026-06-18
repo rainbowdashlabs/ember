@@ -248,6 +248,11 @@ const router = createRouter({
                     component: () => import('@/views/stationview/manage/DiscoveryView.vue'),
                 },
                 {
+                    path: 'discovery',
+                    name: 'station-discovery-network',
+                    component: () => import('@/views/stationview/discovery/IndexView.vue'),
+                },
+                {
                     path: 'members/create',
                     name: 'members-create',
                     component: MembersCreateView,
@@ -602,6 +607,32 @@ const router = createRouter({
                     component: () => import('@/views/stationview/pages/PagesListView.vue'),
                 },
                 {
+                    path: 'pages/files',
+                    name: 'pages-files',
+                    component: () => import('@/views/stationview/pages/PageFilesView.vue'),
+                },
+                {
+                    path: 'pages/forms',
+                    name: 'pages-forms',
+                    component: () => import('@/views/stationview/pages/PageFormsView.vue'),
+                },
+                {
+                    path: 'pages/forms/:id/submissions',
+                    name: 'pages-forms-submissions',
+                    component: () => import('@/views/stationview/forms/ContactSubmissionsView.vue'),
+                },
+                {
+                    path: 'pages/polls',
+                    name: 'pages-polls',
+                    component: () => import('@/views/stationview/pages/PagePollsView.vue'),
+                },
+                {
+                    path: 'pages/polls/forms/:id/analytics',
+                    name: 'pages-polls-analytics',
+                    component: () => import('@/views/stationview/forms/AnalyticsView.vue'),
+                    meta: {formAnalyticsBase: '/pages/polls/forms'},
+                },
+                {
                     path: 'pages/:id',
                     name: 'page-editor',
                     component: () => import('@/views/stationview/pages/PageEditorView.vue'),
@@ -877,6 +908,11 @@ const router = createRouter({
                     component: () => import('@/views/adminview/AdminDiscoveryView.vue'),
                 },
                 {
+                    path: 'maps',
+                    name: 'admin-maps',
+                    component: () => import('@/views/adminview/AdminMapsView.vue'),
+                },
+                {
                     // Dev-only inspector for data_tracking.json. The backend route is gated by
                     // Demo.dev(); the frontend page additionally checks import.meta.env.DEV to
                     // hide the UI from production bundles.
@@ -1096,6 +1132,11 @@ const router = createRouter({
                     path: 'federate/discovery',
                     name: 'help-station-discovery',
                     component: () => import('@/views/helpcenter/stationview/manage/DiscoveryHelp.vue')
+                },
+                {
+                    path: 'discovery',
+                    name: 'help-station-discovery-network',
+                    component: () => import('@/views/helpcenter/stationview/discovery/DiscoveryNetworkHelp.vue')
                 },
                 // Members
                 {
@@ -1538,6 +1579,31 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/stationview/pages/PagesHelp.vue')
                 },
                 {
+                    path: 'pages/files',
+                    name: 'help-pages-files',
+                    component: () => import('@/views/helpcenter/stationview/pages/PageFilesHelp.vue')
+                },
+                {
+                    path: 'pages/forms',
+                    name: 'help-pages-forms',
+                    component: () => import('@/views/helpcenter/stationview/pages/PageFormsHelp.vue')
+                },
+                {
+                    path: 'pages/forms/:id/submissions',
+                    name: 'help-pages-forms-submissions',
+                    component: () => import('@/views/helpcenter/stationview/pages/PageFormsSubmissionsHelp.vue')
+                },
+                {
+                    path: 'pages/polls',
+                    name: 'help-pages-polls',
+                    component: () => import('@/views/helpcenter/stationview/pages/PagePollsHelp.vue')
+                },
+                {
+                    path: 'pages/polls/forms/:id/analytics',
+                    name: 'help-pages-polls-analytics',
+                    component: () => import('@/views/helpcenter/stationview/pages/PagePollsAnalyticsHelp.vue')
+                },
+                {
                     path: 'pages/:id',
                     name: 'help-page-editor',
                     component: () => import('@/views/helpcenter/stationview/pages/PageEditorHelp.vue')
@@ -1712,6 +1778,11 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/adminview/DiscoveryHelp.vue')
                 },
                 {
+                    path: 'maps',
+                    name: 'help-admin-maps',
+                    component: () => import('@/views/helpcenter/adminview/MapsHelp.vue')
+                },
+                {
                     path: 'problems',
                     name: 'help-admin-problems',
                     component: () => import('@/views/helpcenter/adminview/ProblemsHelp.vue')
@@ -1782,6 +1853,11 @@ const router = createRouter({
                     path: 'blog/:blogId',
                     name: 'public-blog-detail',
                     component: () => import('@/views/public/PublicBlogDetailView.vue'),
+                },
+                {
+                    path: 'forms/:publicUid',
+                    name: 'public-form-submit',
+                    component: () => import('@/views/public/PublicFormSubmitView.vue'),
                 },
             ],
         },

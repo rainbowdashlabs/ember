@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
+import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -491,7 +492,7 @@ public class AdminSettingsRoutes implements Routes {
         try {
             return LegalDocumentType.fromSlug(ctx.pathParam("type"));
         } catch (IllegalArgumentException e) {
-            throw new io.javalin.http.BadRequestResponse("Invalid legal document type: " + ctx.pathParam("type"));
+            throw new BadRequestResponse("Invalid legal document type: " + ctx.pathParam("type"));
         }
     }
 

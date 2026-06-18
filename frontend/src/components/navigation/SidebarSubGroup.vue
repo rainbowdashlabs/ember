@@ -6,6 +6,9 @@
 <script lang="ts" setup>
 import {computed, ref, watch} from 'vue'
 import {useRoute} from 'vue-router'
+import {useSidebarCollapse} from '@/composables/useSidebarCollapse'
+
+const {collapsed} = useSidebarCollapse()
 
 const props = defineProps<{
   label: string
@@ -22,7 +25,7 @@ watch(isActive, (active) => {
 </script>
 
 <template>
-  <div>
+  <div :class="collapsed ? 'lg:hidden' : ''">
     <button
         :class="isActive
         ? 'text-primary'

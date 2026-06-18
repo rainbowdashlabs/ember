@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
@@ -30,14 +30,28 @@ interface SavedFilter {
 const props = defineProps<{
   filterText: string
   savedFilters: SavedFilter[]
+  overviewFields: ProfileField[]
   nonOverviewFields: ProfileField[]
   extraColumnIds: Set<number>
+  hiddenColumnIds: Set<number>
   exportMode: boolean
   selectedCount: number
   canExport: boolean
   groups: MemberGroup[]
   tags: UserTag[]
 }>()
+
+const sortedColumnFields = computed(() =>
+  [...props.overviewFields, ...props.nonOverviewFields].sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
+  ),
+)
+const overviewIds = computed(() => new Set(props.overviewFields.map(f => f.id)))
+function isColumnVisible(fieldId: number): boolean {
+  return overviewIds.value.has(fieldId)
+    ? !props.hiddenColumnIds.has(fieldId)
+    : props.extraColumnIds.has(fieldId)
+}
 
 const emit = defineEmits<{
   'update:filterText': [value: string]
@@ -51,7 +65,11 @@ const emit = defineEmits<{
   filter: [criteria: FilterCriteria]
 }>()
 
-const searchInput = ref<{ $el: HTMLInputElement } | null>(null)
+interface SearchInputRef {
+  $el: HTMLInputElement
+}
+
+const searchInput = ref<SearchInputRef | null>(null)
 const showColumnPicker = ref(false)
 const showSaveFilter = ref(false)
 const filterPresetName = ref('')
@@ -141,10 +159,10 @@ function submitSaveFilter() {
           {{ t('membersList.columns') }}
         </SecondaryButton>
         <div v-if="showColumnPicker" class="absolute right-0 top-full mt-1 z-10 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent bg-bg-light dark:bg-bg-dark shadow-lg p-3 min-w-48 space-y-1">
-          <p class="text-xs font-semibold text-(--text-muted) mb-2">{{ t('membersList.extraColumns') }}</p>
-          <div v-if="nonOverviewFields.length === 0" class="text-xs text-(--text-muted)">{{ t('membersList.noExtraColumns') }}</div>
-          <FieldLabel inline v-for="field in nonOverviewFields" :key="field.id" class="cursor-pointer py-0.5">
-            <CheckboxInput :model-value="extraColumnIds.has(field.id)" @update:model-value="emit('toggleColumn', field.id)" />
+          <p class="text-xs font-semibold text-(--text-muted) mb-2">{{ t('membersList.columns') }}</p>
+          <div v-if="sortedColumnFields.length === 0" class="text-xs text-(--text-muted)">{{ t('membersList.noExtraColumns') }}</div>
+          <FieldLabel v-for="field in sortedColumnFields" :key="field.id" inline class="cursor-pointer py-0.5">
+            <CheckboxInput :model-value="isColumnVisible(field.id)" @update:model-value="emit('toggleColumn', field.id)" />
             {{ field.name }}
           </FieldLabel>
         </div>

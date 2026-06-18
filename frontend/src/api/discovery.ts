@@ -15,6 +15,10 @@ export interface DiscoveryEntry {
     alreadyFederated: boolean
     isOwnStation: boolean
     publicSlug: string | null
+    city: string | null
+    country: string | null
+    latitude: number | null
+    longitude: number | null
 }
 
 export interface PublicStationInfo {
@@ -128,6 +132,9 @@ export interface DiscoveredStation {
     tags: string[]
     memberCount: string
     publishedAt: string | null
+    addressLine: string | null
+    latitude: number | null
+    longitude: number | null
     instancePublicKey: string
     fetchedAt: string
 }

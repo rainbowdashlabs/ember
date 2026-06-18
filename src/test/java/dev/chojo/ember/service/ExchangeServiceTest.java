@@ -48,12 +48,7 @@ class ExchangeServiceTest extends RepositoryTestBase {
         var sizes = inventoryRepo.findSizes(inv.id());
         var sizeM =
                 sizes.stream().filter(s -> "M".equals(s.label())).findFirst().orElseThrow();
-        var item = inventoryRepo.createItem(
-                inv.id(),
-                "B-001",
-                "Blouson M",
-                sizeM.id(),
-                (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null);
+        var item = inventoryRepo.createItem(inv.id(), "B-001", "Blouson M", sizeM.id(), null);
         itemId = item.id();
         inventoryRepo.assignItem(item.id(), member.id());
     }
@@ -131,12 +126,7 @@ class ExchangeServiceTest extends RepositoryTestBase {
         var sizes = inventoryRepo.findSizes(inventoryId);
         var sizeL =
                 sizes.stream().filter(s -> "L".equals(s.label())).findFirst().orElseThrow();
-        var newItem = inventoryRepo.createItem(
-                inventoryId,
-                "B-002",
-                "Blouson L",
-                sizeL.id(),
-                (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null);
+        var newItem = inventoryRepo.createItem(inventoryId, "B-002", "Blouson L", sizeL.id(), null);
 
         var updated = service.updateStatus(exchangeId, ExchangeStatus.DONE, member.id(), "Completed", newItem.id());
         assertNotNull(updated);

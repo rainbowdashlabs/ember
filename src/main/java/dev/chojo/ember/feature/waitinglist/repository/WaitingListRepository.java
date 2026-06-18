@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.waitinglist.repository;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
@@ -17,7 +17,11 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
 import dev.chojo.ember.feature.waitinglist.entity.WaitlistVerificationToken;
+import dev.chojo.ember.util.JsonUtil;
 import jakarta.inject.Singleton;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
 import java.util.List;
@@ -31,7 +35,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class WaitingListRepository {
 
-    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final ObjectMapper JSON = JsonMapper.builder().build();
 
     // --- Waiting List CRUD ---
 
@@ -294,14 +298,15 @@ public class WaitingListRepository {
             String parentName,
             String email,
             String accessToken,
-            String notes) {
+            String notes,
+            ConsentProof consent) {
         return query("""
                 INSERT
                 INTO
                     waiting_list_entry
-                    (list_id, firstname, lastname, parent_name, email, access_token, notes)
+                    (list_id, firstname, lastname, parent_name, email, access_token, notes, consent_proof)
                 VALUES
-                    (:list_id, :firstname, :lastname, :parent_name, :email, :access_token, :notes)
+                    (:list_id, :firstname, :lastname, :parent_name, :email, :access_token, :notes, :consent_proof::JSONB)
                 RETURNING *;""")
                 .single(call().bind("list_id", listId)
                         .bind("firstname", firstname)
@@ -309,7 +314,8 @@ public class WaitingListRepository {
                         .bind("parent_name", parentName)
                         .bind("email", email)
                         .bind("access_token", accessToken)
-                        .bind("notes", notes))
+                        .bind("notes", notes)
+                        .bind("consent_proof", consent != null ? consent.toJson() : null))
                 .map(WaitingListEntry.map())
                 .first()
                 .orElseThrow();
@@ -449,14 +455,14 @@ public class WaitingListRepository {
                 .all();
     }
 
-    public void upsertEntryValue(int entryId, int fieldId, String value) {
+    public void upsertEntryValue(int entryId, int fieldId, JsonNode value) {
         query("""
                 INSERT INTO waiting_list_entry_value (entry_id, field_id, value)
                 VALUES (:entry_id, :field_id, :value::JSONB)
                 ON CONFLICT (entry_id, field_id) DO UPDATE SET value = :value::JSONB;""")
                 .single(call().bind("entry_id", entryId)
                         .bind("field_id", fieldId)
-                        .bind("value", value))
+                        .bind("value", JsonUtil.toJson(value)))
                 .insert();
     }
 
@@ -561,14 +567,15 @@ public class WaitingListRepository {
             String email,
             String accessToken,
             String notes,
-            WaitingListEntryStatus status) {
+            WaitingListEntryStatus status,
+            ConsentProof consent) {
         return query("""
                 INSERT
                 INTO
                     waiting_list_entry
-                    (list_id, firstname, lastname, parent_name, email, access_token, notes, status)
+                    (list_id, firstname, lastname, parent_name, email, access_token, notes, status, consent_proof)
                 VALUES
-                    (:list_id, :firstname, :lastname, :parent_name, :email, :access_token, :notes, :status)
+                    (:list_id, :firstname, :lastname, :parent_name, :email, :access_token, :notes, :status, :consent_proof::JSONB)
                 RETURNING *;""")
                 .single(call().bind("list_id", listId)
                         .bind("firstname", firstname)
@@ -577,7 +584,8 @@ public class WaitingListRepository {
                         .bind("email", email)
                         .bind("access_token", accessToken)
                         .bind("notes", notes)
-                        .bind("status", status.name()))
+                        .bind("status", status.name())
+                        .bind("consent_proof", consent != null ? consent.toJson() : null))
                 .map(WaitingListEntry.map())
                 .first()
                 .orElseThrow();
@@ -592,23 +600,18 @@ public class WaitingListRepository {
             String lastname,
             String email,
             List<GuardianInput> guardians,
-            Map<Integer, String> fieldValues,
-            String notes) {
-        String guardiansPayload;
-        String fieldValuesPayload;
-        try {
-            guardiansPayload = JSON.writeValueAsString(guardians != null ? guardians : List.of());
-            fieldValuesPayload = JSON.writeValueAsString(fieldValues != null ? fieldValues : Map.of());
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to serialize verification token data", e);
-        }
+            Map<Integer, JsonNode> fieldValues,
+            String notes,
+            ConsentProof consent) {
+        String guardiansPayload = JSON.writeValueAsString(guardians != null ? guardians : List.of());
+        String fieldValuesPayload = JSON.writeValueAsString(fieldValues != null ? fieldValues : Map.of());
         return query("""
                 INSERT
                 INTO
                     waitlist_verification_token
-                    (token, list_id, firstname, lastname, email, guardians, field_values, notes)
+                    (token, list_id, firstname, lastname, email, guardians, field_values, notes, consent_proof)
                 VALUES
-                    (:token, :list_id, :firstname, :lastname, :email, :guardians::JSONB, :field_values::JSONB, :notes)
+                    (:token, :list_id, :firstname, :lastname, :email, :guardians::JSONB, :field_values::JSONB, :notes, :consent_proof::JSONB)
                 RETURNING *;""")
                 .single(call().bind("token", token)
                         .bind("list_id", listId)
@@ -617,7 +620,8 @@ public class WaitingListRepository {
                         .bind("email", email)
                         .bind("guardians", guardiansPayload)
                         .bind("field_values", fieldValuesPayload)
-                        .bind("notes", notes))
+                        .bind("notes", notes)
+                        .bind("consent_proof", consent.toJson()))
                 .map(WaitlistVerificationToken.map())
                 .first()
                 .orElseThrow();

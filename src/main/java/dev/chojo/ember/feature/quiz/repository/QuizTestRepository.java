@@ -35,36 +35,52 @@ public class QuizTestRepository {
     // -- Tests --
 
     public List<QuizTest> findByStation(int stationId) {
-        return query("SELECT " + TEST_COLUMNS
-                        + " FROM quiz_test t WHERE t.station_id = :station_id ORDER BY t.created_at DESC;")
+        return query("""
+                SELECT %s
+                FROM quiz_test t
+                WHERE t.station_id = :station_id
+                ORDER BY t.created_at DESC;""", TEST_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(QuizTest.map())
                 .all();
     }
 
     public List<QuizTest> findByStationForMember(int stationId, int memberId) {
-        return query("SELECT " + TEST_COLUMNS + " FROM quiz_test t"
-                        + " WHERE t.station_id = :station_id"
-                        + " AND check_restriction('quiz_test_restriction', 'test_id', 'quiz_test', 'id', t.id, :member_id, 'TEST_MANAGER')"
-                        + " ORDER BY t.created_at DESC;")
+        return query("""
+                SELECT %s
+                FROM quiz_test t
+                WHERE t.station_id = :station_id
+                  AND check_restriction('quiz_test_restriction', 'test_id', 'quiz_test', 'id', t.id, :member_id, 'TEST_MANAGER')
+                ORDER BY t.created_at DESC;""", TEST_COLUMNS)
                 .single(call().bind("station_id", stationId).bind("member_id", memberId))
                 .map(QuizTest.map())
                 .all();
     }
 
     public Optional<QuizTest> findById(int id) {
-        return query("SELECT " + TEST_COLUMNS + " FROM quiz_test t WHERE t.id = :id;")
+        return query("""
+                SELECT %s
+                FROM quiz_test t
+                WHERE t.id = :id;""", TEST_COLUMNS)
                 .single(call().bind("id", id))
                 .map(QuizTest.map())
                 .first();
     }
 
     public List<QuizTest> findForcedPending(int stationId, int memberId) {
-        return query("SELECT " + TEST_COLUMNS
-                        + " FROM quiz_test t WHERE t.station_id = :station_id AND t.forced = true AND t.status = 'ACTIVE'"
-                        + " AND (t.start_at IS NULL OR t.start_at <= now()) AND (t.end_at IS NULL OR t.end_at >= now())"
-                        + " AND NOT EXISTS (SELECT 1 FROM quiz_test_attempt a WHERE a.test_id = t.id AND a.member_id = :member_id AND a.status IN ('SUBMITTED', 'GRADED'))"
-                        + " ORDER BY t.title;")
+        return query("""
+                SELECT %s
+                FROM quiz_test t
+                WHERE t.station_id = :station_id
+                  AND t.forced = true
+                  AND t.status = 'ACTIVE'
+                  AND (t.start_at IS NULL OR t.start_at <= now())
+                  AND (t.end_at IS NULL OR t.end_at >= now())
+                  AND NOT EXISTS (
+                      SELECT 1 FROM quiz_test_attempt a
+                      WHERE a.test_id = t.id AND a.member_id = :member_id
+                        AND a.status IN ('SUBMITTED', 'GRADED'))
+                ORDER BY t.title;""", TEST_COLUMNS)
                 .single(call().bind("station_id", stationId).bind("member_id", memberId))
                 .map(QuizTest.map())
                 .all();
@@ -73,9 +89,9 @@ public class QuizTestRepository {
     public QuizTest create(
             int stationId, String title, String description, Integer timeLimit, boolean shuffle, int createdBy) {
         return query("""
-                        INSERT INTO quiz_test(station_id, title, description, time_limit, shuffle, created_by)
-                        VALUES (:station_id, :title, :description, :time_limit, :shuffle, :created_by)
-                        RETURNING\s""" + TEST_COLUMNS_BARE + ";")
+                INSERT INTO quiz_test(station_id, title, description, time_limit, shuffle, created_by)
+                VALUES (:station_id, :title, :description, :time_limit, :shuffle, :created_by)
+                RETURNING %s;""", TEST_COLUMNS_BARE)
                 .single(call().bind("station_id", stationId)
                         .bind("title", title)
                         .bind("description", description)

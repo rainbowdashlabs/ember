@@ -22,6 +22,8 @@ const props = defineProps<{
   userFillGaps: Record<string, string>
   mcDisplayOrder?: number[]
   connectRightOrder?: number[]
+  /** See {@code QuestionInputCard.directImageSrc}. */
+  directImageSrc?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -65,6 +67,7 @@ const correctPairs = computed<{ left: string; right: string }[]>(() => {
     :connect-pairs="userConnectPairs"
     :mc-display-order="mcDisplayOrder"
     :connect-right-order="connectRightOrder"
+    :direct-image-src="directImageSrc"
     @toggle-mc-option="(i: number) => emit('toggleMcOption', i)"
     @update:tf-answer="(v: boolean) => emit('update:userTfAnswer', v)"
     @update:free-answer="(v: string) => emit('update:userAnswer', v)"

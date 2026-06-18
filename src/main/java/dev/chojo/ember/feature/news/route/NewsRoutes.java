@@ -5,6 +5,13 @@
  */
 package dev.chojo.ember.feature.news.route;
 
+import com.rometools.rome.feed.synd.SyndContent;
+import com.rometools.rome.feed.synd.SyndContentImpl;
+import com.rometools.rome.feed.synd.SyndEntry;
+import com.rometools.rome.feed.synd.SyndEntryImpl;
+import com.rometools.rome.feed.synd.SyndFeed;
+import com.rometools.rome.feed.synd.SyndFeedImpl;
+import com.rometools.rome.io.SyndFeedOutput;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.MemberIdentity;
@@ -18,6 +25,7 @@ import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
+import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
@@ -45,6 +53,8 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -64,6 +74,7 @@ public class NewsRoutes implements Routes {
     private final EventFederationRepository eventFederationRepository;
     private final MemberNameResolver memberNameResolver;
     private final MemberIdentityFactory memberIdentityFactory;
+    private final EmailService emailService;
 
     @Inject
     public NewsRoutes(
@@ -76,7 +87,8 @@ public class NewsRoutes implements Routes {
             StationRepository stationRepository,
             EventFederationRepository eventFederationRepository,
             MemberNameResolver memberNameResolver,
-            MemberIdentityFactory memberIdentityFactory) {
+            MemberIdentityFactory memberIdentityFactory,
+            EmailService emailService) {
         this.newsService = newsService;
         this.newsFederationService = newsFederationService;
         this.federationRepository = federationRepository;
@@ -85,11 +97,13 @@ public class NewsRoutes implements Routes {
         this.eventFederationRepository = eventFederationRepository;
         this.memberNameResolver = memberNameResolver;
         this.memberIdentityFactory = memberIdentityFactory;
+        this.emailService = emailService;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/news", this::list, StationPermission.LOGIN);
+        routes.get(prefix + "/news/search", this::search, StationPermission.PAGE_EDIT);
         routes.get(prefix + "/news/{id}", this::get, StationPermission.LOGIN);
         routes.post(prefix + "/news", this::create, StationPermission.NEWS_EDIT);
         routes.put(prefix + "/news/{id}", this::update, StationPermission.NEWS_EDIT);
@@ -140,6 +154,8 @@ public class NewsRoutes implements Routes {
         // Public blog
         routes.get(prefix + "/public/station/{stationUid}/blog", this::publicBlogList);
         routes.get(prefix + "/public/station/{stationUid}/blog/{blogId}", this::publicBlogDetail);
+        routes.get(prefix + "/public/station/{stationUid}/blog.rss", ctx -> publicBlogFeed(ctx, "rss_2.0"));
+        routes.get(prefix + "/public/station/{stationUid}/blog.atom", ctx -> publicBlogFeed(ctx, "atom_1.0"));
     }
 
     @OpenApi(
@@ -334,6 +350,37 @@ public class NewsRoutes implements Routes {
                 news.publicBlog(),
                 viewCount,
                 viewedByMe);
+    }
+
+    @OpenApi(
+            path = "/api/v1/news/search",
+            methods = HttpMethod.GET,
+            summary = "Search published, unrestricted news entries for the page-editor picker",
+            description = "Returns a lightweight result shape (publicUid, title, summary, publishedAt)"
+                    + " scoped to the caller's station. Backs the NEWS_TEASER cell picker. Empty"
+                    + " query returns the most recent entries so the picker has something to show"
+                    + " on first focus.",
+            tags = {"News"},
+            queryParams = {
+                @OpenApiParam(name = "q", type = String.class),
+                @OpenApiParam(name = "limit", type = Integer.class)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = NewsSearchResult[].class)))
+    private void search(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        String q = ctx.queryParam("q");
+        int requested = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(5);
+        int limit = Math.clamp(requested, 1, 20);
+        var results = newsService.findPublicBlogEntries(session.stationId(), q, 0, limit).stream()
+                .map(NewsRoutes::toSearchResult)
+                .toList();
+        ctx.json(results);
+    }
+
+    private static NewsSearchResult toSearchResult(News news) {
+        String md = news.contentMarkdown() != null ? news.contentMarkdown() : "";
+        String summary = md.length() > 200 ? md.substring(0, 200).trim() + "…" : md.trim();
+        return new NewsSearchResult(news.publicUid(), news.title(), summary, news.publishedAt());
     }
 
     // -- Comments --
@@ -951,6 +998,7 @@ public class NewsRoutes implements Routes {
         ctx.json(entries.stream()
                 .map(n -> new PublicBlogEntry(
                         n.id(),
+                        n.publicUid(),
                         n.title(),
                         n.contentHtml(),
                         n.author() != null
@@ -958,6 +1006,64 @@ public class NewsRoutes implements Routes {
                                 : "",
                         n.publishedAt()))
                 .toList());
+    }
+
+    /**
+     * Renders the station's public blog as an RSS 2.0 or Atom 1.0 feed. Capped at the most
+     * recent 50 entries to keep the payload bounded; readers fetch incrementally via the
+     * existing JSON endpoint when they want older posts.
+     */
+    private void publicBlogFeed(Context ctx, String feedType) {
+        int stationId = resolvePublicStation(ctx);
+        var station = stationRepository.findById(stationId).orElseThrow(NotFoundResponse::new);
+        if (!station.publicBlogEnabled()) throw new NotFoundResponse();
+        String stationUid = station.uid().toString();
+        String baseUrl = emailService.getBaseUrl();
+        String blogUrl = baseUrl + "/public/station/" + stationUid + "/blog";
+
+        var posts = newsService.findPublicBlogEntries(stationId, 0, 50);
+
+        SyndFeed feed = new SyndFeedImpl();
+        feed.setFeedType(feedType);
+        feed.setTitle(station.name() + " — Blog");
+        feed.setDescription(station.name() + " public blog");
+        feed.setLink(blogUrl);
+        feed.setLanguage(station.locale());
+        if ("atom_1.0".equals(feedType)) {
+            feed.setUri("urn:ember:blog:" + stationUid);
+        }
+
+        var entries = new ArrayList<SyndEntry>(posts.size());
+        for (var post : posts) {
+            SyndEntry entry = new SyndEntryImpl();
+            entry.setTitle(post.title());
+            entry.setLink(blogUrl + "/" + post.id());
+            entry.setUri("urn:ember:blog:" + stationUid + ":" + post.publicUid());
+            if (post.publishedAt() != null) {
+                var date = Date.from(post.publishedAt());
+                entry.setPublishedDate(date);
+                entry.setUpdatedDate(date);
+            }
+            if (post.author() != null) {
+                entry.setAuthor(memberNameResolver.resolveDisplay(post.author()).name());
+            }
+            SyndContent content = new SyndContentImpl();
+            content.setType("text/html");
+            content.setValue(post.contentHtml());
+            entry.setContents(List.of(content));
+            entries.add(entry);
+        }
+        feed.setEntries(entries);
+
+        String contentType = "atom_1.0".equals(feedType) ? "application/atom+xml" : "application/rss+xml";
+        try {
+            var output = new SyndFeedOutput();
+            ctx.contentType(contentType + "; charset=utf-8");
+            ctx.header("Cache-Control", "public, max-age=3600");
+            ctx.result(output.outputString(feed));
+        } catch (Exception e) {
+            throw new InternalServerErrorResponse("Failed to render blog feed");
+        }
     }
 
     private void publicBlogDetail(Context ctx) {
@@ -972,10 +1078,12 @@ public class NewsRoutes implements Routes {
         var authorName = news.author() != null
                 ? memberNameResolver.resolveDisplay(news.author()).name()
                 : "";
-        ctx.json(new PublicBlogEntry(news.id(), news.title(), news.contentHtml(), authorName, news.publishedAt()));
+        ctx.json(new PublicBlogEntry(
+                news.id(), news.publicUid(), news.title(), news.contentHtml(), authorName, news.publishedAt()));
     }
 
-    public record PublicBlogEntry(int id, String title, String contentHtml, String authorName, Instant publishedAt) {}
+    public record PublicBlogEntry(
+            int id, UUID publicUid, String title, String contentHtml, String authorName, Instant publishedAt) {}
 
     /** Response shape for {@code GET /api/v1/news/{id}/views} (editors only). */
     public record NewsViewsResponse(List<NewsViewerEntry> seen, List<NewsViewerEntry> unseen) {}
@@ -988,4 +1096,11 @@ public class NewsRoutes implements Routes {
 
     /** Lightweight response for {@code GET /api/v1/news/{id}/view-count} (editors only). */
     public record NewsViewCountResponse(int count) {}
+
+    /**
+     * Lightweight picker result shape for {@code GET /api/v1/news/search}. Exposes the public
+     * UUID — never the internal integer id — so cell configs that reference this entry survive
+     * station-transfer renumbering (concept §2.3).
+     */
+    public record NewsSearchResult(UUID publicUid, String title, String summary, Instant publishedAt) {}
 }

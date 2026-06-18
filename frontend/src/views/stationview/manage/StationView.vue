@@ -18,8 +18,8 @@ watch(loaded, (isLoaded) => {
     router.replace('/station/dashboard/overview')
   }
 }, {immediate: true})
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import FileUploadButton from '@/components/button/FileUploadButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
+import FileUploadField from '@/components/input/FileUploadField.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
@@ -32,6 +32,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import {stationManage} from '@/api'
 import client from '@/api/client'
 import OwnerSection from './stationview/OwnerSection.vue'
+import LocationSection from './stationview/LocationSection.vue'
 
 const {t} = useI18n()
 
@@ -60,7 +61,6 @@ const isOwner = ref(false)
 const stationId = ref('')
 const ownerMemberId = ref<number | null>(null)
 const loading = ref(true)
-const saving = ref(false)
 const uploading = ref(false)
 const error = ref('')
 const success = ref('')
@@ -106,9 +106,7 @@ async function loadLogoBlob() {
 }
 
 async function saveName() {
-  saving.value = true
   error.value = ''
-  success.value = ''
   try {
     const info = await stationManage.updateStationName({
       name: name.value,
@@ -116,22 +114,18 @@ async function saveName() {
       locale: locale.value
     })
     name.value = info.name ?? ''
-    success.value = t('stationManage.saved')
-  } catch {
+  } catch (e) {
     error.value = t('common.error')
-  } finally {
-    saving.value = false
+    throw e
   }
 }
 
-async function handleLogoUpload(file: File) {
-  if (file.size > 2 * 1024 * 1024) {
-    error.value = t('stationManage.logoTooLarge')
-    return
-  }
+const LOGO_MAX_SIZE = 2 * 1024 * 1024
+const logoError = ref<string | null>(null)
 
+async function handleLogoUpload(file: File) {
   uploading.value = true
-  error.value = ''
+  logoError.value = null
   success.value = ''
   try {
     await stationManage.uploadLogo(file)
@@ -139,7 +133,7 @@ async function handleLogoUpload(file: File) {
     await loadLogoBlob()
     success.value = t('stationManage.logoUploaded')
   } catch {
-    error.value = t('common.error')
+    logoError.value = t('fileUpload.uploadFailed')
   } finally {
     uploading.value = false
   }
@@ -200,9 +194,7 @@ onMounted(async () => {
             <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </SelectInput>
         </div>
-        <PrimaryButton :disabled="saving || !name" @click="saveName">
-          {{ saving ? t('common.loading') : t('stationManage.save') }}
-        </PrimaryButton>
+        <SaveButton :disabled="!name" :action="saveName"/>
       </NeutralContainer>
 
       <NeutralContainer v-if="!loading" class="space-y-4">
@@ -215,25 +207,40 @@ onMounted(async () => {
               alt="Station Logo"
               class="max-h-32 max-w-64 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent object-contain"
           />
-          <div class="flex items-center gap-2">
-            <FileUploadButton :disabled="uploading" accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                              @select="handleLogoUpload">
-              {{ uploading ? t('common.loading') : t('stationManage.changeLogo') }}
-            </FileUploadButton>
+          <div class="flex items-start gap-2">
+            <FileUploadField
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                :max-size="LOGO_MAX_SIZE"
+                :disabled="uploading"
+                :error="logoError"
+                :hint="t('stationManage.logoHint')"
+                :label="uploading ? t('common.loading') : t('stationManage.changeLogo')"
+                @select="handleLogoUpload"
+            />
             <DeleteButton @click="removeLogo"/>
           </div>
         </div>
 
         <div v-else class="space-y-3">
           <p class="text-sm text-(--text-muted)">{{ t('stationManage.noLogo') }}</p>
-          <FileUploadButton :disabled="uploading" accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                            @select="handleLogoUpload">
-            {{ uploading ? t('common.loading') : t('stationManage.uploadLogo') }}
-          </FileUploadButton>
+          <FileUploadField
+              accept="image/png,image/jpeg,image/webp,image/svg+xml"
+              :max-size="LOGO_MAX_SIZE"
+              :disabled="uploading"
+              :error="logoError"
+              :hint="t('stationManage.logoHint')"
+              :label="uploading ? t('common.loading') : t('stationManage.uploadLogo')"
+              @select="handleLogoUpload"
+          />
         </div>
-
-        <p class="text-xs text-(--text-muted)">{{ t('stationManage.logoHint') }}</p>
       </NeutralContainer>
+
+      <!-- Geolocation: opt-in address + coordinates -->
+      <LocationSection
+          v-if="!loading"
+          @error="handleError"
+          @success="handleSuccess"
+      />
 
       <!-- Owner sections (transfer, handover, deletion) -->
       <OwnerSection

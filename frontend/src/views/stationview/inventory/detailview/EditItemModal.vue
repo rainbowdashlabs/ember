@@ -9,7 +9,7 @@ import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
@@ -33,7 +33,6 @@ const { t } = useI18n()
 const itemName = ref('')
 const internalId = ref('')
 const sizeId = ref('')
-const saving = ref(false)
 const error = ref('')
 
 watch(() => props.item, (item) => {
@@ -46,7 +45,6 @@ watch(() => props.item, (item) => {
 
 async function save() {
   if (!props.item) return
-  saving.value = true
   error.value = ''
   try {
     await inventory.updateItem(props.item.id, {
@@ -56,10 +54,9 @@ async function save() {
     })
     show.value = false
     emit('saved')
-  } catch {
+  } catch (e) {
     error.value = t('common.error')
-  } finally {
-    saving.value = false
+    throw e
   }
 }
 </script>
@@ -85,9 +82,7 @@ async function save() {
       </div>
       <div class="flex justify-end gap-3">
         <SecondaryButton @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton :disabled="saving || !itemName.trim()" @click="save">
-          {{ saving ? t('common.loading') : t('common.save') }}
-        </PrimaryButton>
+        <SaveButton :disabled="!itemName.trim()" :action="save"/>
       </div>
     </div>
   </Modal>

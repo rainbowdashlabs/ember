@@ -73,19 +73,20 @@ public class TestProtocolPdfService {
         String stationName =
                 stationRepository.findById(run.stationId()).map(Station::name).orElse("");
 
-        var resources = loadLogo();
+        var logo = loadLogo(run.stationId());
+        Map<String, byte[]> resources = logo != null ? Map.of(logo.filename(), logo.data()) : Map.of();
         var sb = new StringBuilder();
         sb.append("""
                 #set page(paper: "a4", flipped: true, margin: 1.5cm, columns: 2)
-                #set text(font: "Noto Sans", size: 9pt, lang: "de")
+                #set text(font: "Liberation Sans", size: 9pt, lang: "de")
 
                 """);
 
         // Header
         sb.append("#align(center)[\n");
-        if (resources.containsKey("logo.png")) {
+        if (logo != null) {
             sb.append("  #grid(columns: (auto, 1fr), gutter: 0.5em, align: (center, left),\n");
-            sb.append("    image(\"logo.png\", width: 1.2cm),\n");
+            sb.append("    image(\"").append(logo.filename()).append("\", width: 1.2cm),\n");
             sb.append("    align(horizon)[#text(size: 10pt, weight: \"bold\")[")
                     .append(esc(stationName))
                     .append("]]\n");
@@ -166,11 +167,12 @@ public class TestProtocolPdfService {
 
         String stationName =
                 stationRepository.findById(run.stationId()).map(Station::name).orElse("");
-        var resources = loadLogo();
+        var logo = loadLogo(run.stationId());
+        Map<String, byte[]> resources = logo != null ? Map.of(logo.filename(), logo.data()) : Map.of();
         var sb = new StringBuilder();
         sb.append("""
                 #set page(paper: "a4", flipped: true, margin: 1cm)
-                #set text(font: "Noto Sans", size: 7pt, lang: "de")
+                #set text(font: "Liberation Sans", size: 7pt, lang: "de")
                 #let score-fill(score, max) = {
                   if max == 0 { white } else {
                     let ratio = score / max
@@ -185,8 +187,10 @@ public class TestProtocolPdfService {
 
         // Header
         sb.append("#align(center)[\n");
-        if (resources.containsKey("logo.png")) {
-            sb.append("  #box(image(\"logo.png\", width: 1cm)) #h(0.5em) #text(size: 9pt, weight: \"bold\")[")
+        if (logo != null) {
+            sb.append("  #box(image(\"")
+                    .append(logo.filename())
+                    .append("\", width: 1cm)) #h(0.5em) #text(size: 9pt, weight: \"bold\")[")
                     .append(esc(stationName))
                     .append("]\n  #v(0.3em)\n");
         }
@@ -411,13 +415,19 @@ public class TestProtocolPdfService {
                 .replace("]", "\\]");
     }
 
-    private Map<String, byte[]> loadLogo() {
-        var resources = new HashMap<String, byte[]>();
+    private record LogoResource(String filename, byte[] data) {}
+
+    private LogoResource loadLogo(int stationId) {
+        var stationLogo = stationRepository.findLogo(stationId);
+        if (stationLogo.isPresent()) {
+            var logo = stationLogo.get();
+            return new LogoResource("logo." + TypstCompiler.logoExtension(logo.contentType()), logo.data());
+        }
         try (var stream = getClass().getClassLoader().getResourceAsStream("logo/IconBG.png")) {
-            if (stream != null) resources.put("logo.png", stream.readAllBytes());
+            if (stream != null) return new LogoResource("logo.png", stream.readAllBytes());
         } catch (Exception ignored) {
         }
-        return resources;
+        return null;
     }
 
     private String resolveMemberName(int memberId) {

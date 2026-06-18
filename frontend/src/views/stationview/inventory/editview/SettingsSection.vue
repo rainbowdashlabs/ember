@@ -11,7 +11,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import {InventoryTypes} from '@/api/types'
 import type {InventoryDetail, InventoryTypeName} from '@/api/types'
 import {inventory} from '@/api'
@@ -29,10 +29,8 @@ const emit = defineEmits<{
 
 const editName = ref(props.detail.name ?? '')
 const editType = ref<string>(props.detail.inventoryType ?? InventoryTypes.INTERNAL)
-const savingSettings = ref(false)
 
 async function saveSettings() {
-  savingSettings.value = true
   try {
     await inventory.updateInventory(props.detail.id, {
       name: editName.value,
@@ -40,10 +38,9 @@ async function saveSettings() {
       hasSizes: props.detail.hasSizes ?? false,
     })
     emit('saved')
-  } catch {
+  } catch (e) {
     emit('error', t('common.error'))
-  } finally {
-    savingSettings.value = false
+    throw e
   }
 }
 </script>
@@ -65,8 +62,6 @@ async function saveSettings() {
         </SelectInput>
       </div>
     </div>
-    <PrimaryButton :disabled="savingSettings || !editName.trim()" @click="saveSettings">
-      {{ savingSettings ? t('common.loading') : t('common.save') }}
-    </PrimaryButton>
+    <SaveButton :disabled="!editName.trim()" :action="saveSettings"/>
   </NeutralContainer>
 </template>

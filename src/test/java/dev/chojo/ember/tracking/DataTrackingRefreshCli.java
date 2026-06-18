@@ -31,7 +31,7 @@ public final class DataTrackingRefreshCli {
 
     private DataTrackingRefreshCli() {}
 
-    public static void main(String[] args) throws Exception {
+    static void main(String[] args) throws Exception {
         log.info("Starting PostgreSQL testcontainer...");
         try (var container = new PostgreSQLContainer("postgres:17")
                 .withDatabaseName("ember_tracking")

@@ -10,7 +10,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import { federatedBoards, stationMembers, memberGroups, userTags } from '@/api'
 import type { PermissionGrant, MemberGroup, UserTag } from '@/api/types'
@@ -39,7 +39,6 @@ const editGroupIds = ref<number[]>([])
 const editTagIds = ref<number[]>([])
 
 const error = ref('')
-const saved = ref(false)
 
 async function loadData() {
     try {
@@ -65,7 +64,6 @@ async function loadData() {
 
 async function save() {
     error.value = ''
-    saved.value = false
     try {
         await federatedBoards.setAccessOverride(props.partnerUid, props.boardKey, {
             viewUserTypes: viewUserTypes.value,
@@ -75,10 +73,9 @@ async function save() {
             editGroupIds: editGroupIds.value,
             editTagIds: editTagIds.value,
         })
-        saved.value = true
-        setTimeout(() => { saved.value = false }, 2000)
-    } catch {
+    } catch (e) {
         error.value = t('common.error')
+        throw e
     }
 }
 
@@ -123,11 +120,10 @@ onMounted(loadData)
                 />
             </div>
 
-            <Alert v-if="saved" variant="success">{{ t('common.saved') }}</Alert>
             <Alert v-if="error" variant="error">{{ error }}</Alert>
 
             <div class="flex justify-end">
-                <PrimaryButton @click="save">{{ t('common.save') }}</PrimaryButton>
+                <SaveButton :action="save"/>
             </div>
         </div>
     </Modal>

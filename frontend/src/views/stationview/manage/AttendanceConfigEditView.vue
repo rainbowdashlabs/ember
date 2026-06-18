@@ -8,7 +8,7 @@ import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -39,7 +39,6 @@ const fields = ref<AttendanceTemplateField[]>([])
 const templateGroups = ref<TemplateGroupEntry[]>([])
 const availableGroups = ref<MemberGroup[]>([])
 const loading = ref(false)
-const saving = ref(false)
 const error = ref('')
 
 // Field modal state
@@ -72,7 +71,6 @@ async function loadTemplate() {
 }
 
 async function saveTemplate() {
-  saving.value = true
   error.value = ''
   try {
     if (isEdit.value) {
@@ -82,10 +80,9 @@ async function saveTemplate() {
       await router.replace({name: 'station-attendance-config-edit', params: {id: created.id}})
       availableGroups.value = await memberGroups.listGroups()
     }
-  } catch {
+  } catch (e) {
     error.value = t('common.error')
-  } finally {
-    saving.value = false
+    throw e
   }
 }
 
@@ -225,11 +222,9 @@ onMounted(loadTemplate)
             <FieldLabel>{{ t('attendanceConfig.name') }}</FieldLabel>
             <TextInput v-model="name" :placeholder="t('attendanceConfig.namePlaceholder')"/>
           </div>
-          <PrimaryButton :disabled="saving || !name" @click="saveTemplate">
-            {{
-              saving ? t('common.loading') : (isEdit ? t('attendanceConfig.save') : t('attendanceConfig.createSubmit'))
-            }}
-          </PrimaryButton>
+          <SaveButton :disabled="!name" :action="saveTemplate">
+            {{ isEdit ? t('attendanceConfig.save') : t('attendanceConfig.createSubmit') }}
+          </SaveButton>
         </NeutralContainer>
 
         <!-- Groups -->

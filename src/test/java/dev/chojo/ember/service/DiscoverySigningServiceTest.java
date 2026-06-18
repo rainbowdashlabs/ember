@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.PublicKey;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -77,7 +78,7 @@ class DiscoverySigningServiceTest {
     void verifyFailsOnNullPublicKey() {
         String body = "test";
         String sig = signingService.sign(body);
-        assertFalse(signingService.verify(body, sig, (java.security.PublicKey) null));
+        assertFalse(signingService.verify(body, sig, (PublicKey) null));
     }
 
     @Test

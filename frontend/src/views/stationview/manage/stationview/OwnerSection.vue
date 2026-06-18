@@ -28,7 +28,12 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 // -- Owner handover --
-const managerMembers = ref<{id: number, name: string}[]>([])
+interface ManagerOption {
+  id: number
+  name: string
+}
+
+const managerMembers = ref<ManagerOption[]>([])
 const newOwnerId = ref('')
 const transferringOwnership = ref(false)
 

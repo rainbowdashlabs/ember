@@ -6,6 +6,7 @@
 package dev.chojo.ember.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.CheckItemRequest;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
@@ -59,9 +60,7 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
 
         var inv = inventoryRepo.create(station.id(), "CheckSvcInv", InventoryType.EXTERNAL, false);
         inventoryId = inv.id();
-        var item = inventoryRepo.createItem(
-                inv.id(), "CS-001", "Check Item", null, (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata)
-                        null);
+        var item = inventoryRepo.createItem(inv.id(), "CS-001", "Check Item", null, null);
         itemId = item.id();
         inventoryRepo.assignItem(item.id(), target.id());
     }
@@ -202,7 +201,7 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
     @Order(60)
     void getRequiredItems() {
         // Create a requirement for MEMBER user type
-        var req = inventoryRepo.createRequirement(inventoryId, dev.chojo.ember.api.auth.StationUserType.MEMBER, 0, 2);
+        var req = inventoryRepo.createRequirement(inventoryId, StationUserType.MEMBER, 0, 2);
 
         var required = service.getRequiredItems(station.id(), target.id());
         assertTrue(required.stream().anyMatch(r -> r.inventoryId() == inventoryId && r.requiredQuantity() == 2));

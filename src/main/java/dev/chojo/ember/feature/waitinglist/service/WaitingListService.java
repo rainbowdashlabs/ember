@@ -5,13 +5,13 @@
  */
 package dev.chojo.ember.feature.waitinglist.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.WaitlistPublicRegistration;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -36,6 +36,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.JsonNode;
 
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -56,8 +57,6 @@ import java.util.regex.Pattern;
 @Singleton
 public class WaitingListService {
     private static final Logger log = LoggerFactory.getLogger(WaitingListService.class);
-
-    private static final ObjectMapper JSON = new ObjectMapper();
 
     private final WaitingListRepository repository;
     private final StationRepository stationRepository;
@@ -217,8 +216,9 @@ public class WaitingListService {
             String firstname,
             String lastname,
             List<GuardianInput> guardians,
-            Map<Integer, String> fieldValues,
-            String notes) {
+            Map<Integer, JsonNode> fieldValues,
+            String notes,
+            ConsentProof consent) {
         var invite = repository
                 .findInviteByCode(inviteCode)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid invite code"));
@@ -237,7 +237,14 @@ public class WaitingListService {
 
         String accessToken = UUID.randomUUID().toString();
         var entry = repository.createEntry(
-                invite.listId(), firstname, lastname, parentName, email, accessToken, notes != null ? notes : "");
+                invite.listId(),
+                firstname,
+                lastname,
+                parentName,
+                email,
+                accessToken,
+                notes != null ? notes : "",
+                consent);
         repository.incrementInviteUses(invite.id());
 
         if (guardians != null) {
@@ -322,7 +329,7 @@ public class WaitingListService {
             String firstname,
             String lastname,
             List<GuardianInput> guardians,
-            Map<Integer, String> fieldValues,
+            Map<Integer, JsonNode> fieldValues,
             String notes) {
         String parentName = guardians != null && !guardians.isEmpty()
                 ? (guardians.getFirst().firstname() + " " + guardians.getFirst().lastname()).trim()
@@ -331,7 +338,7 @@ public class WaitingListService {
                 guardians != null && !guardians.isEmpty() ? guardians.getFirst().email() : "";
         String accessToken = UUID.randomUUID().toString();
         var entry = repository.createEntry(
-                listId, firstname, lastname, parentName, email, accessToken, notes != null ? notes : "");
+                listId, firstname, lastname, parentName, email, accessToken, notes != null ? notes : "", null);
         if (guardians != null) {
             insertGuardians(entry.id(), guardians);
         }
@@ -347,7 +354,7 @@ public class WaitingListService {
             String lastname,
             List<GuardianInput> guardians,
             String notes,
-            Map<Integer, String> fieldValues) {
+            Map<Integer, JsonNode> fieldValues) {
         String parentName = guardians != null && !guardians.isEmpty()
                 ? (guardians.getFirst().firstname() + " " + guardians.getFirst().lastname()).trim()
                 : "";
@@ -520,6 +527,39 @@ public class WaitingListService {
         repository.deleteEntry(entryId);
     }
 
+    /**
+     * Computes the waiting-list position of an entry ranked by score (highest first),
+     * with {@link WaitingListEntry#createdAt()} as the tiebreaker so the order is stable.
+     * Only entries in {@link WaitingListEntryStatus#WAITING} take part in the ranking;
+     * if the given entry is not WAITING the method returns {@code 0}.
+     *
+     * @param entry the entry to find the position of
+     * @return 1-based position when WAITING, or {@code 0} otherwise
+     */
+    public int findWaitingPositionByScore(WaitingListEntry entry) {
+        if (entry.status() != WaitingListEntryStatus.WAITING) return 0;
+        var list = repository.findById(entry.listId()).orElseThrow();
+        var fields = repository.findFieldsByList(entry.listId());
+        var waiting = repository.findEntriesByList(entry.listId()).stream()
+                .filter(e -> e.status() == WaitingListEntryStatus.WAITING)
+                .toList();
+        record Scored(WaitingListEntry e, double score) {}
+        var ranked = waiting.stream()
+                .map(e -> {
+                    var values = repository.findEntryValues(e.id());
+                    return new Scored(e, evaluateScore(e, values, fields, list.scoringFormula()));
+                })
+                .sorted((a, b) -> {
+                    int cmp = Double.compare(b.score(), a.score());
+                    return cmp != 0 ? cmp : a.e().createdAt().compareTo(b.e().createdAt());
+                })
+                .toList();
+        for (int i = 0; i < ranked.size(); i++) {
+            if (ranked.get(i).e().id() == entry.id()) return i + 1;
+        }
+        return 0;
+    }
+
     // --- Scoring ---
 
     public double evaluateScore(
@@ -531,11 +571,9 @@ public class WaitingListService {
                     .filter(v -> v.fieldId() == field.id())
                     .map(WaitingListEntryValue::value)
                     .findFirst()
+                    .map(node ->
+                            node == null || node.isNull() ? "0" : (node.isString() ? node.asString() : node.toString()))
                     .orElse("0");
-            // Strip JSON quotes if present
-            if (value.startsWith("\"") && value.endsWith("\"")) {
-                value = value.substring(1, value.length() - 1);
-            }
             variables.put(field.name(), value);
         }
 
@@ -711,8 +749,9 @@ public class WaitingListService {
             String lastname,
             String email,
             List<GuardianInput> guardians,
-            Map<Integer, String> fieldValues,
-            String notes) {
+            Map<Integer, JsonNode> fieldValues,
+            String notes,
+            ConsentProof consent) {
         var list = repository.findById(listId).orElseThrow(() -> new IllegalArgumentException("List not found"));
         if (!list.isPublic()) {
             throw new IllegalStateException("List is not public");
@@ -727,7 +766,8 @@ public class WaitingListService {
                 email,
                 guardians != null ? guardians : List.of(),
                 fieldValues != null ? fieldValues : Map.of(),
-                notes != null ? notes : "");
+                notes != null ? notes : "",
+                consent);
 
         String stationName = resolveStationName(list.stationId());
         emailService.sendWaitlistVerifyEmail(email, firstname, stationName, token, "de", list.stationId());
@@ -742,7 +782,7 @@ public class WaitingListService {
         }
 
         List<GuardianInput> guardians = verification.guardians();
-        Map<Integer, String> fieldValues = verification.fieldValues();
+        Map<Integer, JsonNode> fieldValues = verification.fieldValues();
 
         String parentName = guardians != null && !guardians.isEmpty()
                 ? (guardians.getFirst().firstname() + " " + guardians.getFirst().lastname()).trim()
@@ -756,7 +796,8 @@ public class WaitingListService {
                 verification.email(),
                 accessToken,
                 verification.notes(),
-                WaitingListEntryStatus.PENDING);
+                WaitingListEntryStatus.PENDING,
+                verification.consent());
 
         if (guardians != null) {
             insertGuardians(entry.id(), guardians);

@@ -8,6 +8,7 @@ import {onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
@@ -40,7 +41,6 @@ const editName = ref('')
 const editMaxShown = ref<number | null>(null)
 const editPublic = ref(false)
 const editColor = ref<string>('')
-const saving = ref(false)
 
 // Delete modal
 const deleteOpen = ref(false)
@@ -79,7 +79,6 @@ function openEdit(cat: EventCategory) {
 }
 
 async function saveCategory() {
-  saving.value = true
   try {
     const data = {
       name: editName.value,
@@ -95,10 +94,9 @@ async function saveCategory() {
     }
     editOpen.value = false
     await loadData()
-  } catch {
+  } catch (e) {
     error.value = t('common.error')
-  } finally {
-    saving.value = false
+    throw e
   }
 }
 
@@ -207,9 +205,7 @@ async function moveDown(index: number) {
 
         <div class="flex justify-end gap-3">
           <SecondaryButton @click="editOpen = false">{{ t('common.cancel') }}</SecondaryButton>
-          <PrimaryButton :disabled="saving || !editName.trim()" @click="saveCategory">
-            {{ saving ? t('common.loading') : t('common.save') }}
-          </PrimaryButton>
+          <SaveButton :disabled="!editName.trim()" :action="saveCategory"/>
         </div>
       </div>
     </Modal>

@@ -37,12 +37,7 @@ class ExchangeRepositoryTest extends RepositoryTestBase {
         inventory = inventoryRepo.create(station.id(), "Ex Inventory", InventoryType.EXTERNAL, true);
         inventoryRepo.createSize(inventory.id(), "M", 1, null);
         int sizeId = inventoryRepo.findSizes(inventory.id()).getFirst().id();
-        var item = inventoryRepo.createItem(
-                inventory.id(),
-                "EX-001",
-                "Item",
-                sizeId,
-                (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null);
+        var item = inventoryRepo.createItem(inventory.id(), "EX-001", "Item", sizeId, null);
         itemId = item.id();
     }
 

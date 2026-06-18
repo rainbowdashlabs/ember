@@ -124,7 +124,11 @@ async function handleDelete() {
   }
 }
 
-function openApply(presetId: number) { applyPresetId.value = presetId; selectedStations.value = []; showApplyModal.value = true }
+function openApply(presetId: number) {
+  applyPresetId.value = presetId
+  selectedStations.value = props.stations.filter(s => s.presetId === presetId).map(s => s.stationId)
+  showApplyModal.value = true
+}
 
 async function handleApply() {
   if (applyPresetId.value != null && selectedStations.value.length > 0) {

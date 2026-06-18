@@ -89,7 +89,13 @@ class IcalEventRendererTest {
                 false,
                 null,
                 false,
-                false);
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
     }
 
     // -- visibility --

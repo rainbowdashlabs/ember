@@ -26,6 +26,7 @@ import LabelSelectInput from '@/components/input/select/LabelSelectInput.vue'
 import TicketChecklist from './boardview/TicketChecklist.vue'
 import TicketActivity from './boardview/TicketActivity.vue'
 import TicketLinksSection from './boardview/TicketLinksSection.vue'
+import LaneStatusMover from './boardview/LaneStatusMover.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -73,7 +74,13 @@ const ticketHistory = ref<BoardTicketHistoryEntry[]>([])
 const kbLinks = ref<BoardTicketKbLink[]>([])
 const showKbSearch = ref(false)
 const kbSearchQuery = ref('')
-const kbSearchResults = ref<{ id: number; title: string; path: string }[]>([])
+interface KbSearchResult {
+  id: number
+  title: string
+  path: string
+}
+
+const kbSearchResults = ref<KbSearchResult[]>([])
 const comments = ref<BoardComment[]>([])
 const weblinks = ref<BoardWeblink[]>([])
 const attachments = ref<BoardTicketAttachment[]>([])
@@ -85,7 +92,6 @@ const showChecklist = ref(false)
 const showAddLink = ref(false)
 const showAddWeblink = ref(false)
 const editingTitle = ref(false); const editingDescription = ref(false)
-const editingLane = ref(false)
 const editingPriority = ref(false)
 const editingAssignee = ref(false)
 const editingDueDate = ref(false)
@@ -242,25 +248,16 @@ async function deleteCommentFn(commentId: number) {
 function renderMarkdown(md: string): string { try { return marked.parse(md) as string } catch { return md } }
 function formatDate(iso: string): string { return new Date(iso).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) }
 
-const currentLaneIndex = computed(() => ticket.value ? lanes.value.findIndex(l => l.id === ticket.value!.laneId) : -1)
-const availableLanes = computed(() => {
-    const idx = currentLaneIndex.value
-    if (idx < 0) return lanes.value
-    const result = []
-    if (idx < lanes.value.length - 1) result.push(lanes.value[idx + 1])
-    result.push(lanes.value[idx])
-    if (idx > 0) result.push(lanes.value[idx - 1])
-    return result
-})
 
 const checklistVisible = computed(() => checklist.value.length > 0 || showChecklist.value || newChecklistTitle.value !== '')
 
 const rightColRef = ref<HTMLElement | null>(null)
-function closeAllEditors() { editingLane.value = false; editingPriority.value = false; editingAssignee.value = false; editingDueDate.value = false }
+const laneMoverRef = ref<InstanceType<typeof LaneStatusMover> | null>(null)
+function closeAllEditors() { laneMoverRef.value?.close(); editingPriority.value = false; editingAssignee.value = false; editingDueDate.value = false }
 function handleClickOutside(e: MouseEvent) {
     if (showAddMenu.value && addMenuRef.value && !addMenuRef.value.contains(e.target as Node)) showAddMenu.value = false
     if (showTicketMenu.value) showTicketMenu.value = false
-    if (rightColRef.value && !rightColRef.value.contains(e.target as Node)) { editingLane.value = false; editingPriority.value = false; editingAssignee.value = false; editingDueDate.value = false }
+    if (rightColRef.value && !rightColRef.value.contains(e.target as Node)) { laneMoverRef.value?.close(); editingPriority.value = false; editingAssignee.value = false; editingDueDate.value = false }
 }
 onMounted(() => { loadData(); document.addEventListener('click', handleClickOutside) })
 onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
@@ -410,12 +407,7 @@ watch(ticketNumber, loadData)
                 <!-- Right column -->
                 <div ref="rightColRef" class="space-y-4">
                     <!-- Lane status -->
-                    <div class="relative">
-                        <div class="px-3 py-2 rounded-theme text-sm font-medium text-center cursor-pointer" :style="{ backgroundColor: lanes.find(l => l.id === ticket?.laneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === ticket?.laneId)?.color ?? '#fd4f00') }" @click.stop="canEdit && (editingLane ? (editingLane = false) : (closeAllEditors(), editingLane = true))">{{ lanes.find(l => l.id === ticket?.laneId)?.name }}</div>
-                        <div v-if="editingLane && canEdit" class="absolute z-20 mt-1 w-full rounded-theme border border-[var(--border)] bg-[var(--bg)] shadow-lg overflow-hidden">
-                            <div v-for="lane in availableLanes.filter(l => l.id !== ticket?.laneId)" :key="lane.id" class="px-3 py-2 text-sm font-medium text-center cursor-pointer hover:opacity-90" :style="{ backgroundColor: lane.color ?? 'var(--primary)', color: contrastTextColor(lane.color ?? '#fd4f00') }" @click="moveTo(lane.id); editingLane = false">{{ lane.name }}</div>
-                        </div>
-                    </div>
+                    <LaneStatusMover ref="laneMoverRef" :lanes="lanes" :current-lane-id="ticket?.laneId" :can-edit="canEdit" @move="moveTo"/>
 
                     <!-- Labels -->
                     <div v-if="allLabels.length > 0">

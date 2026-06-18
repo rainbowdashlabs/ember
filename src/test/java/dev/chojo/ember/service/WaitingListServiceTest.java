@@ -5,28 +5,40 @@
  */
 package dev.chojo.ember.service;
 
+import de.chojo.sadu.queries.api.call.Call;
+import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.auth.PasswordHasher;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.node.IntNode;
+import tools.jackson.databind.node.StringNode;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class WaitingListServiceTest extends RepositoryTestBase {
+    private static final ConsentProof TEST_CONSENT =
+            new ConsentProof("c", "p", "t", "127.0.0.1", "DE", "test-agent", Instant.now());
+
     private static WaitingListService service;
     private static Station station;
     private int listId;
@@ -50,7 +62,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 emailService,
                 notificationService,
                 passwordHasher,
-                new dev.chojo.ember.event.DomainEventBus(java.util.Set.of()));
+                new DomainEventBus(Set.of()));
         station = stationRepo.create("WaitlistStation");
     }
 
@@ -85,26 +97,14 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void fieldCrud() {
         var field = service.createField(
-                listId,
-                "Name",
-                dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType.TEXT,
-                WaitingListFieldConfig.parse("{}"),
-                0,
-                true,
-                true);
+                listId, "Name", WaitingListFieldType.TEXT, WaitingListFieldConfig.parse("{}"), 0, true, true);
         assertNotNull(field);
 
         var fields = service.findFieldsByList(listId);
         assertEquals(1, fields.size());
 
         var updated = service.updateField(
-                field.id(),
-                "Full Name",
-                dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType.TEXT,
-                WaitingListFieldConfig.parse("{}"),
-                0,
-                false,
-                true);
+                field.id(), "Full Name", WaitingListFieldType.TEXT, WaitingListFieldConfig.parse("{}"), 0, false, true);
         assertTrue(updated.isPresent());
         assertEquals("Full Name", updated.get().name());
 
@@ -127,21 +127,16 @@ class WaitingListServiceTest extends RepositoryTestBase {
     void registerViaInvite() {
         var invite = service.createInvite(listId, 1, null);
         var field = service.createField(
-                listId,
-                "Age",
-                dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType.NUMBER,
-                WaitingListFieldConfig.parse("{}"),
-                0,
-                true,
-                true);
+                listId, "Age", WaitingListFieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 0, true, true);
 
         var entry = service.registerViaInvite(
                 invite.code(),
                 "Max",
                 "Müller",
                 guardians("Sabine", "test@test.com"),
-                Map.of(field.id(), "8"),
-                "Test note");
+                Map.of(field.id(), IntNode.valueOf(8)),
+                "Test note",
+                TEST_CONSENT);
 
         assertNotNull(entry);
         assertEquals("Max", entry.firstname());
@@ -155,17 +150,18 @@ class WaitingListServiceTest extends RepositoryTestBase {
         // Values should be stored
         var values = service.findEntryValues(entry.id());
         assertEquals(1, values.size());
-        assertEquals("8", values.getFirst().value());
+        assertEquals(IntNode.valueOf(8), values.getFirst().value());
     }
 
     @Test
     void registerViaInviteRejectsUsedUpCode() {
         var invite = service.createInvite(listId, 1, null);
-        service.registerViaInvite(invite.code(), "A", "", guardians("", "a@test.com"), Map.of(), null);
+        service.registerViaInvite(invite.code(), "A", "", guardians("", "a@test.com"), Map.of(), null, TEST_CONSENT);
 
         assertThrows(
                 IllegalStateException.class,
-                () -> service.registerViaInvite(invite.code(), "B", "", guardians("", "b@test.com"), Map.of(), null));
+                () -> service.registerViaInvite(
+                        invite.code(), "B", "", guardians("", "b@test.com"), Map.of(), null, TEST_CONSENT));
     }
 
     @Test
@@ -190,7 +186,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void selfServiceByToken() {
         var invite = service.createInvite(listId, 1, null);
-        var entry = service.registerViaInvite(invite.code(), "Max", "", guardians("", "test@test.com"), Map.of(), null);
+        var entry = service.registerViaInvite(
+                invite.code(), "Max", "", guardians("", "test@test.com"), Map.of(), null, TEST_CONSENT);
 
         // Find by token
         var found = service.findEntryByToken(entry.accessToken());
@@ -210,21 +207,9 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void scoreEvaluation() {
         var ageField = service.createField(
-                listId,
-                "Alter",
-                dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType.NUMBER,
-                WaitingListFieldConfig.parse("{}"),
-                0,
-                true,
-                true);
+                listId, "Alter", WaitingListFieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 0, true, true);
         var expField = service.createField(
-                listId,
-                "Erfahrung",
-                dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType.ENUM,
-                WaitingListFieldConfig.parse("{}"),
-                1,
-                true,
-                true);
+                listId, "Erfahrung", WaitingListFieldType.ENUM, WaitingListFieldConfig.parse("{}"), 1, true, true);
         var list = service.update(
                         listId,
                         "Scored",
@@ -242,7 +227,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 "Max",
                 "",
                 guardians("", "test@test.com"),
-                Map.of(ageField.id(), "10", expField.id(), "\"fortgeschritten\""),
+                Map.of(ageField.id(), IntNode.valueOf(10), expField.id(), StringNode.valueOf("fortgeschritten")),
                 "");
 
         var values = service.findEntryValues(entry.id());
@@ -300,17 +285,13 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void updateEntryWithFieldValues() {
         var field = service.createField(
-                listId,
-                "Score",
-                dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType.NUMBER,
-                WaitingListFieldConfig.parse("{}"),
-                0,
-                false,
-                true);
-        var entry = service.createEntry(listId, "A", "B", guardians("", "e@test.com"), Map.of(field.id(), "5"), "");
-        service.updateEntry(entry.id(), "A", "B", guardians("", "e@test.com"), "", Map.of(field.id(), "10"));
+                listId, "Score", WaitingListFieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 0, false, true);
+        var entry = service.createEntry(
+                listId, "A", "B", guardians("", "e@test.com"), Map.of(field.id(), IntNode.valueOf(5)), "");
+        service.updateEntry(
+                entry.id(), "A", "B", guardians("", "e@test.com"), "", Map.of(field.id(), IntNode.valueOf(10)));
         var values = service.findEntryValues(entry.id());
-        assertTrue(values.stream().anyMatch(v -> "10".equals(v.value())));
+        assertTrue(values.stream().anyMatch(v -> IntNode.valueOf(10).equals(v.value())));
     }
 
     @Test
@@ -418,18 +399,17 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void scoreEvaluationWithAgeFunction() {
         var dobField = service.createField(
-                listId,
-                "Geburtsdatum",
-                dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType.DATE,
-                WaitingListFieldConfig.parse("{}"),
-                0,
-                true,
-                true);
+                listId, "Geburtsdatum", WaitingListFieldType.DATE, WaitingListFieldConfig.parse("{}"), 0, true, true);
         var list = service.update(listId, "AgeScored", "", "age([Geburtsdatum])", 180, null, null, 5, false)
                 .orElseThrow();
 
         var entry = service.createEntry(
-                listId, "Max", "", guardians("", "test@test.com"), Map.of(dobField.id(), "\"2016-05-26\""), "");
+                listId,
+                "Max",
+                "",
+                guardians("", "test@test.com"),
+                Map.of(dobField.id(), StringNode.valueOf("2016-05-26")),
+                "");
 
         var values = service.findEntryValues(entry.id());
         var fields = service.findFieldsByList(listId);
@@ -492,7 +472,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> service.registerViaInvite(
-                        "nonexistent-code", "A", "", guardians("", "a@test.com"), Map.of(), null));
+                        "nonexistent-code", "A", "", guardians("", "a@test.com"), Map.of(), null, TEST_CONSENT));
     }
 
     @Test
@@ -510,7 +490,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var invite = service.createInvite(listId, 1, Instant.now().minusSeconds(3600));
         assertThrows(
                 IllegalStateException.class,
-                () -> service.registerViaInvite(invite.code(), "A", "", guardians("", "a@test.com"), Map.of(), null));
+                () -> service.registerViaInvite(
+                        invite.code(), "A", "", guardians("", "a@test.com"), Map.of(), null, TEST_CONSENT));
     }
 
     @Test
@@ -619,17 +600,11 @@ class WaitingListServiceTest extends RepositoryTestBase {
     void scoreEvaluationWithInvalidDateField() {
         // age() function with an invalid date string — should not throw, age = 0
         var dobField = service.createField(
-                listId,
-                "BadDate",
-                dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType.DATE,
-                WaitingListFieldConfig.parse("{}"),
-                0,
-                false,
-                true);
+                listId, "BadDate", WaitingListFieldType.DATE, WaitingListFieldConfig.parse("{}"), 0, false, true);
         var list = service.update(listId, "BadDateScored", "", "age([BadDate])", 180, null, null, 5, false)
                 .orElseThrow();
         var entry = service.createEntry(
-                listId, "A", "", guardians("", "t@t.com"), Map.of(dobField.id(), "\"not-a-date\""), "");
+                listId, "A", "", guardians("", "t@t.com"), Map.of(dobField.id(), StringNode.valueOf("not-a-date")), "");
         var values = service.findEntryValues(entry.id());
         var fields = service.findFieldsByList(listId);
         double score = service.evaluateScore(entry, values, fields, list.scoringFormula());
@@ -672,21 +647,9 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void findPublicFieldsByList() {
         var publicField = service.createField(
-                listId,
-                "PubField",
-                dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType.TEXT,
-                WaitingListFieldConfig.parse("{}"),
-                0,
-                false,
-                true);
+                listId, "PubField", WaitingListFieldType.TEXT, WaitingListFieldConfig.parse("{}"), 0, false, true);
         var privateField = service.createField(
-                listId,
-                "PrivField",
-                dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType.TEXT,
-                WaitingListFieldConfig.parse("{}"),
-                1,
-                false,
-                false);
+                listId, "PrivField", WaitingListFieldType.TEXT, WaitingListFieldConfig.parse("{}"), 1, false, false);
         var publicFields = service.findPublicFieldsByList(listId);
         assertTrue(publicFields.stream().anyMatch(f -> f.id() == publicField.id()));
         assertTrue(publicFields.stream().noneMatch(f -> f.id() == privateField.id()));
@@ -697,13 +660,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var publicList =
                 service.create(station.id(), "PubReg " + UUID.randomUUID(), "", null, 180, null, null, 5, true);
         service.createField(
-                publicList.id(),
-                "Age",
-                dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType.NUMBER,
-                WaitingListFieldConfig.parse("{}"),
-                0,
-                true,
-                true);
+                publicList.id(), "Age", WaitingListFieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 0, true, true);
 
         service.submitPublicRegistration(
                 publicList.id(),
@@ -712,20 +669,20 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 "verify-test@test.com",
                 List.of(new GuardianInput("Parent", "Last", "parent@test.com", "")),
                 Map.of(),
-                "notes");
+                "notes",
+                TEST_CONSENT);
 
         // Retrieve the token from the repository (via the verification table)
         var token = waitingListRepo.findPublicByStation(station.id()).stream()
                 .flatMap(l -> {
                     // We know a token was created — find it
-                    return java.util.stream.Stream.empty();
+                    return Stream.empty();
                 })
                 .findFirst();
 
         // Verify via the DB directly
-        var tokens = de.chojo.sadu.queries.api.query.Query.query(
-                        "SELECT token FROM waitlist_verification_token WHERE list_id = :list_id")
-                .single(de.chojo.sadu.queries.api.call.Call.of().bind("list_id", publicList.id()))
+        var tokens = Query.query("SELECT token FROM waitlist_verification_token WHERE list_id = :list_id")
+                .single(Call.of().bind("list_id", publicList.id()))
                 .map(row -> row.getString("token"))
                 .all();
         assertFalse(tokens.isEmpty());
@@ -752,7 +709,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 "pending@test.com",
                 UUID.randomUUID().toString(),
                 "",
-                WaitingListEntryStatus.PENDING);
+                WaitingListEntryStatus.PENDING,
+                null);
 
         var approved = service.approvePendingEntry(entry.id());
         assertEquals(WaitingListEntryStatus.WAITING, approved.status());
@@ -770,7 +728,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 "reject@test.com",
                 UUID.randomUUID().toString(),
                 "",
-                WaitingListEntryStatus.PENDING);
+                WaitingListEntryStatus.PENDING,
+                null);
 
         service.rejectPendingEntry(entry.id());
         assertTrue(service.findEntryById(entry.id()).isEmpty());
@@ -781,7 +740,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
         // listId is not public
         assertThrows(
                 IllegalStateException.class,
-                () -> service.submitPublicRegistration(listId, "Test", "", "t@t.com", List.of(), Map.of(), ""));
+                () -> service.submitPublicRegistration(
+                        listId, "Test", "", "t@t.com", List.of(), Map.of(), "", TEST_CONSENT));
     }
 
     @Test
@@ -793,27 +753,16 @@ class WaitingListServiceTest extends RepositoryTestBase {
     void submitPublicRegistrationListNotFoundThrows() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> service.submitPublicRegistration(99999, "A", "", "a@a.com", List.of(), Map.of(), ""));
+                () -> service.submitPublicRegistration(
+                        99999, "A", "", "a@a.com", List.of(), Map.of(), "", TEST_CONSENT));
     }
 
     @Test
     void findPublicFieldsByListReturnsOnlyPublic() {
         var pub = service.createField(
-                listId,
-                "PubF2",
-                dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType.TEXT,
-                WaitingListFieldConfig.parse("{}"),
-                10,
-                false,
-                true);
+                listId, "PubF2", WaitingListFieldType.TEXT, WaitingListFieldConfig.parse("{}"), 10, false, true);
         var priv = service.createField(
-                listId,
-                "PrivF2",
-                dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType.TEXT,
-                WaitingListFieldConfig.parse("{}"),
-                11,
-                false,
-                false);
+                listId, "PrivF2", WaitingListFieldType.TEXT, WaitingListFieldConfig.parse("{}"), 11, false, false);
         var pubFields = service.findPublicFieldsByList(listId);
         assertTrue(pubFields.stream().anyMatch(f -> f.id() == pub.id()));
         assertFalse(pubFields.stream().anyMatch(f -> f.id() == priv.id()));

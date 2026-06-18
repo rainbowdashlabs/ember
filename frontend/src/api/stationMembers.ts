@@ -126,6 +126,10 @@ export async function setUserType(memberId: number, userType: string): Promise<v
     await client.put(`/station-members/${memberId}/user-type`, { userType })
 }
 
+export async function setJoinDate(memberId: number, joinDate: string): Promise<void> {
+    await client.put(`/station-members/${memberId}/join-date`, { joinDate })
+}
+
 export async function getUserTypePermissions(userType: string): Promise<PermissionGrant[]> {
     const res = await client.get<PermissionGrant[]>(`/user-type-permissions/${userType}`)
     return res.data

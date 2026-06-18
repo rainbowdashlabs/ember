@@ -39,7 +39,12 @@ const {refresh: refreshSidebarCounts} = useSidebarCounts()
 const registrations = ref<EventRegistrationEntry[]>([])
 const registrationStats = ref<MemberRegistrationStats[]>([])
 const federatedRegs = ref<FederatedEventRegistration[]>([])
-const allMembers = ref<{ id: number; name: string }[]>([])
+interface MemberOption {
+  id: number
+  name: string
+}
+
+const allMembers = ref<MemberOption[]>([])
 const registering = ref(false)
 const error = ref('')
 const manualRegisterMemberId = ref('')

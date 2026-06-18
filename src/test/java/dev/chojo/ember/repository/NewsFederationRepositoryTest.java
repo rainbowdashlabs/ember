@@ -7,11 +7,13 @@ package dev.chojo.ember.repository;
 
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsFederationShare;
+import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
 import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import org.junit.jupiter.api.AfterAll;
@@ -88,14 +90,11 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void setShareAllPartners() {
-        var share = fedRepo.setShare(
-                news1.id(),
-                dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS,
-                dev.chojo.ember.feature.news.entity.NewsVisibilityRole.MEMBER);
+        var share = fedRepo.setShare(news1.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER);
         assertNotNull(share);
         assertEquals(news1.id(), share.newsId());
-        assertEquals(dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS, share.scope());
-        assertEquals(dev.chojo.ember.feature.news.entity.NewsVisibilityRole.MEMBER, share.visibilityRole());
+        assertEquals(ShareScope.ALL_PARTNERS, share.scope());
+        assertEquals(NewsVisibilityRole.MEMBER, share.visibilityRole());
         shareId = share.id();
     }
 
@@ -105,12 +104,8 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
         var found = fedRepo.findShareByNews(news1.id());
         assertTrue(found.isPresent());
         assertEquals(shareId, found.get().id());
-        assertEquals(
-                dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS,
-                found.get().scope());
-        assertEquals(
-                dev.chojo.ember.feature.news.entity.NewsVisibilityRole.MEMBER,
-                found.get().visibilityRole());
+        assertEquals(ShareScope.ALL_PARTNERS, found.get().scope());
+        assertEquals(NewsVisibilityRole.MEMBER, found.get().visibilityRole());
     }
 
     @Test
@@ -124,13 +119,10 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(4)
     void setShareUpdatesExisting() {
-        var updated = fedRepo.setShare(
-                news1.id(),
-                dev.chojo.ember.feature.federation.entity.ShareScope.SPECIFIC,
-                dev.chojo.ember.feature.news.entity.NewsVisibilityRole.TEAM);
+        var updated = fedRepo.setShare(news1.id(), ShareScope.SPECIFIC, NewsVisibilityRole.TEAM);
         assertEquals(shareId, updated.id(), "Should reuse same share ID");
-        assertEquals(dev.chojo.ember.feature.federation.entity.ShareScope.SPECIFIC, updated.scope());
-        assertEquals(dev.chojo.ember.feature.news.entity.NewsVisibilityRole.TEAM, updated.visibilityRole());
+        assertEquals(ShareScope.SPECIFIC, updated.scope());
+        assertEquals(NewsVisibilityRole.TEAM, updated.visibilityRole());
     }
 
     // -- Share targets --
@@ -176,10 +168,7 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
     @Order(20)
     void findSharedNewsIdsAllPartners() {
         // Set news1 to ALL_PARTNERS
-        fedRepo.setShare(
-                news1.id(),
-                dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS,
-                dev.chojo.ember.feature.news.entity.NewsVisibilityRole.MEMBER);
+        fedRepo.setShare(news1.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER);
         var ids = fedRepo.findSharedNewsIds(partnerId, station.id());
         assertTrue(ids.contains(news1.id()));
     }
@@ -188,10 +177,7 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
     @Order(21)
     void findSharedNewsIdsSpecificWithTarget() {
         // Set news2 to SPECIFIC with partnerId
-        var share2 = fedRepo.setShare(
-                news2.id(),
-                dev.chojo.ember.feature.federation.entity.ShareScope.SPECIFIC,
-                dev.chojo.ember.feature.news.entity.NewsVisibilityRole.MEMBER);
+        var share2 = fedRepo.setShare(news2.id(), ShareScope.SPECIFIC, NewsVisibilityRole.MEMBER);
         fedRepo.setShareTargets(share2.id(), List.of(partnerId));
 
         var ids = fedRepo.findSharedNewsIds(partnerId, station.id());
@@ -230,7 +216,7 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
     void findVisibilityRole() {
         var role = fedRepo.findVisibilityRole(news1.id());
         assertTrue(role.isPresent());
-        assertEquals(dev.chojo.ember.feature.news.entity.NewsVisibilityRole.MEMBER, role.get());
+        assertEquals(NewsVisibilityRole.MEMBER, role.get());
     }
 
     @Test
@@ -253,10 +239,7 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
     @Order(41)
     void removeShareCascadesTargets() {
         // Create a new share with targets, then remove it
-        var share = fedRepo.setShare(
-                news3.id(),
-                dev.chojo.ember.feature.federation.entity.ShareScope.SPECIFIC,
-                dev.chojo.ember.feature.news.entity.NewsVisibilityRole.MEMBER);
+        var share = fedRepo.setShare(news3.id(), ShareScope.SPECIFIC, NewsVisibilityRole.MEMBER);
         fedRepo.setShareTargets(share.id(), List.of(partnerId));
         fedRepo.removeShare(news3.id());
 
@@ -276,14 +259,10 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(60)
     void newsFederationShareRecord() {
-        var share = new NewsFederationShare(
-                1,
-                2,
-                dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS,
-                dev.chojo.ember.feature.news.entity.NewsVisibilityRole.MEMBER);
+        var share = new NewsFederationShare(1, 2, ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER);
         assertEquals(1, share.id());
         assertEquals(2, share.newsId());
-        assertEquals(dev.chojo.ember.feature.federation.entity.ShareScope.ALL_PARTNERS, share.scope());
-        assertEquals(dev.chojo.ember.feature.news.entity.NewsVisibilityRole.MEMBER, share.visibilityRole());
+        assertEquals(ShareScope.ALL_PARTNERS, share.scope());
+        assertEquals(NewsVisibilityRole.MEMBER, share.visibilityRole());
     }
 }

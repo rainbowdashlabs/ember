@@ -9,7 +9,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import { marked } from 'marked'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
@@ -46,7 +46,6 @@ const selectedTagIds = ref<number[]>([])
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
 const loading = ref(true)
-const saving = ref(false)
 const error = ref('')
 
 const publicBlog = ref(false)
@@ -107,7 +106,6 @@ async function loadData() {
 
 async function save() {
   if (!title.value.trim() || !contentMarkdown.value.trim()) return
-  saving.value = true
   error.value = ''
   try {
     const data = {
@@ -139,10 +137,9 @@ async function save() {
     }
 
     await router.push({ name: 'news-list' })
-  } catch {
+  } catch (e) {
     error.value = t('common.error')
-  } finally {
-    saving.value = false
+    throw e
   }
 }
 
@@ -234,9 +231,7 @@ watch(loaded, (isLoaded) => {
 
         <div class="flex justify-end gap-3">
           <SecondaryButton @click="router.push({ name: 'news-list' })">{{ t('common.cancel') }}</SecondaryButton>
-          <PrimaryButton :disabled="saving || !title.trim() || !contentMarkdown.trim()" @click="save">
-            {{ saving ? t('common.loading') : t('common.save') }}
-          </PrimaryButton>
+          <SaveButton :disabled="!title.trim() || !contentMarkdown.trim()" :action="save"/>
         </div>
       </template>
     </div>

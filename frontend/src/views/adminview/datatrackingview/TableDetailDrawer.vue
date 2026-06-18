@@ -19,7 +19,7 @@ import type {
 import {TrackingStatus} from '@/api/dataTracking'
 import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
@@ -48,7 +48,6 @@ const stationTransfer = ref<TransferContext>({...props.entry.stationTransfer})
 const gdprExport = ref<GdprExportContext>({...props.entry.gdprExport})
 const gdprDeletion = ref<GdprDeletionContext>({...props.entry.gdprDeletion})
 const columns = ref<ColumnEntry[]>(props.entry.columns.map(c => ({...c})))
-const saving = ref(false)
 const error = ref('')
 
 watch(
@@ -116,7 +115,6 @@ function removeDeletionStrategy(index: number) {
 }
 
 async function save() {
-  saving.value = true
   error.value = ''
   try {
     const overrides: Record<string, boolean> = {}
@@ -135,8 +133,7 @@ async function save() {
     emit('close')
   } catch (e) {
     error.value = (e as Error).message || t('common.error')
-  } finally {
-    saving.value = false
+    throw e
   }
 }
 
@@ -152,7 +149,6 @@ function foreignKeyTooltip(column: string): string {
 }
 
 async function verifyAll() {
-  saving.value = true
   error.value = ''
   try {
     const updated = await dataTracking.verifyAllColumns(props.name)
@@ -160,8 +156,6 @@ async function verifyAll() {
     emit('updated', props.name, updated)
   } catch (e) {
     error.value = (e as Error).message || t('common.error')
-  } finally {
-    saving.value = false
   }
 }
 </script>
@@ -440,10 +434,7 @@ async function verifyAll() {
 
         <div class="sticky bottom-0 bg-(--bg) border-t border-(--border) -mx-4 px-4 py-3 flex items-center gap-2 justify-end">
           <SecondaryButton @click="emit('close')">{{ t('common.cancel') }}</SecondaryButton>
-          <PrimaryButton :disabled="saving" @click="save">
-            <font-awesome-icon v-if="saving" :icon="['fas', 'spinner']" class="animate-spin mr-2"/>
-            {{ t('common.save') }}
-          </PrimaryButton>
+          <SaveButton :action="save"/>
         </div>
       </div>
     </div>

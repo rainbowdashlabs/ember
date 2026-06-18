@@ -12,14 +12,11 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class FeedMetricsServiceTest {
@@ -109,14 +106,14 @@ class FeedMetricsServiceTest {
 
     private static void waitForExecutor(FeedMetricsService service) throws Exception {
         // Submit a tracer task; once it runs, all previously-submitted work has too.
-        var marker = new java.util.concurrent.CompletableFuture<Void>();
+        var marker = new CompletableFuture<Void>();
         getWriter(service).execute(() -> marker.complete(null));
         marker.get(5, TimeUnit.SECONDS);
     }
 
-    private static java.util.concurrent.ExecutorService getWriter(FeedMetricsService service) throws Exception {
+    private static ExecutorService getWriter(FeedMetricsService service) throws Exception {
         var field = FeedMetricsService.class.getDeclaredField("writer");
         field.setAccessible(true);
-        return (java.util.concurrent.ExecutorService) field.get(service);
+        return (ExecutorService) field.get(service);
     }
 }

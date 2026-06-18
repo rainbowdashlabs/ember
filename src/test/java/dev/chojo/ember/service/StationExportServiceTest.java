@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.MethodOrderer;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -136,8 +138,7 @@ class StationExportServiceTest extends RepositoryTestBase {
     @Order(11)
     @SuppressWarnings("unchecked")
     void exportTableContainsDisabledModulesAsFlatList() {
-        stationRepo.setDisabledModules(
-                stationId, java.util.Set.of(dev.chojo.ember.feature.station.entity.StationModule.LOST_AND_FOUND));
+        stationRepo.setDisabledModules(stationId, Set.of(StationModule.LOST_AND_FOUND));
         var data = exportService.exportTable(stationId, "station_disabled_module", 0, 500);
 
         var modules = (List<Object>) data.get("station_disabled_module");

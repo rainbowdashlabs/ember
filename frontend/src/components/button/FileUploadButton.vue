@@ -6,13 +6,15 @@
 <script lang="ts" setup>
 import {ref} from 'vue'
 
-defineProps<{
+const props = defineProps<{
   accept?: string
   disabled?: boolean
+  multiple?: boolean
 }>()
 
 const emit = defineEmits<{
   select: [file: File]
+  selectMany: [files: File[]]
 }>()
 
 const inputRef = ref<HTMLInputElement | null>(null)
@@ -20,9 +22,10 @@ defineExpose({ inputRef })
 
 function handleChange(event: Event) {
   const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (file) {
-    emit('select', file)
+  const files = input.files
+  if (files && files.length > 0) {
+    if (props.multiple) emit('selectMany', Array.from(files))
+    else emit('select', files[0])
   }
   input.value = ''
 }
@@ -39,6 +42,7 @@ function handleChange(event: Event) {
         ref="inputRef"
         :accept="accept"
         :disabled="disabled"
+        :multiple="multiple"
         class="hidden"
         type="file"
         @change="handleChange"

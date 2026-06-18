@@ -5,13 +5,16 @@
  */
 package dev.chojo.ember.repository;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
+import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
+import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -24,11 +27,15 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class FormRepositoryTest extends RepositoryTestBase {
+    private static final ConsentProof TEST_CONSENT =
+            new ConsentProof("c", "p", "t", "127.0.0.1", "DE", "test-agent", Instant.now());
+
     private static Station station;
     private static Account account;
     private static StationMember member;
@@ -56,7 +63,8 @@ class FormRepositoryTest extends RepositoryTestBase {
     void create() {
         Instant start = Instant.parse("2026-06-01T00:00:00Z");
         Instant end = Instant.parse("2026-07-01T00:00:00Z");
-        Form form = formRepo.create(station.id(), "Test Form", "A test form", false, true, start, end, member.id());
+        Form form = formRepo.create(
+                station.id(), "Test Form", "A test form", false, true, start, end, member.id(), FormPurpose.INTERNAL);
         assertNotNull(form);
         assertEquals("Test Form", form.title());
         assertEquals(Form.FormStatus.DRAFT, form.status());
@@ -76,6 +84,26 @@ class FormRepositoryTest extends RepositoryTestBase {
         var forms = formRepo.findByStation(station.id());
         assertEquals(1, forms.size());
         assertEquals("Test Form", forms.getFirst().title());
+    }
+
+    @Test
+    @Order(3)
+    void findByStationAndPurpose() {
+        var internal = formRepo.findByStationAndPurpose(station.id(), FormPurpose.INTERNAL);
+        assertEquals(1, internal.size());
+        assertEquals("Test Form", internal.getFirst().title());
+        var contact = formRepo.findByStationAndPurpose(station.id(), FormPurpose.CONTACT);
+        assertTrue(contact.isEmpty());
+    }
+
+    @Test
+    @Order(3)
+    void findByPublicUid() {
+        var form = formRepo.findById(formId).orElseThrow();
+        var byUid = formRepo.findByPublicUid(form.publicUid());
+        assertTrue(byUid.isPresent());
+        assertEquals(formId, byUid.get().id());
+        assertTrue(formRepo.findByPublicUid(UUID.randomUUID()).isEmpty());
     }
 
     @Test
@@ -173,6 +201,30 @@ class FormRepositoryTest extends RepositoryTestBase {
         assertFalse(formRepo.hasResponded(formId, 99999));
     }
 
+    @Test
+    @Order(25)
+    void createAnonymousResponseAndFindByHash() {
+        byte[] hashA = new byte[32];
+        for (int i = 0; i < 32; i++) hashA[i] = (byte) i;
+        byte[] hashB = new byte[32];
+        for (int i = 0; i < 32; i++) hashB[i] = (byte) (i + 1);
+
+        var anonymous = formRepo.createAnonymousResponse(formId, hashA, TEST_CONSENT);
+        assertNotNull(anonymous);
+        assertNull(anonymous.memberId());
+        assertNull(anonymous.submittedBy());
+        assertNotNull(anonymous.submitterHash());
+        assertEquals(32, anonymous.submitterHash().length);
+
+        var byHashA = formRepo.findAnonymousResponse(formId, hashA);
+        assertTrue(byHashA.isPresent());
+        assertEquals(anonymous.id(), byHashA.get().id());
+
+        assertTrue(formRepo.findAnonymousResponse(formId, hashB).isEmpty());
+
+        formRepo.deleteResponse(anonymous.id());
+    }
+
     // -- Answers --
 
     @Test
@@ -208,7 +260,7 @@ class FormRepositoryTest extends RepositoryTestBase {
                 "form_restriction",
                 "form_id",
                 formId,
-                List.of(dev.chojo.ember.api.auth.StationUserType.MEMBER, dev.chojo.ember.api.auth.StationUserType.TEAM),
+                List.of(StationUserType.MEMBER, StationUserType.TEAM),
                 List.of(),
                 List.of(),
                 List.of());
@@ -223,6 +275,69 @@ class FormRepositoryTest extends RepositoryTestBase {
     }
 
     // -- Cleanup --
+
+    @Test
+    @Order(60)
+    void findResponseByIdAndAcknowledge() {
+        var response = formRepo.findResponseById(responseId);
+        assertTrue(response.isPresent());
+        assertEquals(formId, response.get().formId());
+        assertTrue(formRepo.findResponseById(99999).isEmpty());
+
+        formRepo.acknowledgeResponse(responseId, member.id());
+        var acked = formRepo.findResponseById(responseId).orElseThrow();
+        assertNotNull(acked.acknowledgedAt());
+        assertEquals(member.id(), acked.acknowledgedBy());
+
+        formRepo.acknowledgeResponse(responseId, 99999);
+        var stillAcked = formRepo.findResponseById(responseId).orElseThrow();
+        assertEquals(member.id(), stillAcked.acknowledgedBy());
+    }
+
+    @Test
+    @Order(61)
+    void findForcedPendingEmpty() {
+        assertTrue(formRepo.findForcedPending(station.id(), member.id()).isEmpty());
+    }
+
+    @Test
+    @Order(62)
+    void findByStationForMember() {
+        var forms = formRepo.findByStationForMember(station.id(), member.id());
+        assertNotNull(forms);
+    }
+
+    @Test
+    @Order(63)
+    void deleteQuestionsByForm() {
+        var separateForm = formRepo.create(
+                station.id(), "Bulk Delete", "x", false, true, null, null, member.id(), FormPurpose.INTERNAL);
+        try {
+            formRepo.createQuestion(
+                    separateForm.id(),
+                    0,
+                    FormQuestionType.TEXT,
+                    "Q1",
+                    "",
+                    false,
+                    false,
+                    new FormQuestionConfig.Text(false));
+            formRepo.createQuestion(
+                    separateForm.id(),
+                    1,
+                    FormQuestionType.TEXT,
+                    "Q2",
+                    "",
+                    false,
+                    false,
+                    new FormQuestionConfig.Text(false));
+            assertEquals(2, formRepo.findQuestions(separateForm.id()).size());
+            formRepo.deleteQuestionsByForm(separateForm.id());
+            assertTrue(formRepo.findQuestions(separateForm.id()).isEmpty());
+        } finally {
+            formRepo.delete(separateForm.id());
+        }
+    }
 
     @Test
     @Order(90)

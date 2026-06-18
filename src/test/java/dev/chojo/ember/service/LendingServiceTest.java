@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -74,12 +75,7 @@ class LendingServiceTest extends RepositoryTestBase {
         // Create inventory
         var inv = inventoryRepo.create(stationA.id(), "LendSvcInventory", InventoryType.INTERNAL, false);
         inventoryIdA = inv.id();
-        var item = inventoryRepo.createItem(
-                inventoryIdA,
-                "LSVC-001",
-                "Lend Svc Item",
-                null,
-                (dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata) null);
+        var item = inventoryRepo.createItem(inventoryIdA, "LSVC-001", "Lend Svc Item", null, null);
         itemIdA = item.id();
 
         // Create federation between A and B (local, remoteHost = null)
@@ -500,8 +496,8 @@ class LendingServiceTest extends RepositoryTestBase {
         assertTrue(messages.stream().anyMatch(m -> m.message().equals("Msg from B side")));
         // Messages should be sorted by createdAt
         for (int i = 1; i < messages.size(); i++) {
-            assertTrue(
-                    !messages.get(i).createdAt().isBefore(messages.get(i - 1).createdAt()),
+            assertFalse(
+                    messages.get(i).createdAt().isBefore(messages.get(i - 1).createdAt()),
                     "Messages should be sorted by createdAt");
         }
     }
@@ -509,12 +505,45 @@ class LendingServiceTest extends RepositoryTestBase {
     @Test
     @Order(204)
     void availableInventoryEntryRecord() {
-        var entry = new LendingService.AvailableInventoryEntry(42, "Test Inv", 7, "Station X", 5);
+        var entry = new LendingService.AvailableInventoryEntry(42, "Test Inv", 7, "Station X", 5, null);
         assertEquals(42, entry.inventoryId());
         assertEquals("Test Inv", entry.inventoryName());
         assertEquals(7, entry.stationId());
         assertEquals("Station X", entry.stationName());
         assertEquals(5, entry.availableCount());
+        assertNull(entry.distanceKm());
+    }
+
+    @Test
+    @Order(204)
+    void findAvailableInventoryDistanceEnrichment() {
+        // Local station (B) has no coords → distance enrichment is a no-op.
+        var before = service.findAvailableInventory(stationB.id(), "LendSvc", null, null);
+        assertTrue(before.stream().anyMatch(e -> e.inventoryId() == inventoryIdA));
+        assertTrue(before.stream().allMatch(e -> e.distanceKm() == null));
+
+        // Give both stations coordinates: Munich and Berlin.
+        stationRepo.updateLocation(
+                stationB.id(), null, null, null, null, new BigDecimal("52.520008"), new BigDecimal("13.404954"));
+        stationRepo.updateLocation(
+                stationA.id(), null, null, null, null, new BigDecimal("48.137154"), new BigDecimal("11.576124"));
+
+        var enriched = service.findAvailableInventory(stationB.id(), "LendSvc", null, null);
+        var aEntry = enriched.stream()
+                .filter(e -> e.inventoryId() == inventoryIdA)
+                .findFirst()
+                .orElseThrow();
+        assertNotNull(aEntry.distanceKm());
+        assertTrue(aEntry.distanceKm() > 400 && aEntry.distanceKm() < 600);
+
+        // Drop A's coordinates again — the partner-side null branch must still produce a
+        // result with null distance.
+        stationRepo.updateLocation(stationA.id(), null, null, null, null, null, null);
+        var partial = service.findAvailableInventory(stationB.id(), "LendSvc", null, null);
+        assertTrue(partial.stream().filter(e -> e.inventoryId() == inventoryIdA).allMatch(e -> e.distanceKm() == null));
+
+        // Cleanup so other tests see fresh state.
+        stationRepo.updateLocation(stationB.id(), null, null, null, null, null, null);
     }
 
     @Test
@@ -559,8 +588,8 @@ class LendingServiceTest extends RepositoryTestBase {
         assertFalse(messages.isEmpty());
         // Verify sorted by createdAt
         for (int i = 1; i < messages.size(); i++) {
-            assertTrue(
-                    !messages.get(i).createdAt().isBefore(messages.get(i - 1).createdAt()),
+            assertFalse(
+                    messages.get(i).createdAt().isBefore(messages.get(i - 1).createdAt()),
                     "Messages should be sorted by createdAt");
         }
         // Verify both local and remote messages present

@@ -120,7 +120,7 @@ public class StorageRoutes implements Routes {
     private void getAdminUsage(Context ctx) {
         var stations = stationRepository.findAll();
         var allUsage = usageRepository.findAll();
-        var presetNames = presetRepository.findStationPresetNames();
+        var presetAssignments = presetRepository.findStationPresetAssignments();
 
         Map<Integer, List<StorageUsage>> usageByStation = new HashMap<>();
         for (var usage : allUsage) {
@@ -138,6 +138,7 @@ public class StorageRoutes implements Routes {
                             .sum();
                     long quotaBytes = quotaService.getEffectiveTotalQuota(station.id());
                     int quotaUsedPercent = quotaBytes > 0 ? (int) (totalBytes * 100 / quotaBytes) : 0;
+                    var assignment = presetAssignments.get(station.id());
                     return new AdminStationUsage(
                             station.uid().toString(),
                             station.name(),
@@ -147,7 +148,8 @@ public class StorageRoutes implements Routes {
                             stationUsages.stream()
                                     .map(u -> new CategoryUsage(u.category().name(), u.totalBytes(), u.fileCount()))
                                     .toList(),
-                            presetNames.get(station.id()));
+                            assignment != null ? assignment.presetId() : null,
+                            assignment != null ? assignment.presetName() : null);
                 })
                 .toList();
 
@@ -273,6 +275,7 @@ public class StorageRoutes implements Routes {
             long quotaBytes,
             int quotaUsedPercent,
             List<CategoryUsage> categories,
+            Integer presetId,
             String presetName) {}
 
     record PresetRequest(

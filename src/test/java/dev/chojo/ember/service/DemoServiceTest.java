@@ -9,8 +9,11 @@ import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
+import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.board.service.BoardService;
+import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.board.service.FederatedBoardService;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -31,6 +34,7 @@ import dev.chojo.ember.feature.inventory.service.ProcurementService;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
+import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
 import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
@@ -39,11 +43,15 @@ import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsService;
-import dev.chojo.ember.feature.page.service.PageImageStorageService;
+import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.page.repository.PageFileMetaRepository;
+import dev.chojo.ember.feature.page.service.PageFileStorageService;
 import dev.chojo.ember.feature.page.service.PageService;
+import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
 import dev.chojo.ember.feature.station.service.StationService;
+import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.system.service.DemoAttendanceSeeder;
 import dev.chojo.ember.feature.system.service.DemoBoardSeeder;
 import dev.chojo.ember.feature.system.service.DemoEventSeeder;
@@ -181,14 +189,12 @@ class DemoServiceTest extends RepositoryTestBase {
         // lookups for one entity of each type). We mock NotificationService since the demo's
         // read paths don't depend on its behavior and constructing a real one would drag in
         // EmailService + Mailing config that aren't relevant here.
-        var notificationServiceMock = mock(dev.chojo.ember.feature.notifications.service.NotificationService.class);
-        var lostAndFoundService = new dev.chojo.ember.feature.lostandfound.service.LostAndFoundService(
-                lostAndFoundRepo, notificationServiceMock);
-        var boardService =
-                new dev.chojo.ember.feature.board.service.BoardService(boardRepo, memberSvc, groupService, tagService);
-        var boardTicketService = new dev.chojo.ember.feature.board.service.BoardTicketService(
+        var notificationServiceMock = mock(NotificationService.class);
+        var lostAndFoundService = new LostAndFoundService(lostAndFoundRepo, notificationServiceMock);
+        var boardService = new BoardService(boardRepo, memberSvc, groupService, tagService);
+        var boardTicketService = new BoardTicketService(
                 boardTicketRepo, boardRepo, noOpBus, memberSvc, memberIdentityFactory, memberNameResolver);
-        var procedureService = new dev.chojo.ember.feature.procedure.service.ProcedureService(procedureRepo, noOpBus);
+        var procedureService = new ProcedureService(procedureRepo, noOpBus);
 
         // -- Seeders --
         var memberSeeder = new DemoMemberSeeder(
@@ -227,7 +233,16 @@ class DemoServiceTest extends RepositoryTestBase {
         var boardSeeder = new DemoBoardSeeder(
                 boardRepo, boardTicketRepo, federatedBoardService, federationService, memberIdentityFactory);
         var procedureSeeder = new DemoProcedureSeeder(procedureRepo);
-        var pageSeeder = new DemoPageSeeder(new PageService(pageRepo, new PageImageStorageService()));
+        var pageSeeder = new DemoPageSeeder(
+                new PageService(
+                        pageRepo,
+                        new PageFileMetaRepository(),
+                        new PageFileStorageService(stationRepo),
+                        new StorageQuotaService(storageUsageRepo, new Storage(), noOpBus),
+                        stationMemberRepo,
+                        new ImageService()),
+                formRepo,
+                quizCatalogRepo);
         var newsSeeder = new DemoNewsSeeder(newsService, stationMemberRepo);
         var lostAndFoundSeederLocal = new DemoLostAndFoundSeeder(lostAndFoundService);
 

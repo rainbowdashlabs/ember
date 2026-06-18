@@ -7,8 +7,9 @@
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
+import DateInput from '@/components/input/datetime/DateInput.vue'
 import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -19,7 +20,7 @@ import THead from '@/components/table/THead.vue'
 import TRow from '@/components/table/TRow.vue'
 import type {ProfileField, StationMember} from '@/api/types'
 import {parseFieldConfig} from '@/api/types'
-import {profileFields, members} from '@/api'
+import {profileFields, members, stationMembers} from '@/api'
 
 const {t} = useI18n()
 
@@ -34,9 +35,19 @@ const editFirstName = ref(props.member.name?.split(' ')[0] ?? '')
 const editLastName = ref(props.member.name?.split(' ').slice(1).join(' ') ?? '')
 const editEmail = ref(props.member.email ?? '')
 const editValues = ref(new Map(props.initialValues))
-const saving = ref(false)
+const editJoinDate = ref(props.member.joinDate ?? '')
 const error = ref('')
-const success = ref('')
+
+async function onJoinDateChange(value: string | undefined) {
+  if (!value) return
+  error.value = ''
+  try {
+    await stationMembers.setJoinDate(props.memberId, value)
+    editJoinDate.value = value
+  } catch {
+    error.value = t('common.error')
+  }
+}
 
 function getEditValue(fieldId: number): string {
   return editValues.value.get(fieldId) ?? ''
@@ -47,9 +58,7 @@ function setEditValue(fieldId: number, val: string) {
 }
 
 async function save() {
-  saving.value = true
   error.value = ''
-  success.value = ''
   try {
     await members.updateAccount(props.member.accountId, {
       email: editEmail.value,
@@ -58,11 +67,9 @@ async function save() {
     })
     const entries = props.fields.map(f => ({fieldId: f.id, value: JSON.stringify(getEditValue(f.id))}))
     await profileFields.setValues(props.memberId, {values: entries})
-    success.value = t('memberEdit.saved')
-  } catch {
+  } catch (e) {
     error.value = t('common.error')
-  } finally {
-    saving.value = false
+    throw e
   }
 }
 </script>
@@ -70,7 +77,6 @@ async function save() {
 <template>
   <div class="space-y-6">
     <Alert v-if="error" variant="error">{{ error }}</Alert>
-    <Alert v-if="success" variant="success">{{ success }}</Alert>
 
     <!-- Base fields -->
     <NeutralContainer class="space-y-4">
@@ -89,6 +95,13 @@ async function save() {
           <TextInput v-model="editEmail"/>
         </div>
       </div>
+    </NeutralContainer>
+
+    <!-- Join date -->
+    <NeutralContainer class="space-y-3">
+      <SubHeader class="text-sm">{{ t('memberEdit.joinDate') }}</SubHeader>
+      <DateInput :model-value="editJoinDate" class="max-w-xs" @update:model-value="onJoinDateChange"/>
+      <p class="text-xs text-(--text-muted)">{{ t('memberEdit.joinDateHint') }}</p>
     </NeutralContainer>
 
     <!-- Profile fields -->
@@ -121,9 +134,7 @@ async function save() {
 
     <!-- Save -->
     <div class="flex items-center">
-      <PrimaryButton :disabled="saving" @click="save">
-        {{ saving ? t('common.loading') : t('memberEdit.save') }}
-      </PrimaryButton>
+      <SaveButton :action="save"/>
     </div>
   </div>
 </template>

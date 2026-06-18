@@ -15,7 +15,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import { adminSettings } from '@/api'
@@ -26,7 +26,6 @@ const { t } = useI18n()
 
 const loading = ref(true)
 const error = ref('')
-const success = ref('')
 
 const mailingConfig = ref<MailingConfig>({
   provider: 'SMTP',
@@ -58,14 +57,12 @@ async function loadMailingConfig() {
 
 async function saveMailingConfig() {
   error.value = ''
-  success.value = ''
   try {
     const result = await adminSettings.updateMailingConfig(mailingConfig.value)
     mailingConfig.value = result
-    success.value = t('adminSettings.saved')
-    setTimeout(() => { success.value = '' }, 3000)
-  } catch {
+  } catch (e) {
     error.value = t('common.error')
+    throw e
   }
 }
 
@@ -79,7 +76,6 @@ onMounted(async () => {
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
-      <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <template v-if="!loading">
         <NeutralContainer class="space-y-4">
@@ -144,7 +140,7 @@ onMounted(async () => {
           </div>
 
           <div class="flex justify-end">
-            <PrimaryButton @click="saveMailingConfig">{{ t('adminSettings.legal.save') }}</PrimaryButton>
+            <SaveButton :action="saveMailingConfig"/>
           </div>
         </NeutralContainer>
       </template>

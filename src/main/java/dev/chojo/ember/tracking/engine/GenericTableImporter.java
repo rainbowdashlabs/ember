@@ -251,6 +251,7 @@ public final class GenericTableImporter {
         return switch (type) {
             case "jsonb", "json" -> "::jsonb";
             case "uuid" -> "::uuid";
+            case "date" -> "::date";
             default -> "";
         };
     }

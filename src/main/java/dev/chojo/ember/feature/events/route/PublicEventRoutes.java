@@ -119,9 +119,11 @@ public class PublicEventRoutes implements Routes {
 
         var overviewFields = eventFieldService.findOverviewFieldsByEvents(
                 publicEvents.stream().map(StationEvent::id).toList());
+        var publicUids = eventService.findPublicUidsByIds(
+                station.id(), publicEvents.stream().map(StationEvent::id).toList());
 
         ctx.json(publicEvents.stream()
-                .map(e -> toPublicResponse(e, categoryMap, overviewFields))
+                .map(e -> toPublicResponse(e, categoryMap, overviewFields, publicUids.get(e.id())))
                 .toList());
     }
 
@@ -257,7 +259,10 @@ public class PublicEventRoutes implements Routes {
     }
 
     private PublicEventResponse toPublicResponse(
-            StationEvent e, Map<Integer, EventCategory> categoryMap, Map<Integer, List<EventField>> overviewFields) {
+            StationEvent e,
+            Map<Integer, EventCategory> categoryMap,
+            Map<Integer, List<EventField>> overviewFields,
+            UUID publicUid) {
         String categoryName = null;
         if (e.categoryId() != null) {
             var cat = categoryMap.get(e.categoryId());
@@ -268,24 +273,28 @@ public class PublicEventRoutes implements Routes {
                 .toList();
         return new PublicEventResponse(
                 e.id(),
+                publicUid,
                 e.name(),
                 e.description(),
                 e.eventType(),
                 e.dayOfWeek(),
                 e.startTime(),
                 e.endTime(),
+                e.categoryId(),
                 categoryName,
                 fields);
     }
 
     public record PublicEventResponse(
             int id,
+            UUID publicUid,
             String name,
             String description,
             StationEvent.EventType eventType,
             Integer dayOfWeek,
             Instant startTime,
             Instant endTime,
+            Integer categoryId,
             String categoryName,
             List<EventField> publicFields) {}
 

@@ -6,15 +6,24 @@
 package dev.chojo.ember.feature.legal.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.legal.entity.DocumentVersions;
 import dev.chojo.ember.feature.legal.entity.GdprConsent;
+import dev.chojo.ember.util.ClientIp;
+import io.javalin.http.BadRequestResponse;
+import io.javalin.http.Context;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.util.Arrays;
 import java.util.Optional;
 
 /**
@@ -26,6 +35,7 @@ public class ConsentService {
     private static final Logger log = LoggerFactory.getLogger(ConsentService.class);
 
     private final AccountRepository accountRepository;
+    private final Network network;
     private final LegalDocumentService documentService;
     private final Path privacyPolicyDir;
     private final Path consentDir;
@@ -33,8 +43,9 @@ public class ConsentService {
     private final Path imprintDir;
 
     @Inject
-    public ConsentService(AccountRepository accountRepository, Api apiConfig) {
+    public ConsentService(AccountRepository accountRepository, Api apiConfig, Network network) {
         this.accountRepository = accountRepository;
+        this.network = network;
         this.documentService = new LegalDocumentService();
         this.privacyPolicyDir = Path.of(apiConfig.privacyPolicyDir());
         this.consentDir = Path.of(apiConfig.consentDir());
@@ -174,5 +185,71 @@ public class ConsentService {
      */
     public Optional<GdprConsent> findLatestConsent(int accountId) {
         return accountRepository.findLatestConsent(accountId);
+    }
+
+    /**
+     * Validates that the version hashes the anonymous submitter accepted match the
+     * current document versions, then captures the surrounding request context (IP,
+     * country, user-agent) into a {@link ConsentProof}. Used by every public,
+     * unauthenticated submission endpoint as a precondition.
+     *
+     * @param ctx            the Javalin request context (used to derive IP / UA / country)
+     * @param consentVersion the consent text version the submitter clicked through
+     * @param privacyVersion the privacy policy version the submitter clicked through
+     * @param tosVersion     the terms of service version the submitter clicked through
+     * @return a populated {@link ConsentProof} ready to persist on the submission row
+     * @throws BadRequestResponse if any hash is missing or does not match the current
+     *                            published version (the caller's UI should refresh the
+     *                            documents and re-prompt)
+     */
+    public ConsentProof requireAcceptance(
+            Context ctx, String consentVersion, String privacyVersion, String tosVersion) {
+        if (consentVersion == null || consentVersion.isBlank()) {
+            throw new BadRequestResponse("consentVersion is required");
+        }
+        if (privacyVersion == null || privacyVersion.isBlank()) {
+            throw new BadRequestResponse("privacyVersion is required");
+        }
+        if (tosVersion == null || tosVersion.isBlank()) {
+            throw new BadRequestResponse("tosVersion is required");
+        }
+
+        var current = getCurrentVersions();
+        if (!current.consentVersion().equals(consentVersion)
+                || !current.privacyVersion().equals(privacyVersion)
+                || !current.tosVersion().equals(tosVersion)) {
+            throw new BadRequestResponse(
+                    "Legal documents have changed since the form was loaded. Please reload and accept again.");
+        }
+
+        String ipAddress = anonymizeIp(ClientIp.resolve(ctx, network));
+        String country = ctx.header("CF-IPCountry");
+        String userAgent = ctx.userAgent();
+        return new ConsentProof(
+                consentVersion, privacyVersion, tosVersion, ipAddress, country, userAgent, Instant.now());
+    }
+
+    /**
+     * Returns a privacy-preserving form of the given client IP for proof of consent.
+     * The last octet of an IPv4 address is zeroed (e.g. {@code 203.0.113.7} → {@code 203.0.113.0}),
+     * the last 80 bits of an IPv6 address are zeroed (so only the /48 prefix is kept).
+     * This is the de-facto GDPR-compliant truncation used by Matomo and Plausible; it
+     * still establishes geography for an audit, but is no longer personal data.
+     *
+     * @param address the resolved client {@link InetAddress}
+     * @return the anonymised IP as a string in standard textual form
+     */
+    public static String anonymizeIp(InetAddress address) {
+        byte[] bytes = address.getAddress();
+        if (bytes.length == 4) {
+            bytes[3] = 0;
+        } else if (bytes.length == 16) {
+            Arrays.fill(bytes, 6, 16, (byte) 0);
+        }
+        try {
+            return InetAddress.getByAddress(bytes).getHostAddress();
+        } catch (UnknownHostException e) {
+            return address.getHostAddress();
+        }
     }
 }

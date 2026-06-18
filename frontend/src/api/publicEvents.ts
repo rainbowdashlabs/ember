@@ -7,12 +7,15 @@ import client from './client'
 
 export interface PublicEvent {
     id: number
+    /** Stable opaque public identifier — referenced by event cells (concept §2.3). */
+    publicUid: string
     name: string
     description?: string
     eventType?: string
     dayOfWeek?: number | null
     startTime?: string
     endTime?: string
+    categoryId?: number | null
     categoryName?: string
     publicFields?: { name: string; value: string; fieldType: string }[]
 }

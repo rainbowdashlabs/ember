@@ -35,8 +35,8 @@ function fieldName(fieldId: number): string {
   return props.fields.find(f => f.id === fieldId)?.name ?? `#${fieldId}`
 }
 
-function formatValue(value: string): string {
-  try { return String(JSON.parse(value)) } catch { return value }
+function formatValue(value: unknown): string {
+  return value == null ? '' : String(value)
 }
 
 function formatDate(dateStr: string): string {

@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.system.service.DataInitializer;
 import dev.chojo.ember.feature.system.service.DemoService;
+import dev.chojo.ember.util.CloudflareRangesService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,6 +109,8 @@ public class Bootstrapper {
 
         // Initialize legal document versioning (detect changes, archive old versions)
         injector.getInstance(ConsentService.class).initialize();
+
+        injector.getInstance(CloudflareRangesService.class).refreshAsync();
 
         var apiServer = injector.getInstance(ApiServer.class);
         apiServer.start();

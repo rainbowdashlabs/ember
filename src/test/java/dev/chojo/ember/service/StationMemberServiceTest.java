@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -265,7 +266,7 @@ class StationMemberServiceTest extends RepositoryTestBase {
         var loginPerm =
                 stationMemberRepo.findPermissionByName(StationPermission.LOGIN).orElseThrow();
         assertThrows(
-                io.javalin.http.BadRequestResponse.class,
+                BadRequestResponse.class,
                 () -> service.setPermissions(
                         noEmailMember.id(),
                         List.of(loginPerm.id()),

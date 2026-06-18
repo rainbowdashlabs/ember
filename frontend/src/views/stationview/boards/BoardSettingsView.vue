@@ -48,9 +48,21 @@ const name = ref('')
 const description = ref('')
 const hideDoneAfterDays = ref(7)
 const hasBacklog = ref(false)
-const lanes = ref<{ name: string; color: string | null; id?: number }[]>([])
+interface LaneDraft {
+  name: string
+  color: string | null
+  id?: number
+}
+
+interface FieldDraft {
+  name: string
+  fieldType: string
+  config: BoardFieldConfig
+}
+
+const lanes = ref<LaneDraft[]>([])
 const newLaneName = ref('')
-const fields = ref<{ name: string; fieldType: string; config: BoardFieldConfig }[]>([])
+const fields = ref<FieldDraft[]>([])
 const newFieldName = ref('')
 const newFieldType = ref('STRING')
 

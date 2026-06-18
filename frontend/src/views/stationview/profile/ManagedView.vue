@@ -7,7 +7,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -30,9 +30,7 @@ const selectedMemberId = ref<string>('')
 const values = ref<Map<number, string>>(new Map())
 const loading = ref(true)
 const loadingProfile = ref(false)
-const saving = ref(false)
 const error = ref('')
-const success = ref('')
 
 function memberDisplayName(member: ManagedMember): string {
   if (member.name && member.name.trim()) return member.name
@@ -77,7 +75,6 @@ async function loadMemberProfile() {
   if (!selectedMemberId.value) return
   loadingProfile.value = true
   error.value = ''
-  success.value = ''
   try {
     const memberId = Number(selectedMemberId.value)
     const profile = await managedMembers.getProfile(memberId)
@@ -98,19 +95,15 @@ async function loadMemberProfile() {
 
 async function saveProfile() {
   if (!selectedMemberId.value) return
-  saving.value = true
   error.value = ''
-  success.value = ''
   try {
     const entries = editableFields.value
       .filter(f => !isReadonly(f))
       .map(f => ({ fieldId: f.id, value: JSON.stringify(getValue(f.id)) }))
     await managedMembers.setProfile(Number(selectedMemberId.value), entries)
-    success.value = t('profile.saved')
-  } catch {
+  } catch (e) {
     error.value = t('common.error')
-  } finally {
-    saving.value = false
+    throw e
   }
 }
 
@@ -122,7 +115,6 @@ onMounted(loadData)
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
-      <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <template v-if="!loading">
         <NeutralContainer class="space-y-4">
@@ -162,9 +154,7 @@ onMounted(loadData)
             />
           </div>
 
-          <PrimaryButton :disabled="saving" @click="saveProfile">
-            {{ saving ? t('common.loading') : t('profile.save') }}
-          </PrimaryButton>
+          <SaveButton :action="saveProfile"/>
         </NeutralContainer>
       </template>
     </div>

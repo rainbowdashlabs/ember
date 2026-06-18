@@ -8,6 +8,7 @@ package dev.chojo.ember.feed;
 import dev.chojo.ember.feature.feed.FeedFingerprint;
 import io.javalin.http.Context;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 
 import java.time.Instant;
 
@@ -98,6 +99,6 @@ class FeedFingerprintTest {
     }
 
     private static String eq(String s) {
-        return org.mockito.ArgumentMatchers.eq(s);
+        return ArgumentMatchers.eq(s);
     }
 }

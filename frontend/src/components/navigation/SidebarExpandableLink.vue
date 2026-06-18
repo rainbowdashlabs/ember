@@ -7,6 +7,9 @@
 import {Comment as VComment, computed, ref, useSlots, watch} from 'vue'
 import {useRoute} from 'vue-router'
 import type {VNode} from 'vue'
+import {useSidebarCollapse} from '@/composables/useSidebarCollapse'
+
+const {collapsed} = useSidebarCollapse()
 
 const props = defineProps<{
   to: string
@@ -62,19 +65,21 @@ watch(isInPath, (active) => {
   <div>
     <div class="flex items-center">
       <router-link
-          :class="isInPath
-          ? '!text-primary'
-          : '!text-[var(--text)] hover:bg-primary/5'"
+          :class="[
+            isInPath ? '!text-primary' : '!text-[var(--text)] hover:bg-primary/5',
+            collapsed ? 'lg:justify-center lg:px-2 px-3' : 'px-3',
+          ]"
           :to="to"
-          class="flex flex-1 items-center gap-3 rounded-theme px-3 py-2 text-sm font-medium no-underline transition-colors duration-150"
+          class="flex flex-1 items-center gap-3 rounded-theme py-2 text-sm font-medium no-underline transition-colors duration-150"
           @click="$emit('navigate')"
       >
-        <font-awesome-icon v-if="icon" :icon="icon" class="w-4"/>
-        <span class="flex-1"><slot name="label"/></span>
+        <font-awesome-icon v-if="icon" :icon="icon" class="w-4 shrink-0"/>
+        <span class="flex-1 truncate" :class="collapsed ? 'lg:hidden' : ''"><slot name="label"/></span>
       </router-link>
       <button
           v-if="hasVisibleChildren"
           class="flex items-center justify-center w-8 h-8 rounded-theme text-[var(--text)] transition-colors duration-150"
+          :class="collapsed ? 'lg:hidden' : ''"
           @click="expanded = !expanded"
       >
         <font-awesome-icon
@@ -83,7 +88,7 @@ watch(isInPath, (active) => {
         />
       </button>
     </div>
-    <div v-if="hasVisibleChildren && expanded" class="ml-3 flex flex-col gap-0.5 mt-0.5">
+    <div v-if="hasVisibleChildren && expanded" class="ml-3 flex flex-col gap-0.5 mt-0.5" :class="collapsed ? 'lg:hidden' : ''">
       <slot/>
     </div>
   </div>

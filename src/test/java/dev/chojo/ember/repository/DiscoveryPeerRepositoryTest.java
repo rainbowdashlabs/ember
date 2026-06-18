@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.repository;
 
+import dev.chojo.ember.feature.discovery.entity.DiscoveryPeer;
 import dev.chojo.ember.feature.discovery.entity.PeerSource;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
@@ -94,8 +95,9 @@ class DiscoveryPeerRepositoryTest extends RepositoryTestBase {
         discoveryPeerRepo.upsert("k-bad", "https://bad.example", "fp-bad", PeerSource.MANUAL, null);
         discoveryPeerRepo.addReputation("k-bad", -100);
 
-        List<String> usableKeys =
-                discoveryPeerRepo.findUsable().stream().map(p -> p.publicKey()).toList();
+        List<String> usableKeys = discoveryPeerRepo.findUsable().stream()
+                .map(DiscoveryPeer::publicKey)
+                .toList();
         assertTrue(usableKeys.contains("k-ok"));
         assertFalse(usableKeys.contains("k-blk"));
         assertFalse(usableKeys.contains("k-bad"));
@@ -108,7 +110,7 @@ class DiscoveryPeerRepositoryTest extends RepositoryTestBase {
         discoveryPeerRepo.markUnreachable(ur.publicKey());
 
         List<String> reachable = discoveryPeerRepo.findReachable().stream()
-                .map(p -> p.publicKey())
+                .map(DiscoveryPeer::publicKey)
                 .toList();
         assertTrue(reachable.contains("k-rch-1"));
         assertFalse(reachable.contains("k-rch-2"));

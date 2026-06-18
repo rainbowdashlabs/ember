@@ -50,7 +50,17 @@ const createItemId = ref<string>('')
 const createNewSizeId = ref<string>('')
 const createReason = ref('')
 const createSaving = ref(false)
-const createMemberItems = ref<{ id: number; inventoryId: number; name: string; internalId: string; sizeId: number | null; sizeName: string | null; inventoryName: string }[]>([])
+interface MemberItemOption {
+  id: number
+  inventoryId: number
+  name: string
+  internalId: string
+  sizeId: number | null
+  sizeName: string | null
+  inventoryName: string
+}
+
+const createMemberItems = ref<MemberItemOption[]>([])
 const createItemSizes = ref<InventorySize[]>([])
 const createLoadingItems = ref(false)
 

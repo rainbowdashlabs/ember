@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -21,8 +23,10 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -127,8 +131,7 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
         int sourceStationId = source.id();
         stationRepo.updateLocale(sourceStationId, "de-DE");
         stationRepo.updateTimezone(sourceStationId, "Europe/Berlin");
-        stationRepo.setDisabledModules(
-                sourceStationId, java.util.Set.of(dev.chojo.ember.feature.station.entity.StationModule.LOST_AND_FOUND));
+        stationRepo.setDisabledModules(sourceStationId, Set.of(StationModule.LOST_AND_FOUND));
 
         var accA = accountRepo.create("rta@example.com", "Anna", "A", true);
         var accB = accountRepo.create("rtb@example.com", "Bob", "B", true);
@@ -145,8 +148,7 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
         userTagRepo.create(sourceStationId, "Tag2");
 
         eventRepo.createCategory(sourceStationId, "Cat", 0, null);
-        inventoryRepo.create(
-                sourceStationId, "Inv", dev.chojo.ember.feature.inventory.entity.InventoryType.INTERNAL, false);
+        inventoryRepo.create(sourceStationId, "Inv", InventoryType.INTERNAL, false);
 
         // -- Snapshot per-table source counts for every TRACKED table --
         Map<String, Integer> sourceCounts = new LinkedHashMap<>();
@@ -207,7 +209,7 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
         // Spot-check: SINGLE-shape table (station) and FLAT-shape table (station_disabled_module) round-tripped
         Object stationPayload =
                 exportService.exportTable(targetStationId, "station", 0, 1).get("station");
-        assertTrue(stationPayload instanceof Map, "station wire entry must be SINGLE-shape (Map)");
+        assertInstanceOf(Map.class, stationPayload, "station wire entry must be SINGLE-shape (Map)");
         var disabled = (List<?>) exportService
                 .exportTable(targetStationId, "station_disabled_module", 0, 10)
                 .get("station_disabled_module");

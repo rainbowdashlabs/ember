@@ -54,6 +54,7 @@ public class DemoQuizSeeder {
         // -- Anfänger-Katalog (40+ questions) --
         var anfaengerCatalog = quizCatalogRepository.create(
                 stationId, "Anfänger-Wissen", "Grundlagenwissen für neue Mitglieder der Jugendfeuerwehr", true);
+        quizCatalogRepository.setPublicRender(anfaengerCatalog.id(), true);
         var catGrundlagen =
                 quizCatalogRepository.createCategory(stationId, "Grundlagen", "Allgemeine Grundlagen der Feuerwehr", 0);
         var catAusruestung = quizCatalogRepository.createCategory(

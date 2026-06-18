@@ -25,6 +25,7 @@ import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.conf.file.elements.Metrics;
+import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.handlers.BoardTicketChangedHandler;
@@ -83,6 +84,7 @@ import dev.chojo.ember.feature.feed.route.FeedTokenRoutes;
 import dev.chojo.ember.feature.feed.route.UserFeedRoutes;
 import dev.chojo.ember.feature.feed.service.FeedMetricsService;
 import dev.chojo.ember.feature.form.route.FormRoutes;
+import dev.chojo.ember.feature.form.route.PublicFormRoutes;
 import dev.chojo.ember.feature.inventory.route.ExchangeRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryCheckRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryRoutes;
@@ -91,6 +93,8 @@ import dev.chojo.ember.feature.knowledgebase.route.KnowledgeBaseRoutes;
 import dev.chojo.ember.feature.knowledgebase.route.PublicKnowledgeBaseRoutes;
 import dev.chojo.ember.feature.legal.route.ConsentRoutes;
 import dev.chojo.ember.feature.lostandfound.route.LostAndFoundRoutes;
+import dev.chojo.ember.feature.maps.route.AdminMapsRoutes;
+import dev.chojo.ember.feature.maps.route.PublicMapsRoutes;
 import dev.chojo.ember.feature.members.route.ManagedMemberRoutes;
 import dev.chojo.ember.feature.members.route.MemberGroupRoutes;
 import dev.chojo.ember.feature.members.route.MemberImportRoutes;
@@ -110,6 +114,7 @@ import dev.chojo.ember.feature.page.route.PublicPageRoutes;
 import dev.chojo.ember.feature.procedure.route.ProcedureRoutes;
 import dev.chojo.ember.feature.protocol.route.TestProtocolRoutes;
 import dev.chojo.ember.feature.quiz.route.AiRoutes;
+import dev.chojo.ember.feature.quiz.route.PublicQuizRoutes;
 import dev.chojo.ember.feature.quiz.route.QuizRoutes;
 import dev.chojo.ember.feature.station.route.DiscoveryRoutes;
 import dev.chojo.ember.feature.station.route.PublicStationRoutes;
@@ -189,6 +194,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(UserTagRoutes.class);
         routesBinder.addBinding().to(NotificationRoutes.class);
         routesBinder.addBinding().to(FormRoutes.class);
+        routesBinder.addBinding().to(PublicFormRoutes.class);
         routesBinder.addBinding().to(ConsentRoutes.class);
         routesBinder.addBinding().to(LostAndFoundRoutes.class);
         routesBinder.addBinding().to(TransferRoutes.class);
@@ -199,6 +205,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(ApiStatusRoutes.class);
         routesBinder.addBinding().to(WaitingListRoutes.class);
         routesBinder.addBinding().to(QuizRoutes.class);
+        routesBinder.addBinding().to(PublicQuizRoutes.class);
         routesBinder.addBinding().to(AiRoutes.class);
         routesBinder.addBinding().to(KnowledgeBaseRoutes.class);
         routesBinder.addBinding().to(PublicKnowledgeBaseRoutes.class);
@@ -212,6 +219,8 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(DiscoveryRoutes.class);
         routesBinder.addBinding().to(PublicDiscoveryRoutes.class);
         routesBinder.addBinding().to(AdminDiscoveryRoutes.class);
+        routesBinder.addBinding().to(PublicMapsRoutes.class);
+        routesBinder.addBinding().to(AdminMapsRoutes.class);
         routesBinder.addBinding().to(FeedTokenRoutes.class);
         routesBinder.addBinding().to(UserFeedRoutes.class);
         routesBinder.addBinding().to(FeedMetricsRoutes.class);
@@ -326,6 +335,12 @@ public class EmberModule extends AbstractModule {
     @Singleton
     Metrics metrics(File config) {
         return config.metrics();
+    }
+
+    @Provides
+    @Singleton
+    Network network(File config) {
+        return config.network();
     }
 
     @Provides

@@ -26,6 +26,12 @@ import TabBar from '@/components/navigation/TabBar.vue'
 import type { Form, FormAnalytics, FormQuestionAnalytics, FormResponse, FormAnswer, ProfileField } from '@/api/types'
 import { QuestionTypes } from '@/api/types'
 import { forms, profileFields, stationMembers } from '@/api'
+import { FormAnalyticsBase, type FormAnalyticsBaseName } from '@/api/forms'
+
+const analyticsBase = computed<FormAnalyticsBaseName>(() => {
+  const meta = route.meta?.formAnalyticsBase as FormAnalyticsBaseName | undefined
+  return meta ?? FormAnalyticsBase.FORMS
+})
 import MemberName from '@/components/avatar/MemberName.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -63,7 +69,7 @@ async function loadResponseAnswers() {
   if (!currentResponse.value) return
   loadingResponse.value = true
   try {
-    const detail = await forms.getResponseDetail(formId.value, currentResponse.value.id)
+    const detail = await forms.getResponseDetail(formId.value, currentResponse.value.id, analyticsBase.value)
     currentAnswers.value = detail.answers
   } catch { /* ignore */ }
   loadingResponse.value = false
@@ -178,7 +184,7 @@ async function performExport() {
   const allResponseAnswers = new Map<number, FormAnswer[]>()
   for (const resp of responses.value) {
     try {
-      const detail = await forms.getResponseDetail(formId.value, resp.id)
+      const detail = await forms.getResponseDetail(formId.value, resp.id, analyticsBase.value)
       allResponseAnswers.set(resp.id, detail.answers)
     } catch {
       allResponseAnswers.set(resp.id, [])
@@ -301,10 +307,12 @@ async function loadData() {
   try {
     const [f, a, r, fields, members] = await Promise.all([
       forms.getForm(formId.value),
-      forms.getAnalytics(formId.value),
-      forms.listResponses(formId.value),
+      forms.getAnalytics(formId.value, analyticsBase.value),
+      forms.listResponses(formId.value, analyticsBase.value),
       profileFields.listFields(),
-      stationMembers.listMembers(),
+      analyticsBase.value === FormAnalyticsBase.FORMS
+        ? stationMembers.listMembers()
+        : Promise.resolve([] as Awaited<ReturnType<typeof stationMembers.listMembers>>),
     ])
     form.value = f
     analytics.value = a
@@ -401,7 +409,9 @@ onMounted(loadData)
 
             <NeutralContainer v-if="currentResponse">
               <div class="space-y-1 mb-4">
-                <p class="font-medium"><MemberName :identity="currentResponse?.memberIdentity ?? null"/></p>
+                <p v-if="currentResponse.memberIdentity" class="font-medium">
+                  <MemberName :identity="currentResponse.memberIdentity"/>
+                </p>
                 <p class="text-xs text-(--text-muted)">{{ new Date(currentResponse.submittedAt).toLocaleString('de-DE') }}</p>
                 <p v-if="currentResponse.submittedByName" class="text-xs text-(--text-muted) italic">{{ t('common.submittedBy', { name: currentResponse.submittedByName }) }}</p>
               </div>

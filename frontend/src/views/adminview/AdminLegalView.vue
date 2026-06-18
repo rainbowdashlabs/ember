@@ -11,6 +11,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
@@ -27,7 +28,6 @@ import {marked} from 'marked'
 const {t} = useI18n()
 
 const error = ref('')
-const success = ref('')
 
 // -- Type & locale selection --
 const legalTypes = ['privacy', 'tos', 'consent', 'imprint'] as const
@@ -39,7 +39,6 @@ const locales = ref<string[]>([])
 // -- File management --
 const files = ref<LegalFile[]>([])
 const loading = ref(false)
-const saving = ref(false)
 const showPreview = ref(false)
 
 // -- Modals --
@@ -88,17 +87,12 @@ async function loadFiles(type: LegalType, locale: string) {
 // -- Saving --
 
 async function saveAll() {
-  saving.value = true
   error.value = ''
-  success.value = ''
   try {
     files.value = await adminSettings.saveLegalFiles(activeLegalTab.value, activeLocale.value, files.value)
-    success.value = t('adminSettings.saved')
-    setTimeout(() => { success.value = '' }, 3000)
-  } catch {
+  } catch (e) {
     error.value = t('common.error')
-  } finally {
-    saving.value = false
+    throw e
   }
 }
 
@@ -189,7 +183,6 @@ onMounted(async () => {
   <ViewContent>
     <div class="space-y-6">
       <Alert v-if="error" variant="error">{{ error }}</Alert>
-      <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <NeutralContainer class="space-y-4">
         <SectionHeader>{{ t('adminSettings.legal.title') }}</SectionHeader>
@@ -233,9 +226,7 @@ onMounted(async () => {
               <SecondaryButton :icon="['fas', 'plus']" @click="showAddFileModal = true">
                 {{ t('adminSettings.legal.addFile') }}
               </SecondaryButton>
-              <PrimaryButton :disabled="saving" @click="saveAll">
-                {{ t('adminSettings.legal.save') }}
-              </PrimaryButton>
+              <SaveButton :action="saveAll"/>
             </div>
           </div>
 

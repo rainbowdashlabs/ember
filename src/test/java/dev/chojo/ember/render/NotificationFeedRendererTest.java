@@ -7,18 +7,47 @@ package dev.chojo.ember.render;
 
 import com.rometools.modules.mediarss.MediaEntryModuleImpl;
 import com.rometools.rome.feed.synd.SyndCategory;
+import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.feature.board.entity.BoardTicket;
+import dev.chojo.ember.feature.board.entity.TicketPriority;
+import dev.chojo.ember.feature.board.service.BoardTicketService;
+import dev.chojo.ember.feature.events.entity.EventField;
+import dev.chojo.ember.feature.events.entity.EventFieldConfig;
+import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.service.EventFieldService;
+import dev.chojo.ember.feature.events.service.EventService;
+import dev.chojo.ember.feature.federation.entity.LendingRequest;
+import dev.chojo.ember.feature.federation.entity.LendingStatus;
+import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.feed.render.NotificationFeedRenderer;
+import dev.chojo.ember.feature.inventory.entity.Inventory;
+import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.service.InventoryService;
+import dev.chojo.ember.feature.lostandfound.entity.LostAndFoundItem;
+import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
+import dev.chojo.ember.feature.procedure.service.ProcedureService;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.storage.entity.StorageCategory;
+import dev.chojo.ember.feature.storage.entity.StorageUsage;
+import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -30,38 +59,35 @@ class NotificationFeedRendererTest {
     private NotificationService notificationService;
     private NotificationFeedRenderer renderer;
 
-    private dev.chojo.ember.feature.events.service.EventService eventService;
-    private dev.chojo.ember.feature.events.service.EventFieldService eventFieldService;
-    private dev.chojo.ember.feature.lostandfound.service.LostAndFoundService lostAndFoundService;
-    private dev.chojo.ember.feature.federation.service.LendingService lendingService;
-    private dev.chojo.ember.feature.storage.service.StorageQuotaService storageQuotaService;
-    private dev.chojo.ember.feature.inventory.service.InventoryService inventoryService;
-    private dev.chojo.ember.feature.board.service.BoardTicketService boardTicketService;
-    private dev.chojo.ember.feature.procedure.service.ProcedureService procedureService;
+    private EventService eventService;
+    private EventFieldService eventFieldService;
+    private LostAndFoundService lostAndFoundService;
+    private LendingService lendingService;
+    private StorageQuotaService storageQuotaService;
+    private InventoryService inventoryService;
+    private BoardTicketService boardTicketService;
+    private ProcedureService procedureService;
 
     @BeforeEach
     void setup() {
         notificationService = mock(NotificationService.class);
-        eventService = mock(dev.chojo.ember.feature.events.service.EventService.class);
-        eventFieldService = mock(dev.chojo.ember.feature.events.service.EventFieldService.class);
-        lostAndFoundService = mock(dev.chojo.ember.feature.lostandfound.service.LostAndFoundService.class);
-        lendingService = mock(dev.chojo.ember.feature.federation.service.LendingService.class);
-        storageQuotaService = mock(dev.chojo.ember.feature.storage.service.StorageQuotaService.class);
-        inventoryService = mock(dev.chojo.ember.feature.inventory.service.InventoryService.class);
-        boardTicketService = mock(dev.chojo.ember.feature.board.service.BoardTicketService.class);
-        procedureService = mock(dev.chojo.ember.feature.procedure.service.ProcedureService.class);
+        eventService = mock(EventService.class);
+        eventFieldService = mock(EventFieldService.class);
+        lostAndFoundService = mock(LostAndFoundService.class);
+        lendingService = mock(LendingService.class);
+        storageQuotaService = mock(StorageQuotaService.class);
+        inventoryService = mock(InventoryService.class);
+        boardTicketService = mock(BoardTicketService.class);
+        procedureService = mock(ProcedureService.class);
         // No-ops by default; per-test stubbing wires up real returns when needed.
-        when(eventService.findById(org.mockito.ArgumentMatchers.anyInt())).thenReturn(java.util.Optional.empty());
-        when(eventFieldService.findByEvent(org.mockito.ArgumentMatchers.anyInt()))
-                .thenReturn(java.util.List.of());
-        when(lostAndFoundService.findById(org.mockito.ArgumentMatchers.anyInt()))
-                .thenReturn(java.util.Optional.empty());
-        when(lendingService.findRequest(org.mockito.ArgumentMatchers.anyInt())).thenReturn(java.util.Optional.empty());
-        when(storageQuotaService.getUsage(org.mockito.ArgumentMatchers.anyInt()))
-                .thenReturn(java.util.List.of());
-        when(inventoryService.findById(org.mockito.ArgumentMatchers.anyInt())).thenReturn(java.util.Optional.empty());
-        when(boardTicketService.findById(org.mockito.ArgumentMatchers.anyInt())).thenReturn(java.util.Optional.empty());
-        when(procedureService.findItems(org.mockito.ArgumentMatchers.anyInt())).thenReturn(java.util.List.of());
+        when(eventService.findById(ArgumentMatchers.anyInt())).thenReturn(Optional.empty());
+        when(eventFieldService.findByEvent(ArgumentMatchers.anyInt())).thenReturn(List.of());
+        when(lostAndFoundService.findById(ArgumentMatchers.anyInt())).thenReturn(Optional.empty());
+        when(lendingService.findRequest(ArgumentMatchers.anyInt())).thenReturn(Optional.empty());
+        when(storageQuotaService.getUsage(ArgumentMatchers.anyInt())).thenReturn(List.of());
+        when(inventoryService.findById(ArgumentMatchers.anyInt())).thenReturn(Optional.empty());
+        when(boardTicketService.findById(ArgumentMatchers.anyInt())).thenReturn(Optional.empty());
+        when(procedureService.findItems(ArgumentMatchers.anyInt())).thenReturn(List.of());
         // Return a localised label that's distinguishable from the raw enum name so tests
         // can verify both labels make it into the SyndEntry categories.
         when(notificationService.resolveCategory(any(), any()))
@@ -71,10 +97,8 @@ class NotificationFeedRendererTest {
         // Title resolver: produce a distinguishable per-type string so tests can assert that
         // the renderer actually calls resolveFeedTitle (not the old resolveCategory).
         when(notificationService.resolveFeedTitle(any(), any()))
-                .thenAnswer(inv -> "title:"
-                        + ((dev.chojo.ember.feature.notifications.entity.Notification) inv.getArgument(1))
-                                .type()
-                                .name());
+                .thenAnswer(inv ->
+                        "title:" + ((Notification) inv.getArgument(1)).type().name());
         // Status helper: deterministic check-mark + raw status name. Lets the body assertions
         // stay simple without needing the real ical bundle wired in.
         when(notificationService.resolveStatusWithSymbol(any(), any())).thenAnswer(inv -> "✓ " + inv.getArgument(1));
@@ -84,7 +108,7 @@ class NotificationFeedRendererTest {
         when(notificationService.resolveLocalized(any(), any(), any(), any())).thenAnswer(inv -> {
             String value = inv.getArgument(2);
             @SuppressWarnings("unchecked")
-            var params = (java.util.Map<String, String>) inv.getArgument(3);
+            var params = (Map<String, String>) inv.getArgument(3);
             if (params == null) return value;
             for (var entry : params.entrySet()) {
                 value = value.replace("{" + entry.getKey() + "}", entry.getValue());
@@ -254,26 +278,26 @@ class NotificationFeedRendererTest {
         var start = Instant.parse("2027-09-15T17:00:00Z");
         var end = Instant.parse("2027-09-15T19:00:00Z");
         var event = stubEvent(42, start, end);
-        when(eventService.findById(42)).thenReturn(java.util.Optional.of(event));
+        when(eventService.findById(42)).thenReturn(Optional.of(event));
         when(eventFieldService.findByEvent(42))
-                .thenReturn(java.util.List.of(
-                        new dev.chojo.ember.feature.events.entity.EventField(
+                .thenReturn(List.of(
+                        new EventField(
                                 1,
                                 42,
                                 "Treffpunkt",
-                                dev.chojo.ember.feature.events.entity.EventFieldType.STRING,
-                                dev.chojo.ember.feature.events.entity.EventFieldConfig.parse("{}"),
+                                EventFieldType.STRING,
+                                EventFieldConfig.parse("{}"),
                                 "Marktplatz",
                                 0,
                                 true,
                                 null,
                                 true),
-                        new dev.chojo.ember.feature.events.entity.EventField(
+                        new EventField(
                                 2,
                                 42,
                                 "Empty",
-                                dev.chojo.ember.feature.events.entity.EventFieldType.STRING,
-                                dev.chojo.ember.feature.events.entity.EventFieldConfig.parse("{}"),
+                                EventFieldType.STRING,
+                                EventFieldConfig.parse("{}"),
                                 "",
                                 1,
                                 false,
@@ -284,7 +308,7 @@ class NotificationFeedRendererTest {
                 20,
                 NotificationType.NEW_EVENT,
                 new NotificationParams.NewEvent("Probe", "Konzertprobe"),
-                new NotificationData.NotificationLink("event-detail", java.util.Map.of("id", 42)));
+                new NotificationData.NotificationLink("event-detail", Map.of("id", 42)));
         var entry = renderer.render(n, richCtx());
         var html = entry.getContents().getFirst().getValue();
         // Custom field with a value is rendered; empty field is skipped.
@@ -303,8 +327,8 @@ class NotificationFeedRendererTest {
         // Service returns an item with a known find date; body must surface it under the
         // localised "Found on" label (mock echoes key → fallback to capitalised display label).
         when(lostAndFoundService.findById(17))
-                .thenReturn(java.util.Optional.of(new dev.chojo.ember.feature.lostandfound.entity.LostAndFoundItem(
-                        17, 1, "Blaue Jacke", java.time.LocalDate.of(2026, 6, 12), null, null, 2, Instant.now())));
+                .thenReturn(Optional.of(new LostAndFoundItem(
+                        17, 1, "Blaue Jacke", LocalDate.of(2026, 6, 12), null, null, 2, Instant.now())));
         var n = notification(
                 50,
                 NotificationType.LOST_AND_FOUND_NEW,
@@ -320,8 +344,8 @@ class NotificationFeedRendererTest {
     void lostAndFoundClaimedEnrichmentAddsClaimDate() {
         var claimedAt = Instant.parse("2026-06-14T10:30:00Z");
         when(lostAndFoundService.findById(17))
-                .thenReturn(java.util.Optional.of(new dev.chojo.ember.feature.lostandfound.entity.LostAndFoundItem(
-                        17, 1, "Blaue Jacke", java.time.LocalDate.of(2026, 6, 12), 2, claimedAt, 2, Instant.now())));
+                .thenReturn(Optional.of(new LostAndFoundItem(
+                        17, 1, "Blaue Jacke", LocalDate.of(2026, 6, 12), 2, claimedAt, 2, Instant.now())));
         var n = notification(
                 51,
                 NotificationType.LOST_AND_FOUND_CLAIMED,
@@ -336,13 +360,13 @@ class NotificationFeedRendererTest {
     void lendingEnrichmentMergesRequestedDateRange() {
         // From + To present → single "Needed:" range row.
         when(lendingService.findRequest(42))
-                .thenReturn(java.util.Optional.of(new dev.chojo.ember.feature.federation.entity.LendingRequest(
+                .thenReturn(Optional.of(new LendingRequest(
                         42,
                         1,
                         2,
-                        dev.chojo.ember.feature.federation.entity.LendingStatus.REQUESTED,
-                        java.time.LocalDate.of(2026, 10, 5),
-                        java.time.LocalDate.of(2026, 10, 7),
+                        LendingStatus.REQUESTED,
+                        LocalDate.of(2026, 10, 5),
+                        LocalDate.of(2026, 10, 7),
                         99,
                         Instant.now(),
                         Instant.now())));
@@ -377,25 +401,10 @@ class NotificationFeedRendererTest {
         // categories" label.
         var now = Instant.now();
         when(storageQuotaService.getUsage(7))
-                .thenReturn(java.util.List.of(
-                        new dev.chojo.ember.feature.storage.entity.StorageUsage(
-                                7,
-                                dev.chojo.ember.feature.storage.entity.StorageCategory.AVATARS,
-                                480L * 1024 * 1024,
-                                10,
-                                now),
-                        new dev.chojo.ember.feature.storage.entity.StorageUsage(
-                                7,
-                                dev.chojo.ember.feature.storage.entity.StorageCategory.KB_FILES,
-                                5L * 1024 * 1024 * 1024,
-                                100,
-                                now),
-                        new dev.chojo.ember.feature.storage.entity.StorageUsage(
-                                7,
-                                dev.chojo.ember.feature.storage.entity.StorageCategory.BOARD_ATTACHMENTS,
-                                2L * 1024 * 1024 * 1024,
-                                50,
-                                now)));
+                .thenReturn(List.of(
+                        new StorageUsage(7, StorageCategory.AVATARS, 480L * 1024 * 1024, 10, now),
+                        new StorageUsage(7, StorageCategory.KB_FILES, 5L * 1024 * 1024 * 1024, 100, now),
+                        new StorageUsage(7, StorageCategory.BOARD_ATTACHMENTS, 2L * 1024 * 1024 * 1024, 50, now)));
         var n = notification(
                 60,
                 NotificationType.STORAGE_WARNING,
@@ -417,12 +426,7 @@ class NotificationFeedRendererTest {
     @Test
     void procurementEnrichmentAddsInventoryType() {
         when(inventoryService.findById(99))
-                .thenReturn(java.util.Optional.of(new dev.chojo.ember.feature.inventory.entity.Inventory(
-                        99,
-                        1,
-                        "Schlauch 25m",
-                        dev.chojo.ember.feature.inventory.entity.InventoryType.INTERNAL,
-                        false)));
+                .thenReturn(Optional.of(new Inventory(99, 1, "Schlauch 25m", InventoryType.INTERNAL, false)));
         var n = notification(
                 70,
                 NotificationType.PROCUREMENT_REQUESTED,
@@ -438,7 +442,7 @@ class NotificationFeedRendererTest {
     @Test
     void procedureProgressEnrichmentMergesCheckedAndTotalIntoSingleRow() {
         // 3 of 5 checked → "Progress: 3 of 5 items" (mock echoes progressFormat key with subst).
-        var items = java.util.List.of(
+        var items = List.of(
                 procedureItem(1, 80, "A", true),
                 procedureItem(2, 80, "B", true),
                 procedureItem(3, 80, "C", true),
@@ -470,17 +474,15 @@ class NotificationFeedRendererTest {
         assertFalse(html.contains("Progress"));
     }
 
-    private static dev.chojo.ember.feature.procedure.entity.ProcedureItem procedureItem(
-            int id, int procedureId, String title, boolean checked) {
-        return new dev.chojo.ember.feature.procedure.entity.ProcedureItem(
+    private static ProcedureItem procedureItem(int id, int procedureId, String title, boolean checked) {
+        return new ProcedureItem(
                 id, procedureId, title, "", "", true, false, 0, checked, checked ? Instant.now() : null, null);
     }
 
     @Test
     void boardTicketEnrichmentAddsTitleAssigneeAndPriority() {
-        var assignee = new dev.chojo.ember.api.MemberIdentity(
-                java.util.UUID.randomUUID(), java.util.UUID.randomUUID(), "Alice Müller", null, null, null);
-        var ticket = new dev.chojo.ember.feature.board.entity.BoardTicket(
+        var assignee = new MemberIdentity(UUID.randomUUID(), UUID.randomUUID(), "Alice Müller", null, null, null);
+        var ticket = new BoardTicket(
                 123,
                 7,
                 1,
@@ -488,7 +490,7 @@ class NotificationFeedRendererTest {
                 "Order new helmets for trainee group",
                 "desc",
                 assignee,
-                dev.chojo.ember.feature.board.entity.TicketPriority.HIGH,
+                TicketPriority.HIGH,
                 null,
                 0,
                 null,
@@ -498,7 +500,7 @@ class NotificationFeedRendererTest {
                 0,
                 0,
                 0);
-        when(boardTicketService.findById(123)).thenReturn(java.util.Optional.of(ticket));
+        when(boardTicketService.findById(123)).thenReturn(Optional.of(ticket));
         var n = notification(
                 72,
                 NotificationType.BOARD_TICKET_UPDATE,
@@ -536,13 +538,13 @@ class NotificationFeedRendererTest {
         assertTrue(html.contains("91%"));
     }
 
-    private static dev.chojo.ember.feature.events.entity.StationEvent stubEvent(int id, Instant start, Instant end) {
-        return new dev.chojo.ember.feature.events.entity.StationEvent(
+    private static StationEvent stubEvent(int id, Instant start, Instant end) {
+        return new StationEvent(
                 id,
                 1,
                 "Probe",
                 "Konzert",
-                dev.chojo.ember.feature.events.entity.StationEvent.EventType.ONE_TIME,
+                StationEvent.EventType.ONE_TIME,
                 null,
                 start,
                 end,
@@ -551,7 +553,7 @@ class NotificationFeedRendererTest {
                 null,
                 false,
                 null,
-                dev.chojo.ember.feature.restriction.RestrictionMode.AND,
+                RestrictionMode.AND,
                 false,
                 null,
                 null,

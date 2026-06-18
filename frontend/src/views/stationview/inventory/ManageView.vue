@@ -138,7 +138,11 @@ function editInventory(inv: InventorySummary) {
   router.push({ name: 'inventory-edit', params: { id: inv.id } })
 }
 
-const scanInputRef = ref<{ $el: HTMLInputElement } | null>(null)
+interface ScanInputRef {
+  $el: HTMLInputElement
+}
+
+const scanInputRef = ref<ScanInputRef | null>(null)
 const scanInput = ref('')
 const scanError = ref('')
 

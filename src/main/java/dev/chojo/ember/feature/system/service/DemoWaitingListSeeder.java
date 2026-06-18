@@ -18,6 +18,8 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import tools.jackson.databind.node.IntNode;
+import tools.jackson.databind.node.StringNode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -190,10 +192,12 @@ public class DemoWaitingListSeeder {
                     kid.parentFirstname + " " + kid.lastname,
                     kid.email,
                     UUID.randomUUID().toString(),
-                    "");
-            waitingListRepository.upsertEntryValue(entry.id(), nameField.id(), "\"" + kid.firstname + "\"");
-            waitingListRepository.upsertEntryValue(entry.id(), ageField.id(), kid.alter);
-            waitingListRepository.upsertEntryValue(entry.id(), expField.id(), "\"" + kid.erfahrung + "\"");
+                    "",
+                    null);
+            waitingListRepository.upsertEntryValue(entry.id(), nameField.id(), StringNode.valueOf(kid.firstname));
+            waitingListRepository.upsertEntryValue(
+                    entry.id(), ageField.id(), IntNode.valueOf(Integer.parseInt(kid.alter)));
+            waitingListRepository.upsertEntryValue(entry.id(), expField.id(), StringNode.valueOf(kid.erfahrung));
 
             waitingListRepository.createGuardian(
                     entry.id(), kid.parentFirstname, kid.lastname, kid.email, "+49 170 " + (1000000 + entry.id()), 0);

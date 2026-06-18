@@ -33,8 +33,12 @@ defineEmits<{
 .cell-markdown-editor :deep(.markdown-editor-content) {
     flex: 1;
     min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
 }
 .cell-markdown-editor :deep(.markdown-editor-content .tiptap) {
+    flex: 1;
     min-height: 100px;
 }
 </style>

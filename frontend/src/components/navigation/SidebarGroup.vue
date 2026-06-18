@@ -7,6 +7,7 @@
 import {Comment as VComment, computed, ref, useSlots, watch} from 'vue'
 import {useRoute} from 'vue-router'
 import type {VNode} from 'vue'
+import {useSidebarCollapse} from '@/composables/useSidebarCollapse'
 
 const props = defineProps<{
   icon?: string[]
@@ -78,6 +79,8 @@ function toggle() {
   }
 }
 
+const {collapsed} = useSidebarCollapse()
+
 </script>
 
 <template>
@@ -86,15 +89,18 @@ function toggle() {
       <component
           :is="to ? 'router-link' : 'button'"
           :to="to"
-          :class="isActive
-          ? '!text-primary'
-          : '!text-[var(--text)] hover:bg-primary/5'"
-          class="flex flex-1 items-center gap-3 rounded-theme px-3 py-2 text-sm font-medium no-underline transition-colors duration-150"
+          :title="collapsed ? label : undefined"
+          :class="[
+            isActive ? '!text-primary' : '!text-[var(--text)] hover:bg-primary/5',
+            collapsed ? 'lg:justify-center lg:px-2 px-3' : 'px-3',
+          ]"
+          class="flex flex-1 items-center gap-3 rounded-theme py-2 text-sm font-medium no-underline transition-colors duration-150"
           @click="to ? emit('navigate') : toggle()"
       >
-        <font-awesome-icon v-if="icon" :icon="icon" class="w-4"/>
-        <span class="flex-1 text-left">{{ label }}</span>
+        <font-awesome-icon v-if="icon" :icon="icon" class="w-4 shrink-0"/>
+        <span class="flex-1 text-left truncate" :class="collapsed ? 'lg:hidden' : ''">{{ label }}</span>
         <span v-if="badge && badge > 0"
+              :class="collapsed ? 'lg:hidden' : ''"
               class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-xs font-bold bg-error text-error-text">{{
             badge
           }}</span>
@@ -102,6 +108,7 @@ function toggle() {
       <button
           v-if="hasVisibleChildren"
           class="flex items-center justify-center w-8 h-8 rounded-theme text-[var(--text)] transition-colors duration-150"
+          :class="collapsed ? 'lg:hidden' : ''"
           @click="toggle"
       >
         <font-awesome-icon
@@ -111,7 +118,7 @@ function toggle() {
       </button>
     </div>
 
-    <div v-if="hasVisibleChildren && expanded" class="ml-4 flex flex-col gap-1 mt-1">
+    <div v-if="hasVisibleChildren && expanded" class="ml-4 flex flex-col gap-1 mt-1" :class="collapsed ? 'lg:hidden' : ''">
       <slot/>
     </div>
   </div>

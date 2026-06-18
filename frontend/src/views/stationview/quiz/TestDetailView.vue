@@ -13,6 +13,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
@@ -134,7 +135,10 @@ async function saveTimes() {
     })
     timesDirty.value = false
     await loadData()
-  } catch { error.value = t('common.error') }
+  } catch (e) {
+    error.value = t('common.error')
+    throw e
+  }
 }
 
 async function loadData() {
@@ -344,7 +348,7 @@ watch(loaded, (isLoaded) => { if (isLoaded && loading.value) loadData() })
             </div>
           </div>
           <div v-if="timesDirty" class="flex justify-end mt-3">
-            <PrimaryButton @click="saveTimes">{{ t('common.save') }}</PrimaryButton>
+            <SaveButton :action="saveTimes"/>
           </div>
         </NeutralContainer>
 

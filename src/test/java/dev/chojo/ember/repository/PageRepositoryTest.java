@@ -128,7 +128,8 @@ class PageRepositoryTest extends RepositoryTestBase {
                 40.0,
                 CellContentType.IMAGE,
                 "1",
-                new CellConfig.ImageConfig(CellConfig.ImageFit.COVER, null, null));
+                new CellConfig.ImageConfig(
+                        CellConfig.ImageFit.COVER, null, null, null, null, null, null, null, null, null, null));
 
         var rows = pageRepo.findRowsByPage(pageId);
         assertEquals(1, rows.size());
@@ -157,8 +158,8 @@ class PageRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(13)
-    void createImage() {
-        var image = pageRepo.createImage(pageId, "test.png", "image/png", 1024);
+    void createFile() {
+        var image = pageRepo.createFile(pageId, station.id(), "abc123", "test.png", "image/png", 1024);
         assertNotNull(image);
         assertEquals("test.png", image.fileName());
         assertEquals(1024, image.fileSize());
@@ -167,39 +168,39 @@ class PageRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(14)
-    void findImage() {
-        assertTrue(pageRepo.findImage(imageId).isPresent());
-        assertTrue(pageRepo.findImage(99999).isEmpty());
+    void findFile() {
+        assertTrue(pageRepo.findFile(imageId).isPresent());
+        assertTrue(pageRepo.findFile(99999).isEmpty());
     }
 
     @Test
     @Order(15)
-    void findImagesByPage() {
-        var list = pageRepo.findImagesByPage(pageId);
+    void findFilesByPage() {
+        var list = pageRepo.findFilesByPage(pageId);
         assertEquals(1, list.size());
     }
 
     @Test
     @Order(16)
-    void findReferencedImageIds() {
-        // Add a row with an IMAGE cell referencing the uploaded image
+    void findAllCellsByPage() {
         int rowId = pageRepo.insertRow(pageId, 0);
         pageRepo.insertCell(rowId, 0, 50.0, CellContentType.IMAGE, String.valueOf(imageId), CellConfig.EMPTY);
         pageRepo.insertCell(rowId, 1, 50.0, CellContentType.MARKDOWN, "text", CellConfig.EMPTY);
 
-        var referenced = pageRepo.findReferencedImageIds(pageId);
-        assertEquals(1, referenced.size());
-        assertTrue(referenced.contains(imageId));
+        var cells = pageRepo.findAllCellsByPage(pageId);
+        assertEquals(2, cells.size());
+        assertTrue(cells.stream()
+                .anyMatch(c -> c.contentType() == CellContentType.IMAGE
+                        && String.valueOf(imageId).equals(c.content())));
 
-        // Clean up row
         pageRepo.deleteRowsByPage(pageId);
     }
 
     @Test
     @Order(17)
-    void deleteImage() {
-        assertTrue(pageRepo.deleteImage(imageId));
-        assertTrue(pageRepo.findImage(imageId).isEmpty());
+    void deleteFile() {
+        assertTrue(pageRepo.deleteFile(imageId));
+        assertTrue(pageRepo.findFile(imageId).isEmpty());
     }
 
     @Test
@@ -227,6 +228,103 @@ class PageRepositoryTest extends RepositoryTestBase {
     void countChildren() {
         assertEquals(1, pageRepo.countChildren(pageId));
         assertEquals(0, pageRepo.countChildren(childPageId));
+    }
+
+    @Test
+    @Order(21)
+    void findBySlugAndParent() {
+        var rootBySlug = pageRepo.findBySlugAndParent(station.id(), "updated-slug", null);
+        assertTrue(rootBySlug.isPresent());
+        assertEquals(pageId, rootBySlug.orElseThrow().id());
+
+        var rootMissing = pageRepo.findBySlugAndParent(station.id(), "missing", null);
+        assertTrue(rootMissing.isEmpty());
+
+        var childBySlug = pageRepo.findBySlugAndParent(station.id(), "child-page", pageId);
+        assertTrue(childBySlug.isPresent());
+        assertEquals(childPageId, childBySlug.orElseThrow().id());
+
+        var childMissing = pageRepo.findBySlugAndParent(station.id(), "child-page", 99999);
+        assertTrue(childMissing.isEmpty());
+    }
+
+    @Test
+    @Order(22)
+    void searchForPicker() {
+        var pickerPage = pageRepo.create(station.id(), "Picker Match", "picker-match", null, member.id());
+        try {
+            pageRepo.setPublished(pickerPage.id(), true);
+            var unmatched = pageRepo.create(station.id(), "Unmatched", "unmatched", null, member.id());
+            pageRepo.setPublished(unmatched.id(), true);
+
+            var all = pageRepo.searchForPicker(station.id(), null, 50);
+            assertTrue(all.stream().anyMatch(p -> "picker-match".equals(p.slug())));
+
+            var matches = pageRepo.searchForPicker(station.id(), "picker", 50);
+            assertTrue(matches.stream().anyMatch(p -> "picker-match".equals(p.slug())));
+            assertTrue(matches.stream().noneMatch(p -> "unmatched".equals(p.slug())));
+
+            var none = pageRepo.searchForPicker(station.id(), "no-such-page-anywhere", 50);
+            assertTrue(none.isEmpty());
+
+            var first = matches.getFirst();
+            assertNotNull(first.pageUid());
+            assertNotNull(first.title());
+            assertNotNull(first.slug());
+            assertNotNull(first.updatedAt());
+
+            pageRepo.delete(unmatched.id());
+        } finally {
+            pageRepo.delete(pickerPage.id());
+        }
+    }
+
+    @Test
+    @Order(23)
+    void findByStationAndHash() {
+        var img = pageRepo.createFile(pageId, station.id(), "hashAAA", "h.png", "image/png", 16);
+        try {
+            var found = pageRepo.findByStationAndHash(station.id(), "hashAAA");
+            assertTrue(found.isPresent());
+            assertEquals(img.id(), found.orElseThrow().id());
+            assertTrue(
+                    pageRepo.findByStationAndHash(station.id(), "hashMissing").isEmpty());
+        } finally {
+            pageRepo.deleteFile(img.id());
+        }
+    }
+
+    @Test
+    @Order(24)
+    void updateFileMeta() {
+        var img = pageRepo.createFile(pageId, station.id(), "metaHash", "meta.png", "image/png", 8);
+        try {
+            assertTrue(pageRepo.updateFileMeta(img.id(), "alt text", "description text"));
+            var fetched = pageRepo.findFile(img.id()).orElseThrow();
+            assertEquals("alt text", fetched.defaultAltText());
+            assertEquals("description text", fetched.defaultDescription());
+            assertFalse(pageRepo.updateFileMeta(99999, "x", "y"));
+        } finally {
+            pageRepo.deleteFile(img.id());
+        }
+    }
+
+    @Test
+    @Order(25)
+    void findFilesByStationAndAllCellsByStation() {
+        var img = pageRepo.createFile(pageId, station.id(), "stHash", "st.png", "image/png", 8);
+        int rowId = pageRepo.insertRow(pageId, 0);
+        pageRepo.insertCell(rowId, 0, 100.0, CellContentType.MARKDOWN, "txt", CellConfig.EMPTY);
+        try {
+            var files = pageRepo.findFilesByStation(station.id());
+            assertTrue(files.stream().anyMatch(f -> f.id() == img.id()));
+
+            var allCells = pageRepo.findAllCellsByStation(station.id());
+            assertFalse(allCells.isEmpty());
+        } finally {
+            pageRepo.deleteRowsByPage(pageId);
+            pageRepo.deleteFile(img.id());
+        }
     }
 
     @Test

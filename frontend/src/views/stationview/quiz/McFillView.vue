@@ -13,6 +13,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
@@ -61,7 +62,6 @@ const reviewItems = ref<ReviewQuestion[]>([])
 const phase = ref<'config' | 'review'>('config')
 
 // Save phase
-const saving = ref(false)
 const savedCount = ref(0)
 
 async function loadData() {
@@ -152,7 +152,6 @@ function removeQuestion(qIdx: number) {
 const totalNewAnswers = computed(() => reviewItems.value.reduce((sum, q) => sum + q.newAnswers.length, 0))
 
 async function saveAll() {
-  saving.value = true
   savedCount.value = 0
   try {
     for (const item of reviewItems.value) {
@@ -181,10 +180,9 @@ async function saveAll() {
       savedCount.value++
     }
     router.push({name: 'quiz-catalog-detail', params: {id: catalogId.value}})
-  } catch {
+  } catch (e) {
     error.value = t('common.error')
-  } finally {
-    saving.value = false
+    throw e
   }
 }
 
@@ -233,10 +231,7 @@ watch(loaded, v => { if (v) loadData() }, {immediate: true})
         </MutedText>
         <div class="flex gap-2">
           <SecondaryButton @click="phase = 'config'">{{ t('common.back') }}</SecondaryButton>
-          <PrimaryButton :disabled="saving || totalNewAnswers === 0" @click="saveAll">
-            <Spinner v-if="saving" size="sm" class="mr-1"/>
-            {{ t('common.save') }}
-          </PrimaryButton>
+          <SaveButton :disabled="totalNewAnswers === 0" :action="saveAll"/>
         </div>
       </div>
 

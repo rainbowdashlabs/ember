@@ -20,11 +20,27 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import { FormStatus } from '@/api/types'
-import type { Form, FormListEntry } from '@/api/types'
+import type { Form, FormListEntry, FormPurposeName } from '@/api/types'
 import { forms } from '@/api'
 import { useSession } from '@/composables/useSession'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
+
+const props = defineProps<{
+  /** When set, filters the list to forms of this purpose and pre-selects the same purpose for newly created forms. */
+  purpose?: FormPurposeName
+  /** Whether to show the "available forms to fill" section below the management list. Defaults to true for INTERNAL forms. */
+  showAvailableSection?: boolean
+  /** i18n key for the management-section heading. Defaults to the generic {@code forms.title}. */
+  titleKey?: string
+  /**
+   * Router route name used by the "View analytics" button. Defaults to {@code 'forms-analytics'}
+   * (the global, POLL_VIEW_RESULTS-gated analytics surface). The page-editor surfaces pass
+   * {@code 'pages-forms-analytics'} / {@code 'pages-polls-analytics'} so page editors who do not
+   * hold POLL_VIEW_RESULTS still land on a route that calls the PAGE_EDIT-gated analytics API.
+   */
+  analyticsRouteName?: string
+}>()
 
 const { t } = useI18n()
 const router = useRouter()
@@ -32,6 +48,7 @@ import { StationPermission } from '@/api/types'
 const { hasPermission, loaded } = useSession()
 const canViewResults = computed(() => hasPermission(StationPermission.POLL_VIEW_RESULTS))
 const canCreatePolls = computed(() => hasPermission(StationPermission.POLL_CREATE))
+const showAvailable = computed(() => props.showAvailableSection ?? true)
 
 const managedForms = ref<Form[]>([])
 const availableForms = ref<FormListEntry[]>([])
@@ -61,9 +78,13 @@ async function loadData() {
   error.value = ''
   try {
     if (canViewResults.value) {
-      managedForms.value = await forms.listForms()
+      managedForms.value = await forms.listForms(props.purpose)
     }
-    availableForms.value = await forms.listAvailableForms()
+    if (showAvailable.value) {
+      availableForms.value = await forms.listAvailableForms()
+    } else {
+      availableForms.value = []
+    }
   } catch {
     error.value = t('common.error')
   } finally {
@@ -117,8 +138,8 @@ watch(loaded, (isLoaded) => {
         <!-- Management Section -->
         <div v-if="canViewResults" class="space-y-4">
           <div class="flex items-center justify-between">
-            <SectionHeader>{{ t('forms.title') }}</SectionHeader>
-            <PrimaryButton v-if="canCreatePolls" :icon="['fas', 'plus']" @click="router.push({ name: 'forms-create' })">
+            <SectionHeader>{{ t(props.titleKey ?? 'forms.title') }}</SectionHeader>
+            <PrimaryButton v-if="canCreatePolls" :icon="['fas', 'plus']" @click="router.push({ name: 'forms-create', query: props.purpose ? { purpose: props.purpose } : undefined })">
               {{ t('forms.create') }}
             </PrimaryButton>
           </div>
@@ -150,7 +171,7 @@ watch(loaded, (isLoaded) => {
                     {{ t('forms.edit') }}
                   </SecondaryButton>
                   <SecondaryButton v-if="form.status !== FormStatus.DRAFT"
-                                   @click="router.push({ name: 'forms-analytics', params: { id: form.id } })">
+                                   @click="router.push({ name: props.analyticsRouteName ?? 'forms-analytics', params: { id: form.id } })">
                     {{ t('forms.viewAnalytics') }}
                   </SecondaryButton>
                   <ErrorButton v-if="canCreatePolls" @click="deleteForm(form)">
@@ -163,7 +184,7 @@ watch(loaded, (isLoaded) => {
         </div>
 
         <!-- Available Forms for User -->
-        <div class="space-y-4">
+        <div v-if="showAvailable" class="space-y-4">
           <SectionHeader v-if="canViewResults" class="mt-6">{{ t('forms.fillForm') }}</SectionHeader>
 
           <EmptyState compact v-if="availableForms.length === 0">{{ t('forms.noAvailableForms') }}</EmptyState>

@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import jakarta.inject.Singleton;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -31,7 +32,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class StationRepository {
 
     private static final String STATION_COLUMNS =
-            "id, uid, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors, default_feel, allow_user_feel, public_kb_mode, federation_private_key, discovery_visibility, discovery_description, discovery_show_kb, public_calendar_enabled, landing_page_id, public_pages_enabled, public_slug, public_waitlist_enabled, public_blog_enabled";
+            "id, uid, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors, default_feel, allow_user_feel, public_kb_mode, federation_private_key, discovery_visibility, discovery_description, discovery_show_kb, public_calendar_enabled, landing_page_id, public_pages_enabled, public_slug, public_waitlist_enabled, public_blog_enabled, address_line, postal_code, city, country, latitude, longitude";
 
     private final Cache<Integer, UUID> uidCache = Caffeine.newBuilder()
             .expireAfterAccess(5, TimeUnit.MINUTES)
@@ -242,6 +243,76 @@ public class StationRepository {
                 .update()
                 .changed();
     }
+
+    /**
+     * Writes the opt-in geolocation block. All fields nullable; clearing them removes the
+     * station from the discovery map and lending-distance results.
+     */
+    public boolean updateLocation(
+            int id,
+            String addressLine,
+            String postalCode,
+            String city,
+            String country,
+            BigDecimal latitude,
+            BigDecimal longitude) {
+        return query("""
+                                UPDATE station
+                                SET address_line = :address_line,
+                                    postal_code  = :postal_code,
+                                    city         = :city,
+                                    country      = :country,
+                                    latitude     = :latitude,
+                                    longitude    = :longitude
+                                WHERE id = :id;""")
+                .single(call().bind("address_line", addressLine)
+                        .bind("postal_code", postalCode)
+                        .bind("city", city)
+                        .bind("country", country)
+                        .bind("latitude", latitude)
+                        .bind("longitude", longitude)
+                        .bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Returns station id + distance pairs for stations within the given radius of the
+     * origin, sorted ascending. Honors the partial coordinate index via a bounding-box
+     * pre-filter; calls {@code haversine_km} for the precise distance.
+     */
+    public List<StationDistance> findStationsWithinRadius(BigDecimal originLat, BigDecimal originLon, double radiusKm) {
+        return query("""
+                                WITH bbox AS (
+                                    SELECT :lat::NUMERIC AS lat0,
+                                           :lon::NUMERIC AS lon0,
+                                           :lat::NUMERIC - (:radius_km::NUMERIC / 111.0) AS min_lat,
+                                           :lat::NUMERIC + (:radius_km::NUMERIC / 111.0) AS max_lat,
+                                           :lon::NUMERIC - (:radius_km::NUMERIC / (111.0 * cos(radians(:lat::NUMERIC)))) AS min_lon,
+                                           :lon::NUMERIC + (:radius_km::NUMERIC / (111.0 * cos(radians(:lat::NUMERIC)))) AS max_lon
+                                ), candidates AS (
+                                    SELECT s.id,
+                                           haversine_km(bbox.lat0, bbox.lon0, s.latitude, s.longitude) AS distance_km
+                                    FROM station s, bbox
+                                    WHERE s.latitude  IS NOT NULL
+                                      AND s.longitude IS NOT NULL
+                                      AND s.latitude  BETWEEN bbox.min_lat AND bbox.max_lat
+                                      AND s.longitude BETWEEN bbox.min_lon AND bbox.max_lon
+                                )
+                                SELECT id, distance_km
+                                FROM candidates
+                                WHERE distance_km <= :radius_km::NUMERIC
+                                ORDER BY distance_km;""")
+                .single(call().bind("lat", originLat).bind("lon", originLon).bind("radius_km", radiusKm))
+                .map(row -> new StationDistance(row.getInt("id"), row.getDouble("distance_km")))
+                .all();
+    }
+
+    /**
+     * @param stationId  internal station id
+     * @param distanceKm great-circle distance in km from the origin point
+     */
+    public record StationDistance(int stationId, double distanceKm) {}
 
     public void updateThemeSettings(
             int id,

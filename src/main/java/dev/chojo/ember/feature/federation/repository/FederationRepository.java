@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.federation.repository;
 
+import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ChangeType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
@@ -39,6 +40,39 @@ public class FederationRepository {
                 .map(FederationPartner.map())
                 .all();
     }
+
+    /**
+     * Public summary of every active federation partner for a station: name, slug (when set) and
+     * great-circle distance in km when both coordinates are known.
+     */
+    public List<PublicPartnerSummary> findActivePartnerSummaries(int stationId) {
+        return query("""
+                        SELECT s.uid AS partner_uid,
+                               s.name AS partner_name,
+                               s.public_slug AS partner_slug,
+                               CASE
+                                   WHEN home.latitude IS NOT NULL AND home.longitude IS NOT NULL
+                                    AND s.latitude IS NOT NULL AND s.longitude IS NOT NULL
+                                   THEN haversine_km(
+                                            home.latitude, home.longitude,
+                                            s.latitude, s.longitude)
+                                   ELSE NULL
+                               END AS distance_km
+                        FROM federation_partner fp
+                        JOIN station s ON s.uid = fp.partner_station_id
+                        JOIN station home ON home.id = fp.station_id
+                        WHERE fp.station_id = :station_id AND fp.status = 'ACTIVE'
+                        ORDER BY distance_km NULLS LAST, partner_name;""")
+                .single(call().bind("station_id", stationId))
+                .map(row -> new PublicPartnerSummary(
+                        row.get("partner_uid", StandardValueConverter.UUID_STRING),
+                        row.getString("partner_name"),
+                        row.getString("partner_slug"),
+                        row.getObject("distance_km", Double.class)))
+                .all();
+    }
+
+    public record PublicPartnerSummary(UUID uid, String name, String slug, Double distanceKm) {}
 
     public Optional<FederationPartner> findPartnerById(int id) {
         return query("SELECT * FROM federation_partner WHERE id = :id;")

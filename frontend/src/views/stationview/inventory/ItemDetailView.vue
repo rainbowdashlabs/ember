@@ -14,6 +14,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -59,7 +60,6 @@ const editing = ref(false)
 const editName = ref('')
 const editInternalId = ref('')
 const editSizeId = ref<string>('')
-const saving = ref(false)
 
 function startEdit() {
   if (!item.value) return
@@ -71,7 +71,6 @@ function startEdit() {
 
 async function saveEdit() {
   if (!item.value) return
-  saving.value = true
   error.value = ''
   try {
     item.value = await inventory.updateItem(itemId.value, {
@@ -80,12 +79,9 @@ async function saveEdit() {
       sizeId: editSizeId.value ? Number(editSizeId.value) : undefined,
     })
     editing.value = false
-    success.value = t('itemDetail.saved')
-    setTimeout(() => success.value = '', 3000)
-  } catch {
+  } catch (e) {
     error.value = t('common.error')
-  } finally {
-    saving.value = false
+    throw e
   }
 }
 
@@ -225,7 +221,7 @@ onMounted(loadData)
               </div>
             </div>
             <div class="flex gap-2">
-              <PrimaryButton :disabled="saving" @click="saveEdit">{{ t('memberEdit.save') }}</PrimaryButton>
+              <SaveButton :action="saveEdit"/>
               <SecondaryButton @click="editing = false">{{ t('common.cancel') }}</SecondaryButton>
             </div>
           </template>

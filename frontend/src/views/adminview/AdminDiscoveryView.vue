@@ -15,6 +15,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
@@ -106,9 +107,9 @@ async function saveSettings() {
       maxDepth: draftDepth.value,
       pingIntervalMinutes: draftInterval.value,
     })
-    flash.value = t('adminDiscovery.saved')
-  } catch {
+  } catch (e) {
     error.value = t('common.error')
+    throw e
   }
 }
 
@@ -275,7 +276,7 @@ onMounted(loadAll)
               <NumberInput v-model="draftInterval" :min="60"/>
             </div>
             <div class="flex flex-wrap gap-2 pt-2">
-              <PrimaryButton @click="saveSettings">{{ t('adminDiscovery.save') }}</PrimaryButton>
+              <SaveButton :action="saveSettings"/>
               <InfoButton @click="discoverNow">{{ t('adminDiscovery.discoverNow') }}</InfoButton>
               <SecondaryButton @click="seedFederation">{{ t('adminDiscovery.seedFederation') }}</SecondaryButton>
             </div>

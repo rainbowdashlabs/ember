@@ -17,12 +17,18 @@ const props = withDefaults(defineProps<{
   size: 'sm',
 })
 
-const displayName = computed(() => props.identity?.name || '')
-
 const {sessionInfo} = useSession()
 const isExternal = computed(() => {
   if (!props.identity?.stationUid) return false
   return props.identity.stationUid !== sessionInfo.value?.stationId
+})
+// Fall back to the station name for federated members whose display name couldn't be resolved
+// (no local mapping, no cached name) so the comment still shows a meaningful author label
+// instead of an empty span next to a "?" avatar.
+const displayName = computed(() => {
+  if (props.identity?.name) return props.identity.name
+  if (isExternal.value && props.identity?.stationName) return props.identity.stationName
+  return ''
 })
 </script>
 
@@ -35,6 +41,6 @@ const isExternal = computed(() => {
           :style="{ backgroundColor: identity.displayTag.color + '20', color: identity.displayTag.color }">
       {{ identity.displayTag.name }}
     </span>
-    <StationBadge v-if="isExternal" :station-name="identity?.stationName ?? ''" />
+    <StationBadge v-if="isExternal && identity?.name" :station-name="identity?.stationName ?? ''" />
   </span>
 </template>

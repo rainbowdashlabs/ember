@@ -6,9 +6,12 @@
 package dev.chojo.ember.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import io.javalin.http.BadRequestResponse;
+import io.javalin.http.Context;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -18,6 +21,8 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -57,7 +62,7 @@ class ConsentServiceTest extends RepositoryTestBase {
         when(apiConfig.consentDir()).thenReturn(consentDir.toString());
         when(apiConfig.imprintDir()).thenReturn(imprintDir.toString());
 
-        service = new ConsentService(accountRepo, apiConfig);
+        service = new ConsentService(accountRepo, apiConfig, new Network());
         service.initialize();
 
         account = accountRepo.create("consent-svc@test.com", "Consent", "SvcTester");
@@ -250,7 +255,7 @@ class ConsentServiceTest extends RepositoryTestBase {
         when(apiConfig2.consentDir()).thenReturn(freshConsent.toString());
         when(apiConfig2.imprintDir()).thenReturn(freshImprint.toString());
 
-        var service2 = new ConsentService(accountRepo, apiConfig2);
+        var service2 = new ConsentService(accountRepo, apiConfig2, new Network());
         // First init — all documents are new, so changed=true
         assertDoesNotThrow(service2::initialize);
         // Second init — same content, so changed=false (exercises the else branch)
@@ -259,5 +264,75 @@ class ConsentServiceTest extends RepositoryTestBase {
         // Modify one doc and re-init to trigger the log.warn with mixed changed/unchanged
         Files.writeString(freshPrivacy.resolve("de").resolve("01-privacy.md"), "# Privacy v3\nUpdated again.");
         assertDoesNotThrow(service2::initialize);
+    }
+
+    @Test
+    @Order(40)
+    void requireAcceptanceRejectsMissingVersions() {
+        var ctx = mock(Context.class);
+        when(ctx.ip()).thenReturn("127.0.0.1");
+        when(ctx.userAgent()).thenReturn("test-agent");
+        when(ctx.header("CF-IPCountry")).thenReturn("DE");
+
+        var current = service.getCurrentVersions();
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.requireAcceptance(ctx, null, current.privacyVersion(), current.tosVersion()));
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.requireAcceptance(ctx, "", current.privacyVersion(), current.tosVersion()));
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.requireAcceptance(ctx, current.consentVersion(), null, current.tosVersion()));
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.requireAcceptance(ctx, current.consentVersion(), current.privacyVersion(), null));
+    }
+
+    @Test
+    @Order(41)
+    void requireAcceptanceRejectsStaleVersions() {
+        var ctx = mock(Context.class);
+        when(ctx.ip()).thenReturn("127.0.0.1");
+        when(ctx.userAgent()).thenReturn("test-agent");
+        when(ctx.header("CF-IPCountry")).thenReturn("DE");
+
+        var current = service.getCurrentVersions();
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.requireAcceptance(ctx, "old-consent", current.privacyVersion(), current.tosVersion()));
+    }
+
+    @Test
+    @Order(42)
+    void requireAcceptanceCapturesContext() {
+        var ctx = mock(Context.class);
+        when(ctx.ip()).thenReturn("203.0.113.7");
+        when(ctx.userAgent()).thenReturn("Mozilla/5.0 (test)");
+        when(ctx.header("CF-IPCountry")).thenReturn("AT");
+
+        var current = service.getCurrentVersions();
+        var proof = service.requireAcceptance(
+                ctx, current.consentVersion(), current.privacyVersion(), current.tosVersion());
+        assertEquals(current.consentVersion(), proof.consentVersion());
+        assertEquals(current.privacyVersion(), proof.privacyVersion());
+        assertEquals(current.tosVersion(), proof.tosVersion());
+        assertEquals("203.0.113.0", proof.ipAddress());
+        assertEquals("AT", proof.country());
+        assertEquals("Mozilla/5.0 (test)", proof.userAgent());
+        assertNotNull(proof.consentedAt());
+    }
+
+    @Test
+    @Order(43)
+    void anonymizeIpZeroesLastIpv4Octet() throws UnknownHostException {
+        assertEquals("203.0.113.0", ConsentService.anonymizeIp(InetAddress.getByName("203.0.113.7")));
+    }
+
+    @Test
+    @Order(44)
+    void anonymizeIpZeroesIpv6Suffix() throws UnknownHostException {
+        String anonymized = ConsentService.anonymizeIp(InetAddress.getByName("2001:db8:1234:5678::1"));
+        assertTrue(anonymized.startsWith("2001:db8:1234:"), "expected /48 prefix retained, got " + anonymized);
     }
 }

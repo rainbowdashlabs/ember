@@ -8,6 +8,7 @@ import {onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
@@ -29,7 +30,6 @@ const {loaded} = useSession()
 const layouts = ref<EventLayout[]>([])
 const attendanceFields = ref<AttendanceTemplateField[]>([])
 const loading = ref(true)
-const saving = ref(false)
 
 // Edit modal state
 const editOpen = ref(false)
@@ -95,29 +95,24 @@ function removeField(index: number) {
 }
 
 async function saveLayout() {
-  saving.value = true
-  try {
-    let layoutId: number
-    if (editLayoutId.value != null) {
-      await events.updateLayout(editLayoutId.value, {name: editName.value})
-      layoutId = editLayoutId.value
-    } else {
-      const created = await events.createLayout({name: editName.value})
-      layoutId = created.id
-    }
-    const fieldEntries: LayoutFieldEntry[] = editFields.value.filter(f => f.name.trim()).map(f => ({
-      name: f.name,
-      fieldType: f.fieldType,
-      config: f.config ?? undefined,
-      overview: f.overview,
-      attendanceFieldId: f.attendanceFieldId,
-    }))
-    await events.setLayoutFields(layoutId, {fields: fieldEntries})
-    editOpen.value = false
-    await loadData()
-  } finally {
-    saving.value = false
+  let layoutId: number
+  if (editLayoutId.value != null) {
+    await events.updateLayout(editLayoutId.value, {name: editName.value})
+    layoutId = editLayoutId.value
+  } else {
+    const created = await events.createLayout({name: editName.value})
+    layoutId = created.id
   }
+  const fieldEntries: LayoutFieldEntry[] = editFields.value.filter(f => f.name.trim()).map(f => ({
+    name: f.name,
+    fieldType: f.fieldType,
+    config: f.config ?? undefined,
+    overview: f.overview,
+    attendanceFieldId: f.attendanceFieldId,
+  }))
+  await events.setLayoutFields(layoutId, {fields: fieldEntries})
+  editOpen.value = false
+  await loadData()
 }
 
 async function deleteLayout(id: number) {
@@ -186,9 +181,7 @@ async function deleteLayout(id: number) {
 
         <div class="flex justify-end gap-3">
           <SecondaryButton @click="editOpen = false">{{ t('common.cancel') }}</SecondaryButton>
-          <PrimaryButton :disabled="saving || !editName.trim()" @click="saveLayout">
-            {{ saving ? t('common.loading') : t('common.save') }}
-          </PrimaryButton>
+          <SaveButton :disabled="!editName.trim()" :action="saveLayout"/>
         </div>
       </div>
     </Modal>

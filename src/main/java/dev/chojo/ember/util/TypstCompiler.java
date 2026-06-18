@@ -53,12 +53,7 @@ public final class TypstCompiler {
             Path templateDir = templateFile.getParent();
 
             if (logo != null) {
-                String ext =
-                        switch (logo.contentType()) {
-                            case "image/jpeg" -> "jpg";
-                            case "image/svg+xml" -> "svg";
-                            default -> "png";
-                        };
+                String ext = logoExtension(logo.contentType());
                 Files.write(templateDir.resolve("logo." + ext), logo.data());
                 data.put("hasLogo", true);
                 data.put("logoFile", "logo." + ext);
@@ -86,6 +81,16 @@ public final class TypstCompiler {
             throw new IOException("typst compile failed (exit " + exitCode + "): " + output);
         }
         return Files.readAllBytes(outputFile);
+    }
+
+    public static String logoExtension(String contentType) {
+        return switch (contentType) {
+            case "image/jpeg" -> "jpg";
+            case "image/svg+xml" -> "svg";
+            case "image/webp" -> "webp";
+            case "image/gif" -> "gif";
+            default -> "png";
+        };
     }
 
     private static void cleanup(Path dir) {

@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.feed.repository.FeedMetricsRepository;
 import dev.chojo.ember.feature.feed.repository.FeedTokenRepository;
 import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.inventory.repository.ExchangeRepository;
@@ -120,7 +121,7 @@ public abstract class RepositoryTestBase {
     protected static EventCommentRepository eventCommentRepo;
     protected static NoteRepository noteRepo;
     protected static FeedTokenRepository feedTokenRepo;
-    protected static dev.chojo.ember.feature.feed.repository.FeedMetricsRepository feedMetricsRepo;
+    protected static FeedMetricsRepository feedMetricsRepo;
     protected static QuizCatalogRepository quizCatalogRepo;
     protected static QuizTestRepository quizTestRepo;
     protected static AiProviderRepository aiProviderRepo;
@@ -223,7 +224,7 @@ public abstract class RepositoryTestBase {
         eventCommentRepo = new EventCommentRepository();
         noteRepo = new NoteRepository();
         feedTokenRepo = new FeedTokenRepository();
-        feedMetricsRepo = new dev.chojo.ember.feature.feed.repository.FeedMetricsRepository();
+        feedMetricsRepo = new FeedMetricsRepository();
         quizCatalogRepo = new QuizCatalogRepository();
         quizTestRepo = new QuizTestRepository();
         aiProviderRepo = new AiProviderRepository();

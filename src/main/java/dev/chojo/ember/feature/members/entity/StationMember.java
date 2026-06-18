@@ -10,6 +10,7 @@ import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.auth.StationUserType;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 /**
@@ -23,6 +24,7 @@ import java.util.UUID;
  * @param formerAt    when the member was marked as former, or null
  * @param displayName the cached display name, used for former members after account decoupling
  * @param userType    the station user type (TRIAL, MEMBER, GUARDIAN, TEAM, MANAGER)
+ * @param joinDate    the date the member joined the station; editable by managers
  */
 public record StationMember(
         int id,
@@ -32,7 +34,8 @@ public record StationMember(
         boolean former,
         Instant formerAt,
         String displayName,
-        StationUserType userType) {
+        StationUserType userType,
+        LocalDate joinDate) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -47,6 +50,7 @@ public record StationMember(
                         ? row.getTimestamp("former_at").toInstant()
                         : null,
                 row.getString("display_name"),
-                row.getEnum("user_type", StationUserType.class));
+                row.getEnum("user_type", StationUserType.class),
+                row.getDate("join_date") != null ? row.getDate("join_date").toLocalDate() : null);
     }
 }

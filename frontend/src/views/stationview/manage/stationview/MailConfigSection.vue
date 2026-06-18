@@ -10,7 +10,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
@@ -42,9 +42,13 @@ const mailDailyLimit = ref(100)
 const mailMonthlyLimit = ref(2000)
 const mailSentToday = ref(0)
 const mailSentThisMonth = ref(0)
-const mailSaving = ref(false)
 const mailTesting = ref(false)
-const mailTestResult = ref<{success: boolean, error?: string | null} | null>(null)
+interface MailTestResult {
+  success: boolean
+  error?: string | null
+}
+
+const mailTestResult = ref<MailTestResult | null>(null)
 
 async function loadMailConfig() {
   try {
@@ -69,7 +73,6 @@ async function loadMailConfig() {
 }
 
 async function saveMailConfig() {
-  mailSaving.value = true
   mailTestResult.value = null
   try {
     const prov = mailProvider.value
@@ -105,10 +108,9 @@ async function saveMailConfig() {
     mailSmtpPassword.value = ''
     mailApiKey.value = ''
     emit('success', t('stationManage.mailSaved'))
-  } catch {
+  } catch (e) {
     emit('error', t('common.error'))
-  } finally {
-    mailSaving.value = false
+    throw e
   }
 }
 
@@ -273,9 +275,7 @@ onMounted(loadMailConfig)
     </template>
 
     <div class="flex items-center gap-2">
-      <PrimaryButton :disabled="mailSaving" @click="saveMailConfig">
-        {{ mailSaving ? t('common.loading') : t('stationManage.save') }}
-      </PrimaryButton>
+      <SaveButton :action="saveMailConfig"/>
       <SuccessButton :icon="['fas', 'plug']" v-if="mailProvider !== 'NONE'" :disabled="mailTesting" @click="testMail">
         {{ mailTesting ? t('common.loading') : t('stationManage.mailTest') }}
       </SuccessButton>

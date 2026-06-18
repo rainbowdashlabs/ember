@@ -14,6 +14,7 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -46,6 +47,7 @@ public record RichMember(
         String email,
         boolean former,
         StationUserType userType,
+        LocalDate joinDate,
         List<String> roles,
         List<GroupEntry> groups,
         List<TagEntry> tags,
@@ -72,6 +74,7 @@ public record RichMember(
                 row.getString("email"),
                 row.getBoolean("former"),
                 row.getEnum("user_type", StationUserType.class),
+                row.getDate("join_date") != null ? row.getDate("join_date").toLocalDate() : null,
                 parseJson(row.getString("roles"), STRING_LIST, List.of()),
                 parseJson(row.getString("groups"), GROUP_LIST, List.of()),
                 parseJson(row.getString("tags"), TAG_LIST, List.of()),
@@ -102,6 +105,7 @@ public record RichMember(
                 email,
                 former,
                 userType,
+                joinDate,
                 roles,
                 groups,
                 tags,

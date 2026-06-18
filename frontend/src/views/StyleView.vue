@@ -95,9 +95,9 @@ import UploadButton from '@/components/button/UploadButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import ConfirmButton from '@/components/button/ConfirmButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
-
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
@@ -105,9 +105,9 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
+import UserTagBadge from '@/components/badge/UserTagBadge.vue'
 import ExchangeStatusBadge from '@/views/stationview/inventory/exchangeview/ExchangeStatusBadge.vue'
 import { ExchangeStatus } from '@/api/types'
-
 import THead from '@/components/table/THead.vue'
 import TRow from '@/components/table/TRow.vue'
 import Th from '@/components/table/Th.vue'
@@ -350,6 +350,7 @@ function toggleDisplay(name: string) {
         <SecondaryButton compact>Compact</SecondaryButton>
         <SuccessButton compact>Compact</SuccessButton>
       </div>
+      <div class="flex flex-wrap gap-2 items-center"><SaveButton :action="() => new Promise(r => setTimeout(r, 800))"/><SaveButton :action="() => new Promise(r => setTimeout(r, 800))">Custom text</SaveButton></div>
       <div class="flex flex-wrap gap-2 items-center">
         <PrimaryButton disabled>Disabled</PrimaryButton>
         <SecondaryButton disabled>Disabled</SecondaryButton>
@@ -423,6 +424,7 @@ function toggleDisplay(name: string) {
         <SizeBadge>M</SizeBadge>
         <SizeBadge lost>M (lost)</SizeBadge>
         <StationBadge station-name="DLRG Musterstadt" />
+        <UserTagBadge>Tag</UserTagBadge><UserTagBadge color="#3694FF">Tag (colored)</UserTagBadge>
       </div>
       <SubHeader>Exchange Status</SubHeader>
       <div class="flex flex-wrap gap-2 items-center">

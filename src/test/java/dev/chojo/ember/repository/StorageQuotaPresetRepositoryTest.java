@@ -6,6 +6,7 @@
 package dev.chojo.ember.repository;
 
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.storage.entity.StationStorageQuota;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -95,7 +96,7 @@ class StorageQuotaPresetRepositoryTest extends RepositoryTestBase {
     void applyToStation() {
         storagePresetRepo.applyToStation(presetId, station.id());
         // Verify by reading the station quota columns
-        var quota = dev.chojo.ember.feature.storage.entity.StationStorageQuota.map();
+        var quota = StationStorageQuota.map();
         // The station should now have the preset's values
         var stationObj = stationRepo.findById(station.id());
         assertTrue(stationObj.isPresent());
@@ -103,18 +104,20 @@ class StorageQuotaPresetRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(6)
-    void findStationPresetNames() {
+    void findStationPresetAssignments() {
         // applyToStation was called in order 5, so station should have a preset
-        var names = storagePresetRepo.findStationPresetNames();
-        assertEquals("Premium", names.get(station.id()));
+        var assignments = storagePresetRepo.findStationPresetAssignments();
+        var assignment = assignments.get(station.id());
+        assertNotNull(assignment);
+        assertEquals("Premium", assignment.presetName());
     }
 
     @Test
     @Order(7)
-    void findStationPresetNamesEmptyAfterReset() {
+    void findStationPresetAssignmentsEmptyAfterReset() {
         storagePresetRepo.resetStationQuotas(station.id());
-        var names = storagePresetRepo.findStationPresetNames();
-        assertNull(names.get(station.id()));
+        var assignments = storagePresetRepo.findStationPresetAssignments();
+        assertNull(assignments.get(station.id()));
     }
 
     @Test

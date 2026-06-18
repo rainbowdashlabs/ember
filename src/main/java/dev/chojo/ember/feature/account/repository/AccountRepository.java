@@ -699,8 +699,12 @@ public class AccountRepository {
      * @return the latest consent record, or empty if none exists
      */
     public Optional<GdprConsent> findLatestConsent(int accountId) {
-        return query("SELECT " + CONSENT_COLUMNS
-                        + " FROM gdpr_consent WHERE account_id = :account_id ORDER BY consented_at DESC LIMIT 1;")
+        return query("""
+                SELECT %s
+                FROM gdpr_consent
+                WHERE account_id = :account_id
+                ORDER BY consented_at DESC
+                LIMIT 1;""", CONSENT_COLUMNS)
                 .single(call().bind("account_id", accountId))
                 .map(GdprConsent.map())
                 .first();
@@ -713,8 +717,11 @@ public class AccountRepository {
      * @return list of consent records
      */
     public List<GdprConsent> findAllConsents(int accountId) {
-        return query("SELECT " + CONSENT_COLUMNS
-                        + " FROM gdpr_consent WHERE account_id = :account_id ORDER BY consented_at DESC;")
+        return query("""
+                SELECT %s
+                FROM gdpr_consent
+                WHERE account_id = :account_id
+                ORDER BY consented_at DESC;""", CONSENT_COLUMNS)
                 .single(call().bind("account_id", accountId))
                 .map(GdprConsent.map())
                 .all();

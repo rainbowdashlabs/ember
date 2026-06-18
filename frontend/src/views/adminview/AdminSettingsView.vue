@@ -13,7 +13,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import { adminSettings } from '@/api'
@@ -88,38 +88,31 @@ async function toggleRegistration(value: boolean) {
   }
 }
 
-const themeSaving = ref(false)
-
 watch(instanceDefaultTheme, (newTheme) => {
   themeCtrl.applyTheme(newTheme)
 })
 
 async function saveInstanceTheme() {
-  themeSaving.value = true
   error.value = ''
-  success.value = ''
   try {
     const result = await adminSettings.updateSettings(buildSettings())
     instanceDefaultTheme.value = result.instanceDefaultTheme ?? 'ember'
     instanceDefaultFeel.value = result.instanceDefaultFeel ?? 'ROUNDED'
     instanceLockFeel.value = result.instanceLockFeel ?? false
-    showSuccess()
-  } catch {
+  } catch (e) {
     error.value = t('common.error')
-  } finally {
-    themeSaving.value = false
+    throw e
   }
 }
 
 async function saveAuthConfig() {
   error.value = ''
-  success.value = ''
   try {
     const result = await adminSettings.updateAuthConfig(authConfig.value)
     authConfig.value = result
-    showSuccess()
-  } catch {
+  } catch (e) {
     error.value = t('common.error')
+    throw e
   }
 }
 
@@ -195,9 +188,7 @@ onMounted(async () => {
           </div>
 
           <div class="flex justify-end">
-            <PrimaryButton :disabled="themeSaving" @click="saveInstanceTheme">
-              {{ t('adminSettings.legal.save') }}
-            </PrimaryButton>
+            <SaveButton :action="saveInstanceTheme"/>
           </div>
         </NeutralContainer>
 
@@ -229,7 +220,7 @@ onMounted(async () => {
           </div>
 
           <div class="flex justify-end">
-            <PrimaryButton @click="saveAuthConfig">{{ t('adminSettings.legal.save') }}</PrimaryButton>
+            <SaveButton :action="saveAuthConfig"/>
           </div>
         </NeutralContainer>
       </template>

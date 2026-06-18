@@ -9,6 +9,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
@@ -29,7 +30,10 @@ public record DiscoveryStationCard(
         String contactUrl,
         List<String> tags,
         String memberCount,
-        Instant publishedAt) {
+        Instant publishedAt,
+        String addressLine,
+        BigDecimal latitude,
+        BigDecimal longitude) {
 
     private static final ObjectMapper MAPPER = JsonMapper.builder().build();
 

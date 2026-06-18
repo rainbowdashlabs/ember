@@ -197,7 +197,7 @@ public class TransferRoutes implements Routes {
     public record ImportProgressResponse(
             int stationId,
             String stationName,
-            dev.chojo.ember.feature.station.service.StationImportService.ImportProgress.Status status,
+            StationImportService.ImportProgress.Status status,
             int totalTables,
             int completedTables,
             String currentTable,
