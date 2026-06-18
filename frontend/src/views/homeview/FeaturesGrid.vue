@@ -27,7 +27,7 @@ const ICONS: Array<[string, string]> = [
 ]
 
 const features = computed(() =>
-    (tm('landingAlt.features.items') as Array<{title: string; body: string}>).map((f, i) => ({
+    (tm('landing.features.items') as Array<{title: string; body: string}>).map((f, i) => ({
       icon: ICONS[i] ?? ICONS[0],
       title: rt(f.title),
       body: rt(f.body),
@@ -38,8 +38,8 @@ const features = computed(() =>
 <template>
   <section class="features">
     <header class="head">
-      <div class="eyebrow">{{ t('landingAlt.features.eyebrow') }}</div>
-      <SectionHeader class="display">{{ t('landingAlt.features.headline') }}</SectionHeader>
+      <div class="eyebrow">{{ t('landing.features.eyebrow') }}</div>
+      <SectionHeader class="display">{{ t('landing.features.headline') }}</SectionHeader>
     </header>
     <ul class="grid">
       <li v-for="(f, i) in features" :key="i" class="card">

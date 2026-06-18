@@ -18,7 +18,7 @@ import HelpCenterAdminView from '@/views/HelpCenterAdminView.vue'
 const LoginView = () => import('@/views/LoginView.vue')
 const ForgotPasswordView = () => import('@/views/ForgotPasswordView.vue')
 const SetPasswordView = () => import('@/views/SetPasswordView.vue')
-const HomeView = () => import('@/views/HomeAltView.vue')
+const HomeView = () => import('@/views/HomeView.vue')
 const StationSelectView = () => import('@/views/StationSelectView.vue')
 const StyleView = () => import('@/views/StyleView.vue')
 const OverviewView = () => import('@/views/dashboardview/OverviewView.vue')

@@ -11,15 +11,15 @@ import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
 import {emberLogo} from '@/composables/useEmberLogo'
-import WeekSchedule from '@/views/homealtview/WeekSchedule.vue'
-import MittwochAbend from '@/views/homealtview/MittwochAbend.vue'
-import MaterialSpotlight from '@/views/homealtview/MaterialSpotlight.vue'
-import FeaturesGrid from '@/views/homealtview/FeaturesGrid.vue'
-import HostingOptions from '@/views/homealtview/HostingOptions.vue'
-import ReplacesSection from '@/views/homealtview/ReplacesSection.vue'
-import FederationSection from '@/views/homealtview/FederationSection.vue'
-import UsabilitySection from '@/views/homealtview/UsabilitySection.vue'
-import FactsRow from '@/views/homealtview/FactsRow.vue'
+import WeekSchedule from '@/views/homeview/WeekSchedule.vue'
+import MittwochAbend from '@/views/homeview/MittwochAbend.vue'
+import MaterialSpotlight from '@/views/homeview/MaterialSpotlight.vue'
+import FeaturesGrid from '@/views/homeview/FeaturesGrid.vue'
+import HostingOptions from '@/views/homeview/HostingOptions.vue'
+import ReplacesSection from '@/views/homeview/ReplacesSection.vue'
+import FederationSection from '@/views/homeview/FederationSection.vue'
+import UsabilitySection from '@/views/homeview/UsabilitySection.vue'
+import FactsRow from '@/views/homeview/FactsRow.vue'
 
 import '@fontsource/bitter/500.css'
 import '@fontsource/bitter/700.css'
@@ -29,12 +29,12 @@ const {t} = useI18n()
 const logo = emberLogo()
 
 const {data: publicConfig} = await useAsyncData(
-    'home-alt-public-config',
+    'home-public-config',
     () => $fetch<{demoUrl?: string; demo?: boolean}>('/api/v1/public/config').catch(() => ({} as {demoUrl?: string; demo?: boolean})),
     {default: () => ({demoUrl: '', demo: false})},
 )
 const {data: regStatus} = await useAsyncData(
-    'home-alt-registration-status',
+    'home-registration-status',
     () =>
         $fetch<{enabled: boolean}>('/api/v1/public/settings/station-registration').catch(() => ({
           enabled: true,
@@ -47,12 +47,12 @@ const isDemo = computed(() => publicConfig.value?.demo ?? false)
 const registrationEnabled = computed(() => regStatus.value?.enabled ?? true)
 
 useHead({
-  title: t('landingAlt.meta.title'),
+  title: t('landing.meta.title'),
 })
 </script>
 
 <template>
-  <div class="alt-root">
+  <div class="home-root">
     <section class="hero">
       <div class="hero-grid">
         <div class="hero-copy">
@@ -65,29 +65,29 @@ useHead({
               size="h-28 w-28 sm:h-36 sm:w-36 mb-10"
               :pixel-size="512"/>
           <PageHeader class="display">
-            {{ t('landingAlt.hero.titleLine1') }}<br>
-            {{ t('landingAlt.hero.titleLine2') }}
+            {{ t('landing.hero.titleLine1') }}<br>
+            {{ t('landing.hero.titleLine2') }}
           </PageHeader>
-          <p class="lede">{{ t('landingAlt.hero.lede') }}</p>
+          <p class="lede">{{ t('landing.hero.lede') }}</p>
           <div class="actions">
             <router-link v-if="registrationEnabled" to="/apply">
               <PrimaryButton :icon="['fas', 'building']" class="cta">
-                {{ t('landingAlt.hero.ctaCreate') }}
+                {{ t('landing.hero.ctaCreate') }}
               </PrimaryButton>
             </router-link>
             <router-link v-else to="/helpcenter/station/basics/hosting">
               <PrimaryButton :icon="['fas', 'server']" class="cta">
-                {{ t('landingAlt.hero.ctaHost') }}
+                {{ t('landing.hero.ctaHost') }}
               </PrimaryButton>
             </router-link>
             <a v-if="demoUrl && !isDemo" :href="demoUrl" target="_blank" rel="noopener noreferrer" class="link-quiet">
-              {{ t('landingAlt.hero.linkDemo') }}
+              {{ t('landing.hero.linkDemo') }}
             </a>
             <router-link v-else-if="isDemo" to="/login" class="link-quiet">
-              {{ t('landingAlt.hero.linkLoginDemo') }}
+              {{ t('landing.hero.linkLoginDemo') }}
             </router-link>
             <router-link v-else to="/login" class="link-quiet">
-              {{ t('landingAlt.hero.linkLogin') }}
+              {{ t('landing.hero.linkLogin') }}
             </router-link>
           </div>
         </div>
@@ -106,21 +106,21 @@ useHead({
 
     <section class="closing">
       <SectionHeader class="closing-title">
-        {{ t('landingAlt.closing.title') }}
+        {{ t('landing.closing.title') }}
       </SectionHeader>
       <div class="actions actions--center mt-6">
         <router-link v-if="registrationEnabled" to="/apply">
           <PrimaryButton :icon="['fas', 'building']" class="cta">
-            {{ t('landingAlt.hero.ctaCreate') }}
+            {{ t('landing.hero.ctaCreate') }}
           </PrimaryButton>
         </router-link>
         <router-link v-else to="/helpcenter/station/basics/hosting">
           <PrimaryButton :icon="['fas', 'server']" class="cta">
-            {{ t('landingAlt.hero.ctaHost') }}
+            {{ t('landing.hero.ctaHost') }}
           </PrimaryButton>
         </router-link>
         <router-link to="/helpcenter/station/basics" class="link-quiet">
-          {{ t('landingAlt.closing.linkHelp') }}
+          {{ t('landing.closing.linkHelp') }}
         </router-link>
       </div>
     </section>
@@ -128,7 +128,7 @@ useHead({
 </template>
 
 <style scoped>
-.alt-root {
+.home-root {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   color: var(--text);
 }

@@ -18,9 +18,9 @@ const POINT_ICONS: Array<[string, string]> = [
   ['fas', 'compass'],
 ]
 
-const steps = computed(() => (tm('landingAlt.usability.help.steps') as string[]).map(rt))
+const steps = computed(() => (tm('landing.usability.help.steps') as string[]).map(rt))
 const points = computed(() =>
-    (tm('landingAlt.usability.points') as string[]).map((text, i) => ({
+    (tm('landing.usability.points') as string[]).map((text, i) => ({
       icon: POINT_ICONS[i] ?? POINT_ICONS[0],
       text: rt(text),
     })),
@@ -30,19 +30,19 @@ const points = computed(() =>
 <template>
   <section class="usability">
     <div class="grid">
-      <aside class="help" :aria-label="t('landingAlt.usability.help.aria')">
+      <aside class="help" :aria-label="t('landing.usability.help.aria')">
         <div class="help-head">
           <div class="help-crumbs">
             <font-awesome-icon :icon="['fas', 'circle-question']" class="help-icon"/>
-            <span class="help-crumb">{{ t('landingAlt.usability.help.crumbRoot') }}</span>
+            <span class="help-crumb">{{ t('landing.usability.help.crumbRoot') }}</span>
             <span class="help-sep">/</span>
-            <span class="help-crumb">{{ t('landingAlt.usability.help.crumbSection') }}</span>
+            <span class="help-crumb">{{ t('landing.usability.help.crumbSection') }}</span>
           </div>
           <span class="help-close" aria-hidden="true">×</span>
         </div>
         <div class="help-body">
-          <div class="help-eye">{{ t('landingAlt.usability.help.eyebrow') }}</div>
-          <div class="help-title">{{ t('landingAlt.usability.help.title') }}</div>
+          <div class="help-eye">{{ t('landing.usability.help.eyebrow') }}</div>
+          <div class="help-title">{{ t('landing.usability.help.title') }}</div>
           <ol class="help-steps">
             <li v-for="(s, i) in steps" :key="i">
               <span class="help-step-no">{{ String(i + 1).padStart(2, '0') }}</span>
@@ -51,15 +51,15 @@ const points = computed(() =>
           </ol>
           <div class="help-foot">
             <font-awesome-icon :icon="['fas', 'arrow-right']" class="help-foot-icon"/>
-            <span>{{ t('landingAlt.usability.help.foot') }}</span>
+            <span>{{ t('landing.usability.help.foot') }}</span>
           </div>
         </div>
       </aside>
 
       <div class="copy">
-        <div class="eyebrow">{{ t('landingAlt.usability.eyebrow') }}</div>
-        <SectionHeader class="display">{{ t('landingAlt.usability.headline') }}</SectionHeader>
-        <p class="lede">{{ t('landingAlt.usability.lede') }}</p>
+        <div class="eyebrow">{{ t('landing.usability.eyebrow') }}</div>
+        <SectionHeader class="display">{{ t('landing.usability.headline') }}</SectionHeader>
+        <p class="lede">{{ t('landing.usability.lede') }}</p>
         <ul class="points">
           <li v-for="p in points" :key="p.text" class="point">
             <font-awesome-icon :icon="p.icon" class="point-icon"/>

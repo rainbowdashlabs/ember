@@ -10,7 +10,7 @@ import {useI18n} from 'vue-i18n'
 const {tm, rt} = useI18n()
 
 const facts = computed(() =>
-    (tm('landingAlt.facts.items') as Array<{label: string; value: string; note: string}>).map(f => ({
+    (tm('landing.facts.items') as Array<{label: string; value: string; note: string}>).map(f => ({
       label: rt(f.label),
       value: rt(f.value),
       note: rt(f.note),

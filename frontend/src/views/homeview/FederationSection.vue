@@ -18,7 +18,7 @@ const ICONS: Array<[string, string]> = [
 ]
 
 const benefits = computed(() =>
-    (tm('landingAlt.federation.benefits') as string[]).map((text, i) => ({
+    (tm('landing.federation.benefits') as string[]).map((text, i) => ({
       icon: ICONS[i] ?? ICONS[0],
       text: rt(text),
     })),
@@ -29,9 +29,9 @@ const benefits = computed(() =>
   <section class="federation">
     <div class="grid">
       <div class="copy">
-        <div class="eyebrow">{{ t('landingAlt.federation.eyebrow') }}</div>
-        <SectionHeader class="display">{{ t('landingAlt.federation.headline') }}</SectionHeader>
-        <p class="lede">{{ t('landingAlt.federation.lede') }}</p>
+        <div class="eyebrow">{{ t('landing.federation.eyebrow') }}</div>
+        <SectionHeader class="display">{{ t('landing.federation.headline') }}</SectionHeader>
+        <p class="lede">{{ t('landing.federation.lede') }}</p>
       </div>
       <ul class="list">
         <li v-for="b in benefits" :key="b.text" class="row">

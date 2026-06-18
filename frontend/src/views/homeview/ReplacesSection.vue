@@ -11,7 +11,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 const {t, tm, rt} = useI18n()
 
 const items = computed(() =>
-    (tm('landingAlt.replaces.items') as Array<{old: string; neu: string}>).map(r => ({
+    (tm('landing.replaces.items') as Array<{old: string; neu: string}>).map(r => ({
       old: rt(r.old),
       neu: rt(r.neu),
     })),
@@ -21,8 +21,8 @@ const items = computed(() =>
 <template>
   <section class="replaces">
     <header class="head">
-      <div class="eyebrow">{{ t('landingAlt.replaces.eyebrow') }}</div>
-      <SectionHeader class="display">{{ t('landingAlt.replaces.headline') }}</SectionHeader>
+      <div class="eyebrow">{{ t('landing.replaces.eyebrow') }}</div>
+      <SectionHeader class="display">{{ t('landing.replaces.headline') }}</SectionHeader>
     </header>
     <ul class="grid">
       <li v-for="r in items" :key="r.old" class="row">

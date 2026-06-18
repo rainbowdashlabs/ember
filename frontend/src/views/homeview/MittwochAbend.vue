@@ -11,7 +11,7 @@ import PageHeader from '@/components/typography/PageHeader.vue'
 const {t, tm, rt} = useI18n()
 
 const beats = computed(() =>
-    (tm('landingAlt.evening.beats') as Array<{time: string; text: string}>).map(b => ({
+    (tm('landing.evening.beats') as Array<{time: string; text: string}>).map(b => ({
       time: rt(b.time),
       text: rt(b.text),
     })),
@@ -20,15 +20,15 @@ const beats = computed(() =>
 
 <template>
   <section class="evening">
-    <div class="eyebrow">{{ t('landingAlt.evening.eyebrow') }}</div>
+    <div class="eyebrow">{{ t('landing.evening.eyebrow') }}</div>
     <div class="grid">
       <div class="poster">
         <PageHeader class="title">
-          {{ t('landingAlt.evening.titleLine1') }}<br>
-          {{ t('landingAlt.evening.titleLine2') }}<br>
-          {{ t('landingAlt.evening.titleLine3') }}
+          {{ t('landing.evening.titleLine1') }}<br>
+          {{ t('landing.evening.titleLine2') }}<br>
+          {{ t('landing.evening.titleLine3') }}
         </PageHeader>
-        <p class="kicker">{{ t('landingAlt.evening.kicker') }}</p>
+        <p class="kicker">{{ t('landing.evening.kicker') }}</p>
       </div>
       <ol class="timeline">
         <li v-for="b in beats" :key="b.time" class="beat">

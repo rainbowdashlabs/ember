@@ -23,22 +23,22 @@ interface ProcurementRow {item: string; size: string; type: InvType; notes: stri
 interface LossRow {item: string; size: string; type: InvType; owner: string; lostAt: string}
 
 const exchanges = computed(() =>
-    (tm('landingAlt.material.mock.exchanges') as ExchangeRow[]).map(r => ({
+    (tm('landing.material.mock.exchanges') as ExchangeRow[]).map(r => ({
       item: rt(r.item), size: rt(r.size), type: r.type, owner: rt(r.owner), status: r.status,
     })),
 )
 const procurements = computed(() =>
-    (tm('landingAlt.material.mock.procurements') as ProcurementRow[]).map(r => ({
+    (tm('landing.material.mock.procurements') as ProcurementRow[]).map(r => ({
       item: rt(r.item), size: rt(r.size), type: r.type, notes: rt(r.notes), requested: rt(r.requested),
     })),
 )
 const losses = computed(() =>
-    (tm('landingAlt.material.mock.losses') as LossRow[]).map(r => ({
+    (tm('landing.material.mock.losses') as LossRow[]).map(r => ({
       item: rt(r.item), size: rt(r.size), type: r.type, owner: rt(r.owner), lostAt: rt(r.lostAt),
     })),
 )
 const totalCount = computed(() => exchanges.value.length + procurements.value.length + losses.value.length)
-const bullets = computed(() => (tm('landingAlt.material.bullets') as string[]).map(rt))
+const bullets = computed(() => (tm('landing.material.bullets') as string[]).map(rt))
 
 function typeBadge(type: InvType) {
   if (type === 'INTERNAL') return InfoBadge
@@ -46,28 +46,28 @@ function typeBadge(type: InvType) {
   return SuccessBadge
 }
 function typeLabel(type: InvType) {
-  return t(`landingAlt.material.type.${type}`)
+  return t(`landing.material.type.${type}`)
 }
 function exchangeStatusBadge(s: ExchangeStatus) {
   return s === 'SHIPPED' ? InfoBadge : SecondaryBadge
 }
 function exchangeStatusLabel(s: ExchangeStatus) {
-  return t(`landingAlt.material.exchangeStatus.${s}`)
+  return t(`landing.material.exchangeStatus.${s}`)
 }
 </script>
 
 <template>
   <section class="spotlight">
     <div class="grid">
-      <aside class="card" :aria-label="t('landingAlt.material.card.aria')">
+      <aside class="card" :aria-label="t('landing.material.card.aria')">
         <div class="card-head">
-          <span class="card-title">{{ t('landingAlt.material.card.title') }}</span>
-          <span class="card-count">{{ t('landingAlt.material.card.count', {n: totalCount}) }}</span>
+          <span class="card-title">{{ t('landing.material.card.title') }}</span>
+          <span class="card-count">{{ t('landing.material.card.count', {n: totalCount}) }}</span>
         </div>
 
         <div class="sub">
           <font-awesome-icon :icon="['fas', 'rotate']" class="sub-icon"/>
-          <span class="sub-title">{{ t('landingAlt.material.sections.exchanges') }}</span>
+          <span class="sub-title">{{ t('landing.material.sections.exchanges') }}</span>
           <span class="sub-count">({{ exchanges.length }})</span>
         </div>
         <table class="t">
@@ -76,10 +76,10 @@ function exchangeStatusLabel(s: ExchangeStatus) {
           </colgroup>
           <thead>
             <tr>
-              <th>{{ t('landingAlt.material.columns.entry') }}</th>
-              <th>{{ t('landingAlt.material.columns.type') }}</th>
-              <th>{{ t('landingAlt.material.columns.owner') }}</th>
-              <th class="r">{{ t('landingAlt.material.columns.status') }}</th>
+              <th>{{ t('landing.material.columns.entry') }}</th>
+              <th>{{ t('landing.material.columns.type') }}</th>
+              <th>{{ t('landing.material.columns.owner') }}</th>
+              <th class="r">{{ t('landing.material.columns.status') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -96,7 +96,7 @@ function exchangeStatusLabel(s: ExchangeStatus) {
 
         <div class="sub">
           <font-awesome-icon :icon="['fas', 'folder-plus']" class="sub-icon"/>
-          <span class="sub-title">{{ t('landingAlt.material.sections.procurements') }}</span>
+          <span class="sub-title">{{ t('landing.material.sections.procurements') }}</span>
           <span class="sub-count">({{ procurements.length }})</span>
         </div>
         <table class="t">
@@ -105,10 +105,10 @@ function exchangeStatusLabel(s: ExchangeStatus) {
           </colgroup>
           <thead>
             <tr>
-              <th>{{ t('landingAlt.material.columns.entry') }}</th>
-              <th>{{ t('landingAlt.material.columns.type') }}</th>
-              <th>{{ t('landingAlt.material.columns.note') }}</th>
-              <th class="r">{{ t('landingAlt.material.columns.requested') }}</th>
+              <th>{{ t('landing.material.columns.entry') }}</th>
+              <th>{{ t('landing.material.columns.type') }}</th>
+              <th>{{ t('landing.material.columns.note') }}</th>
+              <th class="r">{{ t('landing.material.columns.requested') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -125,7 +125,7 @@ function exchangeStatusLabel(s: ExchangeStatus) {
 
         <div class="sub">
           <font-awesome-icon :icon="['fas', 'triangle-exclamation']" class="sub-icon sub-icon--warn"/>
-          <span class="sub-title">{{ t('landingAlt.material.sections.losses') }}</span>
+          <span class="sub-title">{{ t('landing.material.sections.losses') }}</span>
           <span class="sub-count">({{ losses.length }})</span>
         </div>
         <table class="t t--last">
@@ -134,10 +134,10 @@ function exchangeStatusLabel(s: ExchangeStatus) {
           </colgroup>
           <thead>
             <tr>
-              <th>{{ t('landingAlt.material.columns.entry') }}</th>
-              <th>{{ t('landingAlt.material.columns.type') }}</th>
-              <th>{{ t('landingAlt.material.columns.owner') }}</th>
-              <th class="r">{{ t('landingAlt.material.columns.lostSince') }}</th>
+              <th>{{ t('landing.material.columns.entry') }}</th>
+              <th>{{ t('landing.material.columns.type') }}</th>
+              <th>{{ t('landing.material.columns.owner') }}</th>
+              <th class="r">{{ t('landing.material.columns.lostSince') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -154,9 +154,9 @@ function exchangeStatusLabel(s: ExchangeStatus) {
       </aside>
 
       <div class="copy">
-        <div class="eyebrow">{{ t('landingAlt.material.eyebrow') }}</div>
-        <SectionHeader class="display">{{ t('landingAlt.material.headline') }}</SectionHeader>
-        <p class="lede">{{ t('landingAlt.material.lede') }}</p>
+        <div class="eyebrow">{{ t('landing.material.eyebrow') }}</div>
+        <SectionHeader class="display">{{ t('landing.material.headline') }}</SectionHeader>
+        <p class="lede">{{ t('landing.material.lede') }}</p>
         <ul class="bullets">
           <li v-for="b in bullets" :key="b">
             <font-awesome-icon :icon="['fas', 'check']" class="b-icon"/>{{ b }}

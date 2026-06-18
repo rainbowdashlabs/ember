@@ -4,142 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 export default {
-    landing: {
-        heroTitle: 'Deine Jugendfeuerwehr. Digital organisiert.',
-        heroSubtitle: 'Ember ist die All-in-One-Plattform für Jugendfeuerwehren und Jugendgruppen. Anwesenheit, Termine, Inventar, Mitglieder — alles an einem Ort.',
-        cta: 'Wache anmelden',
-        login: 'Anmelden',
-        demo: 'Demo ansehen',
-        tryNow: 'Jetzt ausprobieren',
-        featuresTitle: 'Alles, was ihr braucht',
-        featuresSubtitle: 'Von der Übungsplanung bis zur Inventarverwaltung — Ember deckt alle Bereiche ab.',
-        feature: {
-            attendance: {
-                title: 'Anwesenheit',
-                desc: 'Erfasse die Anwesenheit bei Übungen und Terminen. Nutze Vorlagen für wiederkehrende Übungen und erstelle Berichte als PDF.',
-            },
-            events: {
-                title: 'Termine & Veranstaltungen',
-                desc: 'Plane wiederkehrende Übungen, monatliche Treffen und Sonderveranstaltungen. Mitglieder können sich direkt anmelden oder absagen.',
-            },
-            inventory: {
-                title: 'Inventar & Ausrüstung',
-                desc: 'Verwalte die Ausrüstung deiner Mitglieder. Weise Helme, Stiefel und Kleidung zu. Tausch-Anfragen und Beschaffung inklusive.',
-            },
-            members: {
-                title: 'Mitgliederverwaltung',
-                desc: 'Lege Mitglieder an, ordne sie Gruppen zu und verwalte ihre Profile. Eltern können als Erziehungsberechtigter ihre Kinder betreuen.',
-            },
-            forms: {
-                title: 'Formulare & Umfragen',
-                desc: 'Erstelle Umfragen mit verschiedenen Fragetypen — Multiple-Choice, Bewertungen, Freitext und mehr. Ergebnisse direkt auswerten.',
-            },
-            news: {
-                title: 'Neuigkeiten',
-                desc: 'Halte alle auf dem Laufenden. Veröffentliche Neuigkeiten mit Kommentarfunktion. Wichtige Infos erreichen jeden.',
-            },
-            lostAndFound: {
-                title: 'Fundbüro',
-                desc: 'Verlorene Gegenstände melden und wiederfinden. Mit Foto-Upload und Benachrichtigungen, wenn etwas beansprucht wird.',
-            },
-            federation: {
-                title: 'Föderation',
-                desc: 'Vernetze dich mit anderen Wachen. Teile Wikis, Quiz-Inhalte und Inventar über Wachgrenzen hinweg.',
-            },
-            publicStation: {
-                title: 'Öffentliche Seite',
-                desc: 'Zeige Termine und Wiki öffentlich ohne Login. Perfekt für Eltern und Interessierte.',
-            },
-            publicPages: {
-                title: 'Eigene Website',
-                desc: 'Erstelle individuelle Seiten für eure Jugendabteilung — mit Texten, Bildern und Videos. Ganz ohne externe Tools.',
-            },
-            notifications: {
-                title: 'Benachrichtigungen',
-                desc: 'Bleibe immer informiert — über neue Termine, Neuigkeiten, Tausch-Anfragen und mehr. Optional auch per E-Mail-Digest.',
-            },
-            helpCenter: {
-                title: 'Hilfe-Center',
-                desc: 'Zu jeder Seite gibt es eine verständliche Erklärung mit Beispielen. Ideal auch für die Jüngsten.',
-            },
-            knowledgeBase: {
-                title: 'Wiki',
-                desc: 'Organisiere Wissen in Ordnern und Dateien. Rich-Text-Editor, PDF-Upload, YouTube-Einbettung, Volltextsuche und Versionsverlauf.',
-            },
-            quiz: {
-                title: 'Quiz & Wissenstests',
-                desc: 'Erstelle Wissenstests mit verschiedenen Fragetypen. KI-gestützte Fragengenerierung, automatische Auswertung und PDF-Export.',
-            },
-            protocol: {
-                title: 'Prüfungsprotokolle',
-                desc: 'Führe praktische Prüfungen mit Checklisten durch — wie die Jugendflamme. Touch-optimierte Prüfansicht, Auswertungstabelle und PDF-Export.',
-            },
-            waitingList: {
-                title: 'Warteliste',
-                desc: 'Verwalte Aufnahmen mit Warteliste, Einladungen und Probezeit. Automatische Bestätigungs-Erinnerungen und Scoring-Formeln.',
-            },
-        },
-        highlightsTitle: 'Warum Ember?',
-        highlightsSubtitle: 'Durchdacht, einfach zu bedienen und auf eure Bedürfnisse zugeschnitten.',
-        highlight: {
-            responsive: {
-                title: 'Für jedes Gerät',
-                desc: 'Ember funktioniert auf dem Handy, Tablet und PC — ohne App-Installation.',
-            },
-            darkMode: {
-                title: 'Dunkles Design',
-                desc: 'Automatischer Wechsel zwischen hellem und dunklem Modus, passend zu deinem System.',
-            },
-            secure: {
-                title: 'Sicher & geschützt',
-                desc: 'Rollenbasierte Zugriffskontrolle. Jeder sieht nur, was er sehen darf.',
-            },
-            helpCenter: {
-                title: 'Hilfe-Center',
-                desc: 'Zu jeder Seite gibt es eine einfache Erklärung. Ideal auch für die Jüngsten.',
-            },
-            roles: {
-                title: 'Flexibles Rollensystem',
-                desc: 'Betreuer, Mitglieder, Eltern, Verwalter — jede Rolle hat eigene Berechtigungen.',
-            },
-            export: {
-                title: 'PDF-Exporte',
-                desc: 'Anwesenheitslisten, Terminübersichten und Inventarlisten als PDF herunterladen.',
-            },
-            gdpr: {
-                title: 'DSGVO-konform',
-                desc: 'Datenauskunft, Datenexport und Kontolöschung — deine Daten gehören dir.',
-            },
-            transfer: {
-                title: 'Wach-Transfer',
-                desc: 'Übertrage deine Wache sicher auf eine andere Ember Instanz, denn deine Daten gehören dir.',
-            },
-            modules: {
-                title: 'Modulare Funktionen',
-                desc: 'Aktiviere nur, was ihr braucht. Nicht benötigte Module einfach ausschalten.',
-            },
-            themes: {
-                title: 'Individuelle Themes',
-                desc: 'Passe Farben und Design an eure Wache an. Mehrere Farbschemata zur Auswahl.',
-            },
-            selfHosted: {
-                title: 'Selbst betreibbar',
-                desc: 'Hoste Ember auf deinem eigenen Server mit Docker. Volle Kontrolle über deine Daten.',
-            },
-        },
-        audienceTitle: 'Für wen ist Ember?',
-        audienceText: 'Ember wurde für Jugendfeuerwehren entwickelt — funktioniert aber genauso gut für andere Jugendgruppen mit festen Übungszeiten, Mitgliederverwaltung und Ausrüstung.',
-        audienceTag1: 'Jugendfeuerwehren',
-        audienceTag2: 'Jugendgruppen',
-        audienceTag3: 'Sportvereine',
-        audienceTag4: 'Pfadfinder',
-        ctaTitle: 'Bereit loszulegen?',
-        ctaText: 'Melde deine Wache kostenlos an und starte noch heute. Die Einrichtung dauert nur wenige Minuten.',
-        ctaTitleSelfHost: 'Ember selbst betreiben',
-        ctaTextSelfHost: 'Ember ist als Open-Source-Software zum Selbst-Hosten verfügbar. Erfahre mehr in unserem Hilfe-Center.',
-        selfHostCta: 'Hosting-Anleitung',
-        helpCenter: 'Hilfe-Center',
-    },
     publicConsent: {
         label: 'Ich habe die {privacy} und die {tos} gelesen und stimme ihnen zu.',
         privacy: 'Datenschutzerklärung',
@@ -147,10 +11,11 @@ export default {
         loadError: 'Die Rechtsdokumente konnten nicht geladen werden. Bitte später erneut versuchen.',
         required: 'Bitte stimme der Datenschutzerklärung und den Nutzungsbedingungen zu.',
     },
-    landingAlt: {
+    landing: {
         meta: {
             title: 'Ember — Verwaltung für Jugendfeuerwehren',
         },
+        tryNow: 'Jetzt ausprobieren',
         hero: {
             titleLine1: 'Schluss mit Excel-Listen',
             titleLine2: 'und WhatsApp-Gruppen.',
@@ -181,7 +46,7 @@ export default {
                 {time: '17:50', text: 'Termin steht seit Wochen im Kalender. Erinnerung war schon raus.'},
                 {time: '17:55', text: 'Ausbildungsinhalt liegt im Wiki — zum Vorbereiten und Nachschlagen.'},
                 {time: '18:00', text: 'Vorab abgemeldete sind schon eingetragen. Die übrigen: ein Tap.'},
-                {time: '19:30', text: 'Sitzung beendet. Anwesenheits-Statistik schreibt sich fort.'},
+                {time: '19:30', text: 'Übung beendet. Anwesenheits-Statistik schreibt sich selbst.'},
                 {time: '19:45', text: 'Nächster Termin steht. Erinnerung läuft automatisch.'},
                 {time: '20:00', text: 'Heimweg. Nichts, was später nachgetragen werden muss.'},
             ],

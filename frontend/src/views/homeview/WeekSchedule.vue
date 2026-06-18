@@ -10,7 +10,7 @@ import {useI18n} from 'vue-i18n'
 const {t, tm, rt} = useI18n()
 
 const entries = computed(() =>
-    (tm('landingAlt.week.entries') as Array<{day: string; time: string; text: string}>).map(e => ({
+    (tm('landing.week.entries') as Array<{day: string; time: string; text: string}>).map(e => ({
       day: rt(e.day),
       time: rt(e.time),
       text: rt(e.text),
@@ -19,8 +19,8 @@ const entries = computed(() =>
 </script>
 
 <template>
-  <aside class="schedule" :aria-label="t('landingAlt.week.eyebrow')">
-    <div class="schedule-eyebrow">{{ t('landingAlt.week.eyebrow') }}</div>
+  <aside class="schedule" :aria-label="t('landing.week.eyebrow')">
+    <div class="schedule-eyebrow">{{ t('landing.week.eyebrow') }}</div>
     <ul class="schedule-list">
       <li v-for="entry in entries" :key="entry.day + entry.text" class="schedule-row">
         <span class="schedule-day">{{ entry.day }}</span>
@@ -28,7 +28,7 @@ const entries = computed(() =>
         <span class="schedule-text">{{ entry.text }}</span>
       </li>
     </ul>
-    <div class="schedule-foot">{{ t('landingAlt.week.footer') }}</div>
+    <div class="schedule-foot">{{ t('landing.week.footer') }}</div>
   </aside>
 </template>
 

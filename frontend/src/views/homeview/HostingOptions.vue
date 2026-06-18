@@ -18,7 +18,7 @@ const ICONS: Array<[string, string]> = [
 ]
 
 const options = computed(() =>
-    (tm('landingAlt.hosting.options') as Array<{title: string; body: string}>).map((o, i) => ({
+    (tm('landing.hosting.options') as Array<{title: string; body: string}>).map((o, i) => ({
       icon: ICONS[i] ?? ICONS[0],
       title: rt(o.title),
       body: rt(o.body),
@@ -29,8 +29,8 @@ const options = computed(() =>
 <template>
   <section class="hosting">
     <header class="head">
-      <div class="eyebrow">{{ t('landingAlt.hosting.eyebrow') }}</div>
-      <SectionHeader class="display">{{ t('landingAlt.hosting.headline') }}</SectionHeader>
+      <div class="eyebrow">{{ t('landing.hosting.eyebrow') }}</div>
+      <SectionHeader class="display">{{ t('landing.hosting.headline') }}</SectionHeader>
     </header>
     <ul class="grid">
       <li v-for="(o, i) in options" :key="i" class="card">
