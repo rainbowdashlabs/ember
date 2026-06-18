@@ -44,32 +44,19 @@ public record WaitlistVerificationToken(
     }
 
     public static RowMapping<WaitlistVerificationToken> map() {
-        return row -> {
-            Instant consentedAt = row.get("consented_at", INSTANT_TIMESTAMP);
-            ConsentProof consent = consentedAt == null
-                    ? null
-                    : new ConsentProof(
-                            row.getString("consent_version"),
-                            row.getString("privacy_version"),
-                            row.getString("tos_version"),
-                            row.getString("consent_ip"),
-                            row.getString("consent_country"),
-                            row.getString("consent_user_agent"),
-                            consentedAt);
-            return new WaitlistVerificationToken(
-                    row.getInt("id"),
-                    row.getString("token"),
-                    row.getInt("list_id"),
-                    row.getString("firstname"),
-                    row.getString("lastname"),
-                    row.getString("email"),
-                    parseGuardians(row.getString("guardians")),
-                    parseFieldValues(row.getString("field_values")),
-                    row.getString("notes"),
-                    row.get("created_at", INSTANT_TIMESTAMP),
-                    row.get("expires_at", INSTANT_TIMESTAMP),
-                    consent);
-        };
+        return row -> new WaitlistVerificationToken(
+                row.getInt("id"),
+                row.getString("token"),
+                row.getInt("list_id"),
+                row.getString("firstname"),
+                row.getString("lastname"),
+                row.getString("email"),
+                parseGuardians(row.getString("guardians")),
+                parseFieldValues(row.getString("field_values")),
+                row.getString("notes"),
+                row.get("created_at", INSTANT_TIMESTAMP),
+                row.get("expires_at", INSTANT_TIMESTAMP),
+                ConsentProof.parse(row.getString("consent_proof")));
     }
 
     private static List<GuardianInput> parseGuardians(String json) {

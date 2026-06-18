@@ -19,8 +19,10 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetAddress;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Optional;
 
 /**
@@ -219,10 +221,34 @@ public class ConsentService {
                     "Legal documents have changed since the form was loaded. Please reload and accept again.");
         }
 
-        String ipAddress = ClientIp.resolve(ctx, network).getHostAddress();
+        String ipAddress = anonymizeIp(ClientIp.resolve(ctx, network));
         String country = ctx.header("CF-IPCountry");
         String userAgent = ctx.userAgent();
         return new ConsentProof(
                 consentVersion, privacyVersion, tosVersion, ipAddress, country, userAgent, Instant.now());
+    }
+
+    /**
+     * Returns a privacy-preserving form of the given client IP for proof of consent.
+     * The last octet of an IPv4 address is zeroed (e.g. {@code 203.0.113.7} → {@code 203.0.113.0}),
+     * the last 80 bits of an IPv6 address are zeroed (so only the /48 prefix is kept).
+     * This is the de-facto GDPR-compliant truncation used by Matomo and Plausible; it
+     * still establishes geography for an audit, but is no longer personal data.
+     *
+     * @param address the resolved client {@link InetAddress}
+     * @return the anonymised IP as a string in standard textual form
+     */
+    public static String anonymizeIp(InetAddress address) {
+        byte[] bytes = address.getAddress();
+        if (bytes.length == 4) {
+            bytes[3] = 0;
+        } else if (bytes.length == 16) {
+            Arrays.fill(bytes, 6, 16, (byte) 0);
+        }
+        try {
+            return InetAddress.getByAddress(bytes).getHostAddress();
+        } catch (java.net.UnknownHostException e) {
+            return address.getHostAddress();
+        }
     }
 }

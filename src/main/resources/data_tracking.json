@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:df17b6495b6b9522391586d930d947cb25f7a90ed4a8857af62d6fb63416441e",
-  "generatedAt": "2026-06-17T23:31:20Z",
+  "schemaHash": "sha256:67f7e434bb8ad5055ecfffaba4467927aba76f04eeb06ed31a9dcff9ee65d3a1",
+  "generatedAt": "2026-06-18T00:34:29Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -6706,7 +6706,7 @@
     "form_response": {
       "feature": "forms",
       "scope": "STATION",
-      "tableHash": "sha256:83db65d97dd7db02c28751f14f71c1009346c92ea242fe9273d48b41f05eef6e",
+      "tableHash": "sha256:d4c85b71851827b8b9ac488786174d73ed7d2afbab8306f8e00040c47a7ae577",
       "columns": [
         {
           "name": "id",
@@ -6772,53 +6772,11 @@
           "description": "Member who acknowledged a CONTACT-form submission. Set together with acknowledged_at; FK retains the history even after the acknowledger leaves the station (SET NULL on delete)."
         },
         {
-          "name": "consent_version",
-          "type": "text",
+          "name": "consent_proof",
+          "type": "jsonb",
           "nullable": true,
           "verified": true,
-          "description": "Version hash of the consent text accepted by an anonymous submitter at the time of submission. NULL for member-attached responses (whose consent lives in gdpr_consent)."
-        },
-        {
-          "name": "privacy_version",
-          "type": "text",
-          "nullable": true,
-          "verified": true,
-          "description": "Version hash of the privacy policy accepted by an anonymous submitter. NULL for member-attached responses."
-        },
-        {
-          "name": "tos_version",
-          "type": "text",
-          "nullable": true,
-          "verified": true,
-          "description": "Version hash of the terms of service accepted by an anonymous submitter. NULL for member-attached responses."
-        },
-        {
-          "name": "consent_ip",
-          "type": "text",
-          "nullable": true,
-          "verified": true,
-          "description": "Client IP resolved via ClientIp.resolve at submission time. Captured only for anonymous submissions as legal proof; member responses leave this NULL."
-        },
-        {
-          "name": "consent_country",
-          "type": "text",
-          "nullable": true,
-          "verified": true,
-          "description": "CF-IPCountry header value at submission time, NULL when not behind Cloudflare."
-        },
-        {
-          "name": "consent_user_agent",
-          "type": "text",
-          "nullable": true,
-          "verified": true,
-          "description": "User-Agent header value at the time of an anonymous submission."
-        },
-        {
-          "name": "consented_at",
-          "type": "timestamptz",
-          "nullable": true,
-          "verified": true,
-          "description": "Timestamp at which the anonymous submitter ticked the consent checkbox; equals submission time within request latency."
+          "description": "JSONB-encoded ConsentProof (consentVersion, privacyVersion, tosVersion, ipAddress, country, userAgent, consentedAt) captured at the time of an anonymous public submission. NULL for member-attached responses (whose consent lives in gdpr_consent)."
         }
       ],
       "foreignKeys": [
@@ -15109,7 +15067,7 @@
     "waiting_list_entry": {
       "feature": "waitinglist",
       "scope": "STATION",
-      "tableHash": "sha256:075d5d2e7bdef3af282d08d92719d55f86eae0a75d9bceee7096589d26998d5c",
+      "tableHash": "sha256:d22351fee40f79dde276a54410bd01bb43d7922831e0fef6ebd66cd8ced743d3",
       "columns": [
         {
           "name": "id",
@@ -15238,53 +15196,11 @@
           "description": "Number of attendance sessions during testing phase."
         },
         {
-          "name": "consent_version",
-          "type": "text",
+          "name": "consent_proof",
+          "type": "jsonb",
           "nullable": true,
           "verified": true,
-          "description": "Version hash of the consent text accepted at the time the public entry was created. NULL for entries created by managers via the admin UI."
-        },
-        {
-          "name": "privacy_version",
-          "type": "text",
-          "nullable": true,
-          "verified": true,
-          "description": "Version hash of the privacy policy accepted by the public submitter. NULL for admin-created entries."
-        },
-        {
-          "name": "tos_version",
-          "type": "text",
-          "nullable": true,
-          "verified": true,
-          "description": "Version hash of the terms of service accepted by the public submitter. NULL for admin-created entries."
-        },
-        {
-          "name": "consent_ip",
-          "type": "text",
-          "nullable": true,
-          "verified": true,
-          "description": "Client IP resolved via ClientIp.resolve at the time of public submission. NULL for admin-created entries."
-        },
-        {
-          "name": "consent_country",
-          "type": "text",
-          "nullable": true,
-          "verified": true,
-          "description": "CF-IPCountry header value at the time of public submission, NULL when not behind Cloudflare."
-        },
-        {
-          "name": "consent_user_agent",
-          "type": "text",
-          "nullable": true,
-          "verified": true,
-          "description": "User-Agent header value at the time of public submission."
-        },
-        {
-          "name": "consented_at",
-          "type": "timestamptz",
-          "nullable": true,
-          "verified": true,
-          "description": "Timestamp at which the public submitter ticked the consent checkbox; equals submission time within request latency."
+          "description": "JSONB-encoded ConsentProof captured at the time of public submission. NULL for entries created by managers via the admin UI."
         }
       ],
       "foreignKeys": [
@@ -15629,7 +15545,7 @@
     "waitlist_verification_token": {
       "feature": "waitinglist",
       "scope": "STATION",
-      "tableHash": "sha256:84afb66960f5be16e486a11ed138a400e414ee28b9a5696b203eaec8eada9cb4",
+      "tableHash": "sha256:4e7325bc79f9afde97f1cd9255cc70686923cbe3aaebc0294e446acbd7bb631f",
       "columns": [
         {
           "name": "id",
@@ -15698,53 +15614,11 @@
           "verified": true
         },
         {
-          "name": "consent_version",
-          "type": "text",
+          "name": "consent_proof",
+          "type": "jsonb",
           "nullable": true,
           "verified": true,
-          "description": "Version hash of the consent text accepted at the original public submission. Carried forward to waiting_list_entry once the submitter confirms via the verification email."
-        },
-        {
-          "name": "privacy_version",
-          "type": "text",
-          "nullable": true,
-          "verified": true,
-          "description": "Version hash of the privacy policy accepted at submission."
-        },
-        {
-          "name": "tos_version",
-          "type": "text",
-          "nullable": true,
-          "verified": true,
-          "description": "Version hash of the terms of service accepted at submission."
-        },
-        {
-          "name": "consent_ip",
-          "type": "text",
-          "nullable": true,
-          "verified": true,
-          "description": "Client IP at the original submission. Captured before the verification e-mail is sent and carried onto the entry."
-        },
-        {
-          "name": "consent_country",
-          "type": "text",
-          "nullable": true,
-          "verified": true,
-          "description": "CF-IPCountry header at the original submission, NULL when not behind Cloudflare."
-        },
-        {
-          "name": "consent_user_agent",
-          "type": "text",
-          "nullable": true,
-          "verified": true,
-          "description": "User-Agent header at the original public submission."
-        },
-        {
-          "name": "consented_at",
-          "type": "timestamptz",
-          "nullable": true,
-          "verified": true,
-          "description": "Timestamp at which the submitter ticked the consent checkbox; preserved across the e-mail verification step."
+          "description": "JSONB-encoded ConsentProof captured at the original public submission. Preserved across the e-mail verification step and copied onto the resulting waiting_list_entry."
         }
       ],
       "foreignKeys": [

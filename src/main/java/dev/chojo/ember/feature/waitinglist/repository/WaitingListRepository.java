@@ -304,13 +304,9 @@ public class WaitingListRepository {
                 INSERT
                 INTO
                     waiting_list_entry
-                    (list_id, firstname, lastname, parent_name, email, access_token, notes,
-                     consent_version, privacy_version, tos_version,
-                     consent_ip, consent_country, consent_user_agent, consented_at)
+                    (list_id, firstname, lastname, parent_name, email, access_token, notes, consent_proof)
                 VALUES
-                    (:list_id, :firstname, :lastname, :parent_name, :email, :access_token, :notes,
-                     :consent_version, :privacy_version, :tos_version,
-                     :consent_ip, :consent_country, :consent_user_agent, :consented_at)
+                    (:list_id, :firstname, :lastname, :parent_name, :email, :access_token, :notes, :consent_proof::JSONB)
                 RETURNING *;""")
                 .single(call().bind("list_id", listId)
                         .bind("firstname", firstname)
@@ -319,13 +315,7 @@ public class WaitingListRepository {
                         .bind("email", email)
                         .bind("access_token", accessToken)
                         .bind("notes", notes)
-                        .bind("consent_version", consent != null ? consent.consentVersion() : null)
-                        .bind("privacy_version", consent != null ? consent.privacyVersion() : null)
-                        .bind("tos_version", consent != null ? consent.tosVersion() : null)
-                        .bind("consent_ip", consent != null ? consent.ipAddress() : null)
-                        .bind("consent_country", consent != null ? consent.country() : null)
-                        .bind("consent_user_agent", consent != null ? consent.userAgent() : null)
-                        .bind("consented_at", consent != null ? consent.consentedAt() : null, INSTANT_TIMESTAMP))
+                        .bind("consent_proof", consent != null ? consent.toJson() : null))
                 .map(WaitingListEntry.map())
                 .first()
                 .orElseThrow();
@@ -583,13 +573,9 @@ public class WaitingListRepository {
                 INSERT
                 INTO
                     waiting_list_entry
-                    (list_id, firstname, lastname, parent_name, email, access_token, notes, status,
-                     consent_version, privacy_version, tos_version,
-                     consent_ip, consent_country, consent_user_agent, consented_at)
+                    (list_id, firstname, lastname, parent_name, email, access_token, notes, status, consent_proof)
                 VALUES
-                    (:list_id, :firstname, :lastname, :parent_name, :email, :access_token, :notes, :status,
-                     :consent_version, :privacy_version, :tos_version,
-                     :consent_ip, :consent_country, :consent_user_agent, :consented_at)
+                    (:list_id, :firstname, :lastname, :parent_name, :email, :access_token, :notes, :status, :consent_proof::JSONB)
                 RETURNING *;""")
                 .single(call().bind("list_id", listId)
                         .bind("firstname", firstname)
@@ -599,13 +585,7 @@ public class WaitingListRepository {
                         .bind("access_token", accessToken)
                         .bind("notes", notes)
                         .bind("status", status.name())
-                        .bind("consent_version", consent != null ? consent.consentVersion() : null)
-                        .bind("privacy_version", consent != null ? consent.privacyVersion() : null)
-                        .bind("tos_version", consent != null ? consent.tosVersion() : null)
-                        .bind("consent_ip", consent != null ? consent.ipAddress() : null)
-                        .bind("consent_country", consent != null ? consent.country() : null)
-                        .bind("consent_user_agent", consent != null ? consent.userAgent() : null)
-                        .bind("consented_at", consent != null ? consent.consentedAt() : null, INSTANT_TIMESTAMP))
+                        .bind("consent_proof", consent != null ? consent.toJson() : null))
                 .map(WaitingListEntry.map())
                 .first()
                 .orElseThrow();
@@ -629,13 +609,9 @@ public class WaitingListRepository {
                 INSERT
                 INTO
                     waitlist_verification_token
-                    (token, list_id, firstname, lastname, email, guardians, field_values, notes,
-                     consent_version, privacy_version, tos_version,
-                     consent_ip, consent_country, consent_user_agent, consented_at)
+                    (token, list_id, firstname, lastname, email, guardians, field_values, notes, consent_proof)
                 VALUES
-                    (:token, :list_id, :firstname, :lastname, :email, :guardians::JSONB, :field_values::JSONB, :notes,
-                     :consent_version, :privacy_version, :tos_version,
-                     :consent_ip, :consent_country, :consent_user_agent, :consented_at)
+                    (:token, :list_id, :firstname, :lastname, :email, :guardians::JSONB, :field_values::JSONB, :notes, :consent_proof::JSONB)
                 RETURNING *;""")
                 .single(call().bind("token", token)
                         .bind("list_id", listId)
@@ -645,13 +621,7 @@ public class WaitingListRepository {
                         .bind("guardians", guardiansPayload)
                         .bind("field_values", fieldValuesPayload)
                         .bind("notes", notes)
-                        .bind("consent_version", consent.consentVersion())
-                        .bind("privacy_version", consent.privacyVersion())
-                        .bind("tos_version", consent.tosVersion())
-                        .bind("consent_ip", consent.ipAddress())
-                        .bind("consent_country", consent.country())
-                        .bind("consent_user_agent", consent.userAgent())
-                        .bind("consented_at", consent.consentedAt(), INSTANT_TIMESTAMP))
+                        .bind("consent_proof", consent.toJson()))
                 .map(WaitlistVerificationToken.map())
                 .first()
                 .orElseThrow();

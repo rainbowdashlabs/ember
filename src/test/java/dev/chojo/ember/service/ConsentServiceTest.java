@@ -312,9 +312,22 @@ class ConsentServiceTest extends RepositoryTestBase {
         assertEquals(current.consentVersion(), proof.consentVersion());
         assertEquals(current.privacyVersion(), proof.privacyVersion());
         assertEquals(current.tosVersion(), proof.tosVersion());
-        assertEquals("203.0.113.7", proof.ipAddress());
+        assertEquals("203.0.113.0", proof.ipAddress());
         assertEquals("AT", proof.country());
         assertEquals("Mozilla/5.0 (test)", proof.userAgent());
         assertNotNull(proof.consentedAt());
+    }
+
+    @Test
+    @Order(43)
+    void anonymizeIpZeroesLastIpv4Octet() throws java.net.UnknownHostException {
+        assertEquals("203.0.113.0", ConsentService.anonymizeIp(java.net.InetAddress.getByName("203.0.113.7")));
+    }
+
+    @Test
+    @Order(44)
+    void anonymizeIpZeroesIpv6Suffix() throws java.net.UnknownHostException {
+        String anonymized = ConsentService.anonymizeIp(java.net.InetAddress.getByName("2001:db8:1234:5678::1"));
+        assertTrue(anonymized.startsWith("2001:db8:1234:"), "expected /48 prefix retained, got " + anonymized);
     }
 }
