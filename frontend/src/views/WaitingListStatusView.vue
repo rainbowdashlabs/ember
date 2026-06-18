@@ -97,6 +97,23 @@ function formatDateTime(dateStr: string | undefined | null): string {
   return new Date(dateStr).toLocaleString()
 }
 
+function formatDate(dateStr: string | undefined | null): string {
+  if (!dateStr) return '-'
+  return new Date(dateStr).toLocaleDateString()
+}
+
+function guardianLabel(g: { firstname: string; lastname: string; email: string }): string {
+  const name = `${g.firstname ?? ''} ${g.lastname ?? ''}`.trim()
+  return name || g.email
+}
+
+function nextConfirmationDate(): string {
+  if (!status.value?.confirmedAt || !status.value.confirmIntervalDays) return '-'
+  const next = new Date(status.value.confirmedAt)
+  next.setDate(next.getDate() + status.value.confirmIntervalDays)
+  return next.toLocaleDateString()
+}
+
 onMounted(loadStatus)
 </script>
 
@@ -133,10 +150,14 @@ onMounted(loadStatus)
               <span class="text-(--text-muted)">{{ t('waitingList.lastname') }}:</span>
               <span class="ml-1 font-medium">{{ status.lastname || '-' }}</span>
             </div>
+            <div v-if="status.email" class="text-sm sm:col-span-2">
+              <span class="text-(--text-muted)">{{ t('waitingList.email') }}:</span>
+              <span class="ml-1 font-medium">{{ status.email }}</span>
+            </div>
             <div v-if="status.guardians && status.guardians.length > 0" class="text-sm sm:col-span-2">
               <span class="text-(--text-muted)">{{ t('waitingList.guardians') }}:</span>
               <span v-for="(g, i) in status.guardians" :key="i" class="ml-1 font-medium">
-                {{ g.name || g.email }}{{ g.phone ? ` (${g.phone})` : '' }}{{ i < status.guardians.length - 1 ? ', ' : '' }}
+                {{ guardianLabel(g) }}{{ g.phone ? ` (${g.phone})` : '' }}{{ i < status.guardians.length - 1 ? ', ' : '' }}
               </span>
             </div>
             <div v-else-if="status.parentName" class="text-sm">
@@ -147,13 +168,24 @@ onMounted(loadStatus)
               <span class="text-(--text-muted)">{{ t('waitingList.status') }}:</span>
               <component :is="statusBadgeComponent(status.status)" class="ml-1">{{ t('waitingList.status_' + status.status) }}</component>
             </div>
-            <div v-if="status.status === 'WAITING'" class="text-sm">
-              <span class="text-(--text-muted)">{{ t('waitingList.position') }}:</span>
-              <span class="ml-1 font-medium text-lg">{{ status.position }}</span>
+            <div v-if="status.status === 'WAITING'" class="text-sm sm:col-span-2">
+              <div>
+                <span class="text-(--text-muted)">{{ t('waitingList.position') }}:</span>
+                <span class="ml-1 font-medium text-lg">{{ status.position }}</span>
+              </div>
+              <p class="text-xs text-(--text-muted) mt-1">{{ t('waitingList.publicStatus.positionHint') }}</p>
             </div>
-            <div class="text-sm sm:col-span-2">
-              <span class="text-(--text-muted)">{{ t('waitingList.confirmedAt') }}:</span>
-              <span class="ml-1 font-medium">{{ formatDateTime(status.confirmedAt) }}</span>
+            <div class="text-sm">
+              <span class="text-(--text-muted)">{{ t('waitingList.publicStatus.waitingSince') }}:</span>
+              <span class="ml-1 font-medium">{{ formatDate(status.createdAt) }}</span>
+            </div>
+            <div class="text-sm">
+              <span class="text-(--text-muted)">{{ t('waitingList.publicStatus.lastConfirmation') }}:</span>
+              <span class="ml-1 font-medium">{{ formatDate(status.confirmedAt) }}</span>
+            </div>
+            <div v-if="status.confirmIntervalDays > 0" class="text-sm sm:col-span-2">
+              <span class="text-(--text-muted)">{{ t('waitingList.publicStatus.nextConfirmation') }}:</span>
+              <span class="ml-1 font-medium">{{ nextConfirmationDate() }}</span>
             </div>
           </div>
 

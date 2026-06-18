@@ -217,17 +217,16 @@ public class WaitingListRoutes implements Routes {
         var guardians = service.findGuardiansByEntry(entry.id());
         var list = service.findById(entry.listId()).orElseThrow(NotFoundResponse::new);
         var fields = service.findFieldsByList(entry.listId());
-        int position = service.findEntriesByList(entry.listId()).stream()
-                        .filter(e -> e.status() == WaitingListEntryStatus.WAITING)
-                        .toList()
-                        .indexOf(entry)
-                + 1;
+        int position = service.findWaitingPositionByScore(entry);
         ctx.json(new PublicStatusResponse(
                 entry.firstname(),
                 entry.lastname(),
                 entry.parentName(),
+                entry.email(),
                 entry.status(),
                 entry.confirmedAt().toString(),
+                entry.createdAt().toString(),
+                list.confirmIntervalDays(),
                 position,
                 list.name(),
                 fields,
@@ -631,8 +630,11 @@ public class WaitingListRoutes implements Routes {
             String firstname,
             String lastname,
             String parentName,
+            String email,
             WaitingListEntryStatus status,
             String confirmedAt,
+            String createdAt,
+            int confirmIntervalDays,
             int position,
             String listName,
             List<WaitingListField> fields,

@@ -1644,8 +1644,11 @@ export interface WaitingListPublicStatus {
     firstname: string
     lastname: string
     parentName: string
+    email: string
     status: string
     confirmedAt: string
+    createdAt: string
+    confirmIntervalDays: number
     position: number
     listName: string
     fields: WaitingListField[]

@@ -527,6 +527,39 @@ public class WaitingListService {
         repository.deleteEntry(entryId);
     }
 
+    /**
+     * Computes the waiting-list position of an entry ranked by score (highest first),
+     * with {@link WaitingListEntry#createdAt()} as the tiebreaker so the order is stable.
+     * Only entries in {@link WaitingListEntryStatus#WAITING} take part in the ranking;
+     * if the given entry is not WAITING the method returns {@code 0}.
+     *
+     * @param entry the entry to find the position of
+     * @return 1-based position when WAITING, or {@code 0} otherwise
+     */
+    public int findWaitingPositionByScore(WaitingListEntry entry) {
+        if (entry.status() != WaitingListEntryStatus.WAITING) return 0;
+        var list = repository.findById(entry.listId()).orElseThrow();
+        var fields = repository.findFieldsByList(entry.listId());
+        var waiting = repository.findEntriesByList(entry.listId()).stream()
+                .filter(e -> e.status() == WaitingListEntryStatus.WAITING)
+                .toList();
+        record Scored(WaitingListEntry e, double score) {}
+        var ranked = waiting.stream()
+                .map(e -> {
+                    var values = repository.findEntryValues(e.id());
+                    return new Scored(e, evaluateScore(e, values, fields, list.scoringFormula()));
+                })
+                .sorted((a, b) -> {
+                    int cmp = Double.compare(b.score(), a.score());
+                    return cmp != 0 ? cmp : a.e().createdAt().compareTo(b.e().createdAt());
+                })
+                .toList();
+        for (int i = 0; i < ranked.size(); i++) {
+            if (ranked.get(i).e().id() == entry.id()) return i + 1;
+        }
+        return 0;
+    }
+
     // --- Scoring ---
 
     public double evaluateScore(
