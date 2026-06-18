@@ -48,14 +48,14 @@ jobs:
       - name: Login to Registry
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login -u $ --password-stdin ghcr.io
       - name: Push image
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           timeout_minutes: 10
           max_attempts: 3
           command: docker push ${{ matrix.image }}:${{ github.sha }}
       - name: Tag & Push dev image
         if: github.ref_name == 'main' && github.event_name == 'push'
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           timeout_minutes: 10
           max_attempts: 3
@@ -64,7 +64,7 @@ jobs:
             docker push ${{ matrix.image }}:dev
       - name: Tag & Push feature branch image
         if: startsWith(github.ref_name, 'feature/')
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           timeout_minutes: 10
           max_attempts: 3
@@ -76,7 +76,7 @@ jobs:
             docker push "${{ matrix.image }}:$BRANCH_TAG"
       - name: Tag & Push release images
         if: github.event_name == 'release'
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           timeout_minutes: 10
           max_attempts: 3

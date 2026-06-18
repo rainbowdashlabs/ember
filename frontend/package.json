@@ -42,7 +42,7 @@
     "@tiptap/pm": "^3.23.6",
     "@tiptap/starter-kit": "^3.23.6",
     "@tiptap/vue-3": "^3.23.6",
-    "@types/diff": "^7.0.2",
+    "@types/diff": "^8.0.0",
     "@types/turndown": "^5.0.6",
     "axios": "^1.16.0",
     "diff": "^9.0.0",
