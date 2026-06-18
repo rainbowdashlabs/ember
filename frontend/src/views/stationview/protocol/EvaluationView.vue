@@ -97,15 +97,15 @@ function scoreColor(score: number, max: number): string {
 }
 
 function exportAllZip() {
-  window.open(protocol.exportAllZipUrl(runId.value), '_blank')
+  return protocol.exportAllZip(runId.value)
 }
 
 function exportTablePdf() {
-  window.open(protocol.evaluationPdfUrl(runId.value), '_blank')
+  return protocol.evaluationPdf(runId.value)
 }
 
 function openMemberPdf(memberId: number) {
-  window.open(protocol.exportMemberPdfUrl(runId.value, memberId), '_blank')
+  return protocol.exportMemberPdf(runId.value, memberId)
 }
 
 watch(loaded, (v) => { if (v) loadData() }, { immediate: true })

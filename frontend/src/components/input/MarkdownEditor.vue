@@ -23,7 +23,6 @@ import { VueNodeViewRenderer } from '@tiptap/vue-3'
 import TurndownService from 'turndown'
 import { marked } from 'marked'
 import { uploadKbImage, kbImageUrl } from '@/api/knowledgeBase'
-import { getItem } from '@/api/storage'
 import ImageNodeView from './ImageNodeView.vue'
 import EditorToolbar from './markdowneditor/EditorToolbar.vue'
 import EditorTableBar from './markdowneditor/EditorTableBar.vue'
@@ -69,10 +68,7 @@ turndown.addRule('image', {
   replacement: (_c, node) => {
     const el = node as HTMLImageElement
     const alt = el.getAttribute('alt') || ''
-    let src = el.getAttribute('src') || ''
-    if (src.includes('/kb/images/')) {
-      try { const u = new URL(src, window.location.origin); u.searchParams.delete('token'); u.searchParams.delete('stationId'); src = u.pathname + (u.search || '') } catch { /* keep */ }
-    }
+    const src = el.getAttribute('src') || ''
     const width = el.getAttribute('width') || ''
     if (width) {
       return `\n<img src="${src}" alt="${alt}" width="${width}" style="width: ${width}px" />\n`
@@ -181,21 +177,10 @@ function updateState(ed: { isActive: (n: string, a?: Record<string, unknown>) =>
 
 // --- Content Sync ---
 
-function addKbImageAuth(html: string): string {
-  return html.replace(/src="([^"]*\/kb\/images\/[^"]*)"/g, (_m, url) => {
-    try {
-      const p = new URL(url, window.location.origin)
-      if (!p.searchParams.has('token')) { p.searchParams.set('token', getItem('session_token') ?? ''); p.searchParams.set('stationId', getItem('station_id') ?? '') }
-      return `src="${p.toString()}"`
-    } catch { return `src="${url}"` }
-  })
-}
-
 async function setEditorContent(md: string) {
   if (!editor.value) return
   isUpdatingFromProp.value = true
   let html = await marked.parse(md || '')
-  html = addKbImageAuth(html)
   html = html.replace(/<p>(<img [^>]*>)<\/p>/g, '$1')
   editor.value.commands.setContent(html, { emitUpdate: false })
   await nextTick()

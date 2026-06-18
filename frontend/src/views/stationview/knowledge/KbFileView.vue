@@ -27,6 +27,7 @@ import {knowledgeBase} from '@/api'
 import type {KbFile, KbTag, MarkdownHtmlResponse} from '@/api/knowledgeBase'
 import {KbFileType} from '@/api/knowledgeBase'
 import {getItem} from '@/api/storage'
+import {downloadAuthed} from '@/util/downloadAuthed'
 import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
@@ -49,7 +50,10 @@ const editingDescription = ref(false)
 const editDescriptionValue = ref('')
 const showPresentation = ref(false)
 const showEditMetadataModal = ref(false)
-const originalUrl = computed(() => file.value ? knowledgeBase.originalFileUrl(file.value.id) : '')
+async function downloadOriginal() {
+    if (!file.value) return
+    await downloadAuthed(knowledgeBase.originalFileUrl(file.value.id), file.value.name)
+}
 
 const fileId = computed(() => Number(route.params.id))
 const isFederated = computed(() => {
@@ -69,27 +73,7 @@ async function copyToStation() {
     }
 }
 
-// Process rendered HTML: add auth tokens to KB image URLs (leaves external URLs untouched)
-const renderedHtml = computed(() => {
-    if (!markdownData.value?.html) return ''
-    const token = getItem('session_token') ?? ''
-    const stationId = getItem('station_id') ?? ''
-    return markdownData.value.html.replace(
-        /src="([^"]*\/kb\/images\/[^"]*)"/g,
-        (_match, url) => {
-            try {
-                const parsed = new URL(url, window.location.origin)
-                if (!parsed.searchParams.has('token')) {
-                    parsed.searchParams.set('token', token)
-                    parsed.searchParams.set('stationId', stationId)
-                }
-                return `src="${parsed.toString()}"`
-            } catch {
-                return `src="${url}"`
-            }
-        }
-    )
-})
+const renderedHtml = computed(() => markdownData.value?.html ?? '')
 
 function extractYoutubeId(url: string): string | null {
     const patterns = [
@@ -306,12 +290,13 @@ onMounted(() => {
                         <font-awesome-icon :icon="['fas', 'display']"/>
                         {{ t('kb.present') }}
                     </SecondaryButton>
-                    <a v-if="file.fileType === KbFileType.PRESENTATION" :href="originalUrl" download class="inline-block">
-                        <SecondaryButton>
-                            <font-awesome-icon :icon="['fas', 'download']"/>
-                            {{ t('kb.downloadOriginal') }}
-                        </SecondaryButton>
-                    </a>
+                    <SecondaryButton
+                        v-if="file.fileType === KbFileType.PRESENTATION"
+                        @click="downloadOriginal"
+                    >
+                        <font-awesome-icon :icon="['fas', 'download']"/>
+                        {{ t('kb.downloadOriginal') }}
+                    </SecondaryButton>
                 </template>
             </div>
 

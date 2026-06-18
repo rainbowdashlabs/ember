@@ -12,6 +12,7 @@ import StationBadge from '@/components/badge/StationBadge.vue'
 import type {KbFolder, KbFile, SharedFileEntry} from '@/api/knowledgeBase'
 import {KbFileType} from '@/api/knowledgeBase'
 import {knowledgeBase} from '@/api'
+import AuthImage from '@/components/display/AuthImage.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const {t} = useI18n()
@@ -107,13 +108,16 @@ function formatDate(dateStr: string): string {
             @click="emit('navigateFolder', folder.id)"
         >
             <div class="w-5 flex-shrink-0 flex justify-center">
-                <img
+                <AuthImage
                     v-if="folder.iconUrl"
                     :src="knowledgeBase.folderIconUrl(folder.id)"
                     :alt="folder.name"
                     class="w-4 h-4 rounded object-cover"
-                    @error="($event.target as HTMLImageElement).style.display = 'none'"
-                />
+                >
+                    <template #error>
+                        <font-awesome-icon :icon="['fas', 'folder']" class="text-sm text-[var(--accent)]"/>
+                    </template>
+                </AuthImage>
                 <font-awesome-icon v-else :icon="['fas', 'folder']"
                                    class="text-sm text-[var(--accent)]"/>
             </div>

@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import client from '@/api/client'
 
 const {t} = useI18n()
 const props = defineProps<{
@@ -43,7 +44,8 @@ async function loadPdf() {
   try {
     const pdfjsLib = await import('pdfjs-dist')
     pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.mjs', import.meta.url).href
-    pdfDoc = (await pdfjsLib.getDocument({url: props.contentUrl}).promise)
+    const res = await client.get<ArrayBuffer>(props.contentUrl, {responseType: 'arraybuffer'})
+    pdfDoc = (await pdfjsLib.getDocument({data: new Uint8Array(res.data)}).promise)
     totalPages.value = pdfDoc.numPages
     if (totalPages.value > 0) await renderPage(1)
   } catch (e) {

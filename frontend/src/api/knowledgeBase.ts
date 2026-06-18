@@ -4,7 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import {getItem} from './storage'
 import type {MemberIdentity} from './types'
 
 export interface KbFolder {
@@ -227,10 +226,14 @@ export async function importDocument(data: {
 
 // -- Content --
 
+/**
+ * Returns the API path (relative to the shared axios client's baseURL) at
+ * which a knowledge-base file's primary content is served. Intended to be
+ * passed to {@code AuthImage}/{@code AuthIframe}/{@code downloadAuthed},
+ * which fetch through the authenticated client.
+ */
 export function fileContentUrl(id: number): string {
-    const token = getItem('session_token') ?? ''
-    const stationId = getItem('station_id') ?? ''
-    return `${client.defaults.baseURL}/kb/files/${id}/content?token=${encodeURIComponent(token)}&stationId=${encodeURIComponent(stationId)}`
+    return `/kb/files/${id}/content`
 }
 
 export async function getMarkdownHtml(id: number): Promise<MarkdownHtmlResponse> {
@@ -252,10 +255,13 @@ export async function updateMarkdownContent(id: number, content: string): Promis
 
 // -- Presentation Original --
 
+/**
+ * Returns the API path (relative to the shared axios client's baseURL) for
+ * a knowledge-base file's original-format download. Pass to
+ * {@code downloadAuthed} to trigger an authenticated save.
+ */
 export function originalFileUrl(id: number): string {
-    const token = getItem('session_token') ?? ''
-    const stationId = getItem('station_id') ?? ''
-    return `${client.defaults.baseURL}/kb/files/${id}/original?token=${encodeURIComponent(token)}&stationId=${encodeURIComponent(stationId)}`
+    return `/kb/files/${id}/original`
 }
 
 export async function reuploadOriginal(id: number, file: File): Promise<KbFile> {
@@ -314,10 +320,12 @@ export async function setFileRestrictions(fileId: number, data: KbRestrictions):
 
 // -- Folder Icons --
 
+/**
+ * Returns the API path (relative to the shared axios client's baseURL) for
+ * a folder's icon at the requested rendered size. Pass to {@code AuthImage}.
+ */
 export function folderIconUrl(folderId: number, size = 128): string {
-    const token = getItem('session_token') ?? ''
-    const stationId = getItem('station_id') ?? ''
-    return `${client.defaults.baseURL}/kb/folders/${folderId}/icon?size=${size}&token=${encodeURIComponent(token)}&stationId=${encodeURIComponent(stationId)}`
+    return `/kb/folders/${folderId}/icon?size=${size}`
 }
 
 export async function uploadFolderIcon(folderId: number, file: File): Promise<void> {
@@ -398,10 +406,14 @@ export async function uploadKbImage(fileId: number, image: File): Promise<ImageU
     return res.data
 }
 
+/**
+ * Returns the API path (relative to the shared axios client's baseURL) for
+ * an inline KB image. The value is stored verbatim inside markdown content
+ * — see {@code KbMarkdownView} and {@code ImageNodeView} which fetch it
+ * through the authenticated client at render time.
+ */
 export function kbImageUrl(imageId: string, size = 1024): string {
-    const token = getItem('session_token') ?? ''
-    const stationId = getItem('station_id') ?? ''
-    return `${client.defaults.baseURL}/kb/images/${imageId}?size=${size}&token=${encodeURIComponent(token)}&stationId=${encodeURIComponent(stationId)}`
+    return `/kb/images/${imageId}?size=${size}`
 }
 
 // -- Favourites --

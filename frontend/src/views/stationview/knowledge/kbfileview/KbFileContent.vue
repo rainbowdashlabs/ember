@@ -10,9 +10,13 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
+import AuthImage from '@/components/display/AuthImage.vue'
+import AuthIframe from '@/components/display/AuthIframe.vue'
+import KbMarkdownView from './KbMarkdownView.vue'
 import KbPresentationContent from './KbPresentationContent.vue'
 import type {KbFile} from '@/api/knowledgeBase'
 import {KbFileType} from '@/api/knowledgeBase'
+import {downloadAuthed} from '@/util/downloadAuthed'
 
 const props = defineProps<{
   file: KbFile
@@ -33,7 +37,9 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-void props // keep tsc happy if a branch isn't reached
+async function downloadOther() {
+  await downloadAuthed(props.contentUrl, props.file.name)
+}
 </script>
 
 <template>
@@ -46,7 +52,7 @@ void props // keep tsc happy if a branch isn't reached
         @update:model-value="emit('contentInput')"
     />
     <NeutralContainer v-else>
-      <div v-if="renderedHtml" class="markdown-content" v-html="renderedHtml"/>
+      <KbMarkdownView v-if="renderedHtml" :html="renderedHtml"/>
       <p v-else class="text-[var(--text-muted)]">{{ t('kb.noContent') }}</p>
     </NeutralContainer>
   </template>
@@ -65,14 +71,14 @@ void props // keep tsc happy if a branch isn't reached
   <!-- PDF -->
   <template v-else-if="file.fileType === KbFileType.PDF">
     <NeutralContainer class="p-0">
-      <iframe :src="contentUrl" class="w-full min-h-[80vh] rounded" :title="file.name"/>
+      <AuthIframe :src="contentUrl" :title="file.name" class="w-full min-h-[80vh] rounded"/>
     </NeutralContainer>
   </template>
 
   <!-- IMAGE -->
   <template v-else-if="file.fileType === KbFileType.IMAGE">
     <NeutralContainer class="flex justify-center">
-      <img :src="contentUrl" :alt="file.name" class="max-w-full max-h-[80vh] rounded"/>
+      <AuthImage :src="contentUrl" :alt="file.name" class="max-w-full max-h-[80vh] rounded"/>
     </NeutralContainer>
   </template>
 
@@ -124,12 +130,10 @@ void props // keep tsc happy if a branch isn't reached
     <NeutralContainer class="text-center py-8">
       <font-awesome-icon :icon="['fas', 'file']" class="text-4xl text-[var(--text-muted)] mb-4"/>
       <p class="mb-4">{{ file.name }}</p>
-      <a :href="contentUrl" download class="inline-block">
-        <PrimaryButton>
-          <font-awesome-icon :icon="['fas', 'download']"/>
-          {{ t('kb.download') }}
-        </PrimaryButton>
-      </a>
+      <PrimaryButton @click="downloadOther">
+        <font-awesome-icon :icon="['fas', 'download']"/>
+        {{ t('kb.download') }}
+      </PrimaryButton>
     </NeutralContainer>
   </template>
 </template>
