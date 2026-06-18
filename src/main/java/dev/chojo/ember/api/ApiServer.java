@@ -46,7 +46,6 @@ import io.javalin.openapi.plugin.OpenApiPlugin;
 import io.javalin.openapi.plugin.OpenApiPluginConfiguration;
 import io.javalin.openapi.plugin.swagger.SwaggerConfiguration;
 import io.javalin.openapi.plugin.swagger.SwaggerPlugin;
-import io.javalin.plugin.bundled.CorsPluginConfig;
 import io.javalin.security.RouteRole;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -175,7 +174,11 @@ public class ApiServer {
             config.registerPlugin(new OpenApiPlugin(this::configureOpenApi));
             config.registerPlugin(new SwaggerPlugin(this::configureSwagger));
 
-            config.bundledPlugins.enableCors(cors -> cors.addRule(CorsPluginConfig.CorsRule::anyHost));
+            config.bundledPlugins.enableCors(cors -> {
+                for (String origin : apiConfig.allowedOrigins()) {
+                    cors.addRule(rule -> rule.allowHost(origin));
+                }
+            });
 
             config.routes.before(ctx -> {
                 if (ctx.method() == HandlerType.OPTIONS) return;
