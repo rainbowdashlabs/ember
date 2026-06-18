@@ -27,6 +27,9 @@ import dev.chojo.ember.feature.traffic.service.StationResolver;
 import dev.chojo.ember.feature.traffic.service.StationTrafficRecorder;
 import dev.chojo.ember.util.DevErrorWriter;
 import io.javalin.Javalin;
+import io.javalin.compression.CompressionStrategy;
+import io.javalin.compression.Gzip;
+import io.javalin.config.JavalinConfig;
 import io.javalin.config.RoutesConfig;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -141,6 +144,7 @@ public class ApiServer {
         var app = Javalin.create(config -> {
             config.http.defaultContentType = "application/json";
             config.jsonMapper(jacksonMapper());
+            configureCompression(config);
 
             var publicDir = Path.of(System.getenv().getOrDefault("EMBER_PUBLIC_DIR", "public"));
             if (Files.isDirectory(publicDir)) {
@@ -536,6 +540,22 @@ public class ApiServer {
             if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
             ctx.json(new ErrorResponseWrapper("Internal Server Error")).status(HttpStatus.INTERNAL_SERVER_ERROR);
         });
+    }
+
+    /**
+     * Installs a gzip-only compression strategy on the Javalin HTTP config. Concept §11.3:
+     * universal gzip, brotli explicitly out of scope. The default Javalin {@code excludedMimeTypes}
+     * already covers the binary types we want to skip (already-compressed media), so the
+     * level + threshold are the only knobs we expose.
+     */
+    private void configureCompression(JavalinConfig config) {
+        if (!apiConfig.httpGzipEnabled()) {
+            config.http.compressionStrategy = CompressionStrategy.NONE;
+            return;
+        }
+        var strategy = new CompressionStrategy(null, new Gzip(apiConfig.httpGzipLevel()));
+        strategy.setDefaultMinSizeForCompression(apiConfig.httpGzipMinSizeBytes());
+        config.http.compressionStrategy = strategy;
     }
 
     /**

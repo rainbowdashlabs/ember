@@ -59,7 +59,7 @@
 - **`applyStationOverride` / `clearStationOverride`** — the override snapshots the current theme + feel + custom colours on entry, applies the station values, and sets a flag so the async public-theme fetch can no longer clobber it. `PublicStationShell` clears the override in `onUnmounted` so the station's theme no longer bleeds into the start page after navigating away.
 - **App-mount gated on theme resolution** — `initFromLocalStorage` now returns a promise; the init client plugin awaits it (`Promise.race` against a 1 s timeout) before Vue mounts.
 
-#### Per-Station Traffic Monitoring (Phases 1–2)
+#### Per-Station Traffic Monitoring (Phases 1–3)
 
 - **`station_traffic_hourly` table** — new `patch_15` introduces hourly aggregated ingress/egress byte counters and request counts per station, split by auth bucket (`AUTHENTICATED` / `UNAUTHENTICATED` / `FEDERATION`). Two partial unique indexes let the upsert target both the per-station and instance-global rows correctly (`station_id IS NULL` for admin and static traffic).
 - **In-memory `StationTrafficRecorder`** — a `ConcurrentHashMap` of bucket accumulators is hit non-blockingly from the API `after`-handler. A dedicated single-threaded scheduler flushes aged buckets (any hour strictly older than the current one) via `StationTrafficRepository.upsert` on a configurable cadence and prunes buckets older than the retention window.
@@ -68,6 +68,7 @@
 - **`GET /api/v1/station/traffic/hourly`** — station-scoped sibling; the caller's own station only, derived from the session. Permission: `StationPermission.STATION_ADMINISTRATOR`.
 - **`/admin/traffic` and `/station/manage/traffic` views** — stacked ECharts hour bars split by auth bucket, with metric toggle (egress / ingress / requests), window selector (24 h / 3 d / 7 d / 30 d), and per-bucket filter. The admin view adds a per-station leaderboard sorted by the selected metric; the station view scopes to the caller. Both reuse the same `TrafficChart` / `TrafficTotals` / `TrafficWindowSelector` components.
 - **Help center articles** — new `/helpcenter/admin/traffic` and `/helpcenter/station/manage/traffic` walk operators through the three auth buckets, the controls, and the "Global" leaderboard row.
+- **HTTP gzip compression** — text-shaped responses (JSON, HTML, CSS, XML/RSS/Atom, SVG, plain text, ICS feeds) are now gzipped by default. Driven by a `gzip-only` Javalin `CompressionStrategy` so binary types (images, audio, video, already-compressed archives) stay untouched. New `Api` config knobs: `httpGzipEnabled` (default true), `httpGzipLevel` (default 6, range 0–9), `httpGzipMinSizeBytes` (default 1024), overridable via `API_HTTP_GZIP_*` env vars. Concept §11.3 lists this as the largest single egress win after image variants — ~70% reduction on JSON, universally supported.
 - **Configuration** — new `Metrics` fields `trafficEnabled` (default true), `trafficRetentionDays` (default 90), `trafficFlushIntervalSeconds` (default 30), overridable via `METRICS_*` env vars.
 
 ### Changes
