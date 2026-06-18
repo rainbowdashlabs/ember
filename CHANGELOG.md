@@ -14,7 +14,6 @@
 #### Per-Station Page File Browser
 
 - **Files, folders, and tags** — every station now has a dedicated `/station/pages/files` view with a folder hierarchy and tag metadata persisted in a new `PageFileMetaRepository`. The page editor's `PageFileBrowseModal` walks the same tree so existing uploads can be reused across pages instead of being re-uploaded.
-- **Help-center coverage** — a `PageFilesHelp` article and `/helpcenter/station/pages/files` route mirror the new view.
 
 #### Page Editor Cell Architecture
 
@@ -29,7 +28,7 @@
 
 #### Collapsible Desktop Sidebar
 
-- A desktop-only toggle animates the sidebar from full width to an icon-only rail. The header row (logo + station name) stays; only the top-level icons remain in the nav. The collapsed state persists across reloads via a new `useSidebarCollapse` composable. Mobile drawer behaviour is unchanged.
+- A desktop-only toggle animates the sidebar from full width to an icon-only rail. The header row (logo + station name) stays; only the top-level icons remain in the nav. Mobile drawer behaviour is unchanged.
 
 #### Trusted-Proxy and Cloudflare-Aware Client IP
 
@@ -43,17 +42,15 @@
 
 #### Consent Gating for Public Submissions
 
-- **Per-submission proof of acceptance** — every anonymous public submission (form / poll CTA, waitlist via invite link, waitlist via the public-station page) now requires a checkbox accepting the current privacy policy + terms of service. The proof is captured at the moment of submission and persisted inline on the row as a single `consent_proof` JSONB column on `form_response`, `waiting_list_entry`, and `waitlist_verification_token`. The waitlist e-mail-verification flow preserves the proof across the click, so the `consentedAt` timestamp always reflects the moment the box was ticked.
-- **Shared `ConsentProof` record** with `parse(json)` / `toJson()` for round-trip, plus `ConsentService.requireAcceptance(ctx, consent, privacy, tos)` which rejects missing or stale hashes with `400` (forcing the UI to reload the documents and re-prompt) and captures the IP / country / user-agent + timestamp.
-- **GDPR-compliant IP anonymisation** — the client IP captured in the proof is truncated before persistence: IPv4 last octet zeroed (`203.0.113.7` → `203.0.113.0`), IPv6 last 80 bits zeroed (only the `/48` prefix retained). This is the de-facto standard used by Matomo and Plausible; the value still establishes rough geography for an audit but is no longer personal data.
+- **Per-submission proof of acceptance** — every anonymous public submission (form / poll CTA, waitlist via invite link, waitlist via the public-station page) now requires a checkbox accepting the current privacy policy + terms of service. The proof is captured at the moment of submission.
+- **GDPR-compliant IP anonymisation** — the client IP captured in the proof is truncated before persistence: IPv4 last octet zeroed (`203.0.113.7` → `203.0.113.0`), IPv6 last 80 bits zeroed (only the `/48` prefix retained).
 - **Shared `PublicConsentCheckbox` component** fetches `/api/v1/public/legal-versions` on mount, renders the labelled checkbox with linked `/privacy` and `/terms` documents via `<i18n-t>`, and disables the submit button until the box is ticked. Wired into `PublicFormSubmitView`, `WaitingListRegisterView`, and the public-station waitlist registration view.
 
 #### Landing Page Rebuild
 
-- **`HomeAltView`** replaces the old `HomeView`. The hero pairs the layered ember mascot with a brigade-voice headline, a short lede, one primary CTA + one quiet text link, and a concrete "Diese Woche" schedule card. Below it sit narrative sections that mirror real Ember screens (a Mittwoch-evening time-stamped timeline using only features the platform actually has, a `MaterialSpotlight` mock of the inventory `OverviewView` with three rule-aligned sub-tables for Größentäusche / Beschaffungen / Verluste, a `UsabilitySection` with a mock help-overlay), plus `ReplacesSection` (dark), `FederationSection`, `HostingOptions`, `FactsRow` with a one-line plain-language note per row (AGPL explained without legal jargon), and a closing CTA.
+- **Completeley redesigned the HomeView**
 - **SSR data for above-the-fold CTAs** — `routeRules['/']` flipped from `prerender` to `ssr`, and `HomeAltView` loads `/api/v1/public/config` + `/api/v1/public/settings/station-registration` via `useAsyncData` + `$fetch` so the demo / register / hosting CTAs render with the live config values on the first paint.
 - **Self-hosted fonts** — Bitter and JetBrains Mono ship via `@fontsource/...` so the landing page (and any other view that opts into the same families) no longer pulls from Google Fonts at runtime.
-- **Fully localised** — every string lives under `landingAlt.*` in `de-DE`.
 
 #### Theme: SSR Injection, Station Overrides, Anonymous Gating
 
@@ -67,7 +64,6 @@
 - **Schema** — `patch_14` is extended with the tables and columns required for public forms, page files, the page editor refactor, and the new `consent_proof` JSONB column on the three anonymous-submission tables; `data_tracking.json` is refreshed to mark every new column as verified.
 - **Inline `ref<>` types** — the project's `Inline object type in ref<>` lint warnings are eliminated across the station, board, inventory, news, members, manage, and quiz views by extracting each inline shape into a named interface.
 - **Test cleanup** — `RepositoryTestBase` wiring is tightened, per-test setup that moved to the base is deduplicated, and spotless formatting is applied across the affected test files.
-- **Asset trim** — unused demo avatar and logo PNGs are dropped from `src/main/resources/`; logo composition lives entirely in the frontend's `LayeredEmberLogo` component.
 - **`/waiting-list/status?token=…`** now answers the questions applicants actually ask: e-mail used for reminders is shown under the name, `createdAt` ("Auf der Liste seit") and `createdAt + confirmIntervalDays` ("Nächste Bestätigung bis") are derived from `PublicStatusResponse`'s new `createdAt` / `confirmIntervalDays` fields, last confirmation renders as a date only, the position chip carries a muted hint that it is a rough indicator rather than the actual order of admission, and the position itself is now **score-based** via a new `WaitingListService.findWaitingPositionByScore(entry)` (highest score first, `createdAt` ascending as the tiebreaker). The guardian row now uses `${firstname} ${lastname}` (existing entity fields) with `g.email` as fallback — it previously read `g.name`, which was undefined and silently rendered nothing.
 - **`/station/members/edit/{id}` reorganised** — the join-date control (biographical information) moves from the General tab (user type + permissions) to the Profile tab next to first name / last name / e-mail.
 - **`/members/waiting-lists/{listId}/entries/{entryId}`** — the metadata strip mixed plain-text spans with one `inline-flex items-center` span for the editable "Hinzugefügt am" chip, so "Bestätigt am" appeared visually offset. The parent flex now uses `items-center` + `gap-x-4 gap-y-2` so every chip aligns to the row centre and wraps cleanly.
