@@ -424,7 +424,7 @@ spotless {
     format("javascript") {
         licenseHeaderFile(
             rootProject.file("HEADER.txt"),
-            "(import|const|let|var|export|function|type|interface|enum|class|abstract|async|declare|//)",
+            "(import|const|let|var|export|function|type|interface|enum|class|abstract|async|declare|//|/\\*\\*)",
         )
         target("frontend/src/**/*.js", "frontend/src/**/*.ts")
         targetExclude("frontend/node_modules/**", "frontend/dist/**")
