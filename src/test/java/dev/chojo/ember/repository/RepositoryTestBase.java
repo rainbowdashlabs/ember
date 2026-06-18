@@ -69,6 +69,7 @@ import dev.chojo.ember.feature.storage.repository.StorageQuotaPresetRepository;
 import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
+import dev.chojo.ember.feature.traffic.repository.StationTrafficRepository;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -141,6 +142,7 @@ public abstract class RepositoryTestBase {
     protected static DiscoveryPingRepository discoveryPingRepo;
     protected static DiscoveryStationCacheRepository discoveryStationCacheRepo;
     protected static DiscoveryBlocklistRepository discoveryBlocklistRepo;
+    protected static StationTrafficRepository stationTrafficRepo;
     protected static MemberIdentityFactory memberIdentityFactory;
     protected static MemberNameResolver memberNameResolver;
     protected static DataSource dataSource;
@@ -244,6 +246,7 @@ public abstract class RepositoryTestBase {
         discoveryPingRepo = new DiscoveryPingRepository();
         discoveryStationCacheRepo = new DiscoveryStationCacheRepository();
         discoveryBlocklistRepo = new DiscoveryBlocklistRepository();
+        stationTrafficRepo = new StationTrafficRepository();
         var eventFedRepo = new EventFederationRepository();
         var fedRepo = new FederationRepository();
         var memberSvc = new StationMemberService(stationMemberRepo, stationRepo, accountRepo, null);

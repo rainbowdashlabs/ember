@@ -22,6 +22,9 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.system.service.ApiRequestLogger;
 import dev.chojo.ember.feature.system.service.DemoService;
+import dev.chojo.ember.feature.traffic.service.AuthBucketClassifier;
+import dev.chojo.ember.feature.traffic.service.StationResolver;
+import dev.chojo.ember.feature.traffic.service.StationTrafficRecorder;
 import dev.chojo.ember.util.DevErrorWriter;
 import io.javalin.Javalin;
 import io.javalin.config.RoutesConfig;
@@ -88,6 +91,9 @@ public class ApiServer {
     private final UserTagRepository userTagRepository;
     private final ApiRequestLogger apiRequestLogger;
     private final DemoService demoService;
+    private final StationTrafficRecorder trafficRecorder;
+    private final StationResolver stationResolver;
+    private final AuthBucketClassifier authClassifier;
 
     @Inject
     public ApiServer(
@@ -102,7 +108,10 @@ public class ApiServer {
             MemberGroupRepository memberGroupRepository,
             UserTagRepository userTagRepository,
             ApiRequestLogger apiRequestLogger,
-            DemoService demoService) {
+            DemoService demoService,
+            StationTrafficRecorder trafficRecorder,
+            StationResolver stationResolver,
+            AuthBucketClassifier authClassifier) {
         this.routes = routes;
         this.apiConfig = apiConfig;
         this.demoConfig = demoConfig;
@@ -115,7 +124,11 @@ public class ApiServer {
         this.userTagRepository = userTagRepository;
         this.apiRequestLogger = apiRequestLogger;
         this.demoService = demoService;
+        this.trafficRecorder = trafficRecorder;
+        this.stationResolver = stationResolver;
+        this.authClassifier = authClassifier;
         this.apiRequestLogger.start();
+        this.trafficRecorder.start();
     }
 
     /**
@@ -207,6 +220,16 @@ public class ApiServer {
                     long duration = System.currentTimeMillis() - start;
                     apiRequestLogger.record(ctx.method().name(), ctx.path(), ctx.statusCode(), duration);
                 }
+            });
+
+            // Per-station traffic counters (concept §2-5). Recorded after the response is
+            // committed so Jetty has populated content-length on the response side.
+            config.routes.after(ctx -> {
+                if (ctx.method() == HandlerType.OPTIONS) return;
+                long ingress = estimateIngressBytes(ctx);
+                long egress = estimateEgressBytes(ctx);
+                trafficRecorder.record(
+                        stationResolver.resolve(ctx).orElse(null), authClassifier.classify(ctx), ingress, egress);
             });
 
             if (demoConfig.enabled()) {
@@ -513,6 +536,54 @@ public class ApiServer {
             if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
             ctx.json(new ErrorResponseWrapper("Internal Server Error")).status(HttpStatus.INTERNAL_SERVER_ERROR);
         });
+    }
+
+    /**
+     * Estimates the inbound byte count for a request: declared content length (zero when
+     * not set or unknown) plus a cheap header-bytes approximation. Used by the per-station
+     * traffic recorder; the precision is operational-observability grade, not billing-grade.
+     */
+    private static long estimateIngressBytes(Context ctx) {
+        long bodyBytes = Math.max(0, ctx.req().getContentLengthLong());
+        long headerBytes = 0;
+        for (var entry : ctx.headerMap().entrySet()) {
+            String name = entry.getKey();
+            String value = entry.getValue();
+            if (name != null) headerBytes += name.length();
+            if (value != null) headerBytes += value.length();
+            headerBytes += 4;
+        }
+        String method = ctx.method() != null ? ctx.method().name() : "";
+        String path = ctx.path() != null ? ctx.path() : "";
+        return bodyBytes + headerBytes + method.length() + path.length() + 12;
+    }
+
+    /**
+     * Estimates the outbound byte count for a response. Reads Jetty's response-side content
+     * counter when available (covers streamed downloads, feeds, etc.) and falls back to
+     * the {@code Content-Length} response header when the counter is unavailable. Adds an
+     * approximation of response header bytes — same precision target as ingress.
+     */
+    private static long estimateEgressBytes(Context ctx) {
+        long bodyBytes = 0;
+        String contentLength = ctx.res().getHeader("Content-Length");
+        if (contentLength != null) {
+            try {
+                bodyBytes = Long.parseLong(contentLength);
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        if (bodyBytes <= 0 && ctx.result() != null) {
+            bodyBytes = ctx.result().length();
+        }
+        long headerBytes = 0;
+        for (String name : ctx.res().getHeaderNames()) {
+            headerBytes += name.length();
+            String value = ctx.res().getHeader(name);
+            if (value != null) headerBytes += value.length();
+            headerBytes += 4;
+        }
+        return Math.max(0, bodyBytes) + headerBytes + 12;
     }
 
     /**
