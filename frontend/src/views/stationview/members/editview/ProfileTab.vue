@@ -7,6 +7,7 @@
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
+import DateInput from '@/components/input/datetime/DateInput.vue'
 import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -19,7 +20,7 @@ import THead from '@/components/table/THead.vue'
 import TRow from '@/components/table/TRow.vue'
 import type {ProfileField, StationMember} from '@/api/types'
 import {parseFieldConfig} from '@/api/types'
-import {profileFields, members} from '@/api'
+import {profileFields, members, stationMembers} from '@/api'
 
 const {t} = useI18n()
 
@@ -34,7 +35,19 @@ const editFirstName = ref(props.member.name?.split(' ')[0] ?? '')
 const editLastName = ref(props.member.name?.split(' ').slice(1).join(' ') ?? '')
 const editEmail = ref(props.member.email ?? '')
 const editValues = ref(new Map(props.initialValues))
+const editJoinDate = ref(props.member.joinDate ?? '')
 const error = ref('')
+
+async function onJoinDateChange(value: string | undefined) {
+  if (!value) return
+  error.value = ''
+  try {
+    await stationMembers.setJoinDate(props.memberId, value)
+    editJoinDate.value = value
+  } catch {
+    error.value = t('common.error')
+  }
+}
 
 function getEditValue(fieldId: number): string {
   return editValues.value.get(fieldId) ?? ''
@@ -82,6 +95,13 @@ async function save() {
           <TextInput v-model="editEmail"/>
         </div>
       </div>
+    </NeutralContainer>
+
+    <!-- Join date -->
+    <NeutralContainer class="space-y-3">
+      <SubHeader class="text-sm">{{ t('memberEdit.joinDate') }}</SubHeader>
+      <DateInput :model-value="editJoinDate" class="max-w-xs" @update:model-value="onJoinDateChange"/>
+      <p class="text-xs text-(--text-muted)">{{ t('memberEdit.joinDateHint') }}</p>
     </NeutralContainer>
 
     <!-- Profile fields -->
