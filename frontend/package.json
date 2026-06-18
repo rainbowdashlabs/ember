@@ -19,6 +19,8 @@
     "preview:spa": "vite preview"
   },
   "dependencies": {
+    "@fontsource/bitter": "^5.2.10",
+    "@fontsource/jetbrains-mono": "^5.2.8",
     "@fortawesome/fontawesome-svg-core": "^7.2.0",
     "@fortawesome/free-brands-svg-icons": "^7.2.0",
     "@fortawesome/free-solid-svg-icons": "^7.2.0",

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import HomeView from '~/views/HomeView.vue'
+import HomeView from '~/views/HomeAltView.vue'
 import {useCanonical} from '~/composables/useCanonical'
 
 useCanonical('/')
