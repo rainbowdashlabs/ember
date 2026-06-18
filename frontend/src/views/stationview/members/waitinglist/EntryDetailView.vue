@@ -219,7 +219,7 @@ onMounted(loadData)
           <component :is="statusBadgeComponent(entry.entry.status)">{{ t('waitingList.status_' + entry.entry.status) }}</component>
         </div>
 
-        <div class="text-sm text-(--text-muted) flex flex-wrap gap-4">
+        <div class="text-sm text-(--text-muted) flex flex-wrap items-center gap-x-4 gap-y-2">
           <span>{{ t('waitingList.score') }}: <span class="font-mono font-medium">{{ entry.score }}</span></span>
           <span>{{ t('waitingList.confirmedAt') }}: {{ formatDateTime(entry.entry.confirmedAt) }}</span>
           <span class="inline-flex items-center gap-1">
