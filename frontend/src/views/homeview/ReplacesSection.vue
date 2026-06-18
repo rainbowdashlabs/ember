@@ -83,10 +83,11 @@ const items = computed(() =>
 .old {
   text-align: right;
   font-size: 1.05rem;
-  opacity: 0.5;
+  opacity: 0.75;
   text-decoration: line-through;
-  text-decoration-thickness: 1px;
-  text-decoration-color: rgba(245, 243, 239, 0.4);
+  text-decoration-thickness: 2px;
+  text-decoration-color: #ff6421;
+  text-decoration-skip-ink: none;
 }
 .arrow {
   height: 0.9rem;

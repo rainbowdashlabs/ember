@@ -131,11 +131,12 @@ export default {
         },
         replaces: {
             eyebrow: 'Was Ember ersetzt',
-            headline: 'Statt drei Werkzeugen — eins.',
+            headline: 'Statt vieler Werkzeuge — eins.',
             items: [
-                {old: 'Excel-Anwesenheitsliste', neu: 'Eine Tabelle für alle.'},
+                {old: 'Excel-Anwesenheitsliste', neu: 'Anmelden, abhaken, auswerten.'},
                 {old: 'WhatsApp-Termingruppe',   neu: 'Kalender mit Erinnerungen.'},
                 {old: 'Karteikasten',            neu: 'Mitgliederakte digital.'},
+                {old: 'Verstreute Notizen',      neu: 'Wiki und Wissensbasis.'},
             ],
         },
         federation: {
