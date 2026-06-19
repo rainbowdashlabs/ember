@@ -225,13 +225,13 @@ class AuthServiceTest extends RepositoryTestBase {
     @Order(17)
     void setPasswordUpdatesExisting() {
         var account2 = accountRepo.create("setpass2@test.com", "SP2", "User");
-        accountRepo.createCredential(account2.id(), new PasswordHasher().hash("OldPass123!"));
+        accountRepo.createCredential(account2.id(), new PasswordHasher().hash("OldPassword123!"));
         accountRepo.createToken(
                 account2.id(),
                 "set-pass-token-2",
                 TokenType.SET_PASSWORD,
                 Instant.now().plus(24, ChronoUnit.HOURS));
-        assertTrue(service.setPassword("set-pass-token-2", "NewPass456!"));
+        assertTrue(service.setPassword("set-pass-token-2", "NewPassword456!"));
         accountRepo.delete(account2.id());
     }
 
@@ -289,7 +289,7 @@ class AuthServiceTest extends RepositoryTestBase {
         // Set a known password first
         var account2 = accountRepo.create("changepw@test.com", "CP", "User");
         accountRepo.createCredential(account2.id(), new PasswordHasher().hash("correct-password"));
-        assertFalse(service.changePassword(account2.id(), "wrong-password", "NewPass!"));
+        assertFalse(service.changePassword(account2.id(), "wrong-password", "NewPassword123!"));
         accountRepo.delete(account2.id());
     }
 
@@ -297,8 +297,8 @@ class AuthServiceTest extends RepositoryTestBase {
     @Order(26)
     void changePasswordSuccess() {
         var account2 = accountRepo.create("changepw2@test.com", "CP2", "User");
-        accountRepo.createCredential(account2.id(), new PasswordHasher().hash("OldPass123!"));
-        assertTrue(service.changePassword(account2.id(), "OldPass123!", "NewPass456!"));
+        accountRepo.createCredential(account2.id(), new PasswordHasher().hash("OldPassword123!"));
+        assertTrue(service.changePassword(account2.id(), "OldPassword123!", "NewPassword456!"));
         accountRepo.delete(account2.id());
     }
 
@@ -306,7 +306,16 @@ class AuthServiceTest extends RepositoryTestBase {
     @Order(27)
     void changePasswordNoCredential() {
         var account2 = accountRepo.create("changepw3@test.com", "CP3", "User");
-        assertFalse(service.changePassword(account2.id(), "OldPass", "NewPass"));
+        assertFalse(service.changePassword(account2.id(), "OldPassword12", "NewPassword12"));
+        accountRepo.delete(account2.id());
+    }
+
+    @Test
+    @Order(27)
+    void changePasswordRejectsShortNewPassword() {
+        var account2 = accountRepo.create("changepwshort@test.com", "CP4", "User");
+        accountRepo.createCredential(account2.id(), new PasswordHasher().hash("CurrentPassword123!"));
+        assertFalse(service.changePassword(account2.id(), "CurrentPassword123!", "tooshort"));
         accountRepo.delete(account2.id());
     }
 
@@ -440,7 +449,7 @@ class AuthServiceTest extends RepositoryTestBase {
                 "expired-setpass-token",
                 TokenType.SET_PASSWORD,
                 Instant.now().minus(1, ChronoUnit.HOURS));
-        assertFalse(service.setPassword("expired-setpass-token", "NewPass123!"));
+        assertFalse(service.setPassword("expired-setpass-token", "NewPassword123!"));
         accountRepo.delete(account2.id());
     }
 
@@ -453,7 +462,7 @@ class AuthServiceTest extends RepositoryTestBase {
                 "wrong-type-token",
                 TokenType.VERIFY_EMAIL,
                 Instant.now().plus(24, ChronoUnit.HOURS));
-        assertFalse(service.setPassword("wrong-type-token", "NewPass123!"));
+        assertFalse(service.setPassword("wrong-type-token", "NewPassword123!"));
         accountRepo.delete(account2.id());
     }
 

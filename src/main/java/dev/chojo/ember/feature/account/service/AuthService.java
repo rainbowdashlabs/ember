@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.account.service;
 
 import dev.chojo.ember.auth.PasswordHasher;
+import dev.chojo.ember.auth.PasswordPolicy;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -89,6 +90,10 @@ public class AuthService {
      */
     public RegistrationResult registerSelf(
             String email, String firstName, String lastName, String password, String registrationCode) {
+        var policy = PasswordPolicy.validate(password);
+        if (policy != PasswordPolicy.Result.OK) {
+            return RegistrationResult.failure(policy.message());
+        }
         RegistrationCode code = null;
         if (registrationCode != null && !registrationCode.isBlank()) {
             Optional<RegistrationCode> codeOpt = registrationCodeRepository.findByCode(registrationCode);
@@ -224,6 +229,9 @@ public class AuthService {
      * @return {@code true} if the password was successfully set
      */
     public boolean setPassword(String token, String password) {
+        if (PasswordPolicy.validate(password) != PasswordPolicy.Result.OK) {
+            return false;
+        }
         Optional<AccountToken> tokenOpt = accountRepository.findToken(token);
         if (tokenOpt.isEmpty()) {
             return false;
@@ -466,6 +474,9 @@ public class AuthService {
      * @return {@code true} if the password was changed successfully
      */
     public boolean changePassword(int accountId, String currentPassword, String newPassword) {
+        if (PasswordPolicy.validate(newPassword) != PasswordPolicy.Result.OK) {
+            return false;
+        }
         var credOpt = accountRepository.findCredential(accountId);
         if (credOpt.isEmpty()) return false;
         if (!passwordHasher.verify(currentPassword, credOpt.get().passwordHash())) return false;

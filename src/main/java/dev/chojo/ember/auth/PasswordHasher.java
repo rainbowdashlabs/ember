@@ -23,7 +23,8 @@ public class PasswordHasher {
 
     @Inject
     public PasswordHasher() {
-        this(new BCryptAlgorithm());
+        this(new BCryptSha256Algorithm());
+        register(new BCryptAlgorithm());
     }
 
     /**
