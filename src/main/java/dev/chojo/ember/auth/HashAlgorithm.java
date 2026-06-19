@@ -22,7 +22,7 @@ public interface HashAlgorithm {
      * Hashes the given plaintext password.
      *
      * @param password the plaintext password
-     * @return the password hash containing algorithm, hash, and salt
+     * @return the password hash containing the algorithm name and hash output
      */
     PasswordHash hash(String password);
 

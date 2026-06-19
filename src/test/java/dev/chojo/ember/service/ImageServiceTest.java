@@ -7,6 +7,7 @@ package dev.chojo.ember.service;
 
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
+import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -152,7 +153,7 @@ class ImageServiceTest {
     void storeRejectsOversizedUpload() {
         byte[] tooLarge = new byte[3 * 1024 * 1024]; // 3 MB
         assertThrows(
-                IllegalArgumentException.class,
+                BadRequestResponse.class,
                 () -> imageService.store(ImageCategory.AVATARS, "big", tooLarge, "image/png", 2 * 1024 * 1024));
     }
 
@@ -219,27 +220,17 @@ class ImageServiceTest {
 
     @Test
     @Order(51)
-    void storeWebpContentTypeStoresWithWebpExtension() throws IOException {
-        // WebP is not decodable by standard ImageIO — raw bytes path is taken
-        byte[] fakeWebp = new byte[] {
+    void storeRejectsMalformedWebpEvenWhenContentTypeMatches() {
+        // RIFF / WEBP header but no body — the magic sniff accepts the
+        // signature, ImageIO then fails to decode and the upload is rejected.
+        // Prior to M3 the dead "store raw bytes" branch would have persisted
+        // this happily as an inert .webp file.
+        byte[] truncatedWebp = new byte[] {
             0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50, 0x00, 0x00, 0x00, 0x00
         };
-        imageService.store(ImageCategory.AVATARS, "webp-test", fakeWebp, "image/webp");
-
-        Path dir = tempDir.resolve("avatars").resolve("webp-test");
-        assertTrue(Files.exists(dir.resolve("original.webp")));
-        assertTrue(Files.exists(dir.resolve(".content-type")));
-        assertEquals(
-                "image/webp", Files.readString(dir.resolve(".content-type")).trim());
-    }
-
-    @Test
-    @Order(52)
-    void readWebpFallsBackToOriginalForSize() {
-        // The webp-test image was stored in order 51 — reading a specific size falls back to original
-        var result = imageService.read(ImageCategory.AVATARS, "webp-test", 256);
-        assertTrue(result.isPresent());
-        assertEquals("image/webp", result.get().contentType());
+        assertThrows(
+                io.javalin.http.BadRequestResponse.class,
+                () -> imageService.store(ImageCategory.AVATARS, "webp-bad", truncatedWebp, "image/webp"));
     }
 
     @Test
@@ -261,5 +252,84 @@ class ImageServiceTest {
         var result = imageService.read(ImageCategory.AVATARS, "no-content-type", 0);
         // Either empty (IOException caught) or empty (file missing)
         assertNotNull(result); // just verify no unhandled exception
+    }
+
+    @Test
+    @Order(60)
+    void readRejectsParentDirectoryTraversal() {
+        assertTrue(imageService.read(ImageCategory.AVATARS, "../escape", 0).isEmpty());
+        assertTrue(
+                imageService.read(ImageCategory.AVATARS, "../../etc/passwd", 0).isEmpty());
+    }
+
+    @Test
+    @Order(61)
+    void existsRejectsParentDirectoryTraversal() {
+        assertFalse(imageService.exists(ImageCategory.AVATARS, "../escape"));
+    }
+
+    @Test
+    @Order(62)
+    void storeRejectsParentDirectoryTraversal() throws IOException {
+        byte[] data = createTestPng(50, 50);
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> imageService.store(ImageCategory.AVATARS, "../escape", data, "image/png"));
+    }
+
+    @Test
+    @Order(63)
+    void deleteRejectsParentDirectoryTraversal() {
+        assertThrows(IllegalArgumentException.class, () -> imageService.delete(ImageCategory.AVATARS, "../escape"));
+    }
+
+    @Test
+    @Order(64)
+    void readRejectsNullAndBlankId() {
+        assertTrue(imageService.read(ImageCategory.AVATARS, null, 0).isEmpty());
+        assertTrue(imageService.read(ImageCategory.AVATARS, "", 0).isEmpty());
+        assertTrue(imageService.read(ImageCategory.AVATARS, "   ", 0).isEmpty());
+    }
+
+    @Test
+    @Order(70)
+    void storeRejectsHtmlMasqueradingAsImage() {
+        byte[] html = "<html><body><script>alert(1)</script></body></html>".getBytes();
+        assertThrows(
+                io.javalin.http.BadRequestResponse.class,
+                () -> imageService.store(ImageCategory.AVATARS, "html-upload", html, "image/png"));
+    }
+
+    @Test
+    @Order(71)
+    void storeRejectsSvgUpload() {
+        byte[] svg = "<svg xmlns='http://www.w3.org/2000/svg'><script>alert(1)</script></svg>".getBytes();
+        assertThrows(
+                io.javalin.http.BadRequestResponse.class,
+                () -> imageService.store(ImageCategory.AVATARS, "svg-upload", svg, "image/svg+xml"));
+    }
+
+    @Test
+    @Order(72)
+    void storeRejectsEmptyUpload() {
+        assertThrows(
+                io.javalin.http.BadRequestResponse.class,
+                () -> imageService.store(ImageCategory.AVATARS, "empty-upload", new byte[0], "image/png"));
+    }
+
+    @Test
+    @Order(73)
+    void storeSniffedTypeWinsOverDeclaredMime() throws IOException {
+        // Real PNG bytes uploaded with a lying contentType — the sniffed type
+        // determines both the on-disk extension and the .content-type marker.
+        byte[] realPng = createTestPng(50, 50);
+        imageService.store(ImageCategory.AVATARS, "lying-mime", realPng, "image/jpeg");
+
+        Path dir = tempDir.resolve("avatars").resolve("lying-mime");
+        assertTrue(Files.exists(dir.resolve("original.png")), "Stored under sniffed PNG extension");
+        assertEquals(
+                "image/png",
+                Files.readString(dir.resolve(".content-type")).trim(),
+                "Content-type marker reflects the sniffed type, not the client claim");
     }
 }

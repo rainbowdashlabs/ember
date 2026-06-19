@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
+import dev.chojo.ember.util.HtmlSanitizer;
 import dev.chojo.ember.util.TextDiff;
 import org.commonmark.Extension;
 import org.commonmark.ext.autolink.AutolinkExtension;
@@ -59,7 +60,8 @@ public class LegalDocumentService {
         List<Extension> extensions =
                 List.of(TablesExtension.create(), HeadingAnchorExtension.create(), AutolinkExtension.create());
         this.parser = Parser.builder().extensions(extensions).build();
-        this.renderer = HtmlRenderer.builder().extensions(extensions).build();
+        this.renderer =
+                HtmlRenderer.builder().extensions(extensions).sanitizeUrls(true).build();
     }
 
     /**
@@ -244,7 +246,8 @@ public class LegalDocumentService {
     private String renderMarkdown(String markdown) {
         if (markdown.isEmpty()) return "";
         var document = parser.parse(markdown);
-        return renderer.render(document);
+        String html = renderer.render(document);
+        return HtmlSanitizer.sanitize(html, HtmlSanitizer.Policy.STRICT);
     }
 
     /**

@@ -423,6 +423,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         when(httpClient.getList(
                         eq("https://remote-event.example.com"),
                         eq("/remote/events"),
+                        any(),
                         eq(stationA.id()),
                         any(),
                         eq(EventFederationService.RemoteFederatedEvent.class)))
@@ -437,6 +438,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 .getList(
                         eq("https://remote-event.example.com"),
                         eq("/remote/events"),
+                        any(),
                         eq(stationA.id()),
                         any(),
                         eq(EventFederationService.RemoteFederatedEvent.class));
@@ -463,6 +465,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         when(httpClient.get(
                         eq("https://remote-event.example.com"),
                         eq("/remote/events/" + eventId),
+                        any(),
                         eq(stationA.id()),
                         any(),
                         any()))
@@ -478,6 +481,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 .get(
                         eq("https://remote-event.example.com"),
                         eq("/remote/events/" + eventId),
+                        any(),
                         eq(stationA.id()),
                         any(),
                         any());
@@ -490,6 +494,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         when(httpClient.get(
                         eq("https://remote-event.example.com"),
                         eq("/remote/events/" + eventId),
+                        any(),
                         eq(stationA.id()),
                         any(),
                         any()))
@@ -526,6 +531,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         when(httpClient.getList(
                         eq("https://remote-event.example.com"),
                         eq("/remote/events"),
+                        any(),
                         eq(stationA.id()),
                         any(),
                         eq(EventFederationService.RemoteFederatedEvent.class)))
@@ -721,6 +727,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         when(httpClient.getList(
                         eq("https://remote-event.example.com"),
                         eq("/remote/events/" + eventId + "/comments"),
+                        any(),
                         eq(stationA.id()),
                         any(),
                         eq(EventCommentRoutes.CommentResponse.class)))
@@ -772,6 +779,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         eq("https://remote-event.example.com"),
                         eq("/remote/events/" + eventId + "/comments"),
                         any(),
+                        any(),
                         eq(stationA.id()),
                         any(),
                         eq(EventCommentRoutes.CommentResponse.class)))
@@ -791,6 +799,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         when(httpClient.post(
                         eq("https://remote-event.example.com"),
                         eq("/remote/events/" + eventId + "/comments"),
+                        any(),
                         any(),
                         eq(stationA.id()),
                         any(),
@@ -852,6 +861,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         eq("https://remote-event.example.com"),
                         eq("/remote/events/comments/100"),
                         any(),
+                        any(),
                         eq(stationA.id()),
                         any(),
                         eq(EventCommentRoutes.CommentResponse.class)))
@@ -869,6 +879,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         when(httpClient.put(
                         eq("https://remote-event.example.com"),
                         eq("/remote/events/comments/200"),
+                        any(),
                         any(),
                         eq(stationA.id()),
                         any(),
@@ -913,6 +924,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         when(httpClient.delete(
                         eq("https://remote-event.example.com"),
                         eq("/remote/events/comments/300"),
+                        any(),
                         eq(stationA.id()),
                         any()))
                 .thenReturn(true);
@@ -927,6 +939,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         when(httpClient.delete(
                         eq("https://remote-event.example.com"),
                         eq("/remote/events/comments/301"),
+                        any(),
                         eq(stationA.id()),
                         any()))
                 .thenReturn(false);
@@ -970,15 +983,17 @@ class EventFederationServiceTest extends RepositoryTestBase {
     void fetchFederatedEvents() {
         var remoteEvent = new EventFederationService.RemoteFederatedEvent(
                 1, "Test Event", "desc", StationEvent.EventType.ONE_TIME, 0, "10:00", "12:00", true, false);
+        UUID partnerUid = UUID.randomUUID();
         when(httpClient.getList(
                         eq("https://example.com"),
                         eq("/remote/events"),
+                        eq(partnerUid),
                         eq(1),
                         eq("key123"),
                         eq(EventFederationService.RemoteFederatedEvent.class)))
                 .thenReturn(List.of(remoteEvent));
 
-        var result = service.fetchFederatedEvents("https://example.com", 1, "key123");
+        var result = service.fetchFederatedEvents("https://example.com", partnerUid, 1, "key123");
         assertEquals(1, result.size());
         assertEquals("Test Event", result.getFirst().name());
         assertEquals("desc", result.getFirst().description());
@@ -993,22 +1008,36 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(91)
     void registerForFederatedEvent() {
-        when(httpClient.post(eq("https://example.com"), eq("/remote/events/1/register"), any(), eq(1), eq("key123")))
+        UUID partnerUid = UUID.randomUUID();
+        when(httpClient.post(
+                        eq("https://example.com"),
+                        eq("/remote/events/1/register"),
+                        any(),
+                        eq(partnerUid),
+                        eq(1),
+                        eq("key123")))
                 .thenReturn(true);
 
-        boolean success =
-                service.registerForFederatedEvent("https://example.com", 1, REMOTE_MEMBER_1, "2026-07-01", 1, "key123");
+        boolean success = service.registerForFederatedEvent(
+                "https://example.com", partnerUid, 1, REMOTE_MEMBER_1, "2026-07-01", 1, "key123");
         assertTrue(success);
     }
 
     @Test
     @Order(92)
     void withdrawFederatedRegistration() {
-        when(httpClient.delete(eq("https://example.com"), eq("/remote/events/1/register"), any(), eq(1), eq("key123")))
+        UUID partnerUid = UUID.randomUUID();
+        when(httpClient.delete(
+                        eq("https://example.com"),
+                        eq("/remote/events/1/register"),
+                        any(),
+                        eq(partnerUid),
+                        eq(1),
+                        eq("key123")))
                 .thenReturn(true);
 
         boolean success = service.withdrawFederatedRegistration(
-                "https://example.com", 1, REMOTE_MEMBER_1, "2026-07-01", 1, "key123");
+                "https://example.com", partnerUid, 1, REMOTE_MEMBER_1, "2026-07-01", 1, "key123");
         assertTrue(success);
     }
 

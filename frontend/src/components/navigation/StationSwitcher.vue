@@ -6,15 +6,12 @@
 <script lang="ts" setup>
 import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRouter} from 'vue-router'
 import Modal from '@/components/feedback/Modal.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import {useStations} from '@/composables/useStations'
-import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
-const router = useRouter()
 const {
   stationList,
   loaded,
@@ -26,7 +23,6 @@ const {
   activeLogoUrl,
   getStationLogoUrl
 } = useStations()
-const {load: loadSession} = useSession()
 
 const showModal = ref(false)
 
@@ -34,11 +30,14 @@ onMounted(() => {
   load()
 })
 
-async function switchStation(stationId: string) {
+function switchStation(stationId: string) {
   setActiveStation(stationId)
+  window.location.href = '/station/dashboard/overview'
+}
+
+function openAllStations() {
   showModal.value = false
-  await loadSession()
-  router.push({name: 'dashboard-overview'})
+  window.location.href = '/cross-station'
 }
 </script>
 
@@ -58,6 +57,13 @@ async function switchStation(stationId: string) {
       <div class="space-y-4">
         <SubHeader>{{ t('stationSwitcher.title') }}</SubHeader>
         <div class="space-y-2">
+          <NeutralContainer
+              class="flex items-center gap-3 cursor-pointer hover:border-primary transition-colors"
+              @click="openAllStations"
+          >
+            <font-awesome-icon :icon="['fas', 'layer-group']" class="h-4 w-4 text-primary"/>
+            <span class="font-medium">{{ t('stationSwitcher.allStations') }}</span>
+          </NeutralContainer>
           <NeutralContainer
               v-for="station in stationList"
               :key="station.stationId"

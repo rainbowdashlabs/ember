@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
@@ -186,6 +187,7 @@ public class EventFederationService {
                     var remoteRegs = httpClient.getList(
                             partner.remoteHost(),
                             "/remote/registrations/" + uid,
+                            partner.partnerStationId(),
                             stationId,
                             station.federationPrivateKey(),
                             MyFederatedRegistration.class);
@@ -333,8 +335,11 @@ public class EventFederationService {
     }
 
     private List<FederatedEventItem> browseEventsViaHttp(Station localStation, FederationPartner partner) {
-        var remoteEvents =
-                fetchFederatedEvents(partner.remoteHost(), localStation.id(), localStation.federationPrivateKey());
+        var remoteEvents = fetchFederatedEvents(
+                partner.remoteHost(),
+                partner.partnerStationId(),
+                localStation.id(),
+                localStation.federationPrivateKey());
         return remoteEvents.stream()
                 .map(event -> new FederatedEventItem(
                         partner.id(),
@@ -353,12 +358,13 @@ public class EventFederationService {
                 .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
         if (partner.status() != FederationStatus.ACTIVE) {
-            throw new IllegalArgumentException("Partner is not active");
+            throw new BadRequestResponse("Partner is not active");
         }
         if (partner.isRemote()) {
             var result = httpClient.get(
                     partner.remoteHost(),
                     "/remote/events/" + eventId,
+                    partner.partnerStationId(),
                     localStationId,
                     stationRepository
                             .findById(localStationId)
@@ -374,7 +380,7 @@ public class EventFederationService {
                 .orElseThrow();
         var eventIds = findSharedEventIds(partner.id(), partnerStationId);
         if (!eventIds.contains(eventId)) {
-            throw new IllegalArgumentException("Event not shared with this partner");
+            throw new BadRequestResponse("Event not shared with this partner");
         }
         return eventService.findById(eventId).map(this::toEventMap).orElseThrow();
     }
@@ -531,6 +537,7 @@ public class EventFederationService {
             var result = httpClient.getList(
                     partner.remoteHost(),
                     "/remote/events/" + eventId + "/comments",
+                    partner.partnerStationId(),
                     station.id(),
                     station.federationPrivateKey(),
                     EventCommentRoutes.CommentResponse.class);
@@ -564,6 +571,7 @@ public class EventFederationService {
                     partner.remoteHost(),
                     "/remote/events/" + eventId + "/comments",
                     body,
+                    partner.partnerStationId(),
                     station.id(),
                     station.federationPrivateKey(),
                     EventCommentRoutes.CommentResponse.class);
@@ -589,6 +597,7 @@ public class EventFederationService {
                     partner.remoteHost(),
                     "/remote/events/comments/" + commentId,
                     body,
+                    partner.partnerStationId(),
                     station.id(),
                     station.federationPrivateKey(),
                     EventCommentRoutes.CommentResponse.class);
@@ -615,6 +624,7 @@ public class EventFederationService {
             boolean success = httpClient.delete(
                     partner.remoteHost(),
                     "/remote/events/comments/" + commentId,
+                    partner.partnerStationId(),
                     station.id(),
                     station.federationPrivateKey());
             if (!success) throw new IllegalStateException("Failed to delete comment on partner");
@@ -666,13 +676,19 @@ public class EventFederationService {
     // -- Federation HTTP convenience methods --
 
     public List<RemoteFederatedEvent> fetchFederatedEvents(
-            String remoteHost, int localStationId, String localPrivateKeyBase64) {
+            String remoteHost, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64) {
         return httpClient.getList(
-                remoteHost, "/remote/events", localStationId, localPrivateKeyBase64, RemoteFederatedEvent.class);
+                remoteHost,
+                "/remote/events",
+                partnerStationUid,
+                localStationId,
+                localPrivateKeyBase64,
+                RemoteFederatedEvent.class);
     }
 
     public boolean registerForFederatedEvent(
             String remoteHost,
+            UUID partnerStationUid,
             int eventId,
             UUID remoteMemberId,
             String eventDate,
@@ -682,12 +698,14 @@ public class EventFederationService {
                 remoteHost,
                 "/remote/events/" + eventId + "/register",
                 new FederatedRegBody(remoteMemberId, eventDate),
+                partnerStationUid,
                 localStationId,
                 localPrivateKeyBase64);
     }
 
     public boolean withdrawFederatedRegistration(
             String remoteHost,
+            UUID partnerStationUid,
             int eventId,
             UUID remoteMemberId,
             String eventDate,
@@ -697,6 +715,7 @@ public class EventFederationService {
                 remoteHost,
                 "/remote/events/" + eventId + "/register",
                 new FederatedRegBody(remoteMemberId, eventDate),
+                partnerStationUid,
                 localStationId,
                 localPrivateKeyBase64);
     }

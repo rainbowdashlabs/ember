@@ -9,6 +9,8 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -17,11 +19,25 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.Locale;
+import java.util.UUID;
 
 /**
  * Handles request signing and verification for cross-instance federation.
- * Uses SHA256withRSA signatures with timestamp-based replay attack prevention.
+ * <p>
+ * Signatures are RSA SHA-256 over a canonical envelope that binds the HTTP method,
+ * request path (including a sorted query string), the recipient station UUID, the
+ * timestamp and the request body. Binding the method, path and recipient prevents
+ * a captured signature from being replayed against a different endpoint or peer
+ * within the timestamp window. Replay protection within the window is provided
+ * by the per-partner nonce check in {@link FederationReplayCache}.
+ * <p>
+ * The handshake exchange that establishes a federation predates the request
+ * envelope; it uses {@link #signEnrollmentPayload(String, PrivateKey)} /
+ * {@link #verifyEnrollmentPayload(String, String, PublicKey)} which sign the raw
+ * payload bytes with no envelope.
  */
 @Singleton
 public class FederationSigningService {
@@ -30,19 +46,29 @@ public class FederationSigningService {
     private static final Duration MAX_TIMESTAMP_DRIFT = Duration.ofMinutes(5);
 
     /**
-     * Signs a request body with the given private key.
-     * The signature covers body + timestamp to prevent replay attacks.
+     * Signs a federation request with the given private key.
      *
-     * @param body       the request body to sign
-     * @param timestamp  the request timestamp (ISO-8601)
-     * @param privateKey the RSA private key
-     * @return Base64-encoded signature
+     * @param method         uppercase HTTP method (GET, POST, …)
+     * @param pathWithQuery  path plus canonical (sorted) query string; see
+     *                       {@link #canonicalPathWithQuery(String, String)}
+     * @param recipientUuid  the UUID of the station that will receive the request
+     * @param body           the request body (use {@code ""} for empty)
+     * @param timestamp      the request timestamp (ISO-8601)
+     * @param privateKey     the signing RSA private key
+     * @return Base64-encoded signature over the canonical envelope
      */
-    public String sign(String body, String timestamp, PrivateKey privateKey) {
+    public String sign(
+            String method,
+            String pathWithQuery,
+            UUID recipientUuid,
+            String body,
+            String timestamp,
+            PrivateKey privateKey) {
         try {
             var signer = Signature.getInstance(ALGORITHM);
             signer.initSign(privateKey);
-            signer.update((timestamp + "\n" + body).getBytes());
+            signer.update(canonicalEnvelope(method, pathWithQuery, recipientUuid, timestamp, body)
+                    .getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(signer.sign());
         } catch (Exception e) {
             throw new RuntimeException("Failed to sign request", e);
@@ -50,17 +76,26 @@ public class FederationSigningService {
     }
 
     /**
-     * Verifies a signed request body using the partner's public key.
-     * Rejects requests with timestamps older than 5 minutes.
+     * Verifies a signed federation request using the partner's public key.
+     * Rejects requests outside the {@code ±5 min} timestamp window.
      *
-     * @param body      the request body
-     * @param signature the Base64-encoded signature
-     * @param publicKey the partner's RSA public key
-     * @param timestamp the request timestamp
-     * @return true if signature is valid and timestamp is within window
+     * @param method         uppercase HTTP method
+     * @param pathWithQuery  path plus canonical (sorted) query string
+     * @param recipientUuid  the UUID of the receiving station (i.e. this instance's own)
+     * @param body           the request body
+     * @param signature      the Base64-encoded signature
+     * @param publicKey      the sender's RSA public key
+     * @param timestamp      the request timestamp
+     * @return true iff the signature matches and the timestamp is within the window
      */
-    public boolean verify(String body, String signature, PublicKey publicKey, Instant timestamp) {
-        // Check timestamp window
+    public boolean verify(
+            String method,
+            String pathWithQuery,
+            UUID recipientUuid,
+            String body,
+            String signature,
+            PublicKey publicKey,
+            Instant timestamp) {
         var now = Instant.now();
         if (Duration.between(timestamp, now).abs().compareTo(MAX_TIMESTAMP_DRIFT) > 0) {
             log.warn("Federation request rejected: timestamp drift too large ({} vs {})", timestamp, now);
@@ -70,12 +105,80 @@ public class FederationSigningService {
         try {
             var verifier = Signature.getInstance(ALGORITHM);
             verifier.initVerify(publicKey);
-            verifier.update((timestamp + "\n" + body).getBytes());
+            verifier.update(canonicalEnvelope(method, pathWithQuery, recipientUuid, timestamp.toString(), body)
+                    .getBytes(StandardCharsets.UTF_8));
             return verifier.verify(Base64.getDecoder().decode(signature));
         } catch (Exception e) {
             log.warn("Federation signature verification failed", e);
             return false;
         }
+    }
+
+    /**
+     * Signs a handshake / enrollment payload. The handshake exchange precedes
+     * the establishment of the partner record, so it cannot use the request
+     * envelope (no recipient UUID is known yet).
+     */
+    public String signEnrollmentPayload(String payload, PrivateKey privateKey) {
+        try {
+            var signer = Signature.getInstance(ALGORITHM);
+            signer.initSign(privateKey);
+            signer.update(payload.getBytes(StandardCharsets.UTF_8));
+            return Base64.getEncoder().encodeToString(signer.sign());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to sign enrollment payload", e);
+        }
+    }
+
+    /**
+     * Verifies a handshake / enrollment payload signature.
+     */
+    public boolean verifyEnrollmentPayload(String payload, String signature, PublicKey publicKey) {
+        try {
+            var verifier = Signature.getInstance(ALGORITHM);
+            verifier.initVerify(publicKey);
+            verifier.update(payload.getBytes(StandardCharsets.UTF_8));
+            return verifier.verify(Base64.getDecoder().decode(signature));
+        } catch (Exception e) {
+            log.warn("Federation enrollment signature verification failed", e);
+            return false;
+        }
+    }
+
+    /**
+     * Builds the canonical path-with-query string by sorting {@code &}-separated
+     * pairs lexicographically. The path is used verbatim; the query is omitted
+     * entirely when the request has no query string.
+     */
+    public static String canonicalPathWithQuery(String path, String query) {
+        String safePath = path == null ? "" : path;
+        if (query == null || query.isEmpty()) {
+            return safePath;
+        }
+        String[] pairs = query.split("&");
+        Arrays.sort(pairs);
+        return safePath + "?" + String.join("&", pairs);
+    }
+
+    /**
+     * Convenience overload that derives the canonical path-with-query from a
+     * fully-qualified request URI.
+     */
+    public static String canonicalPathWithQuery(URI uri) {
+        return canonicalPathWithQuery(uri.getRawPath(), uri.getRawQuery());
+    }
+
+    private static String canonicalEnvelope(
+            String method, String pathWithQuery, UUID recipientUuid, String timestamp, String body) {
+        return method.toUpperCase(Locale.ROOT)
+                + "\n"
+                + (pathWithQuery == null ? "" : pathWithQuery)
+                + "\n"
+                + recipientUuid
+                + "\n"
+                + timestamp
+                + "\n"
+                + (body == null ? "" : body);
     }
 
     /**

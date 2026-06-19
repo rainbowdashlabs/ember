@@ -17,17 +17,31 @@ import tools.jackson.databind.json.JsonMapper;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.BodyPublisher;
+import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * HTTP client for cross-instance federation communication.
  * Calls remote federation endpoints and signs requests using {@link FederationSigningService}.
  * The remote host is determined per-partner from the {@code remote_host} field.
  * <p>
+ * Every signed request binds the HTTP method, request path (with sorted query
+ * string), the recipient station UUID, the timestamp and the body. A per-request
+ * nonce is sent in the {@code X-Federation-Nonce} header so the receiver can
+ * reject replays via {@link FederationReplayCache}.
+ * <p>
  * All public methods accept and return typed objects. JSON serialization/deserialization
  * is handled internally — callers never deal with raw JSON strings.
+ * <p>
+ * The embedded {@link tools.jackson.databind.json.JsonMapper} intentionally disables
+ * {@code FAIL_ON_UNKNOWN_PROPERTIES} so a federation peer running a newer protocol
+ * version can add fields to a response without breaking older peers. The main API
+ * mapper in {@code ApiServer.jacksonMapper()} keeps the strict default for
+ * inbound client payloads.
  */
 @Singleton
 public class FederationHttpClient {
@@ -36,12 +50,17 @@ public class FederationHttpClient {
     private final HttpClient httpClient;
     private final FederationSigningService signingService;
     private final StationRepository stationRepository;
+    private final RemoteUrlValidator urlValidator;
     private final JsonMapper mapper;
 
     @Inject
-    public FederationHttpClient(FederationSigningService signingService, StationRepository stationRepository) {
+    public FederationHttpClient(
+            FederationSigningService signingService,
+            StationRepository stationRepository,
+            RemoteUrlValidator urlValidator) {
         this.signingService = signingService;
         this.stationRepository = stationRepository;
+        this.urlValidator = urlValidator;
         this.httpClient = HttpClient.newHttpClient();
         this.mapper = JsonMapper.builder()
                 .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
@@ -60,9 +79,15 @@ public class FederationHttpClient {
      * Returns null on error or non-2xx status.
      */
     public <T> T get(
-            String remoteHost, String path, int localStationId, String localPrivateKeyBase64, Class<T> responseType) {
+            String remoteHost,
+            String path,
+            UUID partnerStationUid,
+            int localStationId,
+            String localPrivateKeyBase64,
+            Class<T> responseType) {
         try {
-            var response = signedGet(apiUrl(remoteHost) + path, localStationId, localPrivateKeyBase64);
+            var response = sendSigned(
+                    "GET", apiUrl(remoteHost) + path, null, partnerStationUid, localStationId, localPrivateKeyBase64);
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
                 return mapper.readValue(response.body(), responseType);
             }
@@ -79,9 +104,15 @@ public class FederationHttpClient {
      * Returns an empty list on error or non-200 status.
      */
     public <T> List<T> getList(
-            String remoteHost, String path, int localStationId, String localPrivateKeyBase64, Class<T> elementType) {
+            String remoteHost,
+            String path,
+            UUID partnerStationUid,
+            int localStationId,
+            String localPrivateKeyBase64,
+            Class<T> elementType) {
         try {
-            var response = signedGet(apiUrl(remoteHost) + path, localStationId, localPrivateKeyBase64);
+            var response = sendSigned(
+                    "GET", apiUrl(remoteHost) + path, null, partnerStationUid, localStationId, localPrivateKeyBase64);
             if (response.statusCode() != 200) {
                 log.warn("Signed GET list {} failed: HTTP {}", path, response.statusCode());
                 return List.of();
@@ -103,12 +134,19 @@ public class FederationHttpClient {
             String remoteHost,
             String path,
             Object requestBody,
+            UUID partnerStationUid,
             int localStationId,
             String localPrivateKeyBase64,
             Class<T> responseType) {
         try {
             String jsonBody = mapper.writeValueAsString(requestBody);
-            var response = signedPost(apiUrl(remoteHost) + path, jsonBody, localStationId, localPrivateKeyBase64);
+            var response = sendSigned(
+                    "POST",
+                    apiUrl(remoteHost) + path,
+                    jsonBody,
+                    partnerStationUid,
+                    localStationId,
+                    localPrivateKeyBase64);
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
                 return mapper.readValue(response.body(), responseType);
             }
@@ -129,12 +167,19 @@ public class FederationHttpClient {
             String remoteHost,
             String path,
             Object requestBody,
+            UUID partnerStationUid,
             int localStationId,
             String localPrivateKeyBase64,
             Class<T> elementType) {
         try {
             String jsonBody = mapper.writeValueAsString(requestBody);
-            var response = signedPost(apiUrl(remoteHost) + path, jsonBody, localStationId, localPrivateKeyBase64);
+            var response = sendSigned(
+                    "POST",
+                    apiUrl(remoteHost) + path,
+                    jsonBody,
+                    partnerStationUid,
+                    localStationId,
+                    localPrivateKeyBase64);
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
                 var type = mapper.getTypeFactory().constructCollectionType(List.class, elementType);
                 return mapper.readValue(response.body(), type);
@@ -152,10 +197,21 @@ public class FederationHttpClient {
      * The request body is serialized to JSON internally.
      */
     public boolean post(
-            String remoteHost, String path, Object requestBody, int localStationId, String localPrivateKeyBase64) {
+            String remoteHost,
+            String path,
+            Object requestBody,
+            UUID partnerStationUid,
+            int localStationId,
+            String localPrivateKeyBase64) {
         try {
             String jsonBody = mapper.writeValueAsString(requestBody);
-            var response = signedPost(apiUrl(remoteHost) + path, jsonBody, localStationId, localPrivateKeyBase64);
+            var response = sendSigned(
+                    "POST",
+                    apiUrl(remoteHost) + path,
+                    jsonBody,
+                    partnerStationUid,
+                    localStationId,
+                    localPrivateKeyBase64);
             return response.statusCode() >= 200 && response.statusCode() < 300;
         } catch (Exception e) {
             log.error("Failed signed POST {} on {}", path, remoteHost, e);
@@ -172,12 +228,19 @@ public class FederationHttpClient {
             String remoteHost,
             String path,
             Object requestBody,
+            UUID partnerStationUid,
             int localStationId,
             String localPrivateKeyBase64,
             Class<T> responseType) {
         try {
             String jsonBody = mapper.writeValueAsString(requestBody);
-            var response = signedPut(apiUrl(remoteHost) + path, jsonBody, localStationId, localPrivateKeyBase64);
+            var response = sendSigned(
+                    "PUT",
+                    apiUrl(remoteHost) + path,
+                    jsonBody,
+                    partnerStationUid,
+                    localStationId,
+                    localPrivateKeyBase64);
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
                 return mapper.readValue(response.body(), responseType);
             }
@@ -194,10 +257,21 @@ public class FederationHttpClient {
      * The request body is serialized to JSON internally.
      */
     public boolean put(
-            String remoteHost, String path, Object requestBody, int localStationId, String localPrivateKeyBase64) {
+            String remoteHost,
+            String path,
+            Object requestBody,
+            UUID partnerStationUid,
+            int localStationId,
+            String localPrivateKeyBase64) {
         try {
             String jsonBody = mapper.writeValueAsString(requestBody);
-            var response = signedPut(apiUrl(remoteHost) + path, jsonBody, localStationId, localPrivateKeyBase64);
+            var response = sendSigned(
+                    "PUT",
+                    apiUrl(remoteHost) + path,
+                    jsonBody,
+                    partnerStationUid,
+                    localStationId,
+                    localPrivateKeyBase64);
             return response.statusCode() >= 200 && response.statusCode() < 300;
         } catch (Exception e) {
             log.error("Failed signed PUT {} on {}", path, remoteHost, e);
@@ -208,9 +282,11 @@ public class FederationHttpClient {
     /**
      * Performs a signed DELETE without a request body, returning true on 2xx success.
      */
-    public boolean delete(String remoteHost, String path, int localStationId, String localPrivateKeyBase64) {
+    public boolean delete(
+            String remoteHost, String path, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64) {
         try {
-            var response = signedDelete(apiUrl(remoteHost) + path, "", localStationId, localPrivateKeyBase64);
+            var response = sendSigned(
+                    "DELETE", apiUrl(remoteHost) + path, "", partnerStationUid, localStationId, localPrivateKeyBase64);
             return response.statusCode() >= 200 && response.statusCode() < 300;
         } catch (Exception e) {
             log.error("Failed signed DELETE {} on {}", path, remoteHost, e);
@@ -223,10 +299,21 @@ public class FederationHttpClient {
      * The request body is serialized to JSON internally.
      */
     public boolean delete(
-            String remoteHost, String path, Object requestBody, int localStationId, String localPrivateKeyBase64) {
+            String remoteHost,
+            String path,
+            Object requestBody,
+            UUID partnerStationUid,
+            int localStationId,
+            String localPrivateKeyBase64) {
         try {
             String jsonBody = mapper.writeValueAsString(requestBody);
-            var response = signedDelete(apiUrl(remoteHost) + path, jsonBody, localStationId, localPrivateKeyBase64);
+            var response = sendSigned(
+                    "DELETE",
+                    apiUrl(remoteHost) + path,
+                    jsonBody,
+                    partnerStationUid,
+                    localStationId,
+                    localPrivateKeyBase64);
             return response.statusCode() >= 200 && response.statusCode() < 300;
         } catch (Exception e) {
             log.error("Failed signed DELETE {} on {}", path, remoteHost, e);
@@ -237,94 +324,54 @@ public class FederationHttpClient {
     // -- Internal HTTP primitives --
 
     /**
-     * Converts a base URL like "<a href="https://ember.example.com">...</a>" to the API prefix.
+     * Converts a base URL like {@code https://ember.example.com} to the API prefix.
      */
     private String apiUrl(String remoteHost) {
-        // Strip trailing slash if present
         String host = remoteHost.endsWith("/") ? remoteHost.substring(0, remoteHost.length() - 1) : remoteHost;
         return host + "/api/v1";
     }
 
-    private HttpResponse<String> signedGet(String url, int localStationId, String localPrivateKeyBase64)
+    /**
+     * Builds and sends a signed request with the canonical envelope, including
+     * a per-request nonce. {@code body} of {@code null} means no body (e.g. GET);
+     * an empty string {@code ""} is also accepted as "no body".
+     */
+    private HttpResponse<String> sendSigned(
+            String method,
+            String url,
+            String body,
+            UUID partnerStationUid,
+            int localStationId,
+            String localPrivateKeyBase64)
             throws Exception {
+        if (!urlValidator.isAllowed(url)) {
+            throw new IllegalStateException("Federation URL rejected by RemoteUrlValidator: " + url);
+        }
         String timestampStr = Instant.now().toString();
+        var uri = URI.create(url);
+        String pathWithQuery = FederationSigningService.canonicalPathWithQuery(uri);
+        String signedBody = body == null ? "" : body;
         var privateKey = signingService.decodePrivateKey(localPrivateKeyBase64);
-        String signature = signingService.sign("", timestampStr, privateKey);
+        String signature =
+                signingService.sign(method, pathWithQuery, partnerStationUid, signedBody, timestampStr, privateKey);
         String stationUid = stationRepository.resolveUid(localStationId).toString();
+        String nonce = UUID.randomUUID().toString();
 
-        var request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
+        var builder = HttpRequest.newBuilder()
+                .uri(uri)
                 .header("X-Federation-Station-Id", stationUid)
                 .header("X-Federation-Station-Name", resolveStationName(localStationId))
                 .header("X-Federation-Signature", signature)
                 .header("X-Federation-Timestamp", timestampStr)
-                .header("X-Federation-Version", FederationService.FEDERATION_VERSION)
-                .GET()
-                .build();
+                .header("X-Federation-Nonce", nonce)
+                .header("X-Federation-Version", FederationService.FEDERATION_VERSION);
 
-        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-    }
+        BodyPublisher publisher = body == null ? BodyPublishers.noBody() : BodyPublishers.ofString(body);
+        if (body != null) {
+            builder.header("Content-Type", "application/json");
+        }
+        builder.method(method, publisher);
 
-    private HttpResponse<String> signedPost(String url, String body, int localStationId, String localPrivateKeyBase64)
-            throws Exception {
-        String timestampStr = Instant.now().toString();
-        var privateKey = signingService.decodePrivateKey(localPrivateKeyBase64);
-        String signature = signingService.sign(body, timestampStr, privateKey);
-        String stationUid = stationRepository.resolveUid(localStationId).toString();
-
-        var request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("X-Federation-Station-Id", stationUid)
-                .header("X-Federation-Station-Name", resolveStationName(localStationId))
-                .header("X-Federation-Signature", signature)
-                .header("X-Federation-Timestamp", timestampStr)
-                .header("X-Federation-Version", FederationService.FEDERATION_VERSION)
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(body))
-                .build();
-
-        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-    }
-
-    private HttpResponse<String> signedPut(String url, String body, int localStationId, String localPrivateKeyBase64)
-            throws Exception {
-        String timestampStr = Instant.now().toString();
-        var privateKey = signingService.decodePrivateKey(localPrivateKeyBase64);
-        String signature = signingService.sign(body, timestampStr, privateKey);
-        String stationUid = stationRepository.resolveUid(localStationId).toString();
-
-        var request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("X-Federation-Station-Id", stationUid)
-                .header("X-Federation-Station-Name", resolveStationName(localStationId))
-                .header("X-Federation-Signature", signature)
-                .header("X-Federation-Timestamp", timestampStr)
-                .header("X-Federation-Version", FederationService.FEDERATION_VERSION)
-                .header("Content-Type", "application/json")
-                .PUT(HttpRequest.BodyPublishers.ofString(body))
-                .build();
-
-        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-    }
-
-    private HttpResponse<String> signedDelete(String url, String body, int localStationId, String localPrivateKeyBase64)
-            throws Exception {
-        String timestampStr = Instant.now().toString();
-        var privateKey = signingService.decodePrivateKey(localPrivateKeyBase64);
-        String signature = signingService.sign(body, timestampStr, privateKey);
-        String stationUid = stationRepository.resolveUid(localStationId).toString();
-
-        var request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("X-Federation-Station-Id", stationUid)
-                .header("X-Federation-Station-Name", resolveStationName(localStationId))
-                .header("X-Federation-Signature", signature)
-                .header("X-Federation-Timestamp", timestampStr)
-                .header("X-Federation-Version", FederationService.FEDERATION_VERSION)
-                .header("Content-Type", "application/json")
-                .method("DELETE", HttpRequest.BodyPublishers.ofString(body))
-                .build();
-
-        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        return httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
     }
 }

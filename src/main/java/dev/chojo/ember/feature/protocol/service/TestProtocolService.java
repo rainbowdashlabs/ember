@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.protocol.entity.TestProtocolSection;
 import dev.chojo.ember.feature.protocol.repository.TestProtocolRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -302,7 +303,8 @@ public class TestProtocolService {
 
     private void browseSharedProtocolsViaHttp(
             int localStationId, FederationPartner partner, int remoteStationId, List<SharedProtocolItem> result) {
-        var protocols = fetchSharedProtocols(partner.remoteHost(), localStationId, getPrivateKey(localStationId));
+        var protocols = fetchSharedProtocols(
+                partner.remoteHost(), partner.partnerStationId(), localStationId, getPrivateKey(localStationId));
         for (var remoteProto : protocols) {
             result.add(new SharedProtocolItem(
                     remoteProto.id(), remoteProto.name(), remoteProto.description(), remoteStationId, partner.id()));
@@ -322,6 +324,7 @@ public class TestProtocolService {
             var result = federationHttpClient.get(
                     partner.remoteHost(),
                     "/remote/protocols/" + protocolId,
+                    partner.partnerStationId(),
                     localStationId,
                     getPrivateKey(localStationId),
                     FederatedProtocolDetail.class);
@@ -331,7 +334,7 @@ public class TestProtocolService {
         var protocol = findProtocol(protocolId).orElseThrow();
         int partnerStationId = resolvePartnerStationId(partner);
         if (protocol.stationId() != partnerStationId) {
-            throw new IllegalArgumentException("Protocol does not belong to this partner");
+            throw new BadRequestResponse("Protocol does not belong to this partner");
         }
         var sections = findSections(protocolId);
         var items = findAllItemsByProtocol(protocolId);
@@ -411,7 +414,7 @@ public class TestProtocolService {
                 .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
         if (partner.status() != FederationPartner.FederationStatus.ACTIVE) {
-            throw new IllegalArgumentException("Partner is not active");
+            throw new BadRequestResponse("Partner is not active");
         }
         return partner;
     }
@@ -435,9 +438,14 @@ public class TestProtocolService {
     // -- Federation HTTP convenience methods --
 
     public List<RemoteProtocol> fetchSharedProtocols(
-            String remoteHost, int localStationId, String localPrivateKeyBase64) {
+            String remoteHost, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64) {
         return federationHttpClient.getList(
-                remoteHost, "/remote/protocols", localStationId, localPrivateKeyBase64, RemoteProtocol.class);
+                remoteHost,
+                "/remote/protocols",
+                partnerStationUid,
+                localStationId,
+                localPrivateKeyBase64,
+                RemoteProtocol.class);
     }
 
     public record RemoteProtocol(int id, String name, String description) {}

@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
@@ -627,6 +628,50 @@ public class DemoFederationSeeder {
         log.info("Demo: Created third station with manager nachbar@demo.ember (not federated)");
 
         return new SeedResult(partnerStation.id(), partnerMember.id());
+    }
+
+    /**
+     * Creates an {@code FF Musterstadt} station, mirrors every active {@code MANAGER} and
+     * {@code TEAM} member of the given Jugendfeuerwehr station onto it (reusing the same
+     * account so the user can switch stations after login), and federates the two stations
+     * bidirectionally with all default capabilities enabled.
+     */
+    public void seedFfMusterstadt(int jfStationId) {
+        var ffStation = stationRepository.create("FF Musterstadt");
+        stationRepository.updatePublicSlug(ffStation.id(), "ff-musterstadt");
+
+        var managerRole = stationMemberRepository
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .orElseThrow();
+        var loginRole = stationMemberRepository
+                .findPermissionByName(StationPermission.LOGIN)
+                .orElseThrow();
+
+        int mirrored = 0;
+        for (var userType : List.of(StationUserType.MANAGER, StationUserType.TEAM)) {
+            for (StationMember jfMember : stationMemberRepository.findByStationAndUserType(jfStationId, userType)) {
+                if (jfMember.accountId() == null) continue;
+                var ffMember = stationMemberRepository.create(ffStation.id(), jfMember.accountId());
+                stationMemberRepository.setUserType(ffMember.id(), userType);
+                stationMemberRepository.grantPermission(ffMember.id(), loginRole.id());
+                if (userType == StationUserType.MANAGER) {
+                    stationMemberRepository.grantPermission(ffMember.id(), managerRole.id());
+                    stationRepository.setOwner(ffStation.id(), ffMember.id());
+                }
+                mirrored++;
+            }
+        }
+
+        String remoteHost = demoConfig.federationForceHttp() ? "http://localhost:" + apiConfig.port() : null;
+        var keyPair = federationService.generateKeyPair();
+        stationRepository.updateFederationPrivateKey(ffStation.id(), federationService.encodePrivateKey(keyPair));
+        federationService.acceptInvite(
+                jfStationId, ffStation.id(), federationService.encodePublicKey(keyPair), remoteHost, remoteHost);
+
+        log.info(
+                "Demo: Created FF Musterstadt (id={}) with {} mirrored members, federated with JF Musterstadt",
+                ffStation.id(),
+                mirrored);
     }
 
     /**

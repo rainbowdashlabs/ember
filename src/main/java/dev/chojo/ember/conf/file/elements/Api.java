@@ -9,6 +9,8 @@ import dev.chojo.ocular.override.Env;
 import dev.chojo.ocular.override.Overwrite;
 import dev.chojo.ocular.override.OverwritePrefix;
 
+import java.util.List;
+
 /**
  * API server configuration including host, port, base URL, and paths to legal document directories.
  */
@@ -26,6 +28,15 @@ public class Api {
 
     @Overwrite(env = @Env)
     private String demoUrl = "https://demo.ember-panel.de";
+
+    /**
+     * Origins permitted by the CORS policy. When empty, falls back to a single
+     * entry containing {@link #baseUrl()} — i.e. the SPA's own origin is the
+     * only one allowed to call the API. Set explicitly to grant additional
+     * trusted frontends access.
+     */
+    @Overwrite(env = @Env)
+    private List<String> allowedOrigins = List.of();
 
     @Overwrite(env = @Env)
     private int maxImageSizeBytes = 5 * 1024 * 1024;
@@ -85,6 +96,15 @@ public class Api {
         return demoUrl;
     }
 
+    /**
+     * Returns the effective list of CORS-allowed origins. When the configured
+     * list is empty, returns a single-element list containing {@link #baseUrl()}
+     * so a fresh deployment is locked to its own SPA origin.
+     */
+    public List<String> allowedOrigins() {
+        return allowedOrigins.isEmpty() ? List.of(baseUrl) : allowedOrigins;
+    }
+
     public int maxImageSizeBytes() {
         return maxImageSizeBytes;
     }
@@ -120,6 +140,6 @@ public class Api {
     @Override
     public String toString() {
         return "Api{" + "host='" + host + '\'' + ", port=" + port + ", baseUrl='" + baseUrl + '\'' + ", demoUrl='"
-                + demoUrl + '\'' + '}';
+                + demoUrl + '\'' + ", allowedOrigins=" + allowedOrigins() + '}';
     }
 }

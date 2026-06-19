@@ -20,6 +20,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -37,6 +38,7 @@ public class FederationWebhookService {
     private final FederationRepository repository;
     private final FederationSigningService signingService;
     private final FederationService federationService;
+    private final RemoteUrlValidator urlValidator;
     private final ExecutorService executor;
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
@@ -45,10 +47,12 @@ public class FederationWebhookService {
     public FederationWebhookService(
             FederationRepository repository,
             FederationSigningService signingService,
-            FederationService federationService) {
+            FederationService federationService,
+            RemoteUrlValidator urlValidator) {
         this.repository = repository;
         this.signingService = signingService;
         this.federationService = federationService;
+        this.urlValidator = urlValidator;
         this.executor = Executors.newVirtualThreadPerTaskExecutor();
         this.objectMapper = JsonMapper.builder().build();
         this.httpClient =
@@ -74,6 +78,10 @@ public class FederationWebhookService {
      * Delivers a webhook with retry logic.
      */
     private void deliverWebhook(FederationPartner partner, String webhookUrl, WebhookEvent event, Object payload) {
+        if (!urlValidator.isAllowed(webhookUrl)) {
+            log.warn("Skipping webhook delivery for partner {} — URL rejected by RemoteUrlValidator", partner.id());
+            return;
+        }
         try {
             var body = objectMapper.writeValueAsString(new WebhookBody(
                     event.name(), partner.stationId(), Instant.now().toString(), payload));
@@ -85,19 +93,23 @@ public class FederationWebhookService {
 
                 try {
                     var timestamp = Instant.now().toString();
-                    // Sign with the station's private key if available
+                    var uri = URI.create(webhookUrl);
+                    String pathWithQuery = FederationSigningService.canonicalPathWithQuery(uri);
+                    String nonce = UUID.randomUUID().toString();
                     String signature = "";
                     if (partner.publicKey() != null) {
                         var privateKey = signingService.decodePrivateKey(partner.publicKey());
-                        signature = signingService.sign(body, timestamp, privateKey);
+                        signature = signingService.sign(
+                                "POST", pathWithQuery, partner.partnerStationId(), body, timestamp, privateKey);
                     }
 
                     var request = HttpRequest.newBuilder()
-                            .uri(URI.create(webhookUrl))
+                            .uri(uri)
                             .header("Content-Type", "application/json")
                             .header("X-Federation-Station-Id", String.valueOf(partner.stationId()))
                             .header("X-Federation-Timestamp", timestamp)
                             .header("X-Federation-Signature", signature)
+                            .header("X-Federation-Nonce", nonce)
                             .header("X-Federation-Event", event.name())
                             .header("X-Federation-Version", FederationService.FEDERATION_VERSION)
                             .POST(HttpRequest.BodyPublishers.ofString(body))

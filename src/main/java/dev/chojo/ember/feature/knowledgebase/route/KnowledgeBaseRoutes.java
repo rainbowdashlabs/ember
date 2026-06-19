@@ -42,6 +42,8 @@ import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.PandocConverter;
+import dev.chojo.ember.util.SafeContentDisposition;
+import dev.chojo.ember.util.SafeInlineMime;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ContentType;
 import io.javalin.http.Context;
@@ -565,16 +567,21 @@ public class KnowledgeBaseRoutes implements Routes {
             case PDF, IMAGE, OTHER -> {
                 var data = service.getFileContent(id);
                 if (data.isEmpty()) throw new NotFoundResponse();
-                ctx.contentType(file.mimeType() != null ? file.mimeType() : "application/octet-stream");
-                ctx.header("Content-Disposition", "inline; filename=\"" + file.name() + "\"");
+                String mime = SafeInlineMime.safeContentType(file.mimeType());
+                var disposition = SafeInlineMime.isInlineSafe(file.mimeType())
+                        ? SafeContentDisposition.Disposition.INLINE
+                        : SafeContentDisposition.Disposition.ATTACHMENT;
+                ctx.contentType(mime);
+                ctx.header("Content-Disposition", SafeContentDisposition.build(disposition, file.name()));
                 ctx.result(data.get());
             }
             case PRESENTATION -> {
-                // Return the converted PDF for viewing
                 var pdf = service.getPresentationPdf(id);
                 if (pdf.isEmpty()) throw new NotFoundResponse("Conversion not ready");
                 ctx.contentType("application/pdf");
-                ctx.header("Content-Disposition", "inline; filename=\"" + file.name() + ".pdf\"");
+                ctx.header(
+                        "Content-Disposition",
+                        SafeContentDisposition.build(SafeContentDisposition.Disposition.INLINE, file.name() + ".pdf"));
                 ctx.result(pdf.get());
             }
             case YOUTUBE -> ctx.json(new YoutubeResponse(file.youtubeUrl()));
@@ -613,8 +620,10 @@ public class KnowledgeBaseRoutes implements Routes {
         }
         var data = service.getFileContent(id);
         if (data.isEmpty()) throw new NotFoundResponse();
-        ctx.contentType(file.mimeType() != null ? file.mimeType() : "application/octet-stream");
-        ctx.header("Content-Disposition", "attachment; filename=\"" + file.name() + "\"");
+        ctx.contentType(SafeInlineMime.safeContentType(file.mimeType()));
+        ctx.header(
+                "Content-Disposition",
+                SafeContentDisposition.build(SafeContentDisposition.Disposition.ATTACHMENT, file.name()));
         ctx.result(data.get());
     }
 
@@ -1350,6 +1359,7 @@ public class KnowledgeBaseRoutes implements Routes {
             var result = federationHttpClient.getList(
                     partner.remoteHost(),
                     "/remote/kb/files/" + fileId + "/comments",
+                    partner.partnerStationId(),
                     station.id(),
                     station.federationPrivateKey(),
                     KbCommentResponse.class);
@@ -1379,6 +1389,7 @@ public class KnowledgeBaseRoutes implements Routes {
                     partner.remoteHost(),
                     "/remote/kb/files/" + fileId + "/comments",
                     body,
+                    partner.partnerStationId(),
                     station.id(),
                     station.federationPrivateKey(),
                     KbCommentResponse.class);
@@ -1410,6 +1421,7 @@ public class KnowledgeBaseRoutes implements Routes {
                     partner.remoteHost(),
                     "/remote/kb/comments/" + commentId,
                     body,
+                    partner.partnerStationId(),
                     station.id(),
                     station.federationPrivateKey(),
                     KbCommentResponse.class);
@@ -1439,6 +1451,7 @@ public class KnowledgeBaseRoutes implements Routes {
             boolean success = federationHttpClient.delete(
                     partner.remoteHost(),
                     "/remote/kb/comments/" + commentId,
+                    partner.partnerStationId(),
                     station.id(),
                     station.federationPrivateKey());
             if (!success) throw new InternalServerErrorResponse("Failed to delete comment on partner");

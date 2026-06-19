@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  body { margin:0; padding:0; background:#f4f4f4; font-family:Arial,Helvetica,sans-serif; }
+  .wrapper { background:#f4f4f4; padding:32px 0; }
+  .card { background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.08); max-width:600px; margin:0 auto; }
+  .header { background:#FF6421; padding:24px 32px; text-align:center; }
+  .header h1 { color:#fff; margin:0; font-size:22px; }
+  .body { padding:32px; }
+  .body h2 { color:#333; margin:0 0 16px; }
+  .body p { color:#555; font-size:15px; line-height:1.6; }
+  .hint { color:#888; font-size:13px; }
+  .warn { color:#C71100; font-size:14px; font-weight:bold; }
+  .footer { background:#f9f9f9; padding:16px 32px; text-align:center; border-top:1px solid #eee; }
+  .footer p { color:#aaa; font-size:11px; margin:0; }
+  .footer a { color:#FF6421; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="card">
+    <div class="header"><h1>{{senderName}}</h1></div>
+    <div class="body">
+      <h2>Hi {{name}},</h2>
+      <p>The email address on your account has been changed.</p>
+      <p>Previous address: <strong>{{oldEmail}}</strong><br>New address: <strong>{{newEmail}}</strong></p>
+      <p>All other sessions have been signed out and any pending recovery / verification links have been invalidated.</p>
+      <p class="warn">If you did not authorise this change, contact support immediately.</p>
+    </div>
+    <div class="footer"><p>{{senderName}} &middot; <a href="{{baseUrl}}">{{baseUrl}}</a></p></div>
+  </div>
+</div>
+</body>
+</html>

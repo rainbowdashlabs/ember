@@ -141,7 +141,7 @@ async function resolveStationAndRedirect() {
     setActiveStation(stations[0].stationId)
     await navigateTo(redirectPath || '/station/requirements')
   } else if (stations.length > 1) {
-    await navigateTo({path: '/station-select', query: redirectPath ? {redirect: redirectPath} : undefined})
+    await navigateTo(redirectPath || '/cross-station')
   } else {
     await navigateTo(redirectPath || '/station/requirements')
   }
@@ -299,7 +299,14 @@ async function loginAsDemo(account: DemoAccount) {
   loading.value = true
   error.value = ''
   try {
-    await auth.login({email: account.email, password: 'demo'})
+    const result = await auth.login({email: account.email, password: 'demo'})
+    if (result.passwordChangeRequired && result.passwordChangeToken) {
+      await navigateTo({
+        path: '/set-password',
+        query: {token: result.passwordChangeToken},
+      })
+      return
+    }
     await resolveStationAndRedirect()
   } catch {
     error.value = t('common.error')

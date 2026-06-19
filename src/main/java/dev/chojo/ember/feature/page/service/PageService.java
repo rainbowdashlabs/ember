@@ -18,6 +18,8 @@ import dev.chojo.ember.feature.page.repository.PageFileMetaRepository;
 import dev.chojo.ember.feature.page.repository.PageRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
+import dev.chojo.ember.util.HtmlSanitizer;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.commonmark.Extension;
@@ -78,7 +80,8 @@ public class PageService {
                 AutolinkExtension.create(),
                 StrikethroughExtension.create());
         this.markdownParser = Parser.builder().extensions(extensions).build();
-        this.htmlRenderer = HtmlRenderer.builder().extensions(extensions).build();
+        this.htmlRenderer =
+                HtmlRenderer.builder().extensions(extensions).sanitizeUrls(true).build();
     }
 
     // --- Page CRUD ---
@@ -243,13 +246,13 @@ public class PageService {
             var page =
                     pageRepository.findById(pageId).orElseThrow(() -> new IllegalArgumentException("Page not found"));
             if (page.stationId() != stationId) {
-                throw new IllegalArgumentException("Page does not belong to station");
+                throw new BadRequestResponse("Page does not belong to station");
             }
             if (!page.published()) {
-                throw new IllegalArgumentException("Landing page must be published");
+                throw new BadRequestResponse("Landing page must be published");
             }
             if (page.parentId() != null) {
-                throw new IllegalArgumentException("Landing page cannot be a subpage");
+                throw new BadRequestResponse("Landing page cannot be a subpage");
             }
         }
         pageRepository.setLandingPage(stationId, pageId);
@@ -501,7 +504,8 @@ public class PageService {
     private String renderMarkdown(String markdown) {
         if (markdown == null || markdown.isBlank()) return "";
         var document = markdownParser.parse(markdown);
-        return htmlRenderer.render(document);
+        String html = htmlRenderer.render(document);
+        return HtmlSanitizer.sanitize(html, HtmlSanitizer.Policy.RICH);
     }
 
     /**
@@ -614,7 +618,7 @@ public class PageService {
     private void validateDepth(int parentId, int additionalLevels) {
         int currentDepth = pageRepository.depth(parentId) + 1; // parent is already at some depth
         if (currentDepth + additionalLevels > MAX_DEPTH) {
-            throw new IllegalArgumentException("Page hierarchy exceeds maximum depth of " + MAX_DEPTH);
+            throw new BadRequestResponse("Page hierarchy exceeds maximum depth of " + MAX_DEPTH);
         }
     }
 

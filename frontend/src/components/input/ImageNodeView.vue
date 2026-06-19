@@ -6,6 +6,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
+import AuthImage from '@/components/display/AuthImage.vue'
+import { isKbImageSrc } from '@/util/normalizeAuthSrc'
 
 const props = defineProps(nodeViewProps)
 
@@ -16,6 +18,9 @@ const imgStyle = computed(() => {
   return ''
 })
 
+const srcStr = computed(() => (props.node.attrs.src as string) ?? '')
+const isAuthSrc = computed(() => isKbImageSrc(srcStr.value))
+
 function onWidthChange(e: Event) {
   const val = (e.target as HTMLInputElement).value
   props.updateAttributes({ width: val ? parseInt(val) || null : null })
@@ -24,8 +29,17 @@ function onWidthChange(e: Event) {
 
 <template>
   <NodeViewWrapper as="div" class="image-node-view" :class="{ 'image-selected': selected }">
+    <AuthImage
+      v-if="isAuthSrc"
+      :src="srcStr"
+      :alt="(node.attrs.alt as string) || ''"
+      :style="imgStyle"
+      class="max-w-full rounded"
+      draggable="false"
+    />
     <img
-      :src="(node.attrs.src as string)"
+      v-else
+      :src="srcStr"
       :alt="(node.attrs.alt as string) || ''"
       :title="(node.attrs.title as string) || ''"
       :style="imgStyle"

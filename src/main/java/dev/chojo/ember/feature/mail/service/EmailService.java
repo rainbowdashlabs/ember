@@ -199,6 +199,69 @@ public class EmailService {
         enqueueGlobal(email, "Set up your password", loadTemplate("set-password.html", "en", vars));
     }
 
+    /**
+     * Notifies an existing account holder that someone attempted to register a new account
+     * using their email address. Sent in lieu of returning a duplicate-email error to the
+     * registration caller, so the public registration endpoint cannot be used to enumerate
+     * existing addresses.
+     */
+    public void sendDuplicateRegistrationNotice(String email, String name) {
+        var vars = baseVars(name, null);
+        vars.put("loginUrl", api.baseUrl() + "/login");
+        enqueueGlobal(email, "Account already exists", loadTemplate("duplicate-registration.html", "en", vars));
+    }
+
+    /**
+     * Out-of-band confirmation that an account's password was just changed. Sent on every
+     * successful password rotation (self-service change, reset via emailed token, or
+     * admin-triggered reset). Includes a hint that the user should contact support if
+     * they did not initiate the change.
+     */
+    public void sendPasswordChangedNotice(String email, String name) {
+        var vars = baseVars(name, null);
+        vars.put("loginUrl", api.baseUrl() + "/login");
+        enqueueGlobal(email, "Your password was changed", loadTemplate("password-changed.html", "en", vars));
+    }
+
+    /**
+     * Sent to the user's existing email address when they request an email change.
+     * Clicking the link authorises releasing the address; the change only commits
+     * once the new address also confirms via {@link #sendEmailChangeClaimRequest}.
+     */
+    public void sendEmailChangeReleaseRequest(String oldEmail, String name, String newEmail, String token) {
+        String url = api.baseUrl() + "/confirm-email-change?token=" + token;
+        var vars = baseVars(name, null);
+        vars.put("url", url);
+        vars.put("newEmail", newEmail);
+        enqueueGlobal(oldEmail, "Confirm email change", loadTemplate("email-change-release.html", "en", vars));
+    }
+
+    /**
+     * Sent to the new email address when the user requests an email change. Clicking
+     * the link confirms receipt; the change only commits once the existing address
+     * also authorises via {@link #sendEmailChangeReleaseRequest}.
+     */
+    public void sendEmailChangeClaimRequest(String newEmail, String name, String oldEmail, String token) {
+        String url = api.baseUrl() + "/confirm-email-change?token=" + token;
+        var vars = baseVars(name, null);
+        vars.put("url", url);
+        vars.put("oldEmail", oldEmail);
+        enqueueGlobal(newEmail, "Confirm your new email", loadTemplate("email-change-claim.html", "en", vars));
+    }
+
+    /**
+     * Notifies both the old and the new email address that an email change just
+     * committed. The recipient address is the destination of this individual mail;
+     * the {@code oldEmail} and {@code newEmail} values are shown in the body for
+     * transparency.
+     */
+    public void sendEmailChangedNotice(String recipient, String name, String oldEmail, String newEmail) {
+        var vars = baseVars(name, null);
+        vars.put("oldEmail", oldEmail);
+        vars.put("newEmail", newEmail);
+        enqueueGlobal(recipient, "Your email address was changed", loadTemplate("email-changed.html", "en", vars));
+    }
+
     // -- Public send methods (system, via global provider queue) --
 
     public void sendPasswordResetEmail(String email, String name, String token) {

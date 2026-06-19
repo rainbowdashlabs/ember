@@ -204,7 +204,7 @@ class LendingServiceTest extends RepositoryTestBase {
         assertTrue(messages.stream().anyMatch(m -> m.senderStationId() == stationB.id()));
 
         // Verify HTTP client was never called (local partner)
-        verify(httpClient, never()).getList(anyString(), anyString(), anyInt(), anyString(), any());
+        verify(httpClient, never()).getList(anyString(), anyString(), any(), anyInt(), anyString(), any());
     }
 
     @Test
@@ -233,6 +233,7 @@ class LendingServiceTest extends RepositoryTestBase {
         when(httpClient.getList(
                         eq("https://remote.example.com"),
                         eq("/remote/lending/messages/" + req.id()),
+                        any(),
                         eq(stationA.id()),
                         any(),
                         eq(LendingMessage.class)))
@@ -252,6 +253,7 @@ class LendingServiceTest extends RepositoryTestBase {
                 .getList(
                         eq("https://remote.example.com"),
                         eq("/remote/lending/messages/" + req.id()),
+                        any(),
                         eq(stationA.id()),
                         any(),
                         eq(LendingMessage.class));
@@ -576,6 +578,7 @@ class LendingServiceTest extends RepositoryTestBase {
         when(httpClient.getList(
                         eq("https://remote-sort.example.com"),
                         eq("/remote/lending/messages/" + req.id()),
+                        any(),
                         eq(stationA.id()),
                         any(),
                         eq(LendingMessage.class)))

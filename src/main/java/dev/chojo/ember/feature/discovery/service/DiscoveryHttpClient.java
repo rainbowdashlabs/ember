@@ -28,6 +28,10 @@ import java.time.Duration;
  *
  * <p>Distinct from {@code FederationHttpClient} — that one ties every request to a specific
  * federation partner's RSA key pair; discovery uses a single instance-wide identity.
+ *
+ * <p>The embedded {@link tools.jackson.databind.json.JsonMapper} intentionally disables
+ * {@code FAIL_ON_UNKNOWN_PROPERTIES} so a peer running a newer discovery protocol
+ * version can add fields to a response without breaking older peers.
  */
 @Singleton
 public class DiscoveryHttpClient {

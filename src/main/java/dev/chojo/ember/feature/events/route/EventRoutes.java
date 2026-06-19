@@ -1656,6 +1656,7 @@ public class EventRoutes implements Routes {
         if (partner.isRemote()) {
             boolean success = eventFederationService.registerForFederatedEvent(
                     partner.remoteHost(),
+                    partner.partnerStationId(),
                     eventId,
                     remoteMemberId,
                     req.eventDate(),
@@ -1707,6 +1708,7 @@ public class EventRoutes implements Routes {
         if (partner.isRemote()) {
             eventFederationService.withdrawFederatedRegistration(
                     partner.remoteHost(),
+                    partner.partnerStationId(),
                     eventId,
                     remoteMemberId,
                     req.eventDate(),

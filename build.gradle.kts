@@ -51,6 +51,7 @@ dependencies {
 
     implementation(libs.angus)
     implementation(libs.bundles.commonmark)
+    implementation(libs.jsoup)
     implementation(libs.java.diff.utils)
     implementation(libs.commons.csv)
     implementation(libs.thumbnailator)
@@ -347,6 +348,8 @@ tasks {
                     "*.FederationPartnerSeeder*",
                     "*.DiscoveryKeyService*",
                     "*.DiscoveryStationProjectionService*",
+                    // Static CIDR helper record — class-init only, not worth unit-testing
+                    "*.RemoteUrlValidator.Cidr",
                 )
                 limit {
                     counter = "LINE"
@@ -424,7 +427,7 @@ spotless {
     format("javascript") {
         licenseHeaderFile(
             rootProject.file("HEADER.txt"),
-            "(import|const|let|var|export|function|type|interface|enum|class|abstract|async|declare|//)",
+            "(import|const|let|var|export|function|type|interface|enum|class|abstract|async|declare|//|/\\*\\*)",
         )
         target("frontend/src/**/*.js", "frontend/src/**/*.ts")
         targetExclude("frontend/node_modules/**", "frontend/dist/**")

@@ -6,6 +6,8 @@
 package dev.chojo.ember.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.auth.BreachCheckWorker;
+import dev.chojo.ember.auth.HibpClient;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
@@ -21,6 +23,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -41,6 +44,9 @@ class AuthServiceTest extends RepositoryTestBase {
         var emailService = mock(EmailService.class);
         var authConfig = new Auth();
         var demo = new Demo();
+        var hibpClient = mock(HibpClient.class);
+        when(hibpClient.isPwned(anyString())).thenReturn(false);
+        var breachCheckWorker = mock(BreachCheckWorker.class);
 
         service = new AuthService(
                 accountRepo,
@@ -50,7 +56,9 @@ class AuthServiceTest extends RepositoryTestBase {
                 passwordHasher,
                 emailService,
                 authConfig,
-                demo);
+                demo,
+                hibpClient,
+                breachCheckWorker);
     }
 
     @Test
@@ -65,18 +73,21 @@ class AuthServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(2)
-    void registerSelfDuplicateEmail() {
+    void registerSelfDuplicateEmailMaskedAsSuccess() {
         var result = service.registerSelf(EMAIL, "Auth", "Tester2", PASSWORD, null);
-        assertFalse(result.success());
-        assertEquals("Email already in use", result.message());
+        assertTrue(result.success(), "Duplicate email should not leak via failure response");
+        assertNotNull(result.account());
+        assertEquals(EMAIL, result.account().email());
+        assertEquals(0, result.account().id(), "Masked-success account must not expose a real id");
     }
 
     @Test
     @Order(3)
-    void loginWithoutVerification() {
+    void loginWithoutVerificationAndCorrectPassword() {
         var result = service.login(EMAIL, PASSWORD, "TestAgent", "DE");
         assertFalse(result.success());
-        assertEquals("Email not verified", result.message());
+        assertEquals(
+                "Email not verified", result.message(), "Unverified branch is reachable only after a password verify");
     }
 
     @Test
@@ -90,9 +101,6 @@ class AuthServiceTest extends RepositoryTestBase {
     @Test
     @Order(5)
     void loginWrongPassword() {
-        // Verify email first so we can test wrong password
-        var tokens = accountRepo.findToken("nonexistent");
-        // Manually set email as verified for this test
         accountRepo.setEmailVerified(accountId);
 
         var result = service.login(EMAIL, "WrongPassword!", "agent", "DE");
@@ -103,10 +111,12 @@ class AuthServiceTest extends RepositoryTestBase {
     @Test
     @Order(6)
     void loginNotAuthorized() {
-        // Account has no LOGIN role — should fail
         var result = service.login(EMAIL, PASSWORD, "agent", "DE");
         assertFalse(result.success());
-        assertEquals("Account is not authorized to log in", result.message());
+        assertEquals(
+                "Invalid email or password",
+                result.message(),
+                "Missing LOGIN permission must not be distinguishable from wrong password");
     }
 
     @Test
@@ -223,13 +233,13 @@ class AuthServiceTest extends RepositoryTestBase {
     @Order(17)
     void setPasswordUpdatesExisting() {
         var account2 = accountRepo.create("setpass2@test.com", "SP2", "User");
-        accountRepo.createCredential(account2.id(), new PasswordHasher().hash("OldPass123!"));
+        accountRepo.createCredential(account2.id(), new PasswordHasher().hash("OldPassword123!"));
         accountRepo.createToken(
                 account2.id(),
                 "set-pass-token-2",
                 TokenType.SET_PASSWORD,
                 Instant.now().plus(24, ChronoUnit.HOURS));
-        assertTrue(service.setPassword("set-pass-token-2", "NewPass456!"));
+        assertTrue(service.setPassword("set-pass-token-2", "NewPassword456!"));
         accountRepo.delete(account2.id());
     }
 
@@ -287,7 +297,7 @@ class AuthServiceTest extends RepositoryTestBase {
         // Set a known password first
         var account2 = accountRepo.create("changepw@test.com", "CP", "User");
         accountRepo.createCredential(account2.id(), new PasswordHasher().hash("correct-password"));
-        assertFalse(service.changePassword(account2.id(), "wrong-password", "NewPass!"));
+        assertFalse(service.changePassword(account2.id(), null, "wrong-password", "NewPassword123!"));
         accountRepo.delete(account2.id());
     }
 
@@ -295,8 +305,8 @@ class AuthServiceTest extends RepositoryTestBase {
     @Order(26)
     void changePasswordSuccess() {
         var account2 = accountRepo.create("changepw2@test.com", "CP2", "User");
-        accountRepo.createCredential(account2.id(), new PasswordHasher().hash("OldPass123!"));
-        assertTrue(service.changePassword(account2.id(), "OldPass123!", "NewPass456!"));
+        accountRepo.createCredential(account2.id(), new PasswordHasher().hash("OldPassword123!"));
+        assertTrue(service.changePassword(account2.id(), null, "OldPassword123!", "NewPassword456!"));
         accountRepo.delete(account2.id());
     }
 
@@ -304,7 +314,16 @@ class AuthServiceTest extends RepositoryTestBase {
     @Order(27)
     void changePasswordNoCredential() {
         var account2 = accountRepo.create("changepw3@test.com", "CP3", "User");
-        assertFalse(service.changePassword(account2.id(), "OldPass", "NewPass"));
+        assertFalse(service.changePassword(account2.id(), null, "OldPassword12", "NewPassword12"));
+        accountRepo.delete(account2.id());
+    }
+
+    @Test
+    @Order(27)
+    void changePasswordRejectsShortNewPassword() {
+        var account2 = accountRepo.create("changepwshort@test.com", "CP4", "User");
+        accountRepo.createCredential(account2.id(), new PasswordHasher().hash("CurrentPassword123!"));
+        assertFalse(service.changePassword(account2.id(), null, "CurrentPassword123!", "tooshort"));
         accountRepo.delete(account2.id());
     }
 
@@ -317,23 +336,35 @@ class AuthServiceTest extends RepositoryTestBase {
     @Test
     @Order(29)
     void confirmEmailChangeInvalidToken() {
-        assertFalse(service.confirmEmailChange("nonexistent-change-token"));
+        assertEquals(AuthService.EmailChangeResult.INVALID, service.confirmEmailChange("nonexistent-change-token"));
     }
 
     @Test
     @Order(30)
-    void confirmEmailChangeSuccess() {
+    void confirmEmailChangeTwoStepSuccess() {
         var account2 = accountRepo.create("emailchange@test.com", "EC", "User");
-        accountRepo.createToken(
-                account2.id(),
-                "ec-token",
-                TokenType.EMAIL_CHANGE,
-                "new-email-2@test.com",
-                Instant.now().plus(24, ChronoUnit.HOURS));
-        assertTrue(service.confirmEmailChange("ec-token"));
+        String newEmail = "new-email-2@test.com";
+        String requestId = UUID.randomUUID().toString();
+        String metadata = requestId + "|" + newEmail;
+        Instant exp = Instant.now().plus(24, ChronoUnit.HOURS);
+        accountRepo.createToken(account2.id(), "ec-release", TokenType.EMAIL_CHANGE_RELEASE, metadata, exp);
+        accountRepo.createToken(account2.id(), "ec-claim", TokenType.EMAIL_CHANGE_CLAIM, metadata, exp);
+
         assertEquals(
-                "new-email-2@test.com",
-                accountRepo.findById(account2.id()).orElseThrow().email());
+                AuthService.EmailChangeResult.WAITING,
+                service.confirmEmailChange("ec-release"),
+                "First click should mark the token as awaiting partner");
+        assertEquals(
+                "emailchange@test.com",
+                accountRepo.findById(account2.id()).orElseThrow().email(),
+                "Email must not change after a single confirmation");
+
+        assertEquals(
+                AuthService.EmailChangeResult.COMMITTED,
+                service.confirmEmailChange("ec-claim"),
+                "Second click should commit the change");
+        assertEquals(newEmail, accountRepo.findById(account2.id()).orElseThrow().email());
+
         accountRepo.delete(account2.id());
     }
 
@@ -438,7 +469,7 @@ class AuthServiceTest extends RepositoryTestBase {
                 "expired-setpass-token",
                 TokenType.SET_PASSWORD,
                 Instant.now().minus(1, ChronoUnit.HOURS));
-        assertFalse(service.setPassword("expired-setpass-token", "NewPass123!"));
+        assertFalse(service.setPassword("expired-setpass-token", "NewPassword123!"));
         accountRepo.delete(account2.id());
     }
 
@@ -451,7 +482,7 @@ class AuthServiceTest extends RepositoryTestBase {
                 "wrong-type-token",
                 TokenType.VERIFY_EMAIL,
                 Instant.now().plus(24, ChronoUnit.HOURS));
-        assertFalse(service.setPassword("wrong-type-token", "NewPass123!"));
+        assertFalse(service.setPassword("wrong-type-token", "NewPassword123!"));
         accountRepo.delete(account2.id());
     }
 
@@ -462,10 +493,10 @@ class AuthServiceTest extends RepositoryTestBase {
         accountRepo.createToken(
                 account2.id(),
                 "ec-expired-token",
-                TokenType.EMAIL_CHANGE,
-                "new@test.com",
+                TokenType.EMAIL_CHANGE_RELEASE,
+                "req|new@test.com",
                 Instant.now().minus(1, ChronoUnit.HOURS));
-        assertFalse(service.confirmEmailChange("ec-expired-token"));
+        assertEquals(AuthService.EmailChangeResult.INVALID, service.confirmEmailChange("ec-expired-token"));
         accountRepo.delete(account2.id());
     }
 
@@ -478,8 +509,47 @@ class AuthServiceTest extends RepositoryTestBase {
                 "ec-wrong-type-token",
                 TokenType.VERIFY_EMAIL,
                 Instant.now().plus(24, ChronoUnit.HOURS));
-        assertFalse(service.confirmEmailChange("ec-wrong-type-token"));
+        assertEquals(AuthService.EmailChangeResult.INVALID, service.confirmEmailChange("ec-wrong-type-token"));
         accountRepo.delete(account2.id());
+    }
+
+    @Test
+    @Order(44)
+    void confirmEmailChangeRejectsLegacyEmailChange() {
+        var account2 = accountRepo.create("emailchange-legacy@test.com", "EC", "Legacy");
+        accountRepo.createToken(
+                account2.id(),
+                "ec-legacy-token",
+                TokenType.EMAIL_CHANGE,
+                "legacy-new@test.com",
+                Instant.now().plus(24, ChronoUnit.HOURS));
+        assertEquals(
+                AuthService.EmailChangeResult.INVALID,
+                service.confirmEmailChange("ec-legacy-token"),
+                "Legacy single-step EMAIL_CHANGE rows must be rejected by the new two-step flow");
+        accountRepo.delete(account2.id());
+    }
+
+    @Test
+    @Order(45)
+    void confirmEmailChangeDuplicateAtCommitFails() {
+        var account2 = accountRepo.create("emailchange-dup-src@test.com", "EC", "Dup");
+        var taken = accountRepo.create("emailchange-dup-taken@test.com", "EC", "Taken");
+        String requestId = UUID.randomUUID().toString();
+        String metadata = requestId + "|emailchange-dup-taken@test.com";
+        Instant exp = Instant.now().plus(24, ChronoUnit.HOURS);
+        accountRepo.createToken(account2.id(), "ec-dup-release", TokenType.EMAIL_CHANGE_RELEASE, metadata, exp);
+        accountRepo.createToken(account2.id(), "ec-dup-claim", TokenType.EMAIL_CHANGE_CLAIM, metadata, exp);
+
+        assertEquals(AuthService.EmailChangeResult.WAITING, service.confirmEmailChange("ec-dup-release"));
+        assertEquals(AuthService.EmailChangeResult.DUPLICATE, service.confirmEmailChange("ec-dup-claim"));
+        assertEquals(
+                "emailchange-dup-src@test.com",
+                accountRepo.findById(account2.id()).orElseThrow().email(),
+                "Email must not change when the new address is already taken");
+
+        accountRepo.delete(account2.id());
+        accountRepo.delete(taken.id());
     }
 
     @Test

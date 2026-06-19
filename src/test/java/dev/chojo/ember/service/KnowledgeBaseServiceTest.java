@@ -1163,6 +1163,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         when(httpClient.getList(
                         eq("https://remote-kb.example.com"),
                         eq("/remote/kb/browse"),
+                        any(),
                         eq(station.id()),
                         any(),
                         eq(KnowledgeBaseService.RemoteKbFile.class)))
@@ -1179,6 +1180,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         when(httpClient.getList(
                         eq("https://remote-kb.example.com"),
                         contains("/remote/kb/search"),
+                        any(),
                         eq(station.id()),
                         any(),
                         eq(KnowledgeBaseService.RemoteKbSearchResult.class)))
@@ -1215,7 +1217,12 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 false,
                 null);
         when(httpClient.get(
-                        eq("https://remote-kb.example.com"), eq("/remote/kb/files/77"), eq(station.id()), any(), any()))
+                        eq("https://remote-kb.example.com"),
+                        eq("/remote/kb/files/77"),
+                        any(),
+                        eq(station.id()),
+                        any(),
+                        any()))
                 .thenReturn(remoteFile);
 
         var file = service.getFederatedKbFile(station.id(), stationC.uid(), 77);
@@ -1229,6 +1236,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         when(httpClient.get(
                         eq("https://remote-kb.example.com"),
                         eq("/remote/kb/file/55/content"),
+                        any(),
                         eq(station.id()),
                         any(),
                         eq(KnowledgeBaseService.RemoteKbContent.class)))

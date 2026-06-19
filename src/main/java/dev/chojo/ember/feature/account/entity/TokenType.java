@@ -26,9 +26,23 @@ public enum TokenType {
      */
     FORCE_PASSWORD_CHANGE,
     /**
-     * Token sent to confirm an email address change, with the new email stored as metadata.
+     * Legacy single-step email-change token retained for stored rows. The current code
+     * no longer issues this type; see {@link #EMAIL_CHANGE_RELEASE} and
+     * {@link #EMAIL_CHANGE_CLAIM} for the two-step flow.
      */
     EMAIL_CHANGE,
+    /**
+     * Token sent to the user's existing address to authorise releasing it for an
+     * email change. Metadata format: {@code <requestId>|<newEmail>}; the change only
+     * commits once the matching {@link #EMAIL_CHANGE_CLAIM} has also been clicked.
+     */
+    EMAIL_CHANGE_RELEASE,
+    /**
+     * Token sent to the new address to confirm receipt for an email change. Metadata
+     * format: {@code <requestId>|<newEmail>}; the change only commits once the matching
+     * {@link #EMAIL_CHANGE_RELEASE} has also been clicked.
+     */
+    EMAIL_CHANGE_CLAIM,
     /**
      * Token sent to confirm station deletion, with the station ID stored as metadata.
      */

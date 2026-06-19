@@ -37,6 +37,7 @@ import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.system.service.RequirementsService;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -864,7 +865,8 @@ public class QuizService {
 
     private void browseSharedQuizViaHttp(
             int localStationId, FederationPartner partner, int remoteStationId, List<SharedQuizItem> result) {
-        var catalogs = fetchSharedQuizCatalogs(partner.remoteHost(), localStationId, getPrivateKey(localStationId));
+        var catalogs = fetchSharedQuizCatalogs(
+                partner.remoteHost(), partner.partnerStationId(), localStationId, getPrivateKey(localStationId));
         for (var remoteCatalog : catalogs) {
             result.add(new SharedQuizItem(
                     remoteCatalog.id(),
@@ -888,6 +890,7 @@ public class QuizService {
             var result = federationHttpClient.get(
                     partner.remoteHost(),
                     "/remote/quiz/catalogs/" + catalogId,
+                    partner.partnerStationId(),
                     localStationId,
                     getPrivateKey(localStationId),
                     FederatedCatalogDetail.class);
@@ -897,7 +900,7 @@ public class QuizService {
         var catalog = findCatalog(catalogId).orElseThrow();
         int partnerStationId = resolvePartnerStationId(partner);
         if (catalog.stationId() != partnerStationId) {
-            throw new IllegalArgumentException("Catalog does not belong to this partner");
+            throw new BadRequestResponse("Catalog does not belong to this partner");
         }
         var categories = findCategories(catalog.stationId());
         var questions = findQuestions(catalog.id());
@@ -950,7 +953,7 @@ public class QuizService {
                 .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
         if (partner.status() != FederationPartner.FederationStatus.ACTIVE) {
-            throw new IllegalArgumentException("Partner is not active");
+            throw new BadRequestResponse("Partner is not active");
         }
         return partner;
     }
@@ -985,9 +988,14 @@ public class QuizService {
     // -- Federation HTTP convenience methods --
 
     public List<RemoteQuizCatalog> fetchSharedQuizCatalogs(
-            String remoteHost, int localStationId, String localPrivateKeyBase64) {
+            String remoteHost, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64) {
         return federationHttpClient.getList(
-                remoteHost, "/remote/quiz/catalogs", localStationId, localPrivateKeyBase64, RemoteQuizCatalog.class);
+                remoteHost,
+                "/remote/quiz/catalogs",
+                partnerStationUid,
+                localStationId,
+                localPrivateKeyBase64,
+                RemoteQuizCatalog.class);
     }
 
     public record RemoteQuizCatalog(int id, String name, String description) {}

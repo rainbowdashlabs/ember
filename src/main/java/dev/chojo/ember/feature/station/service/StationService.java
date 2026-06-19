@@ -23,8 +23,11 @@ import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
 import dev.chojo.ember.util.SlugGenerator;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -39,6 +42,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Singleton
 public class StationService {
+    private static final Logger log = LoggerFactory.getLogger(StationService.class);
     private static final long MAX_LOGO_SIZE = 2 * 1024 * 1024; // 2 MB
 
     private final StationRepository stationRepository;
@@ -104,6 +108,7 @@ public class StationService {
         var slug = SlugGenerator.uniqueSlug(
                 name, (s, _) -> stationRepository.findBySlug(s).isPresent(), 0);
         stationRepository.updatePublicSlug(station.id(), slug);
+        log.info("Station created: id={}, name='{}'", station.id(), name);
         return stationRepository.findById(station.id()).orElse(station);
     }
 
@@ -117,6 +122,7 @@ public class StationService {
     public Station createWithManager(String name, String managerEmail) {
         var station = stationRepository.create(name);
         assignManager(station.id(), managerEmail);
+        log.info("Station created with manager: id={}, name='{}', manager='{}'", station.id(), name, managerEmail);
         return station;
     }
 
@@ -196,6 +202,7 @@ public class StationService {
      * @return {@code true} if the station was deleted
      */
     public boolean delete(int id) {
+        log.info("Station deleted: id={}", id);
         return stationRepository.delete(id);
     }
 
@@ -247,7 +254,7 @@ public class StationService {
      */
     public void setLogo(int stationId, byte[] data, String contentType) {
         if (data.length > MAX_LOGO_SIZE) {
-            throw new IllegalArgumentException("Logo exceeds maximum size of 2 MB");
+            throw new BadRequestResponse("Logo exceeds maximum size of 2 MB");
         }
         stationRepository.updateLogo(stationId, data, contentType);
         logoCache.put(stationId, Optional.of(new StationLogo(data, contentType)));
@@ -283,6 +290,11 @@ public class StationService {
         if (targetRoles.stream().noneMatch(r -> r.id() == managerRole.id())) return false;
 
         stationRepository.setOwner(stationId, newOwnerMemberId);
+        log.info(
+                "Station ownership transferred: station={}, from member {} to member {}",
+                stationId,
+                currentMemberId,
+                newOwnerMemberId);
         return true;
     }
 
@@ -315,6 +327,7 @@ public class StationService {
      */
     public void setDisabledModules(int stationId, Set<StationModule> modules) {
         stationRepository.setDisabledModules(stationId, modules);
+        log.info("Station modules updated: station={}, disabled={}", stationId, modules);
     }
 
     /**
@@ -347,7 +360,7 @@ public class StationService {
         if (slug != null) {
             var existing = stationRepository.findBySlug(slug);
             if (existing.isPresent() && existing.get().id() != stationId) {
-                throw new IllegalArgumentException("Slug is already in use");
+                throw new BadRequestResponse("Slug is already in use");
             }
         }
         stationRepository.updatePublicSlug(stationId, slug);

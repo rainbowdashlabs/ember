@@ -6,6 +6,7 @@
 package dev.chojo.ember.repository;
 
 import dev.chojo.ember.api.auth.InstanceUserType;
+import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.entity.AccountExternalAuth;
@@ -187,6 +188,19 @@ class AccountRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(40)
+    void storedTokenIsHashed() {
+        String raw = "raw-token-must-never-be-stored";
+        Instant expires = Instant.now().plus(1, ChronoUnit.HOURS);
+        accountRepo.createToken(accountId, raw, TokenType.VERIFY_EMAIL, expires);
+        AccountToken stored = accountRepo.findToken(raw).orElseThrow();
+        assertNotEquals(raw, stored.tokenHash());
+        String expected = TokenHasher.forTesting("repository-test-pepper").hash(raw);
+        assertEquals(expected, stored.tokenHash());
+        accountRepo.deleteToken(raw);
+    }
+
+    @Test
     @Order(41)
     void deleteToken() {
         assertTrue(accountRepo.deleteToken("tok123"));
@@ -225,6 +239,19 @@ class AccountRepositoryTest extends RepositoryTestBase {
         assertEquals(accountId, session.accountId());
         assertEquals("TestAgent/1.0", session.userAgent());
         assertFalse(session.isExpired());
+    }
+
+    @Test
+    @Order(50)
+    void storedSessionBearerIsHashed() {
+        String raw = "raw-bearer-must-never-be-stored";
+        Instant expires = Instant.now().plus(1, ChronoUnit.HOURS);
+        accountRepo.createSession(accountId, raw, expires, "ua", null);
+        AccountSession stored = accountRepo.findSession(raw).orElseThrow();
+        assertNotEquals(raw, stored.tokenHash());
+        String expected = TokenHasher.forTesting("repository-test-pepper").hash(raw);
+        assertEquals(expected, stored.tokenHash());
+        accountRepo.deleteSession(raw);
     }
 
     @Test

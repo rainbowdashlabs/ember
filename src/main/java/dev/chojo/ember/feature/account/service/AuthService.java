@@ -5,7 +5,10 @@
  */
 package dev.chojo.ember.feature.account.service;
 
+import dev.chojo.ember.auth.BreachCheckWorker;
+import dev.chojo.ember.auth.HibpClient;
 import dev.chojo.ember.auth.PasswordHasher;
+import dev.chojo.ember.auth.PasswordPolicy;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -23,6 +26,8 @@ import dev.chojo.ember.feature.members.repository.RegistrationCodeRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -30,6 +35,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Service handling authentication, registration, session management, password operations,
@@ -37,6 +43,7 @@ import java.util.Optional;
  */
 @Singleton
 public class AuthService {
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final AccountRepository accountRepository;
@@ -47,6 +54,16 @@ public class AuthService {
     private final EmailService emailService;
     private final Auth authConfig;
     private final Demo demo;
+    private final HibpClient hibpClient;
+    private final BreachCheckWorker breachCheckWorker;
+    /**
+     * Lazily-computed hash of a random throwaway password, used by {@link #login} when the
+     * supplied email does not resolve to an account or has no stored credential. Running the
+     * verifier against this placeholder keeps the wall-clock cost of every login attempt
+     * within the same order of magnitude as a real hash check, denying a timing oracle for
+     * account enumeration.
+     */
+    private volatile String dummyPasswordHash;
 
     @Inject
     public AuthService(
@@ -57,7 +74,9 @@ public class AuthService {
             PasswordHasher passwordHasher,
             EmailService emailService,
             Auth authConfig,
-            Demo demo) {
+            Demo demo,
+            HibpClient hibpClient,
+            BreachCheckWorker breachCheckWorker) {
         this.accountRepository = accountRepository;
         this.registrationCodeRepository = registrationCodeRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -66,6 +85,8 @@ public class AuthService {
         this.emailService = emailService;
         this.authConfig = authConfig;
         this.demo = demo;
+        this.hibpClient = hibpClient;
+        this.breachCheckWorker = breachCheckWorker;
     }
 
     /**
@@ -81,6 +102,10 @@ public class AuthService {
      */
     public RegistrationResult registerSelf(
             String email, String firstName, String lastName, String password, String registrationCode) {
+        var policy = validateNewPassword(password);
+        if (policy != PasswordPolicy.Result.OK) {
+            return RegistrationResult.failure(policy.message());
+        }
         RegistrationCode code = null;
         if (registrationCode != null && !registrationCode.isBlank()) {
             Optional<RegistrationCode> codeOpt = registrationCodeRepository.findByCode(registrationCode);
@@ -93,8 +118,11 @@ public class AuthService {
             }
         }
 
-        if (accountRepository.findByEmail(email).isPresent()) {
-            return RegistrationResult.failure("Email already in use");
+        var existing = accountRepository.findByEmail(email);
+        if (existing.isPresent()) {
+            emailService.sendDuplicateRegistrationNotice(
+                    existing.get().email(), existing.get().firstName());
+            return RegistrationResult.maskedSuccess(email, firstName, lastName);
         }
 
         String hash = passwordHasher.hash(password);
@@ -127,6 +155,7 @@ public class AuthService {
                 Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS));
         emailService.sendVerificationEmail(email, firstName, token);
 
+        log.info("Account registered via self-registration: account {} ({})", accountId, email);
         return RegistrationResult.success(accountRepository.findById(accountId).orElseThrow());
     }
 
@@ -159,6 +188,7 @@ public class AuthService {
                 Instant.now().plus(authConfig.passwordTokenHours(), ChronoUnit.HOURS));
         emailService.sendPasswordSetupEmail(email, firstName, token);
 
+        log.info("Invited account created: account {} ({}) for station {}", accountId, email, stationId);
         return RegistrationResult.success(accountRepository.findById(accountId).orElseThrow());
     }
 
@@ -201,6 +231,7 @@ public class AuthService {
 
         accountRepository.setEmailVerified(accountToken.accountId());
         accountRepository.deleteToken(token);
+        log.info("Email verified for account {}", accountToken.accountId());
         return true;
     }
 
@@ -213,6 +244,9 @@ public class AuthService {
      * @return {@code true} if the password was successfully set
      */
     public boolean setPassword(String token, String password) {
+        if (validateNewPassword(password) != PasswordPolicy.Result.OK) {
+            return false;
+        }
         Optional<AccountToken> tokenOpt = accountRepository.findToken(token);
         if (tokenOpt.isEmpty()) {
             return false;
@@ -240,7 +274,13 @@ public class AuthService {
             accountRepository.createCredential(accountToken.accountId(), hash);
         }
 
-        accountRepository.deleteToken(token);
+        invalidateAfterPasswordRotation(accountToken.accountId(), null);
+        notifyPasswordChanged(account.get());
+        // The endpoint accepts SET_PASSWORD (invite), RESET_PASSWORD (forgot),
+        // and FORCE_PASSWORD_CHANGE (post-login forced rotation) interchangeably.
+        // Logging which one triggered the rotation lets operators correlate the
+        // flow without a dedicated audit table.
+        log.info("Password set via {} for account {}", type, accountToken.accountId());
         return true;
     }
 
@@ -265,6 +305,7 @@ public class AuthService {
                 TokenType.RESET_PASSWORD,
                 Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS));
         emailService.sendPasswordResetEmail(account.email(), account.firstName(), token);
+        log.info("Password reset requested for account {} ({})", account.id(), email);
     }
 
     /**
@@ -283,13 +324,17 @@ public class AuthService {
         Account account = accountOpt.get();
 
         if (forceChange) {
-            // Set flag so next login prompts password change
+            log.info("Admin reset for account {} ({}) with forced password change", accountId, account.email());
             accountRepository.setForcePasswordChange(accountId, true);
         }
 
-        // Send reset email
+        // Kill every live session and outstanding recovery token for the account so
+        // an attacker who triggered this reset cannot continue with the previous
+        // credentials. The freshly-issued RESET_PASSWORD token below is created
+        // *after* the wipe so it is not collateral.
+        invalidateAfterPasswordRotation(accountId, null);
+
         String token = generateToken();
-        accountRepository.deleteTokensByAccountAndType(accountId, TokenType.RESET_PASSWORD);
         accountRepository.createToken(
                 accountId,
                 token,
@@ -337,27 +382,26 @@ public class AuthService {
      */
     public LoginResult login(String email, String password, String userAgent, String location) {
         Optional<Account> accountOpt = accountRepository.findByEmail(email);
-        if (accountOpt.isEmpty()) {
+        Optional<AccountCredential> credOpt = accountOpt.flatMap(a -> accountRepository.findCredential(a.id()));
+
+        String storedHash = credOpt.map(AccountCredential::passwordHash).orElseGet(this::dummyPasswordHash);
+        boolean passwordValid = passwordHasher.verify(password, storedHash);
+
+        if (accountOpt.isEmpty() || credOpt.isEmpty() || !passwordValid) {
+            log.info("Login failed for '{}': invalid credentials", email);
             return LoginResult.failure("Invalid email or password");
         }
 
         Account account = accountOpt.get();
         if (!account.emailVerified()) {
+            log.info("Login failed for account {} ({}): email not verified", account.id(), email);
             return LoginResult.failure("Email not verified");
-        }
-
-        Optional<AccountCredential> credOpt = accountRepository.findCredential(account.id());
-        if (credOpt.isEmpty()) {
-            return LoginResult.failure("Invalid email or password");
-        }
-
-        if (!passwordHasher.verify(password, credOpt.get().passwordHash())) {
-            return LoginResult.failure("Invalid email or password");
         }
 
         if (!accountRepository.isAdministrator(account.id())
                 && !stationMemberRepository.hasLoginPermission(account.id())) {
-            return LoginResult.failure("Account is not authorized to log in");
+            log.info("Login failed for account {} ({}): no login permission", account.id(), email);
+            return LoginResult.failure("Invalid email or password");
         }
 
         // Rehash if algorithm changed
@@ -365,8 +409,17 @@ public class AuthService {
             accountRepository.updateCredential(account.id(), passwordHasher.hash(password));
         }
 
+        // Async HIBP breach check — gated by staleness window inside the worker, fail-open.
+        if (!demo.enabled() && !demo.dev()) {
+            breachCheckWorker.enqueueCheck(account.id(), password);
+        }
+
         // Force password change — issue a one-time token instead of a session
         if (credOpt.get().forcePasswordChange()) {
+            log.info(
+                    "Login for account {} ({}) requires password change — issuing password-change token",
+                    account.id(),
+                    email);
             String token = generateToken();
             accountRepository.deleteTokensByAccountAndType(account.id(), TokenType.FORCE_PASSWORD_CHANGE);
             accountRepository.createToken(
@@ -379,6 +432,62 @@ public class AuthService {
         }
 
         return createSession(account.id(), userAgent, location);
+    }
+
+    /**
+     * Combined length + HIBP validation applied before persisting any new password.
+     * Returns {@link PasswordPolicy.Result#OK} when the password meets the length
+     * requirement and is not known to HIBP; otherwise returns the specific reason.
+     * HIBP failures are fail-open inside {@link HibpClient}, so a third-party outage
+     * does not block legitimate password changes.
+     */
+    private PasswordPolicy.Result validateNewPassword(String plaintext) {
+        var policy = PasswordPolicy.validate(plaintext);
+        if (policy != PasswordPolicy.Result.OK) return policy;
+        if (hibpClient.isPwned(plaintext)) return PasswordPolicy.Result.BREACHED;
+        return PasswordPolicy.Result.OK;
+    }
+
+    /**
+     * Kills every other live session and clears every outstanding recovery /
+     * verification token for the account. Used after any password rotation so an
+     * attacker who already obtained credentials cannot continue with previously
+     * minted sessions or alternate recovery tokens.
+     *
+     * @param accountId          the rotating account
+     * @param keepSessionToken   the raw bearer of the session that triggered the
+     *                           rotation, retained so a self-service password change
+     *                           does not log the user out of their own browser;
+     *                           {@code null} to kill every session
+     */
+    private void invalidateAfterPasswordRotation(int accountId, String keepSessionToken) {
+        if (keepSessionToken == null || keepSessionToken.isBlank()) {
+            accountRepository.deleteSessionsByAccount(accountId);
+        } else {
+            accountRepository.deleteSessionsExceptToken(accountId, keepSessionToken);
+        }
+        accountRepository.deleteAllTokens(accountId);
+    }
+
+    private void notifyPasswordChanged(Account account) {
+        try {
+            emailService.sendPasswordChangedNotice(account.email(), account.firstName());
+        } catch (Exception e) {
+            log.warn("Failed to enqueue password-changed notice for account {}", account.id(), e);
+        }
+    }
+
+    private String dummyPasswordHash() {
+        String local = dummyPasswordHash;
+        if (local != null) return local;
+        synchronized (this) {
+            if (dummyPasswordHash == null) {
+                byte[] random = new byte[32];
+                RANDOM.nextBytes(random);
+                dummyPasswordHash = passwordHasher.hash(Base64.getEncoder().encodeToString(random));
+            }
+            return dummyPasswordHash;
+        }
     }
 
     // -- Login / Session --
@@ -394,16 +503,19 @@ public class AuthService {
     public LoginResult refreshSession(String token, String userAgent, String location) {
         Optional<AccountSession> sessionOpt = accountRepository.findSession(token);
         if (sessionOpt.isEmpty()) {
+            log.debug("Session refresh failed: invalid token");
             return LoginResult.failure("Invalid session");
         }
 
         AccountSession session = sessionOpt.get();
         if (session.isExpired()) {
             accountRepository.deleteSession(token);
+            log.info("Session refresh failed for account {}: session expired", session.accountId());
             return LoginResult.failure("Session expired");
         }
 
         accountRepository.deleteSession(token);
+        log.debug("Session refreshed for account {}", session.accountId());
         return createSession(session.accountId(), userAgent, location);
     }
 
@@ -414,7 +526,10 @@ public class AuthService {
      * @return {@code true} if the session was found and deleted
      */
     public boolean logout(String token) {
-        return accountRepository.deleteSession(token);
+        var session = accountRepository.findSession(token);
+        boolean deleted = accountRepository.deleteSession(token);
+        session.ifPresent(s -> log.info("Logout for account {}", s.accountId()));
+        return deleted;
     }
 
     /**
@@ -434,6 +549,7 @@ public class AuthService {
      * @return {@code true} if any sessions were invalidated
      */
     public boolean invalidateAllSessions(int accountId) {
+        log.info("All sessions invalidated for account {}", accountId);
         return accountRepository.deleteSessionsByAccount(accountId);
     }
 
@@ -445,11 +561,18 @@ public class AuthService {
      * @param newPassword     the new plaintext password
      * @return {@code true} if the password was changed successfully
      */
-    public boolean changePassword(int accountId, String currentPassword, String newPassword) {
+    public boolean changePassword(
+            int accountId, String currentSessionToken, String currentPassword, String newPassword) {
+        if (validateNewPassword(newPassword) != PasswordPolicy.Result.OK) {
+            return false;
+        }
         var credOpt = accountRepository.findCredential(accountId);
         if (credOpt.isEmpty()) return false;
         if (!passwordHasher.verify(currentPassword, credOpt.get().passwordHash())) return false;
         accountRepository.updateCredential(accountId, passwordHasher.hash(newPassword));
+        invalidateAfterPasswordRotation(accountId, currentSessionToken);
+        accountRepository.findById(accountId).ifPresent(this::notifyPasswordChanged);
+        log.info("Password changed by account {}", accountId);
         return true;
     }
 
@@ -461,38 +584,101 @@ public class AuthService {
      * @param newEmail  the new email address to change to
      */
     public void requestEmailChange(int accountId, String newEmail) {
-        accountRepository.deleteTokensByAccountAndType(accountId, TokenType.EMAIL_CHANGE);
-        String token = generateToken();
-        accountRepository.createToken(
-                accountId,
-                token,
-                TokenType.EMAIL_CHANGE,
-                newEmail,
-                Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS));
         var account = accountRepository.findById(accountId).orElse(null);
-        String name = account != null ? account.firstName() : "";
-        emailService.sendEmailChangeConfirmation(newEmail, name, token);
+        if (account == null) return;
+
+        accountRepository.deleteTokensByAccountAndType(accountId, TokenType.EMAIL_CHANGE);
+        accountRepository.deleteTokensByAccountAndType(accountId, TokenType.EMAIL_CHANGE_RELEASE);
+        accountRepository.deleteTokensByAccountAndType(accountId, TokenType.EMAIL_CHANGE_CLAIM);
+
+        String requestId = UUID.randomUUID().toString();
+        String metadata = requestId + "|" + newEmail;
+        Instant expiresAt = Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS);
+
+        String releaseToken = generateToken();
+        String claimToken = generateToken();
+        accountRepository.createToken(accountId, releaseToken, TokenType.EMAIL_CHANGE_RELEASE, metadata, expiresAt);
+        accountRepository.createToken(accountId, claimToken, TokenType.EMAIL_CHANGE_CLAIM, metadata, expiresAt);
+
+        emailService.sendEmailChangeReleaseRequest(account.email(), account.firstName(), newEmail, releaseToken);
+        emailService.sendEmailChangeClaimRequest(newEmail, account.firstName(), account.email(), claimToken);
+        log.info("Email change requested for account {}: {} -> {}", accountId, account.email(), newEmail);
     }
 
     // -- Email change --
 
     /**
-     * Confirms an email change using the provided token. Updates the account's email to the new address
-     * stored in the token's metadata.
-     *
-     * @param token the email change confirmation token
-     * @return {@code true} if the email was successfully changed
+     * Outcome of a {@link #confirmEmailChange(String)} click. {@link #WAITING} means
+     * this side has been confirmed but the partner side still has to click;
+     * {@link #COMMITTED} means both halves are in and the email was updated.
      */
-    public boolean confirmEmailChange(String token) {
+    public enum EmailChangeResult {
+        /** Token unknown, of the wrong type, or expired. */
+        INVALID,
+        /** This side accepted; the other half still has to confirm. */
+        WAITING,
+        /** Both halves confirmed; the account email has been updated. */
+        COMMITTED,
+        /** Both halves confirmed but the requested email is now taken by another account. */
+        DUPLICATE
+    }
+
+    /**
+     * Two-step email-change confirmation. The change only commits once both the
+     * EMAIL_CHANGE_RELEASE token (sent to the old address) and the EMAIL_CHANGE_CLAIM
+     * token (sent to the new address) have been clicked; the first click marks
+     * the token as awaiting its partner, the second click commits.
+     */
+    public EmailChangeResult confirmEmailChange(String token) {
         Optional<AccountToken> tokenOpt = accountRepository.findToken(token);
-        if (tokenOpt.isEmpty()) return false;
-        AccountToken accountToken = tokenOpt.get();
-        if (accountToken.isExpired() || accountToken.tokenType() != TokenType.EMAIL_CHANGE) return false;
-        String newEmail = accountToken.metadata();
-        if (newEmail == null || newEmail.isBlank()) return false;
-        accountRepository.updateEmail(accountToken.accountId(), newEmail);
-        accountRepository.deleteToken(token);
-        return true;
+        if (tokenOpt.isEmpty()) return EmailChangeResult.INVALID;
+        AccountToken self = tokenOpt.get();
+        if (self.isExpired()) {
+            accountRepository.deleteToken(token);
+            return EmailChangeResult.INVALID;
+        }
+        if (self.tokenType() != TokenType.EMAIL_CHANGE_RELEASE && self.tokenType() != TokenType.EMAIL_CHANGE_CLAIM) {
+            return EmailChangeResult.INVALID;
+        }
+
+        String metadata = self.metadata();
+        if (metadata == null || metadata.isBlank()) return EmailChangeResult.INVALID;
+        int sep = metadata.indexOf('|');
+        if (sep <= 0 || sep >= metadata.length() - 1) return EmailChangeResult.INVALID;
+        String requestId = metadata.substring(0, sep);
+        String newEmail = metadata.substring(sep + 1);
+
+        var partnerOpt = accountRepository.findEmailChangePartner(self.accountId(), requestId, self.id());
+        if (partnerOpt.isEmpty() || partnerOpt.get().isExpired()) {
+            // First click of the pair, or the other half has already expired.
+            accountRepository.markTokenConfirmed(self.id());
+            return EmailChangeResult.WAITING;
+        }
+        AccountToken partner = partnerOpt.get();
+        if (partner.confirmedAt() == null) {
+            accountRepository.markTokenConfirmed(self.id());
+            return EmailChangeResult.WAITING;
+        }
+
+        var accountOpt = accountRepository.findById(self.accountId());
+        if (accountOpt.isEmpty()) return EmailChangeResult.INVALID;
+        Account account = accountOpt.get();
+
+        var existing = accountRepository.findByEmail(newEmail);
+        if (existing.isPresent() && existing.get().id() != account.id()) {
+            accountRepository.deleteToken(token);
+            accountRepository.deleteTokensByAccountAndType(account.id(), TokenType.EMAIL_CHANGE_RELEASE);
+            accountRepository.deleteTokensByAccountAndType(account.id(), TokenType.EMAIL_CHANGE_CLAIM);
+            return EmailChangeResult.DUPLICATE;
+        }
+
+        String oldEmail = account.email();
+        accountRepository.updateEmail(account.id(), newEmail);
+        invalidateAfterPasswordRotation(account.id(), null);
+        emailService.sendEmailChangedNotice(oldEmail, account.firstName(), oldEmail, newEmail);
+        emailService.sendEmailChangedNotice(newEmail, account.firstName(), oldEmail, newEmail);
+        log.info("Email changed for account {}: {} -> {}", account.id(), oldEmail, newEmail);
+        return EmailChangeResult.COMMITTED;
     }
 
     /**
@@ -515,6 +701,7 @@ public class AuthService {
                 .findById(accountId)
                 .ifPresent(account ->
                         emailService.sendStationDeletionConfirmation(account.email(), account.firstName(), token));
+        log.info("Station deletion requested by account {} for station {}", accountId, stationId);
     }
 
     // -- Station deletion --
@@ -532,8 +719,19 @@ public class AuthService {
         if (accountToken.isExpired() || accountToken.tokenType() != TokenType.STATION_DELETE) return Optional.empty();
         String stationIdStr = accountToken.metadata();
         if (stationIdStr == null) return Optional.empty();
+        int stationId;
+        try {
+            stationId = Integer.parseInt(stationIdStr);
+        } catch (NumberFormatException e) {
+            // Token row is corrupt or attacker-crafted; clear it so it stops
+            // generating noise on retries and surface the same "invalid /
+            // expired token" shape every other token endpoint uses.
+            accountRepository.deleteToken(token);
+            return Optional.empty();
+        }
         accountRepository.deleteToken(token);
-        return Optional.of(Integer.parseInt(stationIdStr));
+        log.info("Station deletion confirmed by account {} for station {}", accountToken.accountId(), stationId);
+        return Optional.of(stationId);
     }
 
     /**
@@ -558,6 +756,7 @@ public class AuthService {
             expiresAt = Instant.now().plus(authConfig.sessionMinutes(), ChronoUnit.MINUTES);
         }
         accountRepository.createSession(accountId, token, expiresAt, userAgent, location);
+        log.info("Session created for account {}", accountId);
         return LoginResult.success(token, expiresAt);
     }
 

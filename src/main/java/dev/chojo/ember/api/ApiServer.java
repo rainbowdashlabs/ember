@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.traffic.service.AuthBucketClassifier;
 import dev.chojo.ember.feature.traffic.service.StationResolver;
 import dev.chojo.ember.feature.traffic.service.StationTrafficRecorder;
 import dev.chojo.ember.util.DevErrorWriter;
+import dev.chojo.ember.util.LogRedaction;
 import io.javalin.Javalin;
 import io.javalin.compression.CompressionStrategy;
 import io.javalin.compression.Gzip;
@@ -41,12 +42,10 @@ import io.javalin.http.HandlerType;
 import io.javalin.http.HttpResponseException;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.UnauthorizedResponse;
-import io.javalin.http.staticfiles.Location;
 import io.javalin.openapi.plugin.OpenApiPlugin;
 import io.javalin.openapi.plugin.OpenApiPluginConfiguration;
 import io.javalin.openapi.plugin.swagger.SwaggerConfiguration;
 import io.javalin.openapi.plugin.swagger.SwaggerPlugin;
-import io.javalin.plugin.bundled.CorsPluginConfig;
 import io.javalin.security.RouteRole;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -61,10 +60,12 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -161,21 +162,14 @@ public class ApiServer {
             config.jsonMapper(jacksonMapper());
             configureCompression(config);
 
-            var publicDir = Path.of(System.getenv().getOrDefault("EMBER_PUBLIC_DIR", "public"));
-            if (Files.isDirectory(publicDir)) {
-                config.staticFiles.add(staticFiles -> {
-                    staticFiles.directory = publicDir.toString();
-                    staticFiles.location = Location.EXTERNAL;
-                });
-                config.spaRoot.addFile("/", publicDir.resolve("index.html").toString(), Location.EXTERNAL);
-            } else {
-                config.spaRoot.addFile("/", "/static/index.html", Location.CLASSPATH);
-            }
-
             config.registerPlugin(new OpenApiPlugin(this::configureOpenApi));
             config.registerPlugin(new SwaggerPlugin(this::configureSwagger));
 
-            config.bundledPlugins.enableCors(cors -> cors.addRule(CorsPluginConfig.CorsRule::anyHost));
+            config.bundledPlugins.enableCors(cors -> {
+                for (String origin : apiConfig.allowedOrigins()) {
+                    cors.addRule(rule -> rule.allowHost(origin));
+                }
+            });
 
             config.routes.before(ctx -> {
                 if (ctx.method() == HandlerType.OPTIONS) return;
@@ -193,9 +187,9 @@ public class ApiServer {
                 }
                 log.trace(
                         "Received request on route: {} {}\nHeaders:\n{}\nBody:\n{}",
-                        ctx.method() + " " + ctx.url(),
-                        requireNonNullElse(ctx.queryString(), ""),
-                        ctx.headerMap().entrySet().stream()
+                        ctx.method() + " " + LogRedaction.redactQueryString(ctx.url()),
+                        LogRedaction.redactQueryString(requireNonNullElse(ctx.queryString(), "")),
+                        LogRedaction.redactHeaders(ctx.headerMap()).entrySet().stream()
                                 .map(h -> "   " + h.getKey() + ": " + h.getValue())
                                 .collect(Collectors.joining("\n")),
                         bodyLog);
@@ -214,13 +208,17 @@ public class ApiServer {
                 } else {
                     responseBody = "Bytes";
                 }
+                var responseHeaders = new LinkedHashMap<String, String>();
+                for (String h : ctx.res().getHeaderNames()) {
+                    responseHeaders.put(h, ctx.res().getHeader(h));
+                }
                 log.trace(
                         "Answered request on route: {} {}\nStatus: {}\nHeaders:\n{}\nBody:\n{}",
-                        ctx.method() + " " + ctx.url(),
-                        requireNonNullElse(ctx.queryString(), ""),
+                        ctx.method() + " " + LogRedaction.redactQueryString(ctx.url()),
+                        LogRedaction.redactQueryString(requireNonNullElse(ctx.queryString(), "")),
                         ctx.status(),
-                        ctx.res().getHeaderNames().stream()
-                                .map(h -> "   " + h + ": " + ctx.res().getHeader(h))
+                        LogRedaction.redactHeaders(responseHeaders).entrySet().stream()
+                                .map(h -> "   " + h.getKey() + ": " + h.getValue())
                                 .collect(Collectors.joining("\n")),
                         responseBody);
             });
@@ -428,26 +426,18 @@ public class ApiServer {
             return;
         }
 
-        // Extract session token from Authorization header or query param (for iframe/download URLs)
         String authHeader = ctx.header("Authorization");
         String token = null;
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
-        }
-        if ((token == null || token.isBlank()) && ctx.queryParam("token") != null) {
-            token = ctx.queryParam("token");
         }
 
         if (token == null || token.isBlank()) {
             throw new UnauthorizedResponse("Missing or invalid Authorization header");
         }
 
-        // Parse optional station UID from header or query param
         Station station = null;
         String stationIdHeader = ctx.header("X-Station-Id");
-        if ((stationIdHeader == null || stationIdHeader.isBlank()) && ctx.queryParam("stationId") != null) {
-            stationIdHeader = ctx.queryParam("stationId");
-        }
         if (stationIdHeader != null && !stationIdHeader.isBlank()) {
             try {
                 var uid = UUID.fromString(stationIdHeader);
@@ -501,9 +491,15 @@ public class ApiServer {
      * Creates the Jackson 3 JSON mapper configured with ISO date formatting.
      */
     private Jackson3Mapper jacksonMapper() {
+        // FAIL_ON_UNKNOWN_PROPERTIES is Jackson's default but pinned explicitly here so
+        // an inbound payload with extra fields is rejected with 400 rather than silently
+        // dropped. A future contributor copying a mapper from another site (e.g. the
+        // federation HTTP client, which intentionally tolerates unknown fields for
+        // cross-version compatibility) will not accidentally regress this.
         ObjectMapper mapper = JsonMapper.builder()
                 .addModule(new StationIdModule(stationRepository))
                 .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+                .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                 .defaultDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX"))
                 .build();
         return new Jackson3Mapper(mapper);
@@ -559,9 +555,8 @@ public class ApiServer {
         });
 
         routes.exception(IllegalArgumentException.class, (err, ctx) -> {
-            log.warn("Invalid input on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
-            ctx.json(new ErrorResponseWrapper("Invalid Input", err.getMessage()))
-                    .status(HttpStatus.BAD_REQUEST);
+            log.warn("Invalid input on {} {}: {}", ctx.method(), ctx.path(), err.getMessage(), err);
+            ctx.json(new ErrorResponseWrapper("Invalid Input", "Invalid input")).status(HttpStatus.BAD_REQUEST);
         });
 
         routes.exception(Exception.class, (err, ctx) -> {
@@ -736,19 +731,32 @@ public class ApiServer {
     }
 
     /**
-     * Computes an ETag from the response body hash and handles conditional 304 Not Modified responses.
+     * Computes an ETag from the SHA-256 of the response body (truncated to 16
+     * hex chars / 64 bits) and handles conditional 304 Not Modified responses.
+     * SHA-256 is collision-resistant for the 64-bit truncation we expose, so an
+     * attacker cannot craft a different body that produces the same ETag the way
+     * a {@code String.hashCode()}-based tag would have allowed.
      */
     private void addETag(@NotNull Context ctx) {
         String body = ctx.result();
         if (body == null || body.isEmpty()) return;
 
-        String etag = "\"" + Integer.toHexString(body.hashCode()) + "\"";
+        String etag = "\"" + bodyDigest(body) + "\"";
         ctx.header("ETag", etag);
 
         String ifNoneMatch = ctx.header("If-None-Match");
         if (etag.equals(ifNoneMatch)) {
             ctx.status(HttpStatus.NOT_MODIFIED);
             ctx.result("");
+        }
+    }
+
+    private static String bodyDigest(String body) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(body.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest, 0, 8);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 not available", e);
         }
     }
 

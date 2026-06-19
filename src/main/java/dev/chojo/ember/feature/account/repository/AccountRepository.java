@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.account.repository;
 
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import dev.chojo.ember.api.auth.InstanceUserType;
+import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.entity.AccountExternalAuth;
@@ -14,6 +15,7 @@ import dev.chojo.ember.feature.account.entity.AccountSession;
 import dev.chojo.ember.feature.account.entity.AccountToken;
 import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.legal.entity.GdprConsent;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -35,6 +37,13 @@ public class AccountRepository {
             "id, email, first_name, last_name, email_verified, instance_user_type, full_name";
     private static final String CONSENT_COLUMNS =
             "id, account_id, consent_version, privacy_version, tos_version, ip_address, country, user_agent, consented_at";
+
+    private final TokenHasher tokenHasher;
+
+    @Inject
+    public AccountRepository(TokenHasher tokenHasher) {
+        this.tokenHasher = tokenHasher;
+    }
 
     /**
      * Finds an account by its unique identifier.
@@ -232,7 +241,8 @@ public class AccountRepository {
                 SELECT
                     account_id,
                     password_hash,
-                    force_password_change
+                    force_password_change,
+                    last_breach_check_at
                 FROM
                     account_credential
                 WHERE account_id = :id;""")
@@ -267,7 +277,8 @@ public class AccountRepository {
                 UPDATE account_credential
                 SET
                     password_hash         = :hash,
-                    force_password_change = FALSE
+                    force_password_change = FALSE,
+                    last_breach_check_at  = NULL
                 WHERE account_id = :id;""")
                 .single(call().bind("hash", passwordHash).bind("id", accountId))
                 .update()
@@ -284,6 +295,33 @@ public class AccountRepository {
     public boolean setForcePasswordChange(int accountId, boolean force) {
         return query("UPDATE account_credential SET force_password_change = :force WHERE account_id = :id;")
                 .single(call().bind("force", force).bind("id", accountId))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Records the outcome of an HIBP breach check for an account's credential.
+     * Always updates {@code last_breach_check_at} so the next check is gated by
+     * the staleness window; sets {@code force_password_change} only when the
+     * lookup reported a pwned password.
+     *
+     * @param accountId the account identifier
+     * @param when      the check timestamp
+     * @param pwned     whether the password was found in a breach corpus
+     * @return {@code true} if the credential row was updated
+     */
+    public boolean updateLastBreachCheck(int accountId, Instant when, boolean pwned) {
+        String sql = pwned ? """
+                UPDATE account_credential
+                SET
+                    last_breach_check_at  = :when,
+                    force_password_change = TRUE
+                WHERE account_id = :id;""" : """
+                UPDATE account_credential
+                SET last_breach_check_at = :when
+                WHERE account_id = :id;""";
+        return query(sql)
+                .single(call().bind("when", when, INSTANT_TIMESTAMP).bind("id", accountId))
                 .update()
                 .changed();
     }
@@ -386,15 +424,58 @@ public class AccountRepository {
                 SELECT
                     id,
                     account_id,
-                    token,
+                    token_hash,
                     token_type,
                     metadata,
                     expires_at,
-                    created_at
+                    created_at,
+                    confirmed_at
                 FROM
                     account_token
-                WHERE token = :token;""")
-                .single(call().bind("token", token))
+                WHERE token_hash = :token_hash;""")
+                .single(call().bind("token_hash", tokenHasher.hash(token)))
+                .map(AccountToken.map())
+                .first();
+    }
+
+    /**
+     * Marks a token as pre-confirmed (one half of a two-sided confirmation flow).
+     * The token is not deleted; the partner-side click is what commits the action.
+     */
+    public boolean markTokenConfirmed(int tokenId) {
+        return query("UPDATE account_token SET confirmed_at = now() WHERE id = :id;")
+                .single(call().bind("id", tokenId))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Finds the partner half of a two-sided email-change confirmation. Both halves
+     * share a {@code requestId} prefix in their {@code metadata} and live on the
+     * same account; this method returns the row that is not the supplied
+     * {@code selfId}, regardless of which type it carries.
+     */
+    public Optional<AccountToken> findEmailChangePartner(int accountId, String requestId, int selfId) {
+        return query("""
+                SELECT
+                    id,
+                    account_id,
+                    token_hash,
+                    token_type,
+                    metadata,
+                    expires_at,
+                    created_at,
+                    confirmed_at
+                FROM
+                    account_token
+                WHERE account_id = :account_id
+                    AND id <> :self_id
+                    AND token_type IN ('EMAIL_CHANGE_RELEASE', 'EMAIL_CHANGE_CLAIM')
+                    AND metadata LIKE :prefix
+                LIMIT 1;""")
+                .single(call().bind("account_id", accountId)
+                        .bind("self_id", selfId)
+                        .bind("prefix", requestId + "|%"))
                 .map(AccountToken.map())
                 .first();
     }
@@ -427,11 +508,11 @@ public class AccountRepository {
         return query("""
                 INSERT
                         INTO
-                            account_token(account_id, token, token_type, metadata, expires_at)
+                            account_token(account_id, token_hash, token_type, metadata, expires_at)
                         VALUES
-                            (:account_id, :token, :type, :metadata, :expires_at);""")
+                            (:account_id, :token_hash, :type, :metadata, :expires_at);""")
                 .single(call().bind("account_id", accountId)
-                        .bind("token", token)
+                        .bind("token_hash", tokenHasher.hash(token))
                         .bind("type", tokenType)
                         .bind("metadata", metadata)
                         .bind("expires_at", expiresAt, INSTANT_TIMESTAMP))
@@ -445,8 +526,8 @@ public class AccountRepository {
      * @return {@code true} if a token was deleted
      */
     public boolean deleteToken(String token) {
-        return query("DELETE FROM account_token WHERE token = :token;")
-                .single(call().bind("token", token))
+        return query("DELETE FROM account_token WHERE token_hash = :token_hash;")
+                .single(call().bind("token_hash", tokenHasher.hash(token)))
                 .delete()
                 .changed();
     }
@@ -480,6 +561,23 @@ public class AccountRepository {
     }
 
     /**
+     * Deletes every recovery / verification token for an account. Used on a successful
+     * password rotation so that any other pending password-reset, email-verification,
+     * email-change or station-delete tokens for the same account stop working — they
+     * would otherwise let an attacker who already obtained the credential keep
+     * performing destructive actions through alternate token-consuming endpoints.
+     *
+     * @param accountId the account identifier
+     * @return {@code true} if any tokens were deleted
+     */
+    public boolean deleteAllTokens(int accountId) {
+        return query("DELETE FROM account_token WHERE account_id = :account_id;")
+                .single(call().bind("account_id", accountId))
+                .delete()
+                .changed();
+    }
+
+    /**
      * Finds a session by its bearer token.
      *
      * @param token the session token
@@ -490,7 +588,7 @@ public class AccountRepository {
                 SELECT
                             id,
                             account_id,
-                            token,
+                            token_hash,
                             expires_at,
                             created_at,
                             user_agent,
@@ -498,8 +596,8 @@ public class AccountRepository {
                             location
                         FROM
                             account_session
-                        WHERE token = :token;""")
-                .single(call().bind("token", token))
+                        WHERE token_hash = :token_hash;""")
+                .single(call().bind("token_hash", tokenHasher.hash(token)))
                 .map(AccountSession.map())
                 .first();
     }
@@ -515,7 +613,7 @@ public class AccountRepository {
                 SELECT
                     id,
                     account_id,
-                    token,
+                    token_hash,
                     expires_at,
                     created_at,
                     user_agent,
@@ -545,11 +643,11 @@ public class AccountRepository {
         return query("""
                 INSERT
                 INTO
-                    account_session(account_id, token, expires_at, user_agent, location)
+                    account_session(account_id, token_hash, expires_at, user_agent, location)
                 VALUES
-                    (:account_id, :token, :expires_at, :user_agent, :location);""")
+                    (:account_id, :token_hash, :expires_at, :user_agent, :location);""")
                 .single(call().bind("account_id", accountId)
-                        .bind("token", token)
+                        .bind("token_hash", tokenHasher.hash(token))
                         .bind("expires_at", expiresAt, INSTANT_TIMESTAMP)
                         .bind("user_agent", userAgent)
                         .bind("location", location))
@@ -571,11 +669,11 @@ public class AccountRepository {
                     last_used_at = now(),
                     user_agent   = :user_agent,
                     location     = coalesce(:location, location)
-                WHERE token = :token;
+                WHERE token_hash = :token_hash;
                 """)
                 .single(call().bind("user_agent", userAgent)
                         .bind("location", location)
-                        .bind("token", token))
+                        .bind("token_hash", tokenHasher.hash(token)))
                 .update()
                 .changed();
     }
@@ -592,12 +690,12 @@ public class AccountRepository {
         return query("""
                 UPDATE account_session
                         SET
-                            token      = :new_token,
+                            token_hash = :new_hash,
                             expires_at = :expires_at
-                        WHERE token = :old_token;""")
-                .single(call().bind("new_token", newToken)
+                        WHERE token_hash = :old_hash;""")
+                .single(call().bind("new_hash", tokenHasher.hash(newToken))
                         .bind("expires_at", newExpiresAt, INSTANT_TIMESTAMP)
-                        .bind("old_token", oldToken))
+                        .bind("old_hash", tokenHasher.hash(oldToken)))
                 .update()
                 .changed();
     }
@@ -609,8 +707,8 @@ public class AccountRepository {
      * @return {@code true} if the session was deleted
      */
     public boolean deleteSession(String token) {
-        return query("DELETE FROM account_session WHERE token = :token;")
-                .single(call().bind("token", token))
+        return query("DELETE FROM account_session WHERE token_hash = :token_hash;")
+                .single(call().bind("token_hash", tokenHasher.hash(token)))
                 .delete()
                 .changed();
     }
@@ -638,6 +736,23 @@ public class AccountRepository {
     public boolean deleteSessionsByAccount(int accountId) {
         return query("DELETE FROM account_session WHERE account_id = :account_id;")
                 .single(call().bind("account_id", accountId))
+                .delete()
+                .changed();
+    }
+
+    /**
+     * Deletes every session for an account except the one belonging to {@code keepToken}.
+     * Used by {@code changePassword} so the user is not forcibly logged out of the
+     * session they used to change their own credential while every other live session
+     * (potentially an attacker's) is killed.
+     *
+     * @param accountId the account identifier
+     * @param keepToken the raw bearer of the session to retain (hashed internally)
+     * @return {@code true} if any sessions were deleted
+     */
+    public boolean deleteSessionsExceptToken(int accountId, String keepToken) {
+        return query("DELETE FROM account_session WHERE account_id = :account_id AND token_hash <> :keep_hash;")
+                .single(call().bind("account_id", accountId).bind("keep_hash", tokenHasher.hash(keepToken)))
                 .delete()
                 .changed();
     }

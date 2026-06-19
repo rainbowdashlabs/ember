@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import { getItem } from './storage'
+import { downloadAuthed } from '@/util/downloadAuthed'
 
 export interface TestProtocol {
     id: number
@@ -234,22 +234,26 @@ export async function getEvaluation(runId: number): Promise<EvaluationResponse> 
     return res.data
 }
 
-export function exportMemberPdfUrl(runId: number, memberId: number): string {
-    const token = getItem('session_token') ?? ''
-    const stationId = getItem('station_id') ?? ''
-    return `${client.defaults.baseURL}/protocols/runs/${runId}/members/${memberId}/export?token=${encodeURIComponent(token)}&stationId=${encodeURIComponent(stationId)}`
+/**
+ * Downloads a per-member protocol PDF for the given run through the
+ * authenticated client.
+ */
+export function exportMemberPdf(runId: number, memberId: number): Promise<void> {
+    return downloadAuthed(`/protocols/runs/${runId}/members/${memberId}/export`, `protocol-${runId}-member-${memberId}.pdf`)
 }
 
-export function exportAllZipUrl(runId: number): string {
-    const token = getItem('session_token') ?? ''
-    const stationId = getItem('station_id') ?? ''
-    return `${client.defaults.baseURL}/protocols/runs/${runId}/export-all?token=${encodeURIComponent(token)}&stationId=${encodeURIComponent(stationId)}`
+/**
+ * Downloads the per-member PDFs bundled as a ZIP for the given run.
+ */
+export function exportAllZip(runId: number): Promise<void> {
+    return downloadAuthed(`/protocols/runs/${runId}/export-all`, `protocol-${runId}-export.zip`)
 }
 
-export function evaluationPdfUrl(runId: number): string {
-    const token = getItem('session_token') ?? ''
-    const stationId = getItem('station_id') ?? ''
-    return `${client.defaults.baseURL}/protocols/runs/${runId}/evaluation/export?token=${encodeURIComponent(token)}&stationId=${encodeURIComponent(stationId)}`
+/**
+ * Downloads the aggregate evaluation PDF for the given run.
+ */
+export function evaluationPdf(runId: number): Promise<void> {
+    return downloadAuthed(`/protocols/runs/${runId}/evaluation/export`, `protocol-${runId}-evaluation.pdf`)
 }
 
 export async function completeMember(runId: number, memberId: number): Promise<TestProtocolRunMember> {

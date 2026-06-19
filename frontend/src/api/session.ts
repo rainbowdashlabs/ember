@@ -6,6 +6,29 @@
 import client from './client'
 import type {ActiveSession, ConsentChangesResponse, ConsentStatusResponse, DocumentResponse, LegalVersionsResponse, MessageResponse, RecordConsentRequest, SessionInfo, StationMembership} from './types'
 
+export interface CrossStationSummary {
+    stationId: string
+    stationName: string
+    notifications: number
+    requirements: number
+}
+
+export interface CrossStationNotification {
+    stationId: string
+    stationName: string
+    id: number
+    type: string
+    localeKey: string
+    params: Record<string, string>
+    link?: { route: string; routeParams: Record<string, unknown> }
+    createdAt: string
+}
+
+export interface CrossStationDashboard {
+    stations: CrossStationSummary[]
+    recentNotifications: CrossStationNotification[]
+}
+
 export async function getSessionInfo(): Promise<SessionInfo> {
     const res = await client.get<SessionInfo>('/session')
     return res.data
@@ -88,6 +111,11 @@ export async function getConsentChanges(): Promise<ConsentChangesResponse> {
 export async function gdprExport(): Promise<Blob> {
     const res = await client.get('/session/gdpr-export', {responseType: 'blob'})
     return res.data as Blob
+}
+
+export async function getCrossStationDashboard(): Promise<CrossStationDashboard> {
+    const res = await client.get<CrossStationDashboard>('/session/cross-station-dashboard')
+    return res.data
 }
 
 export async function gdprExportManagedMember(memberId: number): Promise<Blob> {

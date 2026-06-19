@@ -743,6 +743,7 @@ public class NewsRoutes implements Routes {
             var result = federationHttpClient.getList(
                     partner.remoteHost(),
                     "/remote/news/" + newsId + "/comments",
+                    partner.partnerStationId(),
                     station.id(),
                     station.federationPrivateKey(),
                     CommentResponse.class);
@@ -772,6 +773,7 @@ public class NewsRoutes implements Routes {
                     partner.remoteHost(),
                     "/remote/news/" + newsId + "/comments",
                     body,
+                    partner.partnerStationId(),
                     station.id(),
                     station.federationPrivateKey(),
                     CommentResponse.class);
@@ -806,6 +808,7 @@ public class NewsRoutes implements Routes {
                     partner.remoteHost(),
                     "/remote/news/comments/" + commentId,
                     body,
+                    partner.partnerStationId(),
                     station.id(),
                     station.federationPrivateKey(),
                     CommentResponse.class);
@@ -836,6 +839,7 @@ public class NewsRoutes implements Routes {
             boolean success = federationHttpClient.delete(
                     partner.remoteHost(),
                     "/remote/news/comments/" + commentId,
+                    partner.partnerStationId(),
                     station.id(),
                     station.federationPrivateKey());
             if (!success) throw new InternalServerErrorResponse("Failed to delete comment on partner");

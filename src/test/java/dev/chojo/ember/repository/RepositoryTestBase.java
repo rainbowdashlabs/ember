@@ -13,6 +13,7 @@ import de.chojo.sadu.postgresql.mapper.PostgresqlMapper;
 import de.chojo.sadu.queries.api.configuration.QueryConfiguration;
 import de.chojo.sadu.updater.QueryReplacement;
 import de.chojo.sadu.updater.SqlUpdater;
+import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
@@ -199,7 +200,7 @@ public abstract class RepositoryTestBase {
                 .setRowMapperRegistry(new RowMapperRegistry().register(PostgresqlMapper.getDefaultMapper()))
                 .build();
         QueryConfiguration.setDefault(config);
-        accountRepo = new AccountRepository();
+        accountRepo = new AccountRepository(TokenHasher.forTesting("repository-test-pepper"));
         stationRepo = new StationRepository();
         stationMemberRepo = new StationMemberRepository(stationRepo);
         attendanceRepo = new AttendanceRepository();

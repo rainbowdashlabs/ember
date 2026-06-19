@@ -13,6 +13,7 @@ import dev.chojo.ember.tracking.GdprExportContext;
 import dev.chojo.ember.tracking.Status;
 import dev.chojo.ember.tracking.TableEntry;
 import dev.chojo.ember.tracking.TransferContext;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -114,7 +115,7 @@ public class DataTrackingAdminService {
     public TableEntry updateTable(String tableName, TableUpdate update) throws IOException {
         var tracking = load();
         var existing = tracking.tables() == null ? null : tracking.tables().get(tableName);
-        if (existing == null) throw new IllegalArgumentException("Unknown table: " + tableName);
+        if (existing == null) throw new BadRequestResponse("Unknown table: " + tableName);
 
         // Build the new column list — only the verified flags can change here. Descriptions are
         // mirrored from the live schema and preserved verbatim.
@@ -187,7 +188,7 @@ public class DataTrackingAdminService {
     public TableEntry verifyAllColumns(String tableName) throws IOException {
         var tracking = load();
         var existing = tracking.tables() == null ? null : tracking.tables().get(tableName);
-        if (existing == null) throw new IllegalArgumentException("Unknown table: " + tableName);
+        if (existing == null) throw new BadRequestResponse("Unknown table: " + tableName);
 
         Map<String, Boolean> overrides = new LinkedHashMap<>();
         for (var c : existing.columns()) overrides.put(c.name(), true);

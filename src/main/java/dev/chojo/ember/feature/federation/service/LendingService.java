@@ -267,6 +267,7 @@ public class LendingService {
         return httpClient.getList(
                 partner.remoteHost(),
                 "/remote/lending/messages/" + requestId,
+                partner.partnerStationId(),
                 localStationId,
                 station.federationPrivateKey(),
                 LendingMessage.class);

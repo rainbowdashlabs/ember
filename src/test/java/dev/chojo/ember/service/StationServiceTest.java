@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -139,7 +140,7 @@ class StationServiceTest extends RepositoryTestBase {
     @Order(21)
     void setLogoTooLarge() {
         byte[] tooLarge = new byte[3 * 1024 * 1024]; // 3 MB
-        assertThrows(IllegalArgumentException.class, () -> service.setLogo(stationId, tooLarge, "image/png"));
+        assertThrows(BadRequestResponse.class, () -> service.setLogo(stationId, tooLarge, "image/png"));
     }
 
     @Test
@@ -366,7 +367,7 @@ class StationServiceTest extends RepositoryTestBase {
         var other = stationRepo.create("Other Station");
         service.updatePublicSlug(other.id(), "taken-slug-" + UUID.randomUUID());
         var slug = stationRepo.findById(other.id()).orElseThrow().publicSlug();
-        assertThrows(IllegalArgumentException.class, () -> service.updatePublicSlug(stationId, slug));
+        assertThrows(BadRequestResponse.class, () -> service.updatePublicSlug(stationId, slug));
         stationRepo.delete(other.id());
     }
 

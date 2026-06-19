@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.media.service;
 
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import net.coobird.thumbnailator.Thumbnails;
@@ -69,41 +70,81 @@ public class ImageService {
     public void store(ImageCategory category, String id, byte[] data, String contentType, int maxBytes)
             throws IOException {
         if (maxBytes > 0 && data.length > maxBytes) {
-            throw new IllegalArgumentException("Image exceeds maximum size of " + (maxBytes / 1024 / 1024) + " MB");
+            throw new BadRequestResponse("Image exceeds maximum size of " + (maxBytes / 1024 / 1024) + " MB");
         }
 
-        BufferedImage original = ImageIO.read(new ByteArrayInputStream(data));
+        // Sniff the magic bytes — the client-supplied contentType is advisory only.
+        // An off-allow-list or unidentifiable upload is rejected before any disk
+        // write so an attacker cannot land scriptable content (HTML / SVG / JS)
+        // under data/images/ regardless of what MIME they claimed.
+        String sniffedMime = sniffImageMime(data).orElseThrow(() -> new BadRequestResponse("Unsupported image format"));
 
-        // Delete old image files before writing new ones
+        Path dir = resolveSafe(category, id);
+        BufferedImage original = ImageIO.read(new ByteArrayInputStream(data));
+        if (original == null) {
+            // Every sniffed-allow-listed format is readable by ImageIO once
+            // TwelveMonkeys WebP is on the classpath. A null here means a
+            // truncated or otherwise unreadable file matching one of the magic
+            // signatures — treat it as a bad upload rather than writing raw bytes.
+            throw new BadRequestResponse("Unsupported image format");
+        }
+
         delete(category, id);
 
-        String extension = extensionFor(contentType);
-        Path dir = baseDir.resolve(category.directory()).resolve(id);
+        String extension = extensionFor(sniffedMime);
         Files.createDirectories(dir);
 
-        if (original == null) {
-            // Format not supported by ImageIO (e.g. WebP) — store raw bytes without resizing
-            log.info("ImageIO cannot read format '{}', storing raw bytes", contentType);
-            Files.write(dir.resolve("original." + extension), data);
-            for (int size : SIZES) {
-                Files.write(dir.resolve(size + "." + extension), data);
-            }
-        } else {
-            int longestSide = Math.max(original.getWidth(), original.getHeight());
+        int longestSide = Math.max(original.getWidth(), original.getHeight());
 
-            // Store original capped at MAX_PIXEL_SIZE, always compressed
-            int originalTarget = Math.min(longestSide, MAX_PIXEL_SIZE);
-            writeCompressed(original, dir.resolve("original." + extension), originalTarget, extension);
+        int originalTarget = Math.min(longestSide, MAX_PIXEL_SIZE);
+        writeCompressed(original, dir.resolve("original." + extension), originalTarget, extension);
 
-            // Generate all fixed sizes — always, even if source is smaller
-            for (int size : SIZES) {
-                int target = Math.min(size, longestSide);
-                writeCompressed(original, dir.resolve(size + "." + extension), target, extension);
-            }
+        for (int size : SIZES) {
+            int target = Math.min(size, longestSide);
+            writeCompressed(original, dir.resolve(size + "." + extension), target, extension);
         }
 
-        // Write content type marker
-        Files.writeString(dir.resolve(".content-type"), contentType);
+        Files.writeString(dir.resolve(".content-type"), sniffedMime);
+    }
+
+    /**
+     * Returns the MIME type identified by inspecting the first bytes of {@code data},
+     * or empty when the bytes do not match any allow-listed image signature
+     * (PNG / JPEG / WebP / GIF). The client-declared MIME is intentionally not
+     * consulted — clients can forge it; magic bytes cannot be forged without
+     * also changing the actual format.
+     */
+    static Optional<String> sniffImageMime(byte[] data) {
+        if (data == null || data.length < 4) return Optional.empty();
+        if (startsWith(data, new int[] {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A})) {
+            return Optional.of("image/png");
+        }
+        if (startsWith(data, new int[] {0xFF, 0xD8, 0xFF})) {
+            return Optional.of("image/jpeg");
+        }
+        if (data.length >= 12
+                && startsWith(data, new int[] {0x52, 0x49, 0x46, 0x46}) // "RIFF"
+                && data[8] == 0x57
+                && data[9] == 0x45
+                && data[10] == 0x42
+                && data[11] == 0x50) { // "WEBP"
+            return Optional.of("image/webp");
+        }
+        if (data.length >= 6
+                && startsWith(data, new int[] {0x47, 0x49, 0x46, 0x38}) // "GIF8"
+                && (data[4] == 0x37 || data[4] == 0x39)
+                && data[5] == 0x61) {
+            return Optional.of("image/gif");
+        }
+        return Optional.empty();
+    }
+
+    private static boolean startsWith(byte[] data, int[] signature) {
+        if (data.length < signature.length) return false;
+        for (int i = 0; i < signature.length; i++) {
+            if ((data[i] & 0xff) != signature[i]) return false;
+        }
+        return true;
     }
 
     /**
@@ -122,7 +163,12 @@ public class ImageService {
      * @return image bytes and content type, or empty if not found
      */
     public Optional<ImageData> read(ImageCategory category, String id, int size) {
-        Path dir = baseDir.resolve(category.directory()).resolve(id);
+        Path dir;
+        try {
+            dir = resolveSafe(category, id);
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
         if (!Files.exists(dir)) {
             return Optional.empty();
         }
@@ -145,22 +191,25 @@ public class ImageService {
     }
 
     /**
-     * Deletes all sizes of an image.
+     * Deletes all sizes of an image. Any {@link IOException} encountered while
+     * listing or deleting a file or the directory itself is propagated as an
+     * {@link java.io.UncheckedIOException} so the failure surfaces in the admin
+     * problem feed instead of silently leaving stale fragments on disk.
      */
     public void delete(ImageCategory category, String id) {
-        Path dir = baseDir.resolve(category.directory()).resolve(id);
+        Path dir = resolveSafe(category, id);
         if (!Files.exists(dir)) return;
         try (var stream = Files.list(dir)) {
             stream.forEach(file -> {
                 try {
                     Files.deleteIfExists(file);
                 } catch (IOException e) {
-                    log.warn("Failed to delete {}", file, e);
+                    throw new java.io.UncheckedIOException("Failed to delete " + file, e);
                 }
             });
             Files.deleteIfExists(dir);
         } catch (IOException e) {
-            log.warn("Failed to clean directory {}", dir, e);
+            throw new java.io.UncheckedIOException("Failed to clean directory " + dir, e);
         }
     }
 
@@ -168,7 +217,34 @@ public class ImageService {
      * Checks whether an image exists on disk.
      */
     public boolean exists(ImageCategory category, String id) {
-        return Files.exists(baseDir.resolve(category.directory()).resolve(id).resolve(".content-type"));
+        try {
+            return Files.exists(resolveSafe(category, id).resolve(".content-type"));
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Resolves the on-disk directory for an image, rejecting any {@code id} that would
+     * escape the category root (e.g. {@code "../etc/passwd"}). Containment is verified
+     * after {@link Path#normalize()} so {@code ".."} segments cannot reach outside the
+     * configured base directory. Symlinks placed inside the base directory by an
+     * operator are not followed; deployments must not stage symlinks inside
+     * {@code data/images} that escape the tree.
+     *
+     * @throws IllegalArgumentException when the resolved path escapes the category root
+     *                                  or when the id is null / blank
+     */
+    private Path resolveSafe(ImageCategory category, String id) {
+        if (id == null || id.isBlank()) {
+            throw new IllegalArgumentException("invalid image id");
+        }
+        Path categoryRoot = baseDir.resolve(category.directory()).normalize();
+        Path resolved = categoryRoot.resolve(id).normalize();
+        if (!resolved.startsWith(categoryRoot) || resolved.equals(categoryRoot)) {
+            throw new IllegalArgumentException("invalid image id");
+        }
+        return resolved;
     }
 
     private void writeCompressed(BufferedImage source, Path target, int maxSide, String extension) throws IOException {
@@ -191,6 +267,7 @@ public class ImageService {
         return switch (contentType) {
             case "image/png" -> "png";
             case "image/webp" -> "webp";
+            case "image/gif" -> "gif";
             default -> "jpg";
         };
     }

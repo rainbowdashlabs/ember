@@ -30,6 +30,7 @@ import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.system.service.RequirementsService;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -471,7 +472,7 @@ public class FormService {
         }
 
         if (!errors.isEmpty()) {
-            throw new IllegalArgumentException(String.join("; ", errors));
+            throw new BadRequestResponse(String.join("; ", errors));
         }
     }
 

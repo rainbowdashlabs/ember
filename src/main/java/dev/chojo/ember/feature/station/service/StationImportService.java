@@ -211,7 +211,7 @@ public class StationImportService {
         Map<String, Object> stationPage = fetchRemotePage(httpClient, mapper, baseUrl, token, "station", 0, PAGE_SIZE);
         Map<String, Object> stationData = asMap(stationPage.get("station"));
         if (stationData == null) {
-            throw new IllegalArgumentException("Remote station table missing 'station' field");
+            throw new io.javalin.http.BadRequestResponse("Remote station table missing 'station' field");
         }
 
         String stationName = asString(stationData.get("name"), "Imported Station");
@@ -339,6 +339,7 @@ public class StationImportService {
             if (accountRepository.findCredential(accountId).isPresent()) continue;
             accountRepository.createCredential(accountId, hash);
             accountRepository.setForcePasswordChange(accountId, true);
+            log.info("Imported credential for account {} ({}) with forced password change", accountId, email);
             installed++;
         }
         return installed;
@@ -454,18 +455,18 @@ public class StationImportService {
             var request = HttpRequest.newBuilder().uri(uri).GET().build();
             var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
-                throw new IllegalArgumentException(
+                throw new io.javalin.http.BadRequestResponse(
                         "Failed to fetch /tables from remote: HTTP " + response.statusCode());
             }
             Map<String, Object> body = mapper.readValue(response.body(), Map.class);
             String remoteHash = (String) body.get("schemaHash");
             if (remoteHash == null || remoteHash.isBlank()) {
-                throw new IllegalArgumentException("""
+                throw new io.javalin.http.BadRequestResponse("""
                         Cannot import: remote instance did not provide a schemaHash. \
                         Upgrade the source instance to a version that supports schema parity checks.""");
             }
             if (!remoteHash.equals(localHash)) {
-                throw new IllegalArgumentException("""
+                throw new io.javalin.http.BadRequestResponse("""
                         Cannot import station bundle: schema hash mismatch.
                           Source schema: %s
                           This instance: %s
@@ -473,7 +474,7 @@ public class StationImportService {
                         Update the importing instance to match, or re-export from a matching instance.\
                         """.formatted(remoteHash, localHash));
             }
-        } catch (IllegalArgumentException e) {
+        } catch (io.javalin.http.HttpResponseException e) {
             throw e;
         } catch (Exception e) {
             throw new RuntimeException("Failed to verify schema hash with remote", e);

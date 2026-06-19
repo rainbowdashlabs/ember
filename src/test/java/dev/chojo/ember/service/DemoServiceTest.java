@@ -9,6 +9,7 @@ import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
+import dev.chojo.ember.conf.file.elements.Federation;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.service.AuthService;
@@ -27,6 +28,7 @@ import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.FederationSigningService;
 import dev.chojo.ember.feature.federation.service.LendingService;
+import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
@@ -112,7 +114,8 @@ class DemoServiceTest extends RepositoryTestBase {
         // -- Services --
         var federationService = new FederationService(federationRepo, stationRepo, apiConfig);
         var signingService = new FederationSigningService();
-        var federationHttpClient = new FederationHttpClient(signingService, stationRepo);
+        var federationHttpClient = new FederationHttpClient(
+                signingService, stationRepo, new RemoteUrlValidator(new Federation(), new Demo()));
 
         var eventService = new EventService(eventRepo, restrictionRepo, noOpBus);
         var newsService = new NewsService(newsRepo, restrictionRepo, noOpBus, stationMemberRepo, accountRepo);

@@ -112,7 +112,7 @@ class MemberGroupRepositoryTest extends RepositoryTestBase {
         memberGroupRepo.addGroupPermission(groupId, loginPerm.id());
 
         // Resolve effective permissions through AccessManager (the same path used for session resolution)
-        var accessManager = new AccessManager(accountRepo, stationMemberRepo, memberGroupRepo, null, null);
+        var accessManager = new AccessManager(accountRepo, stationMemberRepo, memberGroupRepo, null, null, null, null);
         Set<StationPermission> resolved = accessManager.resolveExpandedMemberPermissions(member.id());
 
         assertTrue(

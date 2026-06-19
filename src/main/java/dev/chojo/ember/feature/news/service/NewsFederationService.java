@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
 import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -213,6 +214,7 @@ public class NewsFederationService {
         var remoteNews = httpClient.getList(
                 partner.remoteHost(),
                 "/remote/news",
+                partner.partnerStationId(),
                 localStation.id(),
                 localStation.federationPrivateKey(),
                 RemoteNewsListEntry.class);
@@ -245,12 +247,13 @@ public class NewsFederationService {
                 .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
         if (partner.status() != FederationStatus.ACTIVE) {
-            throw new IllegalArgumentException("Partner is not active");
+            throw new BadRequestResponse("Partner is not active");
         }
         if (partner.isRemote()) {
             var result = httpClient.get(
                     partner.remoteHost(),
                     "/remote/news/" + newsId,
+                    partner.partnerStationId(),
                     localStationId,
                     stationRepository
                             .findById(localStationId)
@@ -266,7 +269,7 @@ public class NewsFederationService {
                 .orElseThrow();
         var newsIds = findSharedNewsIds(partner.id(), partnerStationId);
         if (!newsIds.contains(newsId)) {
-            throw new IllegalArgumentException("News not shared with this partner");
+            throw new BadRequestResponse("News not shared with this partner");
         }
         return newsService
                 .findById(newsId)

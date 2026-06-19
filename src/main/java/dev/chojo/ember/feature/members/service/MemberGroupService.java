@@ -17,6 +17,8 @@ import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.util.PermissionValidation;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -26,6 +28,7 @@ import java.util.Set;
 
 @Singleton
 public class MemberGroupService {
+    private static final Logger log = LoggerFactory.getLogger(MemberGroupService.class);
     private final MemberGroupRepository groupRepository;
     private final StationMemberRepository memberRepository;
     private final UserTagRepository tagRepository;
@@ -52,7 +55,9 @@ public class MemberGroupService {
     }
 
     public MemberGroup create(int stationId, String name) {
-        return groupRepository.create(stationId, name);
+        var group = groupRepository.create(stationId, name);
+        log.info("Group created: id={}, station={}, name='{}'", group.id(), stationId, name);
+        return group;
     }
 
     public Optional<MemberGroup> update(int id, String name, String color, int position) {
@@ -63,6 +68,7 @@ public class MemberGroupService {
     }
 
     public boolean delete(int id) {
+        log.info("Group deleted: id={}", id);
         return groupRepository.delete(id);
     }
 
@@ -129,6 +135,7 @@ public class MemberGroupService {
             }
         }
 
+        log.info("Group permissions updated: group={}, permissions={}", groupId, desiredPermissionIds);
         return groupRepository.findGroupPermissions(groupId);
     }
 
@@ -140,5 +147,6 @@ public class MemberGroupService {
             tagRepository.addMember(tag.id(), member.id());
         }
         groupRepository.delete(groupId);
+        log.info("Group {} converted to tag {} in station {}", groupId, tag.id(), group.stationId());
     }
 }

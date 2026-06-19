@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -235,7 +236,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         service.setShare(news1.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER, List.of());
 
         // Mock httpClient.getList for the remote partner to return empty
-        when(httpClient.getList(anyString(), anyString(), anyInt(), any(), any()))
+        when(httpClient.getList(anyString(), anyString(), any(), anyInt(), any(), any()))
                 .thenReturn(List.of());
 
         // Browse from stationB's perspective — stationA is a local partner
@@ -252,7 +253,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     void browseFederatedNewsNoShares() {
         service.removeShare(news1.id());
 
-        when(httpClient.getList(anyString(), anyString(), anyInt(), any(), any()))
+        when(httpClient.getList(anyString(), anyString(), any(), anyInt(), any(), any()))
                 .thenReturn(List.of());
 
         var items = service.browseFederatedNews(stationB.id());
@@ -265,7 +266,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         service.setShare(news1.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER, List.of());
         service.setShare(news2.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.TEAM, List.of());
 
-        when(httpClient.getList(anyString(), anyString(), anyInt(), any(), any()))
+        when(httpClient.getList(anyString(), anyString(), any(), anyInt(), any(), any()))
                 .thenReturn(List.of());
 
         var items = service.browseFederatedNews(stationB.id());
@@ -290,7 +291,12 @@ class NewsFederationServiceTest extends RepositoryTestBase {
                 9999, "Remote Title", "<p>content</p>", "Remote Author", "2026-01-01", 5, NewsVisibilityRole.MEMBER);
 
         when(httpClient.getList(
-                        eq("https://remote-news.example.com"), eq("/remote/news"), eq(stationA.id()), any(), any()))
+                        eq("https://remote-news.example.com"),
+                        eq("/remote/news"),
+                        any(),
+                        eq(stationA.id()),
+                        any(),
+                        any()))
                 .thenReturn(List.of(remoteEntry));
 
         var items = service.browseFederatedNews(stationA.id());
@@ -298,7 +304,13 @@ class NewsFederationServiceTest extends RepositoryTestBase {
 
         // Verify HTTP was called
         verify(httpClient)
-                .getList(eq("https://remote-news.example.com"), eq("/remote/news"), eq(stationA.id()), any(), any());
+                .getList(
+                        eq("https://remote-news.example.com"),
+                        eq("/remote/news"),
+                        any(),
+                        eq(stationA.id()),
+                        any(),
+                        any());
 
         // Should contain the remote news item
         assertTrue(items.stream()
@@ -310,7 +322,12 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     @Order(26)
     void browseFederatedNewsHttpReturnsEmpty() {
         when(httpClient.getList(
-                        eq("https://remote-news.example.com"), eq("/remote/news"), eq(stationA.id()), any(), any()))
+                        eq("https://remote-news.example.com"),
+                        eq("/remote/news"),
+                        any(),
+                        eq(stationA.id()),
+                        any(),
+                        any()))
                 .thenReturn(List.of());
 
         var items = service.browseFederatedNews(stationA.id());
@@ -358,6 +375,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         when(httpClient.get(
                         eq("https://remote-news.example.com"),
                         eq("/remote/news/42"),
+                        any(),
                         eq(stationA.id()),
                         any(),
                         eq(FederatedNewsData.class)))
@@ -376,6 +394,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         when(httpClient.get(
                         eq("https://remote-news.example.com"),
                         eq("/remote/news/99"),
+                        any(),
                         eq(stationA.id()),
                         any(),
                         eq(FederatedNewsData.class)))
@@ -397,7 +416,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         // Suspend stationA's partner record for stationC
         federationRepo.updatePartnerStatus(reversePartner.id(), FederationPartner.FederationStatus.SUSPENDED);
 
-        assertThrows(IllegalArgumentException.class, () -> service.getFederatedNews(stationA.id(), stationC.uid(), 42));
+        assertThrows(BadRequestResponse.class, () -> service.getFederatedNews(stationA.id(), stationC.uid(), 42));
 
         // Restore
         federationRepo.updatePartnerStatus(reversePartner.id(), FederationPartner.FederationStatus.ACTIVE);
@@ -461,7 +480,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     void browseFederatedNewsChecksPartnerStationName() {
         service.setShare(news1.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER, List.of());
 
-        when(httpClient.getList(anyString(), anyString(), anyInt(), any(), any()))
+        when(httpClient.getList(anyString(), anyString(), any(), anyInt(), any(), any()))
                 .thenReturn(List.of());
 
         var items = service.browseFederatedNews(stationB.id());

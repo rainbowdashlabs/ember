@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRouter} from 'vue-router'
+import {useRoute} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -14,12 +14,13 @@ import {useStations} from '@/composables/useStations'
 import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
-const router = useRouter()
+const route = useRoute()
 const {stationList, loaded, load, setActiveStation, getStationLogoUrl} = useStations()
 
 function selectStation(stationId: string) {
   setActiveStation(stationId)
-  router.push({name: 'dashboard-overview'})
+  const redirect = route.query.redirect as string | undefined
+  window.location.href = redirect || '/station/dashboard/overview'
 }
 
 onMounted(async () => {

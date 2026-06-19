@@ -20,6 +20,7 @@ const ForgotPasswordView = () => import('@/views/ForgotPasswordView.vue')
 const SetPasswordView = () => import('@/views/SetPasswordView.vue')
 const HomeView = () => import('@/views/HomeView.vue')
 const StationSelectView = () => import('@/views/StationSelectView.vue')
+const CrossStationDashboardView = () => import('@/views/CrossStationDashboardView.vue')
 const StyleView = () => import('@/views/StyleView.vue')
 const OverviewView = () => import('@/views/dashboardview/OverviewView.vue')
 const StatisticsView = () => import('@/views/dashboardview/StatisticsView.vue')
@@ -128,6 +129,11 @@ const router = createRouter({
             path: '/station-select',
             name: 'station-select',
             component: StationSelectView,
+        },
+        {
+            path: '/cross-station',
+            name: 'cross-station-dashboard',
+            component: CrossStationDashboardView,
         },
         {
             path: '/',

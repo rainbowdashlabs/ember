@@ -14,6 +14,8 @@ import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.SafeContentDisposition;
+import dev.chojo.ember.util.SafeInlineMime;
 import io.javalin.http.Context;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -137,7 +139,12 @@ public class PublicPageRoutes implements Routes {
         String accept = ctx.header("Accept");
         var fileData =
                 pageService.readFileVariant(stationId, hash, width, accept).orElseThrow(NotFoundResponse::new);
-        ctx.contentType(fileData.contentType());
+        String stored = fileData.contentType();
+        ctx.contentType(SafeInlineMime.safeContentType(stored));
+        var disposition = SafeInlineMime.isInlineSafe(stored)
+                ? SafeContentDisposition.Disposition.INLINE
+                : SafeContentDisposition.Disposition.ATTACHMENT;
+        ctx.header("Content-Disposition", SafeContentDisposition.build(disposition, hash));
         ctx.header("Cache-Control", "public, max-age=31536000, immutable");
         ctx.header("Vary", "Accept");
         ctx.result(fileData.data());

@@ -26,6 +26,24 @@ public class Auth {
     @Overwrite(env = @Env)
     private int sessionMinutes = 30;
 
+    /**
+     * Server-side secret mixed into the HMAC used to hash session and recovery
+     * tokens before they are stored in the database. Empty by default; the
+     * application refuses to boot in production with a blank value. A
+     * deterministic placeholder is substituted during demo / dev runs so local
+     * smoke tests do not have to configure a pepper.
+     */
+    @Overwrite(env = @Env)
+    private String tokenPepper = "";
+
+    /**
+     * "Have I Been Pwned" k-anonymity breach-check configuration. New passwords
+     * are checked synchronously at set time and asynchronously after every
+     * successful login; pwned credentials are rejected on set and flagged for
+     * forced rotation on login.
+     */
+    private HibpSettings hibp = new HibpSettings();
+
     public int tokenBytes() {
         return tokenBytes;
     }
@@ -42,12 +60,26 @@ public class Auth {
         return sessionMinutes;
     }
 
+    /**
+     * Returns the server-side pepper mixed into HMAC-SHA-256 when hashing
+     * bearer-shaped tokens for at-rest storage.
+     */
+    public String tokenPepper() {
+        return tokenPepper;
+    }
+
+    public HibpSettings hibp() {
+        return hibp;
+    }
+
     @Override
     public String toString() {
         return "Auth{" + "tokenBytes="
                 + tokenBytes + ", verifyTokenHours="
                 + verifyTokenHours + ", passwordTokenHours="
                 + passwordTokenHours + ", sessionMinutes="
-                + sessionMinutes + '}';
+                + sessionMinutes + ", tokenPepperConfigured="
+                + !tokenPepper.isBlank() + ", hibp="
+                + hibp + '}';
     }
 }
