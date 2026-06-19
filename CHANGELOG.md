@@ -1,14 +1,5 @@
 # Changelog
 
-## v29.9.0
-
-### Security
-
-- **Bearer tokens hashed at rest.** Session bearers, password-reset codes, email-verification codes, and station-delete codes are now stored as `HMAC-SHA-256(auth.tokenPepper, raw token)` instead of plaintext. A database-only compromise (SQL injection, backup leak, replica misconfiguration) no longer yields usable tokens — the attacker also needs the application secret.
-- **Breaking on upgrade.** The migration drops the plaintext `token` column on `account_session` and `account_token`, invalidating every active session and pending recovery link. Users sign in again once after upgrade; pending password-reset / email-verification / station-delete emails must be re-requested.
-- **New required config in production: `auth.tokenPepper`** (env: `AUTH_TOKEN_PEPPER`). Generate a long random secret. Deployments with `demo.dev` or `demo.enabled` fall back to a fixed placeholder; production deployments refuse to boot if the pepper is blank.
-- **Markdown renderers sanitise output.** KB articles, station pages, and legal documents now pass every rendered HTML through a jsoup-based allow-list. Script tags, inline event handlers, `javascript:` URLs, cross-origin iframes, off-allowlist image sources, and unsupported inline styles are stripped before the HTML reaches another user's browser. KB / page content uses a `RICH` policy that keeps tables, headings, KB image references, coloured spans, and YouTube embeds (enforced `sandbox` / `loading="lazy"` / `referrerpolicy`). Legal documents use a `STRICT` policy that additionally forbids images and iframes.
-
 ## v26.9.0
 
 ### New Features
@@ -68,7 +59,7 @@
 - **`applyStationOverride` / `clearStationOverride`** — the override snapshots the current theme + feel + custom colours on entry, applies the station values, and sets a flag so the async public-theme fetch can no longer clobber it. `PublicStationShell` clears the override in `onUnmounted` so the station's theme no longer bleeds into the start page after navigating away.
 - **App-mount gated on theme resolution** — `initFromLocalStorage` now returns a promise; the init client plugin awaits it (`Promise.race` against a 1 s timeout) before Vue mounts.
 
-#### Per-Station Traffic Monitoring (Phases 1–3)
+#### Per-Station Traffic Monitoring
 
 - **`station_traffic_hourly` table** — new `patch_15` introduces hourly aggregated ingress/egress byte counters and request counts per station, split by auth bucket (`AUTHENTICATED` / `UNAUTHENTICATED` / `FEDERATION`). Two partial unique indexes let the upsert target both the per-station and instance-global rows correctly (`station_id IS NULL` for admin and static traffic).
 - **In-memory `StationTrafficRecorder`** — a `ConcurrentHashMap` of bucket accumulators is hit non-blockingly from the API `after`-handler. A dedicated single-threaded scheduler flushes aged buckets (any hour strictly older than the current one) via `StationTrafficRepository.upsert` on a configurable cadence and prunes buckets older than the retention window.
@@ -79,6 +70,14 @@
 - **Help center articles** — new `/helpcenter/admin/traffic` and `/helpcenter/station/manage/traffic` walk operators through the three auth buckets, the controls, and the "Global" leaderboard row.
 - **HTTP gzip compression** — text-shaped responses (JSON, HTML, CSS, XML/RSS/Atom, SVG, plain text, ICS feeds) are now gzipped by default. Driven by a `gzip-only` Javalin `CompressionStrategy` so binary types (images, audio, video, already-compressed archives) stay untouched. New `Api` config knobs: `httpGzipEnabled` (default true), `httpGzipLevel` (default 6, range 0–9), `httpGzipMinSizeBytes` (default 1024), overridable via `API_HTTP_GZIP_*` env vars. Concept §11.3 lists this as the largest single egress win after image variants — ~70% reduction on JSON, universally supported.
 - **Configuration** — new `Metrics` fields `trafficEnabled` (default true), `trafficRetentionDays` (default 90), `trafficFlushIntervalSeconds` (default 30), overridable via `METRICS_*` env vars.
+
+### Security
+
+- **Bearer tokens hashed at rest.** Session bearers, password-reset codes, email-verification codes, and station-delete codes are now stored as `HMAC-SHA-256(auth.tokenPepper, raw token)` instead of plaintext. A database-only compromise (SQL injection, backup leak, replica misconfiguration) no longer yields usable tokens — the attacker also needs the application secret.
+- **Breaking on upgrade.** The migration drops the plaintext `token` column on `account_session` and `account_token`, invalidating every active session and pending recovery link. Users sign in again once after upgrade; pending password-reset / email-verification / station-delete emails must be re-requested.
+- **New required config in production: `auth.tokenPepper`** (env: `AUTH_TOKEN_PEPPER`). Generate a long random secret. Deployments with `demo.dev` or `demo.enabled` fall back to a fixed placeholder; production deployments refuse to boot if the pepper is blank.
+- **Markdown renderers sanitise output.** KB articles, station pages, and legal documents now pass every rendered HTML through a jsoup-based allow-list. Script tags, inline event handlers, `javascript:` URLs, cross-origin iframes, off-allowlist image sources, and unsupported inline styles are stripped before the HTML reaches another user's browser. KB / page content uses a `RICH` policy that keeps tables, headings, KB image references, coloured spans, and YouTube embeds (enforced `sandbox` / `loading="lazy"` / `referrerpolicy`). Legal documents use a `STRICT` policy that additionally forbids images and iframes.
+- **Uploaded files served with a safe content type.** Routes that stream user-uploaded bytes (KB files, KB presentation downloads, board ticket attachments, public page file variants) now map the stored MIME through a small inline allow-list — only `image/png`, `image/jpeg`, `image/webp`, `image/gif`, and `application/pdf` are served with their declared type; everything else falls back to `application/octet-stream`. SVG and HTML uploads can no longer be executed on the API origin. All filename headers are emitted per RFC 6266 (`filename="…"` ASCII fallback + `filename*=UTF-8''…` percent-encoded) with CR / LF / quote / backslash stripped so a crafted upload name cannot inject response headers.
 
 ### Changes
 

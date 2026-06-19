@@ -38,6 +38,8 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.SafeContentDisposition;
+import dev.chojo.ember.util.SafeInlineMime;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -864,8 +866,10 @@ public class BoardTicketRoutes implements Routes {
         var att = ticketService.findAttachmentById(attachmentId).orElseThrow(NotFoundResponse::new);
         var path = ticketService.getAttachmentPath(att);
         if (!Files.exists(path)) throw new NotFoundResponse();
-        ctx.contentType(att.contentType());
-        ctx.header("Content-Disposition", "attachment; filename=\"" + att.originalName() + "\"");
+        ctx.contentType(SafeInlineMime.safeContentType(att.contentType()));
+        ctx.header(
+                "Content-Disposition",
+                SafeContentDisposition.build(SafeContentDisposition.Disposition.ATTACHMENT, att.originalName()));
         try {
             ctx.result(Files.newInputStream(path));
         } catch (IOException e) {
