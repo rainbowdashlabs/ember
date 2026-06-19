@@ -63,8 +63,11 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
@@ -736,19 +739,32 @@ public class ApiServer {
     }
 
     /**
-     * Computes an ETag from the response body hash and handles conditional 304 Not Modified responses.
+     * Computes an ETag from the SHA-256 of the response body (truncated to 16
+     * hex chars / 64 bits) and handles conditional 304 Not Modified responses.
+     * SHA-256 is collision-resistant for the 64-bit truncation we expose, so an
+     * attacker cannot craft a different body that produces the same ETag the way
+     * a {@code String.hashCode()}-based tag would have allowed.
      */
     private void addETag(@NotNull Context ctx) {
         String body = ctx.result();
         if (body == null || body.isEmpty()) return;
 
-        String etag = "\"" + Integer.toHexString(body.hashCode()) + "\"";
+        String etag = "\"" + bodyDigest(body) + "\"";
         ctx.header("ETag", etag);
 
         String ifNoneMatch = ctx.header("If-None-Match");
         if (etag.equals(ifNoneMatch)) {
             ctx.status(HttpStatus.NOT_MODIFIED);
             ctx.result("");
+        }
+    }
+
+    private static String bodyDigest(String body) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(body.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest, 0, 8);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 not available", e);
         }
     }
 
