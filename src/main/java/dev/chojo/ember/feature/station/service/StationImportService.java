@@ -339,6 +339,7 @@ public class StationImportService {
             if (accountRepository.findCredential(accountId).isPresent()) continue;
             accountRepository.createCredential(accountId, hash);
             accountRepository.setForcePasswordChange(accountId, true);
+            log.info("Imported credential for account {} ({}) with forced password change", accountId, email);
             installed++;
         }
         return installed;

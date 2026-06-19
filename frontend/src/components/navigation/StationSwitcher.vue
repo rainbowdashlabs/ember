@@ -6,15 +6,12 @@
 <script lang="ts" setup>
 import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRouter} from 'vue-router'
 import Modal from '@/components/feedback/Modal.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import {useStations} from '@/composables/useStations'
-import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
-const router = useRouter()
 const {
   stationList,
   loaded,
@@ -26,7 +23,6 @@ const {
   activeLogoUrl,
   getStationLogoUrl
 } = useStations()
-const {load: loadSession} = useSession()
 
 const showModal = ref(false)
 
@@ -34,11 +30,9 @@ onMounted(() => {
   load()
 })
 
-async function switchStation(stationId: string) {
+function switchStation(stationId: string) {
   setActiveStation(stationId)
-  showModal.value = false
-  await loadSession()
-  router.push({name: 'dashboard-overview'})
+  window.location.href = '/station/dashboard/overview'
 }
 </script>
 

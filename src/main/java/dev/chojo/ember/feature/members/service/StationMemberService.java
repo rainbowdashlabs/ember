@@ -18,6 +18,8 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +28,7 @@ import java.util.UUID;
 
 @Singleton
 public class StationMemberService {
+    private static final Logger log = LoggerFactory.getLogger(StationMemberService.class);
     private final StationMemberRepository memberRepository;
     private final AccountRepository accountRepository;
     private final AuthService authService;
@@ -70,10 +73,13 @@ public class StationMemberService {
     }
 
     public StationMember create(int stationId, int accountId) {
-        return memberRepository.create(stationId, accountId);
+        var member = memberRepository.create(stationId, accountId);
+        log.info("Member created: member={}, station={}, account={}", member.id(), stationId, accountId);
+        return member;
     }
 
     public boolean delete(int id) {
+        log.info("Member deleted: member={}", id);
         return memberRepository.delete(id);
     }
 
@@ -132,12 +138,14 @@ public class StationMemberService {
             }
         }
 
+        log.info("Permissions updated for member {}: {}", memberId, desiredPermissionIds);
         return memberRepository.findPermissions(memberId);
     }
 
     // -- User Type --
 
     public boolean setUserType(int memberId, StationUserType userType) {
+        log.info("User type changed for member {}: {}", memberId, userType);
         return memberRepository.setUserType(memberId, userType);
     }
 

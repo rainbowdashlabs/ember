@@ -1,4 +1,4 @@
-/*
+    /*
  *     SPDX-License-Identifier: AGPL-3.0-only
  *
  *     Copyright (C) RainbowDashLabs and Contributor
@@ -16,6 +16,8 @@ import dev.chojo.ember.feature.station.repository.StationApplicationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -29,6 +31,7 @@ import java.util.UUID;
  */
 @Singleton
 public class StationApplicationService {
+    private static final Logger log = LoggerFactory.getLogger(StationApplicationService.class);
     private final StationApplicationRepository applicationRepository;
     private final StationRepository stationRepository;
     private final AccountRepository accountRepository;
@@ -64,6 +67,7 @@ public class StationApplicationService {
         String token = UUID.randomUUID().toString();
         var application = applicationRepository.create(firstName, lastName, email, stationName, introduction, token);
         emailService.sendApplicationVerifyEmail(email, firstName, stationName, token, "de", null);
+        log.info("Station application submitted: id={}, email='{}', station='{}'", application.id(), email, stationName);
         return application;
     }
 
@@ -80,6 +84,7 @@ public class StationApplicationService {
                 .map(app -> {
                     emailService.sendApplicationReceivedEmail(
                             app.email(), app.firstName(), app.stationName(), "de", null);
+                    log.info("Station application verified: id={}, email='{}'", app.id(), app.email());
                     return true;
                 })
                 .isPresent();
@@ -153,6 +158,7 @@ public class StationApplicationService {
         emailService.sendApplicationAcceptedEmail(
                 application.email(), application.firstName(), application.stationName(), token, "de", null);
 
+        log.info("Station application accepted: id={}, station='{}', account={}", id, application.stationName(), account.id());
         return applicationRepository.findById(id).orElseThrow();
     }
 
@@ -171,6 +177,7 @@ public class StationApplicationService {
         emailService.sendApplicationDeniedEmail(
                 application.email(), application.firstName(), application.stationName(), reason, "de", null);
 
+        log.info("Station application denied: id={}, email='{}'", id, application.email());
         return applicationRepository.findById(id).orElseThrow();
     }
 }

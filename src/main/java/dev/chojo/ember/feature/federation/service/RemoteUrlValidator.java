@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
+import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Federation;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -70,10 +71,12 @@ public class RemoteUrlValidator {
             Cidr.parse6("ff00::/8"));
 
     private final Federation config;
+    private final Demo demo;
 
     @Inject
-    public RemoteUrlValidator(Federation config) {
+    public RemoteUrlValidator(Federation config, Demo demo) {
         this.config = config;
+        this.demo = demo;
     }
 
     /**
@@ -91,7 +94,7 @@ public class RemoteUrlValidator {
      */
     public boolean isAllowed(String url) {
         if (url == null || url.isBlank()) return false;
-        if (config.allowPrivateHosts()) return true;
+        if (config.allowPrivateHosts() || demo.dev() || demo.enabled()) return true;
 
         URI uri;
         try {

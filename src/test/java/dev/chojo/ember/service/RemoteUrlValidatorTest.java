@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Federation;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import org.junit.jupiter.api.Test;
@@ -17,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class RemoteUrlValidatorTest {
 
     private static RemoteUrlValidator strict() {
-        return new RemoteUrlValidator(new Federation());
+        return new RemoteUrlValidator(new Federation(), new Demo());
     }
 
     private static RemoteUrlValidator permissive() {
@@ -26,7 +27,7 @@ class RemoteUrlValidatorTest {
             public boolean allowPrivateHosts() {
                 return true;
             }
-        });
+        }, new Demo());
     }
 
     @Test

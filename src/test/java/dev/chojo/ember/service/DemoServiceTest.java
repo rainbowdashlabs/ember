@@ -115,7 +115,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var federationService = new FederationService(federationRepo, stationRepo, apiConfig);
         var signingService = new FederationSigningService();
         var federationHttpClient =
-                new FederationHttpClient(signingService, stationRepo, new RemoteUrlValidator(new Federation()));
+                new FederationHttpClient(signingService, stationRepo, new RemoteUrlValidator(new Federation(), new Demo()));
 
         var eventService = new EventService(eventRepo, restrictionRepo, noOpBus);
         var newsService = new NewsService(newsRepo, restrictionRepo, noOpBus, stationMemberRepo, accountRepo);

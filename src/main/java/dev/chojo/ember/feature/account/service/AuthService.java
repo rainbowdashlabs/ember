@@ -155,6 +155,7 @@ public class AuthService {
                 Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS));
         emailService.sendVerificationEmail(email, firstName, token);
 
+        log.info("Account registered via self-registration: account {} ({})", accountId, email);
         return RegistrationResult.success(accountRepository.findById(accountId).orElseThrow());
     }
 
@@ -187,6 +188,7 @@ public class AuthService {
                 Instant.now().plus(authConfig.passwordTokenHours(), ChronoUnit.HOURS));
         emailService.sendPasswordSetupEmail(email, firstName, token);
 
+        log.info("Invited account created: account {} ({}) for station {}", accountId, email, stationId);
         return RegistrationResult.success(accountRepository.findById(accountId).orElseThrow());
     }
 
@@ -229,6 +231,7 @@ public class AuthService {
 
         accountRepository.setEmailVerified(accountToken.accountId());
         accountRepository.deleteToken(token);
+        log.info("Email verified for account {}", accountToken.accountId());
         return true;
     }
 
@@ -302,6 +305,7 @@ public class AuthService {
                 TokenType.RESET_PASSWORD,
                 Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS));
         emailService.sendPasswordResetEmail(account.email(), account.firstName(), token);
+        log.info("Password reset requested for account {} ({})", account.id(), email);
     }
 
     /**
@@ -320,7 +324,7 @@ public class AuthService {
         Account account = accountOpt.get();
 
         if (forceChange) {
-            // Set flag so next login prompts password change
+            log.info("Admin reset for account {} ({}) with forced password change", accountId, account.email());
             accountRepository.setForcePasswordChange(accountId, true);
         }
 
@@ -384,16 +388,19 @@ public class AuthService {
         boolean passwordValid = passwordHasher.verify(password, storedHash);
 
         if (accountOpt.isEmpty() || credOpt.isEmpty() || !passwordValid) {
+            log.info("Login failed for '{}': invalid credentials", email);
             return LoginResult.failure("Invalid email or password");
         }
 
         Account account = accountOpt.get();
         if (!account.emailVerified()) {
+            log.info("Login failed for account {} ({}): email not verified", account.id(), email);
             return LoginResult.failure("Email not verified");
         }
 
         if (!accountRepository.isAdministrator(account.id())
                 && !stationMemberRepository.hasLoginPermission(account.id())) {
+            log.info("Login failed for account {} ({}): no login permission", account.id(), email);
             return LoginResult.failure("Invalid email or password");
         }
 
@@ -403,10 +410,13 @@ public class AuthService {
         }
 
         // Async HIBP breach check — gated by staleness window inside the worker, fail-open.
-        breachCheckWorker.enqueueCheck(account.id(), password);
+        if (!demo.enabled() && !demo.dev()) {
+            breachCheckWorker.enqueueCheck(account.id(), password);
+        }
 
         // Force password change — issue a one-time token instead of a session
         if (credOpt.get().forcePasswordChange()) {
+            log.info("Login for account {} ({}) requires password change — issuing password-change token", account.id(), email);
             String token = generateToken();
             accountRepository.deleteTokensByAccountAndType(account.id(), TokenType.FORCE_PASSWORD_CHANGE);
             accountRepository.createToken(
@@ -490,16 +500,19 @@ public class AuthService {
     public LoginResult refreshSession(String token, String userAgent, String location) {
         Optional<AccountSession> sessionOpt = accountRepository.findSession(token);
         if (sessionOpt.isEmpty()) {
+            log.debug("Session refresh failed: invalid token");
             return LoginResult.failure("Invalid session");
         }
 
         AccountSession session = sessionOpt.get();
         if (session.isExpired()) {
             accountRepository.deleteSession(token);
+            log.info("Session refresh failed for account {}: session expired", session.accountId());
             return LoginResult.failure("Session expired");
         }
 
         accountRepository.deleteSession(token);
+        log.debug("Session refreshed for account {}", session.accountId());
         return createSession(session.accountId(), userAgent, location);
     }
 
@@ -510,7 +523,10 @@ public class AuthService {
      * @return {@code true} if the session was found and deleted
      */
     public boolean logout(String token) {
-        return accountRepository.deleteSession(token);
+        var session = accountRepository.findSession(token);
+        boolean deleted = accountRepository.deleteSession(token);
+        session.ifPresent(s -> log.info("Logout for account {}", s.accountId()));
+        return deleted;
     }
 
     /**
@@ -530,6 +546,7 @@ public class AuthService {
      * @return {@code true} if any sessions were invalidated
      */
     public boolean invalidateAllSessions(int accountId) {
+        log.info("All sessions invalidated for account {}", accountId);
         return accountRepository.deleteSessionsByAccount(accountId);
     }
 
@@ -552,6 +569,7 @@ public class AuthService {
         accountRepository.updateCredential(accountId, passwordHasher.hash(newPassword));
         invalidateAfterPasswordRotation(accountId, currentSessionToken);
         accountRepository.findById(accountId).ifPresent(this::notifyPasswordChanged);
+        log.info("Password changed by account {}", accountId);
         return true;
     }
 
@@ -581,6 +599,7 @@ public class AuthService {
 
         emailService.sendEmailChangeReleaseRequest(account.email(), account.firstName(), newEmail, releaseToken);
         emailService.sendEmailChangeClaimRequest(newEmail, account.firstName(), account.email(), claimToken);
+        log.info("Email change requested for account {}: {} -> {}", accountId, account.email(), newEmail);
     }
 
     // -- Email change --
@@ -655,6 +674,7 @@ public class AuthService {
         invalidateAfterPasswordRotation(account.id(), null);
         emailService.sendEmailChangedNotice(oldEmail, account.firstName(), oldEmail, newEmail);
         emailService.sendEmailChangedNotice(newEmail, account.firstName(), oldEmail, newEmail);
+        log.info("Email changed for account {}: {} -> {}", account.id(), oldEmail, newEmail);
         return EmailChangeResult.COMMITTED;
     }
 
@@ -678,6 +698,7 @@ public class AuthService {
                 .findById(accountId)
                 .ifPresent(account ->
                         emailService.sendStationDeletionConfirmation(account.email(), account.firstName(), token));
+        log.info("Station deletion requested by account {} for station {}", accountId, stationId);
     }
 
     // -- Station deletion --
@@ -706,6 +727,7 @@ public class AuthService {
             return Optional.empty();
         }
         accountRepository.deleteToken(token);
+        log.info("Station deletion confirmed by account {} for station {}", accountToken.accountId(), stationId);
         return Optional.of(stationId);
     }
 
@@ -731,6 +753,7 @@ public class AuthService {
             expiresAt = Instant.now().plus(authConfig.sessionMinutes(), ChronoUnit.MINUTES);
         }
         accountRepository.createSession(accountId, token, expiresAt, userAgent, location);
+        log.info("Session created for account {}", accountId);
         return LoginResult.success(token, expiresAt);
     }
 

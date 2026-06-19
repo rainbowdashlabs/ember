@@ -299,7 +299,14 @@ async function loginAsDemo(account: DemoAccount) {
   loading.value = true
   error.value = ''
   try {
-    await auth.login({email: account.email, password: 'demo'})
+    const result = await auth.login({email: account.email, password: 'demo'})
+    if (result.passwordChangeRequired && result.passwordChangeToken) {
+      await navigateTo({
+        path: '/set-password',
+        query: {token: result.passwordChangeToken},
+      })
+      return
+    }
     await resolveStationAndRedirect()
   } catch {
     error.value = t('common.error')
