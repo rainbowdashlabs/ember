@@ -73,38 +73,78 @@ public class ImageService {
             throw new BadRequestResponse("Image exceeds maximum size of " + (maxBytes / 1024 / 1024) + " MB");
         }
 
+        // Sniff the magic bytes — the client-supplied contentType is advisory only.
+        // An off-allow-list or unidentifiable upload is rejected before any disk
+        // write so an attacker cannot land scriptable content (HTML / SVG / JS)
+        // under data/images/ regardless of what MIME they claimed.
+        String sniffedMime = sniffImageMime(data).orElseThrow(() -> new BadRequestResponse("Unsupported image format"));
+
         Path dir = resolveSafe(category, id);
         BufferedImage original = ImageIO.read(new ByteArrayInputStream(data));
-
-        // Delete old image files before writing new ones
-        delete(category, id);
-
-        String extension = extensionFor(contentType);
-        Files.createDirectories(dir);
-
         if (original == null) {
-            // Format not supported by ImageIO (e.g. WebP) — store raw bytes without resizing
-            log.info("ImageIO cannot read format '{}', storing raw bytes", contentType);
-            Files.write(dir.resolve("original." + extension), data);
-            for (int size : SIZES) {
-                Files.write(dir.resolve(size + "." + extension), data);
-            }
-        } else {
-            int longestSide = Math.max(original.getWidth(), original.getHeight());
-
-            // Store original capped at MAX_PIXEL_SIZE, always compressed
-            int originalTarget = Math.min(longestSide, MAX_PIXEL_SIZE);
-            writeCompressed(original, dir.resolve("original." + extension), originalTarget, extension);
-
-            // Generate all fixed sizes — always, even if source is smaller
-            for (int size : SIZES) {
-                int target = Math.min(size, longestSide);
-                writeCompressed(original, dir.resolve(size + "." + extension), target, extension);
-            }
+            // Every sniffed-allow-listed format is readable by ImageIO once
+            // TwelveMonkeys WebP is on the classpath. A null here means a
+            // truncated or otherwise unreadable file matching one of the magic
+            // signatures — treat it as a bad upload rather than writing raw bytes.
+            throw new BadRequestResponse("Unsupported image format");
         }
 
-        // Write content type marker
-        Files.writeString(dir.resolve(".content-type"), contentType);
+        delete(category, id);
+
+        String extension = extensionFor(sniffedMime);
+        Files.createDirectories(dir);
+
+        int longestSide = Math.max(original.getWidth(), original.getHeight());
+
+        int originalTarget = Math.min(longestSide, MAX_PIXEL_SIZE);
+        writeCompressed(original, dir.resolve("original." + extension), originalTarget, extension);
+
+        for (int size : SIZES) {
+            int target = Math.min(size, longestSide);
+            writeCompressed(original, dir.resolve(size + "." + extension), target, extension);
+        }
+
+        Files.writeString(dir.resolve(".content-type"), sniffedMime);
+    }
+
+    /**
+     * Returns the MIME type identified by inspecting the first bytes of {@code data},
+     * or empty when the bytes do not match any allow-listed image signature
+     * (PNG / JPEG / WebP / GIF). The client-declared MIME is intentionally not
+     * consulted — clients can forge it; magic bytes cannot be forged without
+     * also changing the actual format.
+     */
+    static Optional<String> sniffImageMime(byte[] data) {
+        if (data == null || data.length < 4) return Optional.empty();
+        if (startsWith(data, new int[] {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A})) {
+            return Optional.of("image/png");
+        }
+        if (startsWith(data, new int[] {0xFF, 0xD8, 0xFF})) {
+            return Optional.of("image/jpeg");
+        }
+        if (data.length >= 12
+                && startsWith(data, new int[] {0x52, 0x49, 0x46, 0x46}) // "RIFF"
+                && data[8] == 0x57
+                && data[9] == 0x45
+                && data[10] == 0x42
+                && data[11] == 0x50) { // "WEBP"
+            return Optional.of("image/webp");
+        }
+        if (data.length >= 6
+                && startsWith(data, new int[] {0x47, 0x49, 0x46, 0x38}) // "GIF8"
+                && (data[4] == 0x37 || data[4] == 0x39)
+                && data[5] == 0x61) {
+            return Optional.of("image/gif");
+        }
+        return Optional.empty();
+    }
+
+    private static boolean startsWith(byte[] data, int[] signature) {
+        if (data.length < signature.length) return false;
+        for (int i = 0; i < signature.length; i++) {
+            if ((data[i] & 0xff) != signature[i]) return false;
+        }
+        return true;
     }
 
     /**
@@ -224,6 +264,7 @@ public class ImageService {
         return switch (contentType) {
             case "image/png" -> "png";
             case "image/webp" -> "webp";
+            case "image/gif" -> "gif";
             default -> "jpg";
         };
     }
