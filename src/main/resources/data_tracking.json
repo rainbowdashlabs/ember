@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:ef1b95f33a776e5cfe1df8e669ec324955e2bea476febd753f4ea3cddea42dd3",
-  "generatedAt" : "2026-06-19T09:41:38Z",
+  "schemaHash" : "sha256:78f150f599ff648afa3ae3287c95d45a700a3ba24127146e02675fb8b9b52445",
+  "generatedAt" : "2026-06-19T10:01:09Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -284,7 +284,7 @@
     "account_token" : {
       "feature" : "account",
       "scope" : "USER",
-      "tableHash" : "sha256:fa34d062523f9f938c105ebbb1ee56e4f6d92fde1f06b138c69f9fbc362425f4",
+      "tableHash" : "sha256:68268e146833d9a81b5d087e5e8bea86d91ee901e0b626b8857ff301c6349c6b",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -327,6 +327,12 @@
         "nullable" : false,
         "verified" : true,
         "description" : "Lowercase hex HMAC-SHA-256(auth.tokenPepper, raw token). 64 chars. Raw token is never stored."
+      }, {
+        "name" : "confirmed_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Set when the token has been clicked but is awaiting a partner confirmation (currently used by the two-step EMAIL_CHANGE_RELEASE/EMAIL_CHANGE_CLAIM flow). NULL when not yet clicked or when the token type does not use two-step confirmation."
       } ],
       "foreignKeys" : [ {
         "column" : "account_id",

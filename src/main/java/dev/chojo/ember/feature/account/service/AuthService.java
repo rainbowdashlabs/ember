@@ -35,6 +35,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Service handling authentication, registration, session management, password operations,
@@ -557,38 +558,99 @@ public class AuthService {
      * @param newEmail  the new email address to change to
      */
     public void requestEmailChange(int accountId, String newEmail) {
-        accountRepository.deleteTokensByAccountAndType(accountId, TokenType.EMAIL_CHANGE);
-        String token = generateToken();
-        accountRepository.createToken(
-                accountId,
-                token,
-                TokenType.EMAIL_CHANGE,
-                newEmail,
-                Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS));
         var account = accountRepository.findById(accountId).orElse(null);
-        String name = account != null ? account.firstName() : "";
-        emailService.sendEmailChangeConfirmation(newEmail, name, token);
+        if (account == null) return;
+
+        accountRepository.deleteTokensByAccountAndType(accountId, TokenType.EMAIL_CHANGE);
+        accountRepository.deleteTokensByAccountAndType(accountId, TokenType.EMAIL_CHANGE_RELEASE);
+        accountRepository.deleteTokensByAccountAndType(accountId, TokenType.EMAIL_CHANGE_CLAIM);
+
+        String requestId = UUID.randomUUID().toString();
+        String metadata = requestId + "|" + newEmail;
+        Instant expiresAt = Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS);
+
+        String releaseToken = generateToken();
+        String claimToken = generateToken();
+        accountRepository.createToken(accountId, releaseToken, TokenType.EMAIL_CHANGE_RELEASE, metadata, expiresAt);
+        accountRepository.createToken(accountId, claimToken, TokenType.EMAIL_CHANGE_CLAIM, metadata, expiresAt);
+
+        emailService.sendEmailChangeReleaseRequest(account.email(), account.firstName(), newEmail, releaseToken);
+        emailService.sendEmailChangeClaimRequest(newEmail, account.firstName(), account.email(), claimToken);
     }
 
     // -- Email change --
 
     /**
-     * Confirms an email change using the provided token. Updates the account's email to the new address
-     * stored in the token's metadata.
-     *
-     * @param token the email change confirmation token
-     * @return {@code true} if the email was successfully changed
+     * Outcome of a {@link #confirmEmailChange(String)} click. {@link #WAITING} means
+     * this side has been confirmed but the partner side still has to click;
+     * {@link #COMMITTED} means both halves are in and the email was updated.
      */
-    public boolean confirmEmailChange(String token) {
+    public enum EmailChangeResult {
+        /** Token unknown, of the wrong type, or expired. */
+        INVALID,
+        /** This side accepted; the other half still has to confirm. */
+        WAITING,
+        /** Both halves confirmed; the account email has been updated. */
+        COMMITTED,
+        /** Both halves confirmed but the requested email is now taken by another account. */
+        DUPLICATE
+    }
+
+    /**
+     * Two-step email-change confirmation. The change only commits once both the
+     * EMAIL_CHANGE_RELEASE token (sent to the old address) and the EMAIL_CHANGE_CLAIM
+     * token (sent to the new address) have been clicked; the first click marks
+     * the token as awaiting its partner, the second click commits.
+     */
+    public EmailChangeResult confirmEmailChange(String token) {
         Optional<AccountToken> tokenOpt = accountRepository.findToken(token);
-        if (tokenOpt.isEmpty()) return false;
-        AccountToken accountToken = tokenOpt.get();
-        if (accountToken.isExpired() || accountToken.tokenType() != TokenType.EMAIL_CHANGE) return false;
-        String newEmail = accountToken.metadata();
-        if (newEmail == null || newEmail.isBlank()) return false;
-        accountRepository.updateEmail(accountToken.accountId(), newEmail);
-        accountRepository.deleteToken(token);
-        return true;
+        if (tokenOpt.isEmpty()) return EmailChangeResult.INVALID;
+        AccountToken self = tokenOpt.get();
+        if (self.isExpired()) {
+            accountRepository.deleteToken(token);
+            return EmailChangeResult.INVALID;
+        }
+        if (self.tokenType() != TokenType.EMAIL_CHANGE_RELEASE && self.tokenType() != TokenType.EMAIL_CHANGE_CLAIM) {
+            return EmailChangeResult.INVALID;
+        }
+
+        String metadata = self.metadata();
+        if (metadata == null || metadata.isBlank()) return EmailChangeResult.INVALID;
+        int sep = metadata.indexOf('|');
+        if (sep <= 0 || sep >= metadata.length() - 1) return EmailChangeResult.INVALID;
+        String requestId = metadata.substring(0, sep);
+        String newEmail = metadata.substring(sep + 1);
+
+        var partnerOpt = accountRepository.findEmailChangePartner(self.accountId(), requestId, self.id());
+        if (partnerOpt.isEmpty() || partnerOpt.get().isExpired()) {
+            // First click of the pair, or the other half has already expired.
+            accountRepository.markTokenConfirmed(self.id());
+            return EmailChangeResult.WAITING;
+        }
+        AccountToken partner = partnerOpt.get();
+        if (partner.confirmedAt() == null) {
+            accountRepository.markTokenConfirmed(self.id());
+            return EmailChangeResult.WAITING;
+        }
+
+        var accountOpt = accountRepository.findById(self.accountId());
+        if (accountOpt.isEmpty()) return EmailChangeResult.INVALID;
+        Account account = accountOpt.get();
+
+        var existing = accountRepository.findByEmail(newEmail);
+        if (existing.isPresent() && existing.get().id() != account.id()) {
+            accountRepository.deleteToken(token);
+            accountRepository.deleteTokensByAccountAndType(account.id(), TokenType.EMAIL_CHANGE_RELEASE);
+            accountRepository.deleteTokensByAccountAndType(account.id(), TokenType.EMAIL_CHANGE_CLAIM);
+            return EmailChangeResult.DUPLICATE;
+        }
+
+        String oldEmail = account.email();
+        accountRepository.updateEmail(account.id(), newEmail);
+        invalidateAfterPasswordRotation(account.id(), null);
+        emailService.sendEmailChangedNotice(oldEmail, account.firstName(), oldEmail, newEmail);
+        emailService.sendEmailChangedNotice(newEmail, account.firstName(), oldEmail, newEmail);
+        return EmailChangeResult.COMMITTED;
     }
 
     /**

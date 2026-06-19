@@ -334,10 +334,16 @@ public class AuthRoutes implements Routes {
         enforceLimit(rateLimiter.tryConfirmEmailChange(clientIp(ctx)));
         var request = ctx.bodyAsClass(TokenRequest.class);
         if (isBlank(request.token())) throw new BadRequestResponse("token is required");
-        if (!authService.confirmEmailChange(request.token())) {
-            throw new BadRequestResponse("Invalid or expired token");
+        var result = authService.confirmEmailChange(request.token());
+        switch (result) {
+            case COMMITTED -> ctx.json(new MessageResponse("Email address updated"));
+            case WAITING ->
+                ctx.json(
+                        new MessageResponse(
+                                "Confirmation received. Waiting for the other address to confirm before the change takes effect."));
+            case DUPLICATE -> throw new BadRequestResponse("Email already in use");
+            case INVALID -> throw new BadRequestResponse("Invalid or expired token");
         }
-        ctx.json(new MessageResponse("Email address updated"));
     }
 
     // -- Request/Response records --

@@ -31,3 +31,12 @@ ALTER TABLE ember_schema.account_credential
     ADD COLUMN last_breach_check_at TIMESTAMP WITH TIME ZONE;
 COMMENT ON COLUMN ember_schema.account_credential.last_breach_check_at IS
     'Timestamp of the most recent HIBP breach check for this credential. NULL when the password has never been checked or was rotated since the last check.';
+
+-- Two-sided confirmation tracking on account_token (security audit H5). Email
+-- change now requires the user to click links sent to both the old and the
+-- new address; whichever is clicked first sets `confirmed_at`, the second
+-- click reads the partner row and commits the change.
+ALTER TABLE ember_schema.account_token
+    ADD COLUMN confirmed_at TIMESTAMP WITH TIME ZONE;
+COMMENT ON COLUMN ember_schema.account_token.confirmed_at IS
+    'Set when the token has been clicked but is awaiting a partner confirmation (currently used by the two-step EMAIL_CHANGE_RELEASE/EMAIL_CHANGE_CLAIM flow). NULL when not yet clicked or when the token type does not use two-step confirmation.';

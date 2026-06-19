@@ -428,11 +428,54 @@ public class AccountRepository {
                     token_type,
                     metadata,
                     expires_at,
-                    created_at
+                    created_at,
+                    confirmed_at
                 FROM
                     account_token
                 WHERE token_hash = :token_hash;""")
                 .single(call().bind("token_hash", tokenHasher.hash(token)))
+                .map(AccountToken.map())
+                .first();
+    }
+
+    /**
+     * Marks a token as pre-confirmed (one half of a two-sided confirmation flow).
+     * The token is not deleted; the partner-side click is what commits the action.
+     */
+    public boolean markTokenConfirmed(int tokenId) {
+        return query("UPDATE account_token SET confirmed_at = now() WHERE id = :id;")
+                .single(call().bind("id", tokenId))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Finds the partner half of a two-sided email-change confirmation. Both halves
+     * share a {@code requestId} prefix in their {@code metadata} and live on the
+     * same account; this method returns the row that is not the supplied
+     * {@code selfId}, regardless of which type it carries.
+     */
+    public Optional<AccountToken> findEmailChangePartner(int accountId, String requestId, int selfId) {
+        return query("""
+                SELECT
+                    id,
+                    account_id,
+                    token_hash,
+                    token_type,
+                    metadata,
+                    expires_at,
+                    created_at,
+                    confirmed_at
+                FROM
+                    account_token
+                WHERE account_id = :account_id
+                    AND id <> :self_id
+                    AND token_type IN ('EMAIL_CHANGE_RELEASE', 'EMAIL_CHANGE_CLAIM')
+                    AND metadata LIKE :prefix
+                LIMIT 1;""")
+                .single(call().bind("account_id", accountId)
+                        .bind("self_id", selfId)
+                        .bind("prefix", requestId + "|%"))
                 .map(AccountToken.map())
                 .first();
     }

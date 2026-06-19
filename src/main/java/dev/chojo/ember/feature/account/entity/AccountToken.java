@@ -14,13 +14,15 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 /**
  * Represents a one-time-use token associated with an account for operations like email verification or password reset.
  *
- * @param id        the unique token identifier
- * @param accountId the associated account identifier
- * @param tokenHash the HMAC-SHA-256 hash of the issued token; the raw token is never persisted
- * @param tokenType the type of operation this token is for
- * @param metadata  optional metadata (e.g. new email address for email change tokens, station ID for deletion)
- * @param expiresAt when the token expires
- * @param createdAt when the token was created
+ * @param id          the unique token identifier
+ * @param accountId   the associated account identifier
+ * @param tokenHash   the HMAC-SHA-256 hash of the issued token; the raw token is never persisted
+ * @param tokenType   the type of operation this token is for
+ * @param metadata    optional metadata (e.g. new email address for email change tokens, station ID for deletion)
+ * @param expiresAt   when the token expires
+ * @param createdAt   when the token was created
+ * @param confirmedAt set when the token has been clicked but is awaiting a partner confirmation
+ *                    (used by the two-step EMAIL_CHANGE_RELEASE / EMAIL_CHANGE_CLAIM flow); {@code null} otherwise
  */
 public record AccountToken(
         int id,
@@ -29,7 +31,8 @@ public record AccountToken(
         TokenType tokenType,
         String metadata,
         Instant expiresAt,
-        Instant createdAt) {
+        Instant createdAt,
+        Instant confirmedAt) {
 
     /**
      * Creates a row mapping for database result set conversion.
@@ -42,7 +45,8 @@ public record AccountToken(
                 row.getEnum("token_type", TokenType.class),
                 row.getString("metadata"),
                 row.get("expires_at", INSTANT_TIMESTAMP),
-                row.get("created_at", INSTANT_TIMESTAMP));
+                row.get("created_at", INSTANT_TIMESTAMP),
+                row.get("confirmed_at", INSTANT_TIMESTAMP));
     }
 
     /**

@@ -335,23 +335,35 @@ class AuthServiceTest extends RepositoryTestBase {
     @Test
     @Order(29)
     void confirmEmailChangeInvalidToken() {
-        assertFalse(service.confirmEmailChange("nonexistent-change-token"));
+        assertEquals(AuthService.EmailChangeResult.INVALID, service.confirmEmailChange("nonexistent-change-token"));
     }
 
     @Test
     @Order(30)
-    void confirmEmailChangeSuccess() {
+    void confirmEmailChangeTwoStepSuccess() {
         var account2 = accountRepo.create("emailchange@test.com", "EC", "User");
-        accountRepo.createToken(
-                account2.id(),
-                "ec-token",
-                TokenType.EMAIL_CHANGE,
-                "new-email-2@test.com",
-                Instant.now().plus(24, ChronoUnit.HOURS));
-        assertTrue(service.confirmEmailChange("ec-token"));
+        String newEmail = "new-email-2@test.com";
+        String requestId = java.util.UUID.randomUUID().toString();
+        String metadata = requestId + "|" + newEmail;
+        Instant exp = Instant.now().plus(24, ChronoUnit.HOURS);
+        accountRepo.createToken(account2.id(), "ec-release", TokenType.EMAIL_CHANGE_RELEASE, metadata, exp);
+        accountRepo.createToken(account2.id(), "ec-claim", TokenType.EMAIL_CHANGE_CLAIM, metadata, exp);
+
         assertEquals(
-                "new-email-2@test.com",
-                accountRepo.findById(account2.id()).orElseThrow().email());
+                AuthService.EmailChangeResult.WAITING,
+                service.confirmEmailChange("ec-release"),
+                "First click should mark the token as awaiting partner");
+        assertEquals(
+                "emailchange@test.com",
+                accountRepo.findById(account2.id()).orElseThrow().email(),
+                "Email must not change after a single confirmation");
+
+        assertEquals(
+                AuthService.EmailChangeResult.COMMITTED,
+                service.confirmEmailChange("ec-claim"),
+                "Second click should commit the change");
+        assertEquals(newEmail, accountRepo.findById(account2.id()).orElseThrow().email());
+
         accountRepo.delete(account2.id());
     }
 
@@ -480,10 +492,10 @@ class AuthServiceTest extends RepositoryTestBase {
         accountRepo.createToken(
                 account2.id(),
                 "ec-expired-token",
-                TokenType.EMAIL_CHANGE,
-                "new@test.com",
+                TokenType.EMAIL_CHANGE_RELEASE,
+                "req|new@test.com",
                 Instant.now().minus(1, ChronoUnit.HOURS));
-        assertFalse(service.confirmEmailChange("ec-expired-token"));
+        assertEquals(AuthService.EmailChangeResult.INVALID, service.confirmEmailChange("ec-expired-token"));
         accountRepo.delete(account2.id());
     }
 
@@ -496,8 +508,47 @@ class AuthServiceTest extends RepositoryTestBase {
                 "ec-wrong-type-token",
                 TokenType.VERIFY_EMAIL,
                 Instant.now().plus(24, ChronoUnit.HOURS));
-        assertFalse(service.confirmEmailChange("ec-wrong-type-token"));
+        assertEquals(AuthService.EmailChangeResult.INVALID, service.confirmEmailChange("ec-wrong-type-token"));
         accountRepo.delete(account2.id());
+    }
+
+    @Test
+    @Order(44)
+    void confirmEmailChangeRejectsLegacyEmailChange() {
+        var account2 = accountRepo.create("emailchange-legacy@test.com", "EC", "Legacy");
+        accountRepo.createToken(
+                account2.id(),
+                "ec-legacy-token",
+                TokenType.EMAIL_CHANGE,
+                "legacy-new@test.com",
+                Instant.now().plus(24, ChronoUnit.HOURS));
+        assertEquals(
+                AuthService.EmailChangeResult.INVALID,
+                service.confirmEmailChange("ec-legacy-token"),
+                "Legacy single-step EMAIL_CHANGE rows must be rejected by the new two-step flow");
+        accountRepo.delete(account2.id());
+    }
+
+    @Test
+    @Order(45)
+    void confirmEmailChangeDuplicateAtCommitFails() {
+        var account2 = accountRepo.create("emailchange-dup-src@test.com", "EC", "Dup");
+        var taken = accountRepo.create("emailchange-dup-taken@test.com", "EC", "Taken");
+        String requestId = java.util.UUID.randomUUID().toString();
+        String metadata = requestId + "|emailchange-dup-taken@test.com";
+        Instant exp = Instant.now().plus(24, ChronoUnit.HOURS);
+        accountRepo.createToken(account2.id(), "ec-dup-release", TokenType.EMAIL_CHANGE_RELEASE, metadata, exp);
+        accountRepo.createToken(account2.id(), "ec-dup-claim", TokenType.EMAIL_CHANGE_CLAIM, metadata, exp);
+
+        assertEquals(AuthService.EmailChangeResult.WAITING, service.confirmEmailChange("ec-dup-release"));
+        assertEquals(AuthService.EmailChangeResult.DUPLICATE, service.confirmEmailChange("ec-dup-claim"));
+        assertEquals(
+                "emailchange-dup-src@test.com",
+                accountRepo.findById(account2.id()).orElseThrow().email(),
+                "Email must not change when the new address is already taken");
+
+        accountRepo.delete(account2.id());
+        accountRepo.delete(taken.id());
     }
 
     @Test

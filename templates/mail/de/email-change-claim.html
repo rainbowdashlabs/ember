@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  body { margin:0; padding:0; background:#f4f4f4; font-family:Arial,Helvetica,sans-serif; }
+  .wrapper { background:#f4f4f4; padding:32px 0; }
+  .card { background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.08); max-width:600px; margin:0 auto; }
+  .header { background:#FF6421; padding:24px 32px; text-align:center; }
+  .header h1 { color:#fff; margin:0; font-size:22px; }
+  .body { padding:32px; }
+  .body h2 { color:#333; margin:0 0 16px; }
+  .body p { color:#555; font-size:15px; line-height:1.6; }
+  .btn-wrap { text-align:center; margin:24px 0; }
+  .btn { display:inline-block; background:#FF6421; color:#fff; padding:12px 32px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:15px; }
+  .hint { color:#888; font-size:13px; }
+  .footer { background:#f9f9f9; padding:16px 32px; text-align:center; border-top:1px solid #eee; }
+  .footer p { color:#aaa; font-size:11px; margin:0; }
+  .footer a { color:#FF6421; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="card">
+    <div class="header"><h1>{{senderName}}</h1></div>
+    <div class="body">
+      <h2>Hallo {{name}},</h2>
+      <p>Du verschiebst dein Konto von <strong>{{oldEmail}}</strong> zu dieser E-Mail-Adresse.</p>
+      <p>Klicke auf den Button unten, um den Empfang zu bestätigen. Die alte Adresse muss die Freigabe ebenfalls autorisieren, bevor die Änderung wirksam wird.</p>
+      <div class="btn-wrap"><a class="btn" href="{{url}}">Neue E-Mail bestätigen</a></div>
+      <p class="hint">Dieser Link ist 24 Stunden gültig. Werden nicht beide Bestätigungen rechtzeitig geklickt, wird die Änderung verworfen.</p>
+      <p class="hint">Falls du diese Änderung nicht angefordert hast, ignoriere diese Nachricht einfach.</p>
+    </div>
+    <div class="footer"><p>{{senderName}} &middot; <a href="{{baseUrl}}">{{baseUrl}}</a></p></div>
+  </div>
+</div>
+</body>
+</html>
