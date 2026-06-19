@@ -56,6 +56,7 @@ public class AuthService {
     private final Demo demo;
     private final HibpClient hibpClient;
     private final BreachCheckWorker breachCheckWorker;
+    private final dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository twoFactorRepository;
     /**
      * Lazily-computed hash of a random throwaway password, used by {@link #login} when the
      * supplied email does not resolve to an account or has no stored credential. Running the
@@ -76,7 +77,8 @@ public class AuthService {
             Auth authConfig,
             Demo demo,
             HibpClient hibpClient,
-            BreachCheckWorker breachCheckWorker) {
+            BreachCheckWorker breachCheckWorker,
+            dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository twoFactorRepository) {
         this.accountRepository = accountRepository;
         this.registrationCodeRepository = registrationCodeRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -87,6 +89,7 @@ public class AuthService {
         this.demo = demo;
         this.hibpClient = hibpClient;
         this.breachCheckWorker = breachCheckWorker;
+        this.twoFactorRepository = twoFactorRepository;
     }
 
     /**
@@ -431,7 +434,21 @@ public class AuthService {
                     token, Instant.now().plus(authConfig.sessionMinutes(), ChronoUnit.MINUTES));
         }
 
+        // Two-factor authentication — issue a pre-auth token if enrolled
+        if (twoFactorEnrolled(account.id())) {
+            log.info("Login for account {} ({}) requires 2FA verification", account.id(), email);
+            String token = generateToken();
+            accountRepository.deleteTokensByAccountAndType(account.id(), TokenType.TWO_FACTOR_PENDING);
+            Instant expiresAt = Instant.now().plus(5, ChronoUnit.MINUTES);
+            accountRepository.createToken(account.id(), token, TokenType.TWO_FACTOR_PENDING, expiresAt);
+            return LoginResult.twoFactorRequired(token, expiresAt);
+        }
+
         return createSession(account.id(), userAgent, location);
+    }
+
+    private boolean twoFactorEnrolled(int accountId) {
+        return twoFactorRepository != null && twoFactorRepository.isEnrolled(accountId);
     }
 
     /**
@@ -758,6 +775,14 @@ public class AuthService {
         accountRepository.createSession(accountId, token, expiresAt, userAgent, location);
         log.info("Session created for account {}", accountId);
         return LoginResult.success(token, expiresAt);
+    }
+
+    /**
+     * Creates a session for the given account, callable from the 2FA verification
+     * flow after the user has proven their second factor.
+     */
+    public LoginResult createSessionForAccount(int accountId, String userAgent, String location) {
+        return createSession(accountId, userAgent, location);
     }
 
     /**

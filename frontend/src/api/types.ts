@@ -122,6 +122,9 @@ export interface LoginResponse {
     passwordChangeRequired: boolean
     passwordChangeToken?: string
     passwordChangeTokenExpiresAt?: string
+    twoFactorRequired: boolean
+    preAuthToken?: string
+    preAuthTokenExpiresAt?: string
 }
 
 export interface RegisterRequest {

@@ -245,9 +245,22 @@ public class AuthRoutes implements Routes {
         }
 
         if (result.passwordChangeRequired()) {
-            ctx.status(HttpStatus.OK).json(new LoginResponse(null, null, true, result.token(), result.expiresAt()));
+            ctx.status(HttpStatus.OK)
+                    .json(new LoginResponse(null, null, true, result.token(), result.expiresAt(), false, null, null));
+        } else if (result.twoFactorRequired()) {
+            ctx.status(HttpStatus.OK)
+                    .json(new LoginResponse(
+                            null,
+                            null,
+                            false,
+                            null,
+                            null,
+                            true,
+                            result.preAuthToken(),
+                            result.preAuthTokenExpiresAt()));
         } else {
-            ctx.status(HttpStatus.OK).json(new LoginResponse(result.token(), result.expiresAt(), false, null, null));
+            ctx.status(HttpStatus.OK)
+                    .json(new LoginResponse(result.token(), result.expiresAt(), false, null, null, false, null, null));
         }
     }
 
@@ -393,7 +406,10 @@ public class AuthRoutes implements Routes {
             Instant expiresAt,
             boolean passwordChangeRequired,
             String passwordChangeToken,
-            Instant passwordChangeTokenExpiresAt) {}
+            Instant passwordChangeTokenExpiresAt,
+            boolean twoFactorRequired,
+            String preAuthToken,
+            Instant preAuthTokenExpiresAt) {}
 
     /**
      * Response body for a refreshed session with the new token and expiration.

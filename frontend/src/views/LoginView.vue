@@ -246,6 +246,14 @@ async function handleLogin() {
       return
     }
 
+    if (result.twoFactorRequired && result.preAuthToken) {
+      await navigateTo({
+        path: '/2fa-verify',
+        query: {token: result.preAuthToken},
+      })
+      return
+    }
+
     // Check consent status after successful login
     await checkAndRecordConsent()
 
@@ -304,6 +312,13 @@ async function loginAsDemo(account: DemoAccount) {
       await navigateTo({
         path: '/set-password',
         query: {token: result.passwordChangeToken},
+      })
+      return
+    }
+    if (result.twoFactorRequired && result.preAuthToken) {
+      await navigateTo({
+        path: '/2fa-verify',
+        query: {token: result.preAuthToken},
       })
       return
     }

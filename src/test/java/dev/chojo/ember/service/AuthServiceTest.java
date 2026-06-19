@@ -48,6 +48,7 @@ class AuthServiceTest extends RepositoryTestBase {
         when(hibpClient.isPwned(anyString())).thenReturn(false);
         var breachCheckWorker = mock(BreachCheckWorker.class);
 
+        var twoFactorRepo = new dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository();
         service = new AuthService(
                 accountRepo,
                 registrationCodeRepo,
@@ -58,7 +59,8 @@ class AuthServiceTest extends RepositoryTestBase {
                 authConfig,
                 demo,
                 hibpClient,
-                breachCheckWorker);
+                breachCheckWorker,
+                twoFactorRepo);
     }
 
     @Test

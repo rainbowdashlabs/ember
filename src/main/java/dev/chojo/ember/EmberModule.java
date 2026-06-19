@@ -139,6 +139,7 @@ import dev.chojo.ember.feature.system.route.SitemapRoutes;
 import dev.chojo.ember.feature.system.route.UtilRoutes;
 import dev.chojo.ember.feature.traffic.route.AdminTrafficRoutes;
 import dev.chojo.ember.feature.traffic.route.StationTrafficRoutes;
+import dev.chojo.ember.feature.twofactor.route.TwoFactorRoutes;
 import dev.chojo.ember.feature.waitinglist.route.WaitingListRoutes;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -242,6 +243,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(AdminTrafficRoutes.class);
         routesBinder.addBinding().to(StationTrafficRoutes.class);
         routesBinder.addBinding().to(StationInsightsRoutes.class);
+        routesBinder.addBinding().to(TwoFactorRoutes.class);
 
         // Domain event handlers
         Multibinder<DomainEventHandler<?>> eventBinder = Multibinder.newSetBinder(binder(), new TypeLiteral<>() {});

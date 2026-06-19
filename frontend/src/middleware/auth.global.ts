@@ -10,7 +10,7 @@ export default defineNuxtRouteMiddleware((to) => {
     if (!import.meta.client) return
 
     if (to.meta.public === true) return
-    if (to.path === '/' || to.path === '/login') return
+    if (to.path === '/' || to.path === '/login' || to.path === '/2fa-verify') return
     if (to.path.startsWith('/helpcenter')) return
 
     const publicPaths = [

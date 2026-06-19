@@ -1,0 +1,211 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.feature.twofactor.route;
+
+import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.auth.TokenHasher;
+import dev.chojo.ember.conf.file.elements.Auth;
+import dev.chojo.ember.feature.account.entity.AccountToken;
+import dev.chojo.ember.feature.account.entity.LoginResult;
+import dev.chojo.ember.feature.account.entity.TokenType;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
+import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
+import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
+import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
+import io.javalin.http.BadRequestResponse;
+import io.javalin.http.Context;
+import io.javalin.http.UnauthorizedResponse;
+import io.javalin.router.JavalinDefaultRoutingApi;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.time.Instant;
+import java.util.Base64;
+import java.util.List;
+import java.util.Optional;
+
+@Singleton
+public class TwoFactorRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(TwoFactorRoutes.class);
+
+    private final TwoFactorService twoFactorService;
+    private final TwoFactorAuditService auditService;
+    private final AccountRepository accountRepository;
+    private final AuthService authService;
+    private final Auth authConfig;
+    private final TokenHasher tokenHasher;
+
+    @Inject
+    public TwoFactorRoutes(
+            TwoFactorService twoFactorService,
+            TwoFactorAuditService auditService,
+            AccountRepository accountRepository,
+            AuthService authService,
+            Auth authConfig,
+            TokenHasher tokenHasher) {
+        this.twoFactorService = twoFactorService;
+        this.auditService = auditService;
+        this.accountRepository = accountRepository;
+        this.authService = authService;
+        this.authConfig = authConfig;
+        this.tokenHasher = tokenHasher;
+    }
+
+    @Override
+    public void register(JavalinDefaultRoutingApi routes, String prefix) {
+        routes.get(prefix + "/account/2fa/status", this::getStatus, StationPermission.LOGIN);
+        routes.post(prefix + "/account/2fa/totp/begin", this::beginTotp, StationPermission.LOGIN);
+        routes.post(prefix + "/account/2fa/totp/confirm", this::confirmTotp, StationPermission.LOGIN);
+        routes.post(prefix + "/account/2fa/totp/remove", this::removeTotp, StationPermission.LOGIN);
+        routes.post(
+                prefix + "/account/2fa/backup-codes/regenerate", this::regenerateBackupCodes, StationPermission.LOGIN);
+        routes.post(prefix + "/auth/2fa", this::verify2fa);
+    }
+
+    private void getStatus(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var factors = twoFactorService.getActiveFactors(session.accountId());
+        int backupCodes = twoFactorService.countUnusedBackupCodes(session.accountId());
+        boolean enrolled = twoFactorService.isEnrolled(session.accountId());
+        ctx.json(new TwoFactorStatusResponse(
+                enrolled,
+                factors.stream()
+                        .map(f -> new FactorInfo(f.id(), f.kind().name(), f.label(), f.createdAt(), f.lastUsedAt()))
+                        .toList(),
+                backupCodes));
+    }
+
+    private void beginTotp(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        if (twoFactorService.isEnrolled(session.accountId())) {
+            throw new BadRequestResponse("Already enrolled in 2FA");
+        }
+        var enrollment = twoFactorService.beginTotpEnrollment(
+                session.accountId(), session.account().email());
+        ctx.json(new TotpBeginResponse(
+                enrollment.secret(),
+                enrollment.otpauthUri(),
+                Base64.getEncoder().encodeToString(enrollment.qrPng()),
+                enrollment.recoveryCodes()));
+    }
+
+    private void confirmTotp(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var request = ctx.bodyAsClass(TotpConfirmRequest.class);
+        if (request.secret() == null || request.code() == null || request.recoveryCodes() == null) {
+            throw new BadRequestResponse("secret, code, and recoveryCodes are required");
+        }
+        boolean confirmed = twoFactorService.confirmTotpEnrollment(
+                session.accountId(),
+                request.secret(),
+                request.code(),
+                request.recoveryCodes(),
+                ctx.userAgent(),
+                ctx.header("CF-IPCountry"));
+        if (!confirmed) {
+            throw new BadRequestResponse("Invalid verification code");
+        }
+        ctx.json(new MessageResponse("TOTP enrolled"));
+    }
+
+    private void removeTotp(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        boolean removed =
+                twoFactorService.removeTotpFactor(session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
+        if (!removed) {
+            throw new BadRequestResponse("No active TOTP factor");
+        }
+        ctx.json(new MessageResponse("TOTP removed"));
+    }
+
+    private void regenerateBackupCodes(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        if (!twoFactorService.isEnrolled(session.accountId())) {
+            throw new BadRequestResponse("Not enrolled in 2FA");
+        }
+        List<String> codes = twoFactorService.regenerateBackupCodes(
+                session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
+        ctx.json(new BackupCodesResponse(codes));
+    }
+
+    private void verify2fa(Context ctx) {
+        var request = ctx.bodyAsClass(Verify2faRequest.class);
+        if (request.preAuthToken() == null || request.proof() == null) {
+            throw new BadRequestResponse("preAuthToken and proof are required");
+        }
+
+        Optional<AccountToken> tokenOpt = accountRepository.findToken(request.preAuthToken());
+        if (tokenOpt.isEmpty()) {
+            throw new UnauthorizedResponse("Invalid or expired pre-auth token");
+        }
+        AccountToken preAuth = tokenOpt.get();
+        if (preAuth.isExpired() || preAuth.tokenType() != TokenType.TWO_FACTOR_PENDING) {
+            accountRepository.deleteToken(request.preAuthToken());
+            throw new UnauthorizedResponse("Invalid or expired pre-auth token");
+        }
+
+        int accountId = preAuth.accountId();
+        boolean verified;
+
+        if ("BACKUP_CODE".equals(request.factor())) {
+            var result = twoFactorService.verifyBackupCode(accountId, request.proof(), ctx.ip());
+            verified = result.valid();
+            if (verified) {
+                auditService.record(
+                        accountId,
+                        null,
+                        TwoFactorEvent.BACKUP_CODE_USED,
+                        TwoFactorKind.BACKUP_CODES,
+                        ctx.userAgent(),
+                        ctx.header("CF-IPCountry"));
+            }
+        } else {
+            verified = twoFactorService.verifyTotp(accountId, request.proof());
+            if (verified) {
+                auditService.record(
+                        accountId,
+                        null,
+                        TwoFactorEvent.LOGIN_VERIFIED,
+                        TwoFactorKind.TOTP,
+                        ctx.userAgent(),
+                        ctx.header("CF-IPCountry"));
+            }
+        }
+
+        if (!verified) {
+            throw new UnauthorizedResponse("Invalid verification code");
+        }
+
+        accountRepository.deleteToken(request.preAuthToken());
+        LoginResult session =
+                authService.createSessionForAccount(accountId, ctx.userAgent(), ctx.header("CF-IPCountry"));
+        ctx.json(new LoginResultResponse(session.token(), session.expiresAt()));
+    }
+
+    // -- Request / Response records --
+
+    public record TwoFactorStatusResponse(boolean enrolled, List<FactorInfo> factors, int unusedBackupCodes) {}
+
+    public record FactorInfo(int id, String kind, String label, Instant createdAt, Instant lastUsedAt) {}
+
+    public record TotpBeginResponse(String secret, String otpauthUri, String qrPng, List<String> recoveryCodes) {}
+
+    public record TotpConfirmRequest(String secret, String code, List<String> recoveryCodes) {}
+
+    public record BackupCodesResponse(List<String> codes) {}
+
+    public record Verify2faRequest(String preAuthToken, String factor, String proof) {}
+
+    public record LoginResultResponse(String token, Instant expiresAt) {}
+
+    public record MessageResponse(String message) {}
+}

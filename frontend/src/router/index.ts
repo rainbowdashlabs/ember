@@ -21,6 +21,7 @@ const SetPasswordView = () => import('@/views/SetPasswordView.vue')
 const HomeView = () => import('@/views/HomeView.vue')
 const StationSelectView = () => import('@/views/StationSelectView.vue')
 const CrossStationDashboardView = () => import('@/views/CrossStationDashboardView.vue')
+const TwoFactorVerifyView = () => import('@/views/TwoFactorVerifyView.vue')
 const StyleView = () => import('@/views/StyleView.vue')
 const OverviewView = () => import('@/views/dashboardview/OverviewView.vue')
 const StatisticsView = () => import('@/views/dashboardview/StatisticsView.vue')
@@ -134,6 +135,11 @@ const router = createRouter({
             path: '/cross-station',
             name: 'cross-station-dashboard',
             component: CrossStationDashboardView,
+        },
+        {
+            path: '/2fa-verify',
+            name: '2fa-verify',
+            component: TwoFactorVerifyView,
         },
         {
             path: '/',
@@ -579,6 +585,11 @@ const router = createRouter({
                     path: 'profile/settings/notifications',
                     name: 'profile-notifications',
                     component: () => import('@/views/stationview/profile/NotificationsView.vue'),
+                },
+                {
+                    path: 'profile/settings/security',
+                    name: 'profile-security',
+                    component: () => import('@/views/stationview/profile/SecurityView.vue'),
                 },
                 {
                     path: 'attendance/new',
@@ -1917,7 +1928,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-    const publicRoutes = ['home', 'login', 'requirements', 'forgot-password', 'set-password', 'reset-password', 'apply', 'apply-verify', 'waitlist-register', 'waitlist-status', 'waitlist-verify', 'style', 'privacy', 'terms', 'imprint', 'patch-notes', 'not-found']
+    const publicRoutes = ['home', 'login', 'requirements', 'forgot-password', 'set-password', 'reset-password', 'apply', 'apply-verify', 'waitlist-register', 'waitlist-status', 'waitlist-verify', 'style', 'privacy', 'terms', 'imprint', 'patch-notes', 'not-found', '2fa-verify']
     if (publicRoutes.includes(to.name as string)) {
         return true
     }

@@ -175,6 +175,9 @@ async function handleLogout() {
           <SidebarLink :icon="['fas', 'bell']" name="profile-notifications" to="/station/profile/settings/notifications" @navigate="close">
             {{ t('sidebar.notifications') }}
           </SidebarLink>
+          <SidebarLink :icon="['fas', 'shield']" name="profile-security" to="/station/profile/settings/security" @navigate="close">
+            {{ t('sidebar.security') }}
+          </SidebarLink>
         </SidebarExpandableLink>
       </SidebarGroup>
 
