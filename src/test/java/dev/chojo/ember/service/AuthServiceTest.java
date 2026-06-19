@@ -65,18 +65,21 @@ class AuthServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(2)
-    void registerSelfDuplicateEmail() {
+    void registerSelfDuplicateEmailMaskedAsSuccess() {
         var result = service.registerSelf(EMAIL, "Auth", "Tester2", PASSWORD, null);
-        assertFalse(result.success());
-        assertEquals("Email already in use", result.message());
+        assertTrue(result.success(), "Duplicate email should not leak via failure response");
+        assertNotNull(result.account());
+        assertEquals(EMAIL, result.account().email());
+        assertEquals(0, result.account().id(), "Masked-success account must not expose a real id");
     }
 
     @Test
     @Order(3)
-    void loginWithoutVerification() {
+    void loginWithoutVerificationAndCorrectPassword() {
         var result = service.login(EMAIL, PASSWORD, "TestAgent", "DE");
         assertFalse(result.success());
-        assertEquals("Email not verified", result.message());
+        assertEquals(
+                "Email not verified", result.message(), "Unverified branch is reachable only after a password verify");
     }
 
     @Test
@@ -90,9 +93,6 @@ class AuthServiceTest extends RepositoryTestBase {
     @Test
     @Order(5)
     void loginWrongPassword() {
-        // Verify email first so we can test wrong password
-        var tokens = accountRepo.findToken("nonexistent");
-        // Manually set email as verified for this test
         accountRepo.setEmailVerified(accountId);
 
         var result = service.login(EMAIL, "WrongPassword!", "agent", "DE");
@@ -103,10 +103,12 @@ class AuthServiceTest extends RepositoryTestBase {
     @Test
     @Order(6)
     void loginNotAuthorized() {
-        // Account has no LOGIN role — should fail
         var result = service.login(EMAIL, PASSWORD, "agent", "DE");
         assertFalse(result.success());
-        assertEquals("Account is not authorized to log in", result.message());
+        assertEquals(
+                "Invalid email or password",
+                result.message(),
+                "Missing LOGIN permission must not be distinguishable from wrong password");
     }
 
     @Test

@@ -47,6 +47,14 @@ public class AuthService {
     private final EmailService emailService;
     private final Auth authConfig;
     private final Demo demo;
+    /**
+     * Lazily-computed hash of a random throwaway password, used by {@link #login} when the
+     * supplied email does not resolve to an account or has no stored credential. Running the
+     * verifier against this placeholder keeps the wall-clock cost of every login attempt
+     * within the same order of magnitude as a real hash check, denying a timing oracle for
+     * account enumeration.
+     */
+    private volatile String dummyPasswordHash;
 
     @Inject
     public AuthService(
@@ -93,8 +101,11 @@ public class AuthService {
             }
         }
 
-        if (accountRepository.findByEmail(email).isPresent()) {
-            return RegistrationResult.failure("Email already in use");
+        var existing = accountRepository.findByEmail(email);
+        if (existing.isPresent()) {
+            emailService.sendDuplicateRegistrationNotice(
+                    existing.get().email(), existing.get().firstName());
+            return RegistrationResult.maskedSuccess(email, firstName, lastName);
         }
 
         String hash = passwordHasher.hash(password);
@@ -337,7 +348,12 @@ public class AuthService {
      */
     public LoginResult login(String email, String password, String userAgent, String location) {
         Optional<Account> accountOpt = accountRepository.findByEmail(email);
-        if (accountOpt.isEmpty()) {
+        Optional<AccountCredential> credOpt = accountOpt.flatMap(a -> accountRepository.findCredential(a.id()));
+
+        String storedHash = credOpt.map(AccountCredential::passwordHash).orElseGet(this::dummyPasswordHash);
+        boolean passwordValid = passwordHasher.verify(password, storedHash);
+
+        if (accountOpt.isEmpty() || credOpt.isEmpty() || !passwordValid) {
             return LoginResult.failure("Invalid email or password");
         }
 
@@ -346,18 +362,9 @@ public class AuthService {
             return LoginResult.failure("Email not verified");
         }
 
-        Optional<AccountCredential> credOpt = accountRepository.findCredential(account.id());
-        if (credOpt.isEmpty()) {
-            return LoginResult.failure("Invalid email or password");
-        }
-
-        if (!passwordHasher.verify(password, credOpt.get().passwordHash())) {
-            return LoginResult.failure("Invalid email or password");
-        }
-
         if (!accountRepository.isAdministrator(account.id())
                 && !stationMemberRepository.hasLoginPermission(account.id())) {
-            return LoginResult.failure("Account is not authorized to log in");
+            return LoginResult.failure("Invalid email or password");
         }
 
         // Rehash if algorithm changed
@@ -379,6 +386,19 @@ public class AuthService {
         }
 
         return createSession(account.id(), userAgent, location);
+    }
+
+    private String dummyPasswordHash() {
+        String local = dummyPasswordHash;
+        if (local != null) return local;
+        synchronized (this) {
+            if (dummyPasswordHash == null) {
+                byte[] random = new byte[32];
+                RANDOM.nextBytes(random);
+                dummyPasswordHash = passwordHasher.hash(Base64.getEncoder().encodeToString(random));
+            }
+            return dummyPasswordHash;
+        }
     }
 
     // -- Login / Session --

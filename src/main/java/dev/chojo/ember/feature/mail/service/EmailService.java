@@ -199,6 +199,18 @@ public class EmailService {
         enqueueGlobal(email, "Set up your password", loadTemplate("set-password.html", "en", vars));
     }
 
+    /**
+     * Notifies an existing account holder that someone attempted to register a new account
+     * using their email address. Sent in lieu of returning a duplicate-email error to the
+     * registration caller, so the public registration endpoint cannot be used to enumerate
+     * existing addresses.
+     */
+    public void sendDuplicateRegistrationNotice(String email, String name) {
+        var vars = baseVars(name, null);
+        vars.put("loginUrl", api.baseUrl() + "/login");
+        enqueueGlobal(email, "Account already exists", loadTemplate("duplicate-registration.html", "en", vars));
+    }
+
     // -- Public send methods (system, via global provider queue) --
 
     public void sendPasswordResetEmail(String email, String name, String token) {
