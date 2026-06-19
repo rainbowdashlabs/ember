@@ -416,9 +416,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         // Suspend stationA's partner record for stationC
         federationRepo.updatePartnerStatus(reversePartner.id(), FederationPartner.FederationStatus.SUSPENDED);
 
-        assertThrows(
-                BadRequestResponse.class,
-                () -> service.getFederatedNews(stationA.id(), stationC.uid(), 42));
+        assertThrows(BadRequestResponse.class, () -> service.getFederatedNews(stationA.id(), stationC.uid(), 42));
 
         // Restore
         federationRepo.updatePartnerStatus(reversePartner.id(), FederationPartner.FederationStatus.ACTIVE);

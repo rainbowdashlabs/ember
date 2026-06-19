@@ -42,7 +42,6 @@ import io.javalin.http.HandlerType;
 import io.javalin.http.HttpResponseException;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.UnauthorizedResponse;
-import io.javalin.http.staticfiles.Location;
 import io.javalin.openapi.plugin.OpenApiPlugin;
 import io.javalin.openapi.plugin.OpenApiPluginConfiguration;
 import io.javalin.openapi.plugin.swagger.SwaggerConfiguration;
@@ -61,8 +60,6 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
@@ -164,17 +161,6 @@ public class ApiServer {
             config.http.defaultContentType = "application/json";
             config.jsonMapper(jacksonMapper());
             configureCompression(config);
-
-            var publicDir = Path.of(System.getenv().getOrDefault("EMBER_PUBLIC_DIR", "public"));
-            if (Files.isDirectory(publicDir)) {
-                config.staticFiles.add(staticFiles -> {
-                    staticFiles.directory = publicDir.toString();
-                    staticFiles.location = Location.EXTERNAL;
-                });
-                config.spaRoot.addFile("/", publicDir.resolve("index.html").toString(), Location.EXTERNAL);
-            } else {
-                config.spaRoot.addFile("/", "/static/index.html", Location.CLASSPATH);
-            }
 
             config.registerPlugin(new OpenApiPlugin(this::configureOpenApi));
             config.registerPlugin(new SwaggerPlugin(this::configureSwagger));
