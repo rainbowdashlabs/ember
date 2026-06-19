@@ -10,10 +10,14 @@ import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.conf.file.elements.Network;
+import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ConflictResponse;
 import io.javalin.http.Context;
+import io.javalin.http.HttpResponseException;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.UnauthorizedResponse;
 import io.javalin.openapi.HttpMethod;
@@ -26,6 +30,8 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Routes for authentication operations including registration, login, email verification,
@@ -34,14 +40,31 @@ import java.time.Instant;
 @Singleton
 public class AuthRoutes implements Routes {
     private final AuthService authService;
+    private final AuthRateLimiter rateLimiter;
+    private final Network network;
 
     @Inject
-    public AuthRoutes(AuthService authService) {
+    public AuthRoutes(AuthService authService, AuthRateLimiter rateLimiter, Network network) {
         this.authService = authService;
+        this.rateLimiter = rateLimiter;
+        this.network = network;
     }
 
     private static boolean isBlank(String s) {
         return s == null || s.isBlank();
+    }
+
+    private String clientIp(Context ctx) {
+        return ClientIp.resolve(ctx, network).getHostAddress();
+    }
+
+    private static void enforceLimit(Optional<Long> retryAfter) {
+        if (retryAfter.isEmpty()) return;
+        long seconds = retryAfter.get();
+        throw new HttpResponseException(
+                HttpStatus.TOO_MANY_REQUESTS.getCode(),
+                "Too many requests, please try again later",
+                Map.of("Retry-After", Long.toString(seconds)));
     }
 
     @Override
@@ -72,6 +95,7 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void register(Context ctx) {
+        enforceLimit(rateLimiter.tryRegister(clientIp(ctx)));
         var request = ctx.bodyAsClass(RegisterRequest.class);
         if (isBlank(request.email())
                 || isBlank(request.firstName())
@@ -111,6 +135,7 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void verifyEmail(Context ctx) {
+        enforceLimit(rateLimiter.tryVerifyEmail(clientIp(ctx)));
         var request = ctx.bodyAsClass(TokenRequest.class);
         if (isBlank(request.token())) {
             throw new BadRequestResponse("token is required");
@@ -139,6 +164,7 @@ public class AuthRoutes implements Routes {
         if (isBlank(request.email())) {
             throw new BadRequestResponse("email is required");
         }
+        enforceLimit(rateLimiter.tryResendVerification(clientIp(ctx), request.email()));
 
         authService.resendVerification(request.email());
         ctx.status(HttpStatus.OK)
@@ -158,6 +184,7 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setPassword(Context ctx) {
+        enforceLimit(rateLimiter.trySetPassword(clientIp(ctx)));
         var request = ctx.bodyAsClass(SetPasswordRequest.class);
         if (isBlank(request.token()) || isBlank(request.password())) {
             throw new BadRequestResponse("token and password are required");
@@ -186,6 +213,7 @@ public class AuthRoutes implements Routes {
         if (isBlank(request.email())) {
             throw new BadRequestResponse("email is required");
         }
+        enforceLimit(rateLimiter.tryForgotPassword(clientIp(ctx), request.email()));
 
         authService.requestPasswordReset(request.email());
         ctx.status(HttpStatus.OK).json(new MessageResponse("If the email exists, a password reset link has been sent"));
@@ -208,6 +236,7 @@ public class AuthRoutes implements Routes {
         if (isBlank(request.email()) || isBlank(request.password())) {
             throw new BadRequestResponse("email and password are required");
         }
+        enforceLimit(rateLimiter.tryLogin(clientIp(ctx), request.email()));
 
         var result =
                 authService.login(request.email(), request.password(), ctx.userAgent(), ctx.header("CF-IPCountry"));
@@ -234,6 +263,7 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "401", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void refresh(Context ctx) {
+        enforceLimit(rateLimiter.tryRefresh(clientIp(ctx)));
         var request = ctx.bodyAsClass(TokenRequest.class);
         if (isBlank(request.token())) {
             throw new BadRequestResponse("token is required");
@@ -267,6 +297,7 @@ public class AuthRoutes implements Routes {
 
     private void changePassword(Context ctx) {
         UserSession session = UserSession.from(ctx);
+        enforceLimit(rateLimiter.tryChangePassword(session.accountId()));
         var request = ctx.bodyAsClass(ChangePasswordRequest.class);
         if (isBlank(request.currentPassword()) || isBlank(request.newPassword())) {
             throw new BadRequestResponse("currentPassword and newPassword are required");
@@ -288,6 +319,7 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "400")
             })
     private void confirmEmailChange(Context ctx) {
+        enforceLimit(rateLimiter.tryConfirmEmailChange(clientIp(ctx)));
         var request = ctx.bodyAsClass(TokenRequest.class);
         if (isBlank(request.token())) throw new BadRequestResponse("token is required");
         if (!authService.confirmEmailChange(request.token())) {
