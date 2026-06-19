@@ -72,13 +72,13 @@ public class ImageService {
             throw new IllegalArgumentException("Image exceeds maximum size of " + (maxBytes / 1024 / 1024) + " MB");
         }
 
+        Path dir = resolveSafe(category, id);
         BufferedImage original = ImageIO.read(new ByteArrayInputStream(data));
 
         // Delete old image files before writing new ones
         delete(category, id);
 
         String extension = extensionFor(contentType);
-        Path dir = baseDir.resolve(category.directory()).resolve(id);
         Files.createDirectories(dir);
 
         if (original == null) {
@@ -122,7 +122,12 @@ public class ImageService {
      * @return image bytes and content type, or empty if not found
      */
     public Optional<ImageData> read(ImageCategory category, String id, int size) {
-        Path dir = baseDir.resolve(category.directory()).resolve(id);
+        Path dir;
+        try {
+            dir = resolveSafe(category, id);
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
         if (!Files.exists(dir)) {
             return Optional.empty();
         }
@@ -148,7 +153,7 @@ public class ImageService {
      * Deletes all sizes of an image.
      */
     public void delete(ImageCategory category, String id) {
-        Path dir = baseDir.resolve(category.directory()).resolve(id);
+        Path dir = resolveSafe(category, id);
         if (!Files.exists(dir)) return;
         try (var stream = Files.list(dir)) {
             stream.forEach(file -> {
@@ -168,7 +173,34 @@ public class ImageService {
      * Checks whether an image exists on disk.
      */
     public boolean exists(ImageCategory category, String id) {
-        return Files.exists(baseDir.resolve(category.directory()).resolve(id).resolve(".content-type"));
+        try {
+            return Files.exists(resolveSafe(category, id).resolve(".content-type"));
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Resolves the on-disk directory for an image, rejecting any {@code id} that would
+     * escape the category root (e.g. {@code "../etc/passwd"}). Containment is verified
+     * after {@link Path#normalize()} so {@code ".."} segments cannot reach outside the
+     * configured base directory. Symlinks placed inside the base directory by an
+     * operator are not followed; deployments must not stage symlinks inside
+     * {@code data/images} that escape the tree.
+     *
+     * @throws IllegalArgumentException when the resolved path escapes the category root
+     *                                  or when the id is null / blank
+     */
+    private Path resolveSafe(ImageCategory category, String id) {
+        if (id == null || id.isBlank()) {
+            throw new IllegalArgumentException("invalid image id");
+        }
+        Path categoryRoot = baseDir.resolve(category.directory()).normalize();
+        Path resolved = categoryRoot.resolve(id).normalize();
+        if (!resolved.startsWith(categoryRoot) || resolved.equals(categoryRoot)) {
+            throw new IllegalArgumentException("invalid image id");
+        }
+        return resolved;
     }
 
     private void writeCompressed(BufferedImage source, Path target, int maxSide, String extension) throws IOException {

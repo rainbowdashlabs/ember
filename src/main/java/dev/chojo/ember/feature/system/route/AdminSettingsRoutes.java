@@ -170,8 +170,11 @@ public class AdminSettingsRoutes implements Routes {
     }
 
     private void serveLogoFragment(Context ctx) {
-        String name = ctx.pathParam("name");
-        if (name.endsWith(".png")) name = name.substring(0, name.length() - 4);
+        String name = safeLogoName(ctx);
+        if (name == null) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            return;
+        }
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
         imageService
                 .read(ImageCategory.LOGO_FRAGMENTS, name, size)
@@ -185,9 +188,11 @@ public class AdminSettingsRoutes implements Routes {
     }
 
     private void serveAppLogo(Context ctx) {
-        String name = ctx.pathParam("name");
-        // Strip .png extension if present
-        if (name.endsWith(".png")) name = name.substring(0, name.length() - 4);
+        String name = safeLogoName(ctx);
+        if (name == null) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            return;
+        }
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
         imageService
                 .read(ImageCategory.APP_LOGOS, name, size)
@@ -198,6 +203,21 @@ public class AdminSettingsRoutes implements Routes {
                             ctx.result(img.data());
                         },
                         () -> ctx.status(HttpStatus.NO_CONTENT));
+    }
+
+    /**
+     * Pattern allowed for the {@code {name}} path segment on the public logo routes.
+     * Restricting to {@code [A-Za-z0-9_-]+} forbids slashes, dots, and {@code ..} so
+     * the value can never escape the configured image directory regardless of how
+     * the underlying filesystem resolver normalises the path.
+     */
+    private static final java.util.regex.Pattern SAFE_LOGO_NAME = java.util.regex.Pattern.compile("^[A-Za-z0-9_-]+$");
+
+    private static String safeLogoName(Context ctx) {
+        String name = ctx.pathParam("name");
+        if (name == null) return null;
+        if (name.endsWith(".png")) name = name.substring(0, name.length() - 4);
+        return SAFE_LOGO_NAME.matcher(name).matches() ? name : null;
     }
 
     @OpenApi(

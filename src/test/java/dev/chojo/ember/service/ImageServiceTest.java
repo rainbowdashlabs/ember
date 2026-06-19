@@ -262,4 +262,41 @@ class ImageServiceTest {
         // Either empty (IOException caught) or empty (file missing)
         assertNotNull(result); // just verify no unhandled exception
     }
+
+    @Test
+    @Order(60)
+    void readRejectsParentDirectoryTraversal() {
+        assertTrue(imageService.read(ImageCategory.AVATARS, "../escape", 0).isEmpty());
+        assertTrue(
+                imageService.read(ImageCategory.AVATARS, "../../etc/passwd", 0).isEmpty());
+    }
+
+    @Test
+    @Order(61)
+    void existsRejectsParentDirectoryTraversal() {
+        assertFalse(imageService.exists(ImageCategory.AVATARS, "../escape"));
+    }
+
+    @Test
+    @Order(62)
+    void storeRejectsParentDirectoryTraversal() throws IOException {
+        byte[] data = createTestPng(50, 50);
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> imageService.store(ImageCategory.AVATARS, "../escape", data, "image/png"));
+    }
+
+    @Test
+    @Order(63)
+    void deleteRejectsParentDirectoryTraversal() {
+        assertThrows(IllegalArgumentException.class, () -> imageService.delete(ImageCategory.AVATARS, "../escape"));
+    }
+
+    @Test
+    @Order(64)
+    void readRejectsNullAndBlankId() {
+        assertTrue(imageService.read(ImageCategory.AVATARS, null, 0).isEmpty());
+        assertTrue(imageService.read(ImageCategory.AVATARS, "", 0).isEmpty());
+        assertTrue(imageService.read(ImageCategory.AVATARS, "   ", 0).isEmpty());
+    }
 }

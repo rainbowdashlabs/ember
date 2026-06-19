@@ -383,8 +383,14 @@ public class SessionRoutes implements Routes {
      * Retrieves the avatar for a specific member by their UUID path parameter.
      */
     private void getAvatarByMember(Context ctx) {
-        String memberUid = ctx.pathParam("memberUid");
-        serveAvatar(ctx, memberUid);
+        UUID memberUid;
+        try {
+            memberUid = UUID.fromString(ctx.pathParam("memberUid"));
+        } catch (IllegalArgumentException e) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            return;
+        }
+        serveAvatar(ctx, memberUid.toString());
     }
 
     /**
