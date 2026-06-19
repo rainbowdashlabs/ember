@@ -214,6 +214,44 @@ public class AdminSettingsRoutes implements Routes {
      */
     private static final Pattern SAFE_LOGO_NAME = Pattern.compile("^[A-Za-z0-9_-]+$");
 
+    /**
+     * Pattern allowed for the {@code {locale}} path segment on the admin legal
+     * routes. Restricting to two lowercase letters with an optional uppercase
+     * region tag rejects {@code ..} segments, slashes, and any value that would
+     * otherwise let an admin write or list files outside the configured legal
+     * directory.
+     */
+    private static final Pattern SAFE_LOCALE = Pattern.compile("^[a-z]{2}(-[A-Z]{2})?$");
+
+    /**
+     * Parses the {@code locale} path parameter, validates it against
+     * {@link #SAFE_LOCALE}, and checks that the resolved directory stays inside
+     * {@code base}. Throws {@link io.javalin.http.BadRequestResponse} on any
+     * mismatch so the route returns 400 with a static, user-safe message.
+     */
+    private static String safeLocale(Context ctx, Path base) {
+        String locale = ctx.pathParam("locale");
+        if (locale == null || !SAFE_LOCALE.matcher(locale).matches()) {
+            throw new io.javalin.http.BadRequestResponse("Invalid locale");
+        }
+        Path resolved = base.resolve(locale).normalize();
+        if (!resolved.startsWith(base.normalize())) {
+            throw new io.javalin.http.BadRequestResponse("Invalid locale");
+        }
+        return locale;
+    }
+
+    private static Path resolveLocaleDir(Path base, String locale) {
+        // safeLocale has already validated the value, but re-check the resolved
+        // path so a future caller that forgets the validation gate is still
+        // caught here rather than escaping the legal directory.
+        Path resolved = base.resolve(locale).normalize();
+        if (!resolved.startsWith(base.normalize())) {
+            throw new io.javalin.http.BadRequestResponse("Invalid locale");
+        }
+        return resolved;
+    }
+
     private static String safeLogoName(Context ctx) {
         String name = ctx.pathParam("name");
         if (name == null) return null;
@@ -389,8 +427,8 @@ public class AdminSettingsRoutes implements Routes {
 
     private void getLegalDocumentLocale(Context ctx) {
         LegalDocumentType type = parseLegalType(ctx);
-        String locale = ctx.pathParam("locale");
         Path dir = legalDir(type);
+        String locale = safeLocale(ctx, dir);
         var doc = documentService.getDocument(dir, locale);
         ctx.json(new LegalDocumentResponse(type, doc.markdown(), doc.version()));
     }
@@ -413,18 +451,20 @@ public class AdminSettingsRoutes implements Routes {
     }
 
     private void updateLegalDocument(Context ctx) {
-        updateLegalDocumentForLocale(ctx, "de");
+        LegalDocumentType type = parseLegalType(ctx);
+        updateLegalDocumentForLocale(ctx, type, legalDir(type), "de");
     }
 
     private void updateLegalDocumentLocale(Context ctx) {
-        updateLegalDocumentForLocale(ctx, ctx.pathParam("locale"));
-    }
-
-    private void updateLegalDocumentForLocale(Context ctx, String locale) {
         LegalDocumentType type = parseLegalType(ctx);
         Path dir = legalDir(type);
+        String locale = safeLocale(ctx, dir);
+        updateLegalDocumentForLocale(ctx, type, dir, locale);
+    }
+
+    private void updateLegalDocumentForLocale(Context ctx, LegalDocumentType type, Path dir, String locale) {
         var request = ctx.bodyAsClass(LegalDocumentRequest.class);
-        Path localeDir = dir.resolve(locale);
+        Path localeDir = resolveLocaleDir(dir, locale);
         try {
             Files.createDirectories(localeDir);
             Path file = localeDir.resolve("01-content.md");
@@ -440,9 +480,9 @@ public class AdminSettingsRoutes implements Routes {
 
     private void getLegalFiles(Context ctx) {
         LegalDocumentType type = parseLegalType(ctx);
-        String locale = ctx.pathParam("locale");
         Path dir = legalDir(type);
-        ctx.json(readLegalFiles(dir.resolve(locale)));
+        String locale = safeLocale(ctx, dir);
+        ctx.json(readLegalFiles(resolveLocaleDir(dir, locale)));
     }
 
     private List<LegalFileEntry> readLegalFiles(Path localeDir) {
@@ -468,9 +508,9 @@ public class AdminSettingsRoutes implements Routes {
 
     private void saveLegalFiles(Context ctx) {
         LegalDocumentType type = parseLegalType(ctx);
-        String locale = ctx.pathParam("locale");
         Path dir = legalDir(type);
-        Path localeDir = dir.resolve(locale);
+        String locale = safeLocale(ctx, dir);
+        Path localeDir = resolveLocaleDir(dir, locale);
         var request = ctx.bodyAsClass(LegalFileEntry[].class);
         try {
             Files.createDirectories(localeDir);
