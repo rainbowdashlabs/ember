@@ -7,15 +7,11 @@ package dev.chojo.ember.auth;
 
 import at.favre.lib.crypto.bcrypt.BCrypt;
 
-import java.security.SecureRandom;
-import java.util.Base64;
-
 /**
  * BCrypt-based password hashing algorithm with a cost factor of 12.
  */
 public class BCryptAlgorithm implements HashAlgorithm {
     private static final int COST = 12;
-    private static final SecureRandom RANDOM = new SecureRandom();
 
     @Override
     public String name() {
@@ -24,12 +20,8 @@ public class BCryptAlgorithm implements HashAlgorithm {
 
     @Override
     public PasswordHash hash(String password) {
-        byte[] saltBytes = new byte[16];
-        RANDOM.nextBytes(saltBytes);
-        String salt = Base64.getEncoder().encodeToString(saltBytes);
-
         String hash = BCrypt.withDefaults().hashToString(COST, password.toCharArray());
-        return new PasswordHash(name(), hash, salt);
+        return new PasswordHash(name(), hash);
     }
 
     @Override

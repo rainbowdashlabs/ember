@@ -50,7 +50,7 @@ public class PasswordHasher {
      * Hashes a plaintext password using the default algorithm.
      *
      * @param password the plaintext password
-     * @return the encoded hash string in {@code {algorithm:hash:salt}} format
+     * @return the encoded hash string in {@code {algorithm:hash}} format
      */
     public String hash(String password) {
         return defaultAlgorithm.hash(password).encode();
