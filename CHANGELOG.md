@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Security
+
+- **Bearer tokens hashed at rest.** Session bearers, password-reset codes, email-verification codes, and station-delete codes are now stored as `HMAC-SHA-256(auth.tokenPepper, raw token)` instead of plaintext. A database-only compromise (SQL injection, backup leak, replica misconfiguration) no longer yields usable tokens — the attacker also needs the application secret.
+- **Breaking on upgrade.** The migration drops the plaintext `token` column on `account_session` and `account_token`, invalidating every active session and pending recovery link. Users sign in again once after upgrade; pending password-reset / email-verification / station-delete emails must be re-requested.
+- **New required config in production: `auth.tokenPepper`** (env: `AUTH_TOKEN_PEPPER`). Generate a long random secret. Deployments with `demo.dev` or `demo.enabled` fall back to a fixed placeholder; production deployments refuse to boot if the pepper is blank.
+
 ## v26.9.0
 
 ### New Features

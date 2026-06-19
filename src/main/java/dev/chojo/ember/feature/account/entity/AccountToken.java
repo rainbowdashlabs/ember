@@ -16,7 +16,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  *
  * @param id        the unique token identifier
  * @param accountId the associated account identifier
- * @param token     the token string
+ * @param tokenHash the HMAC-SHA-256 hash of the issued token; the raw token is never persisted
  * @param tokenType the type of operation this token is for
  * @param metadata  optional metadata (e.g. new email address for email change tokens, station ID for deletion)
  * @param expiresAt when the token expires
@@ -25,7 +25,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public record AccountToken(
         int id,
         int accountId,
-        String token,
+        String tokenHash,
         TokenType tokenType,
         String metadata,
         Instant expiresAt,
@@ -38,7 +38,7 @@ public record AccountToken(
         return row -> new AccountToken(
                 row.getInt("id"),
                 row.getInt("account_id"),
-                row.getString("token"),
+                row.getString("token_hash"),
                 row.getEnum("token_type", TokenType.class),
                 row.getString("metadata"),
                 row.get("expires_at", INSTANT_TIMESTAMP),

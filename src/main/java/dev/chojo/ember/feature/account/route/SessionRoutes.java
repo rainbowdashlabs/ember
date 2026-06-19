@@ -11,6 +11,7 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -80,6 +81,7 @@ public class SessionRoutes implements Routes {
     private final UserSettingsRepository userSettingsRepository;
     private final UserTagRepository userTagRepository;
     private final Conf conf;
+    private final TokenHasher tokenHasher;
 
     @Inject
     public SessionRoutes(
@@ -96,7 +98,8 @@ public class SessionRoutes implements Routes {
             ImageService imageService,
             UserSettingsRepository userSettingsRepository,
             UserTagRepository userTagRepository,
-            Conf conf) {
+            Conf conf,
+            TokenHasher tokenHasher) {
         this.stationService = stationService;
         this.memberService = memberService;
         this.groupService = groupService;
@@ -111,6 +114,7 @@ public class SessionRoutes implements Routes {
         this.userSettingsRepository = userSettingsRepository;
         this.userTagRepository = userTagRepository;
         this.conf = conf;
+        this.tokenHasher = tokenHasher;
     }
 
     @Override
@@ -292,6 +296,7 @@ public class SessionRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         String authHeader = ctx.header("Authorization");
         String currentToken = authHeader != null && authHeader.startsWith("Bearer ") ? authHeader.substring(7) : "";
+        String currentHash = currentToken.isEmpty() ? "" : tokenHasher.hash(currentToken);
         List<AccountSession> sessions = authService.findSessionsByAccount(session.accountId());
         List<ActiveSession> result = sessions.stream()
                 .map(s -> new ActiveSession(
@@ -300,7 +305,7 @@ public class SessionRoutes implements Routes {
                         s.createdAt(),
                         s.lastUsedAt(),
                         s.expiresAt(),
-                        s.token().equals(currentToken),
+                        s.tokenHash().equals(currentHash),
                         s.location()))
                 .toList();
         ctx.json(result);

@@ -16,7 +16,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  *
  * @param id         the unique session identifier
  * @param accountId  the associated account identifier
- * @param token      the bearer token used to authenticate requests
+ * @param tokenHash  the HMAC-SHA-256 hash of the bearer token; the raw bearer is never persisted
  * @param expiresAt  when the session expires
  * @param createdAt  when the session was created
  * @param userAgent  the user agent string from the client that created the session
@@ -26,7 +26,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public record AccountSession(
         int id,
         int accountId,
-        String token,
+        String tokenHash,
         Instant expiresAt,
         Instant createdAt,
         String userAgent,
@@ -40,7 +40,7 @@ public record AccountSession(
         return row -> new AccountSession(
                 row.getInt("id"),
                 row.getInt("account_id"),
-                row.getString("token"),
+                row.getString("token_hash"),
                 row.get("expires_at", INSTANT_TIMESTAMP),
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.getString("user_agent"),

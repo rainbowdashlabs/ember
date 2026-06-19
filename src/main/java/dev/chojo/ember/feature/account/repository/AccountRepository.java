@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.account.repository;
 
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import dev.chojo.ember.api.auth.InstanceUserType;
+import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.entity.AccountExternalAuth;
@@ -14,6 +15,7 @@ import dev.chojo.ember.feature.account.entity.AccountSession;
 import dev.chojo.ember.feature.account.entity.AccountToken;
 import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.legal.entity.GdprConsent;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -35,6 +37,13 @@ public class AccountRepository {
             "id, email, first_name, last_name, email_verified, instance_user_type, full_name";
     private static final String CONSENT_COLUMNS =
             "id, account_id, consent_version, privacy_version, tos_version, ip_address, country, user_agent, consented_at";
+
+    private final TokenHasher tokenHasher;
+
+    @Inject
+    public AccountRepository(TokenHasher tokenHasher) {
+        this.tokenHasher = tokenHasher;
+    }
 
     /**
      * Finds an account by its unique identifier.
@@ -386,15 +395,15 @@ public class AccountRepository {
                 SELECT
                     id,
                     account_id,
-                    token,
+                    token_hash,
                     token_type,
                     metadata,
                     expires_at,
                     created_at
                 FROM
                     account_token
-                WHERE token = :token;""")
-                .single(call().bind("token", token))
+                WHERE token_hash = :token_hash;""")
+                .single(call().bind("token_hash", tokenHasher.hash(token)))
                 .map(AccountToken.map())
                 .first();
     }
@@ -427,11 +436,11 @@ public class AccountRepository {
         return query("""
                 INSERT
                         INTO
-                            account_token(account_id, token, token_type, metadata, expires_at)
+                            account_token(account_id, token_hash, token_type, metadata, expires_at)
                         VALUES
-                            (:account_id, :token, :type, :metadata, :expires_at);""")
+                            (:account_id, :token_hash, :type, :metadata, :expires_at);""")
                 .single(call().bind("account_id", accountId)
-                        .bind("token", token)
+                        .bind("token_hash", tokenHasher.hash(token))
                         .bind("type", tokenType)
                         .bind("metadata", metadata)
                         .bind("expires_at", expiresAt, INSTANT_TIMESTAMP))
@@ -445,8 +454,8 @@ public class AccountRepository {
      * @return {@code true} if a token was deleted
      */
     public boolean deleteToken(String token) {
-        return query("DELETE FROM account_token WHERE token = :token;")
-                .single(call().bind("token", token))
+        return query("DELETE FROM account_token WHERE token_hash = :token_hash;")
+                .single(call().bind("token_hash", tokenHasher.hash(token)))
                 .delete()
                 .changed();
     }
@@ -490,7 +499,7 @@ public class AccountRepository {
                 SELECT
                             id,
                             account_id,
-                            token,
+                            token_hash,
                             expires_at,
                             created_at,
                             user_agent,
@@ -498,8 +507,8 @@ public class AccountRepository {
                             location
                         FROM
                             account_session
-                        WHERE token = :token;""")
-                .single(call().bind("token", token))
+                        WHERE token_hash = :token_hash;""")
+                .single(call().bind("token_hash", tokenHasher.hash(token)))
                 .map(AccountSession.map())
                 .first();
     }
@@ -515,7 +524,7 @@ public class AccountRepository {
                 SELECT
                     id,
                     account_id,
-                    token,
+                    token_hash,
                     expires_at,
                     created_at,
                     user_agent,
@@ -545,11 +554,11 @@ public class AccountRepository {
         return query("""
                 INSERT
                 INTO
-                    account_session(account_id, token, expires_at, user_agent, location)
+                    account_session(account_id, token_hash, expires_at, user_agent, location)
                 VALUES
-                    (:account_id, :token, :expires_at, :user_agent, :location);""")
+                    (:account_id, :token_hash, :expires_at, :user_agent, :location);""")
                 .single(call().bind("account_id", accountId)
-                        .bind("token", token)
+                        .bind("token_hash", tokenHasher.hash(token))
                         .bind("expires_at", expiresAt, INSTANT_TIMESTAMP)
                         .bind("user_agent", userAgent)
                         .bind("location", location))
@@ -571,11 +580,11 @@ public class AccountRepository {
                     last_used_at = now(),
                     user_agent   = :user_agent,
                     location     = coalesce(:location, location)
-                WHERE token = :token;
+                WHERE token_hash = :token_hash;
                 """)
                 .single(call().bind("user_agent", userAgent)
                         .bind("location", location)
-                        .bind("token", token))
+                        .bind("token_hash", tokenHasher.hash(token)))
                 .update()
                 .changed();
     }
@@ -592,12 +601,12 @@ public class AccountRepository {
         return query("""
                 UPDATE account_session
                         SET
-                            token      = :new_token,
+                            token_hash = :new_hash,
                             expires_at = :expires_at
-                        WHERE token = :old_token;""")
-                .single(call().bind("new_token", newToken)
+                        WHERE token_hash = :old_hash;""")
+                .single(call().bind("new_hash", tokenHasher.hash(newToken))
                         .bind("expires_at", newExpiresAt, INSTANT_TIMESTAMP)
-                        .bind("old_token", oldToken))
+                        .bind("old_hash", tokenHasher.hash(oldToken)))
                 .update()
                 .changed();
     }
@@ -609,8 +618,8 @@ public class AccountRepository {
      * @return {@code true} if the session was deleted
      */
     public boolean deleteSession(String token) {
-        return query("DELETE FROM account_session WHERE token = :token;")
-                .single(call().bind("token", token))
+        return query("DELETE FROM account_session WHERE token_hash = :token_hash;")
+                .single(call().bind("token_hash", tokenHasher.hash(token)))
                 .delete()
                 .changed();
     }
