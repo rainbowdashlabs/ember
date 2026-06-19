@@ -7,6 +7,7 @@
 - **Bearer tokens hashed at rest.** Session bearers, password-reset codes, email-verification codes, and station-delete codes are now stored as `HMAC-SHA-256(auth.tokenPepper, raw token)` instead of plaintext. A database-only compromise (SQL injection, backup leak, replica misconfiguration) no longer yields usable tokens — the attacker also needs the application secret.
 - **Breaking on upgrade.** The migration drops the plaintext `token` column on `account_session` and `account_token`, invalidating every active session and pending recovery link. Users sign in again once after upgrade; pending password-reset / email-verification / station-delete emails must be re-requested.
 - **New required config in production: `auth.tokenPepper`** (env: `AUTH_TOKEN_PEPPER`). Generate a long random secret. Deployments with `demo.dev` or `demo.enabled` fall back to a fixed placeholder; production deployments refuse to boot if the pepper is blank.
+- **Markdown renderers sanitise output.** KB articles, station pages, and legal documents now pass every rendered HTML through a jsoup-based allow-list. Script tags, inline event handlers, `javascript:` URLs, cross-origin iframes, off-allowlist image sources, and unsupported inline styles are stripped before the HTML reaches another user's browser. KB / page content uses a `RICH` policy that keeps tables, headings, KB image references, coloured spans, and YouTube embeds (enforced `sandbox` / `loading="lazy"` / `referrerpolicy`). Legal documents use a `STRICT` policy that additionally forbids images and iframes.
 
 ## v26.9.0
 

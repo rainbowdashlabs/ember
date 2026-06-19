@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.page.repository.PageFileMetaRepository;
 import dev.chojo.ember.feature.page.repository.PageRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
+import dev.chojo.ember.util.HtmlSanitizer;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.commonmark.Extension;
@@ -78,7 +79,8 @@ public class PageService {
                 AutolinkExtension.create(),
                 StrikethroughExtension.create());
         this.markdownParser = Parser.builder().extensions(extensions).build();
-        this.htmlRenderer = HtmlRenderer.builder().extensions(extensions).build();
+        this.htmlRenderer =
+                HtmlRenderer.builder().extensions(extensions).sanitizeUrls(true).build();
     }
 
     // --- Page CRUD ---
@@ -501,7 +503,8 @@ public class PageService {
     private String renderMarkdown(String markdown) {
         if (markdown == null || markdown.isBlank()) return "";
         var document = markdownParser.parse(markdown);
-        return htmlRenderer.render(document);
+        String html = htmlRenderer.render(document);
+        return HtmlSanitizer.sanitize(html, HtmlSanitizer.Policy.RICH);
     }
 
     /**

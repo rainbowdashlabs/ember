@@ -44,6 +44,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.service.PdfCompressor;
 import dev.chojo.ember.feature.storage.service.PresentationCompressor;
+import dev.chojo.ember.util.HtmlSanitizer;
 import dev.chojo.ember.util.PresentationConverter;
 import dev.chojo.ember.util.TextDiff;
 import jakarta.inject.Inject;
@@ -153,7 +154,8 @@ public class KnowledgeBaseService {
                 AutolinkExtension.create(),
                 StrikethroughExtension.create());
         this.markdownParser = Parser.builder().extensions(extensions).build();
-        this.htmlRenderer = HtmlRenderer.builder().extensions(extensions).build();
+        this.htmlRenderer =
+                HtmlRenderer.builder().extensions(extensions).sanitizeUrls(true).build();
     }
 
     // -- Folders --
@@ -601,7 +603,8 @@ public class KnowledgeBaseService {
 
     public String renderMarkdown(String markdown) {
         var document = markdownParser.parse(markdown);
-        return htmlRenderer.render(document);
+        String html = htmlRenderer.render(document);
+        return HtmlSanitizer.sanitize(html, HtmlSanitizer.Policy.RICH);
     }
 
     public Optional<byte[]> getFileContent(int fileId) {

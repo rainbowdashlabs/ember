@@ -72,6 +72,9 @@ angus = { group = "org.eclipse.angus", name = "angus-mail", version = "2.0.5" }
 thumbnailator = { group = "net.coobird", name = "thumbnailator", version = "0.4.21" }
 imageio-webp = { group = "com.twelvemonkeys.imageio", name = "imageio-webp", version = "3.13.1" }
 
+# HTML sanitization
+jsoup = { group = "org.jsoup", name = "jsoup", version = "1.21.2" }
+
 # AI SDKs
 openai = { group = "com.openai", name = "openai-java", version = "4.37.0" }
 anthropic = { group = "com.anthropic", name = "anthropic-java", version = "2.35.0" }

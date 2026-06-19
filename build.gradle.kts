@@ -51,6 +51,7 @@ dependencies {
 
     implementation(libs.angus)
     implementation(libs.bundles.commonmark)
+    implementation(libs.jsoup)
     implementation(libs.java.diff.utils)
     implementation(libs.commons.csv)
     implementation(libs.thumbnailator)
