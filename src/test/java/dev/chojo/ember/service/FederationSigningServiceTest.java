@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.federation.service.FederationSigningService;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.net.URI;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -185,6 +186,36 @@ class FederationSigningServiceTest {
     void canonicalPathHandlesNullQuery() {
         assertEquals("/api/v1/x", FederationSigningService.canonicalPathWithQuery("/api/v1/x", null));
         assertEquals("/api/v1/x", FederationSigningService.canonicalPathWithQuery("/api/v1/x", ""));
+    }
+
+    @Test
+    void canonicalPathFromUriSortsQueryPairs() {
+        var uri = URI.create("https://example.com/api/v1/x?z=3&a=1&m=2");
+        assertEquals("/api/v1/x?a=1&m=2&z=3", FederationSigningService.canonicalPathWithQuery(uri));
+    }
+
+    @Test
+    void canonicalPathFromUriHandlesNoQuery() {
+        var uri = URI.create("https://example.com/api/v1/x");
+        assertEquals("/api/v1/x", FederationSigningService.canonicalPathWithQuery(uri));
+    }
+
+    @Test
+    void canonicalPathHandlesNullPath() {
+        assertEquals("", FederationSigningService.canonicalPathWithQuery(null, null));
+    }
+
+    @Test
+    void signAndVerifyWithNullBody() {
+        Instant timestamp = Instant.now();
+        String signature = signingService.sign("GET", PATH, RECIPIENT, null, timestamp.toString(), privateKey);
+        assertNotNull(signature);
+        assertTrue(signingService.verify("GET", PATH, RECIPIENT, null, signature, publicKey, timestamp));
+    }
+
+    @Test
+    void verifyEnrollmentRejectsInvalidBase64() {
+        assertFalse(signingService.verifyEnrollmentPayload("payload", "not-valid!!!", publicKey));
     }
 
     @Test

@@ -348,6 +348,8 @@ tasks {
                     "*.FederationPartnerSeeder*",
                     "*.DiscoveryKeyService*",
                     "*.DiscoveryStationProjectionService*",
+                    // Static CIDR helper record — class-init only, not worth unit-testing
+                    "*.RemoteUrlValidator.Cidr",
                 )
                 limit {
                     counter = "LINE"

@@ -18,7 +18,6 @@ import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.URI;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 
 /**
@@ -39,7 +38,7 @@ import java.util.Optional;
  * {@code FederationHttpClient} / {@code FederationWebhookService} as a soft
  * check that protects against DNS rebinding and against rows that predate the
  * validator. A clustered deployment would still want IP pinning on the TCP
- * socket to close the resolve-vs-connect race; that is tracked as a follow-up.
+ * socket to close the resolve-vs-connect race.
  */
 @Singleton
 public class RemoteUrlValidator {
@@ -197,11 +196,5 @@ public class RemoteUrlValidator {
      */
     public static String rejectReason() {
         return REJECT_REASON;
-    }
-
-    private static String describe(InetAddress address) {
-        if (address == null) return "(null)";
-        return address.getHostAddress() + " ("
-                + address.getClass().getSimpleName().toLowerCase(Locale.ROOT) + ")";
     }
 }

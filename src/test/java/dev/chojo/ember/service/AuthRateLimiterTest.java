@@ -97,6 +97,66 @@ class AuthRateLimiterTest {
     }
 
     @Test
+    void forgotPasswordLimitsPerIpAndIdentity() {
+        var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
+        var limiter = new AuthRateLimiter(clock);
+        for (int i = 0; i < 3; i++)
+            assertTrue(limiter.tryForgotPassword("1.2.3.4", "u" + i + "@example.com")
+                    .isEmpty());
+        assertTrue(limiter.tryForgotPassword("1.2.3.4", "new@example.com").isPresent());
+    }
+
+    @Test
+    void resendVerificationLimitsPerIpAndIdentity() {
+        var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
+        var limiter = new AuthRateLimiter(clock);
+        for (int i = 0; i < 3; i++)
+            assertTrue(limiter.tryResendVerification("1.2.3.4", "u" + i + "@example.com")
+                    .isEmpty());
+        assertTrue(limiter.tryResendVerification("1.2.3.4", "new@example.com").isPresent());
+    }
+
+    @Test
+    void verifyEmailLimitsPerIp() {
+        var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
+        var limiter = new AuthRateLimiter(clock);
+        for (int i = 0; i < 30; i++)
+            assertTrue(limiter.tryVerifyEmail("1.2.3.4").isEmpty());
+        assertTrue(limiter.tryVerifyEmail("1.2.3.4").isPresent());
+    }
+
+    @Test
+    void setPasswordLimitsPerIp() {
+        var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
+        var limiter = new AuthRateLimiter(clock);
+        for (int i = 0; i < 30; i++)
+            assertTrue(limiter.trySetPassword("1.2.3.4").isEmpty());
+        assertTrue(limiter.trySetPassword("1.2.3.4").isPresent());
+    }
+
+    @Test
+    void confirmEmailChangeLimitsPerIp() {
+        var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
+        var limiter = new AuthRateLimiter(clock);
+        for (int i = 0; i < 30; i++)
+            assertTrue(limiter.tryConfirmEmailChange("1.2.3.4").isEmpty());
+        assertTrue(limiter.tryConfirmEmailChange("1.2.3.4").isPresent());
+    }
+
+    @Test
+    void loginHandlesNullEmail() {
+        var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
+        var limiter = new AuthRateLimiter(clock);
+        assertTrue(limiter.tryLogin("1.2.3.4", null).isEmpty());
+    }
+
+    @Test
+    void defaultConstructorCreatesWorkingInstance() {
+        var limiter = new AuthRateLimiter();
+        assertTrue(limiter.tryLogin("9.9.9.9", "test@example.com").isEmpty());
+    }
+
+    @Test
     void retryAfterReturnsLargerOfTwoBuckets() {
         var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
         var limiter = new AuthRateLimiter(clock);
