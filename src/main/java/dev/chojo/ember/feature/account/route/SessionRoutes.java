@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.api.AccessManager;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
 import dev.chojo.ember.feature.legal.service.GdprExportService;
 import dev.chojo.ember.feature.media.service.ImageCategory;
@@ -35,11 +36,14 @@ import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.notifications.entity.Notification;
+import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationService;
+import dev.chojo.ember.feature.system.service.RequirementsService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -56,7 +60,10 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -87,6 +94,9 @@ public class SessionRoutes implements Routes {
     private final TokenHasher tokenHasher;
     private final StationRepository stationRepository;
     private final FederationRepository federationRepository;
+    private final NotificationService notificationService;
+    private final RequirementsService requirementsService;
+    private final AccessManager accessManager;
 
     @Inject
     public SessionRoutes(
@@ -106,7 +116,10 @@ public class SessionRoutes implements Routes {
             Conf conf,
             TokenHasher tokenHasher,
             StationRepository stationRepository,
-            FederationRepository federationRepository) {
+            FederationRepository federationRepository,
+            NotificationService notificationService,
+            RequirementsService requirementsService,
+            AccessManager accessManager) {
         this.stationService = stationService;
         this.memberService = memberService;
         this.groupService = groupService;
@@ -124,12 +137,16 @@ public class SessionRoutes implements Routes {
         this.tokenHasher = tokenHasher;
         this.stationRepository = stationRepository;
         this.federationRepository = federationRepository;
+        this.notificationService = notificationService;
+        this.requirementsService = requirementsService;
+        this.accessManager = accessManager;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/session", this::getSessionInfo, StationPermission.LOGIN);
         routes.get(prefix + "/session/stations", this::getStations, StationPermission.LOGIN);
+        routes.get(prefix + "/session/cross-station-dashboard", this::getCrossStationDashboard, StationPermission.LOGIN);
         routes.get(prefix + "/session/active", this::getActiveSessions, StationPermission.LOGIN);
         routes.delete(prefix + "/session/active/{id}", this::invalidateSession, StationPermission.LOGIN);
         routes.post(prefix + "/session/invalidate-all", this::invalidateAll, StationPermission.LOGIN);
@@ -293,6 +310,66 @@ public class SessionRoutes implements Routes {
                 .toList();
         ctx.json(result);
     }
+
+    private void getCrossStationDashboard(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        List<StationMember> memberships = memberService.findByAccount(session.accountId());
+
+        var stationSummaries = new ArrayList<CrossStationSummary>();
+        var allNotifications = new ArrayList<CrossStationNotification>();
+
+        for (StationMember member : memberships) {
+            if (member.former()) continue;
+            var station = stationService.findById(member.stationId()).orElse(null);
+            if (station == null) continue;
+
+            int notificationCount = notificationService.countUnacknowledged(member.id());
+
+            var permissions = accessManager.resolveExpandedMemberPermissions(member);
+            var roleNames = permissions.stream().map(Enum::name).toList();
+            int requirementCount = requirementsService.countPending(member.id(), member.stationId(), roleNames);
+
+            stationSummaries.add(new CrossStationSummary(
+                    station.uid(), station.name(), notificationCount, requirementCount));
+
+            for (Notification n : notificationService.findUnacknowledged(member.id())) {
+                allNotifications.add(new CrossStationNotification(
+                        station.uid(),
+                        station.name(),
+                        n.id(),
+                        n.type().name(),
+                        n.type().localeKey(),
+                        n.data().paramsAsMap(),
+                        n.data().link() != null
+                                ? new CrossStationNotificationLink(n.data().link().route(), n.data().link().routeParams())
+                                : null,
+                        n.createdAt()));
+            }
+        }
+
+        allNotifications.sort(Comparator.comparing(CrossStationNotification::createdAt).reversed());
+        var limited = allNotifications.size() > 20 ? allNotifications.subList(0, 20) : allNotifications;
+
+        ctx.json(new CrossStationDashboard(stationSummaries, limited));
+    }
+
+    public record CrossStationDashboard(
+            List<CrossStationSummary> stations,
+            List<CrossStationNotification> recentNotifications) {}
+
+    public record CrossStationSummary(UUID stationId, String stationName, int notifications, int requirements) {}
+
+    public record CrossStationNotification(
+            UUID stationId,
+            String stationName,
+            int id,
+            String type,
+            String localeKey,
+            Map<String, String> params,
+            CrossStationNotificationLink link,
+            Instant createdAt) {}
+
+    public record CrossStationNotificationLink(String route, Map<String, Object> routeParams) {}
 
     @OpenApi(
             path = "/api/v1/session/active",

@@ -34,6 +34,11 @@ function switchStation(stationId: string) {
   setActiveStation(stationId)
   window.location.href = '/station/dashboard/overview'
 }
+
+function openAllStations() {
+  showModal.value = false
+  window.location.href = '/cross-station'
+}
 </script>
 
 <template>
@@ -52,6 +57,13 @@ function switchStation(stationId: string) {
       <div class="space-y-4">
         <SubHeader>{{ t('stationSwitcher.title') }}</SubHeader>
         <div class="space-y-2">
+          <NeutralContainer
+              class="flex items-center gap-3 cursor-pointer hover:border-primary transition-colors"
+              @click="openAllStations"
+          >
+            <font-awesome-icon :icon="['fas', 'layer-group']" class="h-4 w-4 text-primary"/>
+            <span class="font-medium">{{ t('stationSwitcher.allStations') }}</span>
+          </NeutralContainer>
           <NeutralContainer
               v-for="station in stationList"
               :key="station.stationId"

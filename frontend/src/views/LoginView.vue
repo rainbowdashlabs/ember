@@ -141,7 +141,7 @@ async function resolveStationAndRedirect() {
     setActiveStation(stations[0].stationId)
     await navigateTo(redirectPath || '/station/requirements')
   } else if (stations.length > 1) {
-    await navigateTo({path: '/station-select', query: redirectPath ? {redirect: redirectPath} : undefined})
+    await navigateTo(redirectPath || '/cross-station')
   } else {
     await navigateTo(redirectPath || '/station/requirements')
   }

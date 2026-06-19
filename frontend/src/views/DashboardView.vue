@@ -391,6 +391,7 @@ async function handleLogout() {
     </template>
 
     <template #header>
+      <div class="hidden lg:flex"><StationSwitcher/></div>
       <HelpCenterLink/>
 
       <router-link v-if="isAdmin()" to="/admin/dashboard/overview">

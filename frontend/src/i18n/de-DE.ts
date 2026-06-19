@@ -5449,6 +5449,16 @@ volumes:
     stationSwitcher: {
         title: 'Wache wechseln',
         noStation: 'Keine Wache',
+        allStations: 'Alle Wachen',
+    },
+    crossStation: {
+        title: 'Übersicht',
+        subtitle: 'Alle Wachen auf einen Blick',
+        notifications: 'Benachrichtigungen',
+        requirements: 'Offene Aufgaben',
+        recentNotifications: 'Letzte Benachrichtigungen',
+        noNotifications: 'Keine neuen Benachrichtigungen',
+        openStation: 'Wache öffnen',
     },
     apply: {
         title: 'Wache beantragen',
