@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.account.service;
 
+import dev.chojo.ember.auth.BreachCheckWorker;
+import dev.chojo.ember.auth.HibpClient;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.auth.PasswordPolicy;
 import dev.chojo.ember.conf.file.elements.Auth;
@@ -48,6 +50,8 @@ public class AuthService {
     private final EmailService emailService;
     private final Auth authConfig;
     private final Demo demo;
+    private final HibpClient hibpClient;
+    private final BreachCheckWorker breachCheckWorker;
     /**
      * Lazily-computed hash of a random throwaway password, used by {@link #login} when the
      * supplied email does not resolve to an account or has no stored credential. Running the
@@ -66,7 +70,9 @@ public class AuthService {
             PasswordHasher passwordHasher,
             EmailService emailService,
             Auth authConfig,
-            Demo demo) {
+            Demo demo,
+            HibpClient hibpClient,
+            BreachCheckWorker breachCheckWorker) {
         this.accountRepository = accountRepository;
         this.registrationCodeRepository = registrationCodeRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -75,6 +81,8 @@ public class AuthService {
         this.emailService = emailService;
         this.authConfig = authConfig;
         this.demo = demo;
+        this.hibpClient = hibpClient;
+        this.breachCheckWorker = breachCheckWorker;
     }
 
     /**
@@ -90,7 +98,7 @@ public class AuthService {
      */
     public RegistrationResult registerSelf(
             String email, String firstName, String lastName, String password, String registrationCode) {
-        var policy = PasswordPolicy.validate(password);
+        var policy = validateNewPassword(password);
         if (policy != PasswordPolicy.Result.OK) {
             return RegistrationResult.failure(policy.message());
         }
@@ -229,7 +237,7 @@ public class AuthService {
      * @return {@code true} if the password was successfully set
      */
     public boolean setPassword(String token, String password) {
-        if (PasswordPolicy.validate(password) != PasswordPolicy.Result.OK) {
+        if (validateNewPassword(password) != PasswordPolicy.Result.OK) {
             return false;
         }
         Optional<AccountToken> tokenOpt = accountRepository.findToken(token);
@@ -380,6 +388,9 @@ public class AuthService {
             accountRepository.updateCredential(account.id(), passwordHasher.hash(password));
         }
 
+        // Async HIBP breach check — gated by staleness window inside the worker, fail-open.
+        breachCheckWorker.enqueueCheck(account.id(), password);
+
         // Force password change — issue a one-time token instead of a session
         if (credOpt.get().forcePasswordChange()) {
             String token = generateToken();
@@ -394,6 +405,20 @@ public class AuthService {
         }
 
         return createSession(account.id(), userAgent, location);
+    }
+
+    /**
+     * Combined length + HIBP validation applied before persisting any new password.
+     * Returns {@link PasswordPolicy.Result#OK} when the password meets the length
+     * requirement and is not known to HIBP; otherwise returns the specific reason.
+     * HIBP failures are fail-open inside {@link HibpClient}, so a third-party outage
+     * does not block legitimate password changes.
+     */
+    private PasswordPolicy.Result validateNewPassword(String plaintext) {
+        var policy = PasswordPolicy.validate(plaintext);
+        if (policy != PasswordPolicy.Result.OK) return policy;
+        if (hibpClient.isPwned(plaintext)) return PasswordPolicy.Result.BREACHED;
+        return PasswordPolicy.Result.OK;
     }
 
     private String dummyPasswordHash() {
@@ -474,7 +499,7 @@ public class AuthService {
      * @return {@code true} if the password was changed successfully
      */
     public boolean changePassword(int accountId, String currentPassword, String newPassword) {
-        if (PasswordPolicy.validate(newPassword) != PasswordPolicy.Result.OK) {
+        if (validateNewPassword(newPassword) != PasswordPolicy.Result.OK) {
             return false;
         }
         var credOpt = accountRepository.findCredential(accountId);

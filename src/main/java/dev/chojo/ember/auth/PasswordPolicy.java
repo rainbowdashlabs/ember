@@ -34,14 +34,18 @@ public final class PasswordPolicy {
     }
 
     /**
-     * Outcome of {@link #validate(String)}.
+     * Outcome of {@link #validate(String)} (length check) and the combined
+     * length + breach check applied by {@code AuthService}.
      */
     public enum Result {
         /** The password meets the policy. */
         OK,
 
         /** The password is shorter than {@link #MIN_LENGTH}. */
-        TOO_SHORT;
+        TOO_SHORT,
+
+        /** The password was found in a known breach corpus via HIBP. */
+        BREACHED;
 
         /**
          * Returns a human-readable failure message for non-{@link #OK} results.
@@ -50,6 +54,7 @@ public final class PasswordPolicy {
             return switch (this) {
                 case OK -> "";
                 case TOO_SHORT -> "Password must be at least " + MIN_LENGTH + " characters long";
+                case BREACHED -> "This password has appeared in known data breaches. Please choose a different one.";
             };
         }
     }

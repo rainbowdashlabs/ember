@@ -22,3 +22,12 @@ COMMENT ON COLUMN ember_schema.account_session.token_hash IS
     'Lowercase hex HMAC-SHA-256(auth.tokenPepper, raw bearer). 64 chars. Raw bearer is never stored.';
 COMMENT ON COLUMN ember_schema.account_token.token_hash IS
     'Lowercase hex HMAC-SHA-256(auth.tokenPepper, raw token). 64 chars. Raw token is never stored.';
+
+-- HIBP breach-check tracking (security audit H3 HIBP follow-up). Records when
+-- the credential was last verified against Have I Been Pwned. The column is
+-- cleared whenever the password is rotated, so a re-check fires on the next
+-- login after any password change.
+ALTER TABLE ember_schema.account_credential
+    ADD COLUMN last_breach_check_at TIMESTAMP WITH TIME ZONE;
+COMMENT ON COLUMN ember_schema.account_credential.last_breach_check_at IS
+    'Timestamp of the most recent HIBP breach check for this credential. NULL when the password has never been checked or was rotated since the last check.';

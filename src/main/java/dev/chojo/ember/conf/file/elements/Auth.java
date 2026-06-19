@@ -36,6 +36,14 @@ public class Auth {
     @Overwrite(env = @Env)
     private String tokenPepper = "";
 
+    /**
+     * "Have I Been Pwned" k-anonymity breach-check configuration. New passwords
+     * are checked synchronously at set time and asynchronously after every
+     * successful login; pwned credentials are rejected on set and flagged for
+     * forced rotation on login.
+     */
+    private HibpSettings hibp = new HibpSettings();
+
     public int tokenBytes() {
         return tokenBytes;
     }
@@ -60,6 +68,10 @@ public class Auth {
         return tokenPepper;
     }
 
+    public HibpSettings hibp() {
+        return hibp;
+    }
+
     @Override
     public String toString() {
         return "Auth{" + "tokenBytes="
@@ -67,6 +79,7 @@ public class Auth {
                 + verifyTokenHours + ", passwordTokenHours="
                 + passwordTokenHours + ", sessionMinutes="
                 + sessionMinutes + ", tokenPepperConfigured="
-                + !tokenPepper.isBlank() + '}';
+                + !tokenPepper.isBlank() + ", hibp="
+                + hibp + '}';
     }
 }

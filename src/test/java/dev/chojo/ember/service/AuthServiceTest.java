@@ -6,6 +6,8 @@
 package dev.chojo.ember.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.auth.BreachCheckWorker;
+import dev.chojo.ember.auth.HibpClient;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
@@ -41,6 +43,9 @@ class AuthServiceTest extends RepositoryTestBase {
         var emailService = mock(EmailService.class);
         var authConfig = new Auth();
         var demo = new Demo();
+        var hibpClient = mock(HibpClient.class);
+        when(hibpClient.isPwned(anyString())).thenReturn(false);
+        var breachCheckWorker = mock(BreachCheckWorker.class);
 
         service = new AuthService(
                 accountRepo,
@@ -50,7 +55,9 @@ class AuthServiceTest extends RepositoryTestBase {
                 passwordHasher,
                 emailService,
                 authConfig,
-                demo);
+                demo,
+                hibpClient,
+                breachCheckWorker);
     }
 
     @Test

@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:c5bbaa22fb5af2f03b3a7099bd60bdbea9630504ef4858c50b2a71cbfcd68ddd",
-  "generatedAt" : "2026-06-19T00:11:46Z",
+  "schemaHash" : "sha256:ef1b95f33a776e5cfe1df8e669ec324955e2bea476febd753f4ea3cddea42dd3",
+  "generatedAt" : "2026-06-19T09:41:38Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -80,7 +80,7 @@
     "account_credential" : {
       "feature" : "account",
       "scope" : "USER",
-      "tableHash" : "sha256:64ad75f860b0aa6bf7ee3bf3fee131d11f9ab0ddc22101384be3ecb979671f1a",
+      "tableHash" : "sha256:98b23e74d4203cf3eb86d9c35122bd14c4613af3fc2d4d68569de4e8084e1d5a",
       "columns" : [ {
         "name" : "account_id",
         "type" : "int4",
@@ -99,6 +99,12 @@
         "nullable" : false,
         "verified" : true,
         "description" : "If true, the user must change their password on next login."
+      }, {
+        "name" : "last_breach_check_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Timestamp of the most recent HIBP breach check for this credential. NULL when the password has never been checked or was rotated since the last check."
       } ],
       "foreignKeys" : [ {
         "column" : "account_id",

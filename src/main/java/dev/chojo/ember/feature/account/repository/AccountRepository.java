@@ -241,7 +241,8 @@ public class AccountRepository {
                 SELECT
                     account_id,
                     password_hash,
-                    force_password_change
+                    force_password_change,
+                    last_breach_check_at
                 FROM
                     account_credential
                 WHERE account_id = :id;""")
@@ -276,7 +277,8 @@ public class AccountRepository {
                 UPDATE account_credential
                 SET
                     password_hash         = :hash,
-                    force_password_change = FALSE
+                    force_password_change = FALSE,
+                    last_breach_check_at  = NULL
                 WHERE account_id = :id;""")
                 .single(call().bind("hash", passwordHash).bind("id", accountId))
                 .update()
@@ -293,6 +295,33 @@ public class AccountRepository {
     public boolean setForcePasswordChange(int accountId, boolean force) {
         return query("UPDATE account_credential SET force_password_change = :force WHERE account_id = :id;")
                 .single(call().bind("force", force).bind("id", accountId))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Records the outcome of an HIBP breach check for an account's credential.
+     * Always updates {@code last_breach_check_at} so the next check is gated by
+     * the staleness window; sets {@code force_password_change} only when the
+     * lookup reported a pwned password.
+     *
+     * @param accountId the account identifier
+     * @param when      the check timestamp
+     * @param pwned     whether the password was found in a breach corpus
+     * @return {@code true} if the credential row was updated
+     */
+    public boolean updateLastBreachCheck(int accountId, Instant when, boolean pwned) {
+        String sql = pwned ? """
+                UPDATE account_credential
+                SET
+                    last_breach_check_at  = :when,
+                    force_password_change = TRUE
+                WHERE account_id = :id;""" : """
+                UPDATE account_credential
+                SET last_breach_check_at = :when
+                WHERE account_id = :id;""";
+        return query(sql)
+                .single(call().bind("when", when, INSTANT_TIMESTAMP).bind("id", accountId))
                 .update()
                 .changed();
     }
