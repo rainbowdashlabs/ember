@@ -26,6 +26,8 @@ import dev.chojo.ember.feature.members.repository.RegistrationCodeRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -40,6 +42,7 @@ import java.util.Optional;
  */
 @Singleton
 public class AuthService {
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final AccountRepository accountRepository;
@@ -267,7 +270,8 @@ public class AuthService {
             accountRepository.createCredential(accountToken.accountId(), hash);
         }
 
-        accountRepository.deleteToken(token);
+        invalidateAfterPasswordRotation(accountToken.accountId(), null);
+        notifyPasswordChanged(account.get());
         return true;
     }
 
@@ -314,9 +318,13 @@ public class AuthService {
             accountRepository.setForcePasswordChange(accountId, true);
         }
 
-        // Send reset email
+        // Kill every live session and outstanding recovery token for the account so
+        // an attacker who triggered this reset cannot continue with the previous
+        // credentials. The freshly-issued RESET_PASSWORD token below is created
+        // *after* the wipe so it is not collateral.
+        invalidateAfterPasswordRotation(accountId, null);
+
         String token = generateToken();
-        accountRepository.deleteTokensByAccountAndType(accountId, TokenType.RESET_PASSWORD);
         accountRepository.createToken(
                 accountId,
                 token,
@@ -421,6 +429,35 @@ public class AuthService {
         return PasswordPolicy.Result.OK;
     }
 
+    /**
+     * Kills every other live session and clears every outstanding recovery /
+     * verification token for the account. Used after any password rotation so an
+     * attacker who already obtained credentials cannot continue with previously
+     * minted sessions or alternate recovery tokens.
+     *
+     * @param accountId          the rotating account
+     * @param keepSessionToken   the raw bearer of the session that triggered the
+     *                           rotation, retained so a self-service password change
+     *                           does not log the user out of their own browser;
+     *                           {@code null} to kill every session
+     */
+    private void invalidateAfterPasswordRotation(int accountId, String keepSessionToken) {
+        if (keepSessionToken == null || keepSessionToken.isBlank()) {
+            accountRepository.deleteSessionsByAccount(accountId);
+        } else {
+            accountRepository.deleteSessionsExceptToken(accountId, keepSessionToken);
+        }
+        accountRepository.deleteAllTokens(accountId);
+    }
+
+    private void notifyPasswordChanged(Account account) {
+        try {
+            emailService.sendPasswordChangedNotice(account.email(), account.firstName());
+        } catch (Exception e) {
+            log.warn("Failed to enqueue password-changed notice for account {}", account.id(), e);
+        }
+    }
+
     private String dummyPasswordHash() {
         String local = dummyPasswordHash;
         if (local != null) return local;
@@ -498,7 +535,8 @@ public class AuthService {
      * @param newPassword     the new plaintext password
      * @return {@code true} if the password was changed successfully
      */
-    public boolean changePassword(int accountId, String currentPassword, String newPassword) {
+    public boolean changePassword(
+            int accountId, String currentSessionToken, String currentPassword, String newPassword) {
         if (validateNewPassword(newPassword) != PasswordPolicy.Result.OK) {
             return false;
         }
@@ -506,6 +544,8 @@ public class AuthService {
         if (credOpt.isEmpty()) return false;
         if (!passwordHasher.verify(currentPassword, credOpt.get().passwordHash())) return false;
         accountRepository.updateCredential(accountId, passwordHasher.hash(newPassword));
+        invalidateAfterPasswordRotation(accountId, currentSessionToken);
+        accountRepository.findById(accountId).ifPresent(this::notifyPasswordChanged);
         return true;
     }
 

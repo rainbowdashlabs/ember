@@ -302,10 +302,22 @@ public class AuthRoutes implements Routes {
         if (isBlank(request.currentPassword()) || isBlank(request.newPassword())) {
             throw new BadRequestResponse("currentPassword and newPassword are required");
         }
-        if (!authService.changePassword(session.accountId(), request.currentPassword(), request.newPassword())) {
+        String currentSessionToken = extractBearerToken(ctx);
+        if (!authService.changePassword(
+                session.accountId(), currentSessionToken, request.currentPassword(), request.newPassword())) {
             throw new BadRequestResponse("Current password is incorrect");
         }
         ctx.json(new MessageResponse("Password changed"));
+    }
+
+    private static String extractBearerToken(Context ctx) {
+        String header = ctx.header("Authorization");
+        if (header == null) return null;
+        String prefix = "Bearer ";
+        if (header.regionMatches(true, 0, prefix, 0, prefix.length())) {
+            return header.substring(prefix.length()).trim();
+        }
+        return null;
     }
 
     @OpenApi(

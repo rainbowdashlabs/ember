@@ -518,6 +518,23 @@ public class AccountRepository {
     }
 
     /**
+     * Deletes every recovery / verification token for an account. Used on a successful
+     * password rotation so that any other pending password-reset, email-verification,
+     * email-change or station-delete tokens for the same account stop working — they
+     * would otherwise let an attacker who already obtained the credential keep
+     * performing destructive actions through alternate token-consuming endpoints.
+     *
+     * @param accountId the account identifier
+     * @return {@code true} if any tokens were deleted
+     */
+    public boolean deleteAllTokens(int accountId) {
+        return query("DELETE FROM account_token WHERE account_id = :account_id;")
+                .single(call().bind("account_id", accountId))
+                .delete()
+                .changed();
+    }
+
+    /**
      * Finds a session by its bearer token.
      *
      * @param token the session token
@@ -676,6 +693,23 @@ public class AccountRepository {
     public boolean deleteSessionsByAccount(int accountId) {
         return query("DELETE FROM account_session WHERE account_id = :account_id;")
                 .single(call().bind("account_id", accountId))
+                .delete()
+                .changed();
+    }
+
+    /**
+     * Deletes every session for an account except the one belonging to {@code keepToken}.
+     * Used by {@code changePassword} so the user is not forcibly logged out of the
+     * session they used to change their own credential while every other live session
+     * (potentially an attacker's) is killed.
+     *
+     * @param accountId the account identifier
+     * @param keepToken the raw bearer of the session to retain (hashed internally)
+     * @return {@code true} if any sessions were deleted
+     */
+    public boolean deleteSessionsExceptToken(int accountId, String keepToken) {
+        return query("DELETE FROM account_session WHERE account_id = :account_id AND token_hash <> :keep_hash;")
+                .single(call().bind("account_id", accountId).bind("keep_hash", tokenHasher.hash(keepToken)))
                 .delete()
                 .changed();
     }

@@ -211,6 +211,18 @@ public class EmailService {
         enqueueGlobal(email, "Account already exists", loadTemplate("duplicate-registration.html", "en", vars));
     }
 
+    /**
+     * Out-of-band confirmation that an account's password was just changed. Sent on every
+     * successful password rotation (self-service change, reset via emailed token, or
+     * admin-triggered reset). Includes a hint that the user should contact support if
+     * they did not initiate the change.
+     */
+    public void sendPasswordChangedNotice(String email, String name) {
+        var vars = baseVars(name, null);
+        vars.put("loginUrl", api.baseUrl() + "/login");
+        enqueueGlobal(email, "Your password was changed", loadTemplate("password-changed.html", "en", vars));
+    }
+
     // -- Public send methods (system, via global provider queue) --
 
     public void sendPasswordResetEmail(String email, String name, String token) {
