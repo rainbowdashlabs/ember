@@ -86,8 +86,8 @@ public class FederationRemoteRoutes implements Routes {
         // Verify the incoming signature using the embedded public key
         var remotePublicKey = signingService.decodePublicKey(req.publicKey());
         if (req.signature() != null && !req.signature().isBlank()) {
-            String bodyForVerification = req.stationId() + ":" + req.federationVersion() + ":" + req.publicKey();
-            boolean valid = signingService.verify(bodyForVerification, req.signature(), remotePublicKey, Instant.now());
+            String payload = req.stationId() + ":" + req.federationVersion() + ":" + req.publicKey();
+            boolean valid = signingService.verifyEnrollmentPayload(payload, req.signature(), remotePublicKey);
             if (!valid) {
                 throw new ForbiddenResponse("Invalid handshake signature");
             }

@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.account.entity.AccountSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationReplayCache;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.FederationSigningService;
 import dev.chojo.ember.feature.members.entity.Permission;
@@ -20,6 +21,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.Context;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -46,6 +48,8 @@ public class AccessManager {
     private final MemberGroupRepository memberGroupRepository;
     private final FederationRepository federationRepository;
     private final FederationSigningService signingService;
+    private final FederationReplayCache replayCache;
+    private final StationRepository stationRepository;
 
     @Inject
     public AccessManager(
@@ -53,12 +57,16 @@ public class AccessManager {
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
             FederationRepository federationRepository,
-            FederationSigningService signingService) {
+            FederationSigningService signingService,
+            FederationReplayCache replayCache,
+            StationRepository stationRepository) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.federationRepository = federationRepository;
         this.signingService = signingService;
+        this.replayCache = replayCache;
+        this.stationRepository = stationRepository;
     }
 
     public Optional<AccountSession> resolveSession(String token) {
@@ -148,8 +156,9 @@ public class AccessManager {
         String stationIdHeader = ctx.header("X-Federation-Station-Id");
         String signature = ctx.header("X-Federation-Signature");
         String timestampHeader = ctx.header("X-Federation-Timestamp");
+        String nonceHeader = ctx.header("X-Federation-Nonce");
 
-        if (stationIdHeader == null || signature == null || timestampHeader == null) {
+        if (stationIdHeader == null || signature == null || timestampHeader == null || nonceHeader == null) {
             return Optional.empty();
         }
 
@@ -166,6 +175,14 @@ public class AccessManager {
             timestamp = Instant.parse(timestampHeader);
         } catch (Exception e) {
             log.warn("Invalid X-Federation-Timestamp header value: {}", timestampHeader);
+            return Optional.empty();
+        }
+
+        UUID nonce;
+        try {
+            nonce = UUID.fromString(nonceHeader);
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid X-Federation-Nonce header value: {}", nonceHeader);
             return Optional.empty();
         }
 
@@ -186,11 +203,23 @@ public class AccessManager {
             return Optional.empty();
         }
 
+        UUID ourStationUid = stationRepository.resolveUid(p.stationId());
+        if (ourStationUid == null) {
+            log.warn("Could not resolve receiver station UUID for partner {} (station {})", p.id(), p.stationId());
+            return Optional.empty();
+        }
+
         var publicKey = signingService.decodePublicKey(p.partnerPublicKey());
-        String body = ctx.body().isEmpty() ? ctx.queryString() != null ? ctx.queryString() : "" : ctx.body();
-        boolean valid = signingService.verify(body, signature, publicKey, timestamp);
+        String pathWithQuery = FederationSigningService.canonicalPathWithQuery(ctx.path(), ctx.queryString());
+        boolean valid = signingService.verify(
+                ctx.method().name(), pathWithQuery, ourStationUid, ctx.body(), signature, publicKey, timestamp);
         if (!valid) {
             log.warn("Invalid federation signature from partner {} (station {})", p.id(), remoteStationUid);
+            return Optional.empty();
+        }
+
+        if (!replayCache.checkAndRemember(p.id(), nonce)) {
+            log.warn("Replayed federation nonce {} from partner {} (station {})", nonce, p.id(), remoteStationUid);
             return Optional.empty();
         }
 

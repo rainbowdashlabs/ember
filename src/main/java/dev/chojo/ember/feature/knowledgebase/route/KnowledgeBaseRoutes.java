@@ -1359,6 +1359,7 @@ public class KnowledgeBaseRoutes implements Routes {
             var result = federationHttpClient.getList(
                     partner.remoteHost(),
                     "/remote/kb/files/" + fileId + "/comments",
+                    partner.partnerStationId(),
                     station.id(),
                     station.federationPrivateKey(),
                     KbCommentResponse.class);
@@ -1388,6 +1389,7 @@ public class KnowledgeBaseRoutes implements Routes {
                     partner.remoteHost(),
                     "/remote/kb/files/" + fileId + "/comments",
                     body,
+                    partner.partnerStationId(),
                     station.id(),
                     station.federationPrivateKey(),
                     KbCommentResponse.class);
@@ -1419,6 +1421,7 @@ public class KnowledgeBaseRoutes implements Routes {
                     partner.remoteHost(),
                     "/remote/kb/comments/" + commentId,
                     body,
+                    partner.partnerStationId(),
                     station.id(),
                     station.federationPrivateKey(),
                     KbCommentResponse.class);
@@ -1448,6 +1451,7 @@ public class KnowledgeBaseRoutes implements Routes {
             boolean success = federationHttpClient.delete(
                     partner.remoteHost(),
                     "/remote/kb/comments/" + commentId,
+                    partner.partnerStationId(),
                     station.id(),
                     station.federationPrivateKey());
             if (!success) throw new InternalServerErrorResponse("Failed to delete comment on partner");

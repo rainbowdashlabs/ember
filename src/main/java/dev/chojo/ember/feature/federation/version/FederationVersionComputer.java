@@ -85,6 +85,14 @@ public final class FederationVersionComputer {
             LendingRoutes.class,
             BoardRoutes.class);
 
+    /**
+     * Revision tag for the request signing envelope. Bumped when the bytes covered
+     * by {@code FederationSigningService.sign}/{@code verify} change shape so the
+     * federation version rolls automatically and peer compatibility checks surface
+     * the protocol break immediately.
+     */
+    private static final String SIGNING_PROTOCOL_REVISION = "signing.v2";
+
     private FederationVersionComputer() {}
 
     /**
@@ -143,9 +151,7 @@ public final class FederationVersionComputer {
             }
         }
 
-        // Endpoint definitions are no longer statically listed —
-        // routes are now distributed across domain classes.
-        // Version is computed from entity/record class signatures only.
+        lines.add("signing-protocol:" + SIGNING_PROTOCOL_REVISION);
 
         lines.sort(String::compareTo);
 

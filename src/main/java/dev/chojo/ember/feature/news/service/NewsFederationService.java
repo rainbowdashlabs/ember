@@ -213,6 +213,7 @@ public class NewsFederationService {
         var remoteNews = httpClient.getList(
                 partner.remoteHost(),
                 "/remote/news",
+                partner.partnerStationId(),
                 localStation.id(),
                 localStation.federationPrivateKey(),
                 RemoteNewsListEntry.class);
@@ -251,6 +252,7 @@ public class NewsFederationService {
             var result = httpClient.get(
                     partner.remoteHost(),
                     "/remote/news/" + newsId,
+                    partner.partnerStationId(),
                     localStationId,
                     stationRepository
                             .findById(localStationId)

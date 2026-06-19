@@ -461,6 +461,7 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         when(httpClient.getList(
                         eq("https://remote-proto.example.com"),
                         eq("/remote/protocols"),
+                        any(),
                         eq(station.id()),
                         any(),
                         eq(TestProtocolService.RemoteProtocol.class)))
@@ -477,6 +478,7 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         when(httpClient.get(
                         eq("https://remote-proto.example.com"),
                         eq("/remote/protocols/77"),
+                        any(),
                         eq(station.id()),
                         any(),
                         any()))

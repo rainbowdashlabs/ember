@@ -864,7 +864,8 @@ public class QuizService {
 
     private void browseSharedQuizViaHttp(
             int localStationId, FederationPartner partner, int remoteStationId, List<SharedQuizItem> result) {
-        var catalogs = fetchSharedQuizCatalogs(partner.remoteHost(), localStationId, getPrivateKey(localStationId));
+        var catalogs = fetchSharedQuizCatalogs(
+                partner.remoteHost(), partner.partnerStationId(), localStationId, getPrivateKey(localStationId));
         for (var remoteCatalog : catalogs) {
             result.add(new SharedQuizItem(
                     remoteCatalog.id(),
@@ -888,6 +889,7 @@ public class QuizService {
             var result = federationHttpClient.get(
                     partner.remoteHost(),
                     "/remote/quiz/catalogs/" + catalogId,
+                    partner.partnerStationId(),
                     localStationId,
                     getPrivateKey(localStationId),
                     FederatedCatalogDetail.class);
@@ -985,9 +987,14 @@ public class QuizService {
     // -- Federation HTTP convenience methods --
 
     public List<RemoteQuizCatalog> fetchSharedQuizCatalogs(
-            String remoteHost, int localStationId, String localPrivateKeyBase64) {
+            String remoteHost, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64) {
         return federationHttpClient.getList(
-                remoteHost, "/remote/quiz/catalogs", localStationId, localPrivateKeyBase64, RemoteQuizCatalog.class);
+                remoteHost,
+                "/remote/quiz/catalogs",
+                partnerStationUid,
+                localStationId,
+                localPrivateKeyBase64,
+                RemoteQuizCatalog.class);
     }
 
     public record RemoteQuizCatalog(int id, String name, String description) {}

@@ -197,6 +197,7 @@ public class FederatedBoardProxyService {
         var remoteBoards = httpClient.getList(
                 partner.remoteHost(),
                 "/remote/boards",
+                partner.partnerStationId(),
                 localStationId,
                 getPrivateKey(localStationId),
                 RemoteDiscoveredBoard.class);
@@ -1048,7 +1049,12 @@ public class FederatedBoardProxyService {
     private <T> T remoteGet(FederationPartner partner, String path, Class<T> type) {
         try {
             var result = httpClient.get(
-                    partner.remoteHost(), path, partner.stationId(), getPrivateKey(partner.stationId()), type);
+                    partner.remoteHost(),
+                    path,
+                    partner.partnerStationId(),
+                    partner.stationId(),
+                    getPrivateKey(partner.stationId()),
+                    type);
             if (result == null) throw new NotFoundResponse("Empty response from remote partner");
             return result;
         } catch (NotFoundResponse e) {
@@ -1060,13 +1066,24 @@ public class FederatedBoardProxyService {
 
     private <T> List<T> remoteGetList(FederationPartner partner, String path, Class<T> elementType) {
         return httpClient.getList(
-                partner.remoteHost(), path, partner.stationId(), getPrivateKey(partner.stationId()), elementType);
+                partner.remoteHost(),
+                path,
+                partner.partnerStationId(),
+                partner.stationId(),
+                getPrivateKey(partner.stationId()),
+                elementType);
     }
 
     private <T> T remotePost(FederationPartner partner, String path, Object body, Class<T> type) {
         try {
             var result = httpClient.post(
-                    partner.remoteHost(), path, body, partner.stationId(), getPrivateKey(partner.stationId()), type);
+                    partner.remoteHost(),
+                    path,
+                    body,
+                    partner.partnerStationId(),
+                    partner.stationId(),
+                    getPrivateKey(partner.stationId()),
+                    type);
             if (result == null) throw new NotFoundResponse("Empty response from remote partner");
             return result;
         } catch (NotFoundResponse e) {
@@ -1078,13 +1095,25 @@ public class FederatedBoardProxyService {
 
     private <T> List<T> remotePostList(FederationPartner partner, String path, Object body, Class<T> elementType) {
         return httpClient.postList(
-                partner.remoteHost(), path, body, partner.stationId(), getPrivateKey(partner.stationId()), elementType);
+                partner.remoteHost(),
+                path,
+                body,
+                partner.partnerStationId(),
+                partner.stationId(),
+                getPrivateKey(partner.stationId()),
+                elementType);
     }
 
     private <T> T remotePut(FederationPartner partner, String path, Object body, Class<T> type) {
         try {
             var result = httpClient.put(
-                    partner.remoteHost(), path, body, partner.stationId(), getPrivateKey(partner.stationId()), type);
+                    partner.remoteHost(),
+                    path,
+                    body,
+                    partner.partnerStationId(),
+                    partner.stationId(),
+                    getPrivateKey(partner.stationId()),
+                    type);
             if (result == null) throw new NotFoundResponse("Empty response from remote partner");
             return result;
         } catch (NotFoundResponse e) {
@@ -1095,19 +1124,42 @@ public class FederatedBoardProxyService {
     }
 
     private void remotePut(FederationPartner partner, String path, Object body) {
-        httpClient.put(partner.remoteHost(), path, body, partner.stationId(), getPrivateKey(partner.stationId()));
+        httpClient.put(
+                partner.remoteHost(),
+                path,
+                body,
+                partner.partnerStationId(),
+                partner.stationId(),
+                getPrivateKey(partner.stationId()));
     }
 
     private void remotePost(FederationPartner partner, String path, Object body) {
-        httpClient.post(partner.remoteHost(), path, body, partner.stationId(), getPrivateKey(partner.stationId()));
+        httpClient.post(
+                partner.remoteHost(),
+                path,
+                body,
+                partner.partnerStationId(),
+                partner.stationId(),
+                getPrivateKey(partner.stationId()));
     }
 
     private void remoteDelete(FederationPartner partner, String path) {
-        httpClient.delete(partner.remoteHost(), path, partner.stationId(), getPrivateKey(partner.stationId()));
+        httpClient.delete(
+                partner.remoteHost(),
+                path,
+                partner.partnerStationId(),
+                partner.stationId(),
+                getPrivateKey(partner.stationId()));
     }
 
     private void remoteDelete(FederationPartner partner, String path, Object body) {
-        httpClient.delete(partner.remoteHost(), path, body, partner.stationId(), getPrivateKey(partner.stationId()));
+        httpClient.delete(
+                partner.remoteHost(),
+                path,
+                body,
+                partner.partnerStationId(),
+                partner.stationId(),
+                getPrivateKey(partner.stationId()));
     }
 
     private boolean matchesAccess(int memberId, AccessData access) {

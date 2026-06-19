@@ -1090,6 +1090,7 @@ class QuizServiceTest extends RepositoryTestBase {
         when(httpClient.getList(
                         eq("https://remote-quiz.example.com"),
                         eq("/remote/quiz/catalogs"),
+                        any(),
                         eq(station.id()),
                         any(),
                         eq(QuizService.RemoteQuizCatalog.class)))
@@ -1106,6 +1107,7 @@ class QuizServiceTest extends RepositoryTestBase {
         when(httpClient.get(
                         eq("https://remote-quiz.example.com"),
                         eq("/remote/quiz/catalogs/88"),
+                        any(),
                         eq(station.id()),
                         any(),
                         any()))

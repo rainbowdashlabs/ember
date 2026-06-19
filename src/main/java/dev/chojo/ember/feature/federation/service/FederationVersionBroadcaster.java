@@ -63,6 +63,7 @@ public class FederationVersionBroadcaster {
                     var response = httpClient.get(
                             partner.remoteHost(),
                             "/remote/federation/ping",
+                            partner.partnerStationId(),
                             partner.stationId(),
                             station.federationPrivateKey(),
                             FederationRemoteRoutes.VersionPingResponse.class);

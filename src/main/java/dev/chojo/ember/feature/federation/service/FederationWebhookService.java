@@ -20,6 +20,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -85,19 +86,23 @@ public class FederationWebhookService {
 
                 try {
                     var timestamp = Instant.now().toString();
-                    // Sign with the station's private key if available
+                    var uri = URI.create(webhookUrl);
+                    String pathWithQuery = FederationSigningService.canonicalPathWithQuery(uri);
+                    String nonce = UUID.randomUUID().toString();
                     String signature = "";
                     if (partner.publicKey() != null) {
                         var privateKey = signingService.decodePrivateKey(partner.publicKey());
-                        signature = signingService.sign(body, timestamp, privateKey);
+                        signature = signingService.sign(
+                                "POST", pathWithQuery, partner.partnerStationId(), body, timestamp, privateKey);
                     }
 
                     var request = HttpRequest.newBuilder()
-                            .uri(URI.create(webhookUrl))
+                            .uri(uri)
                             .header("Content-Type", "application/json")
                             .header("X-Federation-Station-Id", String.valueOf(partner.stationId()))
                             .header("X-Federation-Timestamp", timestamp)
                             .header("X-Federation-Signature", signature)
+                            .header("X-Federation-Nonce", nonce)
                             .header("X-Federation-Event", event.name())
                             .header("X-Federation-Version", FederationService.FEDERATION_VERSION)
                             .POST(HttpRequest.BodyPublishers.ofString(body))
