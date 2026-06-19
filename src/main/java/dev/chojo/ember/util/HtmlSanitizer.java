@@ -6,6 +6,7 @@
 package dev.chojo.ember.util;
 
 import org.jsoup.Jsoup;
+import org.jsoup.nodes.Attribute;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.safety.Safelist;
@@ -104,7 +105,7 @@ public final class HtmlSanitizer {
             String value = declaration.substring(colon + 1).trim();
             if (!property.equals("color") && !property.equals("background-color")) continue;
             if (!HEX_OR_NAMED_COLOR.matcher(value).matches()) continue;
-            if (out.length() > 0) out.append("; ");
+            if (!out.isEmpty()) out.append("; ");
             out.append(property).append(": ").append(value);
         }
         return out.toString();
@@ -186,7 +187,7 @@ public final class HtmlSanitizer {
         }
 
         @Override
-        public boolean isSafeAttribute(String tagName, org.jsoup.nodes.Element el, org.jsoup.nodes.Attribute attr) {
+        public boolean isSafeAttribute(String tagName, Element el, Attribute attr) {
             String name = attr.getKey().toLowerCase();
             String value = attr.getValue();
             if (tagName.equals("img") && name.equals("src")) {

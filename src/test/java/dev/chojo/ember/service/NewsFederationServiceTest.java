@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -415,7 +416,9 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         // Suspend stationA's partner record for stationC
         federationRepo.updatePartnerStatus(reversePartner.id(), FederationPartner.FederationStatus.SUSPENDED);
 
-        assertThrows(IllegalArgumentException.class, () -> service.getFederatedNews(stationA.id(), stationC.uid(), 42));
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.getFederatedNews(stationA.id(), stationC.uid(), 42));
 
         // Restore
         federationRepo.updatePartnerStatus(reversePartner.id(), FederationPartner.FederationStatus.ACTIVE);

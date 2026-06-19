@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.page.repository.PageRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.util.HtmlSanitizer;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.commonmark.Extension;
@@ -245,13 +246,13 @@ public class PageService {
             var page =
                     pageRepository.findById(pageId).orElseThrow(() -> new IllegalArgumentException("Page not found"));
             if (page.stationId() != stationId) {
-                throw new IllegalArgumentException("Page does not belong to station");
+                throw new BadRequestResponse("Page does not belong to station");
             }
             if (!page.published()) {
-                throw new IllegalArgumentException("Landing page must be published");
+                throw new BadRequestResponse("Landing page must be published");
             }
             if (page.parentId() != null) {
-                throw new IllegalArgumentException("Landing page cannot be a subpage");
+                throw new BadRequestResponse("Landing page cannot be a subpage");
             }
         }
         pageRepository.setLandingPage(stationId, pageId);
@@ -617,7 +618,7 @@ public class PageService {
     private void validateDepth(int parentId, int additionalLevels) {
         int currentDepth = pageRepository.depth(parentId) + 1; // parent is already at some depth
         if (currentDepth + additionalLevels > MAX_DEPTH) {
-            throw new IllegalArgumentException("Page hierarchy exceeds maximum depth of " + MAX_DEPTH);
+            throw new BadRequestResponse("Page hierarchy exceeds maximum depth of " + MAX_DEPTH);
         }
     }
 

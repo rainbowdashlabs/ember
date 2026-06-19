@@ -47,6 +47,7 @@ import dev.chojo.ember.feature.storage.service.PresentationCompressor;
 import dev.chojo.ember.util.HtmlSanitizer;
 import dev.chojo.ember.util.PresentationConverter;
 import dev.chojo.ember.util.TextDiff;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.apache.pdfbox.Loader;
@@ -947,7 +948,7 @@ public class KnowledgeBaseService {
         var file = findFile(fileId).orElseThrow();
         int partnerStationId = resolvePartnerStationId(partner);
         if (file.stationId() != partnerStationId) {
-            throw new IllegalArgumentException("File does not belong to this partner");
+            throw new BadRequestResponse("File does not belong to this partner");
         }
         return file;
     }
@@ -968,7 +969,7 @@ public class KnowledgeBaseService {
         var file = findFile(fileId).orElseThrow();
         int partnerStationId = resolvePartnerStationId(partner);
         if (file.stationId() != partnerStationId) {
-            throw new IllegalArgumentException("File does not belong to this partner");
+            throw new BadRequestResponse("File does not belong to this partner");
         }
         return getMarkdownContent(fileId).orElse("");
     }
@@ -1016,7 +1017,7 @@ public class KnowledgeBaseService {
                 .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
         if (partner.status() != FederationPartner.FederationStatus.ACTIVE) {
-            throw new IllegalArgumentException("Partner is not active");
+            throw new BadRequestResponse("Partner is not active");
         }
         return partner;
     }

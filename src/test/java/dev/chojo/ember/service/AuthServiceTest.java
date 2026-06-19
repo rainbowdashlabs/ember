@@ -23,6 +23,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -343,7 +344,7 @@ class AuthServiceTest extends RepositoryTestBase {
     void confirmEmailChangeTwoStepSuccess() {
         var account2 = accountRepo.create("emailchange@test.com", "EC", "User");
         String newEmail = "new-email-2@test.com";
-        String requestId = java.util.UUID.randomUUID().toString();
+        String requestId = UUID.randomUUID().toString();
         String metadata = requestId + "|" + newEmail;
         Instant exp = Instant.now().plus(24, ChronoUnit.HOURS);
         accountRepo.createToken(account2.id(), "ec-release", TokenType.EMAIL_CHANGE_RELEASE, metadata, exp);
@@ -534,7 +535,7 @@ class AuthServiceTest extends RepositoryTestBase {
     void confirmEmailChangeDuplicateAtCommitFails() {
         var account2 = accountRepo.create("emailchange-dup-src@test.com", "EC", "Dup");
         var taken = accountRepo.create("emailchange-dup-taken@test.com", "EC", "Taken");
-        String requestId = java.util.UUID.randomUUID().toString();
+        String requestId = UUID.randomUUID().toString();
         String metadata = requestId + "|emailchange-dup-taken@test.com";
         Instant exp = Instant.now().plus(24, ChronoUnit.HOURS);
         accountRepo.createToken(account2.id(), "ec-dup-release", TokenType.EMAIL_CHANGE_RELEASE, metadata, exp);

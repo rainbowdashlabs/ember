@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
@@ -357,7 +358,7 @@ public class EventFederationService {
                 .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
         if (partner.status() != FederationStatus.ACTIVE) {
-            throw new IllegalArgumentException("Partner is not active");
+            throw new BadRequestResponse("Partner is not active");
         }
         if (partner.isRemote()) {
             var result = httpClient.get(
@@ -379,7 +380,7 @@ public class EventFederationService {
                 .orElseThrow();
         var eventIds = findSharedEventIds(partner.id(), partnerStationId);
         if (!eventIds.contains(eventId)) {
-            throw new IllegalArgumentException("Event not shared with this partner");
+            throw new BadRequestResponse("Event not shared with this partner");
         }
         return eventService.findById(eventId).map(this::toEventMap).orElseThrow();
     }

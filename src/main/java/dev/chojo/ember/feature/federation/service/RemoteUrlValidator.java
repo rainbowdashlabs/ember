@@ -129,10 +129,8 @@ public class RemoteUrlValidator {
         if (address instanceof Inet6Address v6) {
             byte[] bytes = v6.getAddress();
             Optional<Inet4Address> mapped = mappedIpv4(bytes);
-            if (mapped.isPresent()) {
-                return matches(mapped.get().getAddress(), DENIED_V4);
-            }
-            return matches(bytes, DENIED_V6);
+            return mapped.map(inet4Address -> matches(inet4Address.getAddress(), DENIED_V4))
+                    .orElseGet(() -> matches(bytes, DENIED_V6));
         }
         return true;
     }

@@ -65,6 +65,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -218,7 +219,7 @@ public class ApiServer {
                 } else {
                     responseBody = "Bytes";
                 }
-                var responseHeaders = new java.util.LinkedHashMap<String, String>();
+                var responseHeaders = new LinkedHashMap<String, String>();
                 for (String h : ctx.res().getHeaderNames()) {
                     responseHeaders.put(h, ctx.res().getHeader(h));
                 }
@@ -560,8 +561,7 @@ public class ApiServer {
 
         routes.exception(IllegalArgumentException.class, (err, ctx) -> {
             log.warn("Invalid input on {} {}: {}", ctx.method(), ctx.path(), err.getMessage(), err);
-            ctx.json(new ErrorResponseWrapper("Invalid Input", err.getMessage()))
-                    .status(HttpStatus.BAD_REQUEST);
+            ctx.json(new ErrorResponseWrapper("Invalid Input", "Invalid input")).status(HttpStatus.BAD_REQUEST);
         });
 
         routes.exception(Exception.class, (err, ctx) -> {

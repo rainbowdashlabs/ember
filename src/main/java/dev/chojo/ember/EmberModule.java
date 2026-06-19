@@ -23,6 +23,7 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
+import dev.chojo.ember.conf.file.elements.Federation;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.conf.file.elements.Metrics;
 import dev.chojo.ember.conf.file.elements.Network;
@@ -351,7 +352,7 @@ public class EmberModule extends AbstractModule {
 
     @Provides
     @Singleton
-    dev.chojo.ember.conf.file.elements.Federation federation(File config) {
+    Federation federation(File config) {
         return config.federation();
     }
 

@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
 import dev.chojo.ember.util.SlugGenerator;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -247,7 +248,7 @@ public class StationService {
      */
     public void setLogo(int stationId, byte[] data, String contentType) {
         if (data.length > MAX_LOGO_SIZE) {
-            throw new IllegalArgumentException("Logo exceeds maximum size of 2 MB");
+            throw new BadRequestResponse("Logo exceeds maximum size of 2 MB");
         }
         stationRepository.updateLogo(stationId, data, contentType);
         logoCache.put(stationId, Optional.of(new StationLogo(data, contentType)));
@@ -347,7 +348,7 @@ public class StationService {
         if (slug != null) {
             var existing = stationRepository.findBySlug(slug);
             if (existing.isPresent() && existing.get().id() != stationId) {
-                throw new IllegalArgumentException("Slug is already in use");
+                throw new BadRequestResponse("Slug is already in use");
             }
         }
         stationRepository.updatePublicSlug(stationId, slug);

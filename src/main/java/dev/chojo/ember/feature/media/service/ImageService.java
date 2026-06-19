@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.media.service;
 
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import net.coobird.thumbnailator.Thumbnails;
@@ -69,7 +70,7 @@ public class ImageService {
     public void store(ImageCategory category, String id, byte[] data, String contentType, int maxBytes)
             throws IOException {
         if (maxBytes > 0 && data.length > maxBytes) {
-            throw new IllegalArgumentException("Image exceeds maximum size of " + (maxBytes / 1024 / 1024) + " MB");
+            throw new BadRequestResponse("Image exceeds maximum size of " + (maxBytes / 1024 / 1024) + " MB");
         }
 
         Path dir = resolveSafe(category, id);

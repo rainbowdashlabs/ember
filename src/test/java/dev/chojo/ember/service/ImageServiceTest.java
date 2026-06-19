@@ -7,6 +7,7 @@ package dev.chojo.ember.service;
 
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
+import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -152,7 +153,7 @@ class ImageServiceTest {
     void storeRejectsOversizedUpload() {
         byte[] tooLarge = new byte[3 * 1024 * 1024]; // 3 MB
         assertThrows(
-                IllegalArgumentException.class,
+                BadRequestResponse.class,
                 () -> imageService.store(ImageCategory.AVATARS, "big", tooLarge, "image/png", 2 * 1024 * 1024));
     }
 

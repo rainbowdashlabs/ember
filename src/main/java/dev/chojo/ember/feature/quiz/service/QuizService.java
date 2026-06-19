@@ -37,6 +37,7 @@ import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.system.service.RequirementsService;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -899,7 +900,7 @@ public class QuizService {
         var catalog = findCatalog(catalogId).orElseThrow();
         int partnerStationId = resolvePartnerStationId(partner);
         if (catalog.stationId() != partnerStationId) {
-            throw new IllegalArgumentException("Catalog does not belong to this partner");
+            throw new BadRequestResponse("Catalog does not belong to this partner");
         }
         var categories = findCategories(catalog.stationId());
         var questions = findQuestions(catalog.id());
@@ -952,7 +953,7 @@ public class QuizService {
                 .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
         if (partner.status() != FederationPartner.FederationStatus.ACTIVE) {
-            throw new IllegalArgumentException("Partner is not active");
+            throw new BadRequestResponse("Partner is not active");
         }
         return partner;
     }

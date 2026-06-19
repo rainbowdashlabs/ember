@@ -47,6 +47,7 @@ import java.util.Collections;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 @Singleton
 public class AdminSettingsRoutes implements Routes {
@@ -211,7 +212,7 @@ public class AdminSettingsRoutes implements Routes {
      * the value can never escape the configured image directory regardless of how
      * the underlying filesystem resolver normalises the path.
      */
-    private static final java.util.regex.Pattern SAFE_LOGO_NAME = java.util.regex.Pattern.compile("^[A-Za-z0-9_-]+$");
+    private static final Pattern SAFE_LOGO_NAME = Pattern.compile("^[A-Za-z0-9_-]+$");
 
     private static String safeLogoName(Context ctx) {
         String name = ctx.pathParam("name");

@@ -9,6 +9,7 @@ import dev.chojo.ember.conf.file.elements.HibpSettings;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 
 import java.time.Instant;
 import java.util.List;
@@ -54,7 +55,7 @@ class BreachCheckWorkerTest {
 
         worker(hibp, repo, settings(true, 30)).enqueueCheck(42, "long-enough-passphrase");
 
-        verify(repo).updateLastBreachCheck(eq(42), org.mockito.ArgumentMatchers.any(Instant.class), eq(true));
+        verify(repo).updateLastBreachCheck(eq(42), ArgumentMatchers.any(Instant.class), eq(true));
     }
 
     @Test
@@ -66,7 +67,7 @@ class BreachCheckWorkerTest {
 
         worker(hibp, repo, settings(true, 30)).enqueueCheck(11, "long-enough-passphrase");
 
-        verify(repo).updateLastBreachCheck(eq(11), org.mockito.ArgumentMatchers.any(Instant.class), eq(false));
+        verify(repo).updateLastBreachCheck(eq(11), ArgumentMatchers.any(Instant.class), eq(false));
     }
 
     @Test
@@ -79,7 +80,7 @@ class BreachCheckWorkerTest {
         worker(hibp, repo, settings(true, 30)).enqueueCheck(7, "long-enough-passphrase");
 
         verify(hibp, never()).isPwned(anyString());
-        verify(repo, never()).updateLastBreachCheck(anyInt(), org.mockito.ArgumentMatchers.any(), anyBoolean());
+        verify(repo, never()).updateLastBreachCheck(anyInt(), ArgumentMatchers.any(), anyBoolean());
     }
 
     @Test
@@ -112,7 +113,7 @@ class BreachCheckWorkerTest {
         worker(hibp, repo, settings(true, 30)).enqueueCheck(99, "long-enough-passphrase");
 
         verify(hibp, never()).isPwned(anyString());
-        verify(repo, never()).updateLastBreachCheck(anyInt(), org.mockito.ArgumentMatchers.any(), anyBoolean());
+        verify(repo, never()).updateLastBreachCheck(anyInt(), ArgumentMatchers.any(), anyBoolean());
     }
 
     /**

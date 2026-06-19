@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.protocol.entity.TestProtocolSection;
 import dev.chojo.ember.feature.protocol.repository.TestProtocolRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -333,7 +334,7 @@ public class TestProtocolService {
         var protocol = findProtocol(protocolId).orElseThrow();
         int partnerStationId = resolvePartnerStationId(partner);
         if (protocol.stationId() != partnerStationId) {
-            throw new IllegalArgumentException("Protocol does not belong to this partner");
+            throw new BadRequestResponse("Protocol does not belong to this partner");
         }
         var sections = findSections(protocolId);
         var items = findAllItemsByProtocol(protocolId);
@@ -413,7 +414,7 @@ public class TestProtocolService {
                 .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
         if (partner.status() != FederationPartner.FederationStatus.ACTIVE) {
-            throw new IllegalArgumentException("Partner is not active");
+            throw new BadRequestResponse("Partner is not active");
         }
         return partner;
     }
