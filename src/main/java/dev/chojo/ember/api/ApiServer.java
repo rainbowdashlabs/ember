@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.traffic.service.AuthBucketClassifier;
 import dev.chojo.ember.feature.traffic.service.StationResolver;
 import dev.chojo.ember.feature.traffic.service.StationTrafficRecorder;
 import dev.chojo.ember.util.DevErrorWriter;
+import dev.chojo.ember.util.LogRedaction;
 import io.javalin.Javalin;
 import io.javalin.compression.CompressionStrategy;
 import io.javalin.compression.Gzip;
@@ -196,9 +197,9 @@ public class ApiServer {
                 }
                 log.trace(
                         "Received request on route: {} {}\nHeaders:\n{}\nBody:\n{}",
-                        ctx.method() + " " + ctx.url(),
-                        requireNonNullElse(ctx.queryString(), ""),
-                        ctx.headerMap().entrySet().stream()
+                        ctx.method() + " " + LogRedaction.redactQueryString(ctx.url()),
+                        LogRedaction.redactQueryString(requireNonNullElse(ctx.queryString(), "")),
+                        LogRedaction.redactHeaders(ctx.headerMap()).entrySet().stream()
                                 .map(h -> "   " + h.getKey() + ": " + h.getValue())
                                 .collect(Collectors.joining("\n")),
                         bodyLog);
@@ -217,13 +218,17 @@ public class ApiServer {
                 } else {
                     responseBody = "Bytes";
                 }
+                var responseHeaders = new java.util.LinkedHashMap<String, String>();
+                for (String h : ctx.res().getHeaderNames()) {
+                    responseHeaders.put(h, ctx.res().getHeader(h));
+                }
                 log.trace(
                         "Answered request on route: {} {}\nStatus: {}\nHeaders:\n{}\nBody:\n{}",
-                        ctx.method() + " " + ctx.url(),
-                        requireNonNullElse(ctx.queryString(), ""),
+                        ctx.method() + " " + LogRedaction.redactQueryString(ctx.url()),
+                        LogRedaction.redactQueryString(requireNonNullElse(ctx.queryString(), "")),
                         ctx.status(),
-                        ctx.res().getHeaderNames().stream()
-                                .map(h -> "   " + h + ": " + ctx.res().getHeader(h))
+                        LogRedaction.redactHeaders(responseHeaders).entrySet().stream()
+                                .map(h -> "   " + h.getKey() + ": " + h.getValue())
                                 .collect(Collectors.joining("\n")),
                         responseBody);
             });
