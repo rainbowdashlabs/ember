@@ -554,7 +554,7 @@ public class ApiServer {
         });
 
         routes.exception(IllegalArgumentException.class, (err, ctx) -> {
-            log.warn("Invalid input on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
+            log.warn("Invalid input on {} {}: {}", ctx.method(), ctx.path(), err.getMessage(), err);
             ctx.json(new ErrorResponseWrapper("Invalid Input", err.getMessage()))
                     .status(HttpStatus.BAD_REQUEST);
         });
