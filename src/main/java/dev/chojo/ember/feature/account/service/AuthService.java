@@ -416,7 +416,10 @@ public class AuthService {
 
         // Force password change — issue a one-time token instead of a session
         if (credOpt.get().forcePasswordChange()) {
-            log.info("Login for account {} ({}) requires password change — issuing password-change token", account.id(), email);
+            log.info(
+                    "Login for account {} ({}) requires password change — issuing password-change token",
+                    account.id(),
+                    email);
             String token = generateToken();
             accountRepository.deleteTokensByAccountAndType(account.id(), TokenType.FORCE_PASSWORD_CHANGE);
             accountRepository.createToken(

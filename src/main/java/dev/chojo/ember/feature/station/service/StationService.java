@@ -290,7 +290,11 @@ public class StationService {
         if (targetRoles.stream().noneMatch(r -> r.id() == managerRole.id())) return false;
 
         stationRepository.setOwner(stationId, newOwnerMemberId);
-        log.info("Station ownership transferred: station={}, from member {} to member {}", stationId, currentMemberId, newOwnerMemberId);
+        log.info(
+                "Station ownership transferred: station={}, from member {} to member {}",
+                stationId,
+                currentMemberId,
+                newOwnerMemberId);
         return true;
     }
 

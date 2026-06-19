@@ -1,4 +1,4 @@
-    /*
+/*
  *     SPDX-License-Identifier: AGPL-3.0-only
  *
  *     Copyright (C) RainbowDashLabs and Contributor
@@ -67,7 +67,8 @@ public class StationApplicationService {
         String token = UUID.randomUUID().toString();
         var application = applicationRepository.create(firstName, lastName, email, stationName, introduction, token);
         emailService.sendApplicationVerifyEmail(email, firstName, stationName, token, "de", null);
-        log.info("Station application submitted: id={}, email='{}', station='{}'", application.id(), email, stationName);
+        log.info(
+                "Station application submitted: id={}, email='{}', station='{}'", application.id(), email, stationName);
         return application;
     }
 
@@ -158,7 +159,11 @@ public class StationApplicationService {
         emailService.sendApplicationAcceptedEmail(
                 application.email(), application.firstName(), application.stationName(), token, "de", null);
 
-        log.info("Station application accepted: id={}, station='{}', account={}", id, application.stationName(), account.id());
+        log.info(
+                "Station application accepted: id={}, station='{}', account={}",
+                id,
+                application.stationName(),
+                account.id());
         return applicationRepository.findById(id).orElseThrow();
     }
 

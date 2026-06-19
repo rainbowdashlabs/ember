@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.account.route;
 
+import dev.chojo.ember.api.AccessManager;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
@@ -21,7 +22,6 @@ import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
-import dev.chojo.ember.api.AccessManager;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
 import dev.chojo.ember.feature.legal.service.GdprExportService;
 import dev.chojo.ember.feature.media.service.ImageCategory;
@@ -146,7 +146,8 @@ public class SessionRoutes implements Routes {
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/session", this::getSessionInfo, StationPermission.LOGIN);
         routes.get(prefix + "/session/stations", this::getStations, StationPermission.LOGIN);
-        routes.get(prefix + "/session/cross-station-dashboard", this::getCrossStationDashboard, StationPermission.LOGIN);
+        routes.get(
+                prefix + "/session/cross-station-dashboard", this::getCrossStationDashboard, StationPermission.LOGIN);
         routes.get(prefix + "/session/active", this::getActiveSessions, StationPermission.LOGIN);
         routes.delete(prefix + "/session/active/{id}", this::invalidateSession, StationPermission.LOGIN);
         routes.post(prefix + "/session/invalidate-all", this::invalidateAll, StationPermission.LOGIN);
@@ -329,8 +330,8 @@ public class SessionRoutes implements Routes {
             var roleNames = permissions.stream().map(Enum::name).toList();
             int requirementCount = requirementsService.countPending(member.id(), member.stationId(), roleNames);
 
-            stationSummaries.add(new CrossStationSummary(
-                    station.uid(), station.name(), notificationCount, requirementCount));
+            stationSummaries.add(
+                    new CrossStationSummary(station.uid(), station.name(), notificationCount, requirementCount));
 
             for (Notification n : notificationService.findUnacknowledged(member.id())) {
                 allNotifications.add(new CrossStationNotification(
@@ -341,21 +342,22 @@ public class SessionRoutes implements Routes {
                         n.type().localeKey(),
                         n.data().paramsAsMap(),
                         n.data().link() != null
-                                ? new CrossStationNotificationLink(n.data().link().route(), n.data().link().routeParams())
+                                ? new CrossStationNotificationLink(
+                                        n.data().link().route(), n.data().link().routeParams())
                                 : null,
                         n.createdAt()));
             }
         }
 
-        allNotifications.sort(Comparator.comparing(CrossStationNotification::createdAt).reversed());
+        allNotifications.sort(
+                Comparator.comparing(CrossStationNotification::createdAt).reversed());
         var limited = allNotifications.size() > 20 ? allNotifications.subList(0, 20) : allNotifications;
 
         ctx.json(new CrossStationDashboard(stationSummaries, limited));
     }
 
     public record CrossStationDashboard(
-            List<CrossStationSummary> stations,
-            List<CrossStationNotification> recentNotifications) {}
+            List<CrossStationSummary> stations, List<CrossStationNotification> recentNotifications) {}
 
     public record CrossStationSummary(UUID stationId, String stationName, int notifications, int requirements) {}
 
