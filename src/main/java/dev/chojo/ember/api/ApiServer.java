@@ -491,9 +491,15 @@ public class ApiServer {
      * Creates the Jackson 3 JSON mapper configured with ISO date formatting.
      */
     private Jackson3Mapper jacksonMapper() {
+        // FAIL_ON_UNKNOWN_PROPERTIES is Jackson's default but pinned explicitly here so
+        // an inbound payload with extra fields is rejected with 400 rather than silently
+        // dropped. A future contributor copying a mapper from another site (e.g. the
+        // federation HTTP client, which intentionally tolerates unknown fields for
+        // cross-version compatibility) will not accidentally regress this.
         ObjectMapper mapper = JsonMapper.builder()
                 .addModule(new StationIdModule(stationRepository))
                 .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+                .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                 .defaultDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX"))
                 .build();
         return new Jackson3Mapper(mapper);

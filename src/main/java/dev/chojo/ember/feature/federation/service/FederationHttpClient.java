@@ -36,6 +36,12 @@ import java.util.UUID;
  * <p>
  * All public methods accept and return typed objects. JSON serialization/deserialization
  * is handled internally — callers never deal with raw JSON strings.
+ * <p>
+ * The embedded {@link tools.jackson.databind.json.JsonMapper} intentionally disables
+ * {@code FAIL_ON_UNKNOWN_PROPERTIES} so a federation peer running a newer protocol
+ * version can add fields to a response without breaking older peers. The main API
+ * mapper in {@code ApiServer.jacksonMapper()} keeps the strict default for
+ * inbound client payloads.
  */
 @Singleton
 public class FederationHttpClient {

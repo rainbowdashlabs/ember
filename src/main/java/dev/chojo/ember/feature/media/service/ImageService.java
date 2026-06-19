@@ -191,7 +191,10 @@ public class ImageService {
     }
 
     /**
-     * Deletes all sizes of an image.
+     * Deletes all sizes of an image. Any {@link IOException} encountered while
+     * listing or deleting a file or the directory itself is propagated as an
+     * {@link java.io.UncheckedIOException} so the failure surfaces in the admin
+     * problem feed instead of silently leaving stale fragments on disk.
      */
     public void delete(ImageCategory category, String id) {
         Path dir = resolveSafe(category, id);
@@ -201,12 +204,12 @@ public class ImageService {
                 try {
                     Files.deleteIfExists(file);
                 } catch (IOException e) {
-                    log.warn("Failed to delete {}", file, e);
+                    throw new java.io.UncheckedIOException("Failed to delete " + file, e);
                 }
             });
             Files.deleteIfExists(dir);
         } catch (IOException e) {
-            log.warn("Failed to clean directory {}", dir, e);
+            throw new java.io.UncheckedIOException("Failed to clean directory " + dir, e);
         }
     }
 
