@@ -273,6 +273,11 @@ public class AuthService {
 
         invalidateAfterPasswordRotation(accountToken.accountId(), null);
         notifyPasswordChanged(account.get());
+        // The endpoint accepts SET_PASSWORD (invite), RESET_PASSWORD (forgot),
+        // and FORCE_PASSWORD_CHANGE (post-login forced rotation) interchangeably.
+        // Logging which one triggered the rotation lets operators correlate the
+        // flow without a dedicated audit table.
+        log.info("Password set via {} for account {}", type, accountToken.accountId());
         return true;
     }
 
@@ -690,8 +695,18 @@ public class AuthService {
         if (accountToken.isExpired() || accountToken.tokenType() != TokenType.STATION_DELETE) return Optional.empty();
         String stationIdStr = accountToken.metadata();
         if (stationIdStr == null) return Optional.empty();
+        int stationId;
+        try {
+            stationId = Integer.parseInt(stationIdStr);
+        } catch (NumberFormatException e) {
+            // Token row is corrupt or attacker-crafted; clear it so it stops
+            // generating noise on retries and surface the same "invalid /
+            // expired token" shape every other token endpoint uses.
+            accountRepository.deleteToken(token);
+            return Optional.empty();
+        }
         accountRepository.deleteToken(token);
-        return Optional.of(Integer.parseInt(stationIdStr));
+        return Optional.of(stationId);
     }
 
     /**
