@@ -348,6 +348,8 @@ public class DemoService {
         // -- Members (must run first, all other seeders depend on member data) --
         var members = memberSeeder.seed(station.id(), adminMember, hash, rng);
 
+        federationSeeder.seedFfMusterstadt(station.id());
+
         // -- Events (must run before parallel section, attendance/notifications depend on event data) --
         var events = eventSeeder.seed(
                 station.id(),
