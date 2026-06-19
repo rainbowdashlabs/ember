@@ -7,7 +7,7 @@
 import StationSelectView from '~/views/StationSelectView'
 
 definePageMeta({
-  layout: 'station',
+  layout: 'default',
   name: 'station-select',
 })
 
