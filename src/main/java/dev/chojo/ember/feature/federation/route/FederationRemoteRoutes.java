@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.FederationSigningService;
+import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -39,17 +40,20 @@ public class FederationRemoteRoutes implements Routes {
     private final FederationSigningService signingService;
     private final FederationRepository repository;
     private final EventFederationService eventFederationService;
+    private final RemoteUrlValidator urlValidator;
 
     @Inject
     public FederationRemoteRoutes(
             FederationService federationService,
             FederationSigningService signingService,
             FederationRepository repository,
-            EventFederationService eventFederationService) {
+            EventFederationService eventFederationService,
+            RemoteUrlValidator urlValidator) {
         this.federationService = federationService;
         this.signingService = signingService;
         this.repository = repository;
         this.eventFederationService = eventFederationService;
+        this.urlValidator = urlValidator;
     }
 
     @Override
@@ -122,6 +126,9 @@ public class FederationRemoteRoutes implements Routes {
         if (req.webhookUrl() == null || req.webhookUrl().isBlank()) {
             throw new BadRequestResponse("webhookUrl is required");
         }
+        if (!urlValidator.isAllowed(req.webhookUrl())) {
+            throw new BadRequestResponse(RemoteUrlValidator.rejectReason());
+        }
 
         repository.setWebhookUrl(partner.id(), req.webhookUrl());
         ctx.status(HttpStatus.OK).json(new WebhookRegisterResponse("registered", req.webhookUrl()));
@@ -161,6 +168,9 @@ public class FederationRemoteRoutes implements Routes {
         var req = ctx.bodyAsClass(AnnounceRequest.class);
         if (req.newHost() == null || req.newHost().isBlank()) {
             throw new BadRequestResponse("newHost is required");
+        }
+        if (!urlValidator.isAllowed(req.newHost())) {
+            throw new BadRequestResponse(RemoteUrlValidator.rejectReason());
         }
 
         // The announcing station is the one identified by the federation signature header (UUID)

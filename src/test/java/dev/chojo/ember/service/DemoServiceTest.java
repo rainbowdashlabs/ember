@@ -112,7 +112,11 @@ class DemoServiceTest extends RepositoryTestBase {
         // -- Services --
         var federationService = new FederationService(federationRepo, stationRepo, apiConfig);
         var signingService = new FederationSigningService();
-        var federationHttpClient = new FederationHttpClient(signingService, stationRepo);
+        var federationHttpClient = new FederationHttpClient(
+                signingService,
+                stationRepo,
+                new dev.chojo.ember.feature.federation.service.RemoteUrlValidator(
+                        new dev.chojo.ember.conf.file.elements.Federation()));
 
         var eventService = new EventService(eventRepo, restrictionRepo, noOpBus);
         var newsService = new NewsService(newsRepo, restrictionRepo, noOpBus, stationMemberRepo, accountRepo);

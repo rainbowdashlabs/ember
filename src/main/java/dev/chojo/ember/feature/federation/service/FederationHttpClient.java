@@ -44,12 +44,17 @@ public class FederationHttpClient {
     private final HttpClient httpClient;
     private final FederationSigningService signingService;
     private final StationRepository stationRepository;
+    private final RemoteUrlValidator urlValidator;
     private final JsonMapper mapper;
 
     @Inject
-    public FederationHttpClient(FederationSigningService signingService, StationRepository stationRepository) {
+    public FederationHttpClient(
+            FederationSigningService signingService,
+            StationRepository stationRepository,
+            RemoteUrlValidator urlValidator) {
         this.signingService = signingService;
         this.stationRepository = stationRepository;
+        this.urlValidator = urlValidator;
         this.httpClient = HttpClient.newHttpClient();
         this.mapper = JsonMapper.builder()
                 .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
@@ -333,6 +338,9 @@ public class FederationHttpClient {
             int localStationId,
             String localPrivateKeyBase64)
             throws Exception {
+        if (!urlValidator.isAllowed(url)) {
+            throw new IllegalStateException("Federation URL rejected by RemoteUrlValidator: " + url);
+        }
         String timestampStr = Instant.now().toString();
         var uri = URI.create(url);
         String pathWithQuery = FederationSigningService.canonicalPathWithQuery(uri);

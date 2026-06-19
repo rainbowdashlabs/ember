@@ -38,6 +38,7 @@ public class FederationWebhookService {
     private final FederationRepository repository;
     private final FederationSigningService signingService;
     private final FederationService federationService;
+    private final RemoteUrlValidator urlValidator;
     private final ExecutorService executor;
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
@@ -46,10 +47,12 @@ public class FederationWebhookService {
     public FederationWebhookService(
             FederationRepository repository,
             FederationSigningService signingService,
-            FederationService federationService) {
+            FederationService federationService,
+            RemoteUrlValidator urlValidator) {
         this.repository = repository;
         this.signingService = signingService;
         this.federationService = federationService;
+        this.urlValidator = urlValidator;
         this.executor = Executors.newVirtualThreadPerTaskExecutor();
         this.objectMapper = JsonMapper.builder().build();
         this.httpClient =
@@ -75,6 +78,10 @@ public class FederationWebhookService {
      * Delivers a webhook with retry logic.
      */
     private void deliverWebhook(FederationPartner partner, String webhookUrl, WebhookEvent event, Object payload) {
+        if (!urlValidator.isAllowed(webhookUrl)) {
+            log.warn("Skipping webhook delivery for partner {} — URL rejected by RemoteUrlValidator", partner.id());
+            return;
+        }
         try {
             var body = objectMapper.writeValueAsString(new WebhookBody(
                     event.name(), partner.stationId(), Instant.now().toString(), payload));

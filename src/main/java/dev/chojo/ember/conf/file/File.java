@@ -9,6 +9,7 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
+import dev.chojo.ember.conf.file.elements.Federation;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.conf.file.elements.Metrics;
 import dev.chojo.ember.conf.file.elements.Network;
@@ -31,6 +32,7 @@ public class File {
     private Storage storage = new Storage();
     private Metrics metrics = new Metrics();
     private Network network = new Network();
+    private Federation federation = new Federation();
 
     public Database database() {
         return database;
@@ -68,6 +70,10 @@ public class File {
         return network;
     }
 
+    public Federation federation() {
+        return federation;
+    }
+
     @Override
     public String toString() {
         return "File{" + "database="
@@ -79,6 +85,7 @@ public class File {
                 + theming + ", storage="
                 + storage + ", metrics="
                 + metrics + ", network="
-                + network + '}';
+                + network + ", federation="
+                + federation + '}';
     }
 }

@@ -351,6 +351,12 @@ public class EmberModule extends AbstractModule {
 
     @Provides
     @Singleton
+    dev.chojo.ember.conf.file.elements.Federation federation(File config) {
+        return config.federation();
+    }
+
+    @Provides
+    @Singleton
     DataSource dataSource(Database database) {
         return DataSourceCreator.create(PostgreSql.get())
                 .configure(config -> config.withConfig(database)
