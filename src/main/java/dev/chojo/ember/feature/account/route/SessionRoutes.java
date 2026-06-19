@@ -18,6 +18,8 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
 import dev.chojo.ember.feature.legal.service.GdprExportService;
@@ -36,6 +38,7 @@ import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -82,6 +85,8 @@ public class SessionRoutes implements Routes {
     private final UserTagRepository userTagRepository;
     private final Conf conf;
     private final TokenHasher tokenHasher;
+    private final StationRepository stationRepository;
+    private final FederationRepository federationRepository;
 
     @Inject
     public SessionRoutes(
@@ -99,7 +104,9 @@ public class SessionRoutes implements Routes {
             UserSettingsRepository userSettingsRepository,
             UserTagRepository userTagRepository,
             Conf conf,
-            TokenHasher tokenHasher) {
+            TokenHasher tokenHasher,
+            StationRepository stationRepository,
+            FederationRepository federationRepository) {
         this.stationService = stationService;
         this.memberService = memberService;
         this.groupService = groupService;
@@ -115,6 +122,8 @@ public class SessionRoutes implements Routes {
         this.userTagRepository = userTagRepository;
         this.conf = conf;
         this.tokenHasher = tokenHasher;
+        this.stationRepository = stationRepository;
+        this.federationRepository = federationRepository;
     }
 
     @Override
@@ -383,14 +392,61 @@ public class SessionRoutes implements Routes {
      * Retrieves the avatar for a specific member by their UUID path parameter.
      */
     private void getAvatarByMember(Context ctx) {
+        UUID stationUid;
         UUID memberUid;
         try {
+            stationUid = UUID.fromString(ctx.pathParam("stationUid"));
             memberUid = UUID.fromString(ctx.pathParam("memberUid"));
         } catch (IllegalArgumentException e) {
             ctx.status(HttpStatus.NOT_FOUND);
             return;
         }
+
+        var targetStation = stationRepository.findByUid(stationUid).orElse(null);
+        if (targetStation == null) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            return;
+        }
+        var targetMember =
+                stationMemberRepository.findByUid(targetStation.id(), memberUid).orElse(null);
+        if (targetMember == null) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            return;
+        }
+
+        UserSession session = UserSession.from(ctx);
+        if (!canSeeMemberAvatar(session, targetStation.id())) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            return;
+        }
         serveAvatar(ctx, memberUid.toString());
+    }
+
+    /**
+     * Returns true when the calling session is allowed to view an avatar belonging
+     * to {@code targetStationId}: the caller has a membership at the target station,
+     * is an instance administrator, or the caller's currently selected station has
+     * an active federation partnership with the target station. All other cases —
+     * including a logged-in account with no station memberships — fall through to
+     * 404 to avoid leaking whether the target member exists.
+     */
+    private boolean canSeeMemberAvatar(UserSession session, int targetStationId) {
+        if (session.account() == null) return false;
+        if (session.account().instanceUserType() == InstanceUserType.ADMINISTRATOR) {
+            return true;
+        }
+        if (stationMemberRepository
+                .findByStationAndAccount(targetStationId, session.account().id())
+                .isPresent()) {
+            return true;
+        }
+        if (session.stationId() == null) return false;
+        UUID targetUid = stationRepository.resolveUid(targetStationId);
+        if (targetUid == null) return false;
+        return federationRepository
+                .findPartnerByStationAndRemoteUid(session.stationId(), targetUid)
+                .filter(p -> p.status() == FederationPartner.FederationStatus.ACTIVE)
+                .isPresent();
     }
 
     /**
