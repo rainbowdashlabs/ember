@@ -28,6 +28,7 @@ import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.conf.file.elements.Metrics;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.conf.file.elements.Storage;
+import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.handlers.BoardTicketChangedHandler;
 import dev.chojo.ember.event.handlers.BulkMentionedInCommentHandler;
@@ -324,6 +325,12 @@ public class EmberModule extends AbstractModule {
     @Singleton
     Auth auth(File config) {
         return config.auth();
+    }
+
+    @Provides
+    @Singleton
+    TwoFactorSettings twoFactorSettings(Auth auth) {
+        return auth.twoFactor();
     }
 
     @Provides

@@ -46,5 +46,6 @@ public enum TokenType {
     /**
      * Token sent to confirm station deletion, with the station ID stored as metadata.
      */
-    STATION_DELETE
+    STATION_DELETE,
+    TWO_FACTOR_PENDING
 }

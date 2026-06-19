@@ -44,6 +44,8 @@ public class Auth {
      */
     private HibpSettings hibp = new HibpSettings();
 
+    private TwoFactorSettings twoFactor = new TwoFactorSettings();
+
     public int tokenBytes() {
         return tokenBytes;
     }
@@ -70,6 +72,10 @@ public class Auth {
 
     public HibpSettings hibp() {
         return hibp;
+    }
+
+    public TwoFactorSettings twoFactor() {
+        return twoFactor;
     }
 
     @Override

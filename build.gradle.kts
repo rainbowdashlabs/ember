@@ -48,6 +48,10 @@ dependencies {
     implementation(libs.bcrypt)
     implementation(libs.jspecify)
     implementation(libs.caffeine)
+    implementation(libs.totp)
+    implementation(libs.zxing.core)
+    implementation(libs.zxing.javase)
+    implementation(libs.webauthn.server)
 
     implementation(libs.angus)
     implementation(libs.bundles.commonmark)

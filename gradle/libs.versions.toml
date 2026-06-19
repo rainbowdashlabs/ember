@@ -60,6 +60,10 @@ guice = { group = "com.google.inject", name = "guice", version = "7.0.0" }
 
 # Security
 bcrypt = { group = "at.favre.lib", name = "bcrypt", version = "0.10.2" }
+totp = { group = "dev.samstevens.totp", name = "totp", version = "1.7.1" }
+zxing-core = { group = "com.google.zxing", name = "core", version = "3.5.3" }
+zxing-javase = { group = "com.google.zxing", name = "javase", version = "3.5.3" }
+webauthn-server = { group = "com.yubico", name = "webauthn-server-core", version = "2.7.0" }
 
 # Annotations
 jspecify = { group = "org.jspecify", name = "jspecify", version = "1.0.0" }
