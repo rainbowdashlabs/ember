@@ -69,6 +69,7 @@ public class TwoFactorRoutes implements Routes {
         routes.post(
                 prefix + "/account/2fa/backup-codes/regenerate", this::regenerateBackupCodes, StationPermission.LOGIN);
         routes.post(prefix + "/auth/2fa", this::verify2fa);
+        routes.post(prefix + "/auth/2fa/stepup", this::stepUp, StationPermission.LOGIN);
     }
 
     private void getStatus(Context ctx) {
@@ -191,6 +192,43 @@ public class TwoFactorRoutes implements Routes {
         ctx.json(new LoginResultResponse(session.token(), session.expiresAt()));
     }
 
+    private void stepUp(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var request = ctx.bodyAsClass(StepUpRequest.class);
+        if (request.factor() == null || request.proof() == null) {
+            throw new BadRequestResponse("factor and proof are required");
+        }
+        if (!twoFactorService.isEnrolled(session.accountId())) {
+            throw new BadRequestResponse("Not enrolled in 2FA");
+        }
+
+        boolean verified;
+        TwoFactorKind kind;
+        if ("BACKUP_CODE".equals(request.factor())) {
+            kind = TwoFactorKind.BACKUP_CODES;
+            verified = twoFactorService
+                    .verifyBackupCode(session.accountId(), request.proof(), ctx.ip())
+                    .valid();
+        } else {
+            kind = TwoFactorKind.TOTP;
+            verified = twoFactorService.verifyTotp(session.accountId(), request.proof());
+        }
+
+        if (!verified) {
+            throw new UnauthorizedResponse("Invalid verification code");
+        }
+
+        twoFactorService.markSessionTwoFactorVerified(session.sessionId());
+        auditService.record(
+                session.accountId(),
+                null,
+                TwoFactorEvent.STEPUP_VERIFIED,
+                kind,
+                ctx.userAgent(),
+                ctx.header("CF-IPCountry"));
+        ctx.json(new StepUpResponse(Instant.now()));
+    }
+
     // -- Request / Response records --
 
     public record TwoFactorStatusResponse(boolean enrolled, List<FactorInfo> factors, int unusedBackupCodes) {}
@@ -204,6 +242,10 @@ public class TwoFactorRoutes implements Routes {
     public record BackupCodesResponse(List<String> codes) {}
 
     public record Verify2faRequest(String preAuthToken, String factor, String proof) {}
+
+    public record StepUpRequest(String factor, String proof) {}
+
+    public record StepUpResponse(Instant verifiedAt) {}
 
     public record LoginResultResponse(String token, Instant expiresAt) {}
 
