@@ -13,8 +13,10 @@ import com.yubico.webauthn.RegistrationResult;
 import com.yubico.webauthn.RelyingParty;
 import com.yubico.webauthn.StartAssertionOptions;
 import com.yubico.webauthn.StartRegistrationOptions;
+import com.yubico.webauthn.data.AuthenticatorAttestationResponse;
 import com.yubico.webauthn.data.AuthenticatorSelectionCriteria;
 import com.yubico.webauthn.data.ByteArray;
+import com.yubico.webauthn.data.ClientRegistrationExtensionOutputs;
 import com.yubico.webauthn.data.PublicKeyCredential;
 import com.yubico.webauthn.data.PublicKeyCredentialCreationOptions;
 import com.yubico.webauthn.data.ResidentKeyRequirement;
@@ -41,7 +43,9 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Orchestrates WebAuthn registration and assertion ceremonies. Pending state (the server
@@ -79,7 +83,8 @@ public class WebAuthnService {
 
     // -- Registration --
 
-    public record RegistrationStart(String challengeToken, String optionsJson) {}
+    public record RegistrationStart(String challengeToken, String optionsJson) {
+    }
 
     public RegistrationStart startRegistration(int accountId, String email, String displayName) {
         byte[] userHandle = repository
@@ -87,24 +92,24 @@ public class WebAuthnService {
                 .orElseGet(WebAuthnService::newUserHandle);
 
         UserIdentity user = UserIdentity.builder()
-                .name(String.valueOf(accountId))
-                .displayName(displayName != null ? displayName : email)
-                .id(new ByteArray(userHandle))
-                .build();
+                                        .name(String.valueOf(accountId))
+                                        .displayName(displayName != null ? displayName : email)
+                                        .id(new ByteArray(userHandle))
+                                        .build();
 
         var selection = AuthenticatorSelectionCriteria.builder()
-                .residentKey(settings.webauthn().requireResidentKey()
-                        ? ResidentKeyRequirement.REQUIRED
-                        : ResidentKeyRequirement.DISCOURAGED)
-                .userVerification(UserVerificationRequirement.PREFERRED)
-                .build();
+                                                      .residentKey(settings.webauthn().requireResidentKey()
+                                                              ? ResidentKeyRequirement.REQUIRED
+                                                              : ResidentKeyRequirement.DISCOURAGED)
+                                                      .userVerification(UserVerificationRequirement.PREFERRED)
+                                                      .build();
 
         PublicKeyCredentialCreationOptions options = relyingParty.startRegistration(
                 StartRegistrationOptions.builder()
-                        .user(user)
-                        .authenticatorSelection(selection)
-                        .timeout(settings.webauthn().timeoutSeconds() * 1000L)
-                        .build());
+                                        .user(user)
+                                        .authenticatorSelection(selection)
+                                        .timeout(settings.webauthn().timeoutSeconds() * 1000L)
+                                        .build());
 
         String json;
         try {
@@ -142,10 +147,7 @@ public class WebAuthnService {
             return Optional.empty();
         }
 
-        PublicKeyCredential<
-                        com.yubico.webauthn.data.AuthenticatorAttestationResponse,
-                        com.yubico.webauthn.data.ClientRegistrationExtensionOutputs>
-                response;
+        PublicKeyCredential<AuthenticatorAttestationResponse, ClientRegistrationExtensionOutputs> response;
         try {
             response = PublicKeyCredential.parseRegistrationResponseJson(credentialJson);
         } catch (Exception e) {
@@ -156,9 +158,9 @@ public class WebAuthnService {
         RegistrationResult result;
         try {
             result = relyingParty.finishRegistration(FinishRegistrationOptions.builder()
-                    .request(options)
-                    .response(response)
-                    .build());
+                                                                              .request(options)
+                                                                              .response(response)
+                                                                              .build());
         } catch (RegistrationFailedException e) {
             log.warn("WebAuthn registration verification failed for account {}", accountId, e);
             return Optional.empty();
@@ -166,10 +168,10 @@ public class WebAuthnService {
 
         String factorLabel = label == null || label.isBlank() ? "Security Key" : label;
         TwoFactorFactor factor = repository.createFactor(accountId, TwoFactorKind.WEBAUTHN, factorLabel);
-        java.util.UUID aaguid = aaguidToUuid(result.getAaguid());
-        java.util.List<String> transports = response.getResponse().getTransports().stream()
-                .map(com.yubico.webauthn.data.AuthenticatorTransport::getId)
-                .toList();
+        UUID aaguid = aaguidToUuid(result.getAaguid());
+        List<String> transports = response.getResponse().getTransports().stream()
+                                          .map(com.yubico.webauthn.data.AuthenticatorTransport::getId)
+                                          .toList();
         String attestationFormat = result.getAttestationType() == null ? null : result.getAttestationType().name();
         repository.createWebAuthn(
                 factor.id(),
@@ -188,14 +190,15 @@ public class WebAuthnService {
 
     // -- Assertion --
 
-    public record AssertionStart(String challengeToken, String optionsJson) {}
+    public record AssertionStart(String challengeToken, String optionsJson) {
+    }
 
     public AssertionStart startAssertion(int accountId) {
         AssertionRequest request = relyingParty.startAssertion(StartAssertionOptions.builder()
-                .username(String.valueOf(accountId))
-                .userVerification(UserVerificationRequirement.PREFERRED)
-                .timeout(settings.webauthn().timeoutSeconds() * 1000L)
-                .build());
+                                                                                    .username(String.valueOf(accountId))
+                                                                                    .userVerification(UserVerificationRequirement.PREFERRED)
+                                                                                    .timeout(settings.webauthn().timeoutSeconds() * 1000L)
+                                                                                    .build());
 
         String json;
         try {
@@ -225,8 +228,8 @@ public class WebAuthnService {
         }
 
         PublicKeyCredential<
-                        com.yubico.webauthn.data.AuthenticatorAssertionResponse,
-                        com.yubico.webauthn.data.ClientAssertionExtensionOutputs>
+                com.yubico.webauthn.data.AuthenticatorAssertionResponse,
+                com.yubico.webauthn.data.ClientAssertionExtensionOutputs>
                 response;
         try {
             response = PublicKeyCredential.parseAssertionResponseJson(credentialJson);
@@ -238,9 +241,9 @@ public class WebAuthnService {
         AssertionResult result;
         try {
             result = relyingParty.finishAssertion(FinishAssertionOptions.builder()
-                    .request(request)
-                    .response(response)
-                    .build());
+                                                                        .request(request)
+                                                                        .response(response)
+                                                                        .build());
         } catch (AssertionFailedException e) {
             log.warn("WebAuthn assertion verification failed for account {}", accountId, e);
             return false;
@@ -289,17 +292,17 @@ public class WebAuthnService {
     }
 
     /**
-     * Converts a 16-byte AAGUID to {@link java.util.UUID}. Returns {@code null} when the
+     * Converts a 16-byte AAGUID to {@link UUID}. Returns {@code null} when the
      * authenticator omits the AAGUID (e.g. U2F-only fallback).
      */
-    private static java.util.UUID aaguidToUuid(ByteArray aaguid) {
+    private static UUID aaguidToUuid(ByteArray aaguid) {
         if (aaguid == null) return null;
         byte[] bytes = aaguid.getBytes();
-        if (bytes == null || bytes.length != 16) return null;
+        if (bytes.length != 16) return null;
         var buf = java.nio.ByteBuffer.wrap(bytes);
         long msb = buf.getLong();
         long lsb = buf.getLong();
         if (msb == 0L && lsb == 0L) return null;
-        return new java.util.UUID(msb, lsb);
+        return new UUID(msb, lsb);
     }
 }

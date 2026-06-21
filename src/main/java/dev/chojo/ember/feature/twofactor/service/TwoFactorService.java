@@ -88,6 +88,36 @@ public class TwoFactorService {
         return true;
     }
 
+    /**
+     * Removes any factor (TOTP or WebAuthn) owned by the account, identified by row id.
+     * If this leaves the account with no non-backup factors, the backup-code factor is also
+     * disabled so the user is fully unenrolled.
+     */
+    public boolean removeFactor(int accountId, int factorId, String userAgent, String country) {
+        var factors = repository.findActiveFactors(accountId);
+        var target = factors.stream().filter(f -> f.id() == factorId).findFirst();
+        if (target.isEmpty()) return false;
+        if (target.get().kind() == TwoFactorKind.BACKUP_CODES) return false;
+
+        repository.disableFactor(factorId);
+
+        long remainingPrimary = factors.stream()
+                .filter(f -> f.id() != factorId && f.kind() != TwoFactorKind.BACKUP_CODES)
+                .count();
+        if (remainingPrimary == 0) {
+            repository.findActiveFactor(accountId, TwoFactorKind.BACKUP_CODES)
+                    .ifPresent(f -> repository.disableFactor(f.id()));
+        }
+        auditService.record(accountId, null, TwoFactorEvent.REMOVED, target.get().kind(), userAgent, country);
+        log.info("Removed 2FA factor {} ({}) for account {}", factorId, target.get().kind(), accountId);
+        return true;
+    }
+
+    public boolean renameFactor(int accountId, int factorId, String label) {
+        if (label == null || label.isBlank() || label.length() > 64) return false;
+        return repository.renameFactor(factorId, accountId, label);
+    }
+
     public boolean removeTotpFactor(int accountId, String userAgent, String country) {
         var factor = repository.findActiveFactor(accountId, TwoFactorKind.TOTP);
         if (factor.isEmpty()) return false;
@@ -126,6 +156,27 @@ public class TwoFactorService {
         for (String code : plaintextCodes) {
             repository.createBackupCode(factor.id(), backupCodeService.hashCode(code));
         }
+    }
+
+    /**
+     * Generates a fresh set of backup codes for the account when none are active yet, returns
+     * them in plaintext (caller shows them once). Returns empty when the account already has a
+     * backup-code factor.
+     */
+    public List<String> issueInitialBackupCodesIfMissing(int accountId, String userAgent, String country) {
+        if (repository.findActiveFactor(accountId, TwoFactorKind.BACKUP_CODES).isPresent()) {
+            return List.of();
+        }
+        List<String> codes = backupCodeService.generateCodes();
+        createBackupCodeFactor(accountId, codes);
+        auditService.record(
+                accountId,
+                null,
+                TwoFactorEvent.BACKUP_CODE_REGENERATED,
+                TwoFactorKind.BACKUP_CODES,
+                userAgent,
+                country);
+        return codes;
     }
 
     // -- Verification --
