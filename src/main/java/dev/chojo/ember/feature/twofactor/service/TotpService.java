@@ -9,6 +9,7 @@ import com.google.zxing.BarcodeFormat;
 import com.google.zxing.WriterException;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.qrcode.QRCodeWriter;
+import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.samstevens.totp.code.CodeVerifier;
 import dev.samstevens.totp.code.DefaultCodeGenerator;
@@ -45,11 +46,10 @@ public class TotpService {
     private final CodeVerifier codeVerifier;
 
     @Inject
-    public TotpService(TwoFactorSettings twoFactorSettings) {
+    public TotpService(TwoFactorSettings twoFactorSettings, Demo demo) {
         this.config = twoFactorSettings.totp();
         String keyBase64 = twoFactorSettings.secretKey();
-        this.encryptionKey =
-                keyBase64.isBlank() ? new byte[32] : Base64.getDecoder().decode(keyBase64);
+        this.encryptionKey = resolveEncryptionKey(twoFactorSettings, demo, keyBase64);
 
         this.secretGenerator = new DefaultSecretGenerator();
         var algorithm = HashingAlgorithm.valueOf(config.algorithm());
@@ -58,6 +58,34 @@ public class TotpService {
         verifier.setTimePeriod(config.periodSeconds());
         verifier.setAllowedTimePeriodDiscrepancy(config.driftWindow());
         this.codeVerifier = verifier;
+    }
+
+    /**
+     * Resolves the AES-GCM key used to encrypt TOTP secrets at rest. Production deployments
+     * with {@code auth.twoFactor.enabled = true} (which is now the default) must provide a
+     * real 32-byte base64 key via {@code TWO_FACTOR_SECRET_KEY}; the app refuses to boot
+     * otherwise so a missing secret never silently degrades to a zero key that every install
+     * shares. {@code demo.dev} / {@code demo.enabled} runs fall back to a fixed dev key.
+     */
+    private static byte[] resolveEncryptionKey(TwoFactorSettings settings, Demo demo, String keyBase64) {
+        if (keyBase64 == null || keyBase64.isBlank()) {
+            if (demo.dev() || demo.enabled()) {
+                return new byte[32];
+            }
+            if (settings.enabled()) {
+                throw new IllegalStateException(
+                        "auth.twoFactor.secretKey (or TWO_FACTOR_SECRET_KEY) must be set in production deployments. "
+                                + "Generate a 32-byte base64 random value and inject it via configuration.");
+            }
+            // 2FA disabled — leave the key zeroed; the service will not be invoked.
+            return new byte[32];
+        }
+        byte[] decoded = Base64.getDecoder().decode(keyBase64);
+        if (decoded.length != 32) {
+            throw new IllegalStateException(
+                    "auth.twoFactor.secretKey must decode to exactly 32 bytes (got " + decoded.length + ").");
+        }
+        return decoded;
     }
 
     public String generateSecret() {

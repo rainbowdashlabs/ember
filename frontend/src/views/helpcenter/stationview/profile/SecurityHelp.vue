@@ -20,14 +20,27 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.security.twoFactorTitle')">
       <p>{{ t('helpCenter.security.twoFactorText') }}</p>
+      <p>{{ t('helpCenter.security.totpSetup') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.security.webauthnTitle')">
+      <p>{{ t('helpCenter.security.webauthnText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.security.backupTitle')">
       <p>{{ t('helpCenter.security.backupText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.security.trustedDevicesTitle')">
+      <p>{{ t('helpCenter.security.trustedDevicesText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.security.stepUpTitle')">
       <p>{{ t('helpCenter.security.stepUpText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.security.lockedOutTitle')">
+      <p>{{ t('helpCenter.security.lockedOutText') }}</p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.security.tip') }}</HelpTip>

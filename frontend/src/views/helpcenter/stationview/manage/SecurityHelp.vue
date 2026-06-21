@@ -23,6 +23,9 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.stationSecurity.membersTitle')">
       <p>{{ t('helpCenter.stationSecurity.membersText') }}</p>
     </HelpSection>
+    <HelpSection :title="t('helpCenter.stationSecurity.resetTitle')">
+      <p>{{ t('helpCenter.stationSecurity.resetText') }}</p>
+    </HelpSection>
     <HelpTip>{{ t('helpCenter.stationSecurity.tip') }}</HelpTip>
   </HelpArticle>
 </template>

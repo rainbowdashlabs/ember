@@ -11,7 +11,7 @@ import dev.chojo.ocular.override.Overwrite;
 @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
 public class TwoFactorSettings {
     @Overwrite(env = @Env)
-    private boolean enabled = false;
+    private boolean enabled = true;
 
     @Overwrite(env = @Env)
     private String secretKey = "";
