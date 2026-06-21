@@ -16,6 +16,7 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
+import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
@@ -54,7 +55,7 @@ function formatTime(iso: string): string {
 <template>
   <div class="max-w-5xl mx-auto px-4 py-8 space-y-8">
     <div class="text-center">
-      <font-awesome-icon :icon="['fas', 'building']" class="text-4xl text-primary mb-3"/>
+      <PageHeroIcon :icon="['fas', 'building']"/>
       <PageHeader>{{ t('crossStation.title') }}</PageHeader>
       <MutedText tag="p" size="sm" class="mt-1">{{ t('crossStation.subtitle') }}</MutedText>
     </div>

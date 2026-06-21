@@ -16,6 +16,7 @@ import LinkButton from '@/components/button/LinkButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
+import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
@@ -50,7 +51,7 @@ async function handleVerify() {
   <div class="flex min-h-screen items-center justify-center px-4 py-16">
     <div class="w-full max-w-sm space-y-6">
       <div class="text-center">
-        <font-awesome-icon :icon="['fas', 'shield']" class="text-4xl text-primary mb-3"/>
+        <PageHeroIcon :icon="['fas', 'shield']"/>
         <PageHeader>{{ t('twoFactor.verify.title') }}</PageHeader>
         <MutedText tag="p" size="sm" class="mt-1">
           {{ useBackupCode ? t('twoFactor.verify.backupHint') : t('twoFactor.verify.totpHint') }}

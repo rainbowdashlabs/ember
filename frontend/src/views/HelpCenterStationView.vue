@@ -150,6 +150,10 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
                        to="/helpcenter/station/profile/settings/notifications" @navigate="close">
             {{ t('sidebar.notifications') }}
           </SidebarLink>
+          <SidebarLink :icon="['fas', 'shield']" name="help-profile-security"
+                       to="/helpcenter/station/profile/settings/security" @navigate="close">
+            {{ t('sidebar.security') }}
+          </SidebarLink>
         </SidebarExpandableLink>
         <SidebarLink :icon="['fas', 'palette']" name="help-profile-theme"
                      to="/helpcenter/station/profile/theme" @navigate="close">

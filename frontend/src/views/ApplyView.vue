@@ -14,6 +14,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import {stationApplications, adminSettings} from '@/api'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
+import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 
 const {t} = useI18n()
 
@@ -66,7 +67,7 @@ async function submit() {
   <div class="flex items-center justify-center px-4 py-12">
     <div class="w-full max-w-md space-y-6">
       <div class="text-center">
-        <font-awesome-icon :icon="['fas', 'building']" class="text-4xl text-primary mb-3"/>
+        <PageHeroIcon :icon="['fas', 'building']"/>
         <PageHeader class="text-2xl font-bold">{{ t('apply.title') }}</PageHeader>
       </div>
 

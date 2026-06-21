@@ -106,8 +106,23 @@ client.interceptors.response.use(
             )
         }
         if (error.response?.status === 401) {
+            const body: any = error.response?.data
+            const isStepUp = body?.error === 'step_up_required'
+                || error.response?.headers?.['x-stepup-required'] != null
+            if (isStepUp && typeof window !== 'undefined') {
+                const category = body?.category ?? error.response?.headers?.['x-stepup-required'] ?? ''
+                const currentPath = window.location.pathname + window.location.search
+                const onStepUpAlready = window.location.pathname === '/2fa-stepup'
+                if (!onStepUpAlready) {
+                    const params = new URLSearchParams()
+                    if (category) params.set('category', String(category))
+                    if (currentPath && currentPath !== '/') params.set('redirect', currentPath)
+                    window.location.href = '/2fa-stepup?' + params.toString()
+                }
+                return Promise.reject(error)
+            }
             const token = getItem('session_token')
-            if (token && !refreshing) {
+            if (token && !refreshing && !isStepUp) {
                 removeItem('session_token')
                 removeItem('station_id')
                 const currentPath = window.location.pathname + window.location.search

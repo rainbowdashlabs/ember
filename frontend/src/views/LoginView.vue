@@ -17,6 +17,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
+import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -33,6 +34,7 @@ import {useStations} from '@/composables/useStations'
 import {useConsentGuard} from '@/composables/useConsentGuard'
 import {StationUserType} from '@/api/types'
 import MutedText from '@/components/typography/MutedText.vue'
+import DemoAccountGroups from '@/views/loginview/DemoAccountGroups.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -339,7 +341,7 @@ function topRoleLabel(account: DemoAccount): string {
   <div class="flex min-h-screen items-center justify-center px-4 py-16">
     <div :class="isDemo || isDev ? 'max-w-2xl' : 'max-w-sm'" class="w-full space-y-6">
       <div v-if="!isDemo" class="text-center">
-        <font-awesome-icon :icon="['fas', 'lock']" class="text-4xl text-primary mb-3"/>
+        <PageHeroIcon :icon="['fas', 'lock']"/>
         <PageHeader class="text-2xl font-bold">{{ t('login.title') }}</PageHeader>
       </div>
 
@@ -348,7 +350,7 @@ function topRoleLabel(account: DemoAccount): string {
       <!-- Demo mode: user picker only, no login form -->
       <template v-if="isDemo && !demoLoading">
         <div class="text-center">
-          <font-awesome-icon :icon="['fas', 'fire']" class="text-4xl text-primary mb-3"/>
+          <PageHeroIcon :icon="['fas', 'fire']"/>
           <PageHeader class="text-2xl font-bold">{{ t('demo.title') }}</PageHeader>
           <MutedText tag="p" size="sm" class="mt-1">{{ t('demo.loginHint') }}</MutedText>
         </div>
@@ -356,32 +358,7 @@ function topRoleLabel(account: DemoAccount): string {
 
         <TabBar v-if="showStationTabs" v-model="activeStationTab" :tabs="stationTabs"/>
 
-        <div v-for="group in roleGroups" :key="group.label" class="space-y-2">
-          <SectionHeader>{{ group.label }}</SectionHeader>
-          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-            <NeutralContainer
-                v-for="account in group.accounts"
-                :key="account.email"
-                :class="{ 'opacity-50 pointer-events-none': loading }"
-                class="cursor-pointer hover:border-primary transition-colors py-2 px-3"
-                @click="loginAsDemo(account)"
-            >
-              <div class="font-medium text-sm">
-                {{ account.firstName }} {{ account.lastName }}
-                <ErrorBadge v-if="!account.profileComplete" class="ml-1 text-[10px]">{{ t('login.incomplete') }}</ErrorBadge>
-              </div>
-              <div class="text-xs text-(--text-muted)">{{ topRoleLabel(account) }}</div>
-              <div v-if="account.groups.length > 0" class="flex flex-wrap gap-1 mt-1">
-                <span v-for="g in account.groups" :key="g"
-                      class="inline-block rounded-full px-1.5 py-0 text-[10px] bg-secondary/15 text-secondary-accent">{{ g }}</span>
-              </div>
-              <div v-if="account.tags.length > 0" class="flex flex-wrap gap-1 mt-0.5">
-                <span v-for="tag in account.tags" :key="tag"
-                      class="inline-block rounded-full px-1.5 py-0 text-[10px] bg-primary/15 text-primary">{{ tag }}</span>
-              </div>
-            </NeutralContainer>
-          </div>
-        </div>
+        <DemoAccountGroups :role-groups="roleGroups" :loading="loading" :role-label="topRoleLabel" @login="loginAsDemo"/>
       </template>
 
       <!-- Normal / dev mode: login form -->
@@ -479,32 +456,7 @@ function topRoleLabel(account: DemoAccount): string {
           <div class="border-t border-bg-light-accent dark:border-bg-dark-accent pt-4 mt-2">
             <p class="text-sm font-medium mb-3">{{ t('demo.devLoginHint') }}</p>
             <TabBar v-if="showStationTabs" v-model="activeStationTab" :tabs="stationTabs" class="mb-3"/>
-            <div v-for="group in roleGroups" :key="group.label" class="mb-3">
-              <p class="text-xs font-semibold text-(--text-muted) mb-1">{{ group.label }}</p>
-              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1.5">
-                <NeutralContainer
-                    v-for="account in group.accounts"
-                    :key="account.email"
-                    :class="{ 'opacity-50 pointer-events-none': loading }"
-                    class="cursor-pointer hover:border-primary transition-colors py-1.5 px-2.5"
-                    @click="loginAsDemo(account)"
-                >
-                  <div class="font-medium text-xs">
-                    {{ account.firstName }} {{ account.lastName }}
-                    <ErrorBadge v-if="!account.profileComplete" class="ml-1 text-[9px]">{{ t('login.incomplete') }}</ErrorBadge>
-                  </div>
-                  <div class="text-[10px] text-(--text-muted)">{{ topRoleLabel(account) }}</div>
-                  <div v-if="account.groups.length > 0" class="flex flex-wrap gap-0.5 mt-0.5">
-                    <span v-for="g in account.groups" :key="g"
-                          class="inline-block rounded-full px-1 text-[9px] bg-secondary/15 text-secondary-accent">{{ g }}</span>
-                  </div>
-                  <div v-if="account.tags.length > 0" class="flex flex-wrap gap-0.5 mt-0.5">
-                    <span v-for="tag in account.tags" :key="tag"
-                          class="inline-block rounded-full px-1 text-[9px] bg-primary/15 text-primary">{{ tag }}</span>
-                  </div>
-                </NeutralContainer>
-              </div>
-            </div>
+            <DemoAccountGroups :role-groups="roleGroups" :loading="loading" :role-label="topRoleLabel" compact @login="loginAsDemo"/>
           </div>
         </template>
       </template>

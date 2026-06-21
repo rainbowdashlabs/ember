@@ -22,6 +22,7 @@ const HomeView = () => import('@/views/HomeView.vue')
 const StationSelectView = () => import('@/views/StationSelectView.vue')
 const CrossStationDashboardView = () => import('@/views/CrossStationDashboardView.vue')
 const TwoFactorVerifyView = () => import('@/views/TwoFactorVerifyView.vue')
+const StepUpVerifyView = () => import('@/views/StepUpVerifyView.vue')
 const StyleView = () => import('@/views/StyleView.vue')
 const OverviewView = () => import('@/views/dashboardview/OverviewView.vue')
 const StatisticsView = () => import('@/views/dashboardview/StatisticsView.vue')
@@ -140,6 +141,11 @@ const router = createRouter({
             path: '/2fa-verify',
             name: '2fa-verify',
             component: TwoFactorVerifyView,
+        },
+        {
+            path: '/2fa-stepup',
+            name: '2fa-stepup',
+            component: StepUpVerifyView,
         },
         {
             path: '/',
@@ -1078,6 +1084,11 @@ const router = createRouter({
                     path: 'profile/settings/notifications',
                     name: 'help-profile-notifications',
                     component: () => import('@/views/helpcenter/stationview/profile/NotificationsHelp.vue')
+                },
+                {
+                    path: 'profile/settings/security',
+                    name: 'help-profile-security',
+                    component: () => import('@/views/helpcenter/stationview/profile/SecurityHelp.vue')
                 },
                 {
                     path: 'profile/feeds/rss',

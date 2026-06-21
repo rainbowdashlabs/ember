@@ -10,6 +10,7 @@ import {useRoute} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 import {useStations} from '@/composables/useStations'
 import MutedText from '@/components/typography/MutedText.vue'
 
@@ -37,7 +38,7 @@ onMounted(async () => {
   <div class="flex min-h-screen items-center justify-center px-4">
     <div class="w-full max-w-md space-y-6">
       <div class="text-center">
-        <font-awesome-icon :icon="['fas', 'building']" class="text-4xl text-primary mb-3"/>
+        <PageHeroIcon :icon="['fas', 'building']"/>
         <SectionHeader>{{ t('stationSelect.title') }}</SectionHeader>
         <MutedText tag="p" size="sm" class="mt-1">{{ t('stationSelect.subtitle') }}</MutedText>
       </div>

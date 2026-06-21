@@ -58,3 +58,12 @@ export async function verify2fa(preAuthToken: string, factor: string, proof: str
     const res = await client.post<Verify2faResponse>('/auth/2fa', {preAuthToken, factor, proof})
     return res.data
 }
+
+export interface StepUpResponse {
+    verifiedAt: string
+}
+
+export async function stepUp(factor: string, proof: string): Promise<StepUpResponse> {
+    const res = await client.post<StepUpResponse>('/auth/2fa/stepup', {factor, proof})
+    return res.data
+}

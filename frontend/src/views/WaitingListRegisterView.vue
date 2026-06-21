@@ -22,6 +22,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PublicConsentCheckbox from '@/components/public/PublicConsentCheckbox.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
+import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type { GuardianInput, WaitingListInviteInfo } from '@/api/types'
 import { parseFieldConfig } from '@/api/types'
@@ -164,7 +165,7 @@ onMounted(loadInviteInfo)
   <div class="flex items-center justify-center px-4 py-12">
     <div class="w-full max-w-lg space-y-6">
       <div class="text-center">
-        <font-awesome-icon :icon="['fas', 'clipboard-list']" class="text-4xl text-primary mb-3" />
+        <PageHeroIcon :icon="['fas', 'clipboard-list']"/>
         <PageHeader class="text-2xl font-bold">{{ t('waitingList.register.title') }}</PageHeader>
       </div>
 
