@@ -10,6 +10,16 @@ export interface TwoFactorStatus {
     factors: FactorInfo[]
     unusedBackupCodes: number
     webauthnAvailable: boolean
+    trustedDeviceMaxDays: number
+}
+
+export interface TrustedDevice {
+    id: number
+    userAgent: string | null
+    createdAt: string
+    lastSeenAt: string
+    trustedUntil: string
+    current: boolean
 }
 
 export interface FactorInfo {
@@ -55,9 +65,32 @@ export async function regenerateBackupCodes(): Promise<{ codes: string[] }> {
     return res.data
 }
 
-export async function verify2fa(preAuthToken: string, factor: string, proof: string): Promise<Verify2faResponse> {
-    const res = await client.post<Verify2faResponse>('/auth/2fa', {preAuthToken, factor, proof})
+export async function verify2fa(
+    preAuthToken: string,
+    factor: string,
+    proof: string,
+    rememberDeviceDays?: number,
+): Promise<Verify2faResponse> {
+    const res = await client.post<Verify2faResponse>('/auth/2fa', {
+        preAuthToken,
+        factor,
+        proof,
+        rememberDeviceDays,
+    })
     return res.data
+}
+
+export async function listTrustedDevices(): Promise<TrustedDevice[]> {
+    const res = await client.get<{ devices: TrustedDevice[] }>('/account/2fa/trusted-devices')
+    return res.data.devices
+}
+
+export async function revokeTrustedDevice(id: number): Promise<void> {
+    await client.post(`/account/2fa/trusted-devices/${id}/revoke`)
+}
+
+export async function revokeAllTrustedDevices(): Promise<void> {
+    await client.post('/account/2fa/trusted-devices/revoke-all')
 }
 
 export interface StepUpResponse {
@@ -107,10 +140,11 @@ export async function webauthnLoginFinish(
     preAuthToken: string,
     challengeToken: string,
     credentialJson: string,
+    rememberDeviceDays?: number,
 ): Promise<Verify2faResponse> {
     const res = await client.post<Verify2faResponse>(
         '/auth/2fa/webauthn/finish',
-        {preAuthToken, challengeToken, credentialJson},
+        {preAuthToken, challengeToken, credentialJson, rememberDeviceDays},
     )
     return res.data
 }

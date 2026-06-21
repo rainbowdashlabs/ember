@@ -4,16 +4,17 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref} from 'vue'
+import {onMounted, ref} from 'vue'
 import {useRoute} from 'vue-router'
 import {useI18n} from 'vue-i18n'
-import {verify2fa, webauthnLoginBegin, webauthnLoginFinish} from '@/api/twoFactor'
+import {getTwoFactorStatus, verify2fa, webauthnLoginBegin, webauthnLoginFinish} from '@/api/twoFactor'
 import {getWebAuthnCredential, isWebAuthnSupported} from '@/util/webauthn'
 import {setItem} from '@/api/storage'
 import {scheduleTokenRefresh} from '@/api/client'
 import {session} from '@/api'
 import {useStations} from '@/composables/useStations'
 import TextInput from '@/components/input/text/TextInput.vue'
+import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import LinkButton from '@/components/button/LinkButton.vue'
@@ -33,13 +34,29 @@ const error = ref('')
 const loading = ref(false)
 const useBackupCode = ref(false)
 
+const rememberDevice = ref(false)
+const trustedDeviceMaxDays = ref(0)
+
+// The pre-auth token doesn't grant access to /account/2fa/status, but the value only
+// affects an unauthenticated view of the trusted-device window. Fall back to the
+// concept default (30) when the call fails so the checkbox still shows a sensible cap.
+onMounted(async () => {
+  try {
+    const status = await getTwoFactorStatus()
+    trustedDeviceMaxDays.value = status.trustedDeviceMaxDays
+  } catch {
+    trustedDeviceMaxDays.value = 30
+  }
+})
+
 async function handleVerify() {
   if (!code.value || !preAuthToken.value) return
   error.value = ''
   loading.value = true
   try {
     const factor = useBackupCode.value ? 'BACKUP_CODE' : 'TOTP'
-    const result = await verify2fa(preAuthToken.value, factor, code.value)
+    const days = rememberDevice.value ? trustedDeviceMaxDays.value : undefined
+    const result = await verify2fa(preAuthToken.value, factor, code.value, days)
     finalizeSession(result.token, result.expiresAt)
   } catch {
     error.value = t('twoFactor.verify.invalidCode')
@@ -57,7 +74,8 @@ async function handleWebAuthn() {
   try {
     const begin = await webauthnLoginBegin(preAuthToken.value)
     const credentialJson = await getWebAuthnCredential(begin.optionsJson)
-    const result = await webauthnLoginFinish(preAuthToken.value, begin.challengeToken, credentialJson)
+    const days = rememberDevice.value ? trustedDeviceMaxDays.value : undefined
+    const result = await webauthnLoginFinish(preAuthToken.value, begin.challengeToken, credentialJson, days)
     finalizeSession(result.token, result.expiresAt)
   } catch (e: any) {
     if (e?.message === 'webauthn-cancelled') {
@@ -117,6 +135,10 @@ async function finalizeSession(token: string, expiresAt: string) {
               autocomplete="one-time-code"
               inputmode="numeric"
           />
+          <label v-if="trustedDeviceMaxDays > 0" class="flex items-center gap-2 text-sm">
+            <CheckboxInput v-model="rememberDevice" :disabled="loading"/>
+            <span>{{ t('twoFactor.verify.rememberDevice', {n: trustedDeviceMaxDays}) }}</span>
+          </label>
           <PrimaryButton :disabled="loading || !code" class="w-full" @click="handleVerify">
             {{ loading ? t('common.loading') : t('twoFactor.verify.submit') }}
           </PrimaryButton>

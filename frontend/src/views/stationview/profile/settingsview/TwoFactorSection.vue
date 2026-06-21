@@ -22,6 +22,7 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import WebAuthnSection from './twofactorsection/WebAuthnSection.vue'
+import TrustedDevicesSection from './twofactorsection/TrustedDevicesSection.vue'
 
 const {t} = useI18n()
 
@@ -207,6 +208,8 @@ async function handleRegenerate() {
             <SecondaryButton size="sm" @click="handleRegenerate">{{ t('twoFactor.backup.regenerate') }}</SecondaryButton>
           </div>
         </NeutralContainer>
+
+        <TrustedDevicesSection/>
       </template>
     </template>
 
