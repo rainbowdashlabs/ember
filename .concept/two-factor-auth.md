@@ -1,6 +1,6 @@
 # Concept: Two-Factor Authentication
 
-Status: in progress (steps 1–2 of 10 done — schema, TOTP enrollment, backup codes, 2FA login verification, settings UI)
+Status: in progress (steps 1–3 of 10 done — schema, TOTP enrollment, backup codes, 2FA login verification, settings UI, step-up middleware)
 Scope: TOTP + FIDO2/WebAuthn second factor for the existing password-based login, with role-based mandate, per-`StationUserType` admin escalation, soft-grace enrollment, freshness-window step-up for sensitive actions, opt-in trusted-device remember, backup codes + admin reset as recovery.
 Not in scope: passkeys / passwordless login, SMS or email OTP, push-based authenticators, single-sign-on / external IdP integration, 2FA on the `/remote/` federation surface (those are RSA-signed server-to-server already).
 
@@ -384,9 +384,18 @@ All overridable via env (`AUTH_TWOFACTOR_*`) using the existing `@Overwrite(env 
    - Sidebar link under profile settings.
    - Full de-DE localization.
 
+3. **Step-up middleware.**
+   - `StepUpCategory` enum (`ACCOUNT_SECURITY`, `FEDERATION`, `INSTANCE_CONFIG`, `ROLE_CHANGE`) implementing `RouteRole`.
+   - `UserSession.twoFactorVerifiedAt` + `UserSession.sessionId` populated from `AccountSession`.
+   - `ApiServer.handleAccess()` enforces step-up freshness against `auth.twoFactor.stepUpFreshnessSeconds`; users with no 2FA enrolled are exempt so the gate doesn't block them from setting up 2FA.
+   - `StepUpRequiredException` → `401 {error:"step_up_required", category}` with `X-StepUp-Required` header.
+   - `POST /auth/2fa/stepup` (LOGIN): verifies TOTP or backup code, updates `account_session.two_factor_verified_at`, records `STEPUP_VERIFIED`.
+   - `ACCOUNT_SECURITY` applied to: `/auth/change-password`, `/account/2fa/totp/remove`, `/account/2fa/backup-codes/regenerate`, `/session/invalidate-all`.
+   - Frontend: dedicated `/2fa-stepup` route + `StepUpVerifyView` (not a modal). Axios interceptor detects `step_up_required` 401 and redirects with `?redirect=<orig>&category=...`; view navigates back on success.
+   - Help center: `help-profile-security` article + sidebar link.
+
 ### Remaining
 
-3. **Step-up middleware.** `StepUpCategory` enum (`ACCOUNT_SECURITY`, `FEDERATION`, `INSTANCE_CONFIG`, `ROLE_CHANGE`). `UserSession.twoFactorVerifiedAt` field. `ApiServer.handleAccess()` check for step-up freshness. `POST /auth/2fa/stepup` endpoint. Frontend `StepUpModal` + axios interceptor for `step_up_required` 401. Apply `ACCOUNT_SECURITY` to password change, email change, 2FA add/remove, session invalidate-all.
 4. **WebAuthn enroll/verify.** `WebAuthnService` wrapping Yubico library. Registration + assertion ceremonies. Frontend `WebAuthnSection` + `navigator.credentials` API integration. Update `TwoFactorVerifyView` and `StepUpModal` with WebAuthn option.
 5. **Policy engine.** `TwoFactorPolicyService` with `resolve(accountId)` → `RequirementState` sealed interface. Caffeine cache (60s TTL). Role-based mandate from elevated permission set. `X-Two-Factor-Deadline` header. `TwoFactorBanner` frontend component. Forced enrollment flow.
 6. **Per-type force UI.** `TwoFactorAdminRoutes` for station + instance admin policy management. `SecurityView` for station manage + admin panel. Per-user-type toggles, member 2FA status list.
