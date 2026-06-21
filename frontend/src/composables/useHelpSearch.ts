@@ -162,12 +162,14 @@ const HELP_PAGE_MAP: { route: string; path: string; i18nPrefix: string; section:
     {route: 'help-admin-station-applications', path: '/helpcenter/admin/applications', i18nPrefix: 'helpCenter.admin.applications', section: 'Administration > Anträge'},
     {route: 'help-admin-statistics', path: '/helpcenter/admin/statistics', i18nPrefix: 'helpCenter.admin.statistics', section: 'Administration > Statistiken'},
     {route: 'help-admin-settings', path: '/helpcenter/admin/settings', i18nPrefix: 'helpCenter.admin.settings', section: 'Administration > Einstellungen'},
-    {route: 'help-admin-api-status', path: '/helpcenter/admin/api-status', i18nPrefix: 'helpCenter.adminApiStatus', section: 'Administration > API-Status'},
-    {route: 'help-admin-feed-metrics', path: '/helpcenter/admin/feed-metrics', i18nPrefix: 'helpCenter.adminFeedMetrics', section: 'Administration > Feed-Telemetrie'},
-    {route: 'help-admin-traffic', path: '/helpcenter/admin/traffic', i18nPrefix: 'helpCenter.adminTraffic', section: 'Administration > Traffic'},
+    {route: 'help-admin-api-status', path: '/helpcenter/admin/monitoring/api-status', i18nPrefix: 'helpCenter.adminApiStatus', section: 'Administration > Monitoring > API-Status'},
+    {route: 'help-admin-feed-metrics', path: '/helpcenter/admin/monitoring/feed-metrics', i18nPrefix: 'helpCenter.adminFeedMetrics', section: 'Administration > Monitoring > Feed-Telemetrie'},
+    {route: 'help-admin-traffic', path: '/helpcenter/admin/monitoring/traffic', i18nPrefix: 'helpCenter.adminTraffic', section: 'Administration > Monitoring > Traffic'},
     {route: 'help-station-traffic', path: '/helpcenter/station/manage/traffic', i18nPrefix: 'helpCenter.stationTraffic', section: 'Wache > Verwalten > Traffic'},
     {route: 'help-station-insights', path: '/helpcenter/station/manage/insights', i18nPrefix: 'helpCenter.stationInsights', section: 'Wache > Verwalten > Seiten-Statistik'},
-    {route: 'help-admin-problems', path: '/helpcenter/admin/problems', i18nPrefix: 'helpCenter.adminProblems', section: 'Administration > Problemprotokoll'},
+    {route: 'help-admin-problems', path: '/helpcenter/admin/monitoring/problems', i18nPrefix: 'helpCenter.adminProblems', section: 'Administration > Monitoring > Problemprotokoll'},
+    {route: 'help-admin-security', path: '/helpcenter/admin/settings/security', i18nPrefix: 'helpCenter.adminSecurity', section: 'Administration > Einstellungen > Sicherheit'},
+    {route: 'help-station-security', path: '/helpcenter/station/manage/security', i18nPrefix: 'helpCenter.stationSecurity', section: 'Wache > Verwalten > Sicherheit'},
 ]
 
 /**

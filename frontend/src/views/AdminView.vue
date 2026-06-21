@@ -88,34 +88,37 @@ async function handleLogout() {
         <SidebarLink :icon="['fas', 'envelope']" name="admin-mailing" to="/admin/settings/mailing" @navigate="close">
           {{ t('sidebar.mailing') }}
         </SidebarLink>
+        <SidebarLink :icon="['fas', 'shield']" name="admin-security" to="/admin/settings/security" @navigate="close">
+          {{ t('sidebar.security') }}
+        </SidebarLink>
         <SidebarLink :icon="['fas', 'scale-balanced']" name="admin-legal" to="/admin/settings/legal" @navigate="close">
           {{ t('sidebar.legal') }}
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'triangle-exclamation']" :label="t('sidebar.monitoring')" prefix="/admin" group-key="monitoring">
-        <SidebarLink :icon="['fas', 'hard-drive']" name="admin-storage" to="/admin/storage" @navigate="close">
+      <SidebarGroup :icon="['fas', 'triangle-exclamation']" :label="t('sidebar.monitoring')" prefix="/admin/monitoring" group-key="monitoring">
+        <SidebarLink :icon="['fas', 'hard-drive']" name="admin-storage" to="/admin/monitoring/storage" @navigate="close">
           {{ t('sidebar.storageDashboard') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'bug']" name="admin-problems" to="/admin/problems" @navigate="close">
+        <SidebarLink :icon="['fas', 'bug']" name="admin-problems" to="/admin/monitoring/problems" @navigate="close">
           {{ t('sidebar.problemLog') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'flag']" name="admin-problem-reports" to="/admin/problem-reports" @navigate="close">
+        <SidebarLink :icon="['fas', 'flag']" name="admin-problem-reports" to="/admin/monitoring/problem-reports" @navigate="close">
           {{ t('sidebar.problemReports') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'chart-line']" name="admin-api-status" to="/admin/api-status" @navigate="close">
+        <SidebarLink :icon="['fas', 'chart-line']" name="admin-api-status" to="/admin/monitoring/api-status" @navigate="close">
           {{ t('sidebar.apiStatus') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'rss']" name="admin-feed-metrics" to="/admin/feed-metrics" @navigate="close">
+        <SidebarLink :icon="['fas', 'rss']" name="admin-feed-metrics" to="/admin/monitoring/feed-metrics" @navigate="close">
           {{ t('sidebar.feedMetrics') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'tower-broadcast']" name="admin-traffic" to="/admin/traffic" @navigate="close">
+        <SidebarLink :icon="['fas', 'tower-broadcast']" name="admin-traffic" to="/admin/monitoring/traffic" @navigate="close">
           {{ t('sidebar.adminTraffic') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'compass']" name="admin-discovery" to="/admin/discovery" @navigate="close">
+        <SidebarLink :icon="['fas', 'compass']" name="admin-discovery" to="/admin/monitoring/discovery" @navigate="close">
           {{ t('sidebar.adminDiscovery') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'map-location-dot']" name="admin-maps" to="/admin/maps" @navigate="close">
+        <SidebarLink :icon="['fas', 'map-location-dot']" name="admin-maps" to="/admin/monitoring/maps" @navigate="close">
           {{ t('sidebar.maps') }}
         </SidebarLink>
       </SidebarGroup>
@@ -130,7 +133,7 @@ async function handleLogout() {
         <SidebarLink
             :icon="['fas', 'database']"
             name="admin-data-tracking"
-            to="/admin/data-tracking"
+            to="/admin/dev/data-tracking"
             @navigate="close"
         >
           {{ t('sidebar.dataTracking') }}

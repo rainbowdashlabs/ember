@@ -235,6 +235,11 @@ const router = createRouter({
                     component: () => import('@/views/stationview/manage/StationStorageView.vue'),
                 },
                 {
+                    path: 'manage/security',
+                    name: 'station-security',
+                    component: () => import('@/views/stationview/manage/StationSecurityView.vue'),
+                },
+                {
                     path: 'attendance/config',
                     name: 'station-attendance-config',
                     component: AttendanceConfigView,
@@ -900,47 +905,52 @@ const router = createRouter({
                     component: () => import('@/views/adminview/AdminMailingView.vue'),
                 },
                 {
-                    path: 'problems',
+                    path: 'settings/security',
+                    name: 'admin-security',
+                    component: () => import('@/views/adminview/AdminSecurityView.vue'),
+                },
+                {
+                    path: 'monitoring/problems',
                     name: 'admin-problems',
                     component: () => import('@/views/adminview/AdminProblemsView.vue'),
                 },
                 {
-                    path: 'problem-reports',
+                    path: 'monitoring/problem-reports',
                     name: 'admin-problem-reports',
                     component: () => import('@/views/adminview/AdminProblemReportsView.vue'),
                 },
                 {
-                    path: 'storage',
+                    path: 'monitoring/storage',
                     name: 'admin-storage',
                     component: () => import('@/views/adminview/AdminStorageView.vue'),
                 },
                 {
-                    path: 'api-status',
+                    path: 'monitoring/api-status',
                     name: 'admin-api-status',
                     component: () => import('@/views/adminview/AdminApiStatusView.vue'),
                 },
                 {
-                    path: 'api-status/detail',
+                    path: 'monitoring/api-status/detail',
                     name: 'admin-api-status-detail',
                     component: () => import('@/views/adminview/AdminApiStatusDetailView.vue'),
                 },
                 {
-                    path: 'feed-metrics',
+                    path: 'monitoring/feed-metrics',
                     name: 'admin-feed-metrics',
                     component: () => import('@/views/adminview/AdminFeedMetricsView.vue'),
                 },
                 {
-                    path: 'traffic',
+                    path: 'monitoring/traffic',
                     name: 'admin-traffic',
                     component: () => import('@/views/adminview/AdminTrafficView.vue'),
                 },
                 {
-                    path: 'discovery',
+                    path: 'monitoring/discovery',
                     name: 'admin-discovery',
                     component: () => import('@/views/adminview/AdminDiscoveryView.vue'),
                 },
                 {
-                    path: 'maps',
+                    path: 'monitoring/maps',
                     name: 'admin-maps',
                     component: () => import('@/views/adminview/AdminMapsView.vue'),
                 },
@@ -948,7 +958,7 @@ const router = createRouter({
                     // Dev-only inspector for data_tracking.json. The backend route is gated by
                     // Demo.dev(); the frontend page additionally checks import.meta.env.DEV to
                     // hide the UI from production bundles.
-                    path: 'data-tracking',
+                    path: 'dev/data-tracking',
                     name: 'admin-data-tracking',
                     component: () => import('@/views/adminview/DataTrackingView.vue'),
                 },
@@ -1149,6 +1159,11 @@ const router = createRouter({
                     path: 'manage/insights',
                     name: 'help-station-insights',
                     component: () => import('@/views/helpcenter/stationview/manage/StationInsightsHelp.vue')
+                },
+                {
+                    path: 'manage/security',
+                    name: 'help-station-security',
+                    component: () => import('@/views/helpcenter/stationview/manage/SecurityHelp.vue')
                 },
                 {
                     path: 'manage/import',
@@ -1805,52 +1820,57 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/adminview/MailingHelp.vue')
                 },
                 {
-                    path: 'api-status',
+                    path: 'settings/security',
+                    name: 'help-admin-security',
+                    component: () => import('@/views/helpcenter/adminview/SecurityHelp.vue')
+                },
+                {
+                    path: 'monitoring/api-status',
                     name: 'help-admin-api-status',
                     component: () => import('@/views/helpcenter/adminview/ApiStatusHelp.vue')
                 },
                 {
-                    path: 'api-status/detail',
+                    path: 'monitoring/api-status/detail',
                     name: 'help-admin-api-status-detail',
                     component: () => import('@/views/helpcenter/adminview/ApiStatusDetailHelp.vue')
                 },
                 {
-                    path: 'feed-metrics',
+                    path: 'monitoring/feed-metrics',
                     name: 'help-admin-feed-metrics',
                     component: () => import('@/views/helpcenter/adminview/FeedMetricsHelp.vue')
                 },
                 {
-                    path: 'traffic',
+                    path: 'monitoring/traffic',
                     name: 'help-admin-traffic',
                     component: () => import('@/views/helpcenter/adminview/AdminTrafficHelp.vue')
                 },
                 {
-                    path: 'discovery',
+                    path: 'monitoring/discovery',
                     name: 'help-admin-discovery',
                     component: () => import('@/views/helpcenter/adminview/DiscoveryHelp.vue')
                 },
                 {
-                    path: 'maps',
+                    path: 'monitoring/maps',
                     name: 'help-admin-maps',
                     component: () => import('@/views/helpcenter/adminview/MapsHelp.vue')
                 },
                 {
-                    path: 'problems',
+                    path: 'monitoring/problems',
                     name: 'help-admin-problems',
                     component: () => import('@/views/helpcenter/adminview/ProblemsHelp.vue')
                 },
                 {
-                    path: 'problem-reports',
+                    path: 'monitoring/problem-reports',
                     name: 'help-admin-problem-reports',
                     redirect: { name: 'help-admin-problems' }
                 },
                 {
-                    path: 'storage',
+                    path: 'monitoring/storage',
                     name: 'help-admin-storage',
                     component: () => import('@/views/helpcenter/adminview/StorageHelp.vue')
                 },
                 {
-                    path: 'data-tracking',
+                    path: 'dev/data-tracking',
                     name: 'help-admin-data-tracking',
                     component: () => import('@/views/helpcenter/adminview/DataTrackingHelp.vue')
                 },

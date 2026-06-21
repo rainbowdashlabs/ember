@@ -3,7 +3,6 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-
 /**
  * Browser-side WebAuthn helpers that bridge the Yubico server JSON shape (URL-safe base64
  * fields) to the {@code BufferSource} fields that {@code navigator.credentials} expects, and
