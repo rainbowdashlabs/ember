@@ -9,6 +9,7 @@ import {useRoute} from 'vue-router'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import LandingHeader from '@/components/layout/LandingHeader.vue'
 import ToastContainer from '@/components/feedback/ToastContainer.vue'
+import StepUpModal from '@/components/feedback/StepUpModal.vue'
 
 const route = useRoute()
 const publicRoutes = ['home', 'login', 'forgot-password', 'set-password', 'reset-password', 'apply', 'apply-verify', 'style', 'station-select', 'privacy', 'terms', 'imprint', 'reconsent', 'patch-notes', 'public-discovery']
@@ -27,4 +28,5 @@ const isPublic = computed(() => publicRoutes.includes(route.name as string))
   </template>
   <RouterView v-else/>
   <ToastContainer />
+  <StepUpModal />
 </template>

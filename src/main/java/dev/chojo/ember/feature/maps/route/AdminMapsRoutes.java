@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.maps.route;
 
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.feature.maps.entity.GeocodingProvider;
 import dev.chojo.ember.feature.maps.entity.MapTileProvider;
 import dev.chojo.ember.feature.maps.entity.MapsGeocodingConfig;
@@ -39,7 +40,11 @@ public class AdminMapsRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/admin/settings/maps", this::getConfig, InstancePermission.ADMINISTRATOR);
-        routes.put(prefix + "/admin/settings/maps", this::updateConfig, InstancePermission.ADMINISTRATOR);
+        routes.put(
+                prefix + "/admin/settings/maps",
+                this::updateConfig,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
         routes.get(prefix + "/admin/maps/test-tile", this::testTile, InstancePermission.ADMINISTRATOR);
         routes.get(prefix + "/admin/maps/cache/stats", this::cacheStats, InstancePermission.ADMINISTRATOR);
         routes.post(prefix + "/admin/maps/cache/purge", this::purgeCache, InstancePermission.ADMINISTRATOR);

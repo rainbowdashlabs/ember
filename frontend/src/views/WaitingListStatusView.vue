@@ -15,6 +15,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
+import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -121,7 +122,7 @@ onMounted(loadStatus)
   <div class="flex items-center justify-center px-4 py-12">
     <div class="w-full max-w-lg space-y-6">
       <div class="text-center">
-        <font-awesome-icon :icon="['fas', 'clipboard-list']" class="text-4xl text-primary mb-3" />
+        <PageHeroIcon :icon="['fas', 'clipboard-list']"/>
         <PageHeader class="text-2xl font-bold">{{ t('waitingList.publicStatus.title') }}</PageHeader>
       </div>
 

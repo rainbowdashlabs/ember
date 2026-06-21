@@ -87,7 +87,8 @@ public class AccessManager {
             return Optional.empty();
         }
 
-        int accountId = sessionOpt.get().accountId();
+        AccountSession accountSession = sessionOpt.get();
+        int accountId = accountSession.accountId();
         Optional<Account> accountOpt = accountRepository.findById(accountId);
         if (accountOpt.isEmpty()) {
             return Optional.empty();
@@ -105,13 +106,30 @@ public class AccessManager {
             if (memberOpt.isPresent()) {
                 StationMember member = memberOpt.get();
                 Set<StationPermission> permissions = resolveExpandedMemberPermissions(member);
-                return Optional.of(
-                        new UserSession(account, stationId, stationUid, member, permissions, instancePermissions));
+                permissions.add(StationPermission.LOGIN);
+                return Optional.of(new UserSession(
+                        account,
+                        accountSession.id(),
+                        stationId,
+                        stationUid,
+                        member,
+                        permissions,
+                        instancePermissions,
+                        accountSession.twoFactorVerifiedAt()));
             }
         }
 
+        Set<StationPermission> baseline = EnumSet.noneOf(StationPermission.class);
+        baseline.add(StationPermission.LOGIN);
         return Optional.of(new UserSession(
-                account, stationId, stationUid, null, EnumSet.noneOf(StationPermission.class), instancePermissions));
+                account,
+                accountSession.id(),
+                stationId,
+                stationUid,
+                null,
+                baseline,
+                instancePermissions,
+                accountSession.twoFactorVerifiedAt()));
     }
 
     /**

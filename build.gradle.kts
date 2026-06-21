@@ -48,8 +48,13 @@ dependencies {
     implementation(libs.bcrypt)
     implementation(libs.jspecify)
     implementation(libs.caffeine)
+    implementation(libs.totp)
+    implementation(libs.zxing.core)
+    implementation(libs.zxing.javase)
+    implementation(libs.webauthn.server)
 
     implementation(libs.angus)
+    implementation(libs.pebble)
     implementation(libs.bundles.commonmark)
     implementation(libs.jsoup)
     implementation(libs.java.diff.utils)
@@ -348,6 +353,9 @@ tasks {
                     "*.FederationPartnerSeeder*",
                     "*.DiscoveryKeyService*",
                     "*.DiscoveryStationProjectionService*",
+                    // WebAuthn verification — finishRegistration/finishAssertion success paths
+                    // need a real authenticator-issued credential signature, not a unit test.
+                    "*.WebAuthnService*",
                     // Static CIDR helper record — class-init only, not worth unit-testing
                     "*.RemoteUrlValidator.Cidr",
                 )

@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
-import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.service.StationService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -23,11 +23,14 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Seeder for demo profile pictures and station logo.
+ *
+ * <p>Avatars are keyed by {@code account.uid} (the public per-account UUID) so a
+ * single avatar follows the user across every station they belong to. The seeder
+ * fetches DiceBear avatars for every account that does not yet have a picture on
+ * disk.
  */
 @Singleton
 public class DemoMediaSeeder {
@@ -46,43 +49,32 @@ public class DemoMediaSeeder {
         this.accountRepository = accountRepository;
     }
 
-    public void seedProfilePictures(
-            int stationId,
-            StationMember admin,
-            List<StationMember> betreuer,
-            List<StationMember> eltern,
-            List<StationMember> anfaenger,
-            List<StationMember> fortgeschritten) {
-        // Ensure cache directory exists
+    /**
+     * Seeds a DiceBear avatar (keyed by {@code account.uid}) for every account
+     * that does not yet have one, and the demo station logo for {@code stationId}.
+     */
+    public void seedProfilePictures(int stationId) {
         try {
             Files.createDirectories(AVATAR_CACHE_DIR);
         } catch (IOException e) {
             log.warn("Failed to create avatar cache directory: {}", e.getMessage());
         }
 
-        // Assign DiceBear avatars to all members
-        var allMembers = new ArrayList<StationMember>();
-        allMembers.add(admin);
-        allMembers.addAll(betreuer);
-        allMembers.addAll(eltern);
-        allMembers.addAll(anfaenger);
-        allMembers.addAll(fortgeschritten);
-
         try (var httpClient = HttpClient.newHttpClient()) {
-            for (var member : allMembers) {
-                String memberKey = member.uid().toString();
-                if (imageService.exists(ImageCategory.AVATARS, memberKey)) continue;
+            for (var account : accountRepository.findAll()) {
+                if (account.uid() == null) continue;
+                String key = account.uid().toString();
+                if (imageService.exists(ImageCategory.AVATARS, key)) continue;
                 try {
-                    String seed = buildSeed(member);
+                    String seed = buildSeed(account);
                     byte[] data = fetchAvatar(httpClient, seed);
-                    imageService.store(ImageCategory.AVATARS, memberKey, data, "image/png");
+                    imageService.store(ImageCategory.AVATARS, key, data, "image/png");
                 } catch (Exception e) {
-                    log.warn("Failed to set demo avatar for member {}: {}", memberKey, e.getMessage());
+                    log.warn("Failed to set demo avatar for account {}: {}", account.id(), e.getMessage());
                 }
             }
         }
 
-        // Set station logo (skip if already exists)
         if (stationService.getLogo(stationId).isEmpty()) {
             try {
                 byte[] logoData = loadDemoResource("demo/avatars/station_logo.png");
@@ -93,14 +85,11 @@ public class DemoMediaSeeder {
         }
     }
 
-    private String buildSeed(StationMember member) {
-        if (member.accountId() != null) {
-            var account = accountRepository.findById(member.accountId());
-            if (account.isPresent()) {
-                return account.get().firstName() + "+" + account.get().lastName();
-            }
-        }
-        return "member-" + member.id();
+    private String buildSeed(Account account) {
+        String first = account.firstName() != null ? account.firstName() : "";
+        String last = account.lastName() != null ? account.lastName() : "";
+        String combined = (first + "+" + last).trim();
+        return combined.isBlank() ? "account-" + account.id() : combined;
     }
 
     private byte[] fetchAvatar(HttpClient httpClient, String seed) throws IOException, InterruptedException {

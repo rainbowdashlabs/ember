@@ -8,7 +8,9 @@ package dev.chojo.ember.api;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.insights.service.BotClassifier;
@@ -28,6 +30,7 @@ import dev.chojo.ember.feature.system.service.DemoService;
 import dev.chojo.ember.feature.traffic.service.AuthBucketClassifier;
 import dev.chojo.ember.feature.traffic.service.StationResolver;
 import dev.chojo.ember.feature.traffic.service.StationTrafficRecorder;
+import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
 import dev.chojo.ember.util.DevErrorWriter;
 import dev.chojo.ember.util.LogRedaction;
 import io.javalin.Javalin;
@@ -63,10 +66,13 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -90,6 +96,7 @@ public class ApiServer {
 
     private final Set<Routes> routes;
     private final Api apiConfig;
+    private final Auth authConfig;
     private final Demo demoConfig;
     private final AccessManager accessManager;
     private final AccountRepository accountRepository;
@@ -106,11 +113,13 @@ public class ApiServer {
     private final PageHitRecorder pageHitRecorder;
     private final RefererDomainExtractor refererExtractor;
     private final BotClassifier botClassifier;
+    private final TwoFactorService twoFactorService;
 
     @Inject
     public ApiServer(
             Set<Routes> routes,
             Api apiConfig,
+            Auth authConfig,
             Demo demoConfig,
             AccessManager accessManager,
             AccountRepository accountRepository,
@@ -126,9 +135,11 @@ public class ApiServer {
             AuthBucketClassifier authClassifier,
             PageHitRecorder pageHitRecorder,
             RefererDomainExtractor refererExtractor,
-            BotClassifier botClassifier) {
+            BotClassifier botClassifier,
+            TwoFactorService twoFactorService) {
         this.routes = routes;
         this.apiConfig = apiConfig;
+        this.authConfig = authConfig;
         this.demoConfig = demoConfig;
         this.accessManager = accessManager;
         this.accountRepository = accountRepository;
@@ -145,6 +156,7 @@ public class ApiServer {
         this.pageHitRecorder = pageHitRecorder;
         this.refererExtractor = refererExtractor;
         this.botClassifier = botClassifier;
+        this.twoFactorService = twoFactorService;
         this.apiRequestLogger.start();
         this.trafficRecorder.start();
         this.pageHitRecorder.start();
@@ -323,6 +335,13 @@ public class ApiServer {
                 && (path.matches("/api/v1/station-members/\\d+/roles") || path.matches("/api/v1/groups/\\d+/roles"))) {
             throw new BadRequestResponse("Role changes are disabled in demo mode");
         }
+
+        // Demo accounts have no real authenticator hardware to enroll. Block WebAuthn
+        // registration endpoints so the UI can't lock a demo session out behind a key
+        // it can never produce again.
+        if (path.startsWith("/api/v1/account/2fa/webauthn/register/")) {
+            throw new BadRequestResponse("Security-key setup is disabled in demo mode");
+        }
     }
 
     /**
@@ -475,16 +494,49 @@ public class ApiServer {
             return;
         }
 
-        // Check if user has any of the required permissions (permissions are already expanded)
+        // Check if user has any of the required permissions (permissions are already expanded).
+        // Routes can declare a StepUpCategory alongside permissions; permission roles still gate access,
+        // and a fresh 2FA verification is additionally required when any StepUpCategory is present.
+        boolean permissionRequired = false;
+        boolean permissionGranted = false;
+        StepUpCategory stepUpCategory = null;
         for (RouteRole required : routeRoles) {
-            if (required instanceof StationPermission sp && session.hasPermission(sp)) return;
-            if (required instanceof InstancePermission ip && session.hasInstancePermission(ip)) return;
+            if (required instanceof StepUpCategory sc) {
+                stepUpCategory = sc;
+                continue;
+            }
+            permissionRequired = true;
+            if (required instanceof StationPermission sp && session.hasPermission(sp)) {
+                permissionGranted = true;
+            } else if (required instanceof InstancePermission ip && session.hasInstancePermission(ip)) {
+                permissionGranted = true;
+            }
         }
 
-        ctx.header("X-Required-Permissions", routeRoles.toString());
-        ctx.header("X-User-Permissions", session.permissions().toString());
-        throw new ForbiddenResponse(
-                "Insufficient permissions. Required: " + routeRoles + ", Current: " + session.permissions());
+        if (permissionRequired && !permissionGranted) {
+            ctx.header("X-Required-Permissions", routeRoles.toString());
+            ctx.header("X-User-Permissions", session.permissions().toString());
+            throw new ForbiddenResponse(
+                    "Insufficient permissions. Required: " + routeRoles + ", Current: " + session.permissions());
+        }
+
+        if (stepUpCategory != null && !isStepUpFresh(session)) {
+            throw new StepUpRequiredException(stepUpCategory);
+        }
+    }
+
+    /**
+     * Returns true when step-up enforcement is satisfied for the session: either the user has no
+     * 2FA enrolled (in which case there is nothing to step up against), or the session's last 2FA
+     * verification is within the configured freshness window.
+     */
+    private boolean isStepUpFresh(UserSession session) {
+        Instant verifiedAt = session.twoFactorVerifiedAt();
+        if (verifiedAt != null) {
+            Duration freshness = Duration.ofSeconds(authConfig.twoFactor().stepUpFreshnessSeconds());
+            if (verifiedAt.isAfter(Instant.now().minus(freshness))) return true;
+        }
+        return !twoFactorService.isEnrolled(session.accountId());
     }
 
     /**
@@ -523,6 +575,13 @@ public class ApiServer {
      */
     private void setupExceptionHandlers(RoutesConfig routes) {
         boolean devErrors = demoConfig.dev();
+
+        routes.exception(StepUpRequiredException.class, (err, ctx) -> {
+            ctx.status(HttpStatus.UNAUTHORIZED);
+            ctx.header("X-StepUp-Required", err.category().name());
+            ctx.json(Map.of(
+                    "error", "step_up_required", "category", err.category().name()));
+        });
 
         routes.exception(ApiException.class, (err, ctx) -> {
             int code = err.status().getCode();

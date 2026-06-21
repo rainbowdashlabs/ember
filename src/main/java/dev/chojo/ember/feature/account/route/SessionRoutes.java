@@ -12,6 +12,7 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.file.elements.Api;
@@ -150,11 +151,16 @@ public class SessionRoutes implements Routes {
                 prefix + "/session/cross-station-dashboard", this::getCrossStationDashboard, StationPermission.LOGIN);
         routes.get(prefix + "/session/active", this::getActiveSessions, StationPermission.LOGIN);
         routes.delete(prefix + "/session/active/{id}", this::invalidateSession, StationPermission.LOGIN);
-        routes.post(prefix + "/session/invalidate-all", this::invalidateAll, StationPermission.LOGIN);
+        routes.post(
+                prefix + "/session/invalidate-all",
+                this::invalidateAll,
+                StationPermission.LOGIN,
+                StepUpCategory.ACCOUNT_SECURITY);
         routes.get(prefix + "/session/gdpr-export", this::gdprExport, StationPermission.LOGIN);
         routes.get(prefix + "/session/avatar", this::getAvatar, StationPermission.LOGIN);
         routes.post(prefix + "/session/avatar", this::uploadAvatar, StationPermission.LOGIN);
         routes.delete(prefix + "/session/avatar", this::deleteAvatar, StationPermission.LOGIN);
+        routes.get(prefix + "/accounts/{accountUid}/avatar", this::getAvatarByAccount, StationPermission.LOGIN);
         routes.get(
                 prefix + "/members/{stationUid}/{memberUid}/avatar", this::getAvatarByMember, StationPermission.LOGIN);
         routes.delete(prefix + "/session/account", this::deleteAccount, StationPermission.LOGIN);
@@ -267,6 +273,9 @@ public class SessionRoutes implements Routes {
         ctx.json(new SessionInfo(
                 new AccountInfo(
                         session.account().id(),
+                        session.account().uid() != null
+                                ? session.account().uid().toString()
+                                : null,
                         session.account().email(),
                         session.account().firstName(),
                         session.account().lastName()),
@@ -451,24 +460,52 @@ public class SessionRoutes implements Routes {
     }
 
     /**
-     * Retrieves the avatar for the current session's member. Returns 404 if no membership or no avatar.
+     * Retrieves the avatar for the current session's account. Returns 404 if no avatar is stored.
      */
     private void getAvatar(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        if (session.member() == null) {
+        if (session.account() == null) {
             ctx.status(HttpStatus.NOT_FOUND);
             return;
         }
-        var memberUid = stationMemberRepository.resolveUid(session.member().id());
-        if (memberUid == null) {
+        var accountUid = accountRepository.resolveUid(session.account().id());
+        if (accountUid == null) {
             ctx.status(HttpStatus.NOT_FOUND);
             return;
         }
-        serveAvatar(ctx, memberUid.toString());
+        serveAvatar(ctx, accountUid.toString());
     }
 
     /**
-     * Retrieves the avatar for a specific member by their UUID path parameter.
+     * Retrieves the avatar for a specific account by its UUID path parameter. Returns
+     * 404 when the caller has no relationship to the target account (no shared station
+     * membership, no federation partnership, no admin role).
+     */
+    private void getAvatarByAccount(Context ctx) {
+        UUID accountUid;
+        try {
+            accountUid = UUID.fromString(ctx.pathParam("accountUid"));
+        } catch (IllegalArgumentException e) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            return;
+        }
+        var target = accountRepository.findByUid(accountUid).orElse(null);
+        if (target == null) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            return;
+        }
+        UserSession session = UserSession.from(ctx);
+        if (!canSeeAccountAvatar(session, target.id())) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            return;
+        }
+        serveAvatar(ctx, accountUid.toString());
+    }
+
+    /**
+     * Retrieves the avatar for a specific member by their UUID path parameter. Kept for
+     * the transition window while the frontend migrates to the account-keyed endpoint;
+     * resolves the underlying account UUID and falls through to the same disk lookup.
      */
     private void getAvatarByMember(Context ctx) {
         UUID stationUid;
@@ -498,7 +535,16 @@ public class SessionRoutes implements Routes {
             ctx.status(HttpStatus.NOT_FOUND);
             return;
         }
-        serveAvatar(ctx, memberUid.toString());
+        if (targetMember.accountId() == null) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            return;
+        }
+        var accountUid = accountRepository.resolveUid(targetMember.accountId());
+        if (accountUid == null) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            return;
+        }
+        serveAvatar(ctx, accountUid.toString());
     }
 
     /**
@@ -529,12 +575,49 @@ public class SessionRoutes implements Routes {
     }
 
     /**
-     * Serves a member's avatar from disk with appropriate content type and cache headers.
+     * Returns true when the calling session is allowed to view the avatar of the
+     * account with id {@code targetAccountId}. Visibility rules: caller is the owner,
+     * caller is an instance administrator, caller shares any station membership with
+     * the target, or caller's currently-selected station has an active federation
+     * partnership with any station the target is a member of.
      */
-    private void serveAvatar(Context ctx, String memberKey) {
+    private boolean canSeeAccountAvatar(UserSession session, int targetAccountId) {
+        if (session.account() == null) return false;
+        if (session.account().id() == targetAccountId) return true;
+        if (session.account().instanceUserType() == InstanceUserType.ADMINISTRATOR) {
+            return true;
+        }
+        var targetMemberships = stationMemberRepository.findByAccount(targetAccountId);
+        if (targetMemberships.isEmpty()) return false;
+        var callerMemberships =
+                stationMemberRepository.findByAccount(session.account().id());
+        var callerStationIds =
+                callerMemberships.stream().map(StationMember::stationId).toList();
+        for (var targetMembership : targetMemberships) {
+            if (callerStationIds.contains(targetMembership.stationId())) return true;
+        }
+        if (session.stationId() == null) return false;
+        for (var targetMembership : targetMemberships) {
+            UUID targetUid = stationRepository.resolveUid(targetMembership.stationId());
+            if (targetUid == null) continue;
+            var partner = federationRepository
+                    .findPartnerByStationAndRemoteUid(session.stationId(), targetUid)
+                    .orElse(null);
+            if (partner != null && partner.status() == FederationPartner.FederationStatus.ACTIVE) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Serves an avatar from disk with appropriate content type and cache headers,
+     * given the disk-key (account UUID string) the avatar is stored under.
+     */
+    private void serveAvatar(Context ctx, String key) {
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
         imageService
-                .read(ImageCategory.AVATARS, memberKey, size)
+                .read(ImageCategory.AVATARS, key, size)
                 .ifPresentOrElse(
                         img -> {
                             ctx.contentType(img.contentType());
@@ -546,8 +629,8 @@ public class SessionRoutes implements Routes {
 
     private void uploadAvatar(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        if (session.member() == null) {
-            throw new BadRequestResponse("No station membership");
+        if (session.account() == null) {
+            throw new BadRequestResponse("No account in session");
         }
         var file = ctx.uploadedFile("avatar");
         if (file == null) {
@@ -556,15 +639,15 @@ public class SessionRoutes implements Routes {
         if (!ALLOWED_AVATAR_TYPES.contains(file.contentType())) {
             throw new BadRequestResponse("Invalid file type. Allowed: PNG, JPEG, WebP");
         }
-        var memberUid = stationMemberRepository.resolveUid(session.member().id());
-        if (memberUid == null) {
-            throw new BadRequestResponse("Member UUID not found");
+        var accountUid = accountRepository.resolveUid(session.account().id());
+        if (accountUid == null) {
+            throw new BadRequestResponse("Account UUID not found");
         }
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
             imageService.store(
                     ImageCategory.AVATARS,
-                    memberUid.toString(),
+                    accountUid.toString(),
                     data,
                     file.contentType(),
                     apiConfig.maxImageSizeBytes());
@@ -579,14 +662,14 @@ public class SessionRoutes implements Routes {
 
     private void deleteAvatar(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        if (session.member() == null) {
-            throw new BadRequestResponse("No station membership");
+        if (session.account() == null) {
+            throw new BadRequestResponse("No account in session");
         }
-        var memberUid = stationMemberRepository.resolveUid(session.member().id());
-        if (memberUid == null) {
-            throw new BadRequestResponse("Member UUID not found");
+        var accountUid = accountRepository.resolveUid(session.account().id());
+        if (accountUid == null) {
+            throw new BadRequestResponse("Account UUID not found");
         }
-        imageService.delete(ImageCategory.AVATARS, memberUid.toString());
+        imageService.delete(ImageCategory.AVATARS, accountUid.toString());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -669,7 +752,7 @@ public class SessionRoutes implements Routes {
      * @param firstName the first name
      * @param lastName  the last name
      */
-    public record AccountInfo(int id, String email, String firstName, String lastName) {}
+    public record AccountInfo(int id, String uid, String email, String firstName, String lastName) {}
 
     /**
      * Minimal member information for the current session.

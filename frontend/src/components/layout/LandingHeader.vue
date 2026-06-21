@@ -67,7 +67,7 @@ async function handleLogout() {
           {{ t('header.stationPanel') }}
         </PrimaryButton>
       </router-link>
-      <UserAvatar :identity="sessionInfo?.member?.uid ? { stationUid: sessionInfo.stationId ?? '', memberUid: sessionInfo.member.uid } : undefined" :name="fullName()" size="sm" class="hidden sm:flex"/>
+      <UserAvatar :identity="sessionInfo?.account?.uid ? { accountUid: sessionInfo.account.uid } : undefined" :name="fullName()" size="sm" class="hidden sm:flex"/>
       <span class="text-sm text-(--text-muted) hidden sm:inline">{{ fullName() }}</span>
       <IconButton
           :icon="['fas', 'right-from-bracket']"

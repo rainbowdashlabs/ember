@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ThemingView from '~/views/stationview/profile/ThemingView'
+import SecurityTwoFactorHelp from '~/views/helpcenter/adminview/SecurityTwoFactorHelp'
 
 definePageMeta({
-  layout: 'station',
-  name: 'profile-theming',
+  layout: 'helpcenter',
+  name: 'help-admin-security-two-factor',
 })
 </script>
 
 <template>
-  <ThemingView />
+  <SecurityTwoFactorHelp />
 </template>

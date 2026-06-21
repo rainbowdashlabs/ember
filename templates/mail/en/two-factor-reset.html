@@ -1,0 +1,8 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>Hi {{ name }},</h2>
+      <p>Your two-factor authentication was reset by <strong>{{ actor }}</strong> at {{ resetAt }}.</p>
+      <p>Every registered authenticator, security key, backup code, and active session was cleared. You will be asked to set up 2FA again on your next login.</p>
+      <div class="btn-wrap"><a class="btn" href="{{ loginUrl }}">Sign in</a></div>
+      <p class="warn">If this wasn't expected, contact support immediately &mdash; the reset was performed by an account administrator.</p>
+{% endblock %}

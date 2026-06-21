@@ -74,47 +74,15 @@ watchEffect(() => {
 
 import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-
-import PrimaryContainer from '@/components/container/PrimaryContainer.vue'
-import SecondaryContainer from '@/components/container/SecondaryContainer.vue'
-import SuccessContainer from '@/components/container/SuccessContainer.vue'
-import ErrorContainer from '@/components/container/ErrorContainer.vue'
-import InfoContainer from '@/components/container/InfoContainer.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import DiffView from '@/components/display/DiffView.vue'
-
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SuccessButton from '@/components/button/SuccessButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
-import InfoButton from '@/components/button/InfoButton.vue'
-import LinkButton from '@/components/button/LinkButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
-import DownloadButton from '@/components/button/DownloadButton.vue'
-import UploadButton from '@/components/button/UploadButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
-import ConfirmButton from '@/components/button/ConfirmButton.vue'
-import EditButton from '@/components/button/EditButton.vue'
-import SaveButton from '@/components/button/SaveButton.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
-import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
-import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import InfoBadge from '@/components/badge/InfoBadge.vue'
-import SizeBadge from '@/components/badge/SizeBadge.vue'
-import StationBadge from '@/components/badge/StationBadge.vue'
-import UserTagBadge from '@/components/badge/UserTagBadge.vue'
-import ExchangeStatusBadge from '@/views/stationview/inventory/exchangeview/ExchangeStatusBadge.vue'
-import { ExchangeStatus } from '@/api/types'
-import THead from '@/components/table/THead.vue'
-import TRow from '@/components/table/TRow.vue'
-import Th from '@/components/table/Th.vue'
-import Td from '@/components/table/Td.vue'
 
 import StyleTypography from '@/views/styleview/StyleTypography.vue'
+import StyleButtons from '@/views/styleview/StyleButtons.vue'
 import StyleInputs from '@/views/styleview/StyleInputs.vue'
+import StyleBadges from '@/views/styleview/StyleBadges.vue'
+import StyleContainers from '@/views/styleview/StyleContainers.vue'
+import StyleTable from '@/views/styleview/StyleTable.vue'
 import StyleFeedback from '@/views/styleview/StyleFeedback.vue'
 
 import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
@@ -123,7 +91,6 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import PrideText from '@/components/display/PrideText.vue'
 import { emberLogo } from '@/composables/useEmberLogo'
 
-const toggleStates = ref(new Set([1, 3]))
 const pridePreview = ref(true)
 const logoShake = ref(false)
 
@@ -328,172 +295,11 @@ function toggleDisplay(name: string) {
     </section>
 
     <StyleTypography/>
-
-    <!-- Buttons -->
-    <section class="space-y-4">
-      <SectionHeader>Buttons</SectionHeader>
-      <div class="flex flex-wrap gap-2 items-center">
-        <PrimaryButton>Primary</PrimaryButton>
-        <SecondaryButton>Secondary</SecondaryButton>
-        <SuccessButton>Success</SuccessButton>
-        <ErrorButton>Error</ErrorButton>
-        <InfoButton>Info</InfoButton>
-      </div>
-      <div class="flex flex-wrap gap-2 items-center">
-        <PrimaryButton :icon="['fas', 'plus']">With Icon</PrimaryButton>
-        <SecondaryButton :icon="['fas', 'download']">Download</SecondaryButton>
-        <SuccessButton :icon="['fas', 'check']">Confirm</SuccessButton>
-        <ErrorButton :icon="['fas', 'trash']">Delete</ErrorButton>
-      </div>
-      <div class="flex flex-wrap gap-2 items-center">
-        <PrimaryButton compact>Compact</PrimaryButton>
-        <SecondaryButton compact>Compact</SecondaryButton>
-        <SuccessButton compact>Compact</SuccessButton>
-      </div>
-      <div class="flex flex-wrap gap-2 items-center"><SaveButton :action="() => new Promise(r => setTimeout(r, 800))"/><SaveButton :action="() => new Promise(r => setTimeout(r, 800))">Custom text</SaveButton></div>
-      <div class="flex flex-wrap gap-2 items-center">
-        <PrimaryButton disabled>Disabled</PrimaryButton>
-        <SecondaryButton disabled>Disabled</SecondaryButton>
-        <SuccessButton disabled>Disabled</SuccessButton>
-        <ErrorButton disabled>Disabled</ErrorButton>
-        <InfoButton disabled>Disabled</InfoButton>
-      </div>
-      <div class="flex flex-wrap gap-2 items-center">
-        <LinkButton>Link Button</LinkButton>
-        <LinkButton disabled>Link (disabled)</LinkButton>
-      </div>
-    </section>
-
-    <!-- Icon Buttons -->
-    <section class="space-y-4">
-      <SectionHeader>Icon Buttons</SectionHeader>
-      <div class="flex flex-wrap gap-2 items-center">
-        <IconButton :icon="['fas', 'gear']" label="Settings"/>
-        <DownloadButton/>
-        <UploadButton/>
-        <DeleteButton/>
-        <ConfirmButton/>
-        <EditButton/>
-      </div>
-      <div class="flex flex-wrap gap-2 items-center">
-        <IconButton :icon="['fas', 'gear']" label="Settings" disabled/>
-        <DownloadButton disabled/>
-        <UploadButton disabled/>
-        <DeleteButton disabled/>
-        <ConfirmButton disabled/>
-        <EditButton disabled/>
-      </div>
-    </section>
-
-    <!-- Selection Toggle & Dropdown -->
-    <section class="space-y-4">
-      <SectionHeader>Selection Toggle Buttons</SectionHeader>
-      <div class="flex flex-wrap gap-2">
-        <SelectionToggleButton
-            v-for="i in 5"
-            :key="i"
-            :selected="toggleStates.has(i)"
-            @toggle="toggleStates.has(i) ? toggleStates.delete(i) : toggleStates.add(i)"
-        >
-          Option {{ i }}
-        </SelectionToggleButton>
-      </div>
-    </section>
-
-    <section class="space-y-4">
-      <SectionHeader>Dropdown Menu Items</SectionHeader>
-      <NeutralContainer class="p-0! max-w-xs overflow-hidden">
-        <DropdownMenuItem :icon="['fas', 'folder']" icon-class="text-(--accent)">Neuer Ordner</DropdownMenuItem>
-        <DropdownMenuItem :icon="['fas', 'file-lines']">Neue Datei</DropdownMenuItem>
-        <DropdownMenuItem :icon="['fas', 'upload']">Hochladen</DropdownMenuItem>
-        <DropdownMenuItem :icon="['fab', 'youtube']" icon-class="text-red-600">YouTube</DropdownMenuItem>
-      </NeutralContainer>
-    </section>
-
+    <StyleButtons/>
     <StyleInputs/>
-
-    <!-- Badges -->
-    <section class="space-y-4">
-      <SectionHeader>Badges</SectionHeader>
-      <div class="flex flex-wrap gap-2 items-center">
-        <PrimaryBadge>Primary</PrimaryBadge>
-        <SecondaryBadge>Secondary</SecondaryBadge>
-        <SuccessBadge>Success</SuccessBadge>
-        <ErrorBadge>Error</ErrorBadge>
-        <InfoBadge>Info</InfoBadge>
-        <SizeBadge>M</SizeBadge>
-        <SizeBadge lost>M (lost)</SizeBadge>
-        <StationBadge station-name="DLRG Musterstadt" />
-        <UserTagBadge>Tag</UserTagBadge><UserTagBadge color="#3694FF">Tag (colored)</UserTagBadge>
-      </div>
-      <SubHeader>Exchange Status</SubHeader>
-      <div class="flex flex-wrap gap-2 items-center">
-        <ExchangeStatusBadge :status="ExchangeStatus.ANNOUNCED" />
-        <ExchangeStatusBadge :status="ExchangeStatus.RECEIVED" />
-        <ExchangeStatusBadge :status="ExchangeStatus.SHIPPED" />
-        <ExchangeStatusBadge :status="ExchangeStatus.ARRIVED" />
-        <ExchangeStatusBadge :status="ExchangeStatus.DONE" />
-      </div>
-    </section>
-
-    <!-- Containers -->
-    <section class="space-y-4">
-      <SectionHeader>Containers</SectionHeader>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <PrimaryContainer>Primary container</PrimaryContainer>
-        <SecondaryContainer>Secondary container</SecondaryContainer>
-        <SuccessContainer>Success container</SuccessContainer>
-        <ErrorContainer>Error container</ErrorContainer>
-        <InfoContainer>Info container</InfoContainer>
-        <NeutralContainer>Neutral container</NeutralContainer>
-      </div>
-    </section>
-
-    <!-- Table -->
-    <section class="space-y-4">
-      <SectionHeader>Table</SectionHeader>
-      <NeutralContainer :padded="false" class="overflow-x-auto">
-        <table class="w-full text-sm">
-          <THead>
-            <Th>Name</Th>
-            <Th>PermissionGrant</Th>
-            <Th align="right">Score</Th>
-          </THead>
-          <tbody>
-            <TRow>
-              <Td>Alice</Td>
-              <Td>Admin</Td>
-              <Td align="right">95</Td>
-            </TRow>
-            <TRow>
-              <Td>Bob</Td>
-              <Td muted>Member</Td>
-              <Td align="right">72</Td>
-            </TRow>
-            <TRow>
-              <Td>Charlie</Td>
-              <Td muted>Guest</Td>
-              <Td align="right" muted>—</Td>
-            </TRow>
-          </tbody>
-        </table>
-      </NeutralContainer>
-    </section>
-
-    <section>
-      <SectionHeader>Diff View</SectionHeader>
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <NeutralContainer class="!p-0 overflow-hidden">
-          <p class="px-3 py-2 text-sm font-medium border-b border-(--border)">Compact (no line numbers)</p>
-          <DiffView :patch="samplePatch" compact/>
-        </NeutralContainer>
-        <NeutralContainer class="!p-0 overflow-hidden">
-          <p class="px-3 py-2 text-sm font-medium border-b border-(--border)">With line numbers</p>
-          <DiffView :patch="samplePatch" show-line-numbers/>
-        </NeutralContainer>
-      </div>
-    </section>
-
+    <StyleBadges/>
+    <StyleContainers/>
+    <StyleTable/>
     <StyleFeedback/>
   </div>
 </template>

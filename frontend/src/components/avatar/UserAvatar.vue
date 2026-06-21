@@ -48,10 +48,11 @@ async function loadAvatar() {
   hasAvatar.value = false
   imgSrc.value = ''
 
-  if (!props.identity?.memberUid) return
+  const url = resolveUrl()
+  if (!url) return
 
   try {
-    const res = await client.get(`/members/${props.identity.stationUid}/${props.identity.memberUid}/avatar?size=128`, {
+    const res = await client.get(url, {
       responseType: 'blob',
       validateStatus: (status) => status === 200 || status === 204 || status === 404,
     })
@@ -62,7 +63,21 @@ async function loadAvatar() {
   } catch { /* no avatar */ }
 }
 
-watch(() => props.identity?.stationUid + '/' + props.identity?.memberUid, loadAvatar, {immediate: true})
+function resolveUrl(): string | null {
+  if (props.identity?.accountUid) {
+    return `/accounts/${props.identity.accountUid}/avatar?size=128`
+  }
+  if (props.identity?.memberUid && props.identity?.stationUid) {
+    return `/members/${props.identity.stationUid}/${props.identity.memberUid}/avatar?size=128`
+  }
+  return null
+}
+
+watch(
+  () => `${props.identity?.accountUid ?? ''}/${props.identity?.stationUid ?? ''}/${props.identity?.memberUid ?? ''}`,
+  loadAvatar,
+  {immediate: true},
+)
 </script>
 
 <template>

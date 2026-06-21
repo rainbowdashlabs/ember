@@ -20,8 +20,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param expiresAt  when the session expires
  * @param createdAt  when the session was created
  * @param userAgent  the user agent string from the client that created the session
- * @param lastUsedAt when the session was last used
- * @param location   the client's location (e.g. country code from CF-IPCountry)
+ * @param lastUsedAt           when the session was last used
+ * @param location             the client's location (e.g. country code from CF-IPCountry)
+ * @param twoFactorVerifiedAt  when 2FA was last verified on this session (null if never)
  */
 public record AccountSession(
         int id,
@@ -31,7 +32,8 @@ public record AccountSession(
         Instant createdAt,
         String userAgent,
         Instant lastUsedAt,
-        String location) {
+        String location,
+        Instant twoFactorVerifiedAt) {
 
     /**
      * Creates a row mapping for database result set conversion.
@@ -45,7 +47,8 @@ public record AccountSession(
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.getString("user_agent"),
                 row.get("last_used_at", INSTANT_TIMESTAMP),
-                row.getString("location"));
+                row.getString("location"),
+                row.get("two_factor_verified_at", INSTANT_TIMESTAMP));
     }
 
     /**

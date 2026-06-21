@@ -9,6 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.MemberWithName;
@@ -77,7 +78,10 @@ public class MemberGroupRoutes implements Routes {
         routes.get(
                 prefix + "/groups/{id}/permissions", this::getGroupPermissions, StationPermission.MEMBER_MANAGE_GROUP);
         routes.put(
-                prefix + "/groups/{id}/permissions", this::setGroupPermissions, StationPermission.MEMBER_MANAGE_GROUP);
+                prefix + "/groups/{id}/permissions",
+                this::setGroupPermissions,
+                StationPermission.MEMBER_MANAGE_GROUP,
+                StepUpCategory.ROLE_CHANGE);
 
         routes.post(prefix + "/groups/{id}/convert-to-tag", this::convertToTag, StationPermission.MEMBER_MANAGE_GROUP);
 

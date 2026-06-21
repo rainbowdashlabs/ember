@@ -135,13 +135,14 @@ public final class MemberListResolver {
                 m.userType() != null ? m.userType().name() : null,
                 m.displayTag(),
                 m.displayTagColor(),
-                avatarDataUrl(imageService, m.memberUid()),
+                avatarDataUrl(imageService, m.accountUid()),
                 description);
     }
 
-    private static String avatarDataUrl(ImageService imageService, UUID memberUid) {
+    private static String avatarDataUrl(ImageService imageService, UUID accountUid) {
+        if (accountUid == null) return null;
         return imageService
-                .read(ImageCategory.AVATARS, memberUid.toString(), 64)
+                .read(ImageCategory.AVATARS, accountUid.toString(), 64)
                 .map(img -> "data:" + img.contentType() + ";base64,"
                         + Base64.getEncoder().encodeToString(img.data()))
                 .orElse(null);

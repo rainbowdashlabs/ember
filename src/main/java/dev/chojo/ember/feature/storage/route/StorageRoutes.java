@@ -9,6 +9,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
@@ -69,20 +70,38 @@ public class StorageRoutes implements Routes {
 
         // Admin: quota presets CRUD
         routes.get(prefix + "/admin/storage/presets", this::listPresets, InstancePermission.ADMINISTRATOR);
-        routes.post(prefix + "/admin/storage/presets", this::createPreset, InstancePermission.ADMINISTRATOR);
-        routes.put(prefix + "/admin/storage/presets/{id}", this::updatePreset, InstancePermission.ADMINISTRATOR);
-        routes.delete(prefix + "/admin/storage/presets/{id}", this::deletePreset, InstancePermission.ADMINISTRATOR);
-        routes.post(prefix + "/admin/storage/presets/{id}/apply", this::applyPreset, InstancePermission.ADMINISTRATOR);
+        routes.post(
+                prefix + "/admin/storage/presets",
+                this::createPreset,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
+        routes.put(
+                prefix + "/admin/storage/presets/{id}",
+                this::updatePreset,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
+        routes.delete(
+                prefix + "/admin/storage/presets/{id}",
+                this::deletePreset,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
+        routes.post(
+                prefix + "/admin/storage/presets/{id}/apply",
+                this::applyPreset,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
 
         // Admin: station quota management
         routes.put(
                 prefix + "/admin/storage/stations/{stationUid}/quotas",
                 this::updateStationQuotas,
-                InstancePermission.ADMINISTRATOR);
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
         routes.delete(
                 prefix + "/admin/storage/stations/{stationUid}/quotas",
                 this::resetStationQuotas,
-                InstancePermission.ADMINISTRATOR);
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
     }
 
     // -- Station usage --

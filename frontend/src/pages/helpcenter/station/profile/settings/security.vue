@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import SessionsView from '~/views/stationview/profile/SessionsView'
+import SecurityHelp from '~/views/helpcenter/stationview/profile/SecurityHelp'
 
 definePageMeta({
-  layout: 'station',
-  name: 'profile-sessions',
+  layout: 'helpcenter',
+  name: 'help-profile-security',
 })
 </script>
 
 <template>
-  <SessionsView />
+  <SecurityHelp />
 </template>

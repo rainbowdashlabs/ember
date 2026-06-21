@@ -146,6 +146,7 @@ public abstract class RepositoryTestBase {
     protected static DiscoveryBlocklistRepository discoveryBlocklistRepo;
     protected static StationTrafficRepository stationTrafficRepo;
     protected static PageHitRepository pageHitRepo;
+    protected static dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository twoFactorRepo;
     protected static MemberIdentityFactory memberIdentityFactory;
     protected static MemberNameResolver memberNameResolver;
     protected static DataSource dataSource;
@@ -251,6 +252,7 @@ public abstract class RepositoryTestBase {
         discoveryBlocklistRepo = new DiscoveryBlocklistRepository();
         stationTrafficRepo = new StationTrafficRepository();
         pageHitRepo = new PageHitRepository();
+        twoFactorRepo = new dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository();
         var eventFedRepo = new EventFederationRepository();
         var fedRepo = new FederationRepository();
         var memberSvc = new StationMemberService(stationMemberRepo, stationRepo, accountRepo, null);

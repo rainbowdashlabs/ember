@@ -11,14 +11,11 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import { adminSettings } from '@/api'
-import type { AuthConfig } from '@/api/adminSettings'
-import MutedText from '@/components/typography/MutedText.vue'
 import { THEMES, Feel } from '@/theme/themes'
 import { useTheme } from '@/composables/useTheme'
 
@@ -36,28 +33,16 @@ const instanceDefaultTheme = ref('ember')
 const instanceDefaultFeel = ref('ROUNDED')
 const instanceLockFeel = ref(false)
 
-// Auth config
-const authConfig = ref<AuthConfig>({
-  tokenBytes: 32,
-  verifyTokenHours: 24,
-  passwordTokenHours: 72,
-  sessionMinutes: 30,
-})
-
 async function loadSettings() {
   loading.value = true
   error.value = ''
   try {
-    const [settings, auth] = await Promise.all([
-      adminSettings.getSettings(),
-      adminSettings.getAuthConfig(),
-    ])
+    const settings = await adminSettings.getSettings()
     registrationEnabled.value = settings.stationRegistrationEnabled
     forcePrideFlag.value = settings.forcePrideFlag ?? false
     instanceDefaultTheme.value = settings.instanceDefaultTheme ?? 'ember'
     instanceDefaultFeel.value = settings.instanceDefaultFeel ?? 'ROUNDED'
     instanceLockFeel.value = settings.instanceLockFeel ?? false
-    authConfig.value = auth
   } catch {
     error.value = t('common.error')
   } finally {
@@ -99,17 +84,6 @@ async function saveInstanceTheme() {
     instanceDefaultTheme.value = result.instanceDefaultTheme ?? 'ember'
     instanceDefaultFeel.value = result.instanceDefaultFeel ?? 'ROUNDED'
     instanceLockFeel.value = result.instanceLockFeel ?? false
-  } catch (e) {
-    error.value = t('common.error')
-    throw e
-  }
-}
-
-async function saveAuthConfig() {
-  error.value = ''
-  try {
-    const result = await adminSettings.updateAuthConfig(authConfig.value)
-    authConfig.value = result
   } catch (e) {
     error.value = t('common.error')
     throw e
@@ -192,37 +166,6 @@ onMounted(async () => {
           </div>
         </NeutralContainer>
 
-        <!-- Auth Settings -->
-        <NeutralContainer class="space-y-4">
-          <SectionHeader>{{ t('adminSettings.auth.title') }}</SectionHeader>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <FieldLabel class="mb-1">{{ t('adminSettings.auth.tokenBytes') }}</FieldLabel>
-              <NumberInput v-model="authConfig.tokenBytes" />
-              <MutedText tag="div" class="mt-1">{{ t('adminSettings.auth.tokenBytesHint') }}</MutedText>
-            </div>
-            <div>
-              <FieldLabel class="mb-1">{{ t('adminSettings.auth.verifyTokenHours') }}</FieldLabel>
-              <NumberInput v-model="authConfig.verifyTokenHours" />
-              <MutedText tag="div" class="mt-1">{{ t('adminSettings.auth.verifyTokenHoursHint') }}</MutedText>
-            </div>
-            <div>
-              <FieldLabel class="mb-1">{{ t('adminSettings.auth.passwordTokenHours') }}</FieldLabel>
-              <NumberInput v-model="authConfig.passwordTokenHours" />
-              <MutedText tag="div" class="mt-1">{{ t('adminSettings.auth.passwordTokenHoursHint') }}</MutedText>
-            </div>
-            <div>
-              <FieldLabel class="mb-1">{{ t('adminSettings.auth.sessionMinutes') }}</FieldLabel>
-              <NumberInput v-model="authConfig.sessionMinutes" />
-              <MutedText tag="div" class="mt-1">{{ t('adminSettings.auth.sessionMinutesHint') }}</MutedText>
-            </div>
-          </div>
-
-          <div class="flex justify-end">
-            <SaveButton :action="saveAuthConfig"/>
-          </div>
-        </NeutralContainer>
       </template>
     </div>
   </ViewContent>

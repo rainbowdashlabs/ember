@@ -236,6 +236,7 @@ public class StationMemberRepository {
         }
         return query("""
                 SELECT sm.uid AS member_uid,
+                       a.uid AS account_uid,
                        COALESCE(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
                        sm.user_type,
                        %s AS display_tag,
@@ -260,6 +261,7 @@ public class StationMemberRepository {
     public Optional<PickerMember> findPickerByUid(int stationId, UUID memberUid) {
         return query("""
                 SELECT sm.uid AS member_uid,
+                       a.uid AS account_uid,
                        COALESCE(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
                        sm.user_type,
                        %s AS display_tag,
@@ -279,6 +281,7 @@ public class StationMemberRepository {
     public List<PickerMember> findOfficersByGroup(int stationId, int groupId) {
         return query("""
                 SELECT sm.uid AS member_uid,
+                       a.uid AS account_uid,
                        COALESCE(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
                        sm.user_type,
                        %s AS display_tag,
@@ -300,6 +303,7 @@ public class StationMemberRepository {
     public List<PickerMember> findOfficersByTag(int stationId, int tagId) {
         return query("""
                 SELECT sm.uid AS member_uid,
+                       a.uid AS account_uid,
                        COALESCE(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
                        sm.user_type,
                        %s AS display_tag,
@@ -323,6 +327,7 @@ public class StationMemberRepository {
         var uidStrings = memberUids.stream().map(UUID::toString).toList();
         return query("""
                 SELECT sm.uid AS member_uid,
+                       a.uid AS account_uid,
                        COALESCE(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
                        sm.user_type,
                        %s AS display_tag,
@@ -356,6 +361,7 @@ public class StationMemberRepository {
      */
     public record PickerMember(
             UUID memberUid,
+            UUID accountUid,
             String displayName,
             StationUserType userType,
             String displayTag,
@@ -364,6 +370,7 @@ public class StationMemberRepository {
         public static RowMapping<PickerMember> map() {
             return row -> new PickerMember(
                     row.get("member_uid", StandardValueConverter.UUID_STRING),
+                    row.get("account_uid", StandardValueConverter.UUID_STRING),
                     row.getString("display_name"),
                     row.getEnum("user_type", StationUserType.class),
                     row.getString("display_tag"),

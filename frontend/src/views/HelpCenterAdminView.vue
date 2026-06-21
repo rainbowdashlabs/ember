@@ -50,20 +50,24 @@ const pageTitle = computed(() => {
                      to="/helpcenter/admin/settings" @navigate="close">
           {{ t('sidebar.settings') }}
         </SidebarLink>
+        <SidebarLink :icon="['fas', 'shield']" name="help-admin-security"
+                     to="/helpcenter/admin/settings/security" @navigate="close">
+          {{ t('helpCenter.adminSecurity.sidebarLabel') }}
+        </SidebarLink>
         <SidebarLink :icon="['fas', 'chart-line']" name="help-admin-api-status"
-                     to="/helpcenter/admin/api-status" @navigate="close">
+                     to="/helpcenter/admin/monitoring/api-status" @navigate="close">
           {{ t('helpCenter.adminApiStatus.sidebarLabel') }}
         </SidebarLink>
         <SidebarLink :icon="['fas', 'rss']" name="help-admin-feed-metrics"
-                     to="/helpcenter/admin/feed-metrics" @navigate="close">
+                     to="/helpcenter/admin/monitoring/feed-metrics" @navigate="close">
           {{ t('helpCenter.adminFeedMetrics.sidebarLabel') }}
         </SidebarLink>
         <SidebarLink :icon="['fas', 'tower-broadcast']" name="help-admin-traffic"
-                     to="/helpcenter/admin/traffic" @navigate="close">
+                     to="/helpcenter/admin/monitoring/traffic" @navigate="close">
           {{ t('helpCenter.adminTraffic.sidebarLabel') }}
         </SidebarLink>
         <SidebarLink :icon="['fas', 'triangle-exclamation']" name="help-admin-problems"
-                     to="/helpcenter/admin/problems" @navigate="close">
+                     to="/helpcenter/admin/monitoring/problems" @navigate="close">
           {{ t('helpCenter.adminProblems.sidebarLabel') }}
         </SidebarLink>
       </SidebarGroup>

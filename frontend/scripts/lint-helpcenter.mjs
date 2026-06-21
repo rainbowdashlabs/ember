@@ -19,8 +19,8 @@ const allRoutes = parseRoutes()
 const panels = [
     {
         label: 'Station',
-        appFilter: (r) => !['help-', 'admin-', 'login', 'forgot', 'set-password', 'station-select',
-            'cross-station-dashboard', 'apply', 'waitlist-', 'waiting-list', 'home', 'privacy', 'terms', 'reconsent', 'imprint',
+        appFilter: (r) => !['help-', 'admin-', 'account-', 'login', 'forgot', 'set-password', 'station-select',
+            'cross-station-dashboard', '2fa-verify', 'apply', 'waitlist-', 'waiting-list', 'home', 'privacy', 'terms', 'reconsent', 'imprint',
             'patch-notes', 'reset-password', 'public-', 'not-found', 'style', 'helpcenter-', 'requirements']
             .some(p => r.name.startsWith(p)),
         helpFilter: (r) => r.name.startsWith('help-') && !r.name.startsWith('help-admin') && !r.name.startsWith('help-cluster'),

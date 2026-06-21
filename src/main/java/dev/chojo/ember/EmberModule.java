@@ -28,6 +28,7 @@ import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.conf.file.elements.Metrics;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.conf.file.elements.Storage;
+import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.handlers.BoardTicketChangedHandler;
 import dev.chojo.ember.event.handlers.BulkMentionedInCommentHandler;
@@ -138,6 +139,8 @@ import dev.chojo.ember.feature.system.route.SitemapRoutes;
 import dev.chojo.ember.feature.system.route.UtilRoutes;
 import dev.chojo.ember.feature.traffic.route.AdminTrafficRoutes;
 import dev.chojo.ember.feature.traffic.route.StationTrafficRoutes;
+import dev.chojo.ember.feature.twofactor.route.TwoFactorAdminRoutes;
+import dev.chojo.ember.feature.twofactor.route.TwoFactorRoutes;
 import dev.chojo.ember.feature.waitinglist.route.WaitingListRoutes;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -241,6 +244,8 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(AdminTrafficRoutes.class);
         routesBinder.addBinding().to(StationTrafficRoutes.class);
         routesBinder.addBinding().to(StationInsightsRoutes.class);
+        routesBinder.addBinding().to(TwoFactorRoutes.class);
+        routesBinder.addBinding().to(TwoFactorAdminRoutes.class);
 
         // Domain event handlers
         Multibinder<DomainEventHandler<?>> eventBinder = Multibinder.newSetBinder(binder(), new TypeLiteral<>() {});
@@ -324,6 +329,21 @@ public class EmberModule extends AbstractModule {
     @Singleton
     Auth auth(File config) {
         return config.auth();
+    }
+
+    @Provides
+    @Singleton
+    TwoFactorSettings twoFactorSettings(Auth auth) {
+        return auth.twoFactor();
+    }
+
+    @Provides
+    @Singleton
+    com.yubico.webauthn.RelyingParty webAuthnRelyingParty(
+            TwoFactorSettings twoFactor,
+            Api api,
+            dev.chojo.ember.feature.twofactor.service.WebAuthnCredentialStore store) {
+        return dev.chojo.ember.feature.twofactor.service.WebAuthnRelyingPartyFactory.build(twoFactor, api, store);
     }
 
     @Provides

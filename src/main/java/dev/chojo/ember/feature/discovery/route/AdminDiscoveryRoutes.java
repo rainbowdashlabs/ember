@@ -9,6 +9,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.feature.discovery.entity.BlocklistKind;
 import dev.chojo.ember.feature.discovery.entity.CachedDiscoveryStation;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryBlocklistEntry;
@@ -94,12 +95,23 @@ public class AdminDiscoveryRoutes implements Routes {
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/admin/discovery/identity", this::getIdentity, InstancePermission.ADMINISTRATOR);
         routes.get(prefix + "/admin/discovery/settings", this::getSettings, InstancePermission.ADMINISTRATOR);
-        routes.put(prefix + "/admin/discovery/settings", this::updateSettings, InstancePermission.ADMINISTRATOR);
+        routes.put(
+                prefix + "/admin/discovery/settings",
+                this::updateSettings,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
         routes.get(prefix + "/admin/discovery/peers", this::listPeers, InstancePermission.ADMINISTRATOR);
         routes.post(prefix + "/admin/discovery/peers/probe", this::probePeer, InstancePermission.ADMINISTRATOR);
-        routes.post(prefix + "/admin/discovery/peers", this::addPeer, InstancePermission.ADMINISTRATOR);
+        routes.post(
+                prefix + "/admin/discovery/peers",
+                this::addPeer,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.FEDERATION);
         routes.delete(
-                prefix + "/admin/discovery/peers/{publicKey}", this::deletePeer, InstancePermission.ADMINISTRATOR);
+                prefix + "/admin/discovery/peers/{publicKey}",
+                this::deletePeer,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.FEDERATION);
         routes.post(
                 prefix + "/admin/discovery/peers/{publicKey}/upvote",
                 this::upvotePeer,
@@ -109,23 +121,36 @@ public class AdminDiscoveryRoutes implements Routes {
                 this::downvotePeer,
                 InstancePermission.ADMINISTRATOR);
         routes.post(
-                prefix + "/admin/discovery/peers/{publicKey}/block", this::blockPeer, InstancePermission.ADMINISTRATOR);
+                prefix + "/admin/discovery/peers/{publicKey}/block",
+                this::blockPeer,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.FEDERATION);
         routes.post(
                 prefix + "/admin/discovery/peers/{publicKey}/unblock",
                 this::unblockPeer,
-                InstancePermission.ADMINISTRATOR);
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.FEDERATION);
         routes.post(
                 prefix + "/admin/discovery/peers/{publicKey}/ping",
                 this::pingPeerNow,
                 InstancePermission.ADMINISTRATOR);
         routes.post(prefix + "/admin/discovery/discover-now", this::discoverNow, InstancePermission.ADMINISTRATOR);
-        routes.post(prefix + "/admin/discovery/seed", this::seedFederation, InstancePermission.ADMINISTRATOR);
+        routes.post(
+                prefix + "/admin/discovery/seed",
+                this::seedFederation,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.FEDERATION);
         routes.get(prefix + "/admin/discovery/blocklist", this::listBlocklist, InstancePermission.ADMINISTRATOR);
-        routes.post(prefix + "/admin/discovery/blocklist", this::addToBlocklist, InstancePermission.ADMINISTRATOR);
+        routes.post(
+                prefix + "/admin/discovery/blocklist",
+                this::addToBlocklist,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.FEDERATION);
         routes.delete(
                 prefix + "/admin/discovery/blocklist/{value}",
                 this::removeFromBlocklist,
-                InstancePermission.ADMINISTRATOR);
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.FEDERATION);
 
         // Authenticated user-facing endpoint for the /station/discovery page.
         routes.get(prefix + "/discovery/stations", this::listCachedStations);

@@ -10,6 +10,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
 import dev.chojo.ember.feature.media.service.ImageCategory;
@@ -126,14 +127,22 @@ public class StationMemberRoutes implements Routes {
         routes.post(prefix + "/station-members", this::create, StationPermission.MEMBER_EDIT);
         routes.delete(prefix + "/station-members/{id}", this::delete, StationPermission.MEMBER_EDIT);
         routes.get(prefix + "/station-members/{id}/permissions", this::getPermissions, StationPermission.MEMBER_READ);
-        routes.put(prefix + "/station-members/{id}/permissions", this::setPermissions, StationPermission.MEMBER_EDIT);
+        routes.put(
+                prefix + "/station-members/{id}/permissions",
+                this::setPermissions,
+                StationPermission.MEMBER_EDIT,
+                StepUpCategory.ROLE_CHANGE);
 
         routes.get(prefix + "/station-members/{id}/managed", this::getManaged, StationPermission.MEMBER_READ);
         routes.put(prefix + "/station-members/{id}/managed", this::setManaged, StationPermission.MEMBER_EDIT);
         routes.get(prefix + "/station-members/{id}/managers", this::getManagers, StationPermission.MEMBER_READ);
         routes.put(prefix + "/station-members/{id}/managers", this::setManagers, StationPermission.MEMBER_EDIT);
 
-        routes.put(prefix + "/station-members/{id}/user-type", this::setUserType, StationPermission.MEMBER_EDIT);
+        routes.put(
+                prefix + "/station-members/{id}/user-type",
+                this::setUserType,
+                StationPermission.MEMBER_EDIT,
+                StepUpCategory.ROLE_CHANGE);
         routes.put(prefix + "/station-members/{id}/join-date", this::setJoinDate, StationPermission.MEMBER_EDIT);
         routes.post(prefix + "/station-members/{id}/mark-former", this::markFormer, StationPermission.MEMBER_EDIT);
         routes.post(prefix + "/station-members/{id}/reactivate", this::reactivate, StationPermission.MEMBER_EDIT);
@@ -145,7 +154,8 @@ public class StationMemberRoutes implements Routes {
         routes.put(
                 prefix + "/user-type-permissions/{userType}",
                 this::setUserTypePermissions,
-                StationPermission.MEMBER_MANAGER);
+                StationPermission.MEMBER_MANAGER,
+                StepUpCategory.ROLE_CHANGE);
         routes.get(
                 prefix + "/user-type-permissions/{userType}/effective",
                 this::getEffectiveUserTypePermissions,
@@ -211,17 +221,18 @@ public class StationMemberRoutes implements Routes {
                 m.userType() != null ? m.userType().name() : null,
                 m.displayTag(),
                 m.displayTagColor(),
-                avatarDataUrlFor(m.memberUid()));
+                avatarDataUrlFor(m.accountUid()));
     }
 
     /**
      * Inlines the member's avatar as a {@code data:} URL so it can be rendered without
      * re-authenticating against the protected avatar endpoint. Returns {@code null} when the
-     * member has no avatar on disk.
+     * member's account has no avatar on disk or the member is no longer linked to an account.
      */
-    private String avatarDataUrlFor(UUID memberUid) {
+    private String avatarDataUrlFor(UUID accountUid) {
+        if (accountUid == null) return null;
         return imageService
-                .read(ImageCategory.AVATARS, memberUid.toString(), 64)
+                .read(ImageCategory.AVATARS, accountUid.toString(), 64)
                 .map(img -> "data:" + img.contentType() + ";base64,"
                         + Base64.getEncoder().encodeToString(img.data()))
                 .orElse(null);

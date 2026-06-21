@@ -1,12 +1,12 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:78f150f599ff648afa3ae3287c95d45a700a3ba24127146e02675fb8b9b52445",
-  "generatedAt" : "2026-06-19T10:01:09Z",
+  "schemaHash" : "sha256:56288e5428908b057e04962130e5fd87f60c3845f1b3672b1e7340c5d5c845d6",
+  "generatedAt" : "2026-06-21T18:40:55Z",
   "tables" : {
     "account" : {
       "feature" : "account",
       "scope" : "USER",
-      "tableHash" : "sha256:54051cc81c9fd0d54a197737757a4cffb795862fbfa378cbb1f365e8e0388c74",
+      "tableHash" : "sha256:4b0288a003c4b52c5e3e5a949f4dfc498a9bf1d14ae75eb0ad25692b1095aaf3",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -47,6 +47,12 @@
         "type" : "text",
         "nullable" : true,
         "verified" : true
+      }, {
+        "name" : "uid",
+        "type" : "uuid",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Stable per-account UUID, used as the public key for account-scoped resources (avatars, federated identity)."
       } ],
       "foreignKeys" : [ ],
       "customScope" : {
@@ -76,6 +82,364 @@
         } ]
       },
       "description" : "User accounts. Each person has one account across all stations."
+    },
+    "account_2fa_audit" : {
+      "tableHash" : "sha256:897045597813ac3c8d944f9d947ac5e12dc52469de5fe75129cb06bf2346214c",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "account_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "actor_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "NULL when account_id acted on themselves; set to the admin account for admin-initiated events."
+      }, {
+        "name" : "event",
+        "type" : "two_factor_event",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "factor_kind",
+        "type" : "two_factor_kind",
+        "nullable" : true,
+        "verified" : true
+      }, {
+        "name" : "user_agent",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true
+      }, {
+        "name" : "country",
+        "type" : "bpchar",
+        "nullable" : true,
+        "verified" : true
+      }, {
+        "name" : "created_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true
+      } ],
+      "foreignKeys" : [ {
+        "column" : "account_id",
+        "refTable" : "account",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "actor_id",
+        "refTable" : "account",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "2FA enrollment is per-account, not transferred between stations"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED"
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "reason" : "Cascade-deleted via account(id) foreign key"
+      },
+      "description" : "2FA lifecycle audit trail. Retained 365 days by the same pruner as api_request_log."
+    },
+    "account_2fa_backup_code" : {
+      "tableHash" : "sha256:a43c74c73ca1cd46ede2fc11876571d444dd76e67adaa4dc9133eebd612f03fc",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "factor_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "code_hash",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "bcrypt hash of the code in xxxx-xxxx-xxxx format."
+      }, {
+        "name" : "used_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true
+      }, {
+        "name" : "used_via_ip",
+        "type" : "cidr",
+        "nullable" : true,
+        "verified" : true
+      } ],
+      "foreignKeys" : [ {
+        "column" : "factor_id",
+        "refTable" : "account_2fa_factor",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "2FA enrollment is per-account, not transferred between stations"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED"
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "reason" : "Cascade-deleted via account(id) foreign key"
+      },
+      "description" : "Hashed backup codes (bcrypt). 10 per account, single-use."
+    },
+    "account_2fa_factor" : {
+      "tableHash" : "sha256:b58a175ada9715ae92897c398c6b7d161ef41d67e09d972c0291c7d509828634",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "account_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "kind",
+        "type" : "two_factor_kind",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "label",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "User-supplied label for the factor (e.g. \"Phone\", \"Yubikey 5C\")."
+      }, {
+        "name" : "created_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "last_used_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true
+      }, {
+        "name" : "disabled_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Non-NULL when the factor has been soft-disabled (admin reset or user removal)."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "account_id",
+        "refTable" : "account",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "2FA enrollment is per-account, not transferred between stations"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED"
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "reason" : "Cascade-deleted via account(id) foreign key"
+      },
+      "description" : "Registry of enrolled 2FA factors per account. TOTP and BACKUP_CODES are singletons; WEBAUTHN may have many rows."
+    },
+    "account_2fa_totp" : {
+      "tableHash" : "sha256:55880226c539f3f1fa4951e52df45f69cbf271e767393f721886f8a63d983f4d",
+      "columns" : [ {
+        "name" : "factor_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "secret_encrypted",
+        "type" : "bytea",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "AES-GCM ciphertext of the Base32-encoded TOTP secret."
+      }, {
+        "name" : "secret_kid",
+        "type" : "int2",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Key-ID for the encryption key, enabling future key rotation."
+      }, {
+        "name" : "digits",
+        "type" : "int2",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "period_seconds",
+        "type" : "int2",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "algorithm",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "HMAC algorithm — SHA1 for Google Authenticator compatibility."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "factor_id",
+        "refTable" : "account_2fa_factor",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "2FA enrollment is per-account, not transferred between stations"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED"
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "reason" : "Cascade-deleted via account(id) foreign key"
+      },
+      "description" : "TOTP secrets encrypted with AES-GCM(TWO_FACTOR_SECRET_KEY). One row per TOTP factor."
+    },
+    "account_2fa_trusted_device" : {
+      "tableHash" : "sha256:a360630af200904d892218d453a29c34b1a5d78353942602b8d8b57ad2a050ed",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "account_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "token_hash",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "bcrypt hash of the cookie value. Raw cookie is never stored."
+      }, {
+        "name" : "user_agent",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "created_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "trusted_until",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "last_seen_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "revoked_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true
+      } ],
+      "foreignKeys" : [ {
+        "column" : "account_id",
+        "refTable" : "account",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "2FA enrollment is per-account, not transferred between stations"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED"
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "reason" : "Cascade-deleted via account(id) foreign key"
+      },
+      "description" : "Trusted-device cookies allowing 2FA bypass within a time window."
+    },
+    "account_2fa_webauthn" : {
+      "tableHash" : "sha256:387ec0701de53616ea1a57053da7dedc49e4c0fdf4f5895dfc9ec85f5ba40ec8",
+      "columns" : [ {
+        "name" : "factor_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "credential_id",
+        "type" : "bytea",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Credential ID from the authenticator, used to look up the key during assertion."
+      }, {
+        "name" : "public_key_cose",
+        "type" : "bytea",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "COSE-encoded public key for signature verification."
+      }, {
+        "name" : "signature_counter",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "aaguid",
+        "type" : "uuid",
+        "nullable" : true,
+        "verified" : true
+      }, {
+        "name" : "transports",
+        "type" : "_text",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "attestation_format",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true
+      }, {
+        "name" : "user_handle",
+        "type" : "bytea",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "64 random bytes per account, stable across credential registrations."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "factor_id",
+        "refTable" : "account_2fa_factor",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "2FA enrollment is per-account, not transferred between stations"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED"
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "reason" : "Cascade-deleted via account(id) foreign key"
+      },
+      "description" : "WebAuthn/FIDO2 credential storage. Multiple rows per account for multiple security keys."
     },
     "account_credential" : {
       "feature" : "account",
@@ -204,7 +568,7 @@
     "account_session" : {
       "feature" : "account",
       "scope" : "USER",
-      "tableHash" : "sha256:7cf0c00dcad96193606310ad0a4ab1b56379f57efdfad5ac4a3dc971966ee16a",
+      "tableHash" : "sha256:d3de027ddf4c088948353aa377526c91e81d7f2a29562162587d79100bc5f322",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -253,12 +617,29 @@
         "nullable" : false,
         "verified" : true,
         "description" : "Lowercase hex HMAC-SHA-256(auth.tokenPepper, raw bearer). 64 chars. Raw bearer is never stored."
+      }, {
+        "name" : "two_factor_verified_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Last time 2FA was verified on this session. Used for step-up freshness checks."
+      }, {
+        "name" : "device_trust_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Link to the trusted-device row that allowed 2FA bypass on this session, if any."
       } ],
       "foreignKeys" : [ {
         "column" : "account_id",
         "refTable" : "account",
         "refColumn" : "id",
         "onDelete" : "CASCADE"
+      }, {
+        "column" : "device_trust_id",
+        "refTable" : "account_2fa_trusted_device",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
       } ],
       "stationTransfer" : {
         "status" : "IGNORED",
@@ -12529,6 +12910,76 @@
         "reason" : "Time-limited token, no permanent personal data"
       },
       "description" : "One-time tokens for transferring station ownership."
+    },
+    "two_factor_policy" : {
+      "tableHash" : "sha256:2539a3d2bdddee24d4e04a0d82b8d8348ed9b79e6738f52d55260b4ec4807ec8",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "scope",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "INSTANCE or STATION — determines whether station_id must be set."
+      }, {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true
+      }, {
+        "name" : "user_type",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "StationUserType name or NULL for all types in this scope."
+      }, {
+        "name" : "required",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "grace_days",
+        "type" : "int2",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "created_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true
+      }, {
+        "name" : "created_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true
+      } ],
+      "foreignKeys" : [ {
+        "column" : "created_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "2FA enrollment is per-account, not transferred between stations"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Policy table is station/instance-scoped, not personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Policy table is station/instance-scoped, not personal data"
+      },
+      "description" : "Per-StationUserType 2FA enforcement. Role-based mandate is derived at runtime, not stored here."
     },
     "user_feed_token" : {
       "feature" : "members",

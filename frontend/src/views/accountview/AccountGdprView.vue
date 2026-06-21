@@ -12,15 +12,12 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import {session as sessionApi, managedMembers as managedMembersApi} from '@/api'
-import type {ActiveSession} from '@/api/types'
 import {useOnboardingTour} from '@/composables/useOnboardingTour'
 import {useSession} from '@/composables/useSession'
-import SessionsSection from './settingsview/SessionsSection.vue'
-import GdprSection from './settingsview/GdprSection.vue'
+import GdprSection from '@/views/stationview/profile/settingsview/GdprSection.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -29,13 +26,10 @@ const {isGuardian} = useSession()
 
 interface ManagedMemberInfo { id: number; name: string }
 
-const sessions = ref<ActiveSession[]>([])
 const managedMembers = ref<ManagedMemberInfo[]>([])
 const exportingGdpr = ref(false)
 const exportingMemberId = ref<number | null>(null)
-const loading = ref(true)
 const error = ref('')
-const showInvalidateAllModal = ref(false)
 const showDeleteAccountModal = ref(false)
 const deletingAccount = ref(false)
 
@@ -67,78 +61,37 @@ async function confirmDeleteAccount() {
     localStorage.removeItem('session_token')
     localStorage.removeItem('session_expires_at')
     router.push({name: 'login'})
-  } catch { error.value = t('common.error'); deletingAccount.value = false }
-}
-
-async function invalidateSession(id: number) {
-  error.value = ''
-  try { await sessionApi.invalidateSession(id); sessions.value = sessions.value.filter(s => s.id !== id) }
-  catch { error.value = t('common.error') }
-}
-
-async function invalidateAll() {
-  error.value = ''
-  try {
-    await sessionApi.invalidateAllSessions()
-    showInvalidateAllModal.value = false
-    localStorage.removeItem('session_token')
-    localStorage.removeItem('session_expires_at')
-    router.push({name: 'login'})
-  } catch { error.value = t('common.error') }
+  } catch {
+    error.value = t('common.error')
+    deletingAccount.value = false
+  }
 }
 
 onMounted(async () => {
-  loading.value = true
-  try {
-    sessions.value = await sessionApi.getActiveSessions()
-    if (isGuardian()) {
-      try {
-        const managed = await managedMembersApi.listManaged()
-        managedMembers.value = managed.map(m => ({id: m.id, name: m.name}))
-      } catch { /* ignore */ }
-    }
-  } catch { error.value = t('common.error') }
-  finally { loading.value = false }
+  if (isGuardian()) {
+    try {
+      const managed = await managedMembersApi.listManaged()
+      managedMembers.value = managed.map(m => ({id: m.id, name: m.name}))
+    } catch { /* ignore */ }
+  }
 })
 </script>
 
 <template>
   <ViewContent>
     <div class="space-y-6">
-      <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
-      <template v-if="!loading">
-        <SessionsSection
-          :sessions="sessions"
-          @invalidate="invalidateSession"
-          @invalidate-all="showInvalidateAllModal = true"
-        />
-
-        <GdprSection
-          :exporting-gdpr="exportingGdpr"
-          :exporting-member-id="exportingMemberId"
-          :managed-members="managedMembers"
-          :deleting-account="deletingAccount"
-          @export-own="exportOwnData"
-          @export-member="exportManagedMemberData"
-          @show-delete-modal="showDeleteAccountModal = true"
-          @restart-tour="startTour()"
-        />
-      </template>
-
-      <Modal v-model="showInvalidateAllModal">
-        <div class="space-y-4 p-4">
-          <SubHeader>{{ t('userSettings.invalidateAllTitle') }}</SubHeader>
-          <ErrorContainer>
-            <p class="text-sm">{{ t('userSettings.invalidateAllWarning') }}</p>
-          </ErrorContainer>
-          <div class="flex justify-end gap-2">
-            <SecondaryButton @click="showInvalidateAllModal = false">{{ t('common.cancel') }}</SecondaryButton>
-            <ErrorButton @click="invalidateAll">{{ t('userSettings.invalidateAll') }}</ErrorButton>
-          </div>
-        </div>
-      </Modal>
+      <GdprSection
+        :exporting-gdpr="exportingGdpr"
+        :exporting-member-id="exportingMemberId"
+        :managed-members="managedMembers"
+        :deleting-account="deletingAccount"
+        @export-own="exportOwnData"
+        @export-member="exportManagedMemberData"
+        @show-delete-modal="showDeleteAccountModal = true"
+        @restart-tour="startTour()"
+      />
 
       <Modal v-model="showDeleteAccountModal">
         <div class="space-y-4 p-4">

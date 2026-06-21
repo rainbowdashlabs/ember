@@ -1,40 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-  body { margin:0; padding:0; background:#f4f4f4; font-family:Arial,Helvetica,sans-serif; }
-  .wrapper { background:#f4f4f4; padding:32px 0; }
-  .card { background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.08); max-width:600px; margin:0 auto; }
-  .header { background:#ec2929; padding:24px 32px; text-align:center; }
-  .header h1 { color:#fff; margin:0; font-size:22px; }
-  .body { padding:32px; }
-  .body h2 { color:#333; margin:0 0 16px; }
-  .body p { color:#555; font-size:15px; line-height:1.6; }
-  .btn-wrap { text-align:center; margin:24px 0; }
-  .btn-danger { display:inline-block; background:#ec2929; color:#fff; padding:12px 32px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:15px; }
-  .hint { color:#888; font-size:13px; }
-  .warning { color:#ec2929; font-weight:bold; }
-  .footer { background:#f9f9f9; padding:16px 32px; text-align:center; border-top:1px solid #eee; }
-  .footer p { color:#aaa; font-size:11px; margin:0; }
-  .footer a { color:#FF6421; }
-</style>
-</head>
-<body>
-<div class="wrapper">
-  <div class="card">
-    <div class="header"><h1>Station Deletion</h1></div>
-    <div class="body">
+{% extends '_layout.html' %}
+{% block body %}
       <h2>Confirm station deletion</h2>
-      <p>Hi {{name}},</p>
+      <p>Hi {{ name }},</p>
       <p>You requested to permanently delete your station. <span class="warning">This action cannot be undone.</span> All members, events, inventory, and other data will be permanently removed.</p>
-      <div class="btn-wrap"><a class="btn-danger" href="{{url}}">Delete Station Permanently</a></div>
+      <div class="btn-wrap"><a class="btn-danger" href="{{ url }}">Delete Station Permanently</a></div>
       <p class="hint">This link expires in 1 hour.</p>
       <p class="hint">If you did not request this, you can ignore this email.</p>
-    </div>
-    <div class="footer"><p>{{senderName}} &middot; <a href="{{baseUrl}}">{{baseUrl}}</a></p></div>
-  </div>
-</div>
-</body>
-</html>
+{% endblock %}

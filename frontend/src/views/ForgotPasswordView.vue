@@ -12,6 +12,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import {auth} from '@/api'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
+import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 
 const {t} = useI18n()
 
@@ -39,7 +40,7 @@ async function handleReset() {
   <div class="flex min-h-screen items-center justify-center px-4">
     <div class="w-full max-w-sm space-y-6">
       <div class="text-center">
-        <font-awesome-icon :icon="['fas', 'lock']" class="text-4xl text-primary mb-3"/>
+        <PageHeroIcon :icon="['fas', 'lock']"/>
         <PageHeader class="text-2xl font-bold">{{ t('forgotPassword.title') }}</PageHeader>
         <p class="text-sm text-(--text-muted) mt-2">{{ t('forgotPassword.hint') }}</p>
       </div>

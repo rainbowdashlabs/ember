@@ -38,6 +38,9 @@ class AuthServiceTest extends RepositoryTestBase {
     private static String verifyToken;
     private static String sessionToken;
 
+    private static dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository twoFactorRepoLocal;
+    private static dev.chojo.ember.feature.twofactor.service.TrustedDeviceService trustedDeviceService;
+
     @BeforeAll
     static void setup() {
         var passwordHasher = new PasswordHasher();
@@ -48,6 +51,11 @@ class AuthServiceTest extends RepositoryTestBase {
         when(hibpClient.isPwned(anyString())).thenReturn(false);
         var breachCheckWorker = mock(BreachCheckWorker.class);
 
+        twoFactorRepoLocal = new dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository();
+        trustedDeviceService = new dev.chojo.ember.feature.twofactor.service.TrustedDeviceService(
+                twoFactorRepoLocal,
+                dev.chojo.ember.auth.TokenHasher.forTesting("test-pepper"),
+                new dev.chojo.ember.conf.file.elements.TwoFactorSettings());
         service = new AuthService(
                 accountRepo,
                 registrationCodeRepo,
@@ -58,7 +66,9 @@ class AuthServiceTest extends RepositoryTestBase {
                 authConfig,
                 demo,
                 hibpClient,
-                breachCheckWorker);
+                breachCheckWorker,
+                twoFactorRepoLocal,
+                trustedDeviceService);
     }
 
     @Test
@@ -632,6 +642,92 @@ class AuthServiceTest extends RepositoryTestBase {
         var result = service.login("nocred@test.com", "anypass", "agent", "DE");
         assertFalse(result.success());
         accountRepo.delete(account2.id());
+    }
+
+    /**
+     * Spin up a fresh account with a station membership + LOGIN permission so it can sign in
+     * cleanly even after earlier ordered tests have torn down the shared fixture.
+     */
+    private TrustedDeviceFixture createLoginCapableAccount(String emailPrefix) {
+        String email = emailPrefix + "-" + UUID.randomUUID() + "@test.com";
+        var passwordHasher = new PasswordHasher();
+        var account = accountRepo.create(email, "Trust", "Test", true);
+        accountRepo.createCredential(account.id(), passwordHasher.hash(PASSWORD));
+        var station = stationRepo.create("trust-svc-" + UUID.randomUUID());
+        var member = stationMemberRepo.create(station.id(), account.id());
+        stationMemberRepo
+                .findPermissionByName(StationPermission.LOGIN)
+                .ifPresent(p -> stationMemberRepo.grantPermission(member.id(), p.id()));
+        return new TrustedDeviceFixture(account.id(), email, station.id());
+    }
+
+    private record TrustedDeviceFixture(int accountId, String email, int stationId) {}
+
+    @Test
+    @Order(80)
+    void loginWithTwoFactorRequiresPreAuth() {
+        var fixture = createLoginCapableAccount("tf-required");
+        twoFactorRepoLocal.createFactor(
+                fixture.accountId(), dev.chojo.ember.feature.twofactor.entity.TwoFactorKind.TOTP, "TestTOTP");
+
+        var result = service.login(fixture.email(), PASSWORD, "agent", "DE", null);
+        assertTrue(result.success(), result.message());
+        assertTrue(result.twoFactorRequired());
+        assertNotNull(result.preAuthToken());
+
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
+    }
+
+    @Test
+    @Order(81)
+    void loginWithTrustedDeviceCookieBypassesTwoFactor() {
+        var fixture = createLoginCapableAccount("tf-trust");
+        twoFactorRepoLocal.createFactor(
+                fixture.accountId(), dev.chojo.ember.feature.twofactor.entity.TwoFactorKind.TOTP, "TestTOTP");
+
+        var issued = trustedDeviceService.issue(fixture.accountId(), 7, "agent");
+        var result = service.login(fixture.email(), PASSWORD, "agent", "DE", issued.token());
+        assertTrue(result.success(), result.message());
+        assertFalse(result.twoFactorRequired(), "valid trusted-device cookie should bypass the 2FA challenge");
+        assertNotNull(result.token());
+
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
+    }
+
+    @Test
+    @Order(82)
+    void loginWithTrustedDeviceForDifferentAccountStillRequires2FA() {
+        var fixture = createLoginCapableAccount("tf-stranger");
+        twoFactorRepoLocal.createFactor(
+                fixture.accountId(), dev.chojo.ember.feature.twofactor.entity.TwoFactorKind.TOTP, "TestTOTP");
+
+        var other = accountRepo.create("other-trust-" + UUID.randomUUID() + "@test.com", "O", "T", true);
+        var stranger = trustedDeviceService.issue(other.id(), 1, "ua");
+
+        var result = service.login(fixture.email(), PASSWORD, "agent", "DE", stranger.token());
+        assertTrue(result.success(), result.message());
+        assertTrue(result.twoFactorRequired());
+
+        accountRepo.delete(other.id());
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
+    }
+
+    @Test
+    @Order(83)
+    void loginWithGarbageCookieIgnored() {
+        var fixture = createLoginCapableAccount("tf-garbage");
+        twoFactorRepoLocal.createFactor(
+                fixture.accountId(), dev.chojo.ember.feature.twofactor.entity.TwoFactorKind.TOTP, "TestTOTP");
+
+        var result = service.login(fixture.email(), PASSWORD, "agent", "DE", "not-a-real-cookie-value");
+        assertTrue(result.success(), result.message());
+        assertTrue(result.twoFactorRequired());
+
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
     }
 
     @Test

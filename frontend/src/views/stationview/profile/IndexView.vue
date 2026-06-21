@@ -8,7 +8,6 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
 import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
@@ -17,13 +16,10 @@ import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import PasswordInput from '@/components/input/text/PasswordInput.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
-import FileUploadField from '@/components/input/FileUploadField.vue'
 import type { ProfileField } from '@/api/types'
 import { StationUserType, parseFieldConfig } from '@/api/types'
-import { profileFields, auth, members, session as sessionApi } from '@/api'
+import { profileFields } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -52,48 +48,17 @@ const values = ref<Map<number, string>>(new Map())
 const loading = ref(true)
 const error = ref('')
 
-// Avatar
-const AVATAR_MAX_SIZE = 2 * 1024 * 1024
-const avatarKey = ref(0)
-const uploadingAvatar = ref(false)
-const avatarError = ref<string | null>(null)
-
-async function handleAvatarUpload(file: File) {
-  uploadingAvatar.value = true
-  avatarError.value = null
-  try {
-    await sessionApi.uploadAvatar(file)
-    avatarKey.value++
-  } catch {
-    avatarError.value = t('fileUpload.uploadFailed')
-  } finally {
-    uploadingAvatar.value = false
-  }
-}
-
-async function removeAvatar() {
-  error.value = ''
-  try {
-    await sessionApi.deleteAvatar()
-    avatarKey.value++
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
-// Account details
-const editFirstName = ref('')
-const editLastName = ref('')
-const editEmail = ref('')
-
-// Password change
-const currentPassword = ref('')
-const newPassword = ref('')
-const confirmPassword = ref('')
-
 const memberId = computed(() => sessionInfo.value?.member?.id ?? null)
 
 const userScopes = computed(() => getUserScopes(sessionInfo.value?.userType))
+
+const fullName = computed(() => {
+  const account = sessionInfo.value?.account
+  if (!account) return ''
+  return `${account.firstName ?? ''} ${account.lastName ?? ''}`.trim()
+})
+
+const accountEmail = computed(() => sessionInfo.value?.account?.email ?? '')
 
 const editableFields = computed(() => {
   return fields.value.filter(f => {
@@ -135,13 +100,6 @@ async function loadProfile() {
       profileFields.getValues(memberId.value),
     ])
     fields.value = allFields
-    // Populate account fields
-    const account = sessionInfo.value?.account
-    if (account) {
-      editFirstName.value = account.firstName ?? ''
-      editLastName.value = account.lastName ?? ''
-      editEmail.value = account.email ?? ''
-    }
     const map = new Map<number, string>()
     for (const v of profileValues) {
       let val = v.value ?? ''
@@ -171,42 +129,6 @@ async function saveProfile() {
   }
 }
 
-async function saveAccount() {
-  error.value = ''
-  const accountId = sessionInfo.value?.account?.id
-  if (!accountId) return
-  try {
-    await members.updateAccount(accountId, {
-      email: editEmail.value,
-      firstName: editFirstName.value,
-      lastName: editLastName.value,
-    })
-  } catch (e) {
-    error.value = t('common.error')
-    throw e
-  }
-}
-
-async function changePassword() {
-  if (newPassword.value !== confirmPassword.value) {
-    error.value = t('profile.passwordMismatch')
-    throw new Error('mismatch')
-  }
-  error.value = ''
-  try {
-    await auth.changePassword({
-      currentPassword: currentPassword.value,
-      newPassword: newPassword.value,
-    })
-    currentPassword.value = ''
-    newPassword.value = ''
-    confirmPassword.value = ''
-  } catch (e) {
-    error.value = t('profile.passwordError')
-    throw e
-  }
-}
-
 watch(memberId, (newId) => {
   if (newId) loadProfile()
 })
@@ -221,72 +143,25 @@ onMounted(loadProfile)
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading && memberId">
-        <!-- Avatar -->
-        <NeutralContainer class="space-y-4">
-          <SectionHeader>{{ t('profile.avatar') }}</SectionHeader>
+        <NeutralContainer class="space-y-3">
+          <SectionHeader>{{ t('profile.accountTitle') }}</SectionHeader>
           <div class="flex items-center gap-4">
             <UserAvatar
-                :key="avatarKey"
-                :identity="sessionInfo?.member?.uid ? { stationUid: sessionInfo.stationId ?? '', memberUid: sessionInfo.member.uid } : undefined"
-                :name="(editFirstName + ' ' + editLastName).trim()"
+                :identity="sessionInfo?.account?.uid ? { accountUid: sessionInfo.account.uid } : undefined"
+                :name="fullName"
                 size="lg"
             />
-            <div class="flex items-start gap-2">
-              <FileUploadField
-                  accept="image/png,image/jpeg,image/webp"
-                  :max-size="AVATAR_MAX_SIZE"
-                  :disabled="uploadingAvatar"
-                  :error="avatarError"
-                  :hint="t('profile.avatarHint')"
-                  :label="uploadingAvatar ? t('common.loading') : t('profile.uploadAvatar')"
-                  @select="handleAvatarUpload"
-              />
-              <DeleteButton @click="removeAvatar"/>
+            <div class="space-y-1">
+              <div class="font-medium">{{ fullName }}</div>
+              <div class="text-sm text-(--text-muted)">{{ accountEmail }}</div>
             </div>
           </div>
+          <MutedText size="sm">
+            {{ t('profile.manageInAccount') }}
+            <router-link :to="{ name: 'account' }" class="underline">{{ t('profile.manageInAccountLink') }}</router-link>
+          </MutedText>
         </NeutralContainer>
 
-        <!-- Account details -->
-        <NeutralContainer class="space-y-4">
-          <SectionHeader>{{ t('profile.accountTitle') }}</SectionHeader>
-          <div class="grid gap-4 sm:grid-cols-3">
-            <div class="space-y-1">
-              <FieldLabel>{{ t('profile.firstName') }}</FieldLabel>
-              <TextInput v-model="editFirstName" />
-            </div>
-            <div class="space-y-1">
-              <FieldLabel>{{ t('profile.lastName') }}</FieldLabel>
-              <TextInput v-model="editLastName" />
-            </div>
-            <div class="space-y-1">
-              <FieldLabel>{{ t('profile.email') }}</FieldLabel>
-              <TextInput v-model="editEmail" />
-            </div>
-          </div>
-          <SaveButton :action="saveAccount">{{ t('profile.saveAccount') }}</SaveButton>
-        </NeutralContainer>
-
-        <!-- Change password -->
-        <NeutralContainer class="space-y-4">
-          <SectionHeader>{{ t('profile.passwordTitle') }}</SectionHeader>
-          <div class="grid gap-4 sm:grid-cols-3">
-            <div class="space-y-1">
-              <FieldLabel>{{ t('profile.currentPassword') }}</FieldLabel>
-              <PasswordInput v-model="currentPassword" :placeholder="t('profile.currentPassword')" />
-            </div>
-            <div class="space-y-1">
-              <FieldLabel>{{ t('profile.newPassword') }}</FieldLabel>
-              <PasswordInput v-model="newPassword" :placeholder="t('profile.newPassword')" />
-            </div>
-            <div class="space-y-1">
-              <FieldLabel>{{ t('profile.confirmPassword') }}</FieldLabel>
-              <PasswordInput v-model="confirmPassword" :placeholder="t('profile.confirmPassword')" />
-            </div>
-          </div>
-          <SaveButton :disabled="!currentPassword || !newPassword || !confirmPassword" :action="changePassword">{{ t('profile.changePassword') }}</SaveButton>
-        </NeutralContainer>
-
-        <!-- Onboarding: incomplete fields -->
         <ErrorContainer v-if="incompleteFields.length > 0" class="space-y-2">
           <p class="font-semibold text-sm">{{ t('profile.incompleteTitle') }}</p>
           <p class="text-xs">{{ t('profile.incompleteHint') }}</p>
@@ -295,7 +170,6 @@ onMounted(loadProfile)
           </ul>
         </ErrorContainer>
 
-        <!-- Profile fields -->
         <NeutralContainer class="space-y-4">
           <SectionHeader>{{ t('profile.title') }}</SectionHeader>
 

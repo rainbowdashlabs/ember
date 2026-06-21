@@ -509,13 +509,7 @@ public class DemoService {
             // Media / Profile Pictures
             tasks.add(CompletableFuture.runAsync(
                     () -> {
-                        mediaSeeder.seedProfilePictures(
-                                station.id(),
-                                adminMember,
-                                members.betreuer(),
-                                members.eltern(),
-                                members.anfaenger(),
-                                members.fortgeschritten());
+                        mediaSeeder.seedProfilePictures(station.id());
                         log.info("Demo: Created profile pictures");
                     },
                     executor));

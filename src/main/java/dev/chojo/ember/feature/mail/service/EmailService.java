@@ -17,10 +17,6 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
@@ -38,13 +34,13 @@ import java.util.concurrent.TimeUnit;
 @Singleton
 public class EmailService {
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
-    private static final Path TEMPLATE_DIR = Path.of("templates");
 
     private final Mailing mailing;
     private final Api api;
     private final Demo demoConfig;
     private final EmailQueueRepository queueRepository;
     private final StationMailConfigRepository mailConfigRepository;
+    private final MailTemplateRenderer templateRenderer;
     private final MailProvider globalProvider;
 
     @Inject
@@ -53,12 +49,14 @@ public class EmailService {
             Api api,
             Demo demoConfig,
             EmailQueueRepository queueRepository,
-            StationMailConfigRepository mailConfigRepository) {
+            StationMailConfigRepository mailConfigRepository,
+            MailTemplateRenderer templateRenderer) {
         this.mailing = mailing;
         this.api = api;
         this.demoConfig = demoConfig;
         this.queueRepository = queueRepository;
         this.mailConfigRepository = mailConfigRepository;
+        this.templateRenderer = templateRenderer;
         this.globalProvider = createGlobalProvider();
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             var t = new Thread(r, "email-worker");
@@ -221,6 +219,21 @@ public class EmailService {
         var vars = baseVars(name, null);
         vars.put("loginUrl", api.baseUrl() + "/login");
         enqueueGlobal(email, "Your password was changed", loadTemplate("password-changed.html", "en", vars));
+    }
+
+    /**
+     * Sent to a user whose 2FA was reset by an administrator. The reset wiped every factor,
+     * backup code, active session, and trusted device for the account; the user must enrol
+     * fresh on next login. {@code actorLabel} is the admin's email (or a generic
+     * "administrator" fallback when unknown).
+     */
+    public void sendTwoFactorResetNotice(String email, String name, String actorLabel, java.time.Instant resetAt) {
+        var vars = baseVars(name, null);
+        vars.put("loginUrl", api.baseUrl() + "/login");
+        vars.put("actor", actorLabel != null && !actorLabel.isBlank() ? actorLabel : "an administrator");
+        vars.put("resetAt", resetAt.toString());
+        enqueueGlobal(
+                email, "Your two-factor authentication was reset", loadTemplate("two-factor-reset.html", "en", vars));
     }
 
     /**
@@ -465,11 +478,7 @@ public class EmailService {
     }
 
     public String loadTemplate(String name, String locale, Map<String, String> variables) {
-        String template = readTemplate(name, locale);
-        for (var entry : variables.entrySet()) {
-            template = template.replace("{{" + entry.getKey() + "}}", entry.getValue());
-        }
-        return template;
+        return templateRenderer.render(name, locale, variables);
     }
 
     private MailProvider createGlobalProvider() {
@@ -645,22 +654,5 @@ public class EmailService {
                         : "Waiting list removal in 2 weeks" + string;
             default -> template;
         };
-    }
-
-    private String readTemplate(String name, String locale) {
-        Path localeFile = TEMPLATE_DIR.resolve("mail").resolve(locale).resolve(name);
-        if (Files.exists(localeFile)) {
-            try {
-                return Files.readString(localeFile, StandardCharsets.UTF_8);
-            } catch (IOException e) {
-                log.warn("Failed to read template {}", localeFile, e);
-            }
-        }
-        Path fallback = TEMPLATE_DIR.resolve("mail").resolve("en").resolve(name);
-        try {
-            return Files.readString(fallback, StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new IllegalStateException("Template not found: " + fallback, e);
-        }
     }
 }
