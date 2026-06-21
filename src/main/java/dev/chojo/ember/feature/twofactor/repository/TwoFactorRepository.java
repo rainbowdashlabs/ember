@@ -12,15 +12,19 @@ import dev.chojo.ember.feature.twofactor.entity.TwoFactorAuditEntry;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorFactor;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
+import dev.chojo.ember.feature.twofactor.entity.WebAuthnCredential;
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
+import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING;
 
 @Singleton
 public class TwoFactorRepository {
@@ -112,6 +116,111 @@ public class TwoFactorRepository {
                 .single(call().bind("factor_id", factorId))
                 .map(TotpFactor.map())
                 .first();
+    }
+
+    // -- WebAuthn --
+
+    public void createWebAuthn(
+            int factorId,
+            byte[] credentialId,
+            byte[] publicKeyCose,
+            long signatureCounter,
+            UUID aaguid,
+            List<String> transports,
+            String attestationFormat,
+            byte[] userHandle) {
+        query("""
+                INSERT INTO account_2fa_webauthn (
+                    factor_id, credential_id, public_key_cose, signature_counter,
+                    aaguid, transports, attestation_format, user_handle
+                ) VALUES (
+                    :factor_id, :credential_id, :public_key, :counter,
+                    :aaguid, :transports, :attestation_format, :user_handle
+                );""")
+                .single(call().bind("factor_id", factorId)
+                        .bind("credential_id", credentialId)
+                        .bind("public_key", publicKeyCose)
+                        .bind("counter", signatureCounter)
+                        .bind("aaguid", aaguid, UUID_STRING)
+                        .bind("transports", transports, PostgreSqlTypes.TEXT)
+                        .bind("attestation_format", attestationFormat)
+                        .bind("user_handle", userHandle))
+                .insert();
+    }
+
+    public Optional<WebAuthnCredential> findWebAuthnByCredentialId(byte[] credentialId) {
+        return query("SELECT * FROM account_2fa_webauthn WHERE credential_id = :credential_id;")
+                .single(call().bind("credential_id", credentialId))
+                .map(WebAuthnCredential.map())
+                .first();
+    }
+
+    public Optional<WebAuthnCredential> findWebAuthnByFactor(int factorId) {
+        return query("SELECT * FROM account_2fa_webauthn WHERE factor_id = :factor_id;")
+                .single(call().bind("factor_id", factorId))
+                .map(WebAuthnCredential.map())
+                .first();
+    }
+
+    public List<WebAuthnCredential> findActiveWebAuthnForAccount(int accountId) {
+        return query("""
+                SELECT w.*
+                FROM account_2fa_webauthn w
+                JOIN account_2fa_factor f ON f.id = w.factor_id
+                WHERE f.account_id = :account_id AND f.disabled_at IS NULL;""")
+                .single(call().bind("account_id", accountId))
+                .map(WebAuthnCredential.map())
+                .all();
+    }
+
+    public boolean updateWebAuthnSignatureCounter(int factorId, long newCounter) {
+        return query("""
+                UPDATE account_2fa_webauthn
+                SET signature_counter = :counter
+                WHERE factor_id = :factor_id AND signature_counter < :counter;""")
+                .single(call().bind("factor_id", factorId).bind("counter", newCounter))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Returns the stable 64-byte user handle reused across the account's WebAuthn credentials,
+     * or empty when no credentials are registered yet (the caller mints one in that case).
+     */
+    public Optional<byte[]> findUserHandleForAccount(int accountId) {
+        return query("""
+                SELECT w.user_handle
+                FROM account_2fa_webauthn w
+                JOIN account_2fa_factor f ON f.id = w.factor_id
+                WHERE f.account_id = :account_id
+                ORDER BY f.created_at ASC
+                LIMIT 1;""")
+                .single(call().bind("account_id", accountId))
+                .map(row -> row.getBytes("user_handle"))
+                .first();
+    }
+
+    public Optional<Integer> findAccountByUserHandle(byte[] userHandle) {
+        return query("""
+                SELECT DISTINCT f.account_id
+                FROM account_2fa_webauthn w
+                JOIN account_2fa_factor f ON f.id = w.factor_id
+                WHERE w.user_handle = :user_handle
+                LIMIT 1;""")
+                .single(call().bind("user_handle", userHandle))
+                .map(row -> row.getInt("account_id"))
+                .first();
+    }
+
+    public boolean renameFactor(int factorId, int accountId, String label) {
+        return query("""
+                UPDATE account_2fa_factor SET label = :label
+                WHERE id = :id AND account_id = :account_id AND disabled_at IS NULL;""")
+                .single(call().bind("id", factorId)
+                        .bind("account_id", accountId)
+                        .bind("label", label))
+                .update()
+                .changed();
     }
 
     // -- Backup codes --

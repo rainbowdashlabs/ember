@@ -337,6 +337,15 @@ public class EmberModule extends AbstractModule {
 
     @Provides
     @Singleton
+    com.yubico.webauthn.RelyingParty webAuthnRelyingParty(
+            TwoFactorSettings twoFactor,
+            Api api,
+            dev.chojo.ember.feature.twofactor.service.WebAuthnCredentialStore store) {
+        return dev.chojo.ember.feature.twofactor.service.WebAuthnRelyingPartyFactory.build(twoFactor, api, store);
+    }
+
+    @Provides
+    @Singleton
     Demo demo(File config) {
         return config.demo();
     }
