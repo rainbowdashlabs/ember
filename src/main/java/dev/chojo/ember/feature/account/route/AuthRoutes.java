@@ -243,8 +243,12 @@ public class AuthRoutes implements Routes {
         }
         enforceLimit(rateLimiter.tryLogin(clientIp(ctx), request.email()));
 
-        var result =
-                authService.login(request.email(), request.password(), ctx.userAgent(), ctx.header("CF-IPCountry"));
+        var result = authService.login(
+                request.email(),
+                request.password(),
+                ctx.userAgent(),
+                ctx.header("CF-IPCountry"),
+                ctx.cookie("ember_2fa_trust"));
         if (!result.success()) {
             throw new UnauthorizedResponse(result.message());
         }

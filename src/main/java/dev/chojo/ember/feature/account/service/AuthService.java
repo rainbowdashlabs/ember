@@ -57,6 +57,7 @@ public class AuthService {
     private final HibpClient hibpClient;
     private final BreachCheckWorker breachCheckWorker;
     private final dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository twoFactorRepository;
+    private final dev.chojo.ember.feature.twofactor.service.TrustedDeviceService trustedDeviceService;
     /**
      * Lazily-computed hash of a random throwaway password, used by {@link #login} when the
      * supplied email does not resolve to an account or has no stored credential. Running the
@@ -78,7 +79,8 @@ public class AuthService {
             Demo demo,
             HibpClient hibpClient,
             BreachCheckWorker breachCheckWorker,
-            dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository twoFactorRepository) {
+            dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository twoFactorRepository,
+            dev.chojo.ember.feature.twofactor.service.TrustedDeviceService trustedDeviceService) {
         this.accountRepository = accountRepository;
         this.registrationCodeRepository = registrationCodeRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -90,6 +92,7 @@ public class AuthService {
         this.hibpClient = hibpClient;
         this.breachCheckWorker = breachCheckWorker;
         this.twoFactorRepository = twoFactorRepository;
+        this.trustedDeviceService = trustedDeviceService;
     }
 
     /**
@@ -384,6 +387,17 @@ public class AuthService {
      * @return the login result containing a session token or password change token, or a failure message
      */
     public LoginResult login(String email, String password, String userAgent, String location) {
+        return login(email, password, userAgent, location, null);
+    }
+
+    /**
+     * Variant of {@link #login(String, String, String, String)} that additionally accepts the
+     * {@code ember_2fa_trust} cookie value. If the cookie resolves to a valid trusted-device row
+     * for the authenticated account, the 2FA challenge is skipped and a fully-verified session
+     * is minted immediately.
+     */
+    public LoginResult login(
+            String email, String password, String userAgent, String location, String trustedDeviceCookie) {
         Optional<Account> accountOpt = accountRepository.findByEmail(email);
         Optional<AccountCredential> credOpt = accountOpt.flatMap(a -> accountRepository.findCredential(a.id()));
 
@@ -436,6 +450,22 @@ public class AuthService {
 
         // Two-factor authentication — issue a pre-auth token if enrolled
         if (twoFactorEnrolled(account.id())) {
+            // Trusted-device cookie bypass: the cookie was issued after a previous successful
+            // 2FA verification, so we trust it for as long as it's not expired or revoked. The
+            // cookie scope is the account behind the token, so validate first then verify it
+            // belongs to *this* account before honouring it.
+            if (trustedDeviceService != null && trustedDeviceCookie != null && !trustedDeviceCookie.isBlank()) {
+                var trusted = trustedDeviceService.validate(trustedDeviceCookie);
+                if (trusted.isPresent() && trusted.get().accountId() == account.id()) {
+                    log.info(
+                            "Login for account {} ({}) bypassing 2FA via trusted device {}",
+                            account.id(),
+                            email,
+                            trusted.get().id());
+                    return createSession(
+                            account.id(), userAgent, location, Instant.now(), trusted.get().id());
+                }
+            }
             log.info("Login for account {} ({}) requires 2FA verification", account.id(), email);
             String token = generateToken();
             accountRepository.deleteTokensByAccountAndType(account.id(), TokenType.TWO_FACTOR_PENDING);
@@ -760,6 +790,19 @@ public class AuthService {
      * @return a successful login result with the session token
      */
     private LoginResult createSession(int accountId, String userAgent, String location) {
+        return createSession(accountId, userAgent, location, null, null);
+    }
+
+    /**
+     * Issues a session, optionally tagging it with a 2FA-verification timestamp and a trusted-device
+     * link so step-up freshness checks pass without an immediate prompt.
+     */
+    private LoginResult createSession(
+            int accountId,
+            String userAgent,
+            String location,
+            Instant twoFactorVerifiedAt,
+            Integer deviceTrustId) {
         String token;
         Instant expiresAt;
         if (demo.dev() || demo.enabled()) {
@@ -772,7 +815,8 @@ public class AuthService {
             token = generateToken();
             expiresAt = Instant.now().plus(authConfig.sessionMinutes(), ChronoUnit.MINUTES);
         }
-        accountRepository.createSession(accountId, token, expiresAt, userAgent, location);
+        accountRepository.createSession(
+                accountId, token, expiresAt, userAgent, location, twoFactorVerifiedAt, deviceTrustId);
         log.info("Session created for account {}", accountId);
         return LoginResult.success(token, expiresAt);
     }
@@ -783,6 +827,16 @@ public class AuthService {
      */
     public LoginResult createSessionForAccount(int accountId, String userAgent, String location) {
         return createSession(accountId, userAgent, location);
+    }
+
+    /**
+     * Creates a session that is already marked as 2FA-verified and (optionally) linked to a
+     * trusted-device row. Used by the {@code /auth/2fa} verify path so the freshly-minted
+     * session passes step-up freshness checks without a second prompt.
+     */
+    public LoginResult createVerifiedSessionForAccount(
+            int accountId, String userAgent, String location, Integer deviceTrustId) {
+        return createSession(accountId, userAgent, location, Instant.now(), deviceTrustId);
     }
 
     /**

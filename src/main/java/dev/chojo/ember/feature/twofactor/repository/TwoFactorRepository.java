@@ -295,6 +295,22 @@ public class TwoFactorRepository {
                 .all();
     }
 
+    public Optional<TrustedDevice> findTrustedDeviceByHash(String tokenHash) {
+        return query("""
+                SELECT * FROM account_2fa_trusted_device
+                WHERE token_hash = :token_hash AND revoked_at IS NULL AND trusted_until > now();""")
+                .single(call().bind("token_hash", tokenHash))
+                .map(TrustedDevice.map())
+                .first();
+    }
+
+    public boolean touchTrustedDevice(int deviceId) {
+        return query("UPDATE account_2fa_trusted_device SET last_seen_at = now() WHERE id = :id;")
+                .single(call().bind("id", deviceId))
+                .update()
+                .changed();
+    }
+
     public boolean revokeTrustedDevice(int deviceId, int accountId) {
         return query(
                         "UPDATE account_2fa_trusted_device SET revoked_at = now() WHERE id = :id AND account_id = :account_id AND revoked_at IS NULL;")

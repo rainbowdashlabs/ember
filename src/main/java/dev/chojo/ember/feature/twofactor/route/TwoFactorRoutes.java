@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
+import dev.chojo.ember.feature.twofactor.service.TrustedDeviceService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnService;
@@ -31,6 +32,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
@@ -48,6 +50,7 @@ public class TwoFactorRoutes implements Routes {
     private final TokenHasher tokenHasher;
     private final WebAuthnService webAuthnService;
     private final Demo demoConfig;
+    private final TrustedDeviceService trustedDeviceService;
 
     @Inject
     public TwoFactorRoutes(
@@ -58,7 +61,8 @@ public class TwoFactorRoutes implements Routes {
             Auth authConfig,
             TokenHasher tokenHasher,
             WebAuthnService webAuthnService,
-            Demo demoConfig) {
+            Demo demoConfig,
+            TrustedDeviceService trustedDeviceService) {
         this.twoFactorService = twoFactorService;
         this.auditService = auditService;
         this.accountRepository = accountRepository;
@@ -67,6 +71,7 @@ public class TwoFactorRoutes implements Routes {
         this.tokenHasher = tokenHasher;
         this.webAuthnService = webAuthnService;
         this.demoConfig = demoConfig;
+        this.trustedDeviceService = trustedDeviceService;
     }
 
     @Override
@@ -88,6 +93,19 @@ public class TwoFactorRoutes implements Routes {
                 StepUpCategory.ACCOUNT_SECURITY);
         routes.post(prefix + "/auth/2fa", this::verify2fa);
         routes.post(prefix + "/auth/2fa/stepup", this::stepUp, StationPermission.LOGIN);
+
+        // Trusted-device management
+        routes.get(prefix + "/account/2fa/trusted-devices", this::listTrustedDevices, StationPermission.LOGIN);
+        routes.post(
+                prefix + "/account/2fa/trusted-devices/{id}/revoke",
+                this::revokeTrustedDevice,
+                StationPermission.LOGIN,
+                StepUpCategory.ACCOUNT_SECURITY);
+        routes.post(
+                prefix + "/account/2fa/trusted-devices/revoke-all",
+                this::revokeAllTrustedDevices,
+                StationPermission.LOGIN,
+                StepUpCategory.ACCOUNT_SECURITY);
 
         // WebAuthn enrollment — step-up only applies when the account is already enrolled
         // in something else (the middleware exempts unenrolled accounts so the first
@@ -129,7 +147,8 @@ public class TwoFactorRoutes implements Routes {
                         .map(f -> new FactorInfo(f.id(), f.kind().name(), f.label(), f.createdAt(), f.lastUsedAt()))
                         .toList(),
                 backupCodes,
-                !demoConfig.enabled()));
+                !demoConfig.enabled(),
+                trustedDeviceService.maxDays()));
     }
 
     private void beginTotp(Context ctx) {
@@ -234,9 +253,64 @@ public class TwoFactorRoutes implements Routes {
         }
 
         accountRepository.deleteToken(request.preAuthToken());
-        LoginResult session =
-                authService.createSessionForAccount(accountId, ctx.userAgent(), ctx.header("CF-IPCountry"));
+        Integer deviceTrustId = issueTrustedDeviceIfRequested(ctx, accountId, request.rememberDeviceDays());
+        LoginResult session = authService.createVerifiedSessionForAccount(
+                accountId, ctx.userAgent(), ctx.header("CF-IPCountry"), deviceTrustId);
         ctx.json(new LoginResultResponse(session.token(), session.expiresAt()));
+    }
+
+    private void listTrustedDevices(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var devices = trustedDeviceService.list(session.accountId()).stream()
+                .map(d -> new TrustedDeviceDto(
+                        d.id(),
+                        d.userAgent(),
+                        d.createdAt(),
+                        d.lastSeenAt(),
+                        d.trustedUntil(),
+                        session.sessionId() != 0 && deviceMatchesSession(session, d.id())))
+                .toList();
+        ctx.json(new TrustedDevicesResponse(devices));
+    }
+
+    /**
+     * Best-effort "is this the device the caller is currently signed in on?" check. We don't
+     * have direct access to {@code account_session.device_trust_id} from {@link UserSession}
+     * yet — the next session refresh will surface it. For now we always return false; the UI
+     * still shows the list and lets the user revoke each one.
+     */
+    @SuppressWarnings("unused")
+    private static boolean deviceMatchesSession(UserSession session, int deviceId) {
+        return false;
+    }
+
+    private void revokeTrustedDevice(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        if (!trustedDeviceService.revoke(id, session.accountId())) {
+            throw new BadRequestResponse("Trusted device not found");
+        }
+        auditService.record(
+                session.accountId(),
+                null,
+                TwoFactorEvent.TRUSTED_DEVICE_REVOKED,
+                null,
+                ctx.userAgent(),
+                ctx.header("CF-IPCountry"));
+        ctx.json(new MessageResponse("Trusted device revoked"));
+    }
+
+    private void revokeAllTrustedDevices(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        trustedDeviceService.revokeAll(session.accountId());
+        auditService.record(
+                session.accountId(),
+                null,
+                TwoFactorEvent.TRUSTED_DEVICE_REVOKED,
+                null,
+                ctx.userAgent(),
+                ctx.header("CF-IPCountry"));
+        ctx.json(new MessageResponse("All trusted devices revoked"));
     }
 
     private void stepUp(Context ctx) {
@@ -357,9 +431,35 @@ public class TwoFactorRoutes implements Routes {
                 TwoFactorKind.WEBAUTHN,
                 ctx.userAgent(),
                 ctx.header("CF-IPCountry"));
-        LoginResult session =
-                authService.createSessionForAccount(accountId, ctx.userAgent(), ctx.header("CF-IPCountry"));
+        Integer deviceTrustId = issueTrustedDeviceIfRequested(ctx, accountId, request.rememberDeviceDays());
+        LoginResult session = authService.createVerifiedSessionForAccount(
+                accountId, ctx.userAgent(), ctx.header("CF-IPCountry"), deviceTrustId);
         ctx.json(new LoginResultResponse(session.token(), session.expiresAt()));
+    }
+
+    /**
+     * Mints a trusted-device row when the client requested one. Emits a {@code Set-Cookie}
+     * for {@code ember_2fa_trust} with {@code HttpOnly}, {@code SameSite=Strict}, path scoped
+     * to the API origin, and {@code Secure} outside dev / demo mode. Returns the new row's id
+     * so the caller can attach it to the freshly-minted session.
+     */
+    private Integer issueTrustedDeviceIfRequested(Context ctx, int accountId, Integer rememberDeviceDays) {
+        if (rememberDeviceDays == null || rememberDeviceDays <= 0) return null;
+        var issued = trustedDeviceService.issue(accountId, rememberDeviceDays, ctx.userAgent());
+        long maxAge = Duration.between(Instant.now(), issued.device().trustedUntil()).getSeconds();
+        StringBuilder cookie = new StringBuilder()
+                .append(TrustedDeviceService.COOKIE_NAME).append('=').append(issued.token())
+                .append("; Path=/; HttpOnly; SameSite=Strict; Max-Age=").append(maxAge);
+        if (!demoConfig.dev() && !demoConfig.enabled()) cookie.append("; Secure");
+        ctx.header("Set-Cookie", cookie.toString());
+        auditService.record(
+                accountId,
+                null,
+                TwoFactorEvent.TRUSTED_DEVICE_ADDED,
+                null,
+                ctx.userAgent(),
+                ctx.header("CF-IPCountry"));
+        return issued.device().id();
     }
 
     private void beginWebAuthnStepUp(Context ctx) {
@@ -409,7 +509,11 @@ public class TwoFactorRoutes implements Routes {
     // -- Request / Response records --
 
     public record TwoFactorStatusResponse(
-            boolean enrolled, List<FactorInfo> factors, int unusedBackupCodes, boolean webauthnAvailable) {}
+            boolean enrolled,
+            List<FactorInfo> factors,
+            int unusedBackupCodes,
+            boolean webauthnAvailable,
+            int trustedDeviceMaxDays) {}
 
     public record FactorInfo(int id, String kind, String label, Instant createdAt, Instant lastUsedAt) {}
 
@@ -419,7 +523,7 @@ public class TwoFactorRoutes implements Routes {
 
     public record BackupCodesResponse(List<String> codes) {}
 
-    public record Verify2faRequest(String preAuthToken, String factor, String proof) {}
+    public record Verify2faRequest(String preAuthToken, String factor, String proof, Integer rememberDeviceDays) {}
 
     public record StepUpRequest(String factor, String proof) {}
 
@@ -437,9 +541,15 @@ public class TwoFactorRoutes implements Routes {
 
     public record WebAuthnLoginBeginRequest(String preAuthToken) {}
 
-    public record WebAuthnLoginFinishRequest(String preAuthToken, String challengeToken, String credentialJson) {}
+    public record WebAuthnLoginFinishRequest(
+            String preAuthToken, String challengeToken, String credentialJson, Integer rememberDeviceDays) {}
 
     public record WebAuthnStepUpFinishRequest(String challengeToken, String credentialJson) {}
 
     public record RenameFactorRequest(String label) {}
+
+    public record TrustedDeviceDto(
+            int id, String userAgent, Instant createdAt, Instant lastSeenAt, Instant trustedUntil, boolean current) {}
+
+    public record TrustedDevicesResponse(List<TrustedDeviceDto> devices) {}
 }

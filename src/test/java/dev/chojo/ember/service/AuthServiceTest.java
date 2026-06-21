@@ -49,6 +49,10 @@ class AuthServiceTest extends RepositoryTestBase {
         var breachCheckWorker = mock(BreachCheckWorker.class);
 
         var twoFactorRepo = new dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository();
+        var trustedDeviceService = new dev.chojo.ember.feature.twofactor.service.TrustedDeviceService(
+                twoFactorRepo,
+                dev.chojo.ember.auth.TokenHasher.forTesting("test-pepper"),
+                new dev.chojo.ember.conf.file.elements.TwoFactorSettings());
         service = new AuthService(
                 accountRepo,
                 registrationCodeRepo,
@@ -60,7 +64,8 @@ class AuthServiceTest extends RepositoryTestBase {
                 demo,
                 hibpClient,
                 breachCheckWorker,
-                twoFactorRepo);
+                twoFactorRepo,
+                trustedDeviceService);
     }
 
     @Test

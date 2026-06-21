@@ -642,17 +642,37 @@ public class AccountRepository {
      */
     public InsertionResult createSession(
             int accountId, String token, Instant expiresAt, String userAgent, String location) {
+        return createSession(accountId, token, expiresAt, userAgent, location, null, null);
+    }
+
+    /**
+     * Creates a session and additionally records the 2FA-verification timestamp and trusted-device
+     * link. Used by the 2FA verify and trusted-device login paths to mint a session that already
+     * counts as "freshly verified" for step-up freshness checks.
+     */
+    public InsertionResult createSession(
+            int accountId,
+            String token,
+            Instant expiresAt,
+            String userAgent,
+            String location,
+            Instant twoFactorVerifiedAt,
+            Integer deviceTrustId) {
         return query("""
                 INSERT
                 INTO
-                    account_session(account_id, token_hash, expires_at, user_agent, location)
+                    account_session(account_id, token_hash, expires_at, user_agent, location,
+                                    two_factor_verified_at, device_trust_id)
                 VALUES
-                    (:account_id, :token_hash, :expires_at, :user_agent, :location);""")
+                    (:account_id, :token_hash, :expires_at, :user_agent, :location,
+                     :two_factor_verified_at, :device_trust_id);""")
                 .single(call().bind("account_id", accountId)
                         .bind("token_hash", tokenHasher.hash(token))
                         .bind("expires_at", expiresAt, INSTANT_TIMESTAMP)
                         .bind("user_agent", userAgent)
-                        .bind("location", location))
+                        .bind("location", location)
+                        .bind("two_factor_verified_at", twoFactorVerifiedAt, INSTANT_TIMESTAMP)
+                        .bind("device_trust_id", deviceTrustId))
                 .insert();
     }
 
