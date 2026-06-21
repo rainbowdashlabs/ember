@@ -12,7 +12,9 @@ import dev.chojo.ember.feature.twofactor.entity.TwoFactorAuditEntry;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorFactor;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
+import dev.chojo.ember.feature.twofactor.entity.TwoFactorPolicy;
 import dev.chojo.ember.feature.twofactor.entity.WebAuthnCredential;
+import dev.chojo.ember.api.auth.StationUserType;
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import jakarta.inject.Singleton;
 
@@ -306,6 +308,81 @@ public class TwoFactorRepository {
                         "UPDATE account_2fa_trusted_device SET revoked_at = now() WHERE account_id = :account_id AND revoked_at IS NULL;")
                 .single(call().bind("account_id", accountId))
                 .update();
+    }
+
+    // -- Policy --
+
+    public List<TwoFactorPolicy> findInstancePolicies() {
+        return query("SELECT * FROM two_factor_policy WHERE scope = 'INSTANCE' ORDER BY user_type NULLS FIRST;")
+                .single(call())
+                .map(TwoFactorPolicy.map())
+                .all();
+    }
+
+    public List<TwoFactorPolicy> findStationPolicies(int stationId) {
+        return query("""
+                SELECT * FROM two_factor_policy
+                WHERE scope = 'STATION' AND station_id = :station_id
+                ORDER BY user_type NULLS FIRST;""")
+                .single(call().bind("station_id", stationId))
+                .map(TwoFactorPolicy.map())
+                .all();
+    }
+
+    /**
+     * Looks up the (scope, station, user-type) row. {@code stationId} must be {@code null} for
+     * instance scope and set for station scope; {@code userType} may be {@code null} to mean
+     * "all user types in this scope".
+     */
+    public Optional<TwoFactorPolicy> findPolicy(
+            TwoFactorPolicy.Scope scope, Integer stationId, StationUserType userType) {
+        return query("""
+                SELECT * FROM two_factor_policy
+                WHERE scope = CAST(:scope AS TEXT)
+                  AND COALESCE(station_id, 0) = COALESCE(:station_id, 0)
+                  AND COALESCE(user_type, '') = COALESCE(:user_type, '');""")
+                .single(call().bind("scope", scope.name())
+                        .bind("station_id", stationId)
+                        .bind("user_type", userType == null ? null : userType.name()))
+                .map(TwoFactorPolicy.map())
+                .first();
+    }
+
+    /**
+     * Inserts or updates a policy row keyed by (scope, station, user-type). Returns the live row.
+     */
+    public TwoFactorPolicy upsertPolicy(
+            TwoFactorPolicy.Scope scope,
+            Integer stationId,
+            StationUserType userType,
+            boolean required,
+            short graceDays,
+            Integer createdBy) {
+        return query("""
+                INSERT INTO two_factor_policy (scope, station_id, user_type, required, grace_days, created_by)
+                VALUES (:scope, :station_id, :user_type, :required, :grace_days, :created_by)
+                ON CONFLICT (COALESCE(station_id, 0), COALESCE(user_type, ''))
+                DO UPDATE SET required = EXCLUDED.required,
+                              grace_days = EXCLUDED.grace_days,
+                              created_by = EXCLUDED.created_by,
+                              created_at = now()
+                RETURNING *;""")
+                .single(call().bind("scope", scope.name())
+                        .bind("station_id", stationId)
+                        .bind("user_type", userType == null ? null : userType.name())
+                        .bind("required", required)
+                        .bind("grace_days", graceDays)
+                        .bind("created_by", createdBy))
+                .map(TwoFactorPolicy.map())
+                .first()
+                .orElseThrow();
+    }
+
+    public boolean deletePolicy(int id) {
+        return query("DELETE FROM two_factor_policy WHERE id = :id;")
+                .single(call().bind("id", id))
+                .delete()
+                .changed();
     }
 
     // -- Session 2FA timestamp --
