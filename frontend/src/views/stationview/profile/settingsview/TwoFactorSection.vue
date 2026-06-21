@@ -21,6 +21,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import WebAuthnSection from './twofactorsection/WebAuthnSection.vue'
 
 const {t} = useI18n()
 
@@ -39,6 +40,17 @@ const removeLoading = ref(false)
 
 const showRegenerateModal = ref(false)
 const regeneratedCodes = ref<string[]>([])
+
+const recoveryCodesAfterWebAuthn = ref<string[]>([])
+const showWebAuthnRecoveryCodes = ref(false)
+
+async function handleWebAuthnUpdated(codes: string[]) {
+  if (codes && codes.length > 0) {
+    recoveryCodesAfterWebAuthn.value = codes
+    showWebAuthnRecoveryCodes.value = true
+  }
+  await loadStatus()
+}
 
 onMounted(async () => {
   await loadStatus()
@@ -120,10 +132,13 @@ async function handleRegenerate() {
       <!-- Not enrolled: show setup -->
       <template v-if="!status.enrolled && setupStep === 'idle'">
         <MutedText tag="p" size="sm">{{ t('twoFactor.setup.description') }}</MutedText>
-        <PrimaryButton @click="startSetup">
-          <font-awesome-icon :icon="['fas', 'shield']" class="mr-1"/>
-          {{ t('twoFactor.setup.begin') }}
-        </PrimaryButton>
+        <div class="flex flex-wrap gap-2">
+          <PrimaryButton @click="startSetup">
+            <font-awesome-icon :icon="['fas', 'shield']" class="mr-1"/>
+            {{ t('twoFactor.setup.begin') }}
+          </PrimaryButton>
+        </div>
+        <WebAuthnSection :factors="status.factors" :available="status.webauthnAvailable" @updated="handleWebAuthnUpdated"/>
       </template>
 
       <!-- QR code step -->
@@ -159,7 +174,7 @@ async function handleRegenerate() {
 
       <!-- Enrolled: show management -->
       <template v-if="status.enrolled && setupStep === 'idle'">
-        <NeutralContainer class="space-y-3">
+        <NeutralContainer v-if="status.factors.some(f => f.kind === 'TOTP')" class="space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <font-awesome-icon :icon="['fas', 'mobile-screen']" class="text-(--text-muted)"/>
@@ -168,6 +183,20 @@ async function handleRegenerate() {
             <ErrorButton size="sm" @click="showRemoveModal = true">{{ t('common.remove') }}</ErrorButton>
           </div>
         </NeutralContainer>
+        <NeutralContainer v-else class="space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <font-awesome-icon :icon="['fas', 'mobile-screen']" class="text-(--text-muted)"/>
+              <span class="font-medium">{{ t('twoFactor.authenticator') }}</span>
+            </div>
+            <PrimaryButton size="sm" @click="startSetup">
+              <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
+              {{ t('twoFactor.setup.begin') }}
+            </PrimaryButton>
+          </div>
+        </NeutralContainer>
+
+        <WebAuthnSection :factors="status.factors" :available="status.webauthnAvailable" @updated="handleWebAuthnUpdated"/>
 
         <NeutralContainer class="space-y-3">
           <div class="flex items-center justify-between">
@@ -202,6 +231,18 @@ async function handleRegenerate() {
           <code v-for="code in regeneratedCodes" :key="code" class="text-sm bg-(--bg) px-3 py-1.5 rounded text-center font-mono">{{ code }}</code>
         </div>
         <PrimaryButton class="w-full" @click="showRegenerateModal = false">{{ t('twoFactor.backup.done') }}</PrimaryButton>
+      </div>
+    </Modal>
+
+    <!-- Backup codes issued automatically after first WebAuthn enrollment -->
+    <Modal v-model="showWebAuthnRecoveryCodes">
+      <div class="space-y-4 p-4">
+        <SubHeader>{{ t('twoFactor.backup.title') }}</SubHeader>
+        <Alert variant="info">{{ t('twoFactor.backup.saveWarning') }}</Alert>
+        <div class="grid grid-cols-2 gap-2">
+          <code v-for="code in recoveryCodesAfterWebAuthn" :key="code" class="text-sm bg-(--bg) px-3 py-1.5 rounded text-center font-mono">{{ code }}</code>
+        </div>
+        <PrimaryButton class="w-full" @click="showWebAuthnRecoveryCodes = false">{{ t('twoFactor.backup.done') }}</PrimaryButton>
       </div>
     </Modal>
   </div>

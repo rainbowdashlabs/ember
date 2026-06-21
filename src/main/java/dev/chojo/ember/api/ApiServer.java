@@ -335,6 +335,13 @@ public class ApiServer {
                 && (path.matches("/api/v1/station-members/\\d+/roles") || path.matches("/api/v1/groups/\\d+/roles"))) {
             throw new BadRequestResponse("Role changes are disabled in demo mode");
         }
+
+        // Demo accounts have no real authenticator hardware to enroll. Block WebAuthn
+        // registration endpoints so the UI can't lock a demo session out behind a key
+        // it can never produce again.
+        if (path.startsWith("/api/v1/account/2fa/webauthn/register/")) {
+            throw new BadRequestResponse("Security-key setup is disabled in demo mode");
+        }
     }
 
     /**

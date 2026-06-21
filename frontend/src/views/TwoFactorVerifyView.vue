@@ -7,11 +7,13 @@
 import {ref} from 'vue'
 import {useRoute} from 'vue-router'
 import {useI18n} from 'vue-i18n'
-import {verify2fa} from '@/api/twoFactor'
+import {verify2fa, webauthnLoginBegin, webauthnLoginFinish} from '@/api/twoFactor'
+import {getWebAuthnCredential, isWebAuthnSupported} from '@/util/webauthn'
 import {setItem} from '@/api/storage'
 import {scheduleTokenRefresh} from '@/api/client'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import LinkButton from '@/components/button/LinkButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -35,15 +37,43 @@ async function handleVerify() {
   try {
     const factor = useBackupCode.value ? 'BACKUP_CODE' : 'TOTP'
     const result = await verify2fa(preAuthToken.value, factor, code.value)
-    setItem('session_token', result.token)
-    setItem('session_expires_at', result.expiresAt)
-    scheduleTokenRefresh(result.expiresAt)
-    window.location.href = '/station/requirements'
+    finalizeSession(result.token, result.expiresAt)
   } catch {
     error.value = t('twoFactor.verify.invalidCode')
   } finally {
     loading.value = false
   }
+}
+
+const webauthnSupported = isWebAuthnSupported()
+
+async function handleWebAuthn() {
+  if (!preAuthToken.value) return
+  error.value = ''
+  loading.value = true
+  try {
+    const begin = await webauthnLoginBegin(preAuthToken.value)
+    const credentialJson = await getWebAuthnCredential(begin.optionsJson)
+    const result = await webauthnLoginFinish(preAuthToken.value, begin.challengeToken, credentialJson)
+    finalizeSession(result.token, result.expiresAt)
+  } catch (e: any) {
+    if (e?.message === 'webauthn-cancelled') {
+      error.value = t('twoFactor.webauthn.cancelled')
+    } else if (e?.message === 'webauthn-unsupported') {
+      error.value = t('twoFactor.webauthn.unsupported')
+    } else {
+      error.value = t('twoFactor.verify.invalidCode')
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+function finalizeSession(token: string, expiresAt: string) {
+  setItem('session_token', token)
+  setItem('session_expires_at', expiresAt)
+  scheduleTokenRefresh(expiresAt)
+  window.location.href = '/station/requirements'
 }
 </script>
 
@@ -73,6 +103,11 @@ async function handleVerify() {
             {{ loading ? t('common.loading') : t('twoFactor.verify.submit') }}
           </PrimaryButton>
         </form>
+
+        <SecondaryButton v-if="webauthnSupported" type="button" :disabled="loading" class="w-full" @click="handleWebAuthn">
+          <font-awesome-icon :icon="['fas', 'key']" class="mr-1"/>
+          {{ t('twoFactor.webauthn.useKey') }}
+        </SecondaryButton>
 
         <div class="text-center">
           <LinkButton @click="useBackupCode = !useBackupCode">

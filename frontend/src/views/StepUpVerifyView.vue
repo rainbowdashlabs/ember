@@ -7,7 +7,8 @@
 import {computed, ref} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {useI18n} from 'vue-i18n'
-import {stepUp} from '@/api/twoFactor'
+import {stepUp, webauthnStepUpBegin, webauthnStepUpFinish} from '@/api/twoFactor'
+import {getWebAuthnCredential, isWebAuthnSupported} from '@/util/webauthn'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -66,6 +67,29 @@ async function handleVerify() {
   }
 }
 
+const webauthnSupported = isWebAuthnSupported()
+
+async function handleWebAuthn() {
+  loading.value = true
+  error.value = ''
+  try {
+    const begin = await webauthnStepUpBegin()
+    const credentialJson = await getWebAuthnCredential(begin.optionsJson)
+    await webauthnStepUpFinish(begin.challengeToken, credentialJson)
+    await router.replace(redirectTarget.value)
+  } catch (e: any) {
+    if (e?.message === 'webauthn-cancelled') {
+      error.value = t('twoFactor.webauthn.cancelled')
+    } else if (e?.message === 'webauthn-unsupported') {
+      error.value = t('twoFactor.webauthn.unsupported')
+    } else {
+      error.value = t('twoFactor.stepUp.invalidCode')
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
 function handleCancel() {
   router.replace(redirectTarget.value)
 }
@@ -100,6 +124,11 @@ function handleCancel() {
             </PrimaryButton>
           </div>
         </form>
+
+        <SecondaryButton v-if="webauthnSupported" type="button" :disabled="loading" class="w-full" @click="handleWebAuthn">
+          <font-awesome-icon :icon="['fas', 'key']" class="mr-1"/>
+          {{ t('twoFactor.webauthn.useKey') }}
+        </SecondaryButton>
 
         <div class="text-center">
           <LinkButton type="button" @click="useBackupCode = !useBackupCode">

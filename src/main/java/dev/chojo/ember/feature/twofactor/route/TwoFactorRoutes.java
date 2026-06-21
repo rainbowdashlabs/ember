@@ -11,6 +11,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.file.elements.Auth;
+import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.account.entity.AccountToken;
 import dev.chojo.ember.feature.account.entity.LoginResult;
 import dev.chojo.ember.feature.account.entity.TokenType;
@@ -46,6 +47,7 @@ public class TwoFactorRoutes implements Routes {
     private final Auth authConfig;
     private final TokenHasher tokenHasher;
     private final WebAuthnService webAuthnService;
+    private final Demo demoConfig;
 
     @Inject
     public TwoFactorRoutes(
@@ -55,7 +57,8 @@ public class TwoFactorRoutes implements Routes {
             AuthService authService,
             Auth authConfig,
             TokenHasher tokenHasher,
-            WebAuthnService webAuthnService) {
+            WebAuthnService webAuthnService,
+            Demo demoConfig) {
         this.twoFactorService = twoFactorService;
         this.auditService = auditService;
         this.accountRepository = accountRepository;
@@ -63,6 +66,7 @@ public class TwoFactorRoutes implements Routes {
         this.authConfig = authConfig;
         this.tokenHasher = tokenHasher;
         this.webAuthnService = webAuthnService;
+        this.demoConfig = demoConfig;
     }
 
     @Override
@@ -133,7 +137,8 @@ public class TwoFactorRoutes implements Routes {
                 factors.stream()
                         .map(f -> new FactorInfo(f.id(), f.kind().name(), f.label(), f.createdAt(), f.lastUsedAt()))
                         .toList(),
-                backupCodes));
+                backupCodes,
+                !demoConfig.enabled()));
     }
 
     private void beginTotp(Context ctx) {
@@ -414,7 +419,8 @@ public class TwoFactorRoutes implements Routes {
 
     // -- Request / Response records --
 
-    public record TwoFactorStatusResponse(boolean enrolled, List<FactorInfo> factors, int unusedBackupCodes) {}
+    public record TwoFactorStatusResponse(
+            boolean enrolled, List<FactorInfo> factors, int unusedBackupCodes, boolean webauthnAvailable) {}
 
     public record FactorInfo(int id, String kind, String label, Instant createdAt, Instant lastUsedAt) {}
 
