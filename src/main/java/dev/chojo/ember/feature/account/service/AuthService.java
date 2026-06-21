@@ -463,7 +463,11 @@ public class AuthService {
                             email,
                             trusted.get().id());
                     return createSession(
-                            account.id(), userAgent, location, Instant.now(), trusted.get().id());
+                            account.id(),
+                            userAgent,
+                            location,
+                            Instant.now(),
+                            trusted.get().id());
                 }
             }
             log.info("Login for account {} ({}) requires 2FA verification", account.id(), email);
@@ -798,11 +802,7 @@ public class AuthService {
      * link so step-up freshness checks pass without an immediate prompt.
      */
     private LoginResult createSession(
-            int accountId,
-            String userAgent,
-            String location,
-            Instant twoFactorVerifiedAt,
-            Integer deviceTrustId) {
+            int accountId, String userAgent, String location, Instant twoFactorVerifiedAt, Integer deviceTrustId) {
         String token;
         Instant expiresAt;
         if (demo.dev() || demo.enabled()) {

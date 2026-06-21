@@ -35,8 +35,7 @@ public class TrustedDeviceService {
     private final TwoFactorSettings settings;
 
     @Inject
-    public TrustedDeviceService(
-            TwoFactorRepository repository, TokenHasher tokenHasher, TwoFactorSettings settings) {
+    public TrustedDeviceService(TwoFactorRepository repository, TokenHasher tokenHasher, TwoFactorSettings settings) {
         this.repository = repository;
         this.tokenHasher = tokenHasher;
         this.settings = settings;

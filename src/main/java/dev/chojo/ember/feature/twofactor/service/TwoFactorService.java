@@ -62,8 +62,7 @@ public class TwoFactorService {
      * that as a 404. Reset never fails partially — the audit row is the source of truth even
      * if the email enqueue throws.
      */
-    public boolean resetAccount2FA(
-            int targetAccountId, Integer actorAccountId, String userAgent, String country) {
+    public boolean resetAccount2FA(int targetAccountId, Integer actorAccountId, String userAgent, String country) {
         var target = accountRepository.findById(targetAccountId);
         if (target.isEmpty()) return false;
 
@@ -72,8 +71,7 @@ public class TwoFactorService {
         repository.revokeAllTrustedDevices(targetAccountId);
         accountRepository.deleteSessionsByAccount(targetAccountId);
 
-        auditService.record(
-                targetAccountId, actorAccountId, TwoFactorEvent.ADMIN_RESET, null, userAgent, country);
+        auditService.record(targetAccountId, actorAccountId, TwoFactorEvent.ADMIN_RESET, null, userAgent, country);
 
         Account account = target.get();
         String actorLabel = actorAccountId == null
@@ -82,10 +80,7 @@ public class TwoFactorService {
         String displayName = (account.firstName() + " " + account.lastName()).trim();
         try {
             emailService.sendTwoFactorResetNotice(
-                    account.email(),
-                    displayName.isBlank() ? account.email() : displayName,
-                    actorLabel,
-                    Instant.now());
+                    account.email(), displayName.isBlank() ? account.email() : displayName, actorLabel, Instant.now());
         } catch (Exception e) {
             log.warn("Failed to send 2FA reset notification to account {}", targetAccountId, e);
         }

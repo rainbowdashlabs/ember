@@ -353,6 +353,9 @@ tasks {
                     "*.FederationPartnerSeeder*",
                     "*.DiscoveryKeyService*",
                     "*.DiscoveryStationProjectionService*",
+                    // WebAuthn verification — finishRegistration/finishAssertion success paths
+                    // need a real authenticator-issued credential signature, not a unit test.
+                    "*.WebAuthnService*",
                     // Static CIDR helper record — class-init only, not worth unit-testing
                     "*.RemoteUrlValidator.Cidr",
                 )

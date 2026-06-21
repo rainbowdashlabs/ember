@@ -137,7 +137,7 @@ public class TwoFactorRepository {
                     aaguid, transports, attestation_format, user_handle
                 ) VALUES (
                     :factor_id, :credential_id, :public_key, :counter,
-                    :aaguid, :transports, :attestation_format, :user_handle
+                    :aaguid::uuid, :transports, :attestation_format, :user_handle
                 );""")
                 .single(call().bind("factor_id", factorId)
                         .bind("credential_id", credentialId)

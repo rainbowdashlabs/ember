@@ -446,10 +446,14 @@ public class TwoFactorRoutes implements Routes {
     private Integer issueTrustedDeviceIfRequested(Context ctx, int accountId, Integer rememberDeviceDays) {
         if (rememberDeviceDays == null || rememberDeviceDays <= 0) return null;
         var issued = trustedDeviceService.issue(accountId, rememberDeviceDays, ctx.userAgent());
-        long maxAge = Duration.between(Instant.now(), issued.device().trustedUntil()).getSeconds();
+        long maxAge =
+                Duration.between(Instant.now(), issued.device().trustedUntil()).getSeconds();
         StringBuilder cookie = new StringBuilder()
-                .append(TrustedDeviceService.COOKIE_NAME).append('=').append(issued.token())
-                .append("; Path=/; HttpOnly; SameSite=Strict; Max-Age=").append(maxAge);
+                .append(TrustedDeviceService.COOKIE_NAME)
+                .append('=')
+                .append(issued.token())
+                .append("; Path=/; HttpOnly; SameSite=Strict; Max-Age=")
+                .append(maxAge);
         if (!demoConfig.dev() && !demoConfig.enabled()) cookie.append("; Secure");
         ctx.header("Set-Cookie", cookie.toString());
         auditService.record(
