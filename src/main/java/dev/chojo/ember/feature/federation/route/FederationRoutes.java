@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.federation.route;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -50,25 +51,43 @@ public class FederationRoutes implements Routes {
                 StationPermission.EVENTS_FEDERATE,
                 StationPermission.NEWS_FEDERATE,
                 StationPermission.KNOWLEDGE_FEDERATE);
-        routes.post(prefix + "/federation/invite", this::createInvite, StationPermission.STATION_FEDERATION);
-        routes.post(prefix + "/federation/accept", this::acceptInvite, StationPermission.STATION_FEDERATION);
+        routes.post(
+                prefix + "/federation/invite",
+                this::createInvite,
+                StationPermission.STATION_FEDERATION,
+                StepUpCategory.FEDERATION);
+        routes.post(
+                prefix + "/federation/accept",
+                this::acceptInvite,
+                StationPermission.STATION_FEDERATION,
+                StepUpCategory.FEDERATION);
         routes.get(prefix + "/federation/partners/{id}", this::getPartner, StationPermission.STATION_FEDERATION);
         routes.get(prefix + "/federation/requests", this::listPendingRequests, StationPermission.STATION_FEDERATION);
         routes.post(
                 prefix + "/federation/requests/{id}/accept",
                 this::acceptPairRequest,
-                StationPermission.STATION_FEDERATION);
+                StationPermission.STATION_FEDERATION,
+                StepUpCategory.FEDERATION);
         routes.post(
                 prefix + "/federation/requests/{id}/decline",
                 this::declinePairRequest,
-                StationPermission.STATION_FEDERATION);
+                StationPermission.STATION_FEDERATION,
+                StepUpCategory.FEDERATION);
         routes.post(
                 prefix + "/federation/partners/{id}/suspend",
                 this::suspendPartner,
-                StationPermission.STATION_FEDERATION);
+                StationPermission.STATION_FEDERATION,
+                StepUpCategory.FEDERATION);
         routes.post(
-                prefix + "/federation/partners/{id}/resume", this::resumePartner, StationPermission.STATION_FEDERATION);
-        routes.delete(prefix + "/federation/partners/{id}", this::endFederation, StationPermission.STATION_FEDERATION);
+                prefix + "/federation/partners/{id}/resume",
+                this::resumePartner,
+                StationPermission.STATION_FEDERATION,
+                StepUpCategory.FEDERATION);
+        routes.delete(
+                prefix + "/federation/partners/{id}",
+                this::endFederation,
+                StationPermission.STATION_FEDERATION,
+                StepUpCategory.FEDERATION);
 
         // Capabilities
         routes.get(
@@ -78,26 +97,44 @@ public class FederationRoutes implements Routes {
         routes.put(
                 prefix + "/federation/partners/{id}/capabilities",
                 this::setCapabilities,
-                StationPermission.STATION_FEDERATION);
+                StationPermission.STATION_FEDERATION,
+                StepUpCategory.FEDERATION);
 
         // Sharing management
         routes.get(prefix + "/federation/shares/kb", this::listKbShares, StationPermission.STATION_FEDERATION);
-        routes.post(prefix + "/federation/shares/kb", this::createKbShare, StationPermission.STATION_FEDERATION);
-        routes.delete(prefix + "/federation/shares/kb/{id}", this::deleteKbShare, StationPermission.STATION_FEDERATION);
-        routes.get(prefix + "/federation/shares/quiz", this::listQuizShares, StationPermission.STATION_FEDERATION);
-        routes.post(prefix + "/federation/shares/quiz", this::createQuizShare, StationPermission.STATION_FEDERATION);
+        routes.post(
+                prefix + "/federation/shares/kb",
+                this::createKbShare,
+                StationPermission.STATION_FEDERATION,
+                StepUpCategory.FEDERATION);
         routes.delete(
-                prefix + "/federation/shares/quiz/{id}", this::deleteQuizShare, StationPermission.STATION_FEDERATION);
+                prefix + "/federation/shares/kb/{id}",
+                this::deleteKbShare,
+                StationPermission.STATION_FEDERATION,
+                StepUpCategory.FEDERATION);
+        routes.get(prefix + "/federation/shares/quiz", this::listQuizShares, StationPermission.STATION_FEDERATION);
+        routes.post(
+                prefix + "/federation/shares/quiz",
+                this::createQuizShare,
+                StationPermission.STATION_FEDERATION,
+                StepUpCategory.FEDERATION);
+        routes.delete(
+                prefix + "/federation/shares/quiz/{id}",
+                this::deleteQuizShare,
+                StationPermission.STATION_FEDERATION,
+                StepUpCategory.FEDERATION);
         routes.get(
                 prefix + "/federation/shares/protocol", this::listProtocolShares, StationPermission.STATION_FEDERATION);
         routes.post(
                 prefix + "/federation/shares/protocol",
                 this::createProtocolShare,
-                StationPermission.STATION_FEDERATION);
+                StationPermission.STATION_FEDERATION,
+                StepUpCategory.FEDERATION);
         routes.delete(
                 prefix + "/federation/shares/protocol/{id}",
                 this::deleteProtocolShare,
-                StationPermission.STATION_FEDERATION);
+                StationPermission.STATION_FEDERATION,
+                StepUpCategory.FEDERATION);
 
         // Version/capabilities info
         routes.get(prefix + "/federation/info", this::getInfo, StationPermission.STATION_FEDERATION);

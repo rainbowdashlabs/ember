@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.system.route;
 
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.MailSettings;
@@ -78,11 +79,23 @@ public class AdminSettingsRoutes implements Routes {
         routes.get(prefix + "/public/logo/{name}", this::serveAppLogo);
         routes.get(prefix + "/public/logo-fragment/{name}", this::serveLogoFragment);
         routes.get(prefix + "/admin/settings", this::getSettings, InstancePermission.ADMINISTRATOR);
-        routes.put(prefix + "/admin/settings", this::updateSettings, InstancePermission.ADMINISTRATOR);
+        routes.put(
+                prefix + "/admin/settings",
+                this::updateSettings,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
         routes.get(prefix + "/admin/config/auth", this::getAuthConfig, InstancePermission.ADMINISTRATOR);
-        routes.put(prefix + "/admin/config/auth", this::updateAuthConfig, InstancePermission.ADMINISTRATOR);
+        routes.put(
+                prefix + "/admin/config/auth",
+                this::updateAuthConfig,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
         routes.get(prefix + "/admin/config/mailing", this::getMailingConfig, InstancePermission.ADMINISTRATOR);
-        routes.put(prefix + "/admin/config/mailing", this::updateMailingConfig, InstancePermission.ADMINISTRATOR);
+        routes.put(
+                prefix + "/admin/config/mailing",
+                this::updateMailingConfig,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
         routes.get(prefix + "/admin/legal/{type}", this::getLegalDocument, InstancePermission.ADMINISTRATOR);
         routes.get(prefix + "/admin/legal/{type}/locales", this::getLegalLocales, InstancePermission.ADMINISTRATOR);
         routes.get(
@@ -92,12 +105,20 @@ public class AdminSettingsRoutes implements Routes {
         routes.get(
                 prefix + "/admin/legal/{type}/{locale}/files", this::getLegalFiles, InstancePermission.ADMINISTRATOR);
         routes.put(
-                prefix + "/admin/legal/{type}/{locale}/files", this::saveLegalFiles, InstancePermission.ADMINISTRATOR);
-        routes.put(prefix + "/admin/legal/{type}", this::updateLegalDocument, InstancePermission.ADMINISTRATOR);
+                prefix + "/admin/legal/{type}/{locale}/files",
+                this::saveLegalFiles,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
+        routes.put(
+                prefix + "/admin/legal/{type}",
+                this::updateLegalDocument,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
         routes.put(
                 prefix + "/admin/legal/{type}/{locale}",
                 this::updateLegalDocumentLocale,
-                InstancePermission.ADMINISTRATOR);
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
     }
 
     private void initializeAppLogos() {
