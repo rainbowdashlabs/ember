@@ -43,9 +43,8 @@ public record TwoFactorPolicy(
     public static RowMapping<TwoFactorPolicy> map() {
         return row -> {
             String userTypeName = row.getString("user_type");
-            StationUserType userType = userTypeName == null || userTypeName.isBlank()
-                    ? null
-                    : StationUserType.valueOf(userTypeName);
+            StationUserType userType =
+                    userTypeName == null || userTypeName.isBlank() ? null : StationUserType.valueOf(userTypeName);
             Integer stationId = row.getObject("station_id", Integer.class);
             Integer createdBy = row.getObject("created_by", Integer.class);
             return new TwoFactorPolicy(

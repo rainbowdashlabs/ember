@@ -75,10 +75,7 @@ public class TwoFactorRoutes implements Routes {
         // First-time enrollment cannot require step-up because no factor exists yet.
         // Confirm/remove/regenerate are gated because they mutate an already-enrolled factor.
         routes.post(prefix + "/account/2fa/totp/begin", this::beginTotp, StationPermission.LOGIN);
-        routes.post(
-                prefix + "/account/2fa/totp/confirm",
-                this::confirmTotp,
-                StationPermission.LOGIN);
+        routes.post(prefix + "/account/2fa/totp/confirm", this::confirmTotp, StationPermission.LOGIN);
         routes.post(
                 prefix + "/account/2fa/totp/remove",
                 this::removeTotp,
@@ -117,14 +114,8 @@ public class TwoFactorRoutes implements Routes {
         routes.post(prefix + "/auth/2fa/webauthn/finish", this::finishWebAuthnLogin);
 
         // WebAuthn assertion for step-up — authenticated, updates session.two_factor_verified_at.
-        routes.post(
-                prefix + "/auth/2fa/stepup/webauthn/begin",
-                this::beginWebAuthnStepUp,
-                StationPermission.LOGIN);
-        routes.post(
-                prefix + "/auth/2fa/stepup/webauthn/finish",
-                this::finishWebAuthnStepUp,
-                StationPermission.LOGIN);
+        routes.post(prefix + "/auth/2fa/stepup/webauthn/begin", this::beginWebAuthnStepUp, StationPermission.LOGIN);
+        routes.post(prefix + "/auth/2fa/stepup/webauthn/finish", this::finishWebAuthnStepUp, StationPermission.LOGIN);
     }
 
     private void getStatus(Context ctx) {
@@ -315,8 +306,7 @@ public class TwoFactorRoutes implements Routes {
                 session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         var f = factor.get();
         ctx.json(new WebAuthnRegisterFinishResponse(
-                new FactorInfo(f.id(), f.kind().name(), f.label(), f.createdAt(), f.lastUsedAt()),
-                issuedCodes));
+                new FactorInfo(f.id(), f.kind().name(), f.label(), f.createdAt(), f.lastUsedAt()), issuedCodes));
     }
 
     private void removeFactor(Context ctx) {
@@ -384,8 +374,7 @@ public class TwoFactorRoutes implements Routes {
         if (request.challengeToken() == null || request.credentialJson() == null) {
             throw new BadRequestResponse("challengeToken and credentialJson are required");
         }
-        if (!webAuthnService.finishAssertion(
-                session.accountId(), request.challengeToken(), request.credentialJson())) {
+        if (!webAuthnService.finishAssertion(session.accountId(), request.challengeToken(), request.credentialJson())) {
             throw new UnauthorizedResponse("WebAuthn verification failed");
         }
         twoFactorService.markSessionTwoFactorVerified(session.sessionId());

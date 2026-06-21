@@ -580,8 +580,7 @@ public class ApiServer {
             ctx.status(HttpStatus.UNAUTHORIZED);
             ctx.header("X-StepUp-Required", err.category().name());
             ctx.json(Map.of(
-                    "error", "step_up_required",
-                    "category", err.category().name()));
+                    "error", "step_up_required", "category", err.category().name()));
         });
 
         routes.exception(ApiException.class, (err, ctx) -> {

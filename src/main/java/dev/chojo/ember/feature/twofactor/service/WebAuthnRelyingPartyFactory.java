@@ -22,8 +22,7 @@ import java.util.Set;
 public final class WebAuthnRelyingPartyFactory {
     private WebAuthnRelyingPartyFactory() {}
 
-    public static RelyingParty build(
-            TwoFactorSettings twoFactor, Api api, WebAuthnCredentialStore credentialStore) {
+    public static RelyingParty build(TwoFactorSettings twoFactor, Api api, WebAuthnCredentialStore credentialStore) {
         var config = twoFactor.webauthn();
         URI baseUri = URI.create(api.baseUrl());
         String rpId = blankToNull(config.rpId());

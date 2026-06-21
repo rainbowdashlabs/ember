@@ -54,14 +54,16 @@ public class WebAuthnCredentialStore implements CredentialRepository {
 
     @Override
     public Optional<RegisteredCredential> lookup(ByteArray credentialId, ByteArray userHandle) {
-        return repository.findWebAuthnByCredentialId(credentialId.getBytes())
+        return repository
+                .findWebAuthnByCredentialId(credentialId.getBytes())
                 .filter(c -> java.util.Arrays.equals(c.userHandle(), userHandle.getBytes()))
                 .map(WebAuthnCredentialStore::toRegistered);
     }
 
     @Override
     public Set<RegisteredCredential> lookupAll(ByteArray credentialId) {
-        return repository.findWebAuthnByCredentialId(credentialId.getBytes())
+        return repository
+                .findWebAuthnByCredentialId(credentialId.getBytes())
                 .map(WebAuthnCredentialStore::toRegistered)
                 .map(Set::of)
                 .orElseGet(Set::of);

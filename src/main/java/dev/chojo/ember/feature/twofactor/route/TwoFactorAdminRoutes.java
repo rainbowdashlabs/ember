@@ -59,7 +59,8 @@ public class TwoFactorAdminRoutes implements Routes {
         routes.get(prefix + "/admin/2fa/audit", this::listAudit, InstancePermission.ADMINISTRATOR);
 
         // Station-admin: policies for the caller's currently-selected station only.
-        routes.get(prefix + "/station/2fa/policies", this::listStationPolicies, StationPermission.STATION_ADMINISTRATOR);
+        routes.get(
+                prefix + "/station/2fa/policies", this::listStationPolicies, StationPermission.STATION_ADMINISTRATOR);
         routes.put(
                 prefix + "/station/2fa/policies",
                 this::upsertStationPolicy,
@@ -70,10 +71,7 @@ public class TwoFactorAdminRoutes implements Routes {
                 this::deleteStationPolicy,
                 StationPermission.STATION_ADMINISTRATOR,
                 StepUpCategory.ACCOUNT_SECURITY);
-        routes.get(
-                prefix + "/station/2fa/members",
-                this::listMemberStatus,
-                StationPermission.STATION_ADMINISTRATOR);
+        routes.get(prefix + "/station/2fa/members", this::listMemberStatus, StationPermission.STATION_ADMINISTRATOR);
         routes.get(
                 prefix + "/station/2fa/user-types",
                 this::listAssignableUserTypes,
@@ -84,17 +82,15 @@ public class TwoFactorAdminRoutes implements Routes {
 
     private void listInstancePolicies(Context ctx) {
         var policies = policyService.listInstancePolicies();
-        ctx.json(new PoliciesResponse(policies.stream().map(TwoFactorAdminRoutes::toDto).toList()));
+        ctx.json(new PoliciesResponse(
+                policies.stream().map(TwoFactorAdminRoutes::toDto).toList()));
     }
 
     private void upsertInstancePolicy(Context ctx) {
         var request = ctx.bodyAsClass(UpsertPolicyRequest.class);
         StationUserType userType = parseUserType(request.userType());
         TwoFactorPolicy saved = policyService.setInstancePolicy(
-                userType,
-                request.required(),
-                clampGraceDays(request.graceDays()),
-                actorMemberId(ctx));
+                userType, request.required(), clampGraceDays(request.graceDays()), actorMemberId(ctx));
         ctx.json(toDto(saved));
     }
 
@@ -111,7 +107,8 @@ public class TwoFactorAdminRoutes implements Routes {
     private void listStationPolicies(Context ctx) {
         int stationId = requireStation(ctx);
         var policies = policyService.listStationPolicies(stationId);
-        ctx.json(new PoliciesResponse(policies.stream().map(TwoFactorAdminRoutes::toDto).toList()));
+        ctx.json(new PoliciesResponse(
+                policies.stream().map(TwoFactorAdminRoutes::toDto).toList()));
     }
 
     private void upsertStationPolicy(Context ctx) {
@@ -119,11 +116,7 @@ public class TwoFactorAdminRoutes implements Routes {
         var request = ctx.bodyAsClass(UpsertPolicyRequest.class);
         StationUserType userType = parseUserType(request.userType());
         TwoFactorPolicy saved = policyService.setStationPolicy(
-                stationId,
-                userType,
-                request.required(),
-                clampGraceDays(request.graceDays()),
-                actorMemberId(ctx));
+                stationId, userType, request.required(), clampGraceDays(request.graceDays()), actorMemberId(ctx));
         ctx.json(toDto(saved));
     }
 
@@ -158,9 +151,8 @@ public class TwoFactorAdminRoutes implements Routes {
     }
 
     private void listAssignableUserTypes(Context ctx) {
-        ctx.json(new UserTypesResponse(policyService.assignableUserTypes().stream()
-                .map(Enum::name)
-                .toList()));
+        ctx.json(new UserTypesResponse(
+                policyService.assignableUserTypes().stream().map(Enum::name).toList()));
     }
 
     // -- Audit log --
@@ -211,8 +203,8 @@ public class TwoFactorAdminRoutes implements Routes {
 
     private static int requireStation(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        return session.stationIdOpt().orElseThrow(() ->
-                new ForbiddenResponse("A station must be selected to manage station 2FA policy"));
+        return session.stationIdOpt()
+                .orElseThrow(() -> new ForbiddenResponse("A station must be selected to manage station 2FA policy"));
     }
 
     private static Integer actorMemberId(Context ctx) {

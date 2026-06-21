@@ -105,11 +105,17 @@ public class TwoFactorService {
                 .filter(f -> f.id() != factorId && f.kind() != TwoFactorKind.BACKUP_CODES)
                 .count();
         if (remainingPrimary == 0) {
-            repository.findActiveFactor(accountId, TwoFactorKind.BACKUP_CODES)
+            repository
+                    .findActiveFactor(accountId, TwoFactorKind.BACKUP_CODES)
                     .ifPresent(f -> repository.disableFactor(f.id()));
         }
-        auditService.record(accountId, null, TwoFactorEvent.REMOVED, target.get().kind(), userAgent, country);
-        log.info("Removed 2FA factor {} ({}) for account {}", factorId, target.get().kind(), accountId);
+        auditService.record(
+                accountId, null, TwoFactorEvent.REMOVED, target.get().kind(), userAgent, country);
+        log.info(
+                "Removed 2FA factor {} ({}) for account {}",
+                factorId,
+                target.get().kind(),
+                accountId);
         return true;
     }
 

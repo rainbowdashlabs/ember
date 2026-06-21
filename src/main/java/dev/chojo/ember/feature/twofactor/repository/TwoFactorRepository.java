@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.twofactor.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.twofactor.entity.BackupCode;
 import dev.chojo.ember.feature.twofactor.entity.TotpFactor;
 import dev.chojo.ember.feature.twofactor.entity.TrustedDevice;
@@ -14,8 +16,6 @@ import dev.chojo.ember.feature.twofactor.entity.TwoFactorFactor;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorPolicy;
 import dev.chojo.ember.feature.twofactor.entity.WebAuthnCredential;
-import dev.chojo.ember.api.auth.StationUserType;
-import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;

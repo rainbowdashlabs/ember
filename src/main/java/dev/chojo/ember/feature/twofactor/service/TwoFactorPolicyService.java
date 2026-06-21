@@ -20,7 +20,6 @@ import jakarta.inject.Singleton;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Reads and writes {@code two_factor_policy} rows and assembles the per-station member status
@@ -34,11 +33,8 @@ import java.util.Optional;
  */
 @Singleton
 public class TwoFactorPolicyService {
-    private static final List<StationUserType> ASSIGNABLE_USER_TYPES = List.of(
-            StationUserType.MEMBER,
-            StationUserType.GUARDIAN,
-            StationUserType.TEAM,
-            StationUserType.MANAGER);
+    private static final List<StationUserType> ASSIGNABLE_USER_TYPES =
+            List.of(StationUserType.MEMBER, StationUserType.GUARDIAN, StationUserType.TEAM, StationUserType.MANAGER);
 
     private final TwoFactorRepository repository;
     private final StationMemberRepository memberRepository;
@@ -73,18 +69,9 @@ public class TwoFactorPolicyService {
     }
 
     public TwoFactorPolicy setStationPolicy(
-            int stationId,
-            StationUserType userType,
-            boolean required,
-            short graceDays,
-            Integer createdBy) {
+            int stationId, StationUserType userType, boolean required, short graceDays, Integer createdBy) {
         return repository.upsertPolicy(
-                TwoFactorPolicy.Scope.STATION,
-                stationId,
-                userType,
-                required,
-                clampGrace(graceDays),
-                createdBy);
+                TwoFactorPolicy.Scope.STATION, stationId, userType, required, clampGrace(graceDays), createdBy);
     }
 
     public boolean deletePolicy(int policyId) {
