@@ -9,16 +9,21 @@ import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorAuditEntry;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorPolicy;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorPolicyService;
+import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
+import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -35,11 +40,22 @@ import java.util.List;
 public class TwoFactorAdminRoutes implements Routes {
     private final TwoFactorPolicyService policyService;
     private final TwoFactorRepository repository;
+    private final TwoFactorService twoFactorService;
+    private final AccountRepository accountRepository;
+    private final StationMemberRepository stationMemberRepository;
 
     @Inject
-    public TwoFactorAdminRoutes(TwoFactorPolicyService policyService, TwoFactorRepository repository) {
+    public TwoFactorAdminRoutes(
+            TwoFactorPolicyService policyService,
+            TwoFactorRepository repository,
+            TwoFactorService twoFactorService,
+            AccountRepository accountRepository,
+            StationMemberRepository stationMemberRepository) {
         this.policyService = policyService;
         this.repository = repository;
+        this.twoFactorService = twoFactorService;
+        this.accountRepository = accountRepository;
+        this.stationMemberRepository = stationMemberRepository;
     }
 
     @Override
@@ -57,6 +73,11 @@ public class TwoFactorAdminRoutes implements Routes {
                 InstancePermission.ADMINISTRATOR,
                 StepUpCategory.INSTANCE_CONFIG);
         routes.get(prefix + "/admin/2fa/audit", this::listAudit, InstancePermission.ADMINISTRATOR);
+        routes.post(
+                prefix + "/admin/accounts/{id}/2fa/reset",
+                this::resetByInstanceAdmin,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
 
         // Station-admin: policies for the caller's currently-selected station only.
         routes.get(
@@ -76,6 +97,11 @@ public class TwoFactorAdminRoutes implements Routes {
                 prefix + "/station/2fa/user-types",
                 this::listAssignableUserTypes,
                 StationPermission.STATION_ADMINISTRATOR);
+        routes.post(
+                prefix + "/station/accounts/{id}/2fa/reset",
+                this::resetByStationAdmin,
+                StationPermission.STATION_ADMINISTRATOR,
+                StepUpCategory.ACCOUNT_SECURITY);
     }
 
     // -- Instance scope --
@@ -153,6 +179,45 @@ public class TwoFactorAdminRoutes implements Routes {
     private void listAssignableUserTypes(Context ctx) {
         ctx.json(new UserTypesResponse(
                 policyService.assignableUserTypes().stream().map(Enum::name).toList()));
+    }
+
+    // -- Admin reset --
+
+    private void resetByInstanceAdmin(Context ctx) {
+        int targetId = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession actor = UserSession.from(ctx);
+        if (!twoFactorService.resetAccount2FA(
+                targetId, actor.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"))) {
+            throw new NotFoundResponse();
+        }
+        ctx.json(new MessageResponse("2FA reset"));
+    }
+
+    private void resetByStationAdmin(Context ctx) {
+        int targetId = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession actor = UserSession.from(ctx);
+        int stationId = actor.stationIdOpt().orElseThrow(() ->
+                new ForbiddenResponse("A station must be selected to reset 2FA on a member"));
+
+        // The target must be a member of the caller's station and must not be an instance admin —
+        // station admins can only act on people they actually manage.
+        var membership = stationMemberRepository.findByStationAndAccount(stationId, targetId);
+        if (membership.isEmpty()) {
+            throw new NotFoundResponse();
+        }
+        var targetAccount = accountRepository.findById(targetId);
+        if (targetAccount.isEmpty()) {
+            throw new NotFoundResponse();
+        }
+        if (targetAccount.get().instanceUserType() == InstanceUserType.ADMINISTRATOR) {
+            throw new ForbiddenResponse("Instance administrators can only be reset by another instance administrator");
+        }
+
+        if (!twoFactorService.resetAccount2FA(
+                targetId, actor.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"))) {
+            throw new NotFoundResponse();
+        }
+        ctx.json(new MessageResponse("2FA reset"));
     }
 
     // -- Audit log --

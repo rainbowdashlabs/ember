@@ -5,6 +5,9 @@
  */
 package dev.chojo.ember.feature.twofactor.service;
 
+import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.twofactor.entity.BackupCode;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorFactor;
@@ -15,6 +18,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.util.List;
 
 @Singleton
@@ -25,21 +29,68 @@ public class TwoFactorService {
     private final TotpService totpService;
     private final BackupCodeService backupCodeService;
     private final TwoFactorAuditService auditService;
+    private final AccountRepository accountRepository;
+    private final EmailService emailService;
 
     @Inject
     public TwoFactorService(
             TwoFactorRepository repository,
             TotpService totpService,
             BackupCodeService backupCodeService,
-            TwoFactorAuditService auditService) {
+            TwoFactorAuditService auditService,
+            AccountRepository accountRepository,
+            EmailService emailService) {
         this.repository = repository;
         this.totpService = totpService;
         this.backupCodeService = backupCodeService;
         this.auditService = auditService;
+        this.accountRepository = accountRepository;
+        this.emailService = emailService;
     }
 
     public boolean isEnrolled(int accountId) {
         return repository.isEnrolled(accountId);
+    }
+
+    /**
+     * Admin-initiated wipe of a target account's 2FA state. Disables every factor row,
+     * marks every backup code used, revokes every trusted device and active session, sends
+     * a notification email to the target, and records an {@link TwoFactorEvent#ADMIN_RESET}
+     * audit row attributed to {@code actorAccountId}.
+     *
+     * <p>Returns {@code false} when the target account does not exist; callers should treat
+     * that as a 404. Reset never fails partially — the audit row is the source of truth even
+     * if the email enqueue throws.
+     */
+    public boolean resetAccount2FA(
+            int targetAccountId, Integer actorAccountId, String userAgent, String country) {
+        var target = accountRepository.findById(targetAccountId);
+        if (target.isEmpty()) return false;
+
+        repository.disableAllFactors(targetAccountId);
+        repository.markAllBackupCodesUsed(targetAccountId);
+        repository.revokeAllTrustedDevices(targetAccountId);
+        accountRepository.deleteSessionsByAccount(targetAccountId);
+
+        auditService.record(
+                targetAccountId, actorAccountId, TwoFactorEvent.ADMIN_RESET, null, userAgent, country);
+
+        Account account = target.get();
+        String actorLabel = actorAccountId == null
+                ? null
+                : accountRepository.findById(actorAccountId).map(Account::email).orElse(null);
+        String displayName = (account.firstName() + " " + account.lastName()).trim();
+        try {
+            emailService.sendTwoFactorResetNotice(
+                    account.email(),
+                    displayName.isBlank() ? account.email() : displayName,
+                    actorLabel,
+                    Instant.now());
+        } catch (Exception e) {
+            log.warn("Failed to send 2FA reset notification to account {}", targetAccountId, e);
+        }
+        log.info("2FA reset for account {} by actor {}", targetAccountId, actorAccountId);
+        return true;
     }
 
     public List<TwoFactorFactor> getActiveFactors(int accountId) {

@@ -224,6 +224,23 @@ public class EmailService {
     }
 
     /**
+     * Sent to a user whose 2FA was reset by an administrator. The reset wiped every factor,
+     * backup code, active session, and trusted device for the account; the user must enrol
+     * fresh on next login. {@code actorLabel} is the admin's email (or a generic
+     * "administrator" fallback when unknown).
+     */
+    public void sendTwoFactorResetNotice(String email, String name, String actorLabel, java.time.Instant resetAt) {
+        var vars = baseVars(name, null);
+        vars.put("loginUrl", api.baseUrl() + "/login");
+        vars.put("actor", actorLabel != null && !actorLabel.isBlank() ? actorLabel : "an administrator");
+        vars.put("resetAt", resetAt.toString());
+        enqueueGlobal(
+                email,
+                "Your two-factor authentication was reset",
+                loadTemplate("two-factor-reset.html", "en", vars));
+    }
+
+    /**
      * Sent to the user's existing email address when they request an email change.
      * Clicking the link authorises releasing the address; the change only commits
      * once the new address also confirms via {@link #sendEmailChangeClaimRequest}.
