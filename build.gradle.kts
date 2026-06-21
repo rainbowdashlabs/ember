@@ -54,6 +54,7 @@ dependencies {
     implementation(libs.webauthn.server)
 
     implementation(libs.angus)
+    implementation(libs.pebble)
     implementation(libs.bundles.commonmark)
     implementation(libs.jsoup)
     implementation(libs.java.diff.utils)

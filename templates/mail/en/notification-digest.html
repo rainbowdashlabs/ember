@@ -1,54 +1,19 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-  body { margin:0; padding:0; background:#f4f4f4; font-family:Arial,Helvetica,sans-serif; }
-  .wrapper { background:#f4f4f4; padding:32px 0; }
-  .card { background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.08); max-width:600px; margin:0 auto; }
-  .header { background:#FF6421; padding:24px 32px; text-align:center; }
-  .header h1 { color:#fff; margin:0; font-size:22px; }
-  .header-logo { display:flex; align-items:center; justify-content:center; gap:12px; }
-  .header-logo img { height:40px; border-radius:4px; }
-  .body { padding:32px; }
-  .body h2 { color:#333; margin:0 0 16px; }
-  .body p { color:#555; font-size:15px; line-height:1.6; }
-  .notification-list { list-style:none; padding:0; margin:16px 0; }
-  .notification-item { padding:12px 16px; border-left:3px solid #FF6421; background:#fafafa; margin-bottom:8px; border-radius:0 6px 6px 0; }
-  .notification-item a { text-decoration:none; color:inherit; display:block; }
-  .notification-item .category { display:inline-block; background:#f0f0f0; color:#666; padding:2px 8px; border-radius:8px; font-size:11px; margin-bottom:4px; }
-  .notification-item .message { color:#333; font-size:14px; line-height:1.5; margin:0; }
-  .notification-item .detail { color:#888; font-size:12px; line-height:1.4; margin:4px 0 0; font-style:italic; }
-  .btn-wrap { text-align:center; margin:24px 0; }
-  .btn { display:inline-block; background:#FF6421; color:#fff; padding:12px 32px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:15px; }
-  .footer { background:#f9f9f9; padding:16px 32px; text-align:center; border-top:1px solid #eee; }
-  .footer p { color:#aaa; font-size:11px; margin:0; }
-  .footer a { color:#FF6421; }
-</style>
-</head>
-<body>
-<div class="wrapper">
-  <div class="card">
-    <div class="header">
+{% extends '_layout.html' %}
+{% block header %}
       <div class="header-logo">
-        {{logoHtml}}
-        <h1>{{stationName}}</h1>
+        {{ logoHtml | raw }}
+        <h1>{{ stationName }}</h1>
       </div>
-    </div>
-    <div class="body">
-      <h2>Hello {{name}},</h2>
-      <p>You have {{count}} new notifications:</p>
+    {% endblock %}
+{% block body %}
+      <h2>Hello {{ name }},</h2>
+      <p>You have {{ count }} new notifications:</p>
       <ul class="notification-list">
-        {{items}}
+        {{ items | raw }}
       </ul>
-      <div class="btn-wrap"><a class="btn" href="{{actionUrl}}">View Details</a></div>
-    </div>
-    <div class="footer">
-      <p>{{stationName}} &middot; <a href="{{baseUrl}}">{{baseUrl}}</a></p>
-      <p style="margin-top:8px">You receive this email because you have enabled notifications. You can change this in your <a href="{{baseUrl}}/station/profile/settings">settings</a>.</p>
-    </div>
-  </div>
-</div>
-</body>
-</html>
+      <div class="btn-wrap"><a class="btn" href="{{ actionUrl }}">View Details</a></div>
+{% endblock %}
+{% block footer %}
+      <p>{{ stationName }} &middot; <a href="{{ baseUrl }}">{{ baseUrl }}</a></p>
+      <p style="margin-top:8px">You receive this email because you have enabled notifications. You can change this in your <a href="{{ baseUrl }}/station/profile/settings">settings</a>.</p>
+    {% endblock %}

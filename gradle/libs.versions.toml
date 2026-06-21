@@ -71,6 +71,7 @@ caffeine = { group = "com.github.ben-manes.caffeine", name = "caffeine", version
 
 # mailing
 angus = { group = "org.eclipse.angus", name = "angus-mail", version = "2.0.5" }
+pebble = { group = "io.pebbletemplates", name = "pebble", version = "3.2.4" }
 
 # Image processing
 thumbnailator = { group = "net.coobird", name = "thumbnailator", version = "0.4.21" }
