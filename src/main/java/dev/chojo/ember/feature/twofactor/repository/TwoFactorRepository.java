@@ -416,6 +416,13 @@ public class TwoFactorRepository {
                 .insert();
     }
 
+    public List<TwoFactorAuditEntry> findRecentAudit(int limit, int offset) {
+        return query("SELECT * FROM account_2fa_audit ORDER BY created_at DESC LIMIT :limit OFFSET :offset;")
+                .single(call().bind("limit", limit).bind("offset", offset))
+                .map(TwoFactorAuditEntry.map())
+                .all();
+    }
+
     public List<TwoFactorAuditEntry> findAuditLog(int accountId, int limit, int offset) {
         return query(
                         "SELECT * FROM account_2fa_audit WHERE account_id = :account_id ORDER BY created_at DESC LIMIT :limit OFFSET :offset;")
