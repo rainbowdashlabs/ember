@@ -65,7 +65,8 @@ class AuthBucketClassifierTest {
     }
 
     private static UserSession userSession(Integer stationId) {
-        return new UserSession(null, stationId, stationId == null ? null : UUID.randomUUID(), null, Set.of(), Set.of());
+        return new UserSession(
+                null, 0, stationId, stationId == null ? null : UUID.randomUUID(), null, Set.of(), Set.of(), null);
     }
 
     private static FederationSession federationSession() {
