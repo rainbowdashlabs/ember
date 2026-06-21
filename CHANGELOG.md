@@ -4,6 +4,16 @@
 
 ### New Features
 
+#### Two-Factor Authentication
+
+- **Authenticator apps and security keys.** Users can enrol a TOTP authenticator app (Google Authenticator, Authy, …) by scanning a QR code, and register one or more FIDO2 / WebAuthn security keys (Yubikey, platform authenticators, …) with a name of their choosing. Setup, rename, and removal all live under `/station/profile/settings/security`.
+- **Backup codes.** Ten one-shot recovery codes are issued the first time a user enrols a second factor and shown once. The user can regenerate the set at any time.
+- **Login flow.** When an account has a second factor configured, password login asks for the code or security key on a dedicated verification page before the session is created.
+- **Sensitive actions ask for a fresh confirmation.** Password change, removing or adding 2FA factors, regenerating backup codes, and logging out all other sessions now require a recent second-factor confirmation. The user is sent to a dedicated `/2fa-stepup` page rather than a modal, and is returned to the action they were attempting once they confirm.
+- **Audit trail.** Every enrolment, removal, login verification, step-up confirmation, backup-code use, and regeneration is recorded per account.
+- **Demo mode.** Security-key setup is hidden in demo deployments, since demo accounts can't realistically be re-paired with a physical key.
+- **Off by default.** Two-factor is opt-in this release — operators turn it on per instance via `auth.twoFactor.enabled` and provide an encryption key via the `TWO_FACTOR_SECRET_KEY` environment variable.
+
 #### Public Form Submission
 
 - **Anonymous and authenticated public submissions** — every form now carries a `FormPurpose` (CONTACT / POLL / …) and can be exposed under `/public/station/{stationUid}/forms/{publicUid}` for visitors that may not have an account, or embedded inside a page via the new `PublicFormCell`.
@@ -67,7 +77,7 @@
 - **`GET /api/v1/admin/traffic/hourly`** — instance-admin endpoint returning the raw hourly rows for charting; query params `from`, `to`, optional `stationId`, optional `auth`. Permission: `InstancePermission.ADMINISTRATOR`.
 - **`GET /api/v1/station/traffic/hourly`** — station-scoped sibling; the caller's own station only, derived from the session. Permission: `StationPermission.STATION_ADMINISTRATOR`.
 - **`/admin/traffic` and `/station/manage/traffic` views** — stacked ECharts hour bars split by auth bucket, with metric toggle (egress / ingress / requests), window selector (24 h / 3 d / 7 d / 30 d), and per-bucket filter. The admin view adds a per-station leaderboard sorted by the selected metric; the station view scopes to the caller. Both reuse the same `TrafficChart` / `TrafficTotals` / `TrafficWindowSelector` components.
-- **Help center articles** — new `/helpcenter/admin/traffic` and `/helpcenter/station/manage/traffic` walk operators through the three auth buckets, the controls, and the "Global" leaderboard row.
+- **Help center articles** — new `/helpcenter/admin/traffic` and `/helpcenter/station/manage/traffic` walk operators through the three auth buckets, the controls, and the "obal" leaderboard row.
 - **HTTP gzip compression** — text-shaped responses (JSON, HTML, CSS, XML/RSS/Atom, SVG, plain text, ICS feeds) are now gzipped by default. Driven by a `gzip-only` Javalin `CompressionStrategy` so binary types (images, audio, video, already-compressed archives) stay untouched. New `Api` config knobs: `httpGzipEnabled` (default true), `httpGzipLevel` (default 6, range 0–9), `httpGzipMinSizeBytes` (default 1024), overridable via `API_HTTP_GZIP_*` env vars. Concept §11.3 lists this as the largest single egress win after image variants — ~70% reduction on JSON, universally supported.
 - **Configuration** — new `Metrics` fields `trafficEnabled` (default true), `trafficRetentionDays` (default 90), `trafficFlushIntervalSeconds` (default 30), overridable via `METRICS_*` env vars.
 

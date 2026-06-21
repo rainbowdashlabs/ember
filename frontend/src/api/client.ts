@@ -3,10 +3,11 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import axios, {type InternalAxiosRequestConfig} from 'axios'
+import axios, {type AxiosError, type InternalAxiosRequestConfig} from 'axios'
 import {getItem, removeItem, setItem} from './storage'
 import {useToast} from '@/composables/useToast'
 import {reportApiError} from '@/util/devErrorReporter'
+import {requestStepUp, type StepUpCategory} from '@/composables/useStepUp'
 
 // -- Request history for problem reports --
 interface RequestHistoryEntry {
@@ -109,17 +110,13 @@ client.interceptors.response.use(
             const body: any = error.response?.data
             const isStepUp = body?.error === 'step_up_required'
                 || error.response?.headers?.['x-stepup-required'] != null
-            if (isStepUp && typeof window !== 'undefined') {
-                const category = body?.category ?? error.response?.headers?.['x-stepup-required'] ?? ''
-                const currentPath = window.location.pathname + window.location.search
-                const onStepUpAlready = window.location.pathname === '/2fa-stepup'
-                if (!onStepUpAlready) {
-                    const params = new URLSearchParams()
-                    if (category) params.set('category', String(category))
-                    if (currentPath && currentPath !== '/') params.set('redirect', currentPath)
-                    window.location.href = '/2fa-stepup?' + params.toString()
-                }
-                return Promise.reject(error)
+            if (isStepUp && config && !(config as any)._stepUpRetried) {
+                const category = (body?.category
+                    ?? error.response?.headers?.['x-stepup-required']) as StepUpCategory
+                ;(config as any)._stepUpRetried = true
+                return requestStepUp(category)
+                    .then(() => client.request(config))
+                    .catch((stepUpErr) => Promise.reject(stepUpErr ?? (error as AxiosError)))
             }
             const token = getItem('session_token')
             if (token && !refreshing && !isStepUp) {
