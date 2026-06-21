@@ -10,6 +10,7 @@ import de.chojo.sadu.queries.api.configuration.QueryConfiguration;
 import dev.chojo.ember.api.ApiServer;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.auth.PasswordHasher;
+import dev.chojo.ember.auth.SecretsInitializer;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
@@ -82,6 +83,7 @@ public class Bootstrapper {
 
     void main() {
         var conf = new Conf();
+        SecretsInitializer.ensure(conf);
         var injector = Guice.createInjector(new EmberModule(conf));
         // Eagerly initialize the query configuration so query(...) works globally
         injector.getInstance(QueryConfiguration.class);

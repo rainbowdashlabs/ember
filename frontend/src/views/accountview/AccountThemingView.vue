@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import ViewContent from '@/components/layout/ViewContent.vue'
-import ThemeSection from './settingsview/ThemeSection.vue'
+import ThemeSection from '@/views/stationview/profile/settingsview/ThemeSection.vue'
 </script>
 
 <template>

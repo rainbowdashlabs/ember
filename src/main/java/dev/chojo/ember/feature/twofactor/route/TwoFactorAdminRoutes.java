@@ -14,6 +14,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.repository.AccountRepository.PickerAccount;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorAuditEntry;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorPolicy;
@@ -30,6 +31,7 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Admin + station-admin policy management for 2FA mandates. Policy writes are step-up gated
@@ -73,6 +75,7 @@ public class TwoFactorAdminRoutes implements Routes {
                 InstancePermission.ADMINISTRATOR,
                 StepUpCategory.INSTANCE_CONFIG);
         routes.get(prefix + "/admin/2fa/audit", this::listAudit, InstancePermission.ADMINISTRATOR);
+        routes.get(prefix + "/admin/accounts/search", this::searchAccounts, InstancePermission.ADMINISTRATOR);
         routes.post(
                 prefix + "/admin/accounts/{id}/2fa/reset",
                 this::resetByInstanceAdmin,
@@ -220,12 +223,46 @@ public class TwoFactorAdminRoutes implements Routes {
         ctx.json(new MessageResponse("2FA reset"));
     }
 
+    // -- Account picker (instance-admin) --
+
+    private void searchAccounts(Context ctx) {
+        String q = ctx.queryParam("q");
+        String uidParam = ctx.queryParam("uid");
+        int requested = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(20);
+        int limit = Math.clamp(requested, 1, 50);
+        if (uidParam != null && !uidParam.isBlank()) {
+            UUID lookup;
+            try {
+                lookup = UUID.fromString(uidParam);
+            } catch (IllegalArgumentException e) {
+                ctx.json(List.of());
+                return;
+            }
+            var result = accountRepository
+                    .findPickerByUid(lookup)
+                    .map(TwoFactorAdminRoutes::toAccountDto)
+                    .map(List::of)
+                    .orElseGet(List::of);
+            ctx.json(result);
+            return;
+        }
+        var results = accountRepository.searchForPicker(q, limit).stream()
+                .map(TwoFactorAdminRoutes::toAccountDto)
+                .toList();
+        ctx.json(results);
+    }
+
+    private static AccountSearchResult toAccountDto(PickerAccount a) {
+        return new AccountSearchResult(a.id(), a.uid(), a.displayName(), a.firstName(), a.lastName(), a.email());
+    }
+
     // -- Audit log --
 
     private void listAudit(Context ctx) {
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(50);
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
-        Integer accountId = ctx.queryParamAsClass("accountId", Integer.class).getOrDefault(null);
+        String accountIdParam = ctx.queryParam("accountId");
+        Integer accountId = accountIdParam == null ? null : Integer.parseInt(accountIdParam);
         if (limit <= 0 || limit > 200) limit = 50;
         if (offset < 0) offset = 0;
         List<TwoFactorAuditEntry> entries;
@@ -330,4 +367,7 @@ public class TwoFactorAdminRoutes implements Routes {
             Instant createdAt) {}
 
     public record AuditResponse(List<AuditEntryDto> entries) {}
+
+    public record AccountSearchResult(
+            int id, UUID uid, String displayName, String firstName, String lastName, String email) {}
 }

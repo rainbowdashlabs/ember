@@ -10,9 +10,11 @@ import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.file.elements.Auth;
+import dev.chojo.ember.conf.file.elements.HibpSettings;
 import dev.chojo.ember.conf.file.elements.MailSettings;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.conf.file.elements.Theming;
+import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.feature.legal.entity.LegalDocumentType;
 import dev.chojo.ember.feature.legal.service.LegalDocumentService;
 import dev.chojo.ember.feature.media.service.ImageCategory;
@@ -43,11 +45,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 @Singleton
@@ -84,10 +90,60 @@ public class AdminSettingsRoutes implements Routes {
                 this::updateSettings,
                 InstancePermission.ADMINISTRATOR,
                 StepUpCategory.INSTANCE_CONFIG);
-        routes.get(prefix + "/admin/config/auth", this::getAuthConfig, InstancePermission.ADMINISTRATOR);
+        routes.get(prefix + "/admin/config/auth/tokens", this::getTokensConfig, InstancePermission.ADMINISTRATOR);
         routes.put(
-                prefix + "/admin/config/auth",
-                this::updateAuthConfig,
+                prefix + "/admin/config/auth/tokens",
+                this::updateTokensConfig,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
+        routes.post(
+                prefix + "/admin/config/auth/tokens/generate-pepper",
+                this::generateTokenPepper,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
+        routes.get(prefix + "/admin/config/auth/hibp", this::getHibpConfig, InstancePermission.ADMINISTRATOR);
+        routes.put(
+                prefix + "/admin/config/auth/hibp",
+                this::updateHibpConfig,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
+        routes.get(
+                prefix + "/admin/config/auth/two-factor",
+                this::getTwoFactorCoreConfig,
+                InstancePermission.ADMINISTRATOR);
+        routes.put(
+                prefix + "/admin/config/auth/two-factor",
+                this::updateTwoFactorCoreConfig,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
+        routes.post(
+                prefix + "/admin/config/auth/two-factor/generate-secret-key",
+                this::generateTwoFactorSecretKey,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
+        routes.get(
+                prefix + "/admin/config/auth/two-factor/totp", this::getTotpConfig, InstancePermission.ADMINISTRATOR);
+        routes.put(
+                prefix + "/admin/config/auth/two-factor/totp",
+                this::updateTotpConfig,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
+        routes.get(
+                prefix + "/admin/config/auth/two-factor/backup-codes",
+                this::getBackupCodesConfig,
+                InstancePermission.ADMINISTRATOR);
+        routes.put(
+                prefix + "/admin/config/auth/two-factor/backup-codes",
+                this::updateBackupCodesConfig,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
+        routes.get(
+                prefix + "/admin/config/auth/two-factor/webauthn",
+                this::getWebAuthnConfig,
+                InstancePermission.ADMINISTRATOR);
+        routes.put(
+                prefix + "/admin/config/auth/two-factor/webauthn",
+                this::updateWebAuthnConfig,
                 InstancePermission.ADMINISTRATOR,
                 StepUpCategory.INSTANCE_CONFIG);
         routes.get(prefix + "/admin/config/mailing", this::getMailingConfig, InstancePermission.ADMINISTRATOR);
@@ -349,16 +405,19 @@ public class AdminSettingsRoutes implements Routes {
                 request.forcePrideFlag()));
     }
 
-    // -- Auth config --
+    // -- Security config: tokens & sessions --
 
-    private void getAuthConfig(Context ctx) {
+    private void getTokensConfig(Context ctx) {
         var auth = conf.main().auth();
-        ctx.json(new AuthConfigResponse(
-                auth.tokenBytes(), auth.verifyTokenHours(), auth.passwordTokenHours(), auth.sessionMinutes()));
+        ctx.json(buildTokensResponse(auth));
     }
 
-    private void updateAuthConfig(Context ctx) {
-        var request = ctx.bodyAsClass(AuthConfigRequest.class);
+    private void updateTokensConfig(Context ctx) {
+        var request = ctx.bodyAsClass(TokensConfigRequest.class);
+        requireRange(request.tokenBytes(), 16, 256, "tokenBytes");
+        requireRange(request.verifyTokenHours(), 1, 720, "verifyTokenHours");
+        requireRange(request.passwordTokenHours(), 1, 720, "passwordTokenHours");
+        requireRange(request.sessionMinutes(), 5, 1440, "sessionMinutes");
         var auth = conf.main().auth();
         try {
             setField(Auth.class, auth, "tokenBytes", request.tokenBytes());
@@ -366,11 +425,243 @@ public class AdminSettingsRoutes implements Routes {
             setField(Auth.class, auth, "passwordTokenHours", request.passwordTokenHours());
             setField(Auth.class, auth, "sessionMinutes", request.sessionMinutes());
             conf.save();
-            ctx.json(new AuthConfigResponse(
-                    auth.tokenBytes(), auth.verifyTokenHours(), auth.passwordTokenHours(), auth.sessionMinutes()));
+            ctx.json(buildTokensResponse(auth));
         } catch (Exception e) {
-            log.error("Failed to update auth config", e);
+            log.error("Failed to update tokens config", e);
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private void generateTokenPepper(Context ctx) {
+        var auth = conf.main().auth();
+        if (auth.tokenPepper() != null && !auth.tokenPepper().isBlank()) {
+            throw new BadRequestResponse("tokenPepper is already configured");
+        }
+        byte[] random = new byte[48];
+        new SecureRandom().nextBytes(random);
+        String pepper = Base64.getUrlEncoder().withoutPadding().encodeToString(random);
+        try {
+            setField(Auth.class, auth, "tokenPepper", pepper);
+            conf.save();
+            ctx.json(buildTokensResponse(auth));
+        } catch (Exception e) {
+            log.error("Failed to generate token pepper", e);
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private TokensConfigResponse buildTokensResponse(Auth auth) {
+        return new TokensConfigResponse(
+                auth.tokenBytes(),
+                auth.verifyTokenHours(),
+                auth.passwordTokenHours(),
+                auth.sessionMinutes(),
+                auth.tokenPepper() != null && !auth.tokenPepper().isBlank());
+    }
+
+    // -- Security config: HIBP --
+
+    private void getHibpConfig(Context ctx) {
+        var hibp = conf.main().auth().hibp();
+        ctx.json(buildHibpResponse(hibp));
+    }
+
+    private void updateHibpConfig(Context ctx) {
+        var request = ctx.bodyAsClass(HibpConfigRequest.class);
+        requireRange(request.staleAfterDays(), 1, 365, "staleAfterDays");
+        requireRange(request.timeoutSeconds(), 1, 30, "timeoutSeconds");
+        if (request.endpoint() == null || request.endpoint().isBlank()) {
+            throw new BadRequestResponse("endpoint is required");
+        }
+        var hibp = conf.main().auth().hibp();
+        try {
+            setField(HibpSettings.class, hibp, "enabled", request.enabled());
+            setField(HibpSettings.class, hibp, "endpoint", request.endpoint());
+            setField(HibpSettings.class, hibp, "staleAfterDays", request.staleAfterDays());
+            setField(HibpSettings.class, hibp, "timeoutSeconds", request.timeoutSeconds());
+            conf.save();
+            ctx.json(buildHibpResponse(hibp));
+        } catch (Exception e) {
+            log.error("Failed to update HIBP config", e);
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private HibpConfigResponse buildHibpResponse(HibpSettings hibp) {
+        return new HibpConfigResponse(hibp.enabled(), hibp.endpoint(), hibp.staleAfterDays(), hibp.timeoutSeconds());
+    }
+
+    // -- Security config: 2FA core --
+
+    private void getTwoFactorCoreConfig(Context ctx) {
+        var twoFactor = conf.main().auth().twoFactor();
+        ctx.json(buildTwoFactorCoreResponse(twoFactor));
+    }
+
+    private void updateTwoFactorCoreConfig(Context ctx) {
+        var request = ctx.bodyAsClass(TwoFactorCoreConfigRequest.class);
+        requireRange(request.stepUpFreshnessSeconds(), 60, 3600, "stepUpFreshnessSeconds");
+        requireRange(request.trustedDeviceMaxDays(), 1, 30, "trustedDeviceMaxDays");
+        requireRange(request.enrollmentGraceDays(), 1, 7, "enrollmentGraceDays");
+        var twoFactor = conf.main().auth().twoFactor();
+        try {
+            setField(TwoFactorSettings.class, twoFactor, "enabled", request.enabled());
+            setField(TwoFactorSettings.class, twoFactor, "stepUpFreshnessSeconds", request.stepUpFreshnessSeconds());
+            setField(TwoFactorSettings.class, twoFactor, "trustedDeviceMaxDays", request.trustedDeviceMaxDays());
+            setField(TwoFactorSettings.class, twoFactor, "enrollmentGraceDays", request.enrollmentGraceDays());
+            conf.save();
+            ctx.json(buildTwoFactorCoreResponse(twoFactor));
+        } catch (Exception e) {
+            log.error("Failed to update 2FA core config", e);
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private void generateTwoFactorSecretKey(Context ctx) {
+        var twoFactor = conf.main().auth().twoFactor();
+        if (twoFactor.secretKey() != null && !twoFactor.secretKey().isBlank()) {
+            throw new BadRequestResponse("twoFactor.secretKey is already configured");
+        }
+        byte[] random = new byte[32];
+        new SecureRandom().nextBytes(random);
+        String key = Base64.getEncoder().encodeToString(random);
+        try {
+            setField(TwoFactorSettings.class, twoFactor, "secretKey", key);
+            conf.save();
+            ctx.json(buildTwoFactorCoreResponse(twoFactor));
+        } catch (Exception e) {
+            log.error("Failed to generate 2FA secret key", e);
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private TwoFactorCoreConfigResponse buildTwoFactorCoreResponse(TwoFactorSettings twoFactor) {
+        return new TwoFactorCoreConfigResponse(
+                twoFactor.enabled(),
+                twoFactor.stepUpFreshnessSeconds(),
+                twoFactor.trustedDeviceMaxDays(),
+                twoFactor.enrollmentGraceDays(),
+                twoFactor.secretKey() != null && !twoFactor.secretKey().isBlank());
+    }
+
+    // -- Security config: TOTP --
+
+    private void getTotpConfig(Context ctx) {
+        var totp = conf.main().auth().twoFactor().totp();
+        ctx.json(buildTotpResponse(totp));
+    }
+
+    private void updateTotpConfig(Context ctx) {
+        var request = ctx.bodyAsClass(TotpConfigRequest.class);
+        requireRange(request.digits(), 4, 8, "digits");
+        requireRange(request.periodSeconds(), 15, 60, "periodSeconds");
+        requireRange(request.driftWindow(), 0, 3, "driftWindow");
+        if (request.issuer() == null || request.issuer().isBlank()) {
+            throw new BadRequestResponse("issuer is required");
+        }
+        String algorithm =
+                request.algorithm() == null ? "" : request.algorithm().toUpperCase(Locale.ROOT);
+        if (!TOTP_ALGORITHMS.contains(algorithm)) {
+            throw new BadRequestResponse("algorithm must be one of SHA1, SHA256, SHA512");
+        }
+        var totp = conf.main().auth().twoFactor().totp();
+        try {
+            setField(TwoFactorSettings.TotpConfig.class, totp, "digits", request.digits());
+            setField(TwoFactorSettings.TotpConfig.class, totp, "periodSeconds", request.periodSeconds());
+            setField(TwoFactorSettings.TotpConfig.class, totp, "algorithm", algorithm);
+            setField(TwoFactorSettings.TotpConfig.class, totp, "driftWindow", request.driftWindow());
+            setField(TwoFactorSettings.TotpConfig.class, totp, "issuer", request.issuer());
+            conf.save();
+            ctx.json(buildTotpResponse(totp));
+        } catch (Exception e) {
+            log.error("Failed to update TOTP config", e);
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private TotpConfigResponse buildTotpResponse(TwoFactorSettings.TotpConfig totp) {
+        return new TotpConfigResponse(
+                totp.digits(), totp.periodSeconds(), totp.algorithm(), totp.driftWindow(), totp.issuer());
+    }
+
+    // -- Security config: backup codes --
+
+    private void getBackupCodesConfig(Context ctx) {
+        var backup = conf.main().auth().twoFactor().backupCodes();
+        ctx.json(new BackupCodesConfigResponse(backup.count()));
+    }
+
+    private void updateBackupCodesConfig(Context ctx) {
+        var request = ctx.bodyAsClass(BackupCodesConfigRequest.class);
+        requireRange(request.count(), 5, 20, "count");
+        var backup = conf.main().auth().twoFactor().backupCodes();
+        try {
+            setField(TwoFactorSettings.BackupCodesConfig.class, backup, "count", request.count());
+            conf.save();
+            ctx.json(new BackupCodesConfigResponse(backup.count()));
+        } catch (Exception e) {
+            log.error("Failed to update backup codes config", e);
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // -- Security config: WebAuthn --
+
+    private void getWebAuthnConfig(Context ctx) {
+        var webauthn = conf.main().auth().twoFactor().webauthn();
+        ctx.json(buildWebAuthnResponse(webauthn));
+    }
+
+    private void updateWebAuthnConfig(Context ctx) {
+        var request = ctx.bodyAsClass(WebAuthnConfigRequest.class);
+        requireRange(request.timeoutSeconds(), 10, 300, "timeoutSeconds");
+        String attestation =
+                request.attestation() == null ? "" : request.attestation().toLowerCase(Locale.ROOT);
+        if (!WEBAUTHN_ATTESTATIONS.contains(attestation)) {
+            throw new BadRequestResponse("attestation must be one of none, indirect, direct");
+        }
+        var webauthn = conf.main().auth().twoFactor().webauthn();
+        try {
+            setField(
+                    TwoFactorSettings.WebAuthnConfig.class,
+                    webauthn,
+                    "rpId",
+                    request.rpId() == null ? "" : request.rpId());
+            setField(
+                    TwoFactorSettings.WebAuthnConfig.class,
+                    webauthn,
+                    "rpName",
+                    request.rpName() == null ? "" : request.rpName());
+            setField(TwoFactorSettings.WebAuthnConfig.class, webauthn, "attestation", attestation);
+            setField(TwoFactorSettings.WebAuthnConfig.class, webauthn, "timeoutSeconds", request.timeoutSeconds());
+            setField(
+                    TwoFactorSettings.WebAuthnConfig.class,
+                    webauthn,
+                    "requireResidentKey",
+                    request.requireResidentKey());
+            conf.save();
+            ctx.json(buildWebAuthnResponse(webauthn));
+        } catch (Exception e) {
+            log.error("Failed to update WebAuthn config", e);
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private WebAuthnConfigResponse buildWebAuthnResponse(TwoFactorSettings.WebAuthnConfig webauthn) {
+        return new WebAuthnConfigResponse(
+                webauthn.rpId(),
+                webauthn.rpName(),
+                webauthn.attestation(),
+                webauthn.timeoutSeconds(),
+                webauthn.requireResidentKey());
+    }
+
+    private static final Set<String> TOTP_ALGORITHMS = Set.of("SHA1", "SHA256", "SHA512");
+    private static final Set<String> WEBAUTHN_ATTESTATIONS = Set.of("none", "indirect", "direct");
+
+    private static void requireRange(int value, int min, int max, String field) {
+        if (value < min || value > max) {
+            throw new BadRequestResponse(field + " must be between " + min + " and " + max);
         }
     }
 
@@ -594,10 +885,43 @@ public class AdminSettingsRoutes implements Routes {
             boolean instanceLockFeel,
             boolean forcePrideFlag) {}
 
-    public record AuthConfigResponse(
+    public record TokensConfigResponse(
+            int tokenBytes,
+            int verifyTokenHours,
+            int passwordTokenHours,
+            int sessionMinutes,
+            boolean tokenPepperConfigured) {}
+
+    public record TokensConfigRequest(
             int tokenBytes, int verifyTokenHours, int passwordTokenHours, int sessionMinutes) {}
 
-    public record AuthConfigRequest(int tokenBytes, int verifyTokenHours, int passwordTokenHours, int sessionMinutes) {}
+    public record HibpConfigResponse(boolean enabled, String endpoint, int staleAfterDays, int timeoutSeconds) {}
+
+    public record HibpConfigRequest(boolean enabled, String endpoint, int staleAfterDays, int timeoutSeconds) {}
+
+    public record TwoFactorCoreConfigResponse(
+            boolean enabled,
+            int stepUpFreshnessSeconds,
+            int trustedDeviceMaxDays,
+            int enrollmentGraceDays,
+            boolean secretKeyConfigured) {}
+
+    public record TwoFactorCoreConfigRequest(
+            boolean enabled, int stepUpFreshnessSeconds, int trustedDeviceMaxDays, int enrollmentGraceDays) {}
+
+    public record TotpConfigResponse(int digits, int periodSeconds, String algorithm, int driftWindow, String issuer) {}
+
+    public record TotpConfigRequest(int digits, int periodSeconds, String algorithm, int driftWindow, String issuer) {}
+
+    public record BackupCodesConfigResponse(int count) {}
+
+    public record BackupCodesConfigRequest(int count) {}
+
+    public record WebAuthnConfigResponse(
+            String rpId, String rpName, String attestation, int timeoutSeconds, boolean requireResidentKey) {}
+
+    public record WebAuthnConfigRequest(
+            String rpId, String rpName, String attestation, int timeoutSeconds, boolean requireResidentKey) {}
 
     public record MailingConfigResponse(
             MailProviderType provider,

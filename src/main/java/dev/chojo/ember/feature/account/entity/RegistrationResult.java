@@ -38,6 +38,9 @@ public record RegistrationResult(boolean success, String message, Account accoun
      */
     public static RegistrationResult maskedSuccess(String email, String firstName, String lastName) {
         return new RegistrationResult(
-                true, null, new Account(0, email, firstName, lastName, false, InstanceUserType.USER, ""));
+                true,
+                null,
+                new Account(
+                        0, java.util.UUID.randomUUID(), email, firstName, lastName, false, InstanceUserType.USER, ""));
     }
 }

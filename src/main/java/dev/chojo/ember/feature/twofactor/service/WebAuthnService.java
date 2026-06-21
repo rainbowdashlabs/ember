@@ -108,18 +108,20 @@ public class WebAuthnService {
                 .timeout(settings.webauthn().timeoutSeconds() * 1000L)
                 .build());
 
-        String json;
+        String persistJson;
         try {
-            json = options.toCredentialsCreateJson();
+            persistJson = options.toJson();
         } catch (Exception e) {
-            try {
-                json = options.toJson();
-            } catch (Exception inner) {
-                throw new IllegalStateException("Failed to serialize WebAuthn options", inner);
-            }
+            throw new IllegalStateException("Failed to serialize WebAuthn options for storage", e);
         }
-        String token = persistChallenge(accountId, TokenType.TWO_FACTOR_WEBAUTHN_REG, json);
-        return new RegistrationStart(token, json);
+        String browserJson;
+        try {
+            browserJson = options.toCredentialsCreateJson();
+        } catch (Exception e) {
+            browserJson = persistJson;
+        }
+        String token = persistChallenge(accountId, TokenType.TWO_FACTOR_WEBAUTHN_REG, persistJson);
+        return new RegistrationStart(token, browserJson);
     }
 
     /**
@@ -199,18 +201,20 @@ public class WebAuthnService {
                 .timeout(settings.webauthn().timeoutSeconds() * 1000L)
                 .build());
 
-        String json;
+        String persistJson;
         try {
-            json = request.toCredentialsGetJson();
+            persistJson = request.toJson();
         } catch (Exception e) {
-            try {
-                json = request.toJson();
-            } catch (Exception inner) {
-                throw new IllegalStateException("Failed to serialize WebAuthn assertion request", inner);
-            }
+            throw new IllegalStateException("Failed to serialize WebAuthn assertion request for storage", e);
         }
-        String token = persistChallenge(accountId, TokenType.TWO_FACTOR_WEBAUTHN_ASSERT, json);
-        return new AssertionStart(token, json);
+        String browserJson;
+        try {
+            browserJson = request.toCredentialsGetJson();
+        } catch (Exception e) {
+            browserJson = persistJson;
+        }
+        String token = persistChallenge(accountId, TokenType.TWO_FACTOR_WEBAUTHN_ASSERT, persistJson);
+        return new AssertionStart(token, browserJson);
     }
 
     public boolean finishAssertion(int accountId, String challengeToken, String credentialJson) {

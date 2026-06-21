@@ -165,6 +165,7 @@ export interface SessionResponse {
 
 export interface AccountInfo {
     id: number
+    uid?: string
     email?: string
     firstName?: string
     lastName?: string
@@ -1873,8 +1874,9 @@ export interface QuizCatalogExport {
 // -- Member Identity --
 
 export interface MemberIdentity {
-    stationUid: string
-    memberUid: string
+    stationUid?: string
+    memberUid?: string
+    accountUid?: string
     name?: string | null
     stationName?: string | null
     nameColor?: string | null

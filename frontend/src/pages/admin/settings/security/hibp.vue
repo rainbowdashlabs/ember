@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import SecurityView from '~/views/stationview/profile/SecurityView'
+import AdminSecurityHibpView from '~/views/adminview/AdminSecurityHibpView'
 
 definePageMeta({
-  layout: 'station',
-  name: 'profile-security',
+  layout: 'admin',
+  name: 'admin-security-hibp',
 })
 </script>
 
 <template>
-  <SecurityView />
+  <AdminSecurityHibpView />
 </template>

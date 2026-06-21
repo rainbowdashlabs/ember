@@ -102,3 +102,24 @@ export async function resetAccount2FAByInstanceAdmin(accountId: number): Promise
 export async function resetAccount2FAByStationAdmin(accountId: number): Promise<void> {
     await client.post(`/station/accounts/${accountId}/2fa/reset`)
 }
+
+export interface AccountSearchResult {
+    id: number
+    uid: string
+    displayName: string
+    firstName: string | null
+    lastName: string | null
+    email: string
+}
+
+export async function searchAccounts(query?: string, limit = 20): Promise<AccountSearchResult[]> {
+    const params: Record<string, string | number> = {limit}
+    if (query) params.q = query
+    const res = await client.get<AccountSearchResult[]>('/admin/accounts/search', {params})
+    return res.data
+}
+
+export async function getAccountPickerByUid(uid: string): Promise<AccountSearchResult | null> {
+    const res = await client.get<AccountSearchResult[]>('/admin/accounts/search', {params: {uid}})
+    return res.data[0] ?? null
+}

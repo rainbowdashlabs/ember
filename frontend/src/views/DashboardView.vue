@@ -10,26 +10,22 @@ import {useRoute, useRouter} from 'vue-router'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
 import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
 import SidebarLink from '@/components/navigation/SidebarLink.vue'
-import SidebarExpandableLink from '@/components/navigation/SidebarExpandableLink.vue'
 import StationSwitcher from '@/components/navigation/StationSwitcher.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
-import {auth, boards} from '@/api'
+import AccountMenuButton from '@/components/layout/AccountMenuButton.vue'
+import {boards} from '@/api'
 import type {Board} from '@/api/boards'
 import {useFederatedBoardBookmarks} from '@/composables/useFederatedBoardBookmarks'
 import client from '@/api/client'
 import Alert from '@/components/feedback/Alert.vue'
-import {getItem} from '@/api/storage'
 import {StationPermission, StationModules} from '@/api/types'
 import {useSession} from '@/composables/useSession'
-import {useTheme} from '@/composables/useTheme'
 import {useStations} from '@/composables/useStations'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
 import OnboardingTour from '@/components/onboarding/OnboardingTour.vue'
 import ReportProblemButton from '@/components/feedback/ReportProblemButton.vue'
 import DevToolsButton from '@/components/feedback/DevToolsButton.vue'
-import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import {useOnboardingTour} from '@/composables/useOnboardingTour'
 
 const {t, te} = useI18n()
@@ -51,8 +47,6 @@ const {
   canTestProtocol,
   isGuardian,
   isModuleEnabled,
-  fullName,
-  clear
 } = useSession()
 const {activeStation, activeLogoUrl} = useStations()
 const {counts, refresh: refreshSidebarCounts} = useSidebarCounts()
@@ -125,19 +119,6 @@ const manageDefaultRoute = computed(() => {
   return undefined
 })
 
-async function handleLogout() {
-  const token = getItem('session_token')
-  if (token) {
-    try {
-      await auth.logout({token})
-    } catch {
-      // ignore
-    }
-  }
-  clear()
-  useTheme().resetToInstanceDefaults()
-  await router.push({name: 'login'})
-}
 </script>
 
 <template>
@@ -164,21 +145,9 @@ async function handleLogout() {
                      to="/station/profile/managed" @navigate="close">
           {{ t('sidebar.managedProfiles') }}
         </SidebarLink>
-        <SidebarExpandableLink :icon="['fas', 'gear']" name="profile-theming" to="/station/profile/settings/theming" prefix="/station/profile/settings" @navigate="close">
-          <template #label>{{ t('sidebar.settings') }}</template>
-          <SidebarLink :icon="['fas', 'palette']" name="profile-theming" to="/station/profile/settings/theming" @navigate="close">
-            {{ t('sidebar.theming') }}
-          </SidebarLink>
-          <SidebarLink :icon="['fas', 'desktop']" name="profile-sessions" to="/station/profile/settings/sessions" @navigate="close">
-            {{ t('sidebar.sessions') }}
-          </SidebarLink>
-          <SidebarLink :icon="['fas', 'bell']" name="profile-notifications" to="/station/profile/settings/notifications" @navigate="close">
-            {{ t('sidebar.notifications') }}
-          </SidebarLink>
-          <SidebarLink :icon="['fas', 'shield']" name="profile-security" to="/station/profile/settings/security" @navigate="close">
-            {{ t('sidebar.security') }}
-          </SidebarLink>
-        </SidebarExpandableLink>
+        <SidebarLink :icon="['fas', 'bell']" name="profile-notifications" to="/station/profile/settings/notifications" @navigate="close">
+          {{ t('sidebar.notifications') }}
+        </SidebarLink>
       </SidebarGroup>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="hasAnyMemberPermission() || hasAnyWaitlistPermission()" :badge="counts.pendingChanges + counts.waitingListEntries" :icon="['fas', 'users']"
@@ -407,15 +376,7 @@ async function handleLogout() {
         </SecondaryButton>
       </router-link>
 
-      <UserAvatar :identity="sessionInfo?.member?.uid ? { stationUid: sessionInfo.stationId ?? '', memberUid: sessionInfo.member.uid } : undefined" :name="fullName()" size="sm" class="hidden sm:flex"/>
-      <span class="text-sm text-[var(--text-muted)] hidden sm:inline">{{ fullName() }}</span>
-
-      <IconButton
-          :icon="['fas', 'right-from-bracket']"
-          :label="t('header.logout')"
-          class="text-[var(--text-muted)] hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent"
-          @click="handleLogout"
-      />
+      <AccountMenuButton/>
     </template>
 
     <template #footer>

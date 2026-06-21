@@ -55,6 +55,18 @@ class AccountRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(3)
+    void findByUidAndResolveUid() {
+        var account = accountRepo.findById(accountId).orElseThrow();
+        var found = accountRepo.findByUid(account.uid()).orElseThrow();
+        assertEquals(accountId, found.id());
+        assertTrue(accountRepo.findByUid(java.util.UUID.randomUUID()).isEmpty());
+
+        assertEquals(account.uid(), accountRepo.resolveUid(accountId));
+        assertNull(accountRepo.resolveUid(99999));
+    }
+
+    @Test
     @Order(4)
     void findByEmail() {
         assertTrue(accountRepo.findByEmail("test@example.com").isPresent());
@@ -65,6 +77,53 @@ class AccountRepositoryTest extends RepositoryTestBase {
     @Order(6)
     void findAll() {
         assertTrue(accountRepo.findAll().size() >= 2);
+    }
+
+    @Test
+    @Order(6)
+    void searchForPickerEmptyReturnsRecent() {
+        var rows = accountRepo.searchForPicker(null, 10);
+        assertFalse(rows.isEmpty());
+        var blank = accountRepo.searchForPicker("   ", 10);
+        assertFalse(blank.isEmpty());
+    }
+
+    @Test
+    @Order(6)
+    void searchForPickerByFirstName() {
+        var rows = accountRepo.searchForPicker("Test", 10);
+        assertTrue(rows.stream().anyMatch(r -> "test@example.com".equals(r.email())));
+    }
+
+    @Test
+    @Order(6)
+    void searchForPickerByLastName() {
+        var rows = accountRepo.searchForPicker("User", 10);
+        assertTrue(rows.stream().anyMatch(r -> "test@example.com".equals(r.email())));
+    }
+
+    @Test
+    @Order(6)
+    void searchForPickerByEmailPartial() {
+        var rows = accountRepo.searchForPicker("test@", 10);
+        assertTrue(rows.stream().anyMatch(r -> "test@example.com".equals(r.email())));
+    }
+
+    @Test
+    @Order(6)
+    void searchForPickerNoMatches() {
+        var rows = accountRepo.searchForPicker("xxx-no-such-account-zzz", 10);
+        assertTrue(rows.isEmpty());
+    }
+
+    @Test
+    @Order(6)
+    void findPickerByUid() {
+        var account = accountRepo.findById(accountId).orElseThrow();
+        var picker = accountRepo.findPickerByUid(account.uid()).orElseThrow();
+        assertEquals(account.id(), picker.id());
+        assertEquals(account.email(), picker.email());
+        assertTrue(accountRepo.findPickerByUid(java.util.UUID.randomUUID()).isEmpty());
     }
 
     @Test
@@ -138,6 +197,26 @@ class AccountRepositoryTest extends RepositoryTestBase {
         assertTrue(accountRepo.setForcePasswordChange(accountId, true));
         assertTrue(accountRepo.findCredential(accountId).orElseThrow().forcePasswordChange());
         accountRepo.setForcePasswordChange(accountId, false);
+    }
+
+    @Test
+    @Order(22)
+    void updateLastBreachCheckPwnedForcesPasswordChange() {
+        Instant when = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        assertTrue(accountRepo.updateLastBreachCheck(accountId, when, true));
+        var cred = accountRepo.findCredential(accountId).orElseThrow();
+        assertTrue(cred.forcePasswordChange());
+        accountRepo.setForcePasswordChange(accountId, false);
+    }
+
+    @Test
+    @Order(22)
+    void updateLastBreachCheckCleanLeavesFlagAlone() {
+        Instant when = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        accountRepo.setForcePasswordChange(accountId, false);
+        assertTrue(accountRepo.updateLastBreachCheck(accountId, when, false));
+        var cred = accountRepo.findCredential(accountId).orElseThrow();
+        assertFalse(cred.forcePasswordChange());
     }
 
     @Test
@@ -294,6 +373,20 @@ class AccountRepositoryTest extends RepositoryTestBase {
         accountRepo.createSession(accountId, "s2", Instant.now().plus(1, ChronoUnit.HOURS), null, null);
         assertTrue(accountRepo.deleteSessionsByAccount(accountId));
         assertTrue(accountRepo.findSessionsByAccount(accountId).isEmpty());
+    }
+
+    @Test
+    @Order(55)
+    void deleteSessionsExceptToken() {
+        Instant exp = Instant.now().plus(1, ChronoUnit.HOURS);
+        accountRepo.createSession(accountId, "keep-tok", exp, null, null);
+        accountRepo.createSession(accountId, "drop-tok-a", exp, null, null);
+        accountRepo.createSession(accountId, "drop-tok-b", exp, null, null);
+        assertTrue(accountRepo.deleteSessionsExceptToken(accountId, "keep-tok"));
+        assertTrue(accountRepo.findSession("keep-tok").isPresent());
+        assertTrue(accountRepo.findSession("drop-tok-a").isEmpty());
+        assertTrue(accountRepo.findSession("drop-tok-b").isEmpty());
+        accountRepo.deleteSession("keep-tok");
     }
 
     @Test

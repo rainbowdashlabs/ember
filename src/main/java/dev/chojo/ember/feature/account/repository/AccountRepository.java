@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.account.repository;
 
+import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.auth.TokenHasher;
@@ -21,10 +22,12 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
+import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING;
 
 /**
  * Repository for account-related database operations including accounts, credentials,
@@ -34,7 +37,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class AccountRepository {
 
     private static final String ACCOUNT_COLUMNS =
-            "id, email, first_name, last_name, email_verified, instance_user_type, full_name";
+            "id, uid, email, first_name, last_name, email_verified, instance_user_type, full_name";
     private static final String CONSENT_COLUMNS =
             "id, account_id, consent_version, privacy_version, tos_version, ip_address, country, user_agent, consented_at";
 
@@ -56,6 +59,33 @@ public class AccountRepository {
                 .single(call().bind("id", id))
                 .map(Account.map())
                 .first();
+    }
+
+    /**
+     * Finds an account by its public UUID.
+     *
+     * @param uid the account's public UUID
+     * @return the account, or empty if not found
+     */
+    public Optional<Account> findByUid(UUID uid) {
+        return query("SELECT %s FROM account WHERE uid = :uid::uuid;", ACCOUNT_COLUMNS)
+                .single(call().bind("uid", uid, UUID_STRING))
+                .map(Account.map())
+                .first();
+    }
+
+    /**
+     * Resolves the public UUID for an account by its internal id.
+     *
+     * @param id the account identifier
+     * @return the UUID, or {@code null} if no such account exists
+     */
+    public UUID resolveUid(int id) {
+        return query("SELECT uid FROM account WHERE id = :id;")
+                .single(call().bind("id", id))
+                .map(row -> row.get("uid", UUID_STRING))
+                .first()
+                .orElse(null);
     }
 
     /**
@@ -81,6 +111,79 @@ public class AccountRepository {
                 .single()
                 .map(Account.map())
                 .all();
+    }
+
+    /**
+     * Searches accounts for an admin picker. With an empty query, returns the most recently
+     * created accounts. With a non-empty query, performs case-insensitive partial matches across
+     * {@code first_name}, {@code last_name}, the joined display name, and {@code email}.
+     *
+     * @param search the search term, or {@code null}/blank for the default state
+     * @param limit  the maximum number of rows to return
+     * @return matching picker rows
+     */
+    public List<PickerAccount> searchForPicker(String search, int limit) {
+        boolean hasSearch = search != null && !search.isBlank();
+        String predicate = hasSearch
+                ? "WHERE LOWER(COALESCE(full_name, first_name || ' ' || last_name, '')) LIKE :q"
+                        + " OR LOWER(first_name) LIKE :q"
+                        + " OR LOWER(last_name) LIKE :q"
+                        + " OR LOWER(email) LIKE :q"
+                : "";
+        String order = hasSearch ? "display_name" : "id DESC";
+        var c = call().bind("limit", limit);
+        if (hasSearch) {
+            c = c.bind("q", "%" + search.trim().toLowerCase() + "%");
+        }
+        return query("""
+                SELECT id,
+                       uid,
+                       COALESCE(NULLIF(full_name, ''), TRIM(BOTH ' ' FROM first_name || ' ' || last_name)) AS display_name,
+                       first_name,
+                       last_name,
+                       email
+                FROM account
+                %s
+                ORDER BY %s
+                LIMIT :limit;""", predicate, order).single(c).map(PickerAccount.map()).all();
+    }
+
+    /**
+     * Single-lookup variant of {@link #searchForPicker} used to resolve a stored account UUID
+     * back to its picker shape.
+     *
+     * @param uid the account's public UUID
+     * @return the picker row, or empty if no such account exists
+     */
+    public Optional<PickerAccount> findPickerByUid(UUID uid) {
+        return query("""
+                SELECT id,
+                       uid,
+                       COALESCE(NULLIF(full_name, ''), TRIM(BOTH ' ' FROM first_name || ' ' || last_name)) AS display_name,
+                       first_name,
+                       last_name,
+                       email
+                FROM account
+                WHERE uid = :uid::uuid;""")
+                .single(call().bind("uid", uid, UUID_STRING))
+                .map(PickerAccount.map())
+                .first();
+    }
+
+    /**
+     * Lightweight result row for the admin account-search picker. Carries both the internal id
+     * (needed for admin-scoped 2FA reset / audit filter calls) and the public UUID.
+     */
+    public record PickerAccount(int id, UUID uid, String displayName, String firstName, String lastName, String email) {
+        public static RowMapping<PickerAccount> map() {
+            return row -> new PickerAccount(
+                    row.getInt("id"),
+                    row.get("uid", UUID_STRING),
+                    row.getString("display_name"),
+                    row.getString("first_name"),
+                    row.getString("last_name"),
+                    row.getString("email"));
+        }
     }
 
     /**

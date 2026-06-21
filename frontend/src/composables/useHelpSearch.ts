@@ -169,6 +169,10 @@ const HELP_PAGE_MAP: { route: string; path: string; i18nPrefix: string; section:
     {route: 'help-station-insights', path: '/helpcenter/station/manage/insights', i18nPrefix: 'helpCenter.stationInsights', section: 'Wache > Verwalten > Seiten-Statistik'},
     {route: 'help-admin-problems', path: '/helpcenter/admin/monitoring/problems', i18nPrefix: 'helpCenter.adminProblems', section: 'Administration > Monitoring > Problemprotokoll'},
     {route: 'help-admin-security', path: '/helpcenter/admin/settings/security', i18nPrefix: 'helpCenter.adminSecurity', section: 'Administration > Einstellungen > Sicherheit'},
+    {route: 'help-admin-security-tokens', path: '/helpcenter/admin/settings/security/tokens', i18nPrefix: 'helpCenter.adminSecurityTokens', section: 'Administration > Einstellungen > Sicherheit > Tokens'},
+    {route: 'help-admin-security-hibp', path: '/helpcenter/admin/settings/security/hibp', i18nPrefix: 'helpCenter.adminSecurityHibp', section: 'Administration > Einstellungen > Sicherheit > HIBP'},
+    {route: 'help-admin-security-two-factor', path: '/helpcenter/admin/settings/security/two-factor', i18nPrefix: 'helpCenter.adminSecurityTwoFactor', section: 'Administration > Einstellungen > Sicherheit > 2FA'},
+    {route: 'help-admin-two-factor', path: '/helpcenter/admin/2fa', i18nPrefix: 'helpCenter.adminTwoFactor', section: 'Administration > 2FA'},
     {route: 'help-station-security', path: '/helpcenter/station/manage/security', i18nPrefix: 'helpCenter.stationSecurity', section: 'Wache > Verwalten > Sicherheit'},
 ]
 

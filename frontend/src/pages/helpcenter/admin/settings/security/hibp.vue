@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ThemingView from '~/views/stationview/profile/ThemingView'
+import SecurityHibpHelp from '~/views/helpcenter/adminview/SecurityHibpHelp'
 
 definePageMeta({
-  layout: 'station',
-  name: 'profile-theming',
+  layout: 'helpcenter',
+  name: 'help-admin-security-hibp',
 })
 </script>
 
 <template>
-  <ThemingView />
+  <SecurityHibpHelp />
 </template>

@@ -1,0 +1,17 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+<script setup lang="ts">
+import AdminSecurityTwoFactorView from '~/views/adminview/AdminSecurityTwoFactorView'
+
+definePageMeta({
+  layout: 'admin',
+  name: 'admin-security-two-factor',
+})
+</script>
+
+<template>
+  <AdminSecurityTwoFactorView />
+</template>

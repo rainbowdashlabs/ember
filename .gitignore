@@ -238,3 +238,4 @@ pyrightconfig.json
 frontend/.nuxt
 dev-errors
 .concept
+logs

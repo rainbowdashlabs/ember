@@ -106,6 +106,7 @@ public class AccessManager {
             if (memberOpt.isPresent()) {
                 StationMember member = memberOpt.get();
                 Set<StationPermission> permissions = resolveExpandedMemberPermissions(member);
+                permissions.add(StationPermission.LOGIN);
                 return Optional.of(new UserSession(
                         account,
                         accountSession.id(),
@@ -118,13 +119,15 @@ public class AccessManager {
             }
         }
 
+        Set<StationPermission> baseline = EnumSet.noneOf(StationPermission.class);
+        baseline.add(StationPermission.LOGIN);
         return Optional.of(new UserSession(
                 account,
                 accountSession.id(),
                 stationId,
                 stationUid,
                 null,
-                EnumSet.noneOf(StationPermission.class),
+                baseline,
                 instancePermissions,
                 accountSession.twoFactorVerifiedAt()));
     }

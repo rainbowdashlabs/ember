@@ -221,17 +221,18 @@ public class StationMemberRoutes implements Routes {
                 m.userType() != null ? m.userType().name() : null,
                 m.displayTag(),
                 m.displayTagColor(),
-                avatarDataUrlFor(m.memberUid()));
+                avatarDataUrlFor(m.accountUid()));
     }
 
     /**
      * Inlines the member's avatar as a {@code data:} URL so it can be rendered without
      * re-authenticating against the protected avatar endpoint. Returns {@code null} when the
-     * member has no avatar on disk.
+     * member's account has no avatar on disk or the member is no longer linked to an account.
      */
-    private String avatarDataUrlFor(UUID memberUid) {
+    private String avatarDataUrlFor(UUID accountUid) {
+        if (accountUid == null) return null;
         return imageService
-                .read(ImageCategory.AVATARS, memberUid.toString(), 64)
+                .read(ImageCategory.AVATARS, accountUid.toString(), 64)
                 .map(img -> "data:" + img.contentType() + ";base64,"
                         + Base64.getEncoder().encodeToString(img.data()))
                 .orElse(null);

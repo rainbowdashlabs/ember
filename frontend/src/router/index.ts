@@ -11,6 +11,7 @@ import i18n from '@/i18n'
 // Layout shells are eagerly loaded (they wrap all child routes)
 import DashboardView from '@/views/DashboardView.vue'
 import AdminView from '@/views/AdminView.vue'
+import AccountView from '@/views/AccountView.vue'
 import HelpCenterStationView from '@/views/HelpCenterStationView.vue'
 import HelpCenterAdminView from '@/views/HelpCenterAdminView.vue'
 
@@ -572,29 +573,9 @@ const router = createRouter({
                     component: () => import('@/views/stationview/profile/InventoryView.vue'),
                 },
                 {
-                    path: 'profile/settings',
-                    name: 'profile-settings',
-                    redirect: { name: 'profile-theming' },
-                },
-                {
-                    path: 'profile/settings/theming',
-                    name: 'profile-theming',
-                    component: () => import('@/views/stationview/profile/ThemingView.vue'),
-                },
-                {
-                    path: 'profile/settings/sessions',
-                    name: 'profile-sessions',
-                    component: () => import('@/views/stationview/profile/SessionsView.vue'),
-                },
-                {
                     path: 'profile/settings/notifications',
                     name: 'profile-notifications',
                     component: () => import('@/views/stationview/profile/NotificationsView.vue'),
-                },
-                {
-                    path: 'profile/settings/security',
-                    name: 'profile-security',
-                    component: () => import('@/views/stationview/profile/SecurityView.vue'),
                 },
                 {
                     path: 'attendance/new',
@@ -857,6 +838,42 @@ const router = createRouter({
             ],
         },
         {
+            path: '/account',
+            component: AccountView,
+            children: [
+                {
+                    path: '',
+                    name: 'account',
+                    component: () => import('@/views/accountview/AccountIndexView.vue'),
+                },
+                {
+                    path: 'avatar',
+                    name: 'account-avatar',
+                    component: () => import('@/views/accountview/AccountAvatarView.vue'),
+                },
+                {
+                    path: 'theming',
+                    name: 'account-theming',
+                    component: () => import('@/views/accountview/AccountThemingView.vue'),
+                },
+                {
+                    path: 'sessions',
+                    name: 'account-sessions',
+                    component: () => import('@/views/accountview/AccountSessionsView.vue'),
+                },
+                {
+                    path: 'security',
+                    name: 'account-security',
+                    component: () => import('@/views/accountview/AccountSecurityView.vue'),
+                },
+                {
+                    path: 'gdpr',
+                    name: 'account-gdpr',
+                    component: () => import('@/views/accountview/AccountGdprView.vue'),
+                },
+            ],
+        },
+        {
             path: '/admin',
             component: AdminView,
             children: [
@@ -908,6 +925,26 @@ const router = createRouter({
                     path: 'settings/security',
                     name: 'admin-security',
                     component: () => import('@/views/adminview/AdminSecurityView.vue'),
+                },
+                {
+                    path: 'settings/security/tokens',
+                    name: 'admin-security-tokens',
+                    component: () => import('@/views/adminview/AdminSecurityTokensView.vue'),
+                },
+                {
+                    path: 'settings/security/hibp',
+                    name: 'admin-security-hibp',
+                    component: () => import('@/views/adminview/AdminSecurityHibpView.vue'),
+                },
+                {
+                    path: 'settings/security/two-factor',
+                    name: 'admin-security-two-factor',
+                    component: () => import('@/views/adminview/AdminSecurityTwoFactorView.vue'),
+                },
+                {
+                    path: '2fa',
+                    name: 'admin-two-factor',
+                    component: () => import('@/views/adminview/AdminTwoFactorView.vue'),
                 },
                 {
                     path: 'monitoring/problems',
@@ -1823,6 +1860,26 @@ const router = createRouter({
                     path: 'settings/security',
                     name: 'help-admin-security',
                     component: () => import('@/views/helpcenter/adminview/SecurityHelp.vue')
+                },
+                {
+                    path: 'settings/security/tokens',
+                    name: 'help-admin-security-tokens',
+                    component: () => import('@/views/helpcenter/adminview/SecurityTokensHelp.vue')
+                },
+                {
+                    path: 'settings/security/hibp',
+                    name: 'help-admin-security-hibp',
+                    component: () => import('@/views/helpcenter/adminview/SecurityHibpHelp.vue')
+                },
+                {
+                    path: 'settings/security/two-factor',
+                    name: 'help-admin-security-two-factor',
+                    component: () => import('@/views/helpcenter/adminview/SecurityTwoFactorHelp.vue')
+                },
+                {
+                    path: '2fa',
+                    name: 'help-admin-two-factor',
+                    component: () => import('@/views/helpcenter/adminview/TwoFactorHelp.vue')
                 },
                 {
                     path: 'monitoring/api-status',

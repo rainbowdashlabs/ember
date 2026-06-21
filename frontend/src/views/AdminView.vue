@@ -6,22 +6,18 @@
 <script lang="ts" setup>
 import {computed, onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRoute, useRouter} from 'vue-router'
+import {useRoute} from 'vue-router'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
 import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
 import SidebarLink from '@/components/navigation/SidebarLink.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
-import {auth} from '@/api'
-import {getItem} from '@/api/storage'
+import AccountMenuButton from '@/components/layout/AccountMenuButton.vue'
 import {useSession} from '@/composables/useSession'
-import {useTheme} from '@/composables/useTheme'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
 
 const {t, te} = useI18n()
 const route = useRoute()
-const router = useRouter()
-const {loaded, load, fullName, clear} = useSession()
+const {loaded, load} = useSession()
 
 // Dev-mode-only inspector tools are only visible when the dev server is running
 // (production bundles tree-shake the branch out via Vite's import.meta.env).
@@ -43,19 +39,6 @@ const pageSubtitle = computed(() => {
   return te(key) ? t(key) : ''
 })
 
-async function handleLogout() {
-  const token = getItem('session_token')
-  if (token) {
-    try {
-      await auth.logout({token})
-    } catch {
-      // ignore
-    }
-  }
-  clear()
-  useTheme().resetToInstanceDefaults()
-  await router.push({name: 'login'})
-}
 </script>
 
 <template>
@@ -88,12 +71,30 @@ async function handleLogout() {
         <SidebarLink :icon="['fas', 'envelope']" name="admin-mailing" to="/admin/settings/mailing" @navigate="close">
           {{ t('sidebar.mailing') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'shield']" name="admin-security" to="/admin/settings/security" @navigate="close">
-          {{ t('sidebar.security') }}
-        </SidebarLink>
+        <SidebarGroup :icon="['fas', 'shield']" :label="t('sidebar.security')"
+                      prefix="/admin/settings/security" to="/admin/settings/security" name="admin-security"
+                      @navigate="close">
+          <SidebarLink :icon="['fas', 'key']" name="admin-security-tokens"
+                       to="/admin/settings/security/tokens" @navigate="close">
+            {{ t('sidebar.securityTokens') }}
+          </SidebarLink>
+          <SidebarLink :icon="['fas', 'user-shield']" name="admin-security-hibp"
+                       to="/admin/settings/security/hibp" @navigate="close">
+            {{ t('sidebar.securityHibp') }}
+          </SidebarLink>
+          <SidebarLink :icon="['fas', 'mobile-screen']" name="admin-security-two-factor"
+                       to="/admin/settings/security/two-factor" @navigate="close">
+            {{ t('sidebar.securityTwoFactor') }}
+          </SidebarLink>
+        </SidebarGroup>
         <SidebarLink :icon="['fas', 'scale-balanced']" name="admin-legal" to="/admin/settings/legal" @navigate="close">
           {{ t('sidebar.legal') }}
         </SidebarLink>
+      </SidebarGroup>
+
+      <SidebarGroup :icon="['fas', 'mobile-screen']" :label="t('sidebar.twoFactor')" prefix="/admin/2fa"
+                    to="/admin/2fa" name="admin-two-factor"
+                    @navigate="close">
       </SidebarGroup>
 
       <SidebarGroup :icon="['fas', 'triangle-exclamation']" :label="t('sidebar.monitoring')" prefix="/admin/monitoring" group-key="monitoring">
@@ -151,14 +152,7 @@ async function handleLogout() {
         </SecondaryButton>
       </router-link>
 
-      <span class="text-sm text-[var(--text-muted)] hidden sm:inline">{{ fullName() }}</span>
-
-      <IconButton
-          :icon="['fas', 'right-from-bracket']"
-          :label="t('header.logout')"
-          class="text-[var(--text-muted)] hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent"
-          @click="handleLogout"
-      />
+      <AccountMenuButton/>
     </template>
 
     <slot><RouterView/></slot>

@@ -17,11 +17,61 @@ export interface RegistrationStatus {
     enabled: boolean
 }
 
-export interface AuthConfig {
+export interface TokensConfigResponse {
     tokenBytes: number
     verifyTokenHours: number
     passwordTokenHours: number
     sessionMinutes: number
+    tokenPepperConfigured: boolean
+}
+
+export interface TokensConfigRequest {
+    tokenBytes: number
+    verifyTokenHours: number
+    passwordTokenHours: number
+    sessionMinutes: number
+}
+
+export interface HibpConfig {
+    enabled: boolean
+    endpoint: string
+    staleAfterDays: number
+    timeoutSeconds: number
+}
+
+export interface TwoFactorCoreConfigResponse {
+    enabled: boolean
+    stepUpFreshnessSeconds: number
+    trustedDeviceMaxDays: number
+    enrollmentGraceDays: number
+    secretKeyConfigured: boolean
+}
+
+export interface TwoFactorCoreConfigRequest {
+    enabled: boolean
+    stepUpFreshnessSeconds: number
+    trustedDeviceMaxDays: number
+    enrollmentGraceDays: number
+}
+
+export interface TotpConfig {
+    digits: number
+    periodSeconds: number
+    algorithm: string
+    driftWindow: number
+    issuer: string
+}
+
+export interface BackupCodesConfig {
+    count: number
+}
+
+export interface WebAuthnConfig {
+    rpId: string
+    rpName: string
+    attestation: string
+    timeoutSeconds: number
+    requireResidentKey: boolean
 }
 
 export interface MailingConfig {
@@ -71,13 +121,77 @@ export async function getPublicTheme(): Promise<PublicTheme> {
     return res.data
 }
 
-export async function getAuthConfig(): Promise<AuthConfig> {
-    const res = await client.get<AuthConfig>('/admin/config/auth')
+export async function getTokensConfig(): Promise<TokensConfigResponse> {
+    const res = await client.get<TokensConfigResponse>('/admin/config/auth/tokens')
     return res.data
 }
 
-export async function updateAuthConfig(data: AuthConfig): Promise<AuthConfig> {
-    const res = await client.put<AuthConfig>('/admin/config/auth', data)
+export async function updateTokensConfig(data: TokensConfigRequest): Promise<TokensConfigResponse> {
+    const res = await client.put<TokensConfigResponse>('/admin/config/auth/tokens', data)
+    return res.data
+}
+
+export async function generateTokenPepper(): Promise<TokensConfigResponse> {
+    const res = await client.post<TokensConfigResponse>('/admin/config/auth/tokens/generate-pepper')
+    return res.data
+}
+
+export async function getHibpConfig(): Promise<HibpConfig> {
+    const res = await client.get<HibpConfig>('/admin/config/auth/hibp')
+    return res.data
+}
+
+export async function updateHibpConfig(data: HibpConfig): Promise<HibpConfig> {
+    const res = await client.put<HibpConfig>('/admin/config/auth/hibp', data)
+    return res.data
+}
+
+export async function getTwoFactorCoreConfig(): Promise<TwoFactorCoreConfigResponse> {
+    const res = await client.get<TwoFactorCoreConfigResponse>('/admin/config/auth/two-factor')
+    return res.data
+}
+
+export async function updateTwoFactorCoreConfig(
+    data: TwoFactorCoreConfigRequest,
+): Promise<TwoFactorCoreConfigResponse> {
+    const res = await client.put<TwoFactorCoreConfigResponse>('/admin/config/auth/two-factor', data)
+    return res.data
+}
+
+export async function generateTwoFactorSecretKey(): Promise<TwoFactorCoreConfigResponse> {
+    const res = await client.post<TwoFactorCoreConfigResponse>(
+        '/admin/config/auth/two-factor/generate-secret-key',
+    )
+    return res.data
+}
+
+export async function getTotpConfig(): Promise<TotpConfig> {
+    const res = await client.get<TotpConfig>('/admin/config/auth/two-factor/totp')
+    return res.data
+}
+
+export async function updateTotpConfig(data: TotpConfig): Promise<TotpConfig> {
+    const res = await client.put<TotpConfig>('/admin/config/auth/two-factor/totp', data)
+    return res.data
+}
+
+export async function getBackupCodesConfig(): Promise<BackupCodesConfig> {
+    const res = await client.get<BackupCodesConfig>('/admin/config/auth/two-factor/backup-codes')
+    return res.data
+}
+
+export async function updateBackupCodesConfig(data: BackupCodesConfig): Promise<BackupCodesConfig> {
+    const res = await client.put<BackupCodesConfig>('/admin/config/auth/two-factor/backup-codes', data)
+    return res.data
+}
+
+export async function getWebAuthnConfig(): Promise<WebAuthnConfig> {
+    const res = await client.get<WebAuthnConfig>('/admin/config/auth/two-factor/webauthn')
+    return res.data
+}
+
+export async function updateWebAuthnConfig(data: WebAuthnConfig): Promise<WebAuthnConfig> {
+    const res = await client.put<WebAuthnConfig>('/admin/config/auth/two-factor/webauthn', data)
     return res.data
 }
 
