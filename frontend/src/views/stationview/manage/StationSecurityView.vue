@@ -18,6 +18,9 @@ import Alert from '@/components/feedback/Alert.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
+import ErrorButton from '@/components/button/ErrorButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import Modal from '@/components/feedback/Modal.vue'
 import TableHeaderCell from '@/components/typography/TableHeaderCell.vue'
 import {twoFactorAdmin} from '@/api'
 import type {MemberStatus, TwoFactorPolicy} from '@/api/twoFactorAdmin'
@@ -93,6 +96,26 @@ function userTypeLabel(name: string): string {
   return translated === key ? name : translated
 }
 
+const resetTarget = ref<MemberStatus | null>(null)
+const resetLoading = ref(false)
+
+function openReset(member: MemberStatus) {
+  resetTarget.value = member
+}
+
+async function confirmReset() {
+  if (!resetTarget.value) return
+  resetLoading.value = true
+  try {
+    await twoFactorAdmin.resetAccount2FAByStationAdmin(resetTarget.value.accountId)
+    resetTarget.value = null
+    await load()
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || t('common.error')
+  }
+  resetLoading.value = false
+}
+
 onMounted(load)
 </script>
 
@@ -146,6 +169,7 @@ onMounted(load)
                   <TableHeaderCell>{{ t('twoFactor.admin.col.email') }}</TableHeaderCell>
                   <TableHeaderCell>{{ t('twoFactor.admin.col.userType') }}</TableHeaderCell>
                   <TableHeaderCell>{{ t('twoFactor.admin.col.status') }}</TableHeaderCell>
+                  <TableHeaderCell>{{ t('twoFactor.admin.col.actions') }}</TableHeaderCell>
                 </tr>
               </thead>
               <tbody>
@@ -158,15 +182,38 @@ onMounted(load)
                     <ErrorBadge v-else-if="m.mandated">{{ t('twoFactor.admin.statusMandatedGap') }}</ErrorBadge>
                     <InfoBadge v-else>{{ t('twoFactor.admin.statusOptional') }}</InfoBadge>
                   </td>
+                  <td class="py-2 pr-3">
+                    <ErrorButton v-if="m.enrolled" size="sm" @click="openReset(m)">
+                      {{ t('twoFactor.admin.reset') }}
+                    </ErrorButton>
+                  </td>
                 </tr>
                 <tr v-if="members.length === 0">
-                  <td colspan="4" class="py-4 text-(--text-muted) text-center">{{ t('twoFactor.admin.noMembers') }}</td>
+                  <td colspan="5" class="py-4 text-(--text-muted) text-center">{{ t('twoFactor.admin.noMembers') }}</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </NeutralContainer>
       </template>
+
+      <Modal :model-value="resetTarget !== null" size="sm" @update:model-value="resetTarget = null">
+        <div v-if="resetTarget" class="space-y-4 p-4">
+          <SubHeader>{{ t('twoFactor.admin.resetConfirmTitle') }}</SubHeader>
+          <p class="text-sm">
+            {{ t('twoFactor.admin.resetConfirmText', {name: resetTarget.firstName + ' ' + resetTarget.lastName}) }}
+          </p>
+          <Alert variant="error">{{ t('twoFactor.admin.resetWarning') }}</Alert>
+          <div class="flex justify-end gap-2">
+            <SecondaryButton :disabled="resetLoading" @click="resetTarget = null">
+              {{ t('common.cancel') }}
+            </SecondaryButton>
+            <ErrorButton :disabled="resetLoading" @click="confirmReset">
+              {{ resetLoading ? t('common.loading') : t('twoFactor.admin.reset') }}
+            </ErrorButton>
+          </div>
+        </div>
+      </Modal>
     </div>
   </ViewContent>
 </template>

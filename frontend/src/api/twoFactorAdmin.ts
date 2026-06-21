@@ -94,3 +94,11 @@ export async function listAuditLog(
     const res = await client.get<{ entries: AuditEntry[] }>('/admin/2fa/audit', {params})
     return res.data.entries
 }
+
+export async function resetAccount2FAByInstanceAdmin(accountId: number): Promise<void> {
+    await client.post(`/admin/accounts/${accountId}/2fa/reset`)
+}
+
+export async function resetAccount2FAByStationAdmin(accountId: number): Promise<void> {
+    await client.post(`/station/accounts/${accountId}/2fa/reset`)
+}

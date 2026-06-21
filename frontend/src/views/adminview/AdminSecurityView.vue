@@ -16,6 +16,8 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ErrorButton from '@/components/button/ErrorButton.vue'
+import Modal from '@/components/feedback/Modal.vue'
 import TableHeaderCell from '@/components/typography/TableHeaderCell.vue'
 import {twoFactorAdmin} from '@/api'
 import type {AuditEntry, TwoFactorPolicy} from '@/api/twoFactorAdmin'
@@ -105,6 +107,33 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleString('de-DE')
 }
 
+// -- Reset --
+const resetAccountId = ref<number | null>(null)
+const resetLoading = ref(false)
+const resetConfirmOpen = ref(false)
+const resetSuccess = ref('')
+
+function openResetModal() {
+  if (!resetAccountId.value) return
+  resetSuccess.value = ''
+  resetConfirmOpen.value = true
+}
+
+async function confirmReset() {
+  if (!resetAccountId.value) return
+  resetLoading.value = true
+  try {
+    await twoFactorAdmin.resetAccount2FAByInstanceAdmin(resetAccountId.value)
+    resetSuccess.value = t('twoFactor.admin.resetSuccess', {id: resetAccountId.value})
+    resetConfirmOpen.value = false
+    resetAccountId.value = null
+    loadAudit(true)
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || t('common.error')
+  }
+  resetLoading.value = false
+}
+
 onMounted(load)
 </script>
 
@@ -138,6 +167,21 @@ onMounted(load)
               />
             </li>
           </ul>
+        </NeutralContainer>
+
+        <NeutralContainer class="space-y-3">
+          <SubHeader>{{ t('twoFactor.admin.resetTitle') }}</SubHeader>
+          <MutedText tag="p" size="sm">{{ t('twoFactor.admin.resetHint') }}</MutedText>
+          <Alert v-if="resetSuccess" variant="success">{{ resetSuccess }}</Alert>
+          <div class="flex items-end gap-2">
+            <div class="flex-1">
+              <MutedText tag="label" size="sm">{{ t('twoFactor.admin.resetAccountIdLabel') }}</MutedText>
+              <NumberInput v-model="resetAccountId" :placeholder="t('twoFactor.admin.resetAccountIdLabel')"/>
+            </div>
+            <ErrorButton :disabled="!resetAccountId" @click="openResetModal">
+              {{ t('twoFactor.admin.reset') }}
+            </ErrorButton>
+          </div>
         </NeutralContainer>
 
         <NeutralContainer class="space-y-3">
@@ -187,6 +231,24 @@ onMounted(load)
           </div>
         </NeutralContainer>
       </template>
+
+      <Modal v-model="resetConfirmOpen" size="sm">
+        <div class="space-y-4 p-4">
+          <SubHeader>{{ t('twoFactor.admin.resetConfirmTitle') }}</SubHeader>
+          <p class="text-sm">
+            {{ t('twoFactor.admin.resetConfirmTextById', {id: resetAccountId}) }}
+          </p>
+          <Alert variant="error">{{ t('twoFactor.admin.resetWarning') }}</Alert>
+          <div class="flex justify-end gap-2">
+            <SecondaryButton :disabled="resetLoading" @click="resetConfirmOpen = false">
+              {{ t('common.cancel') }}
+            </SecondaryButton>
+            <ErrorButton :disabled="resetLoading" @click="confirmReset">
+              {{ resetLoading ? t('common.loading') : t('twoFactor.admin.reset') }}
+            </ErrorButton>
+          </div>
+        </div>
+      </Modal>
     </div>
   </ViewContent>
 </template>
