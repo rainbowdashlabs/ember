@@ -1,6 +1,6 @@
 # Concept: Two-Factor Authentication
 
-Status: in progress (steps 1–3 of 10 done — schema, TOTP enrollment, backup codes, 2FA login verification, settings UI, step-up middleware)
+Status: in progress (steps 1–4 of 10 done — schema, TOTP enrollment, backup codes, 2FA login verification, settings UI, step-up middleware, WebAuthn enrollment / login / step-up)
 Scope: TOTP + FIDO2/WebAuthn second factor for the existing password-based login, with role-based mandate, per-`StationUserType` admin escalation, soft-grace enrollment, freshness-window step-up for sensitive actions, opt-in trusted-device remember, backup codes + admin reset as recovery.
 Not in scope: passkeys / passwordless login, SMS or email OTP, push-based authenticators, single-sign-on / external IdP integration, 2FA on the `/remote/` federation surface (those are RSA-signed server-to-server already).
 
@@ -394,9 +394,17 @@ All overridable via env (`AUTH_TWOFACTOR_*`) using the existing `@Overwrite(env 
    - Frontend: dedicated `/2fa-stepup` route + `StepUpVerifyView` (not a modal). Axios interceptor detects `step_up_required` 401 and redirects with `?redirect=<orig>&category=...`; view navigates back on success.
    - Help center: `help-profile-security` article + sidebar link.
 
+4. **WebAuthn enroll/verify.**
+   - `WebAuthnCredential` entity + repository CRUD (`createWebAuthn`, `findWebAuthnByCredentialId`, `findActiveWebAuthnForAccount`, `findUserHandleForAccount`, `findAccountByUserHandle`, `updateWebAuthnSignatureCounter`, generic `renameFactor`). Postgres `TEXT[]` and `UUID` columns read/written via SADU's first-class `row.getList` + `bind(..., PostgreSqlTypes.X)` and `StandardValueConverter.UUID_STRING`.
+   - `WebAuthnCredentialStore` implements Yubico's `CredentialRepository` against the DB (accounts identified by stringified id; user handles stable per account).
+   - `WebAuthnRelyingPartyFactory` builds the singleton `RelyingParty` from `auth.twoFactor.webauthn` + `api.baseUrl` (rpId defaults to baseUrl host); `allowOriginPort(true)` for local dev parity.
+   - `WebAuthnService.startRegistration / finishRegistration / startAssertion / finishAssertion` — challenge state parked in `account_token` (`TWO_FACTOR_WEBAUTHN_REG`, `TWO_FACTOR_WEBAUTHN_ASSERT`) so the verifier stays stateless. First WebAuthn enrollment auto-seeds backup codes via `TwoFactorService.issueInitialBackupCodesIfMissing`. Generic `removeFactor` disables a factor and auto-disables the backup-code factor when no primary factors remain.
+   - Routes (account-side, step-up gated by `ACCOUNT_SECURITY`): `POST /account/2fa/webauthn/register/begin|finish`, `POST /account/2fa/factors/{id}/remove`, `POST /account/2fa/factors/{id}/rename`. Login: public `POST /auth/2fa/webauthn/begin|finish` consume the existing `TWO_FACTOR_PENDING` pre-auth token. Step-up: `POST /auth/2fa/stepup/webauthn/begin|finish` updates `account_session.two_factor_verified_at`. All paths record audit events with `factor_kind = WEBAUTHN`.
+   - Frontend: `util/webauthn.ts` bridges Yubico server JSON (URL-safe base64) to `navigator.credentials` and back. `WebAuthnSection.vue` lists, renames, removes, and enrolls security keys (label prompt + auto-issued backup codes modal). `TwoFactorVerifyView` and `StepUpVerifyView` expose a "Use security key" option alongside TOTP / backup code. German strings under `twoFactor.webauthn.*`.
+   - Demo mode: status endpoint returns `webauthnAvailable: false`, `handleDemoGuard` rejects `/account/2fa/webauthn/register/*` defensively, and the UI hides the option.
+
 ### Remaining
 
-4. **WebAuthn enroll/verify.** `WebAuthnService` wrapping Yubico library. Registration + assertion ceremonies. Frontend `WebAuthnSection` + `navigator.credentials` API integration. Update `TwoFactorVerifyView` and `StepUpModal` with WebAuthn option.
 5. **Policy engine.** `TwoFactorPolicyService` with `resolve(accountId)` → `RequirementState` sealed interface. Caffeine cache (60s TTL). Role-based mandate from elevated permission set. `X-Two-Factor-Deadline` header. `TwoFactorBanner` frontend component. Forced enrollment flow.
 6. **Per-type force UI.** `TwoFactorAdminRoutes` for station + instance admin policy management. `SecurityView` for station manage + admin panel. Per-user-type toggles, member 2FA status list.
 7. **Trusted device cookie.** `createTrustedDevice()` + `validateTrustedDevice()`. Login flow checks `ember_2fa_trust` cookie. `Set-Cookie` on `POST /auth/2fa` with `rememberDeviceDays`. Trusted devices list + revoke UI.
