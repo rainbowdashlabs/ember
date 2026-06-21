@@ -10,6 +10,7 @@ import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
@@ -77,7 +78,11 @@ public class AuthRoutes implements Routes {
         routes.post(prefix + "/auth/login", this::login);
         routes.post(prefix + "/auth/refresh", this::refresh);
         routes.post(prefix + "/auth/logout", this::logout);
-        routes.post(prefix + "/auth/change-password", this::changePassword, StationPermission.LOGIN);
+        routes.post(
+                prefix + "/auth/change-password",
+                this::changePassword,
+                StationPermission.LOGIN,
+                StepUpCategory.ACCOUNT_SECURITY);
         routes.post(prefix + "/auth/confirm-email-change", this::confirmEmailChange);
     }
 

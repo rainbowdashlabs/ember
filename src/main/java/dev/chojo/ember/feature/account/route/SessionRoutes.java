@@ -12,6 +12,7 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.file.elements.Api;
@@ -150,7 +151,11 @@ public class SessionRoutes implements Routes {
                 prefix + "/session/cross-station-dashboard", this::getCrossStationDashboard, StationPermission.LOGIN);
         routes.get(prefix + "/session/active", this::getActiveSessions, StationPermission.LOGIN);
         routes.delete(prefix + "/session/active/{id}", this::invalidateSession, StationPermission.LOGIN);
-        routes.post(prefix + "/session/invalidate-all", this::invalidateAll, StationPermission.LOGIN);
+        routes.post(
+                prefix + "/session/invalidate-all",
+                this::invalidateAll,
+                StationPermission.LOGIN,
+                StepUpCategory.ACCOUNT_SECURITY);
         routes.get(prefix + "/session/gdpr-export", this::gdprExport, StationPermission.LOGIN);
         routes.get(prefix + "/session/avatar", this::getAvatar, StationPermission.LOGIN);
         routes.post(prefix + "/session/avatar", this::uploadAvatar, StationPermission.LOGIN);

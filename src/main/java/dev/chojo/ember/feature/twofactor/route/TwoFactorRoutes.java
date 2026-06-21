@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.twofactor.route;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.feature.account.entity.AccountToken;
@@ -63,11 +64,23 @@ public class TwoFactorRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/account/2fa/status", this::getStatus, StationPermission.LOGIN);
+        // First-time enrollment cannot require step-up because no factor exists yet.
+        // Confirm/remove/regenerate are gated because they mutate an already-enrolled factor.
         routes.post(prefix + "/account/2fa/totp/begin", this::beginTotp, StationPermission.LOGIN);
-        routes.post(prefix + "/account/2fa/totp/confirm", this::confirmTotp, StationPermission.LOGIN);
-        routes.post(prefix + "/account/2fa/totp/remove", this::removeTotp, StationPermission.LOGIN);
         routes.post(
-                prefix + "/account/2fa/backup-codes/regenerate", this::regenerateBackupCodes, StationPermission.LOGIN);
+                prefix + "/account/2fa/totp/confirm",
+                this::confirmTotp,
+                StationPermission.LOGIN);
+        routes.post(
+                prefix + "/account/2fa/totp/remove",
+                this::removeTotp,
+                StationPermission.LOGIN,
+                StepUpCategory.ACCOUNT_SECURITY);
+        routes.post(
+                prefix + "/account/2fa/backup-codes/regenerate",
+                this::regenerateBackupCodes,
+                StationPermission.LOGIN,
+                StepUpCategory.ACCOUNT_SECURITY);
         routes.post(prefix + "/auth/2fa", this::verify2fa);
         routes.post(prefix + "/auth/2fa/stepup", this::stepUp, StationPermission.LOGIN);
     }

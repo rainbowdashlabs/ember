@@ -593,7 +593,8 @@ public class AccountRepository {
                             created_at,
                             user_agent,
                             last_used_at,
-                            location
+                            location,
+                            two_factor_verified_at
                         FROM
                             account_session
                         WHERE token_hash = :token_hash;""")
@@ -618,7 +619,8 @@ public class AccountRepository {
                     created_at,
                     user_agent,
                     last_used_at,
-                    location
+                    location,
+                    two_factor_verified_at
                 FROM
                     account_session
                 WHERE account_id = :account_id

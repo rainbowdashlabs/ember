@@ -30,6 +30,7 @@ import dev.chojo.ember.feature.system.service.DemoService;
 import dev.chojo.ember.feature.traffic.service.AuthBucketClassifier;
 import dev.chojo.ember.feature.traffic.service.StationResolver;
 import dev.chojo.ember.feature.traffic.service.StationTrafficRecorder;
+import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
 import dev.chojo.ember.util.DevErrorWriter;
 import dev.chojo.ember.util.LogRedaction;
 import io.javalin.Javalin;
@@ -112,6 +113,7 @@ public class ApiServer {
     private final PageHitRecorder pageHitRecorder;
     private final RefererDomainExtractor refererExtractor;
     private final BotClassifier botClassifier;
+    private final TwoFactorService twoFactorService;
 
     @Inject
     public ApiServer(
@@ -133,7 +135,8 @@ public class ApiServer {
             AuthBucketClassifier authClassifier,
             PageHitRecorder pageHitRecorder,
             RefererDomainExtractor refererExtractor,
-            BotClassifier botClassifier) {
+            BotClassifier botClassifier,
+            TwoFactorService twoFactorService) {
         this.routes = routes;
         this.apiConfig = apiConfig;
         this.authConfig = authConfig;
@@ -153,6 +156,7 @@ public class ApiServer {
         this.pageHitRecorder = pageHitRecorder;
         this.refererExtractor = refererExtractor;
         this.botClassifier = botClassifier;
+        this.twoFactorService = twoFactorService;
         this.apiRequestLogger.start();
         this.trafficRecorder.start();
         this.pageHitRecorder.start();
@@ -515,14 +519,17 @@ public class ApiServer {
     }
 
     /**
-     * Returns true when the session's last 2FA verification (login challenge or step-up ceremony)
-     * is within the configured freshness window. Sessions with no recorded verification fail.
+     * Returns true when step-up enforcement is satisfied for the session: either the user has no
+     * 2FA enrolled (in which case there is nothing to step up against), or the session's last 2FA
+     * verification is within the configured freshness window.
      */
     private boolean isStepUpFresh(UserSession session) {
         Instant verifiedAt = session.twoFactorVerifiedAt();
-        if (verifiedAt == null) return false;
-        Duration freshness = Duration.ofSeconds(authConfig.twoFactor().stepUpFreshnessSeconds());
-        return verifiedAt.isAfter(Instant.now().minus(freshness));
+        if (verifiedAt != null) {
+            Duration freshness = Duration.ofSeconds(authConfig.twoFactor().stepUpFreshnessSeconds());
+            if (verifiedAt.isAfter(Instant.now().minus(freshness))) return true;
+        }
+        return !twoFactorService.isEnrolled(session.accountId());
     }
 
     /**
