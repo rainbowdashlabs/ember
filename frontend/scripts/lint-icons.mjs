@@ -3,7 +3,7 @@
  * FontAwesome Icon Linter
  *
  * Checks that all icons used in templates are properly imported and
- * registered in library.add() in main.ts.
+ * registered in library.add() in the FontAwesome Nuxt plugin.
  *
  * Exit code 1 if any unregistered icons are found.
  */
@@ -13,21 +13,22 @@ import {SRC, walk, rel, extractTemplate, RED, GREEN, YELLOW, RESET, BOLD, create
 import {join} from 'path'
 
 const reporter = createReporter()
-const MAIN_TS = join(SRC, 'main.ts')
+const PLUGIN_TS = join(SRC, 'plugins', 'fontawesome.ts')
 
-// ── Parse registered icons from main.ts ─────────────────────────────
+// ── Parse registered icons from the FontAwesome Nuxt plugin ─────────
 
-const mainContent = readFileSync(MAIN_TS, 'utf-8')
+const pluginContent = readFileSync(PLUGIN_TS, 'utf-8')
 
-// Extract the library.add(...) call content
-const libraryAddMatch = mainContent.match(/library\.add\(([^)]+)\)/s)
-if (!libraryAddMatch) {
-    console.error('Could not find library.add() in main.ts')
+// Extract every library.add(...) call so the registration list may be
+// split across one-per-line statements (better for bundler tree-shaking).
+const libraryAddMatches = [...pluginContent.matchAll(/library\.add\(([^)]+)\)/g)]
+if (libraryAddMatches.length === 0) {
+    console.error(`Could not find library.add() in ${rel(PLUGIN_TS)}`)
     process.exit(1)
 }
 
 const registeredVarNames = new Set(
-    libraryAddMatch[1].split(',').map(s => s.trim()).filter(Boolean)
+    libraryAddMatches.flatMap(m => m[1].split(',').map(s => s.trim()).filter(Boolean))
 )
 
 // Convert FA variable names to icon names: faChevronDown → chevron-down
@@ -44,8 +45,8 @@ function faVarToIconName(varName) {
 const registeredIcons = new Map() // iconName → {prefix: 'fas'|'fab'}
 
 // Determine prefix from import source
-const solidImportMatch = mainContent.match(/import\s*\{([^}]+)\}\s*from\s*'@fortawesome\/free-solid-svg-icons'/)
-const brandsImportMatch = mainContent.match(/import\s*\{([^}]+)\}\s*from\s*'@fortawesome\/free-brands-svg-icons'/)
+const solidImportMatch = pluginContent.match(/import\s*\{([^}]+)\}\s*from\s*'@fortawesome\/free-solid-svg-icons'/)
+const brandsImportMatch = pluginContent.match(/import\s*\{([^}]+)\}\s*from\s*'@fortawesome\/free-brands-svg-icons'/)
 
 const solidVars = solidImportMatch
     ? new Set(solidImportMatch[1].split(',').map(s => s.trim()).filter(Boolean))
@@ -83,7 +84,7 @@ for (const file of vueFiles) {
             const key = `${prefix}:${iconName}`
             if (!registeredIcons.has(key)) {
                 reporter.error(file, templateStartLine + i,
-                    `Icon '${iconName}' (${prefix}) is not registered in library.add(). Add fa${iconName.split('-').map(s => s[0].toUpperCase() + s.slice(1)).join('')} to main.ts.`)
+                    `Icon '${iconName}' (${prefix}) is not registered in library.add(). Add fa${iconName.split('-').map(s => s[0].toUpperCase() + s.slice(1)).join('')} to src/plugins/fontawesome.ts.`)
             }
         }
     }
@@ -110,7 +111,7 @@ for (const file of vueFiles) {
             const key = `${prefix}:${iconName}`
             if (!registeredIcons.has(key)) {
                 reporter.error(file, scriptStartLine + i,
-                    `Icon '${iconName}' (${prefix}) is not registered in library.add(). Add fa${iconName.split('-').map(s => s[0].toUpperCase() + s.slice(1)).join('')} to main.ts.`)
+                    `Icon '${iconName}' (${prefix}) is not registered in library.add(). Add fa${iconName.split('-').map(s => s[0].toUpperCase() + s.slice(1)).join('')} to src/plugins/fontawesome.ts.`)
             }
         }
     }

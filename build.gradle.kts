@@ -131,7 +131,7 @@ tasks {
         classpath = sourceSets.test.get().runtimeClasspath
         useJUnitPlatform { excludeTags("locale") }
         testLogging { events("passed", "skipped", "failed") }
-        filter { includeTestsMatching("dev.chojo.ember.repository.*") }
+        filter { includeTestsMatching("*.repository.*") }
         maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
     }
 
@@ -142,7 +142,7 @@ tasks {
         classpath = sourceSets.test.get().runtimeClasspath
         useJUnitPlatform { excludeTags("locale") }
         testLogging { events("passed", "skipped", "failed") }
-        filter { includeTestsMatching("dev.chojo.ember.service.*") }
+        filter { includeTestsMatching("*.service.*") }
         maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
     }
 
@@ -154,8 +154,8 @@ tasks {
         useJUnitPlatform { excludeTags("locale") }
         testLogging { events("passed", "skipped", "failed") }
         filter {
-            excludeTestsMatching("dev.chojo.ember.repository.*")
-            excludeTestsMatching("dev.chojo.ember.service.*")
+            excludeTestsMatching("*.repository.*")
+            excludeTestsMatching("*.service.*")
             excludeTestsMatching("dev.chojo.ember.tracking.*")
         }
         maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)

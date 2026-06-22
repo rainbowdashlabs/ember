@@ -38,6 +38,7 @@ function onDecoded(value: string) {
         :icon="['fas', 'barcode']"
         :label="t('inventory.scan.button.label')"
         :disabled="disabled"
+        class="text-secondary-accent hover:bg-secondary/15 dark:text-secondary"
         @click="open = true"
     />
     <BarcodeScanModal v-model="open" :mode="mode" :formats="formats" @decoded="onDecoded"/>

@@ -5234,6 +5234,7 @@ volumes:
             error: {
                 denied: 'Kamerazugriff verweigert. Erlaube den Zugriff in den Browser-Einstellungen, um den Scanner zu nutzen.',
                 unsupported: 'Dieses Gerät oder dieser Browser unterstützt das Scannen von Barcodes nicht.',
+                insecureContext: 'Scannen erfordert eine sichere Verbindung (HTTPS). Diese Seite wird über HTTP geladen — wechsle zu HTTPS oder rufe die App während der Entwicklung über localhost auf.',
                 notFound: 'Keine Kamera gefunden.',
             },
             continuous: {

@@ -83,6 +83,8 @@ function handleError(e: Error) {
     errorKey.value = 'inventory.scan.error.denied'
   } else if (e.name === 'NotFoundError' || e.name === 'OverconstrainedError') {
     errorKey.value = 'inventory.scan.error.notFound'
+  } else if (e.message === 'barcode-scanner-insecure-context') {
+    errorKey.value = 'inventory.scan.error.insecureContext'
   } else if (e.message === 'barcode-scanner-unsupported') {
     errorKey.value = 'inventory.scan.error.unsupported'
   } else {
