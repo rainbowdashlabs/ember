@@ -79,12 +79,12 @@ async function probeTier(formats: BarcodeFormat[]): Promise<ScannerTier> {
     return 'unsupported'
 }
 
+type ZxingControls = { stop(): void }
 type ZxingReader = {
-    decodeFromVideoElementContinuously(
+    decodeFromVideoElement(
         videoEl: HTMLVideoElement,
-        callback: (result: { getText(): string } | undefined, err: unknown) => void,
-    ): Promise<void>
-    reset(): void
+        callback: (result: { getText(): string } | undefined, err: unknown, controls: ZxingControls) => void,
+    ): Promise<ZxingControls>
 }
 
 async function loadZxingReader(): Promise<ZxingReader> {
@@ -118,7 +118,8 @@ export function useBarcodeScanner() {
         const formats = options.formats ?? DEFAULT_FORMATS
         const tier = await probeTier(formats)
         if (tier === 'unsupported') {
-            const err = new Error('barcode-scanner-unsupported')
+            const insecure = typeof window !== 'undefined' && window.isSecureContext === false
+            const err = new Error(insecure ? 'barcode-scanner-insecure-context' : 'barcode-scanner-unsupported')
             options.onError?.(err)
             throw err
         }
@@ -148,7 +149,7 @@ export function useBarcodeScanner() {
         }
 
         let stopped = false
-        let zxingReader: ZxingReader | null = null
+        let zxingControls: ZxingControls | null = null
         let nativeTimer: ReturnType<typeof setInterval> | null = null
 
         function stop() {
@@ -158,9 +159,9 @@ export function useBarcodeScanner() {
                 clearInterval(nativeTimer)
                 nativeTimer = null
             }
-            if (zxingReader) {
-                try { zxingReader.reset() } catch { /* ignore */ }
-                zxingReader = null
+            if (zxingControls) {
+                try { zxingControls.stop() } catch { /* ignore */ }
+                zxingControls = null
             }
             stream.getTracks().forEach(t => t.stop())
             options.videoEl.srcObject = null
@@ -185,8 +186,8 @@ export function useBarcodeScanner() {
                 } catch { /* transient frame failures are normal */ }
             }, 200)
         } else {
-            zxingReader = await loadZxingReader()
-            await zxingReader.decodeFromVideoElementContinuously(options.videoEl, (result) => {
+            const zxingReader = await loadZxingReader()
+            zxingControls = await zxingReader.decodeFromVideoElement(options.videoEl, (result) => {
                 if (stopped || !result) return
                 emit(result.getText())
             })
