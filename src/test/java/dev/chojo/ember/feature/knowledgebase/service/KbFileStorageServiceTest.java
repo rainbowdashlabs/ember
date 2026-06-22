@@ -6,19 +6,26 @@
 package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.conf.file.elements.Storage;
+import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.storage.backend.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
+import dev.chojo.ember.feature.storage.service.StorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class KbFileStorageServiceTest {
+
+    private static final int STATION_ID = 1;
+    private static final UUID STATION_UID = UUID.fromString("00000000-0000-0000-0000-0000000000c1");
 
     @TempDir
     Path tempDir;
@@ -27,98 +34,105 @@ class KbFileStorageServiceTest {
     private KbFileStorageService storage;
 
     @BeforeEach
-    void setup() throws Exception {
+    void setup() {
         config = Mockito.mock(Storage.class);
         Mockito.when(config.compressTextFiles()).thenReturn(true);
-        storage = new KbFileStorageService(config);
-        Field baseDir = KbFileStorageService.class.getDeclaredField("baseDir");
-        baseDir.setAccessible(true);
-        baseDir.set(storage, tempDir);
+        var stationRepo = Mockito.mock(StationRepository.class);
+        Mockito.when(stationRepo.resolveUid(STATION_ID)).thenReturn(STATION_UID);
+        var backend = new LocalStorageBackend(tempDir);
+        var resolver = new StorageBackendResolver(backend);
+        var storageService = new StorageService(resolver, backend);
+        var compression = new TextCompressionPolicy(config);
+        storage = new KbFileStorageService(storageService, stationRepo, backend, compression);
+    }
+
+    private Path stationDir() {
+        return tempDir.resolve("station").resolve(STATION_UID.toString()).resolve("kb-files");
     }
 
     @Test
     void binaryFileRoundTrips() throws IOException {
         byte[] data = new byte[] {1, 2, 3, 4, 5};
-        storage.store(1, data, "application/pdf");
-        var read = storage.read(1).orElseThrow();
+        storage.store(STATION_ID, 1, data, "application/pdf");
+        var read = storage.read(STATION_ID, 1).orElseThrow();
         assertArrayEquals(data, read.data());
         assertEquals("application/pdf", read.contentType());
-        assertTrue(Files.exists(tempDir.resolve("1").resolve("content")));
-        assertFalse(Files.exists(tempDir.resolve("1").resolve("content.gz")));
+        assertTrue(Files.exists(stationDir().resolve("1").resolve("content")));
+        assertFalse(Files.exists(stationDir().resolve("1").resolve("content.gz")));
     }
 
     @Test
     void textFileIsGzippedOnDisk() throws IOException {
         byte[] data = "hello world ".repeat(500).getBytes();
-        storage.store(2, data, "text/plain");
-        assertFalse(Files.exists(tempDir.resolve("2").resolve("content")));
-        assertTrue(Files.exists(tempDir.resolve("2").resolve("content.gz")));
-        long gzSize = Files.size(tempDir.resolve("2").resolve("content.gz"));
+        storage.store(STATION_ID, 2, data, "text/plain");
+        assertFalse(Files.exists(stationDir().resolve("2").resolve("content")));
+        assertTrue(Files.exists(stationDir().resolve("2").resolve("content.gz")));
+        long gzSize = Files.size(stationDir().resolve("2").resolve("content.gz"));
         assertTrue(gzSize < data.length, "Gzipped text should be smaller than original");
 
-        var read = storage.read(2).orElseThrow();
+        var read = storage.read(STATION_ID, 2).orElseThrow();
         assertArrayEquals(data, read.data());
         assertEquals("text/plain", read.contentType());
     }
 
     @Test
-    void jsonAndXmlAreGzipped() throws IOException {
+    void jsonAndXmlAreGzipped() {
         byte[] json = "{\"key\":\"value\"}".repeat(50).getBytes();
-        storage.store(3, json, "application/json");
-        assertTrue(Files.exists(tempDir.resolve("3").resolve("content.gz")));
-        assertArrayEquals(json, storage.read(3).orElseThrow().data());
+        storage.store(STATION_ID, 3, json, "application/json");
+        assertTrue(Files.exists(stationDir().resolve("3").resolve("content.gz")));
+        assertArrayEquals(json, storage.read(STATION_ID, 3).orElseThrow().data());
 
         byte[] xml = "<a><b>x</b></a>".repeat(50).getBytes();
-        storage.store(4, xml, "application/xml");
-        assertTrue(Files.exists(tempDir.resolve("4").resolve("content.gz")));
-        assertArrayEquals(xml, storage.read(4).orElseThrow().data());
+        storage.store(STATION_ID, 4, xml, "application/xml");
+        assertTrue(Files.exists(stationDir().resolve("4").resolve("content.gz")));
+        assertArrayEquals(xml, storage.read(STATION_ID, 4).orElseThrow().data());
     }
 
     @Test
-    void gzipDisabledByConfigStoresPlain() throws IOException {
+    void gzipDisabledByConfigStoresPlain() {
         Mockito.when(config.compressTextFiles()).thenReturn(false);
         byte[] data = "plain text".getBytes();
-        storage.store(5, data, "text/plain");
-        assertTrue(Files.exists(tempDir.resolve("5").resolve("content")));
-        assertFalse(Files.exists(tempDir.resolve("5").resolve("content.gz")));
-        assertArrayEquals(data, storage.read(5).orElseThrow().data());
+        storage.store(STATION_ID, 5, data, "text/plain");
+        assertTrue(Files.exists(stationDir().resolve("5").resolve("content")));
+        assertFalse(Files.exists(stationDir().resolve("5").resolve("content.gz")));
+        assertArrayEquals(data, storage.read(STATION_ID, 5).orElseThrow().data());
     }
 
     @Test
-    void storeRemovesStaleAlternativeOnReUpload() throws IOException {
+    void storeRemovesStaleAlternativeOnReUpload() {
         Mockito.when(config.compressTextFiles()).thenReturn(false);
-        storage.store(6, "plain".getBytes(), "text/plain");
-        assertTrue(Files.exists(tempDir.resolve("6").resolve("content")));
+        storage.store(STATION_ID, 6, "plain".getBytes(), "text/plain");
+        assertTrue(Files.exists(stationDir().resolve("6").resolve("content")));
 
         Mockito.when(config.compressTextFiles()).thenReturn(true);
-        storage.store(6, "gzipped".getBytes(), "text/plain");
-        assertTrue(Files.exists(tempDir.resolve("6").resolve("content.gz")));
+        storage.store(STATION_ID, 6, "gzipped".getBytes(), "text/plain");
+        assertTrue(Files.exists(stationDir().resolve("6").resolve("content.gz")));
         assertFalse(
-                Files.exists(tempDir.resolve("6").resolve("content")),
+                Files.exists(stationDir().resolve("6").resolve("content")),
                 "Re-storing as gzipped must remove the stale plain copy");
 
-        var read = storage.read(6).orElseThrow();
+        var read = storage.read(STATION_ID, 6).orElseThrow();
         assertArrayEquals("gzipped".getBytes(), read.data());
     }
 
     @Test
     void readMissingReturnsEmpty() {
-        assertTrue(storage.read(999).isEmpty());
+        assertTrue(storage.read(STATION_ID, 999).isEmpty());
     }
 
     @Test
-    void deleteRemovesEverything() throws IOException {
-        storage.store(7, "x".getBytes(), "text/plain");
-        storage.delete(7);
-        assertTrue(storage.read(7).isEmpty());
-        assertFalse(Files.exists(tempDir.resolve("7")));
+    void deleteRemovesEverything() {
+        storage.store(STATION_ID, 7, "x".getBytes(), "text/plain");
+        storage.delete(STATION_ID, 7);
+        assertTrue(storage.read(STATION_ID, 7).isEmpty());
+        assertFalse(Files.exists(stationDir().resolve("7")));
     }
 
     @Test
-    void presentationPdfRoundTrips() throws IOException {
+    void presentationPdfRoundTrips() {
         byte[] pdf = new byte[] {(byte) 0x25, (byte) 0x50, (byte) 0x44, (byte) 0x46};
-        storage.storePresentationPdf(8, pdf);
-        var read = storage.readPresentationPdf(8).orElseThrow();
+        storage.storePresentationPdf(STATION_ID, 8, pdf);
+        var read = storage.readPresentationPdf(STATION_ID, 8).orElseThrow();
         assertArrayEquals(pdf, read.data());
         assertEquals("application/pdf", read.contentType());
     }

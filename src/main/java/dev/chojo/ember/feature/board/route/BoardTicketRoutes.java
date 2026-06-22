@@ -832,6 +832,7 @@ public class BoardTicketRoutes implements Routes {
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
             var att = ticketService.uploadAttachment(
+                    session.stationId(),
                     ticketId,
                     file.filename(),
                     file.contentType(),
@@ -864,7 +865,7 @@ public class BoardTicketRoutes implements Routes {
         requireViewAccess(boardId, session);
         int attachmentId = ctx.pathParamAsClass("attachmentId", Integer.class).get();
         var att = ticketService.findAttachmentById(attachmentId).orElseThrow(NotFoundResponse::new);
-        var path = ticketService.getAttachmentPath(att);
+        var path = ticketService.getAttachmentPath(session.stationId(), att);
         if (!Files.exists(path)) throw new NotFoundResponse();
         ctx.contentType(SafeInlineMime.safeContentType(att.contentType()));
         ctx.header(
@@ -896,7 +897,7 @@ public class BoardTicketRoutes implements Routes {
         int boardId = resolveBoardId(ctx, session.stationId());
         requireEditAccess(boardId, session);
         int attachmentId = ctx.pathParamAsClass("attachmentId", Integer.class).get();
-        if (ticketService.deleteAttachment(attachmentId)) {
+        if (ticketService.deleteAttachment(session.stationId(), attachmentId)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw new NotFoundResponse();

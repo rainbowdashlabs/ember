@@ -5,147 +5,196 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
-import dev.chojo.ember.conf.file.elements.Storage;
+import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.storage.backend.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.entity.StorageCategory;
+import dev.chojo.ember.feature.storage.entity.StorageScope;
+import dev.chojo.ember.feature.storage.entity.Variant;
+import dev.chojo.ember.feature.storage.service.StorageService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Locale;
+import java.nio.file.StandardCopyOption;
 import java.util.Optional;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
+import java.util.UUID;
+import java.util.stream.Stream;
+
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
- * Stores knowledge base binary files (PDFs, images, etc.) on disk instead of the database.
- * Files are stored at {@code data/kb-files/{fileId}/content} with a {@code .content-type}
- * marker. Plain-text uploads (text/*, application/json, application/xml, …) are gzipped on
- * disk under {@code content.gz} when {@link Storage#compressTextFiles()} is on (concept
- * §11.3) — the read path detects the suffix and transparently decompresses, so callers see
- * the same {@code FileData} shape regardless of how the bytes happened to land.
+ * Per-station storage for knowledge-base binary files (uploaded documents, PDFs, presentation
+ * artefacts). All I/O is delegated to {@link StorageService} under the {@code KB_FILES}
+ * category. The producer side owns the keying convention: {@code <fileId>/content} for the
+ * uncompressed original or {@code <fileId>/content.gz} for the gzipped variant, and
+ * {@code <fileId>/presentation.pdf} for converted slide decks.
+ *
+ * <p>Gzip selection moves out of this service into {@link TextCompressionPolicy}; the storage
+ * layer just receives whatever bytes it is given and the metadata sidecar reports the
+ * {@code Content-Encoding}.
  */
 @Singleton
 public class KbFileStorageService {
     private static final Logger log = LoggerFactory.getLogger(KbFileStorageService.class);
     private static final String CONTENT = "content";
     private static final String CONTENT_GZ = "content.gz";
-    private final Path baseDir = Path.of("data", "kb-files");
-    private final Storage storageConfig;
+    private static final String PRESENTATION_PDF = "presentation.pdf";
+
+    private final StorageService storage;
+    private final StationRepository stationRepository;
+    private final LocalStorageBackend localBackend;
+    private final TextCompressionPolicy compression;
 
     @Inject
-    public KbFileStorageService(Storage storageConfig) {
-        this.storageConfig = storageConfig;
+    public KbFileStorageService(
+            StorageService storage,
+            StationRepository stationRepository,
+            LocalStorageBackend localBackend,
+            TextCompressionPolicy compression) {
+        this.storage = storage;
+        this.stationRepository = stationRepository;
+        this.localBackend = localBackend;
+        this.compression = compression;
+        migrateLegacyRoot();
     }
 
-    public void store(int fileId, byte[] data, String contentType) throws IOException {
-        Path dir = baseDir.resolve(String.valueOf(fileId));
-        Files.createDirectories(dir);
-        if (shouldGzip(contentType)) {
-            Files.write(dir.resolve(CONTENT_GZ), gzip(data));
-            Files.deleteIfExists(dir.resolve(CONTENT));
+    /**
+     * Persists the binary content for a (stationId, fileId) pair. Picks gzip transparently
+     * when {@link TextCompressionPolicy#shouldGzip(String)} returns true.
+     */
+    public void store(int stationId, int fileId, byte[] data, String contentType) {
+        StorageScope.Station scope = stationScope(stationId);
+        if (compression.shouldGzip(contentType)) {
+            byte[] gzipped = compression.gzip(data);
+            storage.store(
+                    scope, StorageCategory.KB_FILES, fileKey(fileId), new Variant(CONTENT_GZ), gzipped, contentType);
+            storage.delete(scope, StorageCategory.KB_FILES, fileKey(fileId), new Variant(CONTENT));
         } else {
-            Files.write(dir.resolve(CONTENT), data);
-            Files.deleteIfExists(dir.resolve(CONTENT_GZ));
-        }
-        if (contentType != null) {
-            Files.writeString(dir.resolve(".content-type"), contentType);
+            storage.store(scope, StorageCategory.KB_FILES, fileKey(fileId), new Variant(CONTENT), data, contentType);
+            storage.delete(scope, StorageCategory.KB_FILES, fileKey(fileId), new Variant(CONTENT_GZ));
         }
     }
 
-    public Optional<FileData> read(int fileId) {
-        Path dir = baseDir.resolve(String.valueOf(fileId));
-        Path gz = dir.resolve(CONTENT_GZ);
-        Path plain = dir.resolve(CONTENT);
-        boolean isGzipped = Files.exists(gz);
-        Path source = isGzipped ? gz : plain;
-        if (!Files.exists(source)) {
-            return Optional.empty();
+    /** Reads the binary content for a (stationId, fileId). Transparently decompresses gzip. */
+    public Optional<FileData> read(int stationId, int fileId) {
+        StorageScope.Station scope = stationScope(stationId);
+        Optional<byte[]> gz =
+                storage.readAllBytes(scope, StorageCategory.KB_FILES, fileKey(fileId), new Variant(CONTENT_GZ));
+        if (gz.isPresent()) {
+            byte[] decoded = compression.gunzip(gz.get());
+            String contentType = readContentType(scope, fileId, CONTENT_GZ);
+            return Optional.of(new FileData(decoded, contentType));
         }
-        try {
-            byte[] data = isGzipped ? gunzip(Files.readAllBytes(source)) : Files.readAllBytes(source);
-            Path ctFile = dir.resolve(".content-type");
-            String contentType = Files.exists(ctFile) ? Files.readString(ctFile).trim() : "application/octet-stream";
-            return Optional.of(new FileData(data, contentType));
-        } catch (IOException e) {
-            log.error("Failed to read KB file {}", fileId, e);
-            return Optional.empty();
+        Optional<byte[]> plain =
+                storage.readAllBytes(scope, StorageCategory.KB_FILES, fileKey(fileId), new Variant(CONTENT));
+        if (plain.isPresent()) {
+            String contentType = readContentType(scope, fileId, CONTENT);
+            return Optional.of(new FileData(plain.get(), contentType));
         }
+        return Optional.empty();
     }
 
-    public void delete(int fileId) {
-        Path dir = baseDir.resolve(String.valueOf(fileId));
-        if (!Files.exists(dir)) return;
-        try (var stream = Files.list(dir)) {
-            stream.forEach(file -> {
+    /** Removes the file and any sidecar variants (raw / gzipped / converted PDF). */
+    public void delete(int stationId, int fileId) {
+        storage.deletePrefix(stationScope(stationId), StorageCategory.KB_FILES, fileKey(fileId));
+    }
+
+    /** Persists the converted PDF artefact for a presentation file. */
+    public void storePresentationPdf(int stationId, int fileId, byte[] pdfData) {
+        storage.store(
+                stationScope(stationId),
+                StorageCategory.KB_FILES,
+                fileKey(fileId),
+                new Variant(PRESENTATION_PDF),
+                pdfData,
+                "application/pdf");
+    }
+
+    /** Reads the converted PDF artefact for a presentation file. */
+    public Optional<FileData> readPresentationPdf(int stationId, int fileId) {
+        return storage.readAllBytes(
+                        stationScope(stationId),
+                        StorageCategory.KB_FILES,
+                        fileKey(fileId),
+                        new Variant(PRESENTATION_PDF))
+                .map(bytes -> new FileData(bytes, "application/pdf"));
+    }
+
+    private String fileKey(int fileId) {
+        return String.valueOf(fileId);
+    }
+
+    private String readContentType(StorageScope.Station scope, int fileId, String variant) {
+        return storage.read(scope, StorageCategory.KB_FILES, fileKey(fileId), new Variant(variant))
+                .map(stream -> {
+                    try (stream) {
+                        return stream.metadata().contentType();
+                    } catch (IOException ignored) {
+                        return "application/octet-stream";
+                    }
+                })
+                .orElse("application/octet-stream");
+    }
+
+    private StorageScope.Station stationScope(int stationId) {
+        UUID uid = stationRepository.resolveUid(stationId);
+        return new StorageScope.Station(stationId, uid);
+    }
+
+    private void migrateLegacyRoot() {
+        Path legacyRoot = localBackend.root().resolve("kb-files");
+        if (!Files.isDirectory(legacyRoot)) return;
+        log.info("Migrating legacy kb-files layout from {}", legacyRoot);
+        try (Stream<Path> fileDirs = Files.list(legacyRoot)) {
+            for (Path fileDir : fileDirs.filter(Files::isDirectory).toList()) {
+                String name = fileDir.getFileName().toString();
+                int fileId;
                 try {
-                    Files.deleteIfExists(file);
-                } catch (IOException e) {
-                    log.warn("Failed to delete {}", file, e);
+                    fileId = Integer.parseInt(name);
+                } catch (NumberFormatException ignored) {
+                    continue;
                 }
-            });
-            Files.deleteIfExists(dir);
+                Optional<Integer> stationId = lookupStationId(fileId);
+                if (stationId.isEmpty()) {
+                    log.warn("Could not resolve station for legacy kb file {}; leaving in place", fileId);
+                    continue;
+                }
+                UUID uid = stationRepository.resolveUid(stationId.get());
+                Path target = localBackend
+                        .root()
+                        .resolve("station")
+                        .resolve(uid.toString())
+                        .resolve("kb-files")
+                        .resolve(name);
+                Files.createDirectories(target.getParent());
+                if (Files.exists(target)) continue;
+                Files.move(fileDir, target, StandardCopyOption.ATOMIC_MOVE);
+            }
+            try {
+                Files.deleteIfExists(legacyRoot);
+            } catch (IOException ignored) {
+            }
         } catch (IOException e) {
-            log.warn("Failed to clean KB file directory {}", dir, e);
+            log.warn("KB-files legacy migration failed; some files may not be reachable", e);
         }
     }
 
-    /**
-     * Store the converted PDF for a presentation file.
-     */
-    public void storePresentationPdf(int fileId, byte[] pdfData) throws IOException {
-        Path dir = baseDir.resolve(String.valueOf(fileId));
-        Files.createDirectories(dir);
-        Files.write(dir.resolve("presentation.pdf"), pdfData);
-    }
-
-    /**
-     * Read the converted PDF for a presentation file.
-     */
-    public Optional<FileData> readPresentationPdf(int fileId) {
-        Path pdfPath = baseDir.resolve(String.valueOf(fileId)).resolve("presentation.pdf");
-        if (!Files.exists(pdfPath)) return Optional.empty();
+    private Optional<Integer> lookupStationId(int fileId) {
         try {
-            return Optional.of(new FileData(Files.readAllBytes(pdfPath), "application/pdf"));
-        } catch (IOException e) {
-            log.error("Failed to read presentation PDF for file {}", fileId, e);
+            return query("SELECT station_id FROM kb_file WHERE id = :id;")
+                    .single(call().bind("id", fileId))
+                    .map(row -> row.getInt("station_id"))
+                    .first();
+        } catch (Exception e) {
             return Optional.empty();
         }
     }
 
-    private boolean shouldGzip(String contentType) {
-        if (!storageConfig.compressTextFiles() || contentType == null) return false;
-        String lower = contentType.toLowerCase(Locale.ROOT);
-        if (lower.startsWith("text/")) return true;
-        return switch (lower) {
-            case "application/json",
-                    "application/xml",
-                    "application/yaml",
-                    "application/x-yaml",
-                    "application/javascript",
-                    "application/x-www-form-urlencoded",
-                    "image/svg+xml" -> true;
-            default -> false;
-        };
-    }
-
-    private static byte[] gzip(byte[] data) throws IOException {
-        var out = new ByteArrayOutputStream(Math.max(64, data.length / 3));
-        try (var gzip = new GZIPOutputStream(out)) {
-            gzip.write(data);
-        }
-        return out.toByteArray();
-    }
-
-    private static byte[] gunzip(byte[] data) throws IOException {
-        try (var gzip = new GZIPInputStream(new ByteArrayInputStream(data))) {
-            return gzip.readAllBytes();
-        }
-    }
-
+    /** Decoded payload + the MIME type the upload was stored under. */
     public record FileData(byte[] data, String contentType) {}
 }

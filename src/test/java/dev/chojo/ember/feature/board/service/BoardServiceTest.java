@@ -64,13 +64,18 @@ class BoardServiceTest extends RepositoryTestBase {
         tagService = mock(UserTagService.class);
 
         boardService = new BoardService(boardRepo, memberService, groupService, tagService);
+        var btBackend = new dev.chojo.ember.feature.storage.backend.LocalStorageBackend();
+        var btResolver = new dev.chojo.ember.feature.storage.backend.StorageBackendResolver(btBackend);
+        var btStorage = new dev.chojo.ember.feature.storage.service.StorageService(btResolver, btBackend);
+        var attachmentSvc = new BoardAttachmentService(btStorage, stationRepo, btBackend);
         ticketService = new BoardTicketService(
                 boardTicketRepo,
                 boardRepo,
                 new DomainEventBus(Set.of()),
                 new StationMemberService(stationMemberRepo, stationRepo, null, null),
                 memberIdentityFactory,
-                memberNameResolver);
+                memberNameResolver,
+                attachmentSvc);
 
         station = stationRepo.create("BoardSvcStation");
         account = accountRepo.create("board-svc@test.com", "Board", "Svc");
@@ -590,6 +595,7 @@ class BoardServiceTest extends RepositoryTestBase {
     @Order(84)
     void ticketAttachments() {
         var att = ticketService.uploadAttachment(
+                station.id(),
                 ticketId1,
                 "test.txt",
                 "text/plain",
@@ -598,8 +604,8 @@ class BoardServiceTest extends RepositoryTestBase {
         assertNotNull(att);
         assertEquals(1, ticketService.findAttachments(ticketId1).size());
         assertTrue(ticketService.findAttachmentById(att.id()).isPresent());
-        assertNotNull(ticketService.getAttachmentPath(att));
-        assertTrue(ticketService.deleteAttachment(att.id()));
+        assertNotNull(ticketService.getAttachmentPath(station.id(), att));
+        assertTrue(ticketService.deleteAttachment(station.id(), att.id()));
     }
 
     @Test
@@ -778,15 +784,16 @@ class BoardServiceTest extends RepositoryTestBase {
     @Order(892)
     void attachmentPathResolution() {
         var att = ticketService.uploadAttachment(
+                station.id(),
                 ticketId1,
                 "pathtest.txt",
                 "text/plain",
                 "data".getBytes(),
                 memberIdentityFactory.local(station.id(), member.id()));
-        var path = ticketService.getAttachmentPath(att);
+        var path = ticketService.getAttachmentPath(station.id(), att);
         assertNotNull(path);
         assertTrue(path.toString().contains("pathtest.txt"));
-        ticketService.deleteAttachment(att.id());
+        ticketService.deleteAttachment(station.id(), att.id());
     }
 
     // -- Move with lane_assignee field --
@@ -907,7 +914,7 @@ class BoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(893)
     void deleteAttachmentNonExistent() {
-        assertFalse(ticketService.deleteAttachment(99999));
+        assertFalse(ticketService.deleteAttachment(station.id(), 99999));
     }
 
     @Test

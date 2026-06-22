@@ -33,8 +33,6 @@ import dev.chojo.ember.feature.members.service.StationMemberService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -56,6 +54,7 @@ public class BoardTicketService {
     private final StationMemberService stationMemberService;
     private final MemberIdentityFactory memberIdentityFactory;
     private final MemberNameResolver memberNameResolver;
+    private final BoardAttachmentService attachmentService;
 
     @Inject
     public BoardTicketService(
@@ -64,13 +63,15 @@ public class BoardTicketService {
             DomainEventBus eventBus,
             StationMemberService stationMemberService,
             MemberIdentityFactory memberIdentityFactory,
-            MemberNameResolver memberNameResolver) {
+            MemberNameResolver memberNameResolver,
+            BoardAttachmentService attachmentService) {
         this.ticketRepository = ticketRepository;
         this.boardRepository = boardRepository;
         this.eventBus = eventBus;
         this.stationMemberService = stationMemberService;
         this.memberIdentityFactory = memberIdentityFactory;
         this.memberNameResolver = memberNameResolver;
+        this.attachmentService = attachmentService;
     }
 
     private void notifyWatchers(int ticketId, int boardId, String changeDescription, Integer actorMemberId) {
@@ -440,8 +441,6 @@ public class BoardTicketService {
 
     // -- Attachments --
 
-    private static final Path ATTACHMENT_DIR = Path.of("data", "attachments", "board");
-
     public List<BoardTicketAttachment> findAttachments(int ticketId) {
         return ticketRepository.findAttachments(ticketId);
     }
@@ -451,32 +450,26 @@ public class BoardTicketService {
     }
 
     public BoardTicketAttachment uploadAttachment(
-            int ticketId, String originalName, String contentType, byte[] data, MemberIdentity uploader) {
-        String filename = UUID.randomUUID() + "_" + originalName.replaceAll("[^a-zA-Z0-9._-]", "_");
-        var dir = ATTACHMENT_DIR.resolve(String.valueOf(ticketId));
-        try {
-            Files.createDirectories(dir);
-            Files.write(dir.resolve(filename), data);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to store attachment", e);
-        }
+            int stationId,
+            int ticketId,
+            String originalName,
+            String contentType,
+            byte[] data,
+            MemberIdentity uploader) {
+        String filename = attachmentService.newFilename(originalName);
+        attachmentService.store(stationId, ticketId, filename, data, contentType);
         return ticketRepository.createAttachment(ticketId, filename, originalName, contentType, data.length, uploader);
     }
 
-    public boolean deleteAttachment(int id) {
+    public boolean deleteAttachment(int stationId, int id) {
         var att = ticketRepository.findAttachmentById(id).orElse(null);
         if (att == null) return false;
-        var file = ATTACHMENT_DIR.resolve(String.valueOf(att.ticketId())).resolve(att.filename());
-        try {
-            Files.deleteIfExists(file);
-        } catch (IOException e) {
-            // log but don't fail
-        }
+        attachmentService.delete(stationId, att.ticketId(), att.filename());
         return ticketRepository.deleteAttachment(id);
     }
 
-    public Path getAttachmentPath(BoardTicketAttachment att) {
-        return ATTACHMENT_DIR.resolve(String.valueOf(att.ticketId())).resolve(att.filename());
+    public Path getAttachmentPath(int stationId, BoardTicketAttachment att) {
+        return attachmentService.resolvePath(stationId, att.ticketId(), att.filename());
     }
 
     // -- Watchers --

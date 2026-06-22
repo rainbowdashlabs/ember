@@ -109,7 +109,11 @@ class DemoServiceTest extends RepositoryTestBase {
         var memberSvc = new StationMemberService(stationMemberRepo, stationRepo, accountRepo, mock(AuthService.class));
         var commentService = new CommentService(eventCommentRepo, noOpBus, memberSvc, stationRepo);
         var kbStorageConfig = new Storage();
-        var kbFileStorage = new KbFileStorageService(kbStorageConfig);
+        var kbBackend = new dev.chojo.ember.feature.storage.backend.LocalStorageBackend();
+        var kbResolver = new dev.chojo.ember.feature.storage.backend.StorageBackendResolver(kbBackend);
+        var kbStorageSvc = new dev.chojo.ember.feature.storage.service.StorageService(kbResolver, kbBackend);
+        var kbCompression = new dev.chojo.ember.feature.knowledgebase.service.TextCompressionPolicy(kbStorageConfig);
+        var kbFileStorage = new KbFileStorageService(kbStorageSvc, stationRepo, kbBackend, kbCompression);
         var kbService = new KnowledgeBaseService(
                 knowledgeBaseRepo,
                 stationRepo,
@@ -182,8 +186,16 @@ class DemoServiceTest extends RepositoryTestBase {
         var notificationServiceMock = mock(NotificationService.class);
         var lostAndFoundService = new LostAndFoundService(lostAndFoundRepo, notificationServiceMock);
         var boardService = new BoardService(boardRepo, memberSvc, groupService, tagService);
+        var boardAttachmentSvc =
+                new dev.chojo.ember.feature.board.service.BoardAttachmentService(kbStorageSvc, stationRepo, kbBackend);
         var boardTicketService = new BoardTicketService(
-                boardTicketRepo, boardRepo, noOpBus, memberSvc, memberIdentityFactory, memberNameResolver);
+                boardTicketRepo,
+                boardRepo,
+                noOpBus,
+                memberSvc,
+                memberIdentityFactory,
+                memberNameResolver,
+                boardAttachmentSvc);
         var procedureService = new ProcedureService(procedureRepo, noOpBus);
 
         // -- Seeders --

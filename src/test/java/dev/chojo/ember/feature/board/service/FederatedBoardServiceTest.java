@@ -73,13 +73,18 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         service = new FederatedBoardService(federatedBoardRepo);
         webhookService = mock(FederationWebhookService.class);
         notificationService = new FederatedBoardNotificationService(webhookService, service);
+        var fbBackend = new dev.chojo.ember.feature.storage.backend.LocalStorageBackend();
+        var fbResolver = new dev.chojo.ember.feature.storage.backend.StorageBackendResolver(fbBackend);
+        var fbStorage = new dev.chojo.ember.feature.storage.service.StorageService(fbResolver, fbBackend);
+        var attachmentSvc = new BoardAttachmentService(fbStorage, stationRepo, fbBackend);
         ticketService = new BoardTicketService(
                 boardTicketRepo,
                 boardRepo,
                 new DomainEventBus(Set.of()),
                 new StationMemberService(stationMemberRepo, stationRepo, null, null),
                 memberIdentityFactory,
-                memberNameResolver);
+                memberNameResolver,
+                attachmentSvc);
 
         station = stationRepo.create("FedBoardStation");
         partnerStation = stationRepo.create("FedBoardPartner");

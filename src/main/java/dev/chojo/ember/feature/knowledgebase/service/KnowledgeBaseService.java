@@ -247,19 +247,19 @@ public class KnowledgeBaseService {
             repository.storeTextContent(file.id(), text);
             updateSearchIndex(file.id(), text);
         } else if (fileType == KbFileType.PDF) {
-            storeBinaryFile(file.id(), payload, mimeType);
+            storeBinaryFile(stationId, file.id(), payload, mimeType);
             String pdfText = extractPdfText(payload);
             if (pdfText != null && !pdfText.isBlank()) {
                 repository.storeTextContent(file.id(), pdfText);
             }
             updateSearchIndex(file.id(), pdfText);
         } else if (fileType == KbFileType.PRESENTATION) {
-            storeBinaryFile(file.id(), payload, mimeType);
+            storeBinaryFile(stationId, file.id(), payload, mimeType);
             repository.updateConversionStatus(file.id(), ConversionStatus.PENDING);
-            triggerPresentationConversion(file.id(), payload, name);
+            triggerPresentationConversion(stationId, file.id(), payload, name);
             updateSearchIndex(file.id(), null);
         } else {
-            storeBinaryFile(file.id(), payload, mimeType);
+            storeBinaryFile(stationId, file.id(), payload, mimeType);
             updateSearchIndex(file.id(), null);
         }
         return file;
@@ -488,7 +488,7 @@ public class KnowledgeBaseService {
     }
 
     public boolean deleteFile(int id) {
-        fileStorage.delete(id);
+        repository.findFileById(id).ifPresent(f -> fileStorage.delete(f.stationId(), id));
         return repository.deleteFile(id);
     }
 
@@ -542,31 +542,31 @@ public class KnowledgeBaseService {
         return repository.findPublicVisibility(folderId, fileId);
     }
 
-    private void storeBinaryFile(int fileId, byte[] data, String contentType) {
+    private void storeBinaryFile(int stationId, int fileId, byte[] data, String contentType) {
         try {
-            fileStorage.store(fileId, data, contentType);
+            fileStorage.store(stationId, fileId, data, contentType);
         } catch (Exception e) {
             throw new RuntimeException("Failed to store KB file " + fileId + " on disk", e);
         }
     }
 
-    private void triggerPresentationConversion(int fileId, byte[] data, String filename) {
-        CompletableFuture.runAsync(() -> performPresentationConversion(fileId, data, filename));
+    private void triggerPresentationConversion(int stationId, int fileId, byte[] data, String filename) {
+        CompletableFuture.runAsync(() -> performPresentationConversion(stationId, fileId, data, filename));
     }
 
-    void performPresentationConversion(int fileId, byte[] data, String filename) {
+    void performPresentationConversion(int stationId, int fileId, byte[] data, String filename) {
         try {
             byte[] pdfBytes = PresentationConverter.toPdf(data, filename);
-            storePresentationResult(fileId, pdfBytes);
+            storePresentationResult(stationId, fileId, pdfBytes);
         } catch (Exception e) {
             log.error("Presentation conversion failed for file {}", fileId, e);
             repository.updateConversionStatus(fileId, ConversionStatus.FAILED);
         }
     }
 
-    public void storePresentationResult(int fileId, byte[] pdfBytes) {
+    public void storePresentationResult(int stationId, int fileId, byte[] pdfBytes) {
         try {
-            fileStorage.storePresentationPdf(fileId, pdfBytes);
+            fileStorage.storePresentationPdf(stationId, fileId, pdfBytes);
             String pdfText = extractPdfText(pdfBytes);
             if (pdfText != null && !pdfText.isBlank()) {
                 repository.storeTextContent(fileId, pdfText);
@@ -584,16 +584,19 @@ public class KnowledgeBaseService {
      * Get the converted PDF content for a presentation file.
      */
     public Optional<byte[]> getPresentationPdf(int fileId) {
-        return fileStorage.readPresentationPdf(fileId).map(KbFileStorageService.FileData::data);
+        var file = repository.findFileById(fileId).orElse(null);
+        if (file == null) return Optional.empty();
+        return fileStorage.readPresentationPdf(file.stationId(), fileId).map(KbFileStorageService.FileData::data);
     }
 
     /**
      * Re-upload a presentation file (replaces original + reconverts PDF).
      */
     public void reuploadPresentation(int fileId, byte[] data, String mimeType, String filename) {
-        storeBinaryFile(fileId, data, mimeType);
+        var file = repository.findFileById(fileId).orElseThrow();
+        storeBinaryFile(file.stationId(), fileId, data, mimeType);
         repository.updateConversionStatus(fileId, ConversionStatus.PENDING);
-        triggerPresentationConversion(fileId, data, filename);
+        triggerPresentationConversion(file.stationId(), fileId, data, filename);
     }
 
     // -- Content --
@@ -609,12 +612,15 @@ public class KnowledgeBaseService {
     }
 
     public Optional<byte[]> getFileContent(int fileId) {
-        return fileStorage.read(fileId).map(KbFileStorageService.FileData::data);
+        var file = repository.findFileById(fileId).orElse(null);
+        if (file == null) return Optional.empty();
+        return fileStorage.read(file.stationId(), fileId).map(KbFileStorageService.FileData::data);
     }
 
     public Optional<String> getFileContentType(int fileId) {
-        var diskData = fileStorage.read(fileId);
-        return diskData.map(KbFileStorageService.FileData::contentType);
+        var file = repository.findFileById(fileId).orElse(null);
+        if (file == null) return Optional.empty();
+        return fileStorage.read(file.stationId(), fileId).map(KbFileStorageService.FileData::contentType);
     }
 
     public void updateMarkdownContent(int fileId, String newContent, int updatedBy) {

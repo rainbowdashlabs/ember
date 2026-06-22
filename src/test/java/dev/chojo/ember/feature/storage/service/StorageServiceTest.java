@@ -186,6 +186,80 @@ class StorageServiceTest {
     }
 
     @Test
+    void byteArrayOverloadWithVariantWritesUnderVariantKey() {
+        byte[] data = "vp".getBytes();
+        service.store(
+                stationScope(),
+                StorageCategory.PAGE_FILES,
+                "vk",
+                new Variant("orig.png"),
+                data,
+                "application/octet-stream");
+        assertTrue(service.exists(stationScope(), StorageCategory.PAGE_FILES, "vk", new Variant("orig.png")));
+    }
+
+    @Test
+    void singleByteStreamingDrivesDigest() throws Exception {
+        byte[] data = new byte[] {7};
+        var stored = service.store(
+                stationScope(),
+                StorageCategory.PAGE_FILES,
+                "single",
+                Variant.ORIGINAL,
+                new java.io.ByteArrayInputStream(data) {
+                    @Override
+                    public int read(byte[] b, int off, int len) {
+                        if (available() == 0) return -1;
+                        int v = read();
+                        if (v < 0) return -1;
+                        b[off] = (byte) v;
+                        return 1;
+                    }
+                },
+                data.length,
+                "application/octet-stream");
+        assertFalse(stored.metadata().sha256().isEmpty());
+    }
+
+    @Test
+    void sumSizeOnEmptyCategoryIsZero() {
+        assertEquals(0L, service.sumSize(stationScope(), StorageCategory.PAGE_FILES));
+    }
+
+    @Test
+    void lastAccessedReturnsEmptyForMissingKey() {
+        assertTrue(service.lastAccessed(stationScope(), StorageCategory.PAGE_FILES, "nope")
+                .isEmpty());
+    }
+
+    @Test
+    void readVariantTouchesAccessTimeOnLruCategory() {
+        service.store(instanceScope(), StorageCategory.MAP_TILE_CACHE, "lru", new byte[] {1}, "image/png");
+        var first = service.read(instanceScope(), StorageCategory.MAP_TILE_CACHE, "lru")
+                .orElseThrow();
+        try {
+            first.close();
+        } catch (Exception ignored) {
+        }
+        assertTrue(service.lastAccessed(instanceScope(), StorageCategory.MAP_TILE_CACHE, "lru")
+                .isPresent());
+    }
+
+    @Test
+    void readWithVariantReturnsBytes() throws Exception {
+        service.store(
+                stationScope(),
+                StorageCategory.PAGE_FILES,
+                "rv",
+                new Variant("v"),
+                new byte[] {9},
+                "application/octet-stream");
+        var bytes = service.readAllBytes(stationScope(), StorageCategory.PAGE_FILES, "rv", new Variant("v"))
+                .orElseThrow();
+        assertArrayEquals(new byte[] {9}, bytes);
+    }
+
+    @Test
     void fullKeyAssemblesExpectedPath() {
         String full = service.fullKey(stationScope(), StorageCategory.PAGE_FILES, "abc", new Variant("orig.png"));
         assertEquals("station/" + STATION_UID + "/page-files/abc/orig.png", full);
