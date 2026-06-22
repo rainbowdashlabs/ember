@@ -35,8 +35,7 @@ public class MailTemplateRenderer {
     private final PebbleEngine engine;
 
     public MailTemplateRenderer() {
-        var loader = new FileLoader();
-        loader.setPrefix(TEMPLATE_ROOT);
+        var loader = new FileLoader(Path.of(TEMPLATE_ROOT).toAbsolutePath().toString());
         loader.setSuffix("");
         this.engine = new PebbleEngine.Builder()
                 .loader(loader)
