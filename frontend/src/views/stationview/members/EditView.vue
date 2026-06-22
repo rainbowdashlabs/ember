@@ -59,10 +59,8 @@ const tabs = computed(() => [
 async function loadTypePermissions(userType: string) {
   try {
     const effective = await stationMembers.getEffectiveUserTypePermissions(userType)
-    // If the type grants STATION_ADMINISTRATOR, don't hide all children —
-    // only hide the top-level grant itself so the picker remains useful
     if (effective.includes('STATION_ADMINISTRATOR')) {
-      typeGrantedPermissions.value = new Set(['STATION_ADMINISTRATOR'])
+      typeGrantedPermissions.value = new Set()
     } else {
       typeGrantedPermissions.value = new Set(effective)
     }
