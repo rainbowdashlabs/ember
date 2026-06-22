@@ -97,7 +97,11 @@ async function finalizeSession(token: string, expiresAt: string) {
   scheduleTokenRefresh(expiresAt)
   const redirect = route.query.redirect as string | undefined
   try {
-    const stations = await session.getStations()
+    const [stations, info] = await Promise.all([
+      session.getStations(),
+      session.getSessionInfo().catch(() => null),
+    ])
+    const isAdmin = info?.instanceUserType === 'ADMINISTRATOR'
     if (stations.length === 1) {
       setActiveStation(stations[0].stationId)
       window.location.href = redirect || '/station/requirements'
@@ -105,6 +109,10 @@ async function finalizeSession(token: string, expiresAt: string) {
     }
     if (stations.length > 1) {
       window.location.href = redirect || '/cross-station'
+      return
+    }
+    if (isAdmin) {
+      window.location.href = redirect || '/admin/dashboard/overview'
       return
     }
     window.location.href = redirect || '/account'

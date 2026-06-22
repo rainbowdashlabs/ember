@@ -85,7 +85,11 @@ onMounted(async () => {
 watch(loaded, (isLoaded) => {
   if (!isLoaded) return
   if (!sessionInfo.value?.member) {
-    router.replace('/cross-station')
+    if (isAdmin()) {
+      router.replace('/admin/dashboard/overview')
+    } else {
+      router.replace('/cross-station')
+    }
     return
   }
   refreshSidebarCounts()

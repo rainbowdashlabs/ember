@@ -139,12 +139,15 @@ onMounted(async () => {
 async function resolveStationAndRedirect() {
   const redirectPath = route.query.redirect as string | undefined
   removeItem('station_id')
-  const stations = await session.getStations()
+  const [stations, info] = await Promise.all([session.getStations(), session.getSessionInfo().catch(() => null)])
+  const isAdmin = info?.instanceUserType === 'ADMINISTRATOR'
   if (stations.length === 1) {
     setActiveStation(stations[0].stationId)
     await navigateTo(redirectPath || '/station/requirements')
   } else if (stations.length > 1) {
     await navigateTo(redirectPath || '/cross-station')
+  } else if (isAdmin) {
+    await navigateTo(redirectPath || '/admin/dashboard/overview')
   } else {
     await navigateTo(redirectPath || '/account')
   }

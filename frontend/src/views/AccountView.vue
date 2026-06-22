@@ -11,6 +11,7 @@ import SidebarLayout from '@/components/layout/SidebarLayout.vue'
 import SidebarLink from '@/components/navigation/SidebarLink.vue'
 import AccountMenuButton from '@/components/layout/AccountMenuButton.vue'
 import SmartStationButton from '@/components/layout/SmartStationButton.vue'
+import AdminPanelButton from '@/components/layout/AdminPanelButton.vue'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
 import {useSession} from '@/composables/useSession'
 
@@ -57,6 +58,7 @@ const pageSubtitle = computed(() => {
 
     <template #header>
       <HelpCenterLink/>
+      <AdminPanelButton/>
       <SmartStationButton/>
       <AccountMenuButton/>
     </template>
