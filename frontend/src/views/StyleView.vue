@@ -13,6 +13,8 @@ import { contrastTextColor, ensureContrast } from '@/theme/contrast'
 
 const route = useRoute()
 const hasCustomParam = ref(false)
+const lastScanned = ref('')
+const lastContinuous = ref('')
 
 const samplePatch = `--- a/notes.md
 +++ b/notes.md
@@ -84,6 +86,7 @@ import StyleBadges from '@/views/styleview/StyleBadges.vue'
 import StyleContainers from '@/views/styleview/StyleContainers.vue'
 import StyleTable from '@/views/styleview/StyleTable.vue'
 import StyleFeedback from '@/views/styleview/StyleFeedback.vue'
+import ScanButton from '@/components/scanner/ScanButton.vue'
 
 import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
 import type { EyeDirection } from '@/components/display/LayeredEmberLogo.vue'
@@ -301,5 +304,17 @@ function toggleDisplay(name: string) {
     <StyleContainers/>
     <StyleTable/>
     <StyleFeedback/>
+
+    <section class="space-y-4">
+      <SectionHeader>Barcode Scanner</SectionHeader>
+      <div class="flex items-center gap-3">
+        <ScanButton @decoded="lastScanned = $event"/>
+        <span class="text-sm text-(--text-muted)">{{ lastScanned ? `Decoded: ${lastScanned}` : 'No scan yet' }}</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <ScanButton mode="continuous" @decoded="lastContinuous = $event"/>
+        <span class="text-sm text-(--text-muted)">{{ lastContinuous ? `Continuous decoded: ${lastContinuous}` : 'Continuous mode' }}</span>
+      </div>
+    </section>
   </div>
 </template>

@@ -15,6 +15,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import ScanButton from '@/components/scanner/ScanButton.vue'
 
 const {t} = useI18n()
 </script>
@@ -133,6 +134,22 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.inventoryCheckMember.rapidCheckTitle')">
       <p>{{ t('helpCenter.inventoryCheckMember.rapidCheckText') }}</p>
       <p>{{ t('helpCenter.inventoryCheckMember.rapidCheckText2') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.scanShared.title')">
+      <p>{{ t('helpCenter.scanShared.intro') }}</p>
+      <p class="font-medium">{{ t('helpCenter.scanShared.continuousTitle') }}</p>
+      <p>{{ t('helpCenter.scanShared.continuousText') }}</p>
+      <ul class="list-disc pl-5 space-y-1">
+        <li>{{ t('helpCenter.scanShared.tipPermission') }}</li>
+        <li>{{ t('helpCenter.scanShared.tipDistance') }}</li>
+        <li>{{ t('helpCenter.scanShared.tipNarrow') }}</li>
+      </ul>
+
+      <NeutralContainer class="flex justify-center gap-2">
+        <SecondaryButton>{{ t('inventory.check.skip') }}</SecondaryButton>
+        <ScanButton mode="continuous"/>
+      </NeutralContainer>
     </HelpSection>
 
     <!-- Item change/swap -->

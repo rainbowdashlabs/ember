@@ -16,6 +16,8 @@ import StationBadge from '@/components/badge/StationBadge.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
+import TextInput from '@/components/input/text/TextInput.vue'
+import ScanButton from '@/components/scanner/ScanButton.vue'
 
 const {t} = useI18n()
 </script>
@@ -76,6 +78,23 @@ const {t} = useI18n()
           <PrimaryButton :icon="['fas', 'paper-plane']">
             {{ t('helpCenter.inventoryLendingCreate.dummySend') }}
           </PrimaryButton>
+        </div>
+      </NeutralContainer>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.scanShared.title')">
+      <p>{{ t('helpCenter.scanShared.intro') }}</p>
+      <ul class="list-disc pl-5 space-y-1">
+        <li>{{ t('helpCenter.scanShared.tipPermission') }}</li>
+        <li>{{ t('helpCenter.scanShared.tipDistance') }}</li>
+        <li>{{ t('helpCenter.scanShared.tipNarrow') }}</li>
+      </ul>
+
+      <NeutralContainer class="space-y-2">
+        <FieldLabel>{{ t('inventory.manage.scanLabel') }}</FieldLabel>
+        <div class="flex items-center gap-2">
+          <TextInput model-value="" :placeholder="t('inventory.manage.scanPlaceholder')" class="flex-1" disabled/>
+          <ScanButton/>
         </div>
       </NeutralContainer>
     </HelpSection>

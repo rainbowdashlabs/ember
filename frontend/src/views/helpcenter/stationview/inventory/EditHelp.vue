@@ -18,6 +18,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
+import ScanButton from '@/components/scanner/ScanButton.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
 import THead from '@/components/table/THead.vue'
@@ -168,6 +169,24 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.inventoryEdit.assignTitle')">
       <p>{{ t('helpCenter.inventoryEdit.assignText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.scanShared.title')">
+      <p>{{ t('helpCenter.scanShared.intro') }}</p>
+      <ul class="list-disc pl-5 space-y-1">
+        <li>{{ t('helpCenter.scanShared.tipPermission') }}</li>
+        <li>{{ t('helpCenter.scanShared.tipDistance') }}</li>
+        <li>{{ t('helpCenter.scanShared.tipNarrow') }}</li>
+        <li>{{ t('helpCenter.scanShared.tipNormalisation') }}</li>
+      </ul>
+
+      <NeutralContainer class="space-y-2">
+        <FieldLabel>{{ t('inventory.edit.itemInternalId') }}</FieldLabel>
+        <div class="flex items-center gap-2">
+          <TextInput model-value="INV-0042" class="flex-1" disabled/>
+          <ScanButton/>
+        </div>
+      </NeutralContainer>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.inventoryEdit.historyTitle')">

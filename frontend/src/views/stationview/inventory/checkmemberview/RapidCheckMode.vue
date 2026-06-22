@@ -15,6 +15,8 @@ import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import InfoButton from '@/components/button/InfoButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
+import ScanButton from '@/components/scanner/ScanButton.vue'
+import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import type { CheckResult, InventoryItem, RequiredInventoryItem } from '@/api/types'
 
 export type CheckEntry =
@@ -41,11 +43,9 @@ const { t } = useI18n()
 
 const rapidAssignSelection = ref('')
 const rapidCreateSizeId = ref('')
-
-// Track entries the user explicitly skipped this session so they are
-// rotated to the back of the rapid-check queue without being marked as
-// confirmed in the backend.
 const skippedKeys = ref<Set<string>>(new Set())
+const preferredEntryKey = ref<string | null>(null)
+const scanError = ref('')
 
 function entryKey(entry: CheckEntry): string {
   return entry.type === 'item'
@@ -53,22 +53,40 @@ function entryKey(entry: CheckEntry): string {
     : `slot-${entry.req.inventoryId}-${entry.slotIndex}`
 }
 
-// The next entry to present: the first unchecked entry the user has not
-// skipped this session. Falls back to the first skipped entry once every
-// pending entry has been seen, so the user keeps cycling through the
-// skipped ones until they decide.
 const currentEntry = computed((): CheckEntry | null => {
   const entries = props.uncheckedEntries
   if (entries.length === 0) return null
+  if (preferredEntryKey.value) {
+    const preferred = entries.find(e => entryKey(e) === preferredEntryKey.value)
+    if (preferred) return preferred
+  }
   const next = entries.find(e => !skippedKeys.value.has(entryKey(e)))
   if (next) return next
-  // All remaining entries were skipped — reset and cycle through them again.
   return entries[0] ?? null
 })
+
+function handleScan(value: string) {
+  const query = normaliseScannedPayload(value)
+  scanError.value = ''
+  if (!query) return
+  const match = props.uncheckedEntries.find(e => {
+    if (e.type !== 'item') return false
+    const id = e.item.internalId
+    return id ? id.toLocaleUpperCase('en-US') === query : false
+  })
+  if (match) {
+    preferredEntryKey.value = entryKey(match)
+    skippedKeys.value = new Set([...skippedKeys.value].filter(k => k !== preferredEntryKey.value))
+  } else {
+    scanError.value = t('inventory.check.rapidScanNoMatch')
+  }
+}
 
 function resetSelections() {
   rapidAssignSelection.value = ''
   rapidCreateSizeId.value = ''
+  preferredEntryKey.value = null
+  scanError.value = ''
 }
 
 function handleSetResult(result: CheckResult) {
@@ -122,6 +140,7 @@ defineExpose({ currentEntry })
         <span v-if="currentEntry.item.internalId" class="text-sm text-(--text-muted)">{{ currentEntry.item.internalId }}</span>
       </div>
     </div>
+    <p v-if="scanError" class="text-center text-sm text-error">{{ scanError }}</p>
     <div class="flex justify-center gap-4">
       <SuccessButton :icon="['fas', 'check']" @click="handleSetResult('CONFIRMED')">
         {{ t('inventory.check.confirmed') }}
@@ -130,10 +149,11 @@ defineExpose({ currentEntry })
         {{ t('inventory.check.lost') }}
       </ErrorButton>
     </div>
-    <div class="flex justify-center">
+    <div class="flex justify-center gap-2">
       <SecondaryButton @click="skip">
         {{ t('inventory.check.skip') }}
       </SecondaryButton>
+      <ScanButton mode="continuous" @decoded="handleScan"/>
     </div>
   </NeutralContainer>
 
@@ -172,15 +192,17 @@ defineExpose({ currentEntry })
       </SecondaryButton>
     </div>
 
+    <p v-if="scanError" class="text-center text-sm text-error">{{ scanError }}</p>
     <div class="flex justify-center gap-4">
       <InfoButton :icon="['fas', 'ban']" @click="handleMarkNotInPossession">
         {{ t('inventory.check.notInPossession') }}
       </InfoButton>
     </div>
-    <div class="flex justify-center">
+    <div class="flex justify-center gap-2">
       <SecondaryButton @click="skip">
         {{ t('inventory.check.skip') }}
       </SecondaryButton>
+      <ScanButton mode="continuous" @decoded="handleScan"/>
     </div>
   </NeutralContainer>
 
