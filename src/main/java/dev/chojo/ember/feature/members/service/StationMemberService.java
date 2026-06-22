@@ -160,6 +160,9 @@ public class StationMemberService {
     }
 
     public List<StationMember> setManaged(int managerId, List<Integer> desiredManagedIds) {
+        for (int managedId : desiredManagedIds) {
+            requireManageableType(managedId);
+        }
         List<StationMember> currentManaged = memberRepository.findManaged(managerId);
         var currentManagedIds = currentManaged.stream().map(StationMember::id).toList();
 
@@ -178,6 +181,9 @@ public class StationMemberService {
     }
 
     public List<StationMember> setManagers(int managedId, List<Integer> desiredManagerIds) {
+        if (!desiredManagerIds.isEmpty()) {
+            requireManageableType(managedId);
+        }
         List<StationMember> currentManagers = memberRepository.findManagers(managedId);
         var currentManagerIds = currentManagers.stream().map(StationMember::id).toList();
 
@@ -193,5 +199,17 @@ public class StationMemberService {
         }
 
         return memberRepository.findManagers(managedId);
+    }
+
+    /**
+     * Guardians may only be attached to members of type {@link StationUserType#MEMBER} or
+     * {@link StationUserType#TRIAL}. All other types (TEAM, MANAGER, GUARDIAN) represent
+     * adults who manage themselves, so allowing a guardian relationship there is rejected.
+     */
+    private void requireManageableType(int memberId) {
+        var member = memberRepository.findById(memberId).orElseThrow(() -> new BadRequestResponse("Member not found"));
+        if (member.userType() != StationUserType.MEMBER && member.userType() != StationUserType.TRIAL) {
+            throw new BadRequestResponse("Guardians can only be assigned to members of type MEMBER or TRIAL");
+        }
     }
 }
