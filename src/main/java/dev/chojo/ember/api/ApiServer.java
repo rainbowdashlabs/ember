@@ -6,6 +6,7 @@
 package dev.chojo.ember.api;
 
 import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
@@ -360,10 +361,6 @@ public class ApiServer {
 
     private void handleDemoAccounts(@NotNull Context ctx) {
         var allStations = stationRepository.findAll();
-        if (allStations.isEmpty()) {
-            ctx.json(List.of());
-            return;
-        }
         var stationGroups = new ArrayList<DemoStationGroup>();
         for (var station : allStations) {
             var members = stationMemberRepository.findByStation(station.id());
@@ -397,13 +394,27 @@ public class ApiServer {
                 stationGroups.add(new DemoStationGroup(station.uid().toString(), station.name(), accounts));
             }
         }
-        // Always return flat list from the first station (primary)
-        // Additional stations are appended with stationName for display
-        if (stationGroups.isEmpty()) {
-            ctx.json(List.of());
-        } else {
-            ctx.json(stationGroups);
+
+        var noStationAccounts = new ArrayList<DemoAccount>();
+        for (var account : accountRepository.findAll()) {
+            if (!stationMemberRepository.findAllByAccountId(account.id()).isEmpty()) {
+                continue;
+            }
+            StationUserType bucket = account.instanceUserType() == InstanceUserType.ADMINISTRATOR
+                    ? StationUserType.MANAGER
+                    : StationUserType.MEMBER;
+            noStationAccounts.add(new DemoAccount(
+                    account.email(),
+                    account.firstName(),
+                    account.lastName(),
+                    bucket,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    true));
         }
+
+        ctx.json(new DemoAccountsResponse(noStationAccounts, stationGroups));
     }
 
     /**
@@ -856,4 +867,6 @@ public class ApiServer {
     public record DemoStatusResponse(boolean demo, boolean dev) {}
 
     public record DemoStationGroup(String stationId, String stationName, List<DemoAccount> accounts) {}
+
+    public record DemoAccountsResponse(List<DemoAccount> noStationAccounts, List<DemoStationGroup> stationGroups) {}
 }

@@ -166,10 +166,10 @@ async function confirmMarkFormer() {
     <NeutralContainer class="space-y-3">
       <SubHeader class="text-sm">{{ t('memberEdit.userType') }}</SubHeader>
       <SelectInput :model-value="editUserType" @update:model-value="v => { if (v) onUserTypeChange(v) }" class="max-w-xs">
-        <option :value="StationUserType.MEMBER">{{ t('memberEdit.userTypeMember') }}</option>
-        <option :value="StationUserType.GUARDIAN">{{ t('memberEdit.userTypeGuardian') }}</option>
-        <option :value="StationUserType.TEAM">{{ t('memberEdit.userTypeTeam') }}</option>
         <option :value="StationUserType.MANAGER">{{ t('memberEdit.userTypeManager') }}</option>
+        <option :value="StationUserType.TEAM">{{ t('memberEdit.userTypeTeam') }}</option>
+        <option :value="StationUserType.GUARDIAN">{{ t('memberEdit.userTypeGuardian') }}</option>
+        <option :value="StationUserType.MEMBER">{{ t('memberEdit.userTypeMember') }}</option>
         <option :value="StationUserType.TRIAL">{{ t('memberEdit.userTypeTrial') }}</option>
       </SelectInput>
     </NeutralContainer>

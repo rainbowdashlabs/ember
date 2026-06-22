@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import DownloadButton from '@/components/button/DownloadButton.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 
@@ -35,18 +35,20 @@ const {t} = useI18n()
     <SubHeader>{{ t('userSettings.gdprTitle') }}</SubHeader>
     <p class="text-sm text-(--text-muted)">{{ t('userSettings.gdprHint') }}</p>
 
-    <DownloadButton :disabled="exportingGdpr" @click="emit('exportOwn')">
+    <PrimaryButton :disabled="exportingGdpr" @click="emit('exportOwn')">
+      <font-awesome-icon :icon="['fas', 'download']" class="mr-2"/>
       {{ exportingGdpr ? t('common.loading') : t('userSettings.gdprExport') }}
-    </DownloadButton>
+    </PrimaryButton>
 
     <template v-if="managedMembers.length > 0">
       <p class="text-sm font-medium pt-2">{{ t('userSettings.gdprManaged') }}</p>
       <div class="space-y-2">
-        <div v-for="m in managedMembers" :key="m.id" class="flex items-center justify-between">
+        <div v-for="m in managedMembers" :key="m.id" class="flex flex-wrap items-center justify-between gap-2">
           <span class="text-sm">{{ m.name }}</span>
-          <DownloadButton :disabled="exportingMemberId === m.id" @click="emit('exportMember', m.id)">
-            {{ exportingMemberId === m.id ? t('common.loading') : t('userSettings.gdprExport') }}
-          </DownloadButton>
+          <SecondaryButton :disabled="exportingMemberId === m.id" @click="emit('exportMember', m.id)">
+            <font-awesome-icon :icon="['fas', 'download']" class="mr-2"/>
+            {{ exportingMemberId === m.id ? t('common.loading') : t('userSettings.gdprExportManaged', {name: m.name}) }}
+          </SecondaryButton>
         </div>
       </div>
     </template>

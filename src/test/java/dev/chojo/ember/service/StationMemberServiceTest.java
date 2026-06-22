@@ -101,7 +101,8 @@ class StationMemberServiceTest extends RepositoryTestBase {
         var result = service.setPermissions(
                 member1.id(),
                 List.of(memberRole.id(), loginRole.id()),
-                EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER, StationPermission.LOGIN));
+                EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER, StationPermission.LOGIN),
+                null);
         assertTrue(result.stream().anyMatch(r -> r.permission() == StationPermission.USER));
         assertTrue(result.stream().anyMatch(r -> r.permission() == StationPermission.LOGIN));
     }
@@ -115,7 +116,7 @@ class StationMemberServiceTest extends RepositoryTestBase {
         assertThrows(
                 ForbiddenResponse.class,
                 () -> service.setPermissions(
-                        member2.id(), List.of(adminPerm.id()), EnumSet.of(StationPermission.MEMBER_MANAGER)));
+                        member2.id(), List.of(adminPerm.id()), EnumSet.of(StationPermission.MEMBER_MANAGER), null));
     }
 
     @Test
@@ -209,7 +210,8 @@ class StationMemberServiceTest extends RepositoryTestBase {
         var result = service.setPermissions(
                 member3.id(),
                 List.of(userPerm.id(), loginPerm.id()),
-                EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER, StationPermission.LOGIN));
+                EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER, StationPermission.LOGIN),
+                null);
         assertTrue(result.stream().anyMatch(r -> r.permission() == StationPermission.LOGIN));
 
         // Cleanup
@@ -226,12 +228,16 @@ class StationMemberServiceTest extends RepositoryTestBase {
         service.setPermissions(
                 member2.id(),
                 List.of(userPerm.id()),
-                EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER));
+                EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER),
+                null);
         assertTrue(
                 service.findPermissions(member2.id()).stream().anyMatch(p -> p.permission() == StationPermission.USER));
         // Revoke by passing empty list
         service.setPermissions(
-                member2.id(), List.of(), EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER));
+                member2.id(),
+                List.of(),
+                EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER),
+                null);
         assertTrue(service.findPermissions(member2.id()).isEmpty());
     }
 
@@ -270,10 +276,100 @@ class StationMemberServiceTest extends RepositoryTestBase {
                 () -> service.setPermissions(
                         noEmailMember.id(),
                         List.of(loginPerm.id()),
-                        EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.LOGIN)));
+                        EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.LOGIN),
+                        null));
 
         service.delete(noEmailMember.id());
         accountRepo.delete(noEmailAccount.id());
+    }
+
+    @Test
+    @Order(29)
+    void setPermissionsRejectsSelfPermissionRemoval() {
+        var userPerm =
+                stationMemberRepo.findPermissionByName(StationPermission.USER).orElseThrow();
+        var account3 = accountRepo.create("svc-self@test.com", "Self", "Remove");
+        var member3 = service.create(station.id(), account3.id());
+        service.setPermissions(
+                member3.id(),
+                List.of(userPerm.id()),
+                EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER),
+                null);
+
+        assertThrows(
+                ForbiddenResponse.class,
+                () -> service.setPermissions(
+                        member3.id(),
+                        List.of(),
+                        EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER),
+                        member3.id()));
+
+        service.delete(member3.id());
+        accountRepo.delete(account3.id());
+    }
+
+    @Test
+    @Order(29)
+    void setPermissionsAllowsCallerToKeepOwnPermissions() {
+        var userPerm =
+                stationMemberRepo.findPermissionByName(StationPermission.USER).orElseThrow();
+        var account3 = accountRepo.create("svc-self-keep@test.com", "Self", "Keep");
+        var member3 = service.create(station.id(), account3.id());
+        service.setPermissions(
+                member3.id(),
+                List.of(userPerm.id()),
+                EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER),
+                null);
+
+        var result = service.setPermissions(
+                member3.id(),
+                List.of(userPerm.id()),
+                EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER),
+                member3.id());
+        assertTrue(result.stream().anyMatch(p -> p.permission() == StationPermission.USER));
+
+        service.delete(member3.id());
+        accountRepo.delete(account3.id());
+    }
+
+    @Test
+    @Order(29)
+    void setPermissionsRejectsRemovingAdminFromOwner() {
+        var adminPerm = stationMemberRepo
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .orElseThrow();
+        var userPerm =
+                stationMemberRepo.findPermissionByName(StationPermission.USER).orElseThrow();
+        var ownerStation = stationRepo.create("OwnerProtectionStation");
+        var ownerAccount = accountRepo.create("owner-protect@test.com", "Owner", "Protect");
+        var ownerMember = service.create(ownerStation.id(), ownerAccount.id());
+        service.setPermissions(
+                ownerMember.id(),
+                List.of(adminPerm.id(), userPerm.id()),
+                EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER),
+                null);
+        stationRepo.setOwner(ownerStation.id(), ownerMember.id());
+
+        assertThrows(
+                ForbiddenResponse.class,
+                () -> service.setPermissions(
+                        ownerMember.id(),
+                        List.of(userPerm.id()),
+                        EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER),
+                        null));
+
+        stationRepo.setOwner(ownerStation.id(), null);
+        service.delete(ownerMember.id());
+        accountRepo.delete(ownerAccount.id());
+        stationRepo.delete(ownerStation.id());
+    }
+
+    @Test
+    @Order(29)
+    void setManagedRejectsNonManageableUserType() {
+        service.setUserType(member2.id(), StationUserType.TEAM);
+        assertThrows(BadRequestResponse.class, () -> service.setManaged(member1.id(), List.of(member2.id())));
+        service.setUserType(member2.id(), StationUserType.MEMBER);
     }
 
     @Test

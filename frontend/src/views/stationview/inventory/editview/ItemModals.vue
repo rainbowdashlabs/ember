@@ -17,6 +17,8 @@ import Modal from '@/components/feedback/Modal.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import ScanButton from '@/components/scanner/ScanButton.vue'
+import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import type {InventoryDetail, InventoryItem, InventoryItemHistory, StationMember} from '@/api/types'
 import {ItemSource} from '@/api/types'
 import {inventory} from '@/api'
@@ -76,9 +78,12 @@ function openEdit(item: InventoryItem) {
 async function saveItem() {
   itemSaving.value = true
   try {
+    const normalisedInternalId = itemInternalId.value
+        ? normaliseScannedPayload(itemInternalId.value)
+        : ''
     const data = {
       name: itemName.value,
-      internalId: itemInternalId.value || undefined,
+      internalId: normalisedInternalId || undefined,
       sizeId: itemSizeId.value ? Number(itemSizeId.value) : undefined,
       metadata: '{}',
     }
@@ -205,8 +210,12 @@ defineExpose({openAdd, openEdit, openAssign, openQuickAssign, openHistory, reque
       <SectionHeader>{{ editingItem ? t('inventory.edit.editItem') : t('inventory.edit.addItem') }}</SectionHeader>
       <div class="space-y-1">
         <FieldLabel>{{ t('inventory.edit.itemInternalId') }}</FieldLabel>
-        <TextInput ref="itemInternalIdInput" v-model="itemInternalId"
-                   :placeholder="t('inventory.edit.itemInternalIdPlaceholder')"/>
+        <div class="flex items-center gap-2">
+          <TextInput ref="itemInternalIdInput" v-model="itemInternalId"
+                     class="flex-1"
+                     :placeholder="t('inventory.edit.itemInternalIdPlaceholder')"/>
+          <ScanButton @decoded="itemInternalId = $event"/>
+        </div>
       </div>
       <div class="space-y-1">
         <FieldLabel>{{ t('inventory.edit.itemName') }}</FieldLabel>

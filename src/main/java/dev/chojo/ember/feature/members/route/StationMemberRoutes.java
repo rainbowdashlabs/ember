@@ -393,7 +393,8 @@ public class StationMemberRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(SetPermissionsRequest.class);
         List<Integer> permissionIds = request.permissionIds() != null ? request.permissionIds() : List.of();
-        ctx.json(memberService.setPermissions(memberId, permissionIds, session.permissions()));
+        Integer callerMemberId = session.member() != null ? session.member().id() : null;
+        ctx.json(memberService.setPermissions(memberId, permissionIds, session.permissions(), callerMemberId));
     }
 
     @OpenApi(

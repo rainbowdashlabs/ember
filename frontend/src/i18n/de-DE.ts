@@ -732,6 +732,17 @@ export default {
         search: 'Hilfe durchsuchen...',
         noSearchResults: 'Keine Ergebnisse gefunden.',
         notLoggedIn: 'Du bist nicht angemeldet. Wähle eine Rolle, um die passende Ansicht zu sehen.',
+        scanShared: {
+            title: 'Barcode scannen',
+            intro: 'Neben jedem Feld für die interne ID findest du eine Scan-Schaltfläche. Sie öffnet die Kamera deines Geräts und liest gedruckte Barcodes (Code 128, Code 39, QR, Data Matrix, EAN, UPC) automatisch ein. Der erkannte Wert wird direkt ins Feld geschrieben.',
+            tipPermission: 'Beim ersten Klick fragt der Browser einmal um Kamerafreigabe — verweigerst du sie, kannst du sie später in den Browser-Einstellungen wieder erlauben. Tippen funktioniert weiterhin überall.',
+            tipDistance: 'Halte das Handy ungefähr 10 cm über das Etikett. Wenn das Bild verschwommen ist, gib der Kamera einen Moment zum Fokussieren.',
+            tipNarrow: 'Wirken Code-128-Etiketten (vor allem Variante C) zu schmal, ziehe das Handy etwas näher heran oder zoome in der Vorschau, damit die schmalen Balken sauber erkannt werden.',
+            tipHttps: 'Die Kamera funktioniert nur über eine sichere Verbindung (HTTPS) oder lokal. In der Produktivumgebung ist das schon eingerichtet.',
+            tipNormalisation: 'Eingaben werden automatisch getrimmt und in Großbuchstaben umgewandelt — egal ob du tippst oder scannst, der Treffer ist derselbe.',
+            continuousTitle: 'Schnellprüfung: Mehrfach scannen',
+            continuousText: 'In der Schnellprüfung bleibt das Scan-Fenster offen. Jeder erkannte Gegenstand wird kurz mit „Erkannt" bestätigt, und du kannst direkt den nächsten halten. Schließe das Fenster, wenn du fertig bist.',
+        },
         roles: {
             member: 'Mitglied',
             memberManager: 'Erziehungsberechtigter',
@@ -5209,6 +5220,26 @@ volumes:
         deleteConfirmDetail: 'Soll der Tag "{name}" wirklich gelöscht werden?',
     },
     inventory: {
+        scan: {
+            button: {
+                label: 'Barcode scannen',
+            },
+            modal: {
+                title: 'Barcode scannen',
+                hint: 'Halte die Kamera ruhig über den Strichcode oder QR-Code. Die Erkennung läuft automatisch.',
+                cancel: 'Abbrechen',
+                requesting: 'Kamera wird angefragt...',
+                scanning: 'Suche nach Code...',
+            },
+            error: {
+                denied: 'Kamerazugriff verweigert. Erlaube den Zugriff in den Browser-Einstellungen, um den Scanner zu nutzen.',
+                unsupported: 'Dieses Gerät oder dieser Browser unterstützt das Scannen von Barcodes nicht.',
+                notFound: 'Keine Kamera gefunden.',
+            },
+            continuous: {
+                confirmed: 'Erkannt',
+            },
+        },
         overview: {
             title: 'Inventarübersicht',
             lost: 'Verlorene Gegenstände',
@@ -5414,6 +5445,7 @@ volumes:
             rapidCheck: 'Schnellprüfung',
             rapidProgress: '{current} Gegenstände verbleibend',
             rapidDone: 'Alle Gegenstände wurden geprüft.',
+            rapidScanNoMatch: 'Dieser Code passt zu keinem offenen Gegenstand der Prüfung.',
             missingItem: 'Fehlender Gegenstand',
             backToList: 'Zurück zur Übersicht',
             sortByName: 'Nach Name sortieren',
@@ -5627,6 +5659,15 @@ volumes:
             renamePrompt: 'Schlüssel umbenennen',
             useKey: 'Sicherheitsschlüssel verwenden',
             useCode: 'Code verwenden',
+        },
+        trustedDevices: {
+            title: 'Vertraute Geräte',
+            description: 'Geräte, auf denen du beim Login „Diesem Gerät vertrauen" gewählt hast. Solange das Vertrauen gilt, wird auf diesen Geräten kein zweiter Faktor mehr abgefragt.',
+            empty: 'Keine vertrauten Geräte. Beim nächsten Login kannst du dieses Gerät als vertraut markieren.',
+            revokeAll: 'Alle widerrufen',
+            unknownDevice: 'Unbekanntes Gerät',
+            lastSeen: 'Zuletzt gesehen',
+            expires: 'Läuft ab',
         },
         stepUp: {
             title: 'Sicherheitsbestätigung erforderlich',
@@ -6620,8 +6661,9 @@ volumes:
         feedRevokeConfirmTitle: 'Token widerrufen?',
         feedRevokeConfirmBody: 'Der Token wird gelöscht und alle abonnierten Reader liefern keine neuen Inhalte mehr aus. Du kannst jederzeit einen neuen Token erstellen.',
         gdprTitle: 'Datenauskunft (DSGVO)',
-        gdprHint: 'Lade eine Kopie aller deiner gespeicherten Daten herunter. Die Datei enthält dein Profil, Anwesenheiten, Termine, Inventar, Formulare und mehr.',
-        gdprExport: 'Daten herunterladen',
+        gdprHint: 'Lade eine vollständige Kopie aller deiner gespeicherten Daten herunter. Das ZIP-Archiv enthält dein Konto, deine Mitgliedschaft in jeder Station, sowie Anwesenheiten, Termine, Inventar, Formulare und Wissensdatenbank-Dateien aus allen Stationen.',
+        gdprExport: 'Vollständige Datenauskunft als ZIP herunterladen',
+        gdprExportManaged: 'Daten von {name} als ZIP herunterladen',
         gdprManaged: 'Daten verwalteter Mitglieder',
         deleteTitle: 'Konto löschen',
         deleteWarning: 'Dein Konto und alle persönlichen Daten werden unwiderruflich gelöscht. Deine Mitgliedschaft wird anonymisiert.',

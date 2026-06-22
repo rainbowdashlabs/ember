@@ -415,12 +415,6 @@ public class AuthService {
             return LoginResult.failure("Email not verified");
         }
 
-        if (!accountRepository.isAdministrator(account.id())
-                && !stationMemberRepository.hasLoginPermission(account.id())) {
-            log.info("Login failed for account {} ({}): no login permission", account.id(), email);
-            return LoginResult.failure("Invalid email or password");
-        }
-
         // Rehash if algorithm changed
         if (passwordHasher.needsRehash(credOpt.get().passwordHash())) {
             accountRepository.updateCredential(account.id(), passwordHasher.hash(password));

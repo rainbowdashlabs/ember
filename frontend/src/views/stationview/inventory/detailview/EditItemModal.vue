@@ -13,6 +13,8 @@ import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
+import ScanButton from '@/components/scanner/ScanButton.vue'
+import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import type { InventoryItem, InventorySize } from '@/api/types'
 import { inventory } from '@/api'
 
@@ -47,9 +49,12 @@ async function save() {
   if (!props.item) return
   error.value = ''
   try {
+    const normalisedInternalId = internalId.value
+        ? normaliseScannedPayload(internalId.value)
+        : ''
     await inventory.updateItem(props.item.id, {
       name: itemName.value,
-      internalId: internalId.value || undefined,
+      internalId: normalisedInternalId || undefined,
       sizeId: sizeId.value ? Number(sizeId.value) : undefined,
     })
     show.value = false
@@ -71,7 +76,10 @@ async function save() {
       </div>
       <div class="space-y-1">
         <FieldLabel>{{ t('inventory.edit.itemInternalId') }}</FieldLabel>
-        <TextInput v-model="internalId" :placeholder="t('inventory.edit.itemInternalIdPlaceholder')" />
+        <div class="flex items-center gap-2">
+          <TextInput v-model="internalId" class="flex-1" :placeholder="t('inventory.edit.itemInternalIdPlaceholder')" />
+          <ScanButton @decoded="internalId = $event"/>
+        </div>
       </div>
       <div v-if="props.hasSizes" class="space-y-1">
         <FieldLabel>{{ t('inventory.edit.itemSize') }}</FieldLabel>

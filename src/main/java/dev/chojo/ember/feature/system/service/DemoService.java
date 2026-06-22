@@ -9,7 +9,6 @@ import de.chojo.sadu.postgresql.databases.PostgreSql;
 import de.chojo.sadu.updater.QueryReplacement;
 import de.chojo.sadu.updater.SqlUpdater;
 import dev.chojo.ember.api.auth.InstanceUserType;
-import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Database;
@@ -332,21 +331,10 @@ public class DemoService {
             log.warn("Demo: Could not load logo.png", e);
         }
 
-        var adminMember = stationMemberRepository.create(station.id(), admin.id());
-        var managerRole = stationMemberRepository
-                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
-                .orElseThrow();
-        var loginRole = stationMemberRepository
-                .findPermissionByName(StationPermission.LOGIN)
-                .orElseThrow();
-
-        stationMemberRepository.setUserType(adminMember.id(), StationUserType.MANAGER);
-        stationMemberRepository.grantPermission(adminMember.id(), managerRole.id());
-        stationMemberRepository.grantPermission(adminMember.id(), loginRole.id());
-        stationRepository.setOwner(station.id(), adminMember.id());
-
         // -- Members (must run first, all other seeders depend on member data) --
-        var members = memberSeeder.seed(station.id(), adminMember, hash, rng);
+        var members = memberSeeder.seed(station.id(), hash, rng);
+        var adminMember = members.head();
+        stationRepository.setOwner(station.id(), adminMember.id());
 
         federationSeeder.seedFfMusterstadt(station.id());
 

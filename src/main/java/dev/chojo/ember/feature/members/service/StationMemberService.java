@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.util.PermissionValidation;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
+import io.javalin.http.ForbiddenResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -30,6 +31,7 @@ import java.util.UUID;
 public class StationMemberService {
     private static final Logger log = LoggerFactory.getLogger(StationMemberService.class);
     private final StationMemberRepository memberRepository;
+    private final StationRepository stationRepository;
     private final AccountRepository accountRepository;
     private final AuthService authService;
 
@@ -40,6 +42,7 @@ public class StationMemberService {
             AccountRepository accountRepository,
             AuthService authService) {
         this.memberRepository = memberRepository;
+        this.stationRepository = stationRepository;
         this.accountRepository = accountRepository;
         this.authService = authService;
     }
@@ -94,10 +97,36 @@ public class StationMemberService {
     }
 
     public List<Permission> setPermissions(
-            int memberId, List<Integer> desiredPermissionIds, Set<StationPermission> callerPermissions) {
+            int memberId,
+            List<Integer> desiredPermissionIds,
+            Set<StationPermission> callerPermissions,
+            Integer callerMemberId) {
         List<Permission> allPermissions = memberRepository.findAllPermissions();
         List<Permission> currentPermissions = memberRepository.findPermissions(memberId);
         var currentIds = currentPermissions.stream().map(Permission::id).toList();
+
+        if (callerMemberId != null && callerMemberId == memberId) {
+            for (Permission existing : currentPermissions) {
+                if (!desiredPermissionIds.contains(existing.id())) {
+                    throw new ForbiddenResponse("You cannot remove your own permissions");
+                }
+            }
+        }
+
+        var target = memberRepository.findById(memberId).orElse(null);
+        if (target != null) {
+            var station = stationRepository.findById(target.stationId()).orElse(null);
+            if (station != null && station.ownerMemberId() != null && station.ownerMemberId() == memberId) {
+                var adminPerm = allPermissions.stream()
+                        .filter(p -> p.permission() == StationPermission.STATION_ADMINISTRATOR)
+                        .findFirst();
+                if (adminPerm.isPresent()
+                        && currentIds.contains(adminPerm.get().id())
+                        && !desiredPermissionIds.contains(adminPerm.get().id())) {
+                    throw new ForbiddenResponse("The station owner must keep the Station Administrator permission");
+                }
+            }
+        }
 
         PermissionValidation.validatePermissionChanges(
                 currentPermissions, desiredPermissionIds, allPermissions, callerPermissions);
@@ -160,6 +189,9 @@ public class StationMemberService {
     }
 
     public List<StationMember> setManaged(int managerId, List<Integer> desiredManagedIds) {
+        for (int managedId : desiredManagedIds) {
+            requireManageableType(managedId);
+        }
         List<StationMember> currentManaged = memberRepository.findManaged(managerId);
         var currentManagedIds = currentManaged.stream().map(StationMember::id).toList();
 
@@ -178,6 +210,9 @@ public class StationMemberService {
     }
 
     public List<StationMember> setManagers(int managedId, List<Integer> desiredManagerIds) {
+        if (!desiredManagerIds.isEmpty()) {
+            requireManageableType(managedId);
+        }
         List<StationMember> currentManagers = memberRepository.findManagers(managedId);
         var currentManagerIds = currentManagers.stream().map(StationMember::id).toList();
 
@@ -193,5 +228,17 @@ public class StationMemberService {
         }
 
         return memberRepository.findManagers(managedId);
+    }
+
+    /**
+     * Guardians may only be attached to members of type {@link StationUserType#MEMBER} or
+     * {@link StationUserType#TRIAL}. All other types (TEAM, MANAGER, GUARDIAN) represent
+     * adults who manage themselves, so allowing a guardian relationship there is rejected.
+     */
+    private void requireManageableType(int memberId) {
+        var member = memberRepository.findById(memberId).orElseThrow(() -> new BadRequestResponse("Member not found"));
+        if (member.userType() != StationUserType.MEMBER && member.userType() != StationUserType.TRIAL) {
+            throw new BadRequestResponse("Guardians can only be assigned to members of type MEMBER or TRIAL");
+        }
     }
 }

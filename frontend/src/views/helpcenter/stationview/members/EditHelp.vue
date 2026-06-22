@@ -72,11 +72,11 @@ const dummySelected = new Set([1])
         <div class="space-y-2">
           <SubHeader>{{ t('memberEdit.userType') }}</SubHeader>
           <SelectInput :model-value="dummyUserType" class="w-full sm:w-64">
-            <option value="TRIAL">{{ t('memberEdit.userTypeTrial') }}</option>
-            <option value="MEMBER">{{ t('memberEdit.userTypeMember') }}</option>
-            <option value="GUARDIAN">{{ t('memberEdit.userTypeGuardian') }}</option>
-            <option value="TEAM">{{ t('memberEdit.userTypeTeam') }}</option>
             <option value="MANAGER">{{ t('memberEdit.userTypeManager') }}</option>
+            <option value="TEAM">{{ t('memberEdit.userTypeTeam') }}</option>
+            <option value="GUARDIAN">{{ t('memberEdit.userTypeGuardian') }}</option>
+            <option value="MEMBER">{{ t('memberEdit.userTypeMember') }}</option>
+            <option value="TRIAL">{{ t('memberEdit.userTypeTrial') }}</option>
           </SelectInput>
         </div>
 

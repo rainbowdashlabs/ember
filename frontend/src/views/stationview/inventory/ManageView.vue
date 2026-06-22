@@ -14,6 +14,8 @@ import IconButton from '@/components/button/IconButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import ScanButton from '@/components/scanner/ScanButton.vue'
+import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -147,7 +149,7 @@ const scanInput = ref('')
 const scanError = ref('')
 
 async function onScanSubmit() {
-  const query = scanInput.value.trim()
+  const query = normaliseScannedPayload(scanInput.value)
   if (!query) return
   scanError.value = ''
   const item = await inventory.findByInternalId(query)
@@ -157,6 +159,11 @@ async function onScanSubmit() {
   } else {
     scanError.value = t('inventory.manage.scanNotFound')
   }
+}
+
+function onScanDecoded(value: string) {
+  scanInput.value = value
+  onScanSubmit()
 }
 
 onMounted(async () => {
@@ -187,6 +194,7 @@ onMounted(async () => {
           <FieldLabel>{{ t('inventory.manage.scanLabel') }}</FieldLabel>
           <form class="flex items-center gap-2" @submit.prevent="onScanSubmit">
             <TextInput ref="scanInputRef" v-model="scanInput" :placeholder="t('inventory.manage.scanPlaceholder')" class="flex-1" />
+            <ScanButton @decoded="onScanDecoded"/>
             <PrimaryButton :icon="['fas', 'magnifying-glass']" type="submit">
               {{ t('inventory.manage.scanSubmit') }}
             </PrimaryButton>

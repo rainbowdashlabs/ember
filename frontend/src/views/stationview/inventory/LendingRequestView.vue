@@ -24,6 +24,7 @@ import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import ScanButton from '@/components/scanner/ScanButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import type {LendingRequestDetail, EnrichedMessage, AvailableItemDetail, LendingStatusName} from '@/api/lending'
 import {LendingStatus} from '@/api/lending'
@@ -72,16 +73,30 @@ async function loadData() {
   }
 }
 
-// Group available items by inventory name
+const itemFilter = ref('')
+
+const filteredAvailableItems = computed(() => {
+  const query = itemFilter.value.trim().toLocaleUpperCase('en-US')
+  if (!query) return availableItems.value
+  return availableItems.value.filter(i =>
+      (i.internalId ?? '').toLocaleUpperCase('en-US').includes(query)
+      || (i.itemName ?? '').toLocaleUpperCase('en-US').includes(query),
+  )
+})
+
 const groupedAvailableItems = computed(() => {
   const groups = new Map<string, AvailableItemDetail[]>()
-  for (const item of availableItems.value) {
+  for (const item of filteredAvailableItems.value) {
     const key = item.inventoryName
     if (!groups.has(key)) groups.set(key, [])
     groups.get(key)!.push(item)
   }
   return groups
 })
+
+function onAssignmentScan(value: string) {
+  itemFilter.value = value
+}
 
 const selectedCount = computed(() => selectedItemIds.value.size)
 
@@ -310,6 +325,10 @@ function formatTime(d: string): string {
         <Spinner v-if="loadingItems"/>
         <NeutralContainer v-else-if="availableItems.length > 0" class="mb-4">
           <p class="text-sm text-[var(--text-muted)] mb-3">{{ t('lending.selectItemsToLend') }}</p>
+          <div class="flex items-center gap-2 mb-3">
+            <TextInput v-model="itemFilter" :placeholder="t('inventory.manage.scanPlaceholder')" class="flex-1"/>
+            <ScanButton @decoded="onAssignmentScan"/>
+          </div>
           <template v-for="[groupName, items] in groupedAvailableItems" :key="groupName">
             <div class="font-medium text-sm mb-1">{{ groupName }}</div>
             <div class="flex flex-col gap-1 mb-3">

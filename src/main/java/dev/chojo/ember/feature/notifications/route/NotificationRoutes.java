@@ -40,11 +40,11 @@ public class NotificationRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/notifications", this::list, StationPermission.LOGIN);
-        routes.get(prefix + "/notifications/unacknowledged", this::listUnacknowledged, StationPermission.LOGIN);
-        routes.get(prefix + "/notifications/count", this::count, StationPermission.LOGIN);
-        routes.post(prefix + "/notifications/{id}/acknowledge", this::acknowledge, StationPermission.LOGIN);
-        routes.post(prefix + "/notifications/acknowledge-all", this::acknowledgeAll, StationPermission.LOGIN);
+        routes.get(prefix + "/notifications", this::list, StationPermission.USER);
+        routes.get(prefix + "/notifications/unacknowledged", this::listUnacknowledged, StationPermission.USER);
+        routes.get(prefix + "/notifications/count", this::count, StationPermission.USER);
+        routes.post(prefix + "/notifications/{id}/acknowledge", this::acknowledge, StationPermission.USER);
+        routes.post(prefix + "/notifications/acknowledge-all", this::acknowledgeAll, StationPermission.USER);
     }
 
     @OpenApi(

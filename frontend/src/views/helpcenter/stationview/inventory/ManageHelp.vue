@@ -17,6 +17,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import ScanButton from '@/components/scanner/ScanButton.vue'
 import {StationPermission} from '@/api/types'
 
 const {t} = useI18n()
@@ -39,11 +40,20 @@ const {t} = useI18n()
     <!-- Dummy: Barcode scanner -->
     <HelpSection :title="t('helpCenter.inventoryManage.scanTitle')">
       <p>{{ t('helpCenter.inventoryManage.scanText') }}</p>
+      <p>{{ t('helpCenter.scanShared.intro') }}</p>
+      <ul class="list-disc pl-5 space-y-1">
+        <li>{{ t('helpCenter.scanShared.tipPermission') }}</li>
+        <li>{{ t('helpCenter.scanShared.tipDistance') }}</li>
+        <li>{{ t('helpCenter.scanShared.tipNarrow') }}</li>
+        <li>{{ t('helpCenter.scanShared.tipHttps') }}</li>
+        <li>{{ t('helpCenter.scanShared.tipNormalisation') }}</li>
+      </ul>
 
       <NeutralContainer class="space-y-2">
         <FieldLabel>{{ t('inventory.manage.scanLabel') }}</FieldLabel>
         <div class="flex items-center gap-2">
           <TextInput model-value="" :placeholder="t('inventory.manage.scanPlaceholder')" class="flex-1" disabled />
+          <ScanButton/>
           <PrimaryButton :icon="['fas', 'magnifying-glass']">
             {{ t('inventory.manage.scanSubmit') }}
           </PrimaryButton>

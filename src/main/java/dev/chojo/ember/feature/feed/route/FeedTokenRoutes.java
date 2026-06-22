@@ -35,11 +35,11 @@ public class FeedTokenRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/feed/token", this::getToken, StationPermission.LOGIN);
-        routes.get(prefix + "/feed/token/status", this::getStatus, StationPermission.LOGIN);
-        routes.post(prefix + "/feed/token", this::createToken, StationPermission.LOGIN);
-        routes.post(prefix + "/feed/token/regenerate", this::regenerateToken, StationPermission.LOGIN);
-        routes.delete(prefix + "/feed/token", this::revokeToken, StationPermission.LOGIN);
+        routes.get(prefix + "/feed/token", this::getToken, StationPermission.USER);
+        routes.get(prefix + "/feed/token/status", this::getStatus, StationPermission.USER);
+        routes.post(prefix + "/feed/token", this::createToken, StationPermission.USER);
+        routes.post(prefix + "/feed/token/regenerate", this::regenerateToken, StationPermission.USER);
+        routes.delete(prefix + "/feed/token", this::revokeToken, StationPermission.USER);
     }
 
     @OpenApi(

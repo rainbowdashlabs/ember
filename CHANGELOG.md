@@ -1,5 +1,34 @@
 # Changelog
 
+## v26.9.1
+
+### New Features
+
+- **Barcode and QR scanning for inventory.** A scan button next to every internal-id field opens the camera (rear camera on phones, webcam on laptops) and resolves printed Code 128, Code 39, QR, Data Matrix, EAN and UPC labels to the item's internal id. Available when creating or editing an item, on the inventory search bar, when assigning items to a lending request, and in the rapid inventory-check mode — where the modal stays open in continuous mode so you can sweep a pile of returning items. Decoded values are normalised (uppercased, trimmed) and the same normalisation is applied to hand-typed ids so they always match.
+
+### Changes
+
+- **Login without station membership.** Any account with a verified e-mail can now sign in. Administrators land on the admin panel, non-admin users without any station membership land on the Account area; the station overview still gates per-station features behind a station selection.
+- **Admin panel button always reachable.** The shield button that opens the admin panel now shows on the cross-station overview, the Account area and the station dashboard whenever the signed-in user is an administrator and isn't already inside the admin panel.
+- **Header unified across views.** The cross-station overview, account pages and station panel use the same avatar menu and station-panel button. The station-panel button is only shown when the user actually has a station to switch to.
+- **Login returns you where you started.** A login that requires two-factor verification now carries the original destination through the verification step, so you land back on the page you originally tried to open.
+- **Member type list ordered by role power.** The member-type dropdown now lists *Manager* first, then *Team*, *Guardian*, *Member*, *Trial* — top-down by responsibility instead of alphabetically.
+- **Data export button labels what it does.** The Account → GDPR download button now reads "Download the full data export as a ZIP" and the per-managed-member variant names the person. The page text spells out that the archive covers every station the account belongs to.
+- **Trusted devices section translated.** The trusted-devices block on the security page now shows a localised title, description, empty state and column labels.
+- **Demo login shows station-less accounts above the tabs.** In demo and dev mode, accounts that don't belong to any station (the demo administrator) appear at the top of the login picker instead of in their own tab.
+
+### Security
+
+- **Guardians can only be attached to members and trial members.** Adult member types (Team, Manager, Guardian) no longer accept a guardian assignment, on the relations tab and on the server.
+- **Self-lockout protection on permissions.** A user can't remove their own permissions through the member editor, and the station owner can't have the Station Administrator permission revoked.
+
+### Fixes
+
+- **Wrong permissions after login.** Switching accounts or logging back in after a stale session no longer resolves permissions against the previous account's station. Single-station accounts go straight to the station, multi-station accounts to the picker, and the picker is the only way to enter a station context with full permissions.
+- **Station button in the cross-station header.** The button no longer opens the station panel with the wrong station selected; it routes through the picker when no usable station is stored, and selects the only station automatically when there is exactly one.
+- **Dashboard crashes with a stale station.** Hitting the dashboard with a station that the current account isn't a member of no longer crashes feed-status, notifications or exchange list calls; the dashboard sends you back to the picker instead.
+- **Station Administrator back in the permission picker.** The Station Administrator entry reappears in the per-member permission list when the member's user type already grants it, so it can still be toggled.
+
 ## v26.9.0
 
 ### New Features

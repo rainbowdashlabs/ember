@@ -37,6 +37,9 @@ const saving = ref(false)
 const selectedAddId = ref('')
 
 const isGuardian = computed(() => props.userType === StationUserType.GUARDIAN)
+const canHaveGuardian = computed(() =>
+    props.userType === StationUserType.MEMBER || props.userType === StationUserType.TRIAL,
+)
 
 const availableToAdd = computed(() => {
   const linkedIds = new Set(isGuardian.value ? managed.value.map(m => m.id) : managers.value.map(m => m.id))
@@ -125,8 +128,8 @@ onMounted(loadData)
     <Alert v-if="success" variant="success">{{ success }}</Alert>
 
     <template v-if="!loading">
-      <!-- Guardians of this member (for non-guardian types) -->
-      <NeutralContainer v-if="!isGuardian" class="space-y-4">
+      <!-- Guardians of this member (only for member/trial types) -->
+      <NeutralContainer v-if="canHaveGuardian" class="space-y-4">
         <SubHeader>{{ t('memberEdit.relations.guardians') }}</SubHeader>
         <EmptyState v-if="managers.length === 0" compact>{{ t('memberEdit.relations.noGuardians') }}</EmptyState>
         <div v-for="mgr in managers" :key="mgr.id" class="flex items-center justify-between rounded-lg px-4 py-3 bg-bg-light-accent/40 dark:bg-bg-dark-accent/40">
