@@ -9,8 +9,8 @@ import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
 import SidebarLink from '@/components/navigation/SidebarLink.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import AccountMenuButton from '@/components/layout/AccountMenuButton.vue'
+import SmartStationButton from '@/components/layout/SmartStationButton.vue'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
 import {useSession} from '@/composables/useSession'
 
@@ -57,14 +57,7 @@ const pageSubtitle = computed(() => {
 
     <template #header>
       <HelpCenterLink/>
-
-      <router-link to="/station/dashboard/overview">
-        <SecondaryButton>
-          <font-awesome-icon :icon="['fas', 'building']" class="h-4 w-4"/>
-          <span class="hidden sm:inline ml-1">{{ t('header.stationPanel') }}</span>
-        </SecondaryButton>
-      </router-link>
-
+      <SmartStationButton/>
       <AccountMenuButton/>
     </template>
 

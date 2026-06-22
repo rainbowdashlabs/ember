@@ -5628,6 +5628,15 @@ volumes:
             useKey: 'Sicherheitsschlüssel verwenden',
             useCode: 'Code verwenden',
         },
+        trustedDevices: {
+            title: 'Vertraute Geräte',
+            description: 'Geräte, auf denen du beim Login „Diesem Gerät vertrauen" gewählt hast. Solange das Vertrauen gilt, wird auf diesen Geräten kein zweiter Faktor mehr abgefragt.',
+            empty: 'Keine vertrauten Geräte. Beim nächsten Login kannst du dieses Gerät als vertraut markieren.',
+            revokeAll: 'Alle widerrufen',
+            unknownDevice: 'Unbekanntes Gerät',
+            lastSeen: 'Zuletzt gesehen',
+            expires: 'Läuft ab',
+        },
         stepUp: {
             title: 'Sicherheitsbestätigung erforderlich',
             description: 'Diese Aktion ist sensibel. Bitte bestätige sie mit deinem zweiten Faktor.',
