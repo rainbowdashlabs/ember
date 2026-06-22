@@ -29,7 +29,7 @@ import {auth, session, adminSettings} from '@/api'
 import client from '@/api/client'
 import {StorageDeniedError} from '@/api/auth'
 import type {StorageConsent} from '@/api/storage'
-import {acceptStorage, denyStorage, getConsent, getStoredLegalVersions, getItem} from '@/api/storage'
+import {acceptStorage, denyStorage, getConsent, getStoredLegalVersions, getItem, removeItem} from '@/api/storage'
 import {useStations} from '@/composables/useStations'
 import {useConsentGuard} from '@/composables/useConsentGuard'
 import {StationUserType} from '@/api/types'
@@ -138,6 +138,7 @@ onMounted(async () => {
 
 async function resolveStationAndRedirect() {
   const redirectPath = route.query.redirect as string | undefined
+  removeItem('station_id')
   const stations = await session.getStations()
   if (stations.length === 1) {
     setActiveStation(stations[0].stationId)
@@ -145,7 +146,7 @@ async function resolveStationAndRedirect() {
   } else if (stations.length > 1) {
     await navigateTo(redirectPath || '/cross-station')
   } else {
-    await navigateTo(redirectPath || '/station/requirements')
+    await navigateTo(redirectPath || '/account')
   }
 }
 
@@ -249,10 +250,10 @@ async function handleLogin() {
     }
 
     if (result.twoFactorRequired && result.preAuthToken) {
-      await navigateTo({
-        path: '/2fa-verify',
-        query: {token: result.preAuthToken},
-      })
+      const query: Record<string, string> = {token: result.preAuthToken}
+      const redirect = route.query.redirect as string | undefined
+      if (redirect) query.redirect = redirect
+      await navigateTo({path: '/2fa-verify', query})
       return
     }
 
@@ -318,10 +319,10 @@ async function loginAsDemo(account: DemoAccount) {
       return
     }
     if (result.twoFactorRequired && result.preAuthToken) {
-      await navigateTo({
-        path: '/2fa-verify',
-        query: {token: result.preAuthToken},
-      })
+      const query: Record<string, string> = {token: result.preAuthToken}
+      const redirect = route.query.redirect as string | undefined
+      if (redirect) query.redirect = redirect
+      await navigateTo({path: '/2fa-verify', query})
       return
     }
     await resolveStationAndRedirect()

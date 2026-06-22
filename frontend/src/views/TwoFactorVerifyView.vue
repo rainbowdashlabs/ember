@@ -9,7 +9,7 @@ import {useRoute} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import {getTwoFactorStatus, verify2fa, webauthnLoginBegin, webauthnLoginFinish} from '@/api/twoFactor'
 import {getWebAuthnCredential, isWebAuthnSupported} from '@/util/webauthn'
-import {setItem} from '@/api/storage'
+import {removeItem, setItem} from '@/api/storage'
 import {scheduleTokenRefresh} from '@/api/client'
 import {session} from '@/api'
 import {useStations} from '@/composables/useStations'
@@ -93,23 +93,24 @@ async function handleWebAuthn() {
 async function finalizeSession(token: string, expiresAt: string) {
   setItem('session_token', token)
   setItem('session_expires_at', expiresAt)
+  removeItem('station_id')
   scheduleTokenRefresh(expiresAt)
-  // Resolve the user's station the same way the regular login flow does. Without this the
-  // browser holds a session token but no X-Station-Id header, so every authenticated
-  // request resolves to an empty StationPermission set and the dashboard 403s on USER.
+  const redirect = route.query.redirect as string | undefined
   try {
     const stations = await session.getStations()
     if (stations.length === 1) {
       setActiveStation(stations[0].stationId)
-      window.location.href = '/station/requirements'
+      window.location.href = redirect || '/station/requirements'
       return
     }
     if (stations.length > 1) {
-      window.location.href = '/cross-station'
+      window.location.href = redirect || '/cross-station'
       return
     }
+    window.location.href = redirect || '/account'
+    return
   } catch { /* fall through to default redirect */ }
-  window.location.href = '/station/requirements'
+  window.location.href = redirect || '/station/requirements'
 }
 </script>
 
