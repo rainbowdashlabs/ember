@@ -76,10 +76,10 @@ public class ExchangeRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/exchanges", this::list, StationPermission.LOGIN);
-        routes.get(prefix + "/exchanges/{id}", this::get, StationPermission.LOGIN);
-        routes.get(prefix + "/exchanges/{id}/logs", this::logs, StationPermission.LOGIN);
-        routes.post(prefix + "/exchanges", this::create, StationPermission.LOGIN);
+        routes.get(prefix + "/exchanges", this::list, StationPermission.USER);
+        routes.get(prefix + "/exchanges/{id}", this::get, StationPermission.USER);
+        routes.get(prefix + "/exchanges/{id}/logs", this::logs, StationPermission.USER);
+        routes.post(prefix + "/exchanges", this::create, StationPermission.USER);
         routes.put(prefix + "/exchanges/{id}/status", this::updateStatus, StationPermission.INVENTORY_EXCHANGE);
         routes.delete(prefix + "/exchanges/{id}", this::delete, StationPermission.INVENTORY_EXCHANGE);
         routes.post(prefix + "/exchanges/export", this::exportPdf, StationPermission.INVENTORY_EXCHANGE);

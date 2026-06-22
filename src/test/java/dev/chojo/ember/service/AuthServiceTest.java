@@ -120,13 +120,13 @@ class AuthServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(6)
-    void loginNotAuthorized() {
+    void loginWithoutStationMembership() {
         var result = service.login(EMAIL, PASSWORD, "agent", "DE");
-        assertFalse(result.success());
-        assertEquals(
-                "Invalid email or password",
-                result.message(),
-                "Missing LOGIN permission must not be distinguishable from wrong password");
+        assertTrue(
+                result.success(),
+                "An account without any station membership must still be allowed to log in to access account data");
+        assertNotNull(result.token());
+        service.logout(result.token());
     }
 
     @Test
