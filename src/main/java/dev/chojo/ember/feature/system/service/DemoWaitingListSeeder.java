@@ -18,9 +18,9 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import tools.jackson.databind.node.IntNode;
 import tools.jackson.databind.node.StringNode;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -59,23 +59,27 @@ public class DemoWaitingListSeeder {
                 stationId,
                 "Jugendfeuerwehr",
                 "Warteliste für neue Mitglieder der Jugendfeuerwehr (10–18 Jahre). Melde dich an und wir laden dich zu einer Schnupperübung ein.",
-                "[Alter] * (\"[Erfahrung]\" == \"fortgeschritten\" ? 2 : 1)",
+                "age([Geburtsdatum]) * (\"[Erfahrung]\" == \"fortgeschritten\" ? 2 : 1)",
                 180,
                 gaesteGroup.id(),
                 joinGroupId,
                 5,
                 true);
 
-        var nameField = waitingListRepository.createField(
-                list.id(), "Vorname", WaitingListFieldType.TEXT, WaitingListFieldConfig.parse("{}"), 0, true, true);
-        var ageField = waitingListRepository.createField(
-                list.id(), "Alter", WaitingListFieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 1, true, true);
+        var birthdayField = waitingListRepository.createField(
+                list.id(),
+                "Geburtsdatum",
+                WaitingListFieldType.DATE,
+                WaitingListFieldConfig.parse("{}"),
+                0,
+                true,
+                true);
         var expField = waitingListRepository.createField(
                 list.id(),
                 "Erfahrung",
                 WaitingListFieldType.ENUM,
                 WaitingListFieldConfig.parse("{\"options\":[\"Anfänger\",\"Fortgeschritten\"]}"),
-                2,
+                1,
                 true,
                 true);
 
@@ -194,9 +198,9 @@ public class DemoWaitingListSeeder {
                     UUID.randomUUID().toString(),
                     "",
                     null);
-            waitingListRepository.upsertEntryValue(entry.id(), nameField.id(), StringNode.valueOf(kid.firstname));
+            LocalDate birthday = LocalDate.now().minusYears(Integer.parseInt(kid.alter));
             waitingListRepository.upsertEntryValue(
-                    entry.id(), ageField.id(), IntNode.valueOf(Integer.parseInt(kid.alter)));
+                    entry.id(), birthdayField.id(), StringNode.valueOf(birthday.toString()));
             waitingListRepository.upsertEntryValue(entry.id(), expField.id(), StringNode.valueOf(kid.erfahrung));
 
             waitingListRepository.createGuardian(
