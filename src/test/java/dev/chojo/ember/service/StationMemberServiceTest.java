@@ -101,7 +101,8 @@ class StationMemberServiceTest extends RepositoryTestBase {
         var result = service.setPermissions(
                 member1.id(),
                 List.of(memberRole.id(), loginRole.id()),
-                EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER, StationPermission.LOGIN));
+                EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER, StationPermission.LOGIN),
+                null);
         assertTrue(result.stream().anyMatch(r -> r.permission() == StationPermission.USER));
         assertTrue(result.stream().anyMatch(r -> r.permission() == StationPermission.LOGIN));
     }
@@ -115,7 +116,7 @@ class StationMemberServiceTest extends RepositoryTestBase {
         assertThrows(
                 ForbiddenResponse.class,
                 () -> service.setPermissions(
-                        member2.id(), List.of(adminPerm.id()), EnumSet.of(StationPermission.MEMBER_MANAGER)));
+                        member2.id(), List.of(adminPerm.id()), EnumSet.of(StationPermission.MEMBER_MANAGER), null));
     }
 
     @Test
@@ -209,7 +210,8 @@ class StationMemberServiceTest extends RepositoryTestBase {
         var result = service.setPermissions(
                 member3.id(),
                 List.of(userPerm.id(), loginPerm.id()),
-                EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER, StationPermission.LOGIN));
+                EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER, StationPermission.LOGIN),
+                null);
         assertTrue(result.stream().anyMatch(r -> r.permission() == StationPermission.LOGIN));
 
         // Cleanup
@@ -226,12 +228,16 @@ class StationMemberServiceTest extends RepositoryTestBase {
         service.setPermissions(
                 member2.id(),
                 List.of(userPerm.id()),
-                EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER));
+                EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER),
+                null);
         assertTrue(
                 service.findPermissions(member2.id()).stream().anyMatch(p -> p.permission() == StationPermission.USER));
         // Revoke by passing empty list
         service.setPermissions(
-                member2.id(), List.of(), EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER));
+                member2.id(),
+                List.of(),
+                EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER),
+                null);
         assertTrue(service.findPermissions(member2.id()).isEmpty());
     }
 
@@ -270,7 +276,8 @@ class StationMemberServiceTest extends RepositoryTestBase {
                 () -> service.setPermissions(
                         noEmailMember.id(),
                         List.of(loginPerm.id()),
-                        EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.LOGIN)));
+                        EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.LOGIN),
+                        null));
 
         service.delete(noEmailMember.id());
         accountRepo.delete(noEmailAccount.id());
