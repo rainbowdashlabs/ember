@@ -33,7 +33,7 @@ public record WaitingListFieldConfig(List<String> options, String placeholder) {
             .changeDefaultVisibility(v -> v.withFieldVisibility(JsonAutoDetect.Visibility.ANY)
                     .withGetterVisibility(JsonAutoDetect.Visibility.NONE))
             .build();
-    private static final WaitingListFieldConfig EMPTY = new WaitingListFieldConfig(null, null);
+    public static final WaitingListFieldConfig EMPTY = new WaitingListFieldConfig(null, null);
 
     public static WaitingListFieldConfig parse(String json) {
         if (json == null || json.isBlank() || "{}".equals(json)) return EMPTY;

@@ -70,7 +70,7 @@ public class DemoWaitingListSeeder {
                 list.id(),
                 "Geburtsdatum",
                 WaitingListFieldType.DATE,
-                WaitingListFieldConfig.parse("{}"),
+                WaitingListFieldConfig.EMPTY,
                 0,
                 true,
                 true);
@@ -78,7 +78,7 @@ public class DemoWaitingListSeeder {
                 list.id(),
                 "Erfahrung",
                 WaitingListFieldType.ENUM,
-                WaitingListFieldConfig.parse("{\"options\":[\"Anfänger\",\"Fortgeschritten\"]}"),
+                new WaitingListFieldConfig(List.of("Anfänger", "Fortgeschritten"), null),
                 1,
                 true,
                 true);
@@ -98,7 +98,7 @@ public class DemoWaitingListSeeder {
                 kinderList.id(),
                 "Name des Kindes",
                 WaitingListFieldType.TEXT,
-                WaitingListFieldConfig.parse("{}"),
+                WaitingListFieldConfig.EMPTY,
                 0,
                 true,
                 true);
@@ -106,7 +106,7 @@ public class DemoWaitingListSeeder {
                 kinderList.id(),
                 "Geburtsdatum",
                 WaitingListFieldType.DATE,
-                WaitingListFieldConfig.parse("{}"),
+                WaitingListFieldConfig.EMPTY,
                 1,
                 true,
                 true);
