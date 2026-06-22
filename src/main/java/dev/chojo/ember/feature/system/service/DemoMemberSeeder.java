@@ -62,9 +62,11 @@ public class DemoMemberSeeder {
 
     /**
      * Result of member seeding, containing all created member groups and lists needed by other seeders.
+     * The {@code head} is the station's primary manager — used by downstream seeders as the
+     * creator / owner of station-scoped content (news, events, KB, pages, …).
      */
     public record SeedResult(
-            StationMember admin,
+            StationMember head,
             List<StationMember> betreuer,
             List<StationMember> anfaenger,
             List<StationMember> fortgeschritten,
@@ -76,7 +78,7 @@ public class DemoMemberSeeder {
             UserTag tagWettkampf,
             UserTag tagErsthelfer) {}
 
-    public SeedResult seed(int stationId, StationMember adminMember, String passwordHash, Random rng) {
+    public SeedResult seed(int stationId, String passwordHash, Random rng) {
         var loginRole = stationMemberRepository
                 .findPermissionByName(StationPermission.LOGIN)
                 .orElseThrow();
@@ -300,11 +302,19 @@ public class DemoMemberSeeder {
         var anfaengerMembers = new ArrayList<StationMember>();
         var fortgeschrittenMembers = new ArrayList<StationMember>();
 
-        // Create Betreuer (TEAM -- not MEMBER)
+        var stationAdminRole = stationMemberRepository
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .orElseThrow();
+
+        // Create Betreuer (TEAM -- not MEMBER). Max Mustermann is the station administrator
+        // (replaces the former instance-admin-as-station-member setup), every other Betreuer
+        // keeps the attendance / event / member management bundle.
         for (var u : betreuerData) {
             var m = createTeamMember(u.firstName(), u.lastName(), passwordHash, stationId, loginRole.id());
-            // Max Mustermann gets no additional permissions (plain user for testing)
-            if (!u.lastName().equals("Mustermann")) {
+            if (u.lastName().equals("Mustermann")) {
+                stationMemberRepository.setUserType(m.id(), StationUserType.MANAGER);
+                stationMemberRepository.grantPermission(m.id(), stationAdminRole.id());
+            } else {
                 stationMemberRepository.grantPermission(m.id(), attendanceMgmt.id());
                 stationMemberRepository.grantPermission(m.id(), eventMgmt.id());
                 stationMemberRepository.grantPermission(m.id(), memberMgmt.id());
@@ -566,8 +576,6 @@ public class DemoMemberSeeder {
         for (var m : betreuerMembers) {
             userTagRepository.addMember(tagJfw.id(), m.id());
         }
-        // Also add admin
-        userTagRepository.addMember(tagJfw.id(), adminMember.id());
 
         log.info(
                 "Demo: Created {} members (betreuer={}, eltern={}, anfaenger={}, fortgeschritten={})",
@@ -577,8 +585,10 @@ public class DemoMemberSeeder {
                 anfaengerMembers.size(),
                 fortgeschrittenMembers.size());
 
+        StationMember head = betreuerMembers.getFirst();
+
         return new SeedResult(
-                adminMember,
+                head,
                 List.copyOf(betreuerMembers),
                 List.copyOf(anfaengerMembers),
                 List.copyOf(fortgeschrittenMembers),

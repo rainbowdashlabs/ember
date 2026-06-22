@@ -6,6 +6,7 @@
 package dev.chojo.ember.api;
 
 import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
@@ -360,11 +361,8 @@ public class ApiServer {
 
     private void handleDemoAccounts(@NotNull Context ctx) {
         var allStations = stationRepository.findAll();
-        if (allStations.isEmpty()) {
-            ctx.json(List.of());
-            return;
-        }
         var stationGroups = new ArrayList<DemoStationGroup>();
+        var shownAccountIds = new java.util.HashSet<Integer>();
         for (var station : allStations) {
             var members = stationMemberRepository.findByStation(station.id());
             var accounts = new ArrayList<DemoAccount>();
@@ -391,19 +389,35 @@ public class ApiServer {
                             groupNames,
                             tagNames,
                             complete));
+                    shownAccountIds.add(account.id());
                 });
             }
             if (!accounts.isEmpty()) {
                 stationGroups.add(new DemoStationGroup(station.uid().toString(), station.name(), accounts));
             }
         }
-        // Always return flat list from the first station (primary)
-        // Additional stations are appended with stationName for display
-        if (stationGroups.isEmpty()) {
-            ctx.json(List.of());
-        } else {
-            ctx.json(stationGroups);
+
+        var orphanAccounts = new ArrayList<DemoAccount>();
+        for (var account : accountRepository.findAll()) {
+            if (shownAccountIds.contains(account.id())) continue;
+            StationUserType bucket = account.instanceUserType() == InstanceUserType.ADMINISTRATOR
+                    ? StationUserType.MANAGER
+                    : StationUserType.MEMBER;
+            orphanAccounts.add(new DemoAccount(
+                    account.email(),
+                    account.firstName(),
+                    account.lastName(),
+                    bucket,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    true));
         }
+        if (!orphanAccounts.isEmpty()) {
+            stationGroups.add(new DemoStationGroup("__no_station__", "Konten ohne Station", orphanAccounts));
+        }
+
+        ctx.json(stationGroups);
     }
 
     /**
