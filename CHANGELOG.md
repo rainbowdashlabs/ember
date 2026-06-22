@@ -1,5 +1,23 @@
 # Changelog
 
+## v26.9.1
+
+### New Features
+
+- **Barcode and QR scanning for inventory.** A scan button next to every internal-id field opens the camera (rear camera on phones, webcam on laptops) and resolves printed Code 128, Code 39, QR, Data Matrix, EAN and UPC labels to the item's internal id. Available when creating or editing an item, on the inventory search bar, when assigning items to a lending request, and in the rapid inventory-check mode — where the modal stays open in continuous mode so you can sweep a pile of returning items. Decoded values are normalised (uppercased, trimmed) and the same normalisation is applied to hand-typed ids so they always match.
+
+### Changes
+
+- **Login without station membership.** Any account with a verified e-mail can now sign in. Users without any station membership land on the Account area and can manage their profile, security and sessions; the station overview still gates per-station features behind a station selection.
+- **Header unified across views.** The cross-station overview, account pages and station panel now use the same avatar menu and station-panel button. The button is only shown when the user actually has a station to switch to.
+- **Login returns you where you started.** A login that requires two-factor verification now carries the original destination through the verification step, so you land back on the page you originally tried to open.
+
+### Fixes
+
+- **Wrong permissions after login.** Switching accounts or logging back in after a stale session no longer resolves permissions against the previous account's station. Single-station accounts go straight to the station, multi-station accounts to the picker, and the picker is the only way to enter a station context with full permissions.
+- **Station button in the cross-station header.** The button no longer opens the station panel with the wrong station selected; it routes through the picker when no usable station is stored, and selects the only station automatically when there is exactly one.
+- **500 on the dashboard with a stale station.** Hitting the dashboard with a station that the current account isn't a member of no longer crashes feed-status, notifications or exchange list calls; the dashboard now sends you back to the picker instead.
+
 ## v26.9.0
 
 ### New Features
