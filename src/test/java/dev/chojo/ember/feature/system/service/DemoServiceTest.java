@@ -224,7 +224,10 @@ class DemoServiceTest extends RepositoryTestBase {
                 boardRepo, boardTicketRepo, federatedBoardService, federationService, memberIdentityFactory);
         var procedureSeeder = new DemoProcedureSeeder(procedureRepo);
         var demoStorageConfig = new Storage();
-        var demoStorage = new PageFileStorageService(stationRepo);
+        var demoBackend = new dev.chojo.ember.feature.storage.backend.LocalStorageBackend();
+        var demoResolver = new dev.chojo.ember.feature.storage.backend.StorageBackendResolver(demoBackend);
+        var demoStorageSvc = new dev.chojo.ember.feature.storage.service.StorageService(demoResolver, demoBackend);
+        var demoStorage = new PageFileStorageService(demoStorageSvc, stationRepo, demoBackend);
         var pageSeeder = new DemoPageSeeder(
                 new PageService(
                         pageRepo,

@@ -88,7 +88,7 @@ public class StorageUsageRepository {
      */
     public long totalEnforcedBytes(int stationId) {
         return query(
-                        "SELECT COALESCE(SUM(total_bytes), 0) AS total FROM station_storage_usage WHERE station_id = :station_id AND category != 'AVATARS';")
+                        "SELECT COALESCE(SUM(total_bytes), 0) AS total FROM station_storage_usage WHERE station_id = :station_id AND category NOT IN ('AVATARS', 'IMAGE_AVATAR', 'DOCUMENT', 'DISCOVERY_KEY', 'MAP_TILE_CACHE', 'DEMO_AVATAR');")
                 .single(call().bind("station_id", stationId))
                 .map(row -> row.getLong("total"))
                 .first()

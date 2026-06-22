@@ -74,7 +74,7 @@ public class StorageReconciliationService {
         try {
             reconcileKbFiles(stationId);
             reconcileBoardAttachments(stationId);
-            reconcilePageImages(stationId);
+            reconcilePageFiles(stationId);
             reconcileImages(stationId);
             reconcileAvatars(stationId);
         } catch (Exception e) {
@@ -110,7 +110,7 @@ public class StorageReconciliationService {
         usageRepository.setUsage(stationId, StorageCategory.BOARD_ATTACHMENTS, result.totalBytes(), result.fileCount());
     }
 
-    private void reconcilePageImages(int stationId) {
+    private void reconcilePageFiles(int stationId) {
         var result = query("""
                 SELECT COALESCE(SUM(file_size), 0) AS total_bytes, COUNT(*) AS file_count
                 FROM page_file
@@ -120,7 +120,7 @@ public class StorageReconciliationService {
                 .map(row -> new UsageResult(row.getLong("total_bytes"), row.getInt("file_count")))
                 .first()
                 .orElse(new UsageResult(0, 0));
-        usageRepository.setUsage(stationId, StorageCategory.PAGE_IMAGES, result.totalBytes(), result.fileCount());
+        usageRepository.setUsage(stationId, StorageCategory.PAGE_FILES, result.totalBytes(), result.fileCount());
     }
 
     private void reconcileImages(int stationId) {

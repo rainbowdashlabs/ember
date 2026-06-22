@@ -14,7 +14,10 @@ import dev.chojo.ember.feature.page.entity.CellConfig;
 import dev.chojo.ember.feature.page.entity.CellContentType;
 import dev.chojo.ember.feature.page.repository.PageFileMetaRepository;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.storage.backend.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
+import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -43,7 +46,10 @@ class PageServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        var storage = new PageFileStorageService(stationRepo);
+        var backend = new LocalStorageBackend();
+        var resolver = new StorageBackendResolver(backend);
+        var storageService = new StorageService(resolver, backend);
+        var storage = new PageFileStorageService(storageService, stationRepo, backend);
         var storageConfig = new Storage();
         service = new PageService(
                 pageRepo,

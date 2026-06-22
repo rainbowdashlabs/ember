@@ -172,11 +172,17 @@ public class StorageQuotaService {
             case KB_FILES -> quota.quotaKbBytes() != null ? quota.quotaKbBytes() : storageConfig.defaultKbBytes();
             case BOARD_ATTACHMENTS ->
                 quota.quotaBoardBytes() != null ? quota.quotaBoardBytes() : storageConfig.defaultBoardBytes();
-            case IMAGES ->
+            case IMAGES,
+                    IMAGE_LOST_AND_FOUND,
+                    IMAGE_QUIZ_QUESTION,
+                    IMAGE_KB_ICON,
+                    IMAGE_KB_IMAGE,
+                    IMAGE_APP_LOGO,
+                    IMAGE_LOGO_FRAGMENT ->
                 quota.quotaImagesBytes() != null ? quota.quotaImagesBytes() : storageConfig.defaultImagesBytes();
-            case PAGE_IMAGES ->
+            case PAGE_FILES, PAGE_IMAGES ->
                 quota.quotaPagesBytes() != null ? quota.quotaPagesBytes() : storageConfig.defaultPagesBytes();
-            case AVATARS -> Long.MAX_VALUE;
+            case AVATARS, IMAGE_AVATAR, DOCUMENT, DISCOVERY_KEY, MAP_TILE_CACHE, DEMO_AVATAR -> Long.MAX_VALUE;
         };
     }
 

@@ -65,16 +65,25 @@ function categoryLabel(cat: string): string {
   const labels: Record<string, string> = {
     KB_FILES: t('storageMonitoring.categories.kbFiles'),
     BOARD_ATTACHMENTS: t('storageMonitoring.categories.boardAttachments'),
+    PAGE_FILES: t('storageMonitoring.categories.pageImages'),
     PAGE_IMAGES: t('storageMonitoring.categories.pageImages'),
     AVATARS: t('storageMonitoring.categories.avatars'),
+    IMAGE_AVATAR: t('storageMonitoring.categories.avatars'),
     IMAGES: t('storageMonitoring.categories.images'),
+    IMAGE_LOST_AND_FOUND: t('storageMonitoring.categories.images'),
+    IMAGE_APP_LOGO: t('storageMonitoring.categories.images'),
+    IMAGE_LOGO_FRAGMENT: t('storageMonitoring.categories.images'),
+    IMAGE_QUIZ_QUESTION: t('storageMonitoring.categories.images'),
+    IMAGE_KB_ICON: t('storageMonitoring.categories.images'),
+    IMAGE_KB_IMAGE: t('storageMonitoring.categories.images'),
   }
   return labels[cat] || cat
 }
 
 const chartOption = computed(() => {
   if (!usage.value) return {}
-  const categories = usage.value.categories.filter(c => c.category !== 'AVATARS' && c.totalBytes > 0)
+  const trackedOnly: string[] = ['AVATARS', 'IMAGE_AVATAR', 'DOCUMENT', 'DISCOVERY_KEY', 'MAP_TILE_CACHE', 'DEMO_AVATAR']
+  const categories = usage.value.categories.filter(c => !trackedOnly.includes(c.category) && c.totalBytes > 0)
   return {
     tooltip: {trigger: 'axis', axisPointer: {type: 'shadow'}},
     grid: {left: '3%', right: '4%', bottom: '3%', containLabel: true},

@@ -300,13 +300,13 @@ public class PageService {
             imageStorage.store(stationId, contentHash, data, mimeType);
             return existing.get();
         }
-        quotaService.checkQuota(stationId, StorageCategory.PAGE_IMAGES, data.length);
+        quotaService.checkQuota(stationId, StorageCategory.PAGE_FILES, data.length);
         var image = pageRepository.createFile(pageId, stationId, contentHash, fileName, mimeType, data.length);
         imageStorage.store(stationId, contentHash, data, mimeType);
         if (isImage) {
             variantService.generateVariants(stationId, contentHash, data, mimeType);
         }
-        quotaService.trackDelta(stationId, StorageCategory.PAGE_IMAGES, data.length, 1);
+        quotaService.trackDelta(stationId, StorageCategory.PAGE_FILES, data.length, 1);
         return image;
     }
 
@@ -328,7 +328,7 @@ public class PageService {
             if (image.contentHash() != null) {
                 imageStorage.delete(image.stationId(), image.contentHash());
             }
-            quotaService.onFileDeleted(image.stationId(), StorageCategory.PAGE_IMAGES, image.fileSize());
+            quotaService.onFileDeleted(image.stationId(), StorageCategory.PAGE_FILES, image.fileSize());
         }
         return deleted;
     }
@@ -538,7 +538,7 @@ public class PageService {
                 imageStorage.delete(file.stationId(), file.contentHash());
             }
             pageRepository.deleteFile(file.id());
-            quotaService.onFileDeleted(stationId, StorageCategory.PAGE_IMAGES, file.fileSize());
+            quotaService.onFileDeleted(stationId, StorageCategory.PAGE_FILES, file.fileSize());
             removed++;
         }
         return removed;
