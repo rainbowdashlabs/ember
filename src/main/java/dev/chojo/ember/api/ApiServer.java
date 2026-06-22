@@ -362,7 +362,6 @@ public class ApiServer {
     private void handleDemoAccounts(@NotNull Context ctx) {
         var allStations = stationRepository.findAll();
         var stationGroups = new ArrayList<DemoStationGroup>();
-        var shownAccountIds = new java.util.HashSet<Integer>();
         for (var station : allStations) {
             var members = stationMemberRepository.findByStation(station.id());
             var accounts = new ArrayList<DemoAccount>();
@@ -389,7 +388,6 @@ public class ApiServer {
                             groupNames,
                             tagNames,
                             complete));
-                    shownAccountIds.add(account.id());
                 });
             }
             if (!accounts.isEmpty()) {
@@ -397,13 +395,15 @@ public class ApiServer {
             }
         }
 
-        var orphanAccounts = new ArrayList<DemoAccount>();
+        var noStationAccounts = new ArrayList<DemoAccount>();
         for (var account : accountRepository.findAll()) {
-            if (shownAccountIds.contains(account.id())) continue;
+            if (!stationMemberRepository.findAllByAccountId(account.id()).isEmpty()) {
+                continue;
+            }
             StationUserType bucket = account.instanceUserType() == InstanceUserType.ADMINISTRATOR
                     ? StationUserType.MANAGER
                     : StationUserType.MEMBER;
-            orphanAccounts.add(new DemoAccount(
+            noStationAccounts.add(new DemoAccount(
                     account.email(),
                     account.firstName(),
                     account.lastName(),
@@ -413,11 +413,8 @@ public class ApiServer {
                     List.of(),
                     true));
         }
-        if (!orphanAccounts.isEmpty()) {
-            stationGroups.add(new DemoStationGroup("__no_station__", "Konten ohne Station", orphanAccounts));
-        }
 
-        ctx.json(stationGroups);
+        ctx.json(new DemoAccountsResponse(noStationAccounts, stationGroups));
     }
 
     /**
@@ -870,4 +867,6 @@ public class ApiServer {
     public record DemoStatusResponse(boolean demo, boolean dev) {}
 
     public record DemoStationGroup(String stationId, String stationName, List<DemoAccount> accounts) {}
+
+    public record DemoAccountsResponse(List<DemoAccount> noStationAccounts, List<DemoStationGroup> stationGroups) {}
 }

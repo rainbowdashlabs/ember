@@ -62,8 +62,11 @@ const isDemo = ref(false)
 const isDev = ref(false)
 const registrationEnabled = ref(true)
 const stationGroups = ref<StationGroup[]>([])
+const noStationAccounts = ref<DemoAccount[]>([])
 const activeStationTab = ref('')
-const hasDemoAccounts = computed(() => stationGroups.value.some(g => g.accounts.length > 0))
+const hasDemoAccounts = computed(() =>
+    noStationAccounts.value.length > 0 || stationGroups.value.some(g => g.accounts.length > 0),
+)
 const demoAccounts = computed(() => {
   const group = stationGroups.value.find(g => g.stationId === activeStationTab.value)
   return group?.accounts ?? []
@@ -73,6 +76,8 @@ const demoLoading = ref(true)
 const stationTabs = computed(() => stationGroups.value.map(g => ({key: g.stationId, label: g.stationName})))
 const showStationTabs = computed(() => stationGroups.value.length > 1)
 
+const noStationRoleGroups = computed(() => buildRoleGroups(noStationAccounts.value))
+
 const userTypeFriendlyNames: Record<string, string> = {
   MANAGER: 'Manager',
   TEAM: 'Team',
@@ -81,12 +86,12 @@ const userTypeFriendlyNames: Record<string, string> = {
   TRIAL: 'Probe',
 }
 
-const roleGroups = computed(() => {
+function buildRoleGroups(source: DemoAccount[]): { label: string; accounts: DemoAccount[] }[] {
   const groups: { label: string; accounts: DemoAccount[] }[] = []
   const seen = new Set<string>()
 
   function addGroup(label: string, filter: (a: DemoAccount) => boolean) {
-    const matching = demoAccounts.value.filter(a => !seen.has(a.email) && filter(a))
+    const matching = source.filter(a => !seen.has(a.email) && filter(a))
     if (matching.length > 0) {
       groups.push({label, accounts: matching})
       matching.forEach(a => seen.add(a.email))
@@ -98,7 +103,9 @@ const roleGroups = computed(() => {
   addGroup('Erziehungsberechtigter', a => a.userType === StationUserType.GUARDIAN)
   addGroup('Mitglieder', a => a.userType === StationUserType.MEMBER || a.userType === StationUserType.TRIAL)
   return groups
-})
+}
+
+const roleGroups = computed(() => buildRoleGroups(demoAccounts.value))
 
 onMounted(async () => {
   const token = getItem('session_token')
@@ -121,11 +128,18 @@ onMounted(async () => {
       consent.value = 'accepted'
     }
     if (isDemo.value || isDev.value) {
-      const accountsRes = await client.get<StationGroup[] | DemoAccount[]>('/demo/accounts')
-      if (Array.isArray(accountsRes.data) && accountsRes.data.length > 0 && 'accounts' in accountsRes.data[0]) {
-        stationGroups.value = accountsRes.data as StationGroup[]
+      const accountsRes = await client.get<{ noStationAccounts: DemoAccount[]; stationGroups: StationGroup[] } | StationGroup[] | DemoAccount[]>('/demo/accounts')
+      const payload = accountsRes.data
+      if (Array.isArray(payload)) {
+        if (payload.length > 0 && 'accounts' in payload[0]) {
+          stationGroups.value = payload as StationGroup[]
+        } else {
+          stationGroups.value = [{stationId: 'default', stationName: 'Station', accounts: payload as DemoAccount[]}]
+        }
+        noStationAccounts.value = []
       } else {
-        stationGroups.value = [{stationId: 'default', stationName: 'Station', accounts: accountsRes.data as DemoAccount[]}]
+        stationGroups.value = payload.stationGroups ?? []
+        noStationAccounts.value = payload.noStationAccounts ?? []
       }
       if (stationGroups.value.length > 0) {
         activeStationTab.value = stationGroups.value[0].stationId
@@ -360,6 +374,10 @@ function topRoleLabel(account: DemoAccount): string {
         </div>
         <Alert v-if="error" variant="error">{{ error }}</Alert>
 
+        <DemoAccountGroups v-if="noStationRoleGroups.length > 0"
+                           :role-groups="noStationRoleGroups" :loading="loading"
+                           :role-label="topRoleLabel" @login="loginAsDemo"/>
+
         <TabBar v-if="showStationTabs" v-model="activeStationTab" :tabs="stationTabs"/>
 
         <DemoAccountGroups :role-groups="roleGroups" :loading="loading" :role-label="topRoleLabel" @login="loginAsDemo"/>
@@ -459,6 +477,9 @@ function topRoleLabel(account: DemoAccount): string {
         <template v-if="isDev && hasDemoAccounts && consent === 'accepted'">
           <div class="border-t border-bg-light-accent dark:border-bg-dark-accent pt-4 mt-2">
             <p class="text-sm font-medium mb-3">{{ t('demo.devLoginHint') }}</p>
+            <DemoAccountGroups v-if="noStationRoleGroups.length > 0"
+                               :role-groups="noStationRoleGroups" :loading="loading"
+                               :role-label="topRoleLabel" compact @login="loginAsDemo" class="mb-3"/>
             <TabBar v-if="showStationTabs" v-model="activeStationTab" :tabs="stationTabs" class="mb-3"/>
             <DemoAccountGroups :role-groups="roleGroups" :loading="loading" :role-label="topRoleLabel" compact @login="loginAsDemo"/>
           </div>
