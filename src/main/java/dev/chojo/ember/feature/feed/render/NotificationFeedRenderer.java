@@ -94,19 +94,166 @@ public class NotificationFeedRenderer {
         this.procedureService = procedureService;
     }
 
+    private static Integer extractLinkParam(Notification notification, String key) {
+        var link = notification.data().link();
+        if (link == null || link.routeParams() == null) return null;
+        Object raw = link.routeParams().get(key);
+        if (raw == null) return null;
+        try {
+            return raw instanceof Number n ? n.intValue() : Integer.parseInt(raw.toString());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static Integer extractLinkId(Notification notification) {
+        return extractLinkParam(notification, "id");
+    }
+
+    // -- HTML body --
+
+    private static String formatLocalDate(LocalDate date, String locale) {
+        return DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+                .withLocale(Locale.forLanguageTag(locale))
+                .format(date);
+    }
+
+    private static String formatLocalDateRange(LocalDate from, LocalDate to, String locale) {
+        if (from.equals(to)) return formatLocalDate(from, locale);
+        return formatLocalDate(from, locale) + " – " + formatLocalDate(to, locale);
+    }
+
+    private static boolean sameLocalDate(Instant a, Instant b) {
+        var zone = ZoneId.systemDefault();
+        return a.atZone(zone).toLocalDate().equals(b.atZone(zone).toLocalDate());
+    }
+
+    private static String formatRangeSameDay(Instant start, Instant end, String locale) {
+        var zone = ZoneId.systemDefault();
+        var loc = Locale.forLanguageTag(locale);
+        var dateFmt = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+                .withLocale(loc)
+                .withZone(zone);
+        var timeFmt = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
+                .withLocale(loc)
+                .withZone(zone);
+        return dateFmt.format(start) + ", " + timeFmt.format(start) + " – " + timeFmt.format(end);
+    }
+
+    private static String formatInstant(Instant instant, String locale) {
+        var fmt = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
+                .withLocale(Locale.forLanguageTag(locale))
+                .withZone(ZoneId.systemDefault());
+        return fmt.format(instant);
+    }
+
     /**
-     * Per-render context. Shared across all entries in a single feed render.
-     *
-     * @param locale    resolved feed locale ({@code de}/{@code en})
-     * @param baseUrl   public base URL of the deployment, used for deep links
-     * @param feedToken the feed token, used to construct token-scoped image URLs so readers
-     *                  can fetch them without authentication
-     * @param verbose   when {@code false} only the headline + deep link are rendered, no
-     *                  detail block — for compact feed presets
-     * @param images    when {@code false} {@code <img>} tags and MediaRSS thumbnails are
-     *                  suppressed (metered connections, screen reader minimisation)
+     * Returns the actor on the notification, if any — used by readers as the entry's author.
      */
-    public record RenderContext(String locale, String baseUrl, String feedToken, boolean verbose, boolean images) {}
+    private static String resolveAuthor(Notification notification) {
+        var params = notification.data().params();
+        if (params == null) return null;
+        return switch (notification.type()) {
+            case NEW_NEWS -> ((NotificationParams.NewNews) params).author();
+            case NEWS_COMMENT -> ((NotificationParams.NewsComment) params).author();
+            case COMMENT_MENTION -> ((NotificationParams.CommentMention) params).author();
+            case EXCHANGE_NEW_REQUEST -> ((NotificationParams.ExchangeNewRequest) params).memberName();
+            case LENDING_NEW_MESSAGE -> ((NotificationParams.LendingNewMessage) params).senderName();
+            case PROCEDURE_ASSIGNED -> ((NotificationParams.ProcedureAssigned) params).assignedByName();
+            case PROCEDURE_ITEM_CHECKED -> ((NotificationParams.ProcedureItemCheckedParams) params).checkedByName();
+            default -> null;
+        };
+    }
+
+    private static SyndCategory category(String name) {
+        var c = new SyndCategoryImpl();
+        c.setName(name);
+        return c;
+    }
+
+    /**
+     * Same as {@link #category(String)} but sets the {@code scheme} attribute so machine-
+     * readable category terms (like the raw enum name) can be distinguished from the
+     * primary human-readable category by feed readers and scripts.
+     */
+    private static SyndCategory schemedCategory(String name, String scheme) {
+        var c = new SyndCategoryImpl();
+        c.setName(name);
+        c.setTaxonomyUri(scheme);
+        return c;
+    }
+
+    /**
+     * Returns the token-scoped image URL for a notification when the underlying entity carries
+     * one and the link metadata exposes the entity id. Currently only lost-and-found items are
+     * supported; other entity types fall through.
+     */
+    private static String resolveImageUrl(Notification notification, RenderContext ctx) {
+        if (ctx.feedToken() == null) return null;
+        if (notification.type() != NotificationType.LOST_AND_FOUND_NEW
+                && notification.type() != NotificationType.LOST_AND_FOUND_CLAIMED) {
+            return null;
+        }
+        var link = notification.data().link();
+        if (link == null || link.routeParams() == null) return null;
+        Object id = link.routeParams().get("id");
+        if (id == null) return null;
+        return ctx.baseUrl() + "/api/v1/public/feed/" + ctx.feedToken() + "/lost-and-found/" + id + "/image";
+    }
+
+    private static String resolveImageAlt(Notification notification) {
+        var params = notification.data().params();
+        if (params instanceof NotificationParams.LostAndFoundNew(String description)) return description;
+        if (params instanceof NotificationParams.LostAndFoundClaimed p) return p.description();
+        return "";
+    }
+
+    private static Module mediaModule(String imageUrl) {
+        var module = new MediaEntryModuleImpl();
+        try {
+            var content = new MediaContent(new UrlReference(imageUrl));
+            content.setMedium("image");
+            module.setMediaContents(new MediaContent[] {content});
+        } catch (URISyntaxException ignored) {
+            // We constructed the URL ourselves; skip the module rather than fail the whole render
+            // if validation rejects it for any reason.
+        }
+        return module;
+    }
+
+    private static void putIfPresent(Map<String, String> details, String key, String value) {
+        if (notBlank(value)) details.put(key, value);
+    }
+
+    /**
+     * Adds a long-form snippet (preview, description, change text) with the central truncation
+     * cap applied so a 5KB article preview doesn't blow up a feed entry. Truncation is shared
+     * across handlers — see {@link NotificationService#truncateSnippet(String, int)} — so
+     * length policy can be tuned in one place.
+     */
+    private static void putSnippetIfPresent(Map<String, String> details, String key, String value) {
+        if (!notBlank(value)) return;
+        details.put(key, NotificationService.truncateSnippet(value, NotificationService.BODY_SNIPPET_MAX));
+    }
+
+    private static boolean notBlank(String s) {
+        return s != null && !s.isBlank();
+    }
+
+    private static String escapeHtml(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
+    }
+
+    /**
+     * HTML-escape and then convert surviving newlines into {@code <br>} tags. Used for body
+     * field values that may legitimately span multiple lines (news previews, event
+     * descriptions, change descriptions, table rows). Plain single-line values pass through
+     * with no effect because they have no newlines to translate.
+     */
+    private static String escapeHtmlWithLineBreaks(String s) {
+        return escapeHtml(s).replace("\n", "<br>");
+    }
 
     /**
      * Renders a single notification into a {@link SyndEntry}.
@@ -161,8 +308,6 @@ public class NotificationFeedRenderer {
         }
         return entry;
     }
-
-    // -- HTML body --
 
     private String renderHtml(Notification notification, RenderContext ctx, String link) {
         var sb = new StringBuilder();
@@ -484,6 +629,8 @@ public class NotificationFeedRenderer {
         return details;
     }
 
+    // -- author / category --
+
     /**
      * Loads the event referenced by a notification's {@code link.routeParams().id} and
      * appends its start/end time and every non-empty custom field value to the details
@@ -586,6 +733,8 @@ public class NotificationFeedRenderer {
         }
     }
 
+    // -- image embedding --
+
     /**
      * Loads the inventory referenced by a notification's {@code link.routeParams().id} and adds
      * its ownership flow (Organisation-owned / Member-owned / Mixed) to the body. Used by
@@ -637,6 +786,8 @@ public class NotificationFeedRenderer {
             // Telemetry-grade enrichment: never block a feed render on a side-effect failure.
         }
     }
+
+    // -- helpers --
 
     private String resolveTicketPriorityLabel(String locale, TicketPriority priority) {
         String key = priority.name();
@@ -709,137 +860,6 @@ public class NotificationFeedRenderer {
         return label.equals(categoryName) ? categoryName : label;
     }
 
-    private static Integer extractLinkParam(Notification notification, String key) {
-        var link = notification.data().link();
-        if (link == null || link.routeParams() == null) return null;
-        Object raw = link.routeParams().get(key);
-        if (raw == null) return null;
-        try {
-            return raw instanceof Number n ? n.intValue() : Integer.parseInt(raw.toString());
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
-    private static Integer extractLinkId(Notification notification) {
-        return extractLinkParam(notification, "id");
-    }
-
-    private static String formatLocalDate(LocalDate date, String locale) {
-        return DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
-                .withLocale(Locale.forLanguageTag(locale))
-                .format(date);
-    }
-
-    private static String formatLocalDateRange(LocalDate from, LocalDate to, String locale) {
-        if (from.equals(to)) return formatLocalDate(from, locale);
-        return formatLocalDate(from, locale) + " – " + formatLocalDate(to, locale);
-    }
-
-    private static boolean sameLocalDate(Instant a, Instant b) {
-        var zone = ZoneId.systemDefault();
-        return a.atZone(zone).toLocalDate().equals(b.atZone(zone).toLocalDate());
-    }
-
-    private static String formatRangeSameDay(Instant start, Instant end, String locale) {
-        var zone = ZoneId.systemDefault();
-        var loc = Locale.forLanguageTag(locale);
-        var dateFmt = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
-                .withLocale(loc)
-                .withZone(zone);
-        var timeFmt = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
-                .withLocale(loc)
-                .withZone(zone);
-        return dateFmt.format(start) + ", " + timeFmt.format(start) + " – " + timeFmt.format(end);
-    }
-
-    private static String formatInstant(Instant instant, String locale) {
-        var fmt = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
-                .withLocale(Locale.forLanguageTag(locale))
-                .withZone(ZoneId.systemDefault());
-        return fmt.format(instant);
-    }
-
-    // -- author / category --
-
-    /**
-     * Returns the actor on the notification, if any — used by readers as the entry's author.
-     */
-    private static String resolveAuthor(Notification notification) {
-        var params = notification.data().params();
-        if (params == null) return null;
-        return switch (notification.type()) {
-            case NEW_NEWS -> ((NotificationParams.NewNews) params).author();
-            case NEWS_COMMENT -> ((NotificationParams.NewsComment) params).author();
-            case COMMENT_MENTION -> ((NotificationParams.CommentMention) params).author();
-            case EXCHANGE_NEW_REQUEST -> ((NotificationParams.ExchangeNewRequest) params).memberName();
-            case LENDING_NEW_MESSAGE -> ((NotificationParams.LendingNewMessage) params).senderName();
-            case PROCEDURE_ASSIGNED -> ((NotificationParams.ProcedureAssigned) params).assignedByName();
-            case PROCEDURE_ITEM_CHECKED -> ((NotificationParams.ProcedureItemCheckedParams) params).checkedByName();
-            default -> null;
-        };
-    }
-
-    private static SyndCategory category(String name) {
-        var c = new SyndCategoryImpl();
-        c.setName(name);
-        return c;
-    }
-
-    /**
-     * Same as {@link #category(String)} but sets the {@code scheme} attribute so machine-
-     * readable category terms (like the raw enum name) can be distinguished from the
-     * primary human-readable category by feed readers and scripts.
-     */
-    private static SyndCategory schemedCategory(String name, String scheme) {
-        var c = new SyndCategoryImpl();
-        c.setName(name);
-        c.setTaxonomyUri(scheme);
-        return c;
-    }
-
-    // -- image embedding --
-
-    /**
-     * Returns the token-scoped image URL for a notification when the underlying entity carries
-     * one and the link metadata exposes the entity id. Currently only lost-and-found items are
-     * supported; other entity types fall through.
-     */
-    private static String resolveImageUrl(Notification notification, RenderContext ctx) {
-        if (ctx.feedToken() == null) return null;
-        if (notification.type() != NotificationType.LOST_AND_FOUND_NEW
-                && notification.type() != NotificationType.LOST_AND_FOUND_CLAIMED) {
-            return null;
-        }
-        var link = notification.data().link();
-        if (link == null || link.routeParams() == null) return null;
-        Object id = link.routeParams().get("id");
-        if (id == null) return null;
-        return ctx.baseUrl() + "/api/v1/public/feed/" + ctx.feedToken() + "/lost-and-found/" + id + "/image";
-    }
-
-    private static String resolveImageAlt(Notification notification) {
-        var params = notification.data().params();
-        if (params instanceof NotificationParams.LostAndFoundNew(String description)) return description;
-        if (params instanceof NotificationParams.LostAndFoundClaimed p) return p.description();
-        return "";
-    }
-
-    private static Module mediaModule(String imageUrl) {
-        var module = new MediaEntryModuleImpl();
-        try {
-            var content = new MediaContent(new UrlReference(imageUrl));
-            content.setMedium("image");
-            module.setMediaContents(new MediaContent[] {content});
-        } catch (URISyntaxException ignored) {
-            // We constructed the URL ourselves; skip the module rather than fail the whole render
-            // if validation rejects it for any reason.
-        }
-        return module;
-    }
-
-    // -- helpers --
-
     private String label(RenderContext ctx, String key) {
         return notificationService.resolveLocalized(ctx.locale(), "feedLabel", key, null);
     }
@@ -854,37 +874,17 @@ public class NotificationFeedRenderer {
         return key.equals(value) ? fallback : value;
     }
 
-    private static void putIfPresent(Map<String, String> details, String key, String value) {
-        if (notBlank(value)) details.put(key, value);
-    }
-
     /**
-     * Adds a long-form snippet (preview, description, change text) with the central truncation
-     * cap applied so a 5KB article preview doesn't blow up a feed entry. Truncation is shared
-     * across handlers — see {@link NotificationService#truncateSnippet(String, int)} — so
-     * length policy can be tuned in one place.
+     * Per-render context. Shared across all entries in a single feed render.
+     *
+     * @param locale    resolved feed locale ({@code de}/{@code en})
+     * @param baseUrl   public base URL of the deployment, used for deep links
+     * @param feedToken the feed token, used to construct token-scoped image URLs so readers
+     *                  can fetch them without authentication
+     * @param verbose   when {@code false} only the headline + deep link are rendered, no
+     *                  detail block — for compact feed presets
+     * @param images    when {@code false} {@code <img>} tags and MediaRSS thumbnails are
+     *                  suppressed (metered connections, screen reader minimisation)
      */
-    private static void putSnippetIfPresent(Map<String, String> details, String key, String value) {
-        if (!notBlank(value)) return;
-        details.put(key, NotificationService.truncateSnippet(value, NotificationService.BODY_SNIPPET_MAX));
-    }
-
-    private static boolean notBlank(String s) {
-        return s != null && !s.isBlank();
-    }
-
-    private static String escapeHtml(String s) {
-        if (s == null) return "";
-        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
-    }
-
-    /**
-     * HTML-escape and then convert surviving newlines into {@code <br>} tags. Used for body
-     * field values that may legitimately span multiple lines (news previews, event
-     * descriptions, change descriptions, table rows). Plain single-line values pass through
-     * with no effect because they have no newlines to translate.
-     */
-    private static String escapeHtmlWithLineBreaks(String s) {
-        return escapeHtml(s).replace("\n", "<br>");
-    }
+    public record RenderContext(String locale, String baseUrl, String feedToken, boolean verbose, boolean images) {}
 }

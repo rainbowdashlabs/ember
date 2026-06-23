@@ -60,6 +60,54 @@ public class TwoFactorAdminRoutes implements Routes {
         this.stationMemberRepository = stationMemberRepository;
     }
 
+    private static AccountSearchResult toAccountDto(PickerAccount a) {
+        return new AccountSearchResult(a.id(), a.uid(), a.displayName(), a.firstName(), a.lastName(), a.email());
+    }
+
+    // -- Instance scope --
+
+    private static StationUserType parseUserType(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return StationUserType.valueOf(value);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse("Unknown user type");
+        }
+    }
+
+    private static short clampGraceDays(Integer requested) {
+        if (requested == null) return 7;
+        int v = requested;
+        if (v < 0) v = 0;
+        if (v > 7) v = 7;
+        return (short) v;
+    }
+
+    private static int requireStation(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        return session.stationIdOpt()
+                .orElseThrow(() -> new ForbiddenResponse("A station must be selected to manage station 2FA policy"));
+    }
+
+    // -- Station scope --
+
+    private static Integer actorMemberId(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        return session.memberOpt().map(m -> m.id()).orElse(null);
+    }
+
+    private static PolicyDto toDto(TwoFactorPolicy p) {
+        return new PolicyDto(
+                p.id(),
+                p.scope().name(),
+                p.stationId(),
+                p.userType() == null ? null : p.userType().name(),
+                p.required(),
+                p.graceDays(),
+                p.createdBy(),
+                p.createdAt());
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Instance-admin: policies across every station.
@@ -107,8 +155,6 @@ public class TwoFactorAdminRoutes implements Routes {
                 StepUpCategory.ACCOUNT_SECURITY);
     }
 
-    // -- Instance scope --
-
     private void listInstancePolicies(Context ctx) {
         var policies = policyService.listInstancePolicies();
         ctx.json(new PoliciesResponse(
@@ -123,6 +169,8 @@ public class TwoFactorAdminRoutes implements Routes {
         ctx.json(toDto(saved));
     }
 
+    // -- Admin reset --
+
     private void deleteInstancePolicy(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         if (!policyService.deletePolicy(id)) {
@@ -131,14 +179,14 @@ public class TwoFactorAdminRoutes implements Routes {
         ctx.json(new MessageResponse("Policy removed"));
     }
 
-    // -- Station scope --
-
     private void listStationPolicies(Context ctx) {
         int stationId = requireStation(ctx);
         var policies = policyService.listStationPolicies(stationId);
         ctx.json(new PoliciesResponse(
                 policies.stream().map(TwoFactorAdminRoutes::toDto).toList()));
     }
+
+    // -- Account picker (instance-admin) --
 
     private void upsertStationPolicy(Context ctx) {
         int stationId = requireStation(ctx);
@@ -163,6 +211,8 @@ public class TwoFactorAdminRoutes implements Routes {
         ctx.json(new MessageResponse("Policy removed"));
     }
 
+    // -- Audit log --
+
     private void listMemberStatus(Context ctx) {
         int stationId = requireStation(ctx);
         var members = policyService.listStationMemberStatus(stationId).stream()
@@ -179,12 +229,12 @@ public class TwoFactorAdminRoutes implements Routes {
         ctx.json(new MemberStatusResponse(members));
     }
 
+    // -- Helpers --
+
     private void listAssignableUserTypes(Context ctx) {
         ctx.json(new UserTypesResponse(
                 policyService.assignableUserTypes().stream().map(Enum::name).toList()));
     }
-
-    // -- Admin reset --
 
     private void resetByInstanceAdmin(Context ctx) {
         int targetId = ctx.pathParamAsClass("id", Integer.class).get();
@@ -223,8 +273,6 @@ public class TwoFactorAdminRoutes implements Routes {
         ctx.json(new MessageResponse("2FA reset"));
     }
 
-    // -- Account picker (instance-admin) --
-
     private void searchAccounts(Context ctx) {
         String q = ctx.queryParam("q");
         String uidParam = ctx.queryParam("uid");
@@ -252,12 +300,6 @@ public class TwoFactorAdminRoutes implements Routes {
         ctx.json(results);
     }
 
-    private static AccountSearchResult toAccountDto(PickerAccount a) {
-        return new AccountSearchResult(a.id(), a.uid(), a.displayName(), a.firstName(), a.lastName(), a.email());
-    }
-
-    // -- Audit log --
-
     private void listAudit(Context ctx) {
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(50);
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
@@ -282,48 +324,6 @@ public class TwoFactorAdminRoutes implements Routes {
                         e.country(),
                         e.createdAt()))
                 .toList()));
-    }
-
-    // -- Helpers --
-
-    private static StationUserType parseUserType(String value) {
-        if (value == null || value.isBlank()) return null;
-        try {
-            return StationUserType.valueOf(value);
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("Unknown user type");
-        }
-    }
-
-    private static short clampGraceDays(Integer requested) {
-        if (requested == null) return 7;
-        int v = requested;
-        if (v < 0) v = 0;
-        if (v > 7) v = 7;
-        return (short) v;
-    }
-
-    private static int requireStation(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        return session.stationIdOpt()
-                .orElseThrow(() -> new ForbiddenResponse("A station must be selected to manage station 2FA policy"));
-    }
-
-    private static Integer actorMemberId(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        return session.memberOpt().map(m -> m.id()).orElse(null);
-    }
-
-    private static PolicyDto toDto(TwoFactorPolicy p) {
-        return new PolicyDto(
-                p.id(),
-                p.scope().name(),
-                p.stationId(),
-                p.userType() == null ? null : p.userType().name(),
-                p.required(),
-                p.graceDays(),
-                p.createdBy(),
-                p.createdAt());
     }
 
     // -- Request / response records --

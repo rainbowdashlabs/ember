@@ -34,11 +34,6 @@ public class RequirementsService {
         return new RequirementsResponse(forcedForms, forcedQuizzes, profileIncomplete);
     }
 
-    public record RequirementItem(int id, String title) {}
-
-    public record RequirementsResponse(
-            List<RequirementItem> forcedForms, List<RequirementItem> forcedQuizzes, boolean profileIncomplete) {}
-
     public int countPending(int memberId, int stationId, List<String> roleNames) {
         int count = 0;
         count += formService.findForcedPending(stationId, memberId).size();
@@ -46,4 +41,9 @@ public class RequirementsService {
         if (!profileFieldService.isProfileComplete(memberId, stationId, roleNames)) count++;
         return count;
     }
+
+    public record RequirementItem(int id, String title) {}
+
+    public record RequirementsResponse(
+            List<RequirementItem> forcedForms, List<RequirementItem> forcedQuizzes, boolean profileIncomplete) {}
 }

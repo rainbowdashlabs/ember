@@ -49,6 +49,14 @@ public class FeedMetricsService {
         scheduler.scheduleAtFixedRate(this::prune, 1, 24, TimeUnit.HOURS);
     }
 
+    private static ThreadFactory daemon(String name) {
+        return r -> {
+            var t = new Thread(r, name);
+            t.setDaemon(true);
+            return t;
+        };
+    }
+
     /**
      * Asynchronously records a finished feed render. Safe to call from the request thread —
      * the actual DB work happens off-thread.
@@ -92,13 +100,5 @@ public class FeedMetricsService {
         } catch (Exception e) {
             log.warn("Failed to prune feed metrics", e);
         }
-    }
-
-    private static ThreadFactory daemon(String name) {
-        return r -> {
-            var t = new Thread(r, name);
-            t.setDaemon(true);
-            return t;
-        };
     }
 }

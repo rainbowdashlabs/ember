@@ -44,6 +44,53 @@ public final class GenericTableExporter {
         this.scopeResolver = new StationScopeResolver(tracking);
     }
 
+    private static void appendSelect(StringBuilder sb, List<String> columns, List<Lookup> lookups) {
+        for (int i = 0; i < columns.size(); i++) {
+            if (i > 0) sb.append(", ");
+            sb.append("t.").append(columns.get(i));
+        }
+        for (int i = 0; i < lookups.size(); i++) {
+            var lk = lookups.get(i);
+            sb.append(", lk")
+                    .append(i)
+                    .append('.')
+                    .append(lk.pick())
+                    .append(" AS ")
+                    .append(lk.emitAs());
+        }
+    }
+
+    private static void appendLookupJoins(StringBuilder sb, TableEntry table, List<Lookup> lookups) {
+        for (int i = 0; i < lookups.size(); i++) {
+            var lk = lookups.get(i);
+            ForeignKey fk = findFk(table, lk.via());
+            sb.append(" LEFT JOIN ")
+                    .append(fk.refTable())
+                    .append(" lk")
+                    .append(i)
+                    .append(" ON t.")
+                    .append(lk.via())
+                    .append(" = lk")
+                    .append(i)
+                    .append('.')
+                    .append(fk.refColumn());
+        }
+    }
+
+    private static void appendOrderAndPagination(StringBuilder sb, List<String> columns) {
+        sb.append(" ORDER BY t.").append(columns.get(0)).append(" OFFSET :offset LIMIT :limit");
+    }
+
+    private static ForeignKey findFk(TableEntry table, String column) {
+        if (table.foreignKeys() != null) {
+            for (var fk : table.foreignKeys()) {
+                if (column.equals(fk.column())) return fk;
+            }
+        }
+        throw new IllegalStateException(
+                "Lookup references FK column '" + column + "' on " + table + " but no such FK is tracked");
+    }
+
     /**
      * Returns the raw rows for {@code tableName} owned by {@code stationId} (no shape transform).
      */
@@ -193,53 +240,6 @@ public final class GenericTableExporter {
 
         appendOrderAndPagination(sb, columns);
         return sb.toString();
-    }
-
-    private static void appendSelect(StringBuilder sb, List<String> columns, List<Lookup> lookups) {
-        for (int i = 0; i < columns.size(); i++) {
-            if (i > 0) sb.append(", ");
-            sb.append("t.").append(columns.get(i));
-        }
-        for (int i = 0; i < lookups.size(); i++) {
-            var lk = lookups.get(i);
-            sb.append(", lk")
-                    .append(i)
-                    .append('.')
-                    .append(lk.pick())
-                    .append(" AS ")
-                    .append(lk.emitAs());
-        }
-    }
-
-    private static void appendLookupJoins(StringBuilder sb, TableEntry table, List<Lookup> lookups) {
-        for (int i = 0; i < lookups.size(); i++) {
-            var lk = lookups.get(i);
-            ForeignKey fk = findFk(table, lk.via());
-            sb.append(" LEFT JOIN ")
-                    .append(fk.refTable())
-                    .append(" lk")
-                    .append(i)
-                    .append(" ON t.")
-                    .append(lk.via())
-                    .append(" = lk")
-                    .append(i)
-                    .append('.')
-                    .append(fk.refColumn());
-        }
-    }
-
-    private static void appendOrderAndPagination(StringBuilder sb, List<String> columns) {
-        sb.append(" ORDER BY t.").append(columns.get(0)).append(" OFFSET :offset LIMIT :limit");
-    }
-
-    private static ForeignKey findFk(TableEntry table, String column) {
-        if (table.foreignKeys() != null) {
-            for (var fk : table.foreignKeys()) {
-                if (column.equals(fk.column())) return fk;
-            }
-        }
-        throw new IllegalStateException(
-                "Lookup references FK column '" + column + "' on " + table + " but no such FK is tracked");
     }
 
     private List<Map<String, Object>> runQuery(String sql, int stationId, int offset, int limit) {

@@ -57,11 +57,11 @@ public class EmailQueueRepository {
      */
     public List<QueuedEmail> fetchPending(int limit) {
         return query("""
-                            UPDATE email_queue SET status = 'SENDING'
-                            WHERE id IN (
-                                SELECT id FROM email_queue WHERE status = 'PENDING' ORDER BY created_at LIMIT :limit
-                            )
-                            RETURNING id, recipient, subject, body, station_id;""")
+                UPDATE email_queue SET status = 'SENDING'
+                WHERE id IN (
+                    SELECT id FROM email_queue WHERE status = 'PENDING' ORDER BY created_at LIMIT :limit
+                )
+                RETURNING id, recipient, subject, body, station_id;""")
                 .single(call().bind("limit", limit))
                 .map(row -> new QueuedEmail(
                         row.getInt("id"),

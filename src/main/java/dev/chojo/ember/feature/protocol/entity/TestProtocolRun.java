@@ -22,11 +22,6 @@ public record TestProtocolRun(
         int createdBy,
         Instant createdAt) {
 
-    public enum RunStatus {
-        OPEN,
-        CLOSED
-    }
-
     public static RowMapping<TestProtocolRun> map() {
         return row -> new TestProtocolRun(
                 row.getInt("id"),
@@ -34,8 +29,13 @@ public record TestProtocolRun(
                 row.getInt("station_id"),
                 row.getString("name"),
                 row.getDate("test_date").toLocalDate(),
-                RunStatus.valueOf(row.getString("status")),
+                row.getEnum("status", RunStatus.class),
                 row.getInt("created_by"),
                 row.get("created_at", INSTANT_TIMESTAMP));
+    }
+
+    public enum RunStatus {
+        OPEN,
+        CLOSED
     }
 }

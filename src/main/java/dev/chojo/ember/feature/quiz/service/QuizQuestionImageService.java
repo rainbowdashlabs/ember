@@ -34,24 +34,32 @@ public class QuizQuestionImageService {
         this.stationRepository = stationRepository;
     }
 
-    /** Persists the image for a (stationId, questionId) pair at all standard size variants. */
+    /**
+     * Persists the image for a (stationId, questionId) pair at all standard size variants.
+     */
     public void store(int stationId, int questionId, byte[] data, String declaredMime, int maxBytes)
             throws IOException {
         variants.store(
                 scope(stationId), StorageCategory.IMAGE_QUIZ_QUESTION, key(questionId), data, declaredMime, maxBytes);
     }
 
-    /** Reads the requested image size, falling back to the original when missing. */
+    /**
+     * Reads the requested image size, falling back to the original when missing.
+     */
     public Optional<ImageVariantService.ImageData> read(int stationId, int questionId, int size) {
         return variants.read(scope(stationId), StorageCategory.IMAGE_QUIZ_QUESTION, key(questionId), size);
     }
 
-    /** Whether an image exists for the given question. */
+    /**
+     * Whether an image exists for the given question.
+     */
     public boolean exists(int stationId, int questionId) {
         return variants.exists(scope(stationId), StorageCategory.IMAGE_QUIZ_QUESTION, key(questionId));
     }
 
-    /** Removes every variant for the given question's image. */
+    /**
+     * Removes every variant for the given question's image.
+     */
     public void delete(int stationId, int questionId) {
         variants.delete(scope(stationId), StorageCategory.IMAGE_QUIZ_QUESTION, key(questionId));
     }

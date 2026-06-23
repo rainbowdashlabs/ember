@@ -30,8 +30,22 @@ public class StorageBackendAuditRepository {
     private static final String SELECT_COLS = "id, ts, actor_account_id, actor_member_id, system_actor, station_id, "
             + "action, old_config::text AS old_config_text, new_config::text AS new_config_text, "
             + "outcome, error";
+    private static final RowMapping<StorageAuditEntry> MAP = row -> new StorageAuditEntry(
+            row.getLong("id"),
+            row.get("ts", INSTANT_TIMESTAMP),
+            Optional.ofNullable((Integer) row.getObject("actor_account_id")),
+            Optional.ofNullable((Integer) row.getObject("actor_member_id")),
+            Optional.ofNullable(row.getString("system_actor")),
+            Optional.ofNullable((Integer) row.getObject("station_id")),
+            row.getEnum("action", StorageAuditAction.class),
+            Optional.ofNullable(row.getString("old_config_text")),
+            Optional.ofNullable(row.getString("new_config_text")),
+            row.getEnum("outcome", StorageAuditOutcome.class),
+            Optional.ofNullable(row.getString("error")));
 
-    /** Persists one row. Returns the generated id. */
+    /**
+     * Persists one row. Returns the generated id.
+     */
     public long insert(NewEntry entry) {
         return query("""
                 INSERT INTO storage_backend_audit (
@@ -120,19 +134,6 @@ public class StorageBackendAuditRepository {
     public List<StorageAuditEntry> findByStation(int stationId, Optional<Instant> before, int limit) {
         return findAll(before, Optional.of(stationId), limit);
     }
-
-    private static final RowMapping<StorageAuditEntry> MAP = row -> new StorageAuditEntry(
-            row.getLong("id"),
-            row.get("ts", INSTANT_TIMESTAMP),
-            Optional.ofNullable((Integer) row.getObject("actor_account_id")),
-            Optional.ofNullable((Integer) row.getObject("actor_member_id")),
-            Optional.ofNullable(row.getString("system_actor")),
-            Optional.ofNullable((Integer) row.getObject("station_id")),
-            row.getEnum("action", StorageAuditAction.class),
-            Optional.ofNullable(row.getString("old_config_text")),
-            Optional.ofNullable(row.getString("new_config_text")),
-            row.getEnum("outcome", StorageAuditOutcome.class),
-            Optional.ofNullable(row.getString("error")));
 
     /**
      * Inputs to {@link #insert(NewEntry)}. {@code oldConfig} / {@code newConfig} are

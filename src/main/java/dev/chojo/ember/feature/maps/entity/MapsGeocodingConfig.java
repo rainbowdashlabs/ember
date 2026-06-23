@@ -18,19 +18,19 @@ public record MapsGeocodingConfig(GeocodingProvider provider, String apiKey, Str
 
     private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
-    public String toJson() {
-        try {
-            return MAPPER.writeValueAsString(this);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to serialize MapsGeocodingConfig", e);
-        }
-    }
-
     public static MapsGeocodingConfig parse(String json) {
         try {
             return MAPPER.readValue(json, MapsGeocodingConfig.class);
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse MapsGeocodingConfig", e);
+        }
+    }
+
+    public String toJson() {
+        try {
+            return MAPPER.writeValueAsString(this);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to serialize MapsGeocodingConfig", e);
         }
     }
 }

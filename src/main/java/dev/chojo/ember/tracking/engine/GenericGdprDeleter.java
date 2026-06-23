@@ -53,10 +53,9 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  */
 public final class GenericGdprDeleter {
 
-    private static final Logger log = LoggerFactory.getLogger(GenericGdprDeleter.class);
     public static final String ANONYMIZE_TEXT = "Gelöscht";
     public static final UUID ANONYMIZE_UUID = new UUID(0L, 0L);
-
+    private static final Logger log = LoggerFactory.getLogger(GenericGdprDeleter.class);
     private final DataTracking tracking;
     private final List<String> deletionOrder;
 
@@ -65,6 +64,48 @@ public final class GenericGdprDeleter {
         var topo = new ArrayList<>(TableOrder.topological(tracking));
         Collections.reverse(topo);
         this.deletionOrder = List.copyOf(topo);
+    }
+
+    private static ColumnEntry resolveColumn(TableEntry table, String name) {
+        if (table.columns() == null) return null;
+        for (var c : table.columns()) if (c.name().equals(name)) return c;
+        return null;
+    }
+
+    // -- per-table operations ------------------------------------------------
+
+    /**
+     * Returns true when {@code column} is listed as an identity column of the requested type. Without
+     * this check we'd run a DELETE/UPDATE on a strategy that isn't related to the requested identity —
+     * e.g. station_member.id has DELETE_EXPLICIT but only for MEMBER_ID identity, never for ACCOUNT_ID.
+     */
+    private static boolean identityMatchesColumn(TableEntry table, IdentityType type, String column) {
+        var ctx = table.gdprExport();
+        if (ctx == null || ctx.identityColumns() == null) return true; // permissive when no identity declared
+        for (IdentityColumn ic : ctx.identityColumns()) {
+            if (ic.type() == type && column.equals(ic.column())) return true;
+        }
+        return false;
+    }
+
+    private static Call bindIdentity(IdentityType type, Object idVal) {
+        Call c = call();
+        return switch (type) {
+            case ACCOUNT_ID, MEMBER_ID -> c.bind("id", asInt(idVal));
+            case MEMBER_UID -> c.bind("id", asUuid(idVal), StandardValueConverter.UUID_STRING);
+        };
+    }
+
+    // -- SQL emitters --------------------------------------------------------
+
+    private static int asInt(Object o) {
+        if (o instanceof Number n) return n.intValue();
+        return Integer.parseInt(o.toString());
+    }
+
+    private static UUID asUuid(Object o) {
+        if (o instanceof UUID u) return u;
+        return UUID.fromString(o.toString());
     }
 
     /**
@@ -87,7 +128,7 @@ public final class GenericGdprDeleter {
         return report;
     }
 
-    // -- per-table operations ------------------------------------------------
+    // -- helpers -------------------------------------------------------------
 
     private void applyUpdatesForTable(String tableName, IdentityType type, Object idVal, Report report) {
         var table = tracking.tables() == null ? null : tracking.tables().get(tableName);
@@ -134,8 +175,6 @@ public final class GenericGdprDeleter {
             runDelete(tableName, col, type, idVal, report);
         }
     }
-
-    // -- SQL emitters --------------------------------------------------------
 
     private void runDelete(String tableName, ColumnEntry col, IdentityType type, Object idVal, Report report) {
         String cast = type == IdentityType.MEMBER_UID ? "::uuid" : "";
@@ -199,46 +238,6 @@ public final class GenericGdprDeleter {
         }
         int rows = query(sql).single(c).update().rows();
         report.executed.add(new ExecutedOp(tableName, col.name(), Strategy.ANONYMIZE, rows));
-    }
-
-    // -- helpers -------------------------------------------------------------
-
-    private static ColumnEntry resolveColumn(TableEntry table, String name) {
-        if (table.columns() == null) return null;
-        for (var c : table.columns()) if (c.name().equals(name)) return c;
-        return null;
-    }
-
-    /**
-     * Returns true when {@code column} is listed as an identity column of the requested type. Without
-     * this check we'd run a DELETE/UPDATE on a strategy that isn't related to the requested identity —
-     * e.g. station_member.id has DELETE_EXPLICIT but only for MEMBER_ID identity, never for ACCOUNT_ID.
-     */
-    private static boolean identityMatchesColumn(TableEntry table, IdentityType type, String column) {
-        var ctx = table.gdprExport();
-        if (ctx == null || ctx.identityColumns() == null) return true; // permissive when no identity declared
-        for (IdentityColumn ic : ctx.identityColumns()) {
-            if (ic.type() == type && column.equals(ic.column())) return true;
-        }
-        return false;
-    }
-
-    private static Call bindIdentity(IdentityType type, Object idVal) {
-        Call c = call();
-        return switch (type) {
-            case ACCOUNT_ID, MEMBER_ID -> c.bind("id", asInt(idVal));
-            case MEMBER_UID -> c.bind("id", asUuid(idVal), StandardValueConverter.UUID_STRING);
-        };
-    }
-
-    private static int asInt(Object o) {
-        if (o instanceof Number n) return n.intValue();
-        return Integer.parseInt(o.toString());
-    }
-
-    private static UUID asUuid(Object o) {
-        if (o instanceof UUID u) return u;
-        return UUID.fromString(o.toString());
     }
 
     // -- report types --------------------------------------------------------

@@ -44,6 +44,15 @@ public class QuizPdfService {
         this.imageService = imageService;
     }
 
+    private static String extensionFor(String contentType) {
+        return switch (contentType == null ? "" : contentType.toLowerCase()) {
+            case "image/jpeg" -> ".jpg";
+            case "image/webp" -> ".webp";
+            case "image/gif" -> ".gif";
+            default -> ".png";
+        };
+    }
+
     public byte[] exportQuestionPdf(int testId) throws IOException, InterruptedException {
         var data = buildExportData(testId);
         var resources = new HashMap<String, byte[]>();
@@ -57,8 +66,6 @@ public class QuizPdfService {
         String typst = generateTypst(data.title, data.sections, data.totalMaxPoints, true, resources);
         return TypstCompiler.compile(typst, resources);
     }
-
-    private record ExportData(String title, List<SectionData> sections, double totalMaxPoints) {}
 
     private ExportData buildExportData(int testId) {
         var test = testRepository.findById(testId).orElseThrow();
@@ -514,15 +521,6 @@ public class QuizPdfService {
         return filename;
     }
 
-    private static String extensionFor(String contentType) {
-        return switch (contentType == null ? "" : contentType.toLowerCase()) {
-            case "image/jpeg" -> ".jpg";
-            case "image/webp" -> ".webp";
-            case "image/gif" -> ".gif";
-            default -> ".png";
-        };
-    }
-
     private String escape(String text) {
         if (text == null) return "";
         return text.replace("\\", "\\\\")
@@ -532,6 +530,8 @@ public class QuizPdfService {
                 .replace("[", "\\[")
                 .replace("]", "\\]");
     }
+
+    private record ExportData(String title, List<SectionData> sections, double totalMaxPoints) {}
 
     private record SectionData(QuizTestSection section, List<QuizQuestion> questions, double maxPoints) {}
 }

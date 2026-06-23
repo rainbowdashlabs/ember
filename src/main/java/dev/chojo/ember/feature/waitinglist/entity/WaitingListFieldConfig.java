@@ -20,11 +20,12 @@ import static org.slf4j.LoggerFactory.getLogger;
 /**
  * Configuration for a waiting list field, stored as JSONB.
  *
- * @param options      selectable values for choice-type fields
- * @param placeholder  placeholder text
+ * @param options     selectable values for choice-type fields
+ * @param placeholder placeholder text
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record WaitingListFieldConfig(List<String> options, String placeholder) {
+    public static final WaitingListFieldConfig EMPTY = new WaitingListFieldConfig(null, null);
     private static final Logger log = getLogger(WaitingListFieldConfig.class);
     private static final ObjectMapper MAPPER = JsonMapper.builder()
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
@@ -33,7 +34,6 @@ public record WaitingListFieldConfig(List<String> options, String placeholder) {
             .changeDefaultVisibility(v -> v.withFieldVisibility(JsonAutoDetect.Visibility.ANY)
                     .withGetterVisibility(JsonAutoDetect.Visibility.NONE))
             .build();
-    public static final WaitingListFieldConfig EMPTY = new WaitingListFieldConfig(null, null);
 
     public static WaitingListFieldConfig parse(String json) {
         if (json == null || json.isBlank() || "{}".equals(json)) return EMPTY;

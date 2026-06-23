@@ -16,13 +16,28 @@ import java.util.UUID;
  */
 public sealed interface StorageScope {
 
-    /** Returns the path prefix this scope contributes (without trailing slash). */
+    /**
+     * Returns the path prefix this scope contributes (without trailing slash).
+     */
     String prefix();
 
-    /** Returns the discriminator. */
+    /**
+     * Returns the discriminator.
+     */
     Kind kind();
 
-    /** Instance-wide objects (logo fragments, app logos, documents, discovery key, tile cache, demo avatars). */
+    /**
+     * Type-level discriminator for compatibility checks against {@link StorageCategory#scopeKind()}.
+     */
+    enum Kind {
+        INSTANCE,
+        STATION,
+        ACCOUNT
+    }
+
+    /**
+     * Instance-wide objects (logo fragments, app logos, documents, discovery key, tile cache, demo avatars).
+     */
     record Instance() implements StorageScope {
         @Override
         public String prefix() {
@@ -35,7 +50,9 @@ public sealed interface StorageScope {
         }
     }
 
-    /** Station-scoped objects (page files, KB files, board attachments, station images). */
+    /**
+     * Station-scoped objects (page files, KB files, board attachments, station images).
+     */
     record Station(int stationId, UUID stationUid) implements StorageScope {
         @Override
         public String prefix() {
@@ -48,7 +65,9 @@ public sealed interface StorageScope {
         }
     }
 
-    /** Account-scoped objects (user avatars — follow the user across stations). */
+    /**
+     * Account-scoped objects (user avatars — follow the user across stations).
+     */
     record Account(UUID accountUid) implements StorageScope {
         @Override
         public String prefix() {
@@ -59,12 +78,5 @@ public sealed interface StorageScope {
         public Kind kind() {
             return Kind.ACCOUNT;
         }
-    }
-
-    /** Type-level discriminator for compatibility checks against {@link StorageCategory#scopeKind()}. */
-    enum Kind {
-        INSTANCE,
-        STATION,
-        ACCOUNT
     }
 }

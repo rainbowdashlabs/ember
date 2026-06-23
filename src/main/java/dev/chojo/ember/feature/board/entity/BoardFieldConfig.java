@@ -26,14 +26,6 @@ public sealed interface BoardFieldConfig {
                     .withGetterVisibility(JsonAutoDetect.Visibility.NONE))
             .build();
 
-    boolean required();
-
-    record Simple(boolean required) implements BoardFieldConfig {}
-
-    record Enum(boolean required, List<String> options) implements BoardFieldConfig {}
-
-    record LaneAssignee(boolean required, int laneId) implements BoardFieldConfig {}
-
     static BoardFieldConfig parse(BoardFieldType fieldType, String json) {
         if (json == null || json.isBlank()) return empty(fieldType);
         try {
@@ -52,6 +44,8 @@ public sealed interface BoardFieldConfig {
         };
     }
 
+    boolean required();
+
     default String toJson() {
         try {
             return MAPPER.writeValueAsString(this);
@@ -59,4 +53,10 @@ public sealed interface BoardFieldConfig {
             return "{}";
         }
     }
+
+    record Simple(boolean required) implements BoardFieldConfig {}
+
+    record Enum(boolean required, List<String> options) implements BoardFieldConfig {}
+
+    record LaneAssignee(boolean required, int laneId) implements BoardFieldConfig {}
 }

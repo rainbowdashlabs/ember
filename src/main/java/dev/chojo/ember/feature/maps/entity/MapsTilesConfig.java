@@ -22,19 +22,19 @@ public record MapsTilesConfig(
 
     private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
-    public String toJson() {
-        try {
-            return MAPPER.writeValueAsString(this);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to serialize MapsTilesConfig", e);
-        }
-    }
-
     public static MapsTilesConfig parse(String json) {
         try {
             return MAPPER.readValue(json, MapsTilesConfig.class);
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse MapsTilesConfig", e);
+        }
+    }
+
+    public String toJson() {
+        try {
+            return MAPPER.writeValueAsString(this);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to serialize MapsTilesConfig", e);
         }
     }
 

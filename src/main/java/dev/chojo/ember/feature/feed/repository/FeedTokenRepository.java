@@ -32,9 +32,9 @@ public class FeedTokenRepository {
 
     public FeedToken create(int memberId, String token) {
         return query("""
-                        INSERT INTO user_feed_token(member_id, token) VALUES(:member_id, :token)
-                        ON CONFLICT (member_id) DO UPDATE SET token = :token, created_at = now()
-                        RETURNING *;""")
+                INSERT INTO user_feed_token(member_id, token) VALUES(:member_id, :token)
+                ON CONFLICT (member_id) DO UPDATE SET token = :token, created_at = now()
+                RETURNING *;""")
                 .single(call().bind("member_id", memberId).bind("token", token))
                 .map(FeedToken.map())
                 .first()

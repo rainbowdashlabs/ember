@@ -74,6 +74,21 @@ public class LocalStorageBackend implements StorageBackend {
         this.root = root.toAbsolutePath().normalize();
     }
 
+    private static Set<PosixFilePermission> parsePosixMode(int octalMode) {
+        return PosixFilePermissions.fromString(toRwxString(octalMode));
+    }
+
+    private static String toRwxString(int octalMode) {
+        StringBuilder sb = new StringBuilder(9);
+        int[] groups = {(octalMode >> 6) & 7, (octalMode >> 3) & 7, octalMode & 7};
+        for (int g : groups) {
+            sb.append((g & 4) != 0 ? 'r' : '-');
+            sb.append((g & 2) != 0 ? 'w' : '-');
+            sb.append((g & 1) != 0 ? 'x' : '-');
+        }
+        return sb.toString();
+    }
+
     @Override
     public StorageBackendType type() {
         return StorageBackendType.LOCAL;
@@ -242,12 +257,16 @@ public class LocalStorageBackend implements StorageBackend {
         }
     }
 
-    /** Absolute root directory the backend is rooted at. Visible for diagnostics and tests. */
+    /**
+     * Absolute root directory the backend is rooted at. Visible for diagnostics and tests.
+     */
     public Path root() {
         return root;
     }
 
-    /** Resolves a {@code fullKey} to its on-disk absolute path under {@link #root()}. */
+    /**
+     * Resolves a {@code fullKey} to its on-disk absolute path under {@link #root()}.
+     */
     public Path resolve(String fullKey) {
         if (fullKey == null || fullKey.isEmpty()) {
             throw new IllegalArgumentException("fullKey must not be empty");
@@ -257,6 +276,28 @@ public class LocalStorageBackend implements StorageBackend {
             throw new IllegalArgumentException("Key escapes storage root: " + fullKey);
         }
         return resolved;
+    }
+
+    /**
+     * Recursively removes everything in {@code prefix} (object + metadata + empty dirs).
+     */
+    public void deletePrefix(String prefix) {
+        Path base = resolve(prefix);
+        if (!Files.exists(base)) return;
+        if (Files.isRegularFile(base)) {
+            delete(prefix);
+            return;
+        }
+        try (Stream<Path> walk = Files.walk(base)) {
+            walk.sorted(Comparator.reverseOrder()).forEach(p -> {
+                try {
+                    Files.deleteIfExists(p);
+                } catch (IOException ignored) {
+                }
+            });
+        } catch (IOException e) {
+            log.warn("Local deletePrefix failed for {}", prefix, e);
+        }
     }
 
     private Path metadataPath(Path target) {
@@ -319,41 +360,6 @@ public class LocalStorageBackend implements StorageBackend {
                 return;
             }
             parent = parent.getParent();
-        }
-    }
-
-    private static Set<PosixFilePermission> parsePosixMode(int octalMode) {
-        return PosixFilePermissions.fromString(toRwxString(octalMode));
-    }
-
-    private static String toRwxString(int octalMode) {
-        StringBuilder sb = new StringBuilder(9);
-        int[] groups = {(octalMode >> 6) & 7, (octalMode >> 3) & 7, octalMode & 7};
-        for (int g : groups) {
-            sb.append((g & 4) != 0 ? 'r' : '-');
-            sb.append((g & 2) != 0 ? 'w' : '-');
-            sb.append((g & 1) != 0 ? 'x' : '-');
-        }
-        return sb.toString();
-    }
-
-    /** Recursively removes everything in {@code prefix} (object + metadata + empty dirs). */
-    public void deletePrefix(String prefix) {
-        Path base = resolve(prefix);
-        if (!Files.exists(base)) return;
-        if (Files.isRegularFile(base)) {
-            delete(prefix);
-            return;
-        }
-        try (Stream<Path> walk = Files.walk(base)) {
-            walk.sorted(Comparator.reverseOrder()).forEach(p -> {
-                try {
-                    Files.deleteIfExists(p);
-                } catch (IOException ignored) {
-                }
-            });
-        } catch (IOException e) {
-            log.warn("Local deletePrefix failed for {}", prefix, e);
         }
     }
 }

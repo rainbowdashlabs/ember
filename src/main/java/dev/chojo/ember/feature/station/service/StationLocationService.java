@@ -36,51 +36,6 @@ public class StationLocationService {
     }
 
     /**
-     * Reads the location for a station. Fields are independently nullable.
-     */
-    public LocationView find(int stationId) {
-        return repository
-                .findById(stationId)
-                .map(s -> new LocationView(
-                        s.addressLine(), s.postalCode(), s.city(), s.country(), s.latitude(), s.longitude()))
-                .orElseThrow(() -> new BadRequestResponse("Station not found"));
-    }
-
-    /**
-     * Updates the location block. Each field is independently nullable but if either
-     * coordinate is supplied the other must be too (a half-pinned coordinate is rejected).
-     */
-    public void update(int stationId, LocationUpdate update) {
-        validate(update);
-        repository.updateLocation(
-                stationId,
-                trimToNull(update.addressLine()),
-                trimToNull(update.postalCode()),
-                trimToNull(update.city()),
-                trimToNull(update.country()),
-                update.latitude(),
-                update.longitude());
-    }
-
-    /**
-     * Convenience: clear every column in one call. Used by the "Standort entfernen" button.
-     */
-    public void clear(int stationId) {
-        repository.updateLocation(stationId, null, null, null, null, null, null);
-    }
-
-    /**
-     * Returns local station ids within the given radius of the origin, sorted ascending by
-     * distance. Empty when no station has coordinates.
-     */
-    public List<StationRepository.StationDistance> findStationsWithinRadius(
-            BigDecimal originLat, BigDecimal originLon, double radiusKm) {
-        if (originLat == null || originLon == null) return List.of();
-        if (radiusKm <= 0) return List.of();
-        return repository.findStationsWithinRadius(originLat, originLon, radiusKm);
-    }
-
-    /**
      * Java-side haversine that mirrors the SQL function for use against in-memory station
      * coordinates (e.g. when ranking federated lending results by distance from the local
      * station against a remote partner whose coordinates we already cached).
@@ -128,6 +83,51 @@ public class StationLocationService {
         if (value == null) return null;
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    /**
+     * Reads the location for a station. Fields are independently nullable.
+     */
+    public LocationView find(int stationId) {
+        return repository
+                .findById(stationId)
+                .map(s -> new LocationView(
+                        s.addressLine(), s.postalCode(), s.city(), s.country(), s.latitude(), s.longitude()))
+                .orElseThrow(() -> new BadRequestResponse("Station not found"));
+    }
+
+    /**
+     * Updates the location block. Each field is independently nullable but if either
+     * coordinate is supplied the other must be too (a half-pinned coordinate is rejected).
+     */
+    public void update(int stationId, LocationUpdate update) {
+        validate(update);
+        repository.updateLocation(
+                stationId,
+                trimToNull(update.addressLine()),
+                trimToNull(update.postalCode()),
+                trimToNull(update.city()),
+                trimToNull(update.country()),
+                update.latitude(),
+                update.longitude());
+    }
+
+    /**
+     * Convenience: clear every column in one call. Used by the "Standort entfernen" button.
+     */
+    public void clear(int stationId) {
+        repository.updateLocation(stationId, null, null, null, null, null, null);
+    }
+
+    /**
+     * Returns local station ids within the given radius of the origin, sorted ascending by
+     * distance. Empty when no station has coordinates.
+     */
+    public List<StationRepository.StationDistance> findStationsWithinRadius(
+            BigDecimal originLat, BigDecimal originLon, double radiusKm) {
+        if (originLat == null || originLon == null) return List.of();
+        if (radiusKm <= 0) return List.of();
+        return repository.findStationsWithinRadius(originLat, originLon, radiusKm);
     }
 
     /**

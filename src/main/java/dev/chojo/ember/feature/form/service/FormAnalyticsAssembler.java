@@ -66,7 +66,9 @@ public class FormAnalyticsAssembler {
         return new FormAnalyticsDto(formId, formService.countResponses(formId), questionAnalytics);
     }
 
-    /** All responses for a form, mapped to the listing DTO shape. */
+    /**
+     * All responses for a form, mapped to the listing DTO shape.
+     */
     public List<FormResponseEntryDto> listResponses(int formId) {
         return formService.findResponses(formId).stream().map(this::toEntry).toList();
     }
@@ -122,10 +124,14 @@ public class FormAnalyticsAssembler {
                 .orElse(null);
     }
 
-    /** Aggregated analytics payload — wire shape returned by the analytics endpoints. */
+    /**
+     * Aggregated analytics payload — wire shape returned by the analytics endpoints.
+     */
     public record FormAnalyticsDto(int formId, int totalResponses, List<QuestionAnalyticsDto> questions) {}
 
-    /** Per-question analytics row carried inside {@link FormAnalyticsDto}. */
+    /**
+     * Per-question analytics row carried inside {@link FormAnalyticsDto}.
+     */
     public record QuestionAnalyticsDto(
             int questionId,
             FormQuestionType questionType,
@@ -156,6 +162,8 @@ public class FormAnalyticsAssembler {
             Integer acknowledgedBy,
             MemberIdentity acknowledgedByIdentity) {}
 
-    /** Detail view: response metadata + all answers in submission order. */
+    /**
+     * Detail view: response metadata + all answers in submission order.
+     */
     public record ResponseDetailDto(FormResponseEntryDto response, List<FormAnswer> answers) {}
 }

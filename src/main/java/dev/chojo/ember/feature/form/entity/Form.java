@@ -34,20 +34,13 @@ public record Form(
         FormPurpose purpose,
         UUID publicUid) {
 
-    public boolean isAcceptingResponses() {
-        if (status != FormStatus.OPEN) return false;
-        var now = Instant.now();
-        if (startAt != null && now.isBefore(startAt)) return false;
-        return endAt == null || !now.isAfter(endAt);
-    }
-
     public static RowMapping<Form> map() {
         return row -> new Form(
                 row.getInt("id"),
                 row.getInt("station_id"),
                 row.getString("title"),
                 row.getString("description"),
-                FormStatus.valueOf(row.getString("status")),
+                row.getEnum("status", FormStatus.class),
                 row.getBoolean("shuffle_questions"),
                 row.getBoolean("allow_edit"),
                 row.getBoolean("forced"),
@@ -57,10 +50,17 @@ public record Form(
                 row.getInt("created_by"),
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.get("updated_at", INSTANT_TIMESTAMP),
-                RestrictionMode.valueOf(row.getString("restriction_mode")),
+                row.getEnum("restriction_mode", RestrictionMode.class),
                 row.getBoolean("restricted"),
-                FormPurpose.valueOf(row.getString("purpose")),
+                row.getEnum("purpose", FormPurpose.class),
                 row.get("public_uid", StandardValueConverter.UUID_STRING));
+    }
+
+    public boolean isAcceptingResponses() {
+        if (status != FormStatus.OPEN) return false;
+        var now = Instant.now();
+        if (startAt != null && now.isBefore(startAt)) return false;
+        return endAt == null || !now.isAfter(endAt);
     }
 
     public enum FormStatus {

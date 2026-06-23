@@ -367,11 +367,11 @@ public class EventFederationRepository {
      */
     public void invalidateName(int partnerId, UUID remoteMemberId) {
         query("""
-            DELETE
-            FROM
-                federation_member_name_cache
-            WHERE partner_id = :partner_id
-              AND remote_member_id = :remote_member_id::UUID;""")
+                DELETE
+                FROM
+                    federation_member_name_cache
+                WHERE partner_id = :partner_id
+                  AND remote_member_id = :remote_member_id::UUID;""")
                 .single(call().bind("partner_id", partnerId)
                         .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
                 .delete();

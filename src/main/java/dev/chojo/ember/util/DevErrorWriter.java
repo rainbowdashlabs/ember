@@ -75,6 +75,23 @@ public final class DevErrorWriter {
         }
     }
 
+    public static void clearOnStartup() {
+        try {
+            if (Files.exists(ERROR_DIR)) {
+                try (var files = Files.list(ERROR_DIR)) {
+                    files.filter(p -> p.toString().endsWith(".txt")).forEach(p -> {
+                        try {
+                            Files.delete(p);
+                        } catch (IOException ignored) {
+                        }
+                    });
+                }
+            }
+        } catch (IOException e) {
+            log.warn("Failed to clear dev-errors directory", e);
+        }
+    }
+
     private static boolean hashFileExists(String hash) throws IOException {
         try (var files = Files.list(ERROR_DIR)) {
             return files.anyMatch(p -> p.getFileName().toString().contains(hash));
@@ -118,23 +135,6 @@ public final class DevErrorWriter {
             return HexFormat.of().formatHex(hash).substring(0, 16);
         } catch (NoSuchAlgorithmException e) {
             return String.valueOf(input.hashCode());
-        }
-    }
-
-    public static void clearOnStartup() {
-        try {
-            if (Files.exists(ERROR_DIR)) {
-                try (var files = Files.list(ERROR_DIR)) {
-                    files.filter(p -> p.toString().endsWith(".txt")).forEach(p -> {
-                        try {
-                            Files.delete(p);
-                        } catch (IOException ignored) {
-                        }
-                    });
-                }
-            }
-        } catch (IOException e) {
-            log.warn("Failed to clear dev-errors directory", e);
         }
     }
 

@@ -46,8 +46,8 @@ public class TransferBackendImporter {
      * default; the other variants re-encrypt credentials and upsert the override row.
      *
      * @return {@code true} when a remote backend was installed (caller skips the byte-copy
-     *     loop), {@code false} when the source used LOCAL storage (caller proceeds with the
-     *     byte-copy loop)
+     * loop), {@code false} when the source used LOCAL storage (caller proceeds with the
+     * byte-copy loop)
      */
     public boolean apply(int stationId, TransferBackendDescriptor descriptor) {
         switch (descriptor) {

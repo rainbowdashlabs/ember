@@ -94,6 +94,18 @@ public class DiscoveryPingService {
         this.conf = conf;
     }
 
+    private static String stripCallbackSuffix(String callbackUrl) {
+        int idx = callbackUrl.indexOf("/api/v1/");
+        if (idx < 0) return callbackUrl;
+        return callbackUrl.substring(0, idx);
+    }
+
+    private static String randomNonce() {
+        byte[] bytes = new byte[32];
+        RANDOM.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
     /**
      * Sends a discovery ping to the given peer, recording the outbound nonce so the matching
      * callback can be validated. No-op if discovery is disabled or the peer is blocked.
@@ -124,8 +136,8 @@ public class DiscoveryPingService {
      * Inbound ping handler. Validates signature, replay-protects the nonce, and schedules
      * the asynchronous callback.
      *
-     * @param rawBody raw request body bytes (used for signature verification)
-     * @param message parsed body
+     * @param rawBody         raw request body bytes (used for signature verification)
+     * @param message         parsed body
      * @param signatureHeader value of {@code X-Ember-Discovery-Signature}
      * @return {@code true} if the ping was accepted (callback dispatched)
      */
@@ -230,6 +242,15 @@ public class DiscoveryPingService {
         return true;
     }
 
+    public DiscoveryIdentity selfIdentity() {
+        return new DiscoveryIdentity(selfBaseUrl(), keyService.publicKeyBase64(), keyService.instanceId());
+    }
+
+    public String selfBaseUrl() {
+        var base = conf.main().api().baseUrl();
+        return base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
+    }
+
     private void mergeAnnouncedPeers(String announcerKey, List<PeerAnnouncement> announcements) {
         if (announcements == null || announcements.isEmpty()) return;
 
@@ -285,26 +306,5 @@ public class DiscoveryPingService {
         } catch (Exception e) {
             log.warn("Failed to dispatch discovery callback: {}", e.getMessage());
         }
-    }
-
-    private static String stripCallbackSuffix(String callbackUrl) {
-        int idx = callbackUrl.indexOf("/api/v1/");
-        if (idx < 0) return callbackUrl;
-        return callbackUrl.substring(0, idx);
-    }
-
-    public DiscoveryIdentity selfIdentity() {
-        return new DiscoveryIdentity(selfBaseUrl(), keyService.publicKeyBase64(), keyService.instanceId());
-    }
-
-    public String selfBaseUrl() {
-        var base = conf.main().api().baseUrl();
-        return base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
-    }
-
-    private static String randomNonce() {
-        byte[] bytes = new byte[32];
-        RANDOM.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 }

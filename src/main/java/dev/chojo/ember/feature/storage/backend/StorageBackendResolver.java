@@ -81,17 +81,23 @@ public class StorageBackendResolver {
         return factory.instanceDefault();
     }
 
-    /** Returns the configured instance-default backend, regardless of category. */
+    /**
+     * Returns the configured instance-default backend, regardless of category.
+     */
     public StorageBackend instanceDefault() {
         return factory.instanceDefault();
     }
 
-    /** Drops the cached override for one station. */
+    /**
+     * Drops the cached override for one station.
+     */
     public void invalidateStation(int stationId) {
         overrideCache.invalidate(stationId);
     }
 
-    /** Flushes the entire station-override cache. */
+    /**
+     * Flushes the entire station-override cache.
+     */
     public void invalidateAll() {
         overrideCache.invalidateAll();
     }

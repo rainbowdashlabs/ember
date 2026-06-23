@@ -66,16 +66,6 @@ public class InventoryRoutes implements Routes {
         return s == null || s.isBlank();
     }
 
-    private void verifyItemOwnership(int itemId, UserSession session) {
-        var item = inventoryService.findItemById(itemId).orElseThrow(NotFoundResponse::new);
-        var inventory = inventoryService.findById(item.inventoryId()).orElseThrow(NotFoundResponse::new);
-        if (inventory.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
-    }
-
-    // -- Inventories --
-
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/my-inventory-items", this::myItems, StationPermission.USER);
@@ -134,6 +124,16 @@ public class InventoryRoutes implements Routes {
                 prefix + "/inventory-requirements/{id}", this::deleteRequirement, StationPermission.INVENTORY_MANAGER);
 
         routes.post(prefix + "/inventories/members/export", this::exportMembers, StationPermission.INVENTORY_READ);
+    }
+
+    // -- Inventories --
+
+    private void verifyItemOwnership(int itemId, UserSession session) {
+        var item = inventoryService.findItemById(itemId).orElseThrow(NotFoundResponse::new);
+        var inventory = inventoryService.findById(item.inventoryId()).orElseThrow(NotFoundResponse::new);
+        if (inventory.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
     }
 
     @OpenApi(
@@ -610,15 +610,6 @@ public class InventoryRoutes implements Routes {
                 .toList());
     }
 
-    public record HistoryResponse(
-            int id,
-            int itemId,
-            Integer memberId,
-            String memberName,
-            MemberIdentity memberIdentity,
-            Instant givenOut,
-            Instant returned) {}
-
     @OpenApi(
             path = "/api/v1/inventory-items/{id}/lost",
             methods = HttpMethod.PUT,
@@ -675,8 +666,6 @@ public class InventoryRoutes implements Routes {
         }
     }
 
-    // -- Requirements --
-
     @OpenApi(
             path = "/api/v1/inventory-requirements",
             methods = HttpMethod.GET,
@@ -688,6 +677,8 @@ public class InventoryRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         ctx.json(inventoryService.findAllRequirementsByStation(session.stationId()));
     }
+
+    // -- Requirements --
 
     @OpenApi(
             path = "/api/v1/inventory-requirements",
@@ -775,8 +766,6 @@ public class InventoryRoutes implements Routes {
         }
     }
 
-    // -- Request/Response records --
-
     @OpenApi(
             path = "/api/v1/inventories/members/export",
             methods = HttpMethod.POST,
@@ -808,6 +797,17 @@ public class InventoryRoutes implements Routes {
             throw new BadRequestResponse("Export failed");
         }
     }
+
+    // -- Request/Response records --
+
+    public record HistoryResponse(
+            int id,
+            int itemId,
+            Integer memberId,
+            String memberName,
+            MemberIdentity memberIdentity,
+            Instant givenOut,
+            Instant returned) {}
 
     public record MyInventoryItem(
             int id,

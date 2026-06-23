@@ -459,6 +459,21 @@ public class LendingRoutes implements Routes {
 
     // -- Records --
 
+    private void remoteGetMessages(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int requestId = ctx.pathParamAsClass("requestId", Integer.class).get();
+        var messages = service.getLocalMessages(requestId, partner.stationId());
+        ctx.json(messages);
+    }
+
+    private FederationPartner requireFederationPartner(Context ctx) {
+        var session = FederationSession.from(ctx);
+        if (session == null) {
+            throw new ForbiddenResponse("Missing or invalid federation signature");
+        }
+        return session.partner();
+    }
+
     public record CreateLendingRequest(
             int owningStationId, LocalDate dateFrom, LocalDate dateTo, List<ItemRequest> items) {}
 
@@ -495,24 +510,9 @@ public class LendingRoutes implements Routes {
             int requestItemId,
             boolean preselected) {}
 
+    // -- Remote endpoints (server-to-server, RSA signature auth) --
+
     public record AssignItemsRequest(List<ItemAssignment> items) {}
 
     public record ItemAssignment(int requestItemId, int itemId) {}
-
-    // -- Remote endpoints (server-to-server, RSA signature auth) --
-
-    private void remoteGetMessages(Context ctx) {
-        var partner = requireFederationPartner(ctx);
-        int requestId = ctx.pathParamAsClass("requestId", Integer.class).get();
-        var messages = service.getLocalMessages(requestId, partner.stationId());
-        ctx.json(messages);
-    }
-
-    private FederationPartner requireFederationPartner(Context ctx) {
-        var session = FederationSession.from(ctx);
-        if (session == null) {
-            throw new ForbiddenResponse("Missing or invalid federation signature");
-        }
-        return session.partner();
-    }
 }

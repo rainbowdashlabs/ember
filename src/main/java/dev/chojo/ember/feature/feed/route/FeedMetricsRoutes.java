@@ -83,6 +83,8 @@ public class FeedMetricsRoutes implements Routes {
         ctx.json(new UserAgentsResponse(service.totalRequests(), stats));
     }
 
-    /** Wrapper for the user-agent endpoint so the response carries the global total too. */
+    /**
+     * Wrapper for the user-agent endpoint so the response carries the global total too.
+     */
     public record UserAgentsResponse(long totalRequests, List<FeedMetricsRepository.FeedUserAgentStat> userAgents) {}
 }

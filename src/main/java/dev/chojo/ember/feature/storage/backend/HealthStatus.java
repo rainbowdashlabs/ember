@@ -15,12 +15,16 @@ import java.util.Optional;
  */
 public record HealthStatus(boolean healthy, Instant checkedAt, Optional<String> error) {
 
-    /** Returns a healthy status pinned to {@link Instant#now()}. */
+    /**
+     * Returns a healthy status pinned to {@link Instant#now()}.
+     */
     public static HealthStatus ok() {
         return new HealthStatus(true, Instant.now(), Optional.empty());
     }
 
-    /** Returns an unhealthy status carrying the supplied operator-facing message. */
+    /**
+     * Returns an unhealthy status carrying the supplied operator-facing message.
+     */
     public static HealthStatus unhealthy(String message) {
         return new HealthStatus(false, Instant.now(), Optional.ofNullable(message));
     }

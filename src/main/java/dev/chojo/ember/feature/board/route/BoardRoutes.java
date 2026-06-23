@@ -110,15 +110,10 @@ public class BoardRoutes implements Routes {
         this.memberIdentityFactory = memberIdentityFactory;
     }
 
-    private Board resolveBoard(Context ctx, int stationId) {
-        String boardKey = ctx.pathParam("boardKey");
-        return boardService
-                .findByShortKey(stationId, boardKey)
-                .orElseThrow(() -> new NotFoundResponse("Board not found: " + boardKey));
-    }
-
-    private int resolveBoardId(Context ctx, int stationId) {
-        return resolveBoard(ctx, stationId).id();
+    private static String randomColor() {
+        var colors =
+                new String[] {"#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"};
+        return colors[new Random().nextInt(colors.length)];
     }
 
     @Override
@@ -351,7 +346,18 @@ public class BoardRoutes implements Routes {
         routes.post(rp + "/webhook/share-mode-changed", this::federatedRemoteOnShareModeChanged);
     }
 
+    private Board resolveBoard(Context ctx, int stationId) {
+        String boardKey = ctx.pathParam("boardKey");
+        return boardService
+                .findByShortKey(stationId, boardKey)
+                .orElseThrow(() -> new NotFoundResponse("Board not found: " + boardKey));
+    }
+
     // ==================== Local board handlers ====================
+
+    private int resolveBoardId(Context ctx, int stationId) {
+        return resolveBoard(ctx, stationId).id();
+    }
 
     @OpenApi(
             path = "/api/v1/boards",
@@ -637,6 +643,8 @@ public class BoardRoutes implements Routes {
         ctx.status(HttpStatus.CREATED).json(lane);
     }
 
+    // -- Labels --
+
     @OpenApi(
             path = "/api/v1/boards/{boardKey}/backlog",
             methods = HttpMethod.DELETE,
@@ -650,8 +658,6 @@ public class BoardRoutes implements Routes {
         boardService.disableBacklog(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
-
-    // -- Labels --
 
     @OpenApi(
             path = "/api/v1/boards/{boardKey}/labels",
@@ -733,6 +739,8 @@ public class BoardRoutes implements Routes {
         ctx.json(boardService.findAllTicketLabels(id));
     }
 
+    // -- Federation config --
+
     @OpenApi(
             path = "/api/v1/boards/{boardKey}/members",
             methods = HttpMethod.GET,
@@ -745,8 +753,6 @@ public class BoardRoutes implements Routes {
         int id = resolveBoardId(ctx, session.stationId());
         ctx.json(memberIdentityFactory.enrichCompletions(stationMemberRepository.findCompletions(session.stationId())));
     }
-
-    // -- Federation config --
 
     @OpenApi(
             path = "/api/v1/boards/{boardKey}/federation",
@@ -798,12 +804,6 @@ public class BoardRoutes implements Routes {
         federatedBoardService.setFederatedEditUserTypes(
                 id, req.editUserTypes() != null ? req.editUserTypes() : List.of());
         ctx.status(HttpStatus.OK).json(new OkResponse(true));
-    }
-
-    private static String randomColor() {
-        var colors =
-                new String[] {"#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"};
-        return colors[new Random().nextInt(colors.length)];
     }
 
     // ==================== Federated board local proxy helpers ====================
@@ -2425,10 +2425,6 @@ public class BoardRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    record RemoteDeleteLinkRequest(UUID remoteMemberUid, String displayName) {}
-
-    // -- Webhook receivers (partner station receives these from owning station) --
-
     @OpenApi(
             path = "/api/v1/remote/boards/webhook/ticket-changed",
             methods = HttpMethod.POST,
@@ -2441,6 +2437,8 @@ public class BoardRoutes implements Routes {
         log.info("Received board ticket-changed webhook");
         ctx.status(204);
     }
+
+    // -- Webhook receivers (partner station receives these from owning station) --
 
     @OpenApi(
             path = "/api/v1/remote/boards/webhook/mention",
@@ -2520,8 +2518,6 @@ public class BoardRoutes implements Routes {
         ctx.status(204);
     }
 
-    // -- Comment enrichment --
-
     private BoardCommentResponse toCommentResponse(BoardComment comment) {
         if (comment.deleted()) {
             return new BoardCommentResponse(
@@ -2538,6 +2534,10 @@ public class BoardRoutes implements Routes {
                 comment.createdAt(),
                 comment.updatedAt());
     }
+
+    // -- Comment enrichment --
+
+    record RemoteDeleteLinkRequest(UUID remoteMemberUid, String displayName) {}
 
     public record BoardCommentResponse(
             int id,

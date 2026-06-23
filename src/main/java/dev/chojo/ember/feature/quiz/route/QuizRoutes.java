@@ -739,12 +739,6 @@ public class QuizRoutes implements Routes {
                 .toList();
     }
 
-    public record ReplaceQuestionRequest(int questionId) {}
-
-    public record FrozenQuestionDetail(int position, Integer sectionId, QuizQuestion question) {}
-
-    // -- Sections --
-
     private void listSections(Context ctx) {
         int testId = ctx.pathParamAsClass("id", Integer.class).get();
         var sections = quizService.findSections(testId);
@@ -775,7 +769,7 @@ public class QuizRoutes implements Routes {
         ctx.json(quizService.findSections(testId));
     }
 
-    // -- Test Taking --
+    // -- Sections --
 
     private void startAttempt(Context ctx) {
         int testId = ctx.pathParamAsClass("id", Integer.class).get();
@@ -819,6 +813,8 @@ public class QuizRoutes implements Routes {
                 null));
     }
 
+    // -- Test Taking --
+
     private void saveAnswer(Context ctx) {
         int attemptId = ctx.pathParamAsClass("id", Integer.class).get();
         var session = UserSession.from(ctx);
@@ -845,8 +841,6 @@ public class QuizRoutes implements Routes {
         });
     }
 
-    // -- Grading --
-
     private void listAttempts(Context ctx) {
         int testId = ctx.pathParamAsClass("id", Integer.class).get();
         ctx.json(quizService.findAttempts(testId));
@@ -870,6 +864,8 @@ public class QuizRoutes implements Routes {
         ctx.json(new AttemptDetail(attempt, attemptQuestions, answers, questions, memberIdentity));
     }
 
+    // -- Grading --
+
     private void gradeAnswer(Context ctx) {
         int answerId = ctx.pathParamAsClass("id", Integer.class).get();
         var req = ctx.bodyAsClass(GradeRequest.class);
@@ -887,8 +883,6 @@ public class QuizRoutes implements Routes {
             throw new NotFoundResponse();
         });
     }
-
-    // -- Restrictions --
 
     private void getRestrictions(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
@@ -922,7 +916,7 @@ public class QuizRoutes implements Routes {
         ctx.json(req);
     }
 
-    // -- Member Access --
+    // -- Restrictions --
 
     private void grantAccess(Context ctx) {
         int testId = ctx.pathParamAsClass("id", Integer.class).get();
@@ -949,7 +943,7 @@ public class QuizRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    // -- Training --
+    // -- Member Access --
 
     private void listTrainingCatalogs(Context ctx) {
         var session = UserSession.from(ctx);
@@ -963,7 +957,7 @@ public class QuizRoutes implements Routes {
         ctx.json(quizService.findQuestions(catalogId));
     }
 
-    // -- PDF Export --
+    // -- Training --
 
     private void exportQuestionPdf(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
@@ -993,7 +987,7 @@ public class QuizRoutes implements Routes {
         }
     }
 
-    // -- Import/Export --
+    // -- PDF Export --
 
     private void exportCatalog(Context ctx) {
         int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
@@ -1047,7 +1041,7 @@ public class QuizRoutes implements Routes {
         ctx.status(HttpStatus.CREATED).json(catalog);
     }
 
-    // -- CSV Import --
+    // -- Import/Export --
 
     private void importCsv(Context ctx) {
         int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
@@ -1188,6 +1182,8 @@ public class QuizRoutes implements Routes {
         };
     }
 
+    // -- CSV Import --
+
     private String buildCsvConfig(QuizQuestionType type, String answer, String answerSep) {
         var mapper = new ObjectMapper();
         try {
@@ -1259,8 +1255,6 @@ public class QuizRoutes implements Routes {
         }
     }
 
-    // -- Question Images --
-
     private void getQuestionImage(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
@@ -1302,6 +1296,8 @@ public class QuizRoutes implements Routes {
         }
     }
 
+    // -- Question Images --
+
     private void deleteQuestionImage(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
@@ -1309,7 +1305,75 @@ public class QuizRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    private void federatedBrowseCatalogs(Context ctx) {
+        var session = UserSession.from(ctx);
+        var items = quizService.browseSharedQuiz(session.stationId());
+        ctx.json(items.stream()
+                .map(i -> {
+                    String name = stationRepository
+                            .findById(i.sourceStationId())
+                            .map(Station::name)
+                            .orElse("Unknown");
+                    return new SharedCatalogItem(i.id(), i.name(), i.description(), name, i.sourceStationId());
+                })
+                .toList());
+    }
+
+    private void federatedGetCatalog(Context ctx) {
+        var session = UserSession.from(ctx);
+        var stationUid = UUID.fromString(ctx.pathParam("stationuid"));
+        int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
+        ctx.json(quizService.getFederatedQuizCatalog(session.stationId(), stationUid, catalogId));
+    }
+
     // -- Request/Response records --
+
+    private void federatedCopyCatalog(Context ctx) {
+        var session = UserSession.from(ctx);
+        int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
+        var copied = quizService.copyQuizCatalog(catalogId, session.stationId());
+        ctx.status(HttpStatus.CREATED).json(copied);
+    }
+
+    private void remoteBrowseCatalogs(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        var shares = federationRepository.findQuizShares(partner.stationId());
+        var result = shares.stream()
+                .filter(s -> s.catalogId() != null)
+                .flatMap(s -> quizService.findCatalog(s.catalogId()).stream())
+                .filter(catalog -> catalog.stationId() == partner.stationId())
+                .map(catalog -> new RemoteCatalogSummary(
+                        catalog.id(),
+                        catalog.name(),
+                        catalog.description(),
+                        catalog.updatedAt().toString()))
+                .toList();
+        ctx.json(result);
+    }
+
+    private void remoteGetCatalog(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
+        var catalog = quizService.findCatalog(catalogId).orElseThrow(NotFoundResponse::new);
+        if (catalog.stationId() != partner.stationId()) {
+            throw new ForbiddenResponse("Catalog not shared with this partner");
+        }
+        var categories = quizService.findCategories(catalog.stationId());
+        var questions = quizService.findQuestions(catalog.id());
+        ctx.json(new RemoteCatalogDetail(catalog, categories, questions));
+    }
+
+    private FederationPartner requireFederationPartner(Context ctx) {
+        var session = FederationSession.from(ctx);
+        if (session == null) {
+            throw new ForbiddenResponse("Missing or invalid federation signature");
+        }
+        return session.partner();
+    }
+
+    public record ReplaceQuestionRequest(int questionId) {}
+
+    public record FrozenQuestionDetail(int position, Integer sectionId, QuizQuestion question) {}
 
     public record CatalogRequest(String name, String description, Boolean trainingEnabled) {}
 
@@ -1398,87 +1462,23 @@ public class QuizRoutes implements Routes {
 
     private record SuccessResponse(boolean success) {}
 
+    // -- Federated endpoints (user-facing, aggregates from partners) --
+
     private record EmptyAttemptResponse() {}
 
     private record ImportResult(int imported) {}
 
     private record RemoteCatalogSummary(int id, String name, String description, String updatedAt) {}
 
+    // -- Remote endpoints (server-to-server, RSA signature auth) --
+
     private record RemoteCatalogDetail(
             QuizCatalog catalog, List<QuizCategory> categories, List<QuizQuestion> questions) {}
 
     private record CatalogListResponse(List<QuizCatalog> catalogs, List<SharedCatalogItem> sharedCatalogs) {}
 
-    private record SharedCatalogItem(
-            int id, String name, String description, String stationName, int sourceStationId) {}
-
-    // -- Federated endpoints (user-facing, aggregates from partners) --
-
-    private void federatedBrowseCatalogs(Context ctx) {
-        var session = UserSession.from(ctx);
-        var items = quizService.browseSharedQuiz(session.stationId());
-        ctx.json(items.stream()
-                .map(i -> {
-                    String name = stationRepository
-                            .findById(i.sourceStationId())
-                            .map(Station::name)
-                            .orElse("Unknown");
-                    return new SharedCatalogItem(i.id(), i.name(), i.description(), name, i.sourceStationId());
-                })
-                .toList());
-    }
-
-    private void federatedGetCatalog(Context ctx) {
-        var session = UserSession.from(ctx);
-        var stationUid = UUID.fromString(ctx.pathParam("stationuid"));
-        int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
-        ctx.json(quizService.getFederatedQuizCatalog(session.stationId(), stationUid, catalogId));
-    }
-
-    private void federatedCopyCatalog(Context ctx) {
-        var session = UserSession.from(ctx);
-        int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
-        var copied = quizService.copyQuizCatalog(catalogId, session.stationId());
-        ctx.status(HttpStatus.CREATED).json(copied);
-    }
-
-    // -- Remote endpoints (server-to-server, RSA signature auth) --
-
-    private void remoteBrowseCatalogs(Context ctx) {
-        var partner = requireFederationPartner(ctx);
-        var shares = federationRepository.findQuizShares(partner.stationId());
-        var result = shares.stream()
-                .filter(s -> s.catalogId() != null)
-                .flatMap(s -> quizService.findCatalog(s.catalogId()).stream())
-                .filter(catalog -> catalog.stationId() == partner.stationId())
-                .map(catalog -> new RemoteCatalogSummary(
-                        catalog.id(),
-                        catalog.name(),
-                        catalog.description(),
-                        catalog.updatedAt().toString()))
-                .toList();
-        ctx.json(result);
-    }
-
-    private void remoteGetCatalog(Context ctx) {
-        var partner = requireFederationPartner(ctx);
-        int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
-        var catalog = quizService.findCatalog(catalogId).orElseThrow(NotFoundResponse::new);
-        if (catalog.stationId() != partner.stationId()) {
-            throw new ForbiddenResponse("Catalog not shared with this partner");
-        }
-        var categories = quizService.findCategories(catalog.stationId());
-        var questions = quizService.findQuestions(catalog.id());
-        ctx.json(new RemoteCatalogDetail(catalog, categories, questions));
-    }
-
     // -- Federation helpers --
 
-    private FederationPartner requireFederationPartner(Context ctx) {
-        var session = FederationSession.from(ctx);
-        if (session == null) {
-            throw new ForbiddenResponse("Missing or invalid federation signature");
-        }
-        return session.partner();
-    }
+    private record SharedCatalogItem(
+            int id, String name, String description, String stationName, int sourceStationId) {}
 }

@@ -206,15 +206,6 @@ public class QuizService {
                 position);
     }
 
-    private String serializeConfig(QuestionConfig config) {
-        if (config == null) return "{}";
-        try {
-            return MAPPER.writeValueAsString(config);
-        } catch (Exception e) {
-            return "{}";
-        }
-    }
-
     public boolean updateQuestion(
             int id,
             Integer categoryId,
@@ -237,18 +228,6 @@ public class QuizService {
                 id, categoryId, title, description, imageUrl, effectivePoints, autoPoints, config, position);
     }
 
-    /**
-     * Calculates auto-points from the question config based on type.
-     * Uses {@link QuizQuestionType#parseConfig} for typed deserialization and
-     * {@link QuestionConfig#autoPoints} for the calculation.
-     */
-    private double calculateAutoPoints(QuizQuestionType type, String configStr, double fallback) {
-        var config = type.parseConfig(configStr);
-        if (config instanceof QuestionConfig.Unknown) return fallback;
-        double points = config.autoPoints();
-        return points > 0 ? points : fallback;
-    }
-
     public boolean deleteQuestion(int id) {
         return catalogRepository.deleteQuestion(id);
     }
@@ -257,8 +236,6 @@ public class QuizService {
         return catalogRepository.countQuestions(catalogId);
     }
 
-    // -- Tests --
-
     public List<QuizTest> findTests(int stationId) {
         return testRepository.findByStation(stationId);
     }
@@ -266,6 +243,8 @@ public class QuizService {
     public List<QuizTest> findTestsForMember(int stationId, int memberId) {
         return testRepository.findByStationForMember(stationId, memberId);
     }
+
+    // -- Tests --
 
     public int countAttempts(int testId) {
         return testRepository.countAttempts(testId);
@@ -427,8 +406,6 @@ public class QuizService {
         return canMemberAccess(test.id(), memberId, memberPermissions);
     }
 
-    // -- Sections --
-
     public List<QuizTestSection> findSections(int testId) {
         return testRepository.findSections(testId);
     }
@@ -445,24 +422,247 @@ public class QuizService {
         }
     }
 
-    // -- Section Sources --
+    // -- Sections --
 
     public List<QuizTestSectionSource> findSources(int sectionId) {
         return testRepository.findSources(sectionId);
     }
 
-    // -- Attempts --
-
     public List<QuizTestAttempt> findAttempts(int testId) {
         return testRepository.findAttempts(testId);
     }
+
+    // -- Section Sources --
 
     public Optional<QuizTestAttempt> findAttempt(int testId, int memberId) {
         return testRepository.findAttempt(testId, memberId);
     }
 
+    // -- Attempts --
+
     public Optional<QuizTestAttempt> findAttemptById(int id) {
         return testRepository.findAttemptById(id);
+    }
+
+    public QuizTestAttempt startAttempt(int testId, int memberId) {
+        // Use the frozen question set created at activation time
+        var frozenQuestions = testRepository.findFrozenQuestions(testId);
+        if (frozenQuestions.isEmpty()) {
+            throw new IllegalStateException("Test has no frozen questions — was it activated properly?");
+        }
+
+        double totalMaxPoints = 0;
+        for (var fq : frozenQuestions) {
+            var question = catalogRepository.findQuestionById(fq.questionId());
+            if (question.isPresent()) {
+                totalMaxPoints += question.get().points();
+            }
+        }
+
+        var attempt = testRepository.createAttempt(testId, memberId, totalMaxPoints);
+
+        for (var fq : frozenQuestions) {
+            testRepository.createAttemptQuestion(attempt.id(), fq.questionId(), fq.sectionId(), fq.position());
+        }
+
+        return attempt;
+    }
+
+    public boolean submitAttempt(int attemptId) {
+        boolean submitted = testRepository.submitAttempt(attemptId);
+        if (submitted) {
+            autoGradeAnswers(attemptId);
+        }
+        return submitted;
+    }
+
+    public List<QuizTestAttemptQuestion> findAttemptQuestions(int attemptId) {
+        return testRepository.findAttemptQuestions(attemptId);
+    }
+
+    public List<QuizTestAnswer> findAnswers(int attemptId) {
+        return testRepository.findAnswers(attemptId);
+    }
+
+    public void saveAnswer(int attemptId, int questionId, String answer) {
+        testRepository.saveAnswer(attemptId, questionId, answer);
+    }
+
+    public boolean gradeAnswer(int answerId, double points) {
+        return testRepository.gradeAnswer(answerId, points);
+    }
+
+    public boolean gradeAttempt(int attemptId, int gradedBy) {
+        var answers = testRepository.findAnswers(attemptId);
+        double total = answers.stream()
+                .filter(QuizTestAnswer::graded)
+                .mapToDouble(a -> a.points() != null ? a.points() : 0)
+                .sum();
+
+        // Recalculate maxPoints from actual question points
+        double maxPoints = 0;
+        for (var answer : answers) {
+            var question = catalogRepository.findQuestionById(answer.questionId());
+            if (question.isPresent()) {
+                maxPoints += question.get().points();
+            }
+        }
+        testRepository.updateAttemptMaxPoints(attemptId, maxPoints);
+
+        return testRepository.gradeAttempt(attemptId, total, gradedBy);
+    }
+
+    public void grantMemberAccess(int testId, int memberId, Instant closesAt) {
+        testRepository.grantMemberAccess(testId, memberId, closesAt);
+    }
+
+    public void revokeMemberAccess(int testId, int memberId) {
+        testRepository.revokeMemberAccess(testId, memberId);
+    }
+
+    /**
+     * Retrieves the restriction set for a test.
+     */
+    public RestrictionSet findRestrictions(int testId) {
+        var test = testRepository.findById(testId).orElse(null);
+        RestrictionMode mode = test != null ? test.restrictionMode() : RestrictionMode.OR;
+        return restrictionRepository.findRestrictionSet(
+                RestrictionType.QUIZ_TEST.table(), RestrictionType.QUIZ_TEST.fkColumn(), testId, mode);
+    }
+
+    public void setRestrictions(
+            int testId,
+            List<StationUserType> userTypes,
+            List<Integer> groupIds,
+            List<Integer> tagIds,
+            List<Integer> memberIds) {
+        restrictionRepository.setRestrictions(
+                RestrictionType.QUIZ_TEST.table(),
+                RestrictionType.QUIZ_TEST.fkColumn(),
+                testId,
+                userTypes != null ? userTypes : List.of(),
+                groupIds != null ? groupIds : List.of(),
+                tagIds != null ? tagIds : List.of(),
+                memberIds != null ? memberIds : List.of());
+    }
+
+    public void updateRestrictionMode(int testId, RestrictionMode mode) {
+        testRepository.updateRestrictionMode(testId, mode);
+    }
+
+    /**
+     * Checks if a member can access a quiz test based on its restrictions.
+     * Delegates to the DB function which resolves the member's identity internally.
+     */
+    public boolean canMemberAccess(int testId, int memberId, Set<StationPermission> memberPermissions) {
+        return restrictionRepository.checkRestriction(RestrictionType.QUIZ_TEST, testId, memberId, memberPermissions);
+    }
+
+    public List<SharedQuizItem> browseSharedQuiz(int stationId) {
+        var futures = new ArrayList<CompletableFuture<List<SharedQuizItem>>>();
+        for (var partner : federationService.findPartners(stationId)) {
+            if (partner.status() != FederationPartner.FederationStatus.ACTIVE) continue;
+            if (!federationService.hasCapability(partner.id(), CapabilityType.QUIZ_SHARE, Direction.IMPORT)) continue;
+            int remoteStationId = resolvePartnerStationId(partner);
+
+            futures.add(CompletableFuture.supplyAsync(() -> {
+                var items = new ArrayList<SharedQuizItem>();
+                if (partner.isRemote()) {
+                    browseSharedQuizViaHttp(stationId, partner, remoteStationId, items);
+                } else {
+                    browseSharedQuizDirect(remoteStationId, partner, items);
+                }
+                return items;
+            }));
+        }
+        return collectResults(futures);
+    }
+
+    @SuppressWarnings("unchecked")
+    public FederatedCatalogDetail getFederatedQuizCatalog(int localStationId, UUID partnerStationUid, int catalogId) {
+        var partner = resolveActivePartner(localStationId, partnerStationUid);
+        if (partner.isRemote()) {
+            var result = federationHttpClient.get(
+                    partner.remoteHost(),
+                    "/remote/quiz/catalogs/" + catalogId,
+                    partner.partnerStationId(),
+                    localStationId,
+                    getPrivateKey(localStationId),
+                    FederatedCatalogDetail.class);
+            if (result == null) throw new IllegalStateException("Failed to fetch catalog from remote partner");
+            return result;
+        }
+        var catalog = findCatalog(catalogId).orElseThrow();
+        int partnerStationId = resolvePartnerStationId(partner);
+        if (catalog.stationId() != partnerStationId) {
+            throw new BadRequestResponse("Catalog does not belong to this partner");
+        }
+        var categories = findCategories(catalog.stationId());
+        var questions = findQuestions(catalog.id());
+        return new FederatedCatalogDetail(catalog, categories, questions);
+    }
+
+    public QuizCatalog copyQuizCatalog(int catalogId, int targetStationId) {
+        var source = findCatalog(catalogId).orElseThrow();
+        var newCatalog = createCatalog(targetStationId, source.name(), source.description(), source.trainingEnabled());
+
+        var categories = findCategories(source.id());
+        var categoryMap = new HashMap<Integer, Integer>();
+        for (var cat : categories) {
+            var newCat = createCategory(newCatalog.id(), cat.name(), cat.description(), cat.position());
+            categoryMap.put(cat.id(), newCat.id());
+        }
+
+        var questions = findQuestions(source.id());
+        for (var q : questions) {
+            Integer newCatId = q.categoryId() != null ? categoryMap.get(q.categoryId()) : null;
+            createQuestion(
+                    newCatalog.id(),
+                    newCatId,
+                    q.quizQuestionType(),
+                    q.title(),
+                    q.description(),
+                    q.imageUrl(),
+                    q.points(),
+                    q.autoPoints(),
+                    q.config() != null ? q.config() : new QuestionConfig.Unknown(),
+                    q.position());
+        }
+        return newCatalog;
+    }
+
+    // -- Answers --
+
+    public List<RemoteQuizCatalog> fetchSharedQuizCatalogs(
+            String remoteHost, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64) {
+        return federationHttpClient.getList(
+                remoteHost,
+                "/remote/quiz/catalogs",
+                partnerStationUid,
+                localStationId,
+                localPrivateKeyBase64,
+                RemoteQuizCatalog.class);
+    }
+
+    private String serializeConfig(QuestionConfig config) {
+        if (config == null) return "{}";
+        try {
+            return MAPPER.writeValueAsString(config);
+        } catch (Exception e) {
+            return "{}";
+        }
+    }
+
+    /**
+     * Calculates auto-points from the question config based on type.
+     * Uses {@link QuizQuestionType#parseConfig} for typed deserialization and
+     * {@link QuestionConfig#autoPoints} for the calculation.
+     */
+    private double calculateAutoPoints(QuizQuestionType type, String configStr, double fallback) {
+        var config = type.parseConfig(configStr);
+        if (config instanceof QuestionConfig.Unknown) return fallback;
+        double points = config.autoPoints();
+        return points > 0 ? points : fallback;
     }
 
     private List<QuizQuestion> pickFromPool(List<QuizQuestion> pool, int count) {
@@ -471,6 +671,8 @@ public class QuizService {
         if (count == 0) return shuffled;
         return shuffled.subList(0, Math.min(count, shuffled.size()));
     }
+
+    // -- Member Access --
 
     private List<QuizQuestion> pickBalancedFromCatalog(int catalogId, int count) {
         var allQuestions = catalogRepository.findQuestions(catalogId);
@@ -529,37 +731,7 @@ public class QuizService {
         return selectedQuestions;
     }
 
-    public QuizTestAttempt startAttempt(int testId, int memberId) {
-        // Use the frozen question set created at activation time
-        var frozenQuestions = testRepository.findFrozenQuestions(testId);
-        if (frozenQuestions.isEmpty()) {
-            throw new IllegalStateException("Test has no frozen questions — was it activated properly?");
-        }
-
-        double totalMaxPoints = 0;
-        for (var fq : frozenQuestions) {
-            var question = catalogRepository.findQuestionById(fq.questionId());
-            if (question.isPresent()) {
-                totalMaxPoints += question.get().points();
-            }
-        }
-
-        var attempt = testRepository.createAttempt(testId, memberId, totalMaxPoints);
-
-        for (var fq : frozenQuestions) {
-            testRepository.createAttemptQuestion(attempt.id(), fq.questionId(), fq.sectionId(), fq.position());
-        }
-
-        return attempt;
-    }
-
-    public boolean submitAttempt(int attemptId) {
-        boolean submitted = testRepository.submitAttempt(attemptId);
-        if (submitted) {
-            autoGradeAnswers(attemptId);
-        }
-        return submitted;
-    }
+    // -- Restrictions --
 
     private void autoGradeAnswers(int attemptId) {
         var answers = testRepository.findAnswers(attemptId);
@@ -649,6 +821,8 @@ public class QuizService {
         return totalPairs == 0 ? 0 : (double) correct / totalPairs * maxPoints;
     }
 
+    // -- Federated Quiz --
+
     private double gradeOrdering(JsonNode config, JsonNode answer, double maxPoints) {
         var items = config.get("items");
         var order = answer.get("order");
@@ -737,118 +911,6 @@ public class QuizService {
         return requiredCount == 0 ? 0 : (double) correct / requiredCount * maxPoints;
     }
 
-    public List<QuizTestAttemptQuestion> findAttemptQuestions(int attemptId) {
-        return testRepository.findAttemptQuestions(attemptId);
-    }
-
-    // -- Answers --
-
-    public List<QuizTestAnswer> findAnswers(int attemptId) {
-        return testRepository.findAnswers(attemptId);
-    }
-
-    public void saveAnswer(int attemptId, int questionId, String answer) {
-        testRepository.saveAnswer(attemptId, questionId, answer);
-    }
-
-    public boolean gradeAnswer(int answerId, double points) {
-        return testRepository.gradeAnswer(answerId, points);
-    }
-
-    public boolean gradeAttempt(int attemptId, int gradedBy) {
-        var answers = testRepository.findAnswers(attemptId);
-        double total = answers.stream()
-                .filter(QuizTestAnswer::graded)
-                .mapToDouble(a -> a.points() != null ? a.points() : 0)
-                .sum();
-
-        // Recalculate maxPoints from actual question points
-        double maxPoints = 0;
-        for (var answer : answers) {
-            var question = catalogRepository.findQuestionById(answer.questionId());
-            if (question.isPresent()) {
-                maxPoints += question.get().points();
-            }
-        }
-        testRepository.updateAttemptMaxPoints(attemptId, maxPoints);
-
-        return testRepository.gradeAttempt(attemptId, total, gradedBy);
-    }
-
-    // -- Member Access --
-
-    public void grantMemberAccess(int testId, int memberId, Instant closesAt) {
-        testRepository.grantMemberAccess(testId, memberId, closesAt);
-    }
-
-    public void revokeMemberAccess(int testId, int memberId) {
-        testRepository.revokeMemberAccess(testId, memberId);
-    }
-
-    // -- Restrictions --
-
-    /**
-     * Retrieves the restriction set for a test.
-     */
-    public RestrictionSet findRestrictions(int testId) {
-        var test = testRepository.findById(testId).orElse(null);
-        RestrictionMode mode = test != null ? test.restrictionMode() : RestrictionMode.OR;
-        return restrictionRepository.findRestrictionSet(
-                RestrictionType.QUIZ_TEST.table(), RestrictionType.QUIZ_TEST.fkColumn(), testId, mode);
-    }
-
-    public void setRestrictions(
-            int testId,
-            List<StationUserType> userTypes,
-            List<Integer> groupIds,
-            List<Integer> tagIds,
-            List<Integer> memberIds) {
-        restrictionRepository.setRestrictions(
-                RestrictionType.QUIZ_TEST.table(),
-                RestrictionType.QUIZ_TEST.fkColumn(),
-                testId,
-                userTypes != null ? userTypes : List.of(),
-                groupIds != null ? groupIds : List.of(),
-                tagIds != null ? tagIds : List.of(),
-                memberIds != null ? memberIds : List.of());
-    }
-
-    public void updateRestrictionMode(int testId, RestrictionMode mode) {
-        testRepository.updateRestrictionMode(testId, mode);
-    }
-
-    /**
-     * Checks if a member can access a quiz test based on its restrictions.
-     * Delegates to the DB function which resolves the member's identity internally.
-     */
-    public boolean canMemberAccess(int testId, int memberId, Set<StationPermission> memberPermissions) {
-        return restrictionRepository.checkRestriction(RestrictionType.QUIZ_TEST, testId, memberId, memberPermissions);
-    }
-
-    private record AttemptQuestionEntry(int questionId, Integer sectionId) {}
-
-    // -- Federated Quiz --
-
-    public List<SharedQuizItem> browseSharedQuiz(int stationId) {
-        var futures = new ArrayList<CompletableFuture<List<SharedQuizItem>>>();
-        for (var partner : federationService.findPartners(stationId)) {
-            if (partner.status() != FederationPartner.FederationStatus.ACTIVE) continue;
-            if (!federationService.hasCapability(partner.id(), CapabilityType.QUIZ_SHARE, Direction.IMPORT)) continue;
-            int remoteStationId = resolvePartnerStationId(partner);
-
-            futures.add(CompletableFuture.supplyAsync(() -> {
-                var items = new ArrayList<SharedQuizItem>();
-                if (partner.isRemote()) {
-                    browseSharedQuizViaHttp(stationId, partner, remoteStationId, items);
-                } else {
-                    browseSharedQuizDirect(remoteStationId, partner, items);
-                }
-                return items;
-            }));
-        }
-        return collectResults(futures);
-    }
-
     private void browseSharedQuizDirect(int remoteStationId, FederationPartner partner, List<SharedQuizItem> result) {
         var shares = federationRepository.findQuizShares(remoteStationId);
         for (var share : shares) {
@@ -883,70 +945,14 @@ public class QuizService {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    public FederatedCatalogDetail getFederatedQuizCatalog(int localStationId, UUID partnerStationUid, int catalogId) {
-        var partner = resolveActivePartner(localStationId, partnerStationUid);
-        if (partner.isRemote()) {
-            var result = federationHttpClient.get(
-                    partner.remoteHost(),
-                    "/remote/quiz/catalogs/" + catalogId,
-                    partner.partnerStationId(),
-                    localStationId,
-                    getPrivateKey(localStationId),
-                    FederatedCatalogDetail.class);
-            if (result == null) throw new IllegalStateException("Failed to fetch catalog from remote partner");
-            return result;
-        }
-        var catalog = findCatalog(catalogId).orElseThrow();
-        int partnerStationId = resolvePartnerStationId(partner);
-        if (catalog.stationId() != partnerStationId) {
-            throw new BadRequestResponse("Catalog does not belong to this partner");
-        }
-        var categories = findCategories(catalog.stationId());
-        var questions = findQuestions(catalog.id());
-        return new FederatedCatalogDetail(catalog, categories, questions);
-    }
-
-    public record FederatedCatalogDetail(
-            QuizCatalog catalog, List<QuizCategory> categories, List<QuizQuestion> questions) {}
-
-    public QuizCatalog copyQuizCatalog(int catalogId, int targetStationId) {
-        var source = findCatalog(catalogId).orElseThrow();
-        var newCatalog = createCatalog(targetStationId, source.name(), source.description(), source.trainingEnabled());
-
-        var categories = findCategories(source.id());
-        var categoryMap = new HashMap<Integer, Integer>();
-        for (var cat : categories) {
-            var newCat = createCategory(newCatalog.id(), cat.name(), cat.description(), cat.position());
-            categoryMap.put(cat.id(), newCat.id());
-        }
-
-        var questions = findQuestions(source.id());
-        for (var q : questions) {
-            Integer newCatId = q.categoryId() != null ? categoryMap.get(q.categoryId()) : null;
-            createQuestion(
-                    newCatalog.id(),
-                    newCatId,
-                    q.quizQuestionType(),
-                    q.title(),
-                    q.description(),
-                    q.imageUrl(),
-                    q.points(),
-                    q.autoPoints(),
-                    q.config() != null ? q.config() : new QuestionConfig.Unknown(),
-                    q.position());
-        }
-        return newCatalog;
-    }
-
-    // -- Federation helpers --
-
     private String getPrivateKey(int stationId) {
         return stationRepository
                 .findById(stationId)
                 .map(Station::federationPrivateKey)
                 .orElse(null);
     }
+
+    // -- Federation helpers --
 
     private FederationPartner resolveActivePartner(int localStationId, UUID partnerStationUid) {
         var partner = federationRepository
@@ -983,20 +989,14 @@ public class QuizService {
         return result;
     }
 
-    public record SharedQuizItem(int id, String name, String description, int sourceStationId, int partnerId) {}
+    private record AttemptQuestionEntry(int questionId, Integer sectionId) {}
+
+    public record FederatedCatalogDetail(
+            QuizCatalog catalog, List<QuizCategory> categories, List<QuizQuestion> questions) {}
 
     // -- Federation HTTP convenience methods --
 
-    public List<RemoteQuizCatalog> fetchSharedQuizCatalogs(
-            String remoteHost, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64) {
-        return federationHttpClient.getList(
-                remoteHost,
-                "/remote/quiz/catalogs",
-                partnerStationUid,
-                localStationId,
-                localPrivateKeyBase64,
-                RemoteQuizCatalog.class);
-    }
+    public record SharedQuizItem(int id, String name, String description, int sourceStationId, int partnerId) {}
 
     public record RemoteQuizCatalog(int id, String name, String description) {}
 }

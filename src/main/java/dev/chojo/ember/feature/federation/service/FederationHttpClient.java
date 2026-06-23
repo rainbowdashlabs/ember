@@ -68,12 +68,6 @@ public class FederationHttpClient {
                 .build();
     }
 
-    private String resolveStationName(int stationId) {
-        return stationRepository.findById(stationId).map(Station::name).orElse("");
-    }
-
-    // -- Generic typed methods --
-
     /**
      * Performs a signed GET and deserializes the response as a single typed object.
      * Returns null on error or non-2xx status.
@@ -98,6 +92,8 @@ public class FederationHttpClient {
             return null;
         }
     }
+
+    // -- Generic typed methods --
 
     /**
      * Performs a signed GET and deserializes the response as a list of typed objects.
@@ -319,6 +315,10 @@ public class FederationHttpClient {
             log.error("Failed signed DELETE {} on {}", path, remoteHost, e);
             return false;
         }
+    }
+
+    private String resolveStationName(int stationId) {
+        return stationRepository.findById(stationId).map(Station::name).orElse("");
     }
 
     // -- Internal HTTP primitives --

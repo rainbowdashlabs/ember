@@ -48,13 +48,19 @@ import javax.imageio.ImageIO;
  */
 @Singleton
 public class ImageVariantService {
-    /** Maximum pixel dimension (longest side); larger uploads are resized down. */
+    /**
+     * Maximum pixel dimension (longest side); larger uploads are resized down.
+     */
     public static final int MAX_PIXEL_SIZE = 2048;
 
-    /** Fixed size variants written for every upload (longest side, in pixels). */
+    /**
+     * Fixed size variants written for every upload (longest side, in pixels).
+     */
     public static final int[] SIZES = {1024, 512, 256, 128};
 
-    /** Variant base name for the (possibly downsized) original. */
+    /**
+     * Variant base name for the (possibly downsized) original.
+     */
     public static final String ORIGINAL_BASE = "original";
 
     private static final double COMPRESSION_QUALITY = 0.85;
@@ -68,12 +74,93 @@ public class ImageVariantService {
     }
 
     /**
+     * Returns the MIME type identified by inspecting the first bytes of {@code data}, or empty
+     * when the bytes do not match any allow-listed image signature (PNG / JPEG / WebP / GIF).
+     * The client-declared MIME is intentionally not consulted — clients can forge it; magic
+     * bytes cannot be forged without also changing the actual format.
+     */
+    public static Optional<String> sniffImageMime(byte[] data) {
+        if (data == null || data.length < 4) return Optional.empty();
+        if (startsWith(data, new int[] {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A})) {
+            return Optional.of("image/png");
+        }
+        if (startsWith(data, new int[] {0xFF, 0xD8, 0xFF})) {
+            return Optional.of("image/jpeg");
+        }
+        if (data.length >= 12
+                && startsWith(data, new int[] {0x52, 0x49, 0x46, 0x46})
+                && data[8] == 0x57
+                && data[9] == 0x45
+                && data[10] == 0x42
+                && data[11] == 0x50) {
+            return Optional.of("image/webp");
+        }
+        if (data.length >= 6
+                && startsWith(data, new int[] {0x47, 0x49, 0x46, 0x38})
+                && (data[4] == 0x37 || data[4] == 0x39)
+                && data[5] == 0x61) {
+            return Optional.of("image/gif");
+        }
+        return Optional.empty();
+    }
+
+    private static byte[] compressTo(BufferedImage source, int longestSide, String extension) throws IOException {
+        int w = source.getWidth();
+        int h = source.getHeight();
+        double scale = (double) longestSide / Math.max(w, h);
+        int newW = Math.max(1, (int) Math.round(w * scale));
+        int newH = Math.max(1, (int) Math.round(h * scale));
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        Thumbnails.of(source)
+                .size(newW, newH)
+                .outputQuality(COMPRESSION_QUALITY)
+                .outputFormat(extension)
+                .toOutputStream(out);
+        return out.toByteArray();
+    }
+
+    private static String extensionFor(String mimeType) {
+        return switch (mimeType.toLowerCase(Locale.ROOT)) {
+            case "image/png" -> "png";
+            case "image/webp" -> "webp";
+            case "image/gif" -> "gif";
+            default -> "jpg";
+        };
+    }
+
+    private static String contentTypeFor(String filename, String storedContentType) {
+        if (storedContentType != null
+                && !storedContentType.isBlank()
+                && !"application/octet-stream".equals(storedContentType)) {
+            return storedContentType;
+        }
+        int dot = filename.lastIndexOf('.');
+        String ext = dot < 0 ? "" : filename.substring(dot + 1).toLowerCase(Locale.ROOT);
+        return switch (ext) {
+            case "png" -> "image/png";
+            case "webp" -> "image/webp";
+            case "gif" -> "image/gif";
+            case "jpg", "jpeg" -> "image/jpeg";
+            default -> "application/octet-stream";
+        };
+    }
+
+    private static boolean startsWith(byte[] data, int[] signature) {
+        if (data.length < signature.length) return false;
+        for (int i = 0; i < signature.length; i++) {
+            if ((data[i] & 0xff) != signature[i]) return false;
+        }
+        return true;
+    }
+
+    /**
      * Persists every variant for an uploaded image. Replaces any existing variants for the
      * same {@code (scope, category, key)} tuple before writing.
      *
      * @param maxBytes upper bound on the raw upload size; {@code 0} disables the check.
      * @throws BadRequestResponse on oversize uploads, MIME-mismatch, or unreadable images.
-     * @throws IOException on a disk write failure during variant generation.
+     * @throws IOException        on a disk write failure during variant generation.
      */
     public void store(
             StorageScope scope, StorageCategory category, String key, byte[] data, String declaredMime, int maxBytes)
@@ -140,7 +227,9 @@ public class ImageVariantService {
         return Optional.empty();
     }
 
-    /** Whether any variant exists for {@code (scope, category, key)}. */
+    /**
+     * Whether any variant exists for {@code (scope, category, key)}.
+     */
     public boolean exists(StorageScope scope, StorageCategory category, String key) {
         if (key == null || key.isBlank()) return false;
         try {
@@ -150,7 +239,9 @@ public class ImageVariantService {
         }
     }
 
-    /** Removes every variant for {@code (scope, category, key)}. No-op when none exist. */
+    /**
+     * Removes every variant for {@code (scope, category, key)}. No-op when none exist.
+     */
     public void delete(StorageScope scope, StorageCategory category, String key) {
         if (key == null || key.isBlank()) return;
         storage.deletePrefix(scope, category, key);
@@ -183,87 +274,8 @@ public class ImageVariantService {
         return Optional.empty();
     }
 
-    private static byte[] compressTo(BufferedImage source, int longestSide, String extension) throws IOException {
-        int w = source.getWidth();
-        int h = source.getHeight();
-        double scale = (double) longestSide / Math.max(w, h);
-        int newW = Math.max(1, (int) Math.round(w * scale));
-        int newH = Math.max(1, (int) Math.round(h * scale));
-
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        Thumbnails.of(source)
-                .size(newW, newH)
-                .outputQuality(COMPRESSION_QUALITY)
-                .outputFormat(extension)
-                .toOutputStream(out);
-        return out.toByteArray();
-    }
-
-    private static String extensionFor(String mimeType) {
-        return switch (mimeType.toLowerCase(Locale.ROOT)) {
-            case "image/png" -> "png";
-            case "image/webp" -> "webp";
-            case "image/gif" -> "gif";
-            default -> "jpg";
-        };
-    }
-
-    private static String contentTypeFor(String filename, String storedContentType) {
-        if (storedContentType != null
-                && !storedContentType.isBlank()
-                && !"application/octet-stream".equals(storedContentType)) {
-            return storedContentType;
-        }
-        int dot = filename.lastIndexOf('.');
-        String ext = dot < 0 ? "" : filename.substring(dot + 1).toLowerCase(Locale.ROOT);
-        return switch (ext) {
-            case "png" -> "image/png";
-            case "webp" -> "image/webp";
-            case "gif" -> "image/gif";
-            case "jpg", "jpeg" -> "image/jpeg";
-            default -> "application/octet-stream";
-        };
-    }
-
     /**
-     * Returns the MIME type identified by inspecting the first bytes of {@code data}, or empty
-     * when the bytes do not match any allow-listed image signature (PNG / JPEG / WebP / GIF).
-     * The client-declared MIME is intentionally not consulted — clients can forge it; magic
-     * bytes cannot be forged without also changing the actual format.
+     * Bytes + MIME type returned by {@link #read}.
      */
-    public static Optional<String> sniffImageMime(byte[] data) {
-        if (data == null || data.length < 4) return Optional.empty();
-        if (startsWith(data, new int[] {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A})) {
-            return Optional.of("image/png");
-        }
-        if (startsWith(data, new int[] {0xFF, 0xD8, 0xFF})) {
-            return Optional.of("image/jpeg");
-        }
-        if (data.length >= 12
-                && startsWith(data, new int[] {0x52, 0x49, 0x46, 0x46})
-                && data[8] == 0x57
-                && data[9] == 0x45
-                && data[10] == 0x42
-                && data[11] == 0x50) {
-            return Optional.of("image/webp");
-        }
-        if (data.length >= 6
-                && startsWith(data, new int[] {0x47, 0x49, 0x46, 0x38})
-                && (data[4] == 0x37 || data[4] == 0x39)
-                && data[5] == 0x61) {
-            return Optional.of("image/gif");
-        }
-        return Optional.empty();
-    }
-
-    private static boolean startsWith(byte[] data, int[] signature) {
-        if (data.length < signature.length) return false;
-        for (int i = 0; i < signature.length; i++) {
-            if ((data[i] & 0xff) != signature[i]) return false;
-        }
-        return true;
-    }
-
-    /** Bytes + MIME type returned by {@link #read}. */
     public record ImageData(byte[] data, String contentType) {}
 }

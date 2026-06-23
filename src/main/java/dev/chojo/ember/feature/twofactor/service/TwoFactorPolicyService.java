@@ -50,6 +50,19 @@ public class TwoFactorPolicyService {
         this.accountRepository = accountRepository;
     }
 
+    private static boolean containsElevatedInstance(InstancePermission[] perms) {
+        for (InstancePermission p : perms) {
+            if (p == InstancePermission.ADMINISTRATOR) return true;
+        }
+        return false;
+    }
+
+    private static short clampGrace(short graceDays) {
+        if (graceDays < 0) return 0;
+        if (graceDays > 7) return 7;
+        return graceDays;
+    }
+
     public List<StationUserType> assignableUserTypes() {
         return ASSIGNABLE_USER_TYPES;
     }
@@ -77,16 +90,6 @@ public class TwoFactorPolicyService {
     public boolean deletePolicy(int policyId) {
         return repository.deletePolicy(policyId);
     }
-
-    public record MemberStatus(
-            int memberId,
-            int accountId,
-            String firstName,
-            String lastName,
-            String email,
-            StationUserType userType,
-            boolean enrolled,
-            boolean mandated) {}
 
     /**
      * Returns the per-member 2FA-status rows shown in the station-admin Security panel.
@@ -151,13 +154,6 @@ public class TwoFactorPolicyService {
                 && containsElevatedInstance(account.instanceUserType().defaultPermissions());
     }
 
-    private static boolean containsElevatedInstance(InstancePermission[] perms) {
-        for (InstancePermission p : perms) {
-            if (p == InstancePermission.ADMINISTRATOR) return true;
-        }
-        return false;
-    }
-
     private boolean hasElevatedMemberPermission(StationMember member) {
         var permissions = memberRepository.findPermissions(member.id());
         for (var perm : permissions) {
@@ -177,9 +173,13 @@ public class TwoFactorPolicyService {
         return false;
     }
 
-    private static short clampGrace(short graceDays) {
-        if (graceDays < 0) return 0;
-        if (graceDays > 7) return 7;
-        return graceDays;
-    }
+    public record MemberStatus(
+            int memberId,
+            int accountId,
+            String firstName,
+            String lastName,
+            String email,
+            StationUserType userType,
+            boolean enrolled,
+            boolean mandated) {}
 }

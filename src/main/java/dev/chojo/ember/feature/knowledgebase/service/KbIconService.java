@@ -32,27 +32,37 @@ public class KbIconService {
         this.stationRepository = stationRepository;
     }
 
-    /** Persists the icon for a folder at all standard size variants. */
+    /**
+     * Persists the icon for a folder at all standard size variants.
+     */
     public void store(int stationId, int folderId, byte[] data, String declaredMime, int maxBytes) throws IOException {
         variants.store(scope(stationId), StorageCategory.IMAGE_KB_ICON, key(folderId), data, declaredMime, maxBytes);
     }
 
-    /** Reads the requested icon size, falling back to the original when missing. */
+    /**
+     * Reads the requested icon size, falling back to the original when missing.
+     */
     public Optional<ImageVariantService.ImageData> read(int stationId, int folderId, int size) {
         return variants.read(scope(stationId), StorageCategory.IMAGE_KB_ICON, key(folderId), size);
     }
 
-    /** Whether an icon exists for the given folder. */
+    /**
+     * Whether an icon exists for the given folder.
+     */
     public boolean exists(int stationId, int folderId) {
         return variants.exists(scope(stationId), StorageCategory.IMAGE_KB_ICON, key(folderId));
     }
 
-    /** Removes every variant for the given folder's icon. */
+    /**
+     * Removes every variant for the given folder's icon.
+     */
     public void delete(int stationId, int folderId) {
         variants.delete(scope(stationId), StorageCategory.IMAGE_KB_ICON, key(folderId));
     }
 
-    /** The key string used for a folder's icon. Exposed so callers can persist the same name in the folder row. */
+    /**
+     * The key string used for a folder's icon. Exposed so callers can persist the same name in the folder row.
+     */
     public String key(int folderId) {
         return "folder-" + folderId;
     }

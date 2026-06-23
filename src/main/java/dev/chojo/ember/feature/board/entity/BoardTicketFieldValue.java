@@ -9,10 +9,6 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
 public record BoardTicketFieldValue(int ticketId, int fieldId, BoardFieldType fieldType, BoardFieldValue value) {
 
-    public String valueToJson() {
-        return value != null ? value.toJson() : "null";
-    }
-
     public static RowMapping<BoardTicketFieldValue> map() {
         return row -> {
             var fieldType = row.getEnum("field_type", BoardFieldType.class);
@@ -22,5 +18,9 @@ public record BoardTicketFieldValue(int ticketId, int fieldId, BoardFieldType fi
                     fieldType,
                     BoardFieldValue.parse(fieldType, row.getString("value")));
         };
+    }
+
+    public String valueToJson() {
+        return value != null ? value.toJson() : "null";
     }
 }

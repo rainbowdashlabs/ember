@@ -124,7 +124,7 @@ public class EventRepository {
                 FROM station_event e
                 LEFT JOIN event_category c ON c.id = e.category_id
                 WHERE e.station_id = :station_id
-                  AND (e."public" = TRUE OR (e."public" IS NULL AND c.public = TRUE))
+                  AND (e.public = TRUE OR (e.public IS NULL AND c.public = TRUE))
                   %s
                   %s
                 ORDER BY %s
@@ -137,21 +137,6 @@ public class EventRepository {
                         row.getString("category_name")))
                 .all();
     }
-
-    /**
-     * Time-window filter for the event picker.
-     */
-    public enum PickerMode {
-        FUTURE,
-        PAST,
-        ALL
-    }
-
-    /**
-     * Lightweight picker result row. Exposes only the public UUID — never the internal id
-     * (concept §2.3).
-     */
-    public record PickerEvent(UUID eventUid, String name, Instant startTime, String categoryName) {}
 
     /**
      * Retrieves events for a station that the given member is allowed to see.
@@ -363,8 +348,6 @@ public class EventRepository {
                 .changed();
     }
 
-    // -- Breaks --
-
     /**
      * Retrieves all event breaks for a station, ordered by start date.
      *
@@ -394,6 +377,8 @@ public class EventRepository {
                 FROM station_event_break
                 WHERE id = :id;""").single(call().bind("id", id)).map(EventBreak.map()).first();
     }
+
+    // -- Breaks --
 
     /**
      * Creates a new event break.
@@ -456,8 +441,6 @@ public class EventRepository {
                 .changed();
     }
 
-    // -- Categories --
-
     /**
      * Retrieves all event categories for a station, ordered by position.
      *
@@ -489,6 +472,8 @@ public class EventRepository {
                 .map(EventCategory.map())
                 .all();
     }
+
+    // -- Categories --
 
     /**
      * Creates a new event category.
@@ -587,8 +572,6 @@ public class EventRepository {
                 .isPresent();
     }
 
-    // -- Restrictions --
-
     /**
      * Updates the restriction mode for an event.
      *
@@ -607,8 +590,6 @@ public class EventRepository {
                 .update()
                 .changed();
     }
-
-    // -- Field Defaults --
 
     /**
      * Retrieves all field default configurations for an event.
@@ -630,6 +611,8 @@ public class EventRepository {
                 .map(EventFieldDefault.map())
                 .all();
     }
+
+    // -- Restrictions --
 
     /**
      * Replaces all field defaults for an event by deleting existing ones and inserting the given defaults.
@@ -653,7 +636,7 @@ public class EventRepository {
         }
     }
 
-    // -- Registrations --
+    // -- Field Defaults --
 
     /**
      * Retrieves all registrations for an event on a specific date, ordered by creation time.
@@ -707,7 +690,7 @@ public class EventRepository {
                 .all();
     }
 
-    public record ExpiredDeadlineEvent(int eventId, int stationId, String name, int pendingCount) {}
+    // -- Registrations --
 
     public List<ExpiredDeadlineEvent> findOneTimeEventsWithExpiredDeadline() {
         return query("""
@@ -957,7 +940,7 @@ public class EventRepository {
                 .map(row -> new RegistrationCount(
                         row.getInt("event_id"),
                         row.getObject("event_date", LocalDate.class),
-                        RegistrationStatus.valueOf(row.getString("status")),
+                        row.getEnum("status", RegistrationStatus.class),
                         row.getInt("count")))
                 .all();
     }
@@ -1050,8 +1033,6 @@ public class EventRepository {
                 .first();
     }
 
-    // -- Cancellation & Threshold --
-
     /**
      * Cancels an event, recording the current timestamp and an optional reason.
      *
@@ -1103,6 +1084,8 @@ public class EventRepository {
                 .changed();
     }
 
+    // -- Cancellation & Threshold --
+
     /**
      * Counts accepted registrations for an event.
      *
@@ -1140,8 +1123,6 @@ public class EventRepository {
                 .all();
     }
 
-    // --- Reminders ---
-
     public List<Integer> findReminderDays(int eventId) {
         return query("SELECT days_before FROM event_reminder WHERE event_id = :event_id ORDER BY days_before;")
                 .single(call().bind("event_id", eventId))
@@ -1178,6 +1159,8 @@ public class EventRepository {
                     FROM event_reminder er
                     WHERE er.event_id = e.id);""", EVENT_COLUMNS).single(call()).map(StationEvent.map()).all();
     }
+
+    // --- Reminders ---
 
     public boolean isReminderSent(int eventId, LocalDate eventDate, int daysBefore) {
         return query("""
@@ -1225,4 +1208,21 @@ public class EventRepository {
                 .first()
                 .orElse(0);
     }
+
+    /**
+     * Time-window filter for the event picker.
+     */
+    public enum PickerMode {
+        FUTURE,
+        PAST,
+        ALL
+    }
+
+    /**
+     * Lightweight picker result row. Exposes only the public UUID — never the internal id
+     * (concept §2.3).
+     */
+    public record PickerEvent(UUID eventUid, String name, Instant startTime, String categoryName) {}
+
+    public record ExpiredDeadlineEvent(int eventId, int stationId, String name, int pendingCount) {}
 }

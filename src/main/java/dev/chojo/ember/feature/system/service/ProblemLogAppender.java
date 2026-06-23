@@ -43,6 +43,35 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
         return instance;
     }
 
+    public List<ProblemEntry> getProblems(boolean includeAcknowledged) {
+        pruneOldEntries();
+        return problems.values().stream()
+                .filter(p -> includeAcknowledged || !p.acknowledged())
+                .sorted((a, b) -> b.lastOccurrence().compareTo(a.lastOccurrence()))
+                .toList();
+    }
+
+    public boolean acknowledge(long id) {
+        for (var entry : problems.values()) {
+            if (entry.id() == id) {
+                entry.setAcknowledged(true);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public int acknowledgeAll() {
+        int count = 0;
+        for (var entry : problems.values()) {
+            if (!entry.acknowledged()) {
+                entry.setAcknowledged(true);
+                count++;
+            }
+        }
+        return count;
+    }
+
     @Override
     protected void append(ILoggingEvent event) {
         if (event.getLevel().toInt() < Level.WARN.toInt()) return;
@@ -121,35 +150,6 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
         }
     }
 
-    public List<ProblemEntry> getProblems(boolean includeAcknowledged) {
-        pruneOldEntries();
-        return problems.values().stream()
-                .filter(p -> includeAcknowledged || !p.acknowledged())
-                .sorted((a, b) -> b.lastOccurrence().compareTo(a.lastOccurrence()))
-                .toList();
-    }
-
-    public boolean acknowledge(long id) {
-        for (var entry : problems.values()) {
-            if (entry.id() == id) {
-                entry.setAcknowledged(true);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public int acknowledgeAll() {
-        int count = 0;
-        for (var entry : problems.values()) {
-            if (!entry.acknowledged()) {
-                entry.setAcknowledged(true);
-                count++;
-            }
-        }
-        return count;
-    }
-
     /**
      * Represents an aggregated problem with occurrence count and optional distinct messages.
      * Field visibility is set to ANY so Jackson serializes the private fields directly without
@@ -193,20 +193,6 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
             this.distinctMessages.add(message);
         }
 
-        synchronized void addOccurrence(String message, Instant timestamp) {
-            count++;
-            if (timestamp.isAfter(lastOccurrence)) {
-                lastOccurrence = timestamp;
-            }
-            if (distinctMessages.size() < 50 && !distinctMessages.contains(message)) {
-                distinctMessages.add(message);
-            }
-        }
-
-        void setAcknowledged(boolean ack) {
-            this.acknowledged = ack;
-        }
-
         public long id() {
             return id;
         }
@@ -229,6 +215,20 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
 
         public boolean acknowledged() {
             return acknowledged;
+        }
+
+        synchronized void addOccurrence(String message, Instant timestamp) {
+            count++;
+            if (timestamp.isAfter(lastOccurrence)) {
+                lastOccurrence = timestamp;
+            }
+            if (distinctMessages.size() < 50 && !distinctMessages.contains(message)) {
+                distinctMessages.add(message);
+            }
+        }
+
+        void setAcknowledged(boolean ack) {
+            this.acknowledged = ack;
         }
     }
 }

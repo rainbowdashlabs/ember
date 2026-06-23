@@ -47,12 +47,36 @@ public class HibpClient {
         this(authConfig.hibp());
     }
 
-    /** Visible-for-testing constructor that lets tests inject a stub config. */
+    /**
+     * Visible-for-testing constructor that lets tests inject a stub config.
+     */
     public HibpClient(HibpSettings config) {
         this.config = config;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(Math.max(1, config.timeoutSeconds())))
                 .build();
+    }
+
+    private static boolean matches(String body, String suffix) {
+        for (String line : body.split("\\r?\\n")) {
+            int colon = line.indexOf(':');
+            if (colon < 0) continue;
+            String candidate = line.substring(0, colon).trim();
+            if (candidate.equalsIgnoreCase(suffix)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String sha1Hex(String input) {
+        try {
+            var digest = MessageDigest.getInstance("SHA-1");
+            byte[] bytes = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(bytes).toUpperCase(Locale.ROOT);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-1 not available", e);
+        }
     }
 
     /**
@@ -85,28 +109,6 @@ public class HibpClient {
         } catch (Exception e) {
             log.warn("HIBP lookup failed — failing open: {}", e.getMessage());
             return false;
-        }
-    }
-
-    private static boolean matches(String body, String suffix) {
-        for (String line : body.split("\\r?\\n")) {
-            int colon = line.indexOf(':');
-            if (colon < 0) continue;
-            String candidate = line.substring(0, colon).trim();
-            if (candidate.equalsIgnoreCase(suffix)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static String sha1Hex(String input) {
-        try {
-            var digest = MessageDigest.getInstance("SHA-1");
-            byte[] bytes = digest.digest(input.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(bytes).toUpperCase(Locale.ROOT);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-1 not available", e);
         }
     }
 }

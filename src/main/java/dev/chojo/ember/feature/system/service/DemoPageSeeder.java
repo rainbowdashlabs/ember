@@ -39,6 +39,10 @@ public class DemoPageSeeder {
         this.quizCatalogRepository = quizCatalogRepository;
     }
 
+    private static PageService.RowData row(int sortOrder, CellContentType type, String content, CellConfig config) {
+        return new PageService.RowData(sortOrder, List.of(new PageService.CellData(0, 100, type, content, config)));
+    }
+
     public void seed(int stationId, int memberId) {
         // Landing page: Willkommen
         var welcome = pageService.create(stationId, "Willkommen", null, memberId);
@@ -54,18 +58,18 @@ public class DemoPageSeeder {
                                 0,
                                 List.of(new PageService.CellData(
                                         0, 100, CellContentType.MARKDOWN, """
-                                                # Willkommen bei der Jugendfeuerwehr Musterstadt
+                                        # Willkommen bei der Jugendfeuerwehr Musterstadt
 
-                                                Wir sind eine aktive Jugendfeuerwehr mit rund 40 Mitgliedern im Alter von 10 bis 18 Jahren. \
-                                                Bei uns lernst du alles rund um die Feuerwehr — von Erster Hilfe über Brandbekämpfung bis hin zu Wettbewerben und Zeltlagern.
+                                        Wir sind eine aktive Jugendfeuerwehr mit rund 40 Mitgliedern im Alter von 10 bis 18 Jahren. \
+                                        Bei uns lernst du alles rund um die Feuerwehr — von Erster Hilfe über Brandbekämpfung bis hin zu Wettbewerben und Zeltlagern.
 
-                                                ## Was wir bieten
+                                        ## Was wir bieten
 
-                                                - Regelmäßige Übungen jeden Freitag
-                                                - Wettbewerbe auf Kreis- und Landesebene
-                                                - Zeltlager und Ausflüge
-                                                - Erste-Hilfe-Kurse
-                                                - Kameradschaft und Teamarbeit""", CellConfig.EMPTY))),
+                                        - Regelmäßige Übungen jeden Freitag
+                                        - Wettbewerbe auf Kreis- und Landesebene
+                                        - Zeltlager und Ausflüge
+                                        - Erste-Hilfe-Kurse
+                                        - Kameradschaft und Teamarbeit""", CellConfig.EMPTY))),
                         new PageService.RowData(
                                 1,
                                 List.of(
@@ -96,15 +100,15 @@ public class DemoPageSeeder {
                 List.of(new PageService.RowData(
                         0,
                         List.of(new PageService.CellData(0, 100, CellContentType.MARKDOWN, """
-                                        # Über uns
+                                # Über uns
 
-                                        Die Jugendfeuerwehr Musterstadt wurde 1985 gegründet und ist seitdem fester Bestandteil der Freiwilligen Feuerwehr Musterstadt. \
-                                        Wir sind stolz auf unsere lange Tradition und freuen uns über jedes neue Mitglied.
+                                Die Jugendfeuerwehr Musterstadt wurde 1985 gegründet und ist seitdem fester Bestandteil der Freiwilligen Feuerwehr Musterstadt. \
+                                Wir sind stolz auf unsere lange Tradition und freuen uns über jedes neue Mitglied.
 
-                                        ## Unsere Geschichte
+                                ## Unsere Geschichte
 
-                                        Seit der Gründung haben über 200 Jugendliche den Weg zu uns gefunden. \
-                                        Viele sind heute aktive Mitglieder der Einsatzabteilung.""", CellConfig.EMPTY)))));
+                                Seit der Gründung haben über 200 Jugendliche den Weg zu uns gefunden. \
+                                Viele sind heute aktive Mitglieder der Einsatzabteilung.""", CellConfig.EMPTY)))));
         pageService.setPublished(about.id(), true);
 
         // Child: Team
@@ -119,18 +123,18 @@ public class DemoPageSeeder {
                 List.of(new PageService.RowData(
                         0,
                         List.of(new PageService.CellData(0, 100, CellContentType.MARKDOWN, """
-                                        # Unser Team
+                                # Unser Team
 
-                                        ## Jugendfeuerwehrwart
-                                        **Max Mustermann** — seit 2015 dabei, leitet die Übungen und organisiert Wettbewerbe.
+                                ## Jugendfeuerwehrwart
+                                **Max Mustermann** — seit 2015 dabei, leitet die Übungen und organisiert Wettbewerbe.
 
-                                        ## Stellvertretende Jugendfeuerwehrwartin
-                                        **Anna Schmidt** — kümmert sich um die Ausbildung und Zeltlager.
+                                ## Stellvertretende Jugendfeuerwehrwartin
+                                **Anna Schmidt** — kümmert sich um die Ausbildung und Zeltlager.
 
-                                        ## Betreuer
-                                        - Thomas Müller
-                                        - Lisa Weber
-                                        - Jonas Fischer""", CellConfig.EMPTY)))));
+                                ## Betreuer
+                                - Thomas Müller
+                                - Lisa Weber
+                                - Jonas Fischer""", CellConfig.EMPTY)))));
         pageService.setPublished(team.id(), true);
 
         // Child: Ausrüstung
@@ -145,16 +149,16 @@ public class DemoPageSeeder {
                 List.of(new PageService.RowData(
                         0,
                         List.of(new PageService.CellData(0, 100, CellContentType.MARKDOWN, """
-                                        # Ausrüstung
+                                # Ausrüstung
 
-                                        Jedes Mitglied erhält bei Eintritt:
+                                Jedes Mitglied erhält bei Eintritt:
 
-                                        - Jugendfeuerwehr-Uniform (Hose, Jacke, Helm)
-                                        - Handschuhe
-                                        - Sicherheitsschuhe
-                                        - Jugendfeuerwehr-T-Shirt
+                                - Jugendfeuerwehr-Uniform (Hose, Jacke, Helm)
+                                - Handschuhe
+                                - Sicherheitsschuhe
+                                - Jugendfeuerwehr-T-Shirt
 
-                                        Die Ausrüstung wird von der Gemeinde gestellt und muss bei Austritt zurückgegeben werden.""", CellConfig.EMPTY)))));
+                                Die Ausrüstung wird von der Gemeinde gestellt und muss bei Austritt zurückgegeben werden.""", CellConfig.EMPTY)))));
         pageService.setPublished(equipment.id(), true);
 
         // Mitmachen page
@@ -171,42 +175,42 @@ public class DemoPageSeeder {
                                 0,
                                 List.of(new PageService.CellData(
                                         0, 100, CellContentType.MARKDOWN, """
-                                                # Mitmachen
+                                        # Mitmachen
 
-                                                Du bist zwischen 10 und 18 Jahre alt und hast Lust auf Feuerwehr? Dann komm einfach vorbei!
+                                        Du bist zwischen 10 und 18 Jahre alt und hast Lust auf Feuerwehr? Dann komm einfach vorbei!
 
-                                                ## So geht's
+                                        ## So geht's
 
-                                                1. Komm freitags um 17:30 Uhr zu einer Schnupperübung
-                                                2. Bring deine Eltern mit — sie können alles fragen
-                                                3. Nach 2-3 Schnupperübungen entscheidest du dich
-                                                4. Anmeldeformular ausfüllen — fertig!
+                                        1. Komm freitags um 17:30 Uhr zu einer Schnupperübung
+                                        2. Bring deine Eltern mit — sie können alles fragen
+                                        3. Nach 2-3 Schnupperübungen entscheidest du dich
+                                        4. Anmeldeformular ausfüllen — fertig!
 
-                                                **Wichtig:** Du brauchst keine Vorkenntnisse. Wir bringen dir alles bei!""", CellConfig.EMPTY))),
+                                        **Wichtig:** Du brauchst keine Vorkenntnisse. Wir bringen dir alles bei!""", CellConfig.EMPTY))),
                         new PageService.RowData(
                                 1,
                                 List.of(
                                         new PageService.CellData(
                                                 0, 60, CellContentType.MARKDOWN, """
-                                                        ## Was du mitbringen solltest
+                                                ## Was du mitbringen solltest
 
-                                                        - Spaß an Teamarbeit
-                                                        - Neugier
-                                                        - Feste Schuhe für die ersten Übungen
+                                                - Spaß an Teamarbeit
+                                                - Neugier
+                                                - Feste Schuhe für die ersten Übungen
 
-                                                        Alles andere stellen wir!""", CellConfig.EMPTY),
+                                                Alles andere stellen wir!""", CellConfig.EMPTY),
                                         new PageService.CellData(
                                                 1, 40, CellContentType.MARKDOWN, """
-                                                        ## Häufige Fragen
+                                                ## Häufige Fragen
 
-                                                        **Kostet das etwas?**
-                                                        Nein, die Mitgliedschaft ist kostenlos.
+                                                **Kostet das etwas?**
+                                                Nein, die Mitgliedschaft ist kostenlos.
 
-                                                        **Wie oft sind Übungen?**
-                                                        Jeden Freitag, außer in den Ferien.
+                                                **Wie oft sind Übungen?**
+                                                Jeden Freitag, außer in den Ferien.
 
-                                                        **Ab welchem Alter?**
-                                                        Ab 10 Jahren.""", CellConfig.EMPTY)))));
+                                                **Ab welchem Alter?**
+                                                Ab 10 Jahren.""", CellConfig.EMPTY)))));
         pageService.setPublished(join.id(), true);
 
         seedShowroom(stationId, memberId);
@@ -549,9 +553,5 @@ public class DemoPageSeeder {
                 false,
                 new FormQuestionConfig.Text(true));
         return contact.publicUid();
-    }
-
-    private static PageService.RowData row(int sortOrder, CellContentType type, String content, CellConfig config) {
-        return new PageService.RowData(sortOrder, List.of(new PageService.CellData(0, 100, type, content, config)));
     }
 }

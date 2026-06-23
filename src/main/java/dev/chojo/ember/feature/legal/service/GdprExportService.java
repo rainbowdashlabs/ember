@@ -112,7 +112,9 @@ public class GdprExportService {
         return data;
     }
 
-    /** ZIP archive containing {@code data.json}, an optional {@code data.pdf}, and the user's KB files. */
+    /**
+     * ZIP archive containing {@code data.json}, an optional {@code data.pdf}, and the user's KB files.
+     */
     public byte[] exportAccountDataAsZip(int accountId, String locale) {
         var data = exportAccountData(accountId);
 
@@ -146,7 +148,9 @@ public class GdprExportService {
         }
     }
 
-    /** Looks up a member by id and returns their metadata-driven export. */
+    /**
+     * Looks up a member by id and returns their metadata-driven export.
+     */
     public Map<String, Object> exportMemberData(int memberId) {
         var member = stationMemberRepository.findById(memberId);
         return member.map(this::exportMemberData).orElseGet(Map::of);

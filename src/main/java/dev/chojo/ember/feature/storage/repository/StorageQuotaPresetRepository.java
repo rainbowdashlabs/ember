@@ -135,8 +135,6 @@ public class StorageQuotaPresetRepository {
         return result;
     }
 
-    public record StationPresetAssignment(int presetId, String presetName) {}
-
     /**
      * Resets a station's quota overrides to NULL (use instance defaults).
      */
@@ -154,4 +152,6 @@ public class StorageQuotaPresetRepository {
                 WHERE id = :station_id;
                 """).single(call().bind("station_id", stationId)).update();
     }
+
+    public record StationPresetAssignment(int presetId, String presetName) {}
 }

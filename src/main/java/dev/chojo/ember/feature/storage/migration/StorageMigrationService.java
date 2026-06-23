@@ -42,7 +42,9 @@ import java.util.UUID;
 public class StorageMigrationService {
     private static final Logger log = LoggerFactory.getLogger(StorageMigrationService.class);
 
-    /** Fraction of migrated keys re-read on the target as a sanity check (1%). */
+    /**
+     * Fraction of migrated keys re-read on the target as a sanity check (1%).
+     */
     private static final int SAMPLE_DENOMINATOR = 100;
 
     private final StationRepository stationRepository;
@@ -65,13 +67,27 @@ public class StorageMigrationService {
         this.locks = locks;
     }
 
+    private static String computeSha256(StoredStream stream) throws IOException {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] buffer = new byte[8 * 1024];
+            int read;
+            while ((read = stream.body().read(buffer)) != -1) {
+                digest.update(buffer, 0, read);
+            }
+            return HexFormat.of().formatHex(digest.digest());
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 unavailable", e);
+        }
+    }
+
     /**
      * Migrates every object under {@code stationId} (across every station-scoped movable
      * category) from the currently-resolved backend to the backend described by
      * {@code targetConfig}, then flips the override row to point at the new backend.
      *
      * @throws MigrationException on any failure; the lock is released before the exception
-     *     propagates so the caller may safely retry.
+     *                            propagates so the caller may safely retry.
      */
     public MigrationResult migrate(int stationId, StationStorageBackendConfig targetConfig) {
         if (!locks.tryAcquire(stationId)) {
@@ -185,20 +201,6 @@ public class StorageMigrationService {
             return computeSha256(stream);
         } catch (IOException e) {
             throw new MigrationException("Failed to read key for verification " + key, e);
-        }
-    }
-
-    private static String computeSha256(StoredStream stream) throws IOException {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] buffer = new byte[8 * 1024];
-            int read;
-            while ((read = stream.body().read(buffer)) != -1) {
-                digest.update(buffer, 0, read);
-            }
-            return HexFormat.of().formatHex(digest.digest());
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 unavailable", e);
         }
     }
 

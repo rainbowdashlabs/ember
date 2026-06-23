@@ -15,15 +15,15 @@ import java.util.UUID;
 /**
  * Represents a station (organization unit) in the system.
  *
- * @param id                    the internal database identifier
- * @param uid                   the external UUID identifier (used in APIs and federation)
- * @param name                  the display name of the station
- * @param timezone              the IANA timezone identifier for the station
- * @param locale                the locale string used for formatting (e.g., "de-DE")
- * @param ownerMemberId         the member ID of the station owner, or {@code null} if no owner is set
- * @param discoveryVisibility   controls whether this station appears in federation discovery
- * @param discoveryDescription  optional description shown in discovery
- * @param discoveryShowKb       whether to show a link to the public knowledge base in discovery
+ * @param id                   the internal database identifier
+ * @param uid                  the external UUID identifier (used in APIs and federation)
+ * @param name                 the display name of the station
+ * @param timezone             the IANA timezone identifier for the station
+ * @param locale               the locale string used for formatting (e.g., "de-DE")
+ * @param ownerMemberId        the member ID of the station owner, or {@code null} if no owner is set
+ * @param discoveryVisibility  controls whether this station appears in federation discovery
+ * @param discoveryDescription optional description shown in discovery
+ * @param discoveryShowKb      whether to show a link to the public knowledge base in discovery
  */
 public record Station(
         int id,
@@ -67,9 +67,9 @@ public record Station(
                 row.getString("custom_theme_colors"),
                 row.getEnum("default_feel", ThemeFeel.class),
                 row.getBoolean("allow_user_feel"),
-                PublicKbMode.valueOf(row.getString("public_kb_mode")),
+                row.getEnum("public_kb_mode", PublicKbMode.class),
                 row.getString("federation_private_key"),
-                DiscoveryVisibility.valueOf(row.getString("discovery_visibility")),
+                row.getEnum("discovery_visibility", DiscoveryVisibility.class),
                 row.getString("discovery_description"),
                 row.getBoolean("discovery_show_kb"),
                 row.getBoolean("public_calendar_enabled"),

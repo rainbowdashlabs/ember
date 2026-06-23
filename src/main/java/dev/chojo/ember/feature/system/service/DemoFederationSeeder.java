@@ -110,7 +110,23 @@ public class DemoFederationSeeder {
         this.apiConfig = apiConfig;
     }
 
-    public record SeedResult(int partnerStationId, int partnerMemberId) {}
+    /**
+     * Returns the next upcoming occurrence date of a recurring event. For weekly events we
+     * walk forward to the next matching {@code day_of_week}; for non-weekly recurrences we
+     * fall back to the event's anchor start time so the demo data still gets a sensible
+     * date attached to the comment.
+     */
+    private static LocalDate nextOccurrenceOf(StationEvent event) {
+        var today = LocalDate.now();
+        if (event.eventType() == StationEvent.EventType.RECURRING && event.dayOfWeek() != null) {
+            DayOfWeek target = DayOfWeek.of(event.dayOfWeek());
+            int delta = (target.getValue() - today.getDayOfWeek().getValue() + 7) % 7;
+            return today.plusDays(delta == 0 ? 7 : delta);
+        }
+        return event.startTime() != null
+                ? event.startTime().atZone(ZoneId.systemDefault()).toLocalDate()
+                : today;
+    }
 
     /**
      * Seeds a partner station, federates it with the primary station, and shares content.
@@ -445,14 +461,14 @@ public class DemoFederationSeeder {
                 partnerStation.id(),
                 "Neue Drehleiter für die Partnerwache",
                 """
-                Wir haben eine neue **Drehleiter DLA(K) 23/12** erhalten! Das Fahrzeug wird in den nächsten Wochen in den Dienst gestellt.
+                        Wir haben eine neue **Drehleiter DLA(K) 23/12** erhalten! Das Fahrzeug wird in den nächsten Wochen in den Dienst gestellt.
 
-                ## Besichtigung
+                        ## Besichtigung
 
-                Alle Partnereinheiten sind herzlich eingeladen, sich das Fahrzeug bei der nächsten gemeinsamen Übung anzuschauen.
+                        Alle Partnereinheiten sind herzlich eingeladen, sich das Fahrzeug bei der nächsten gemeinsamen Übung anzuschauen.
 
-                Wir freuen uns auf euren Besuch! 🚒
-                """,
+                        Wir freuen uns auf euren Besuch! 🚒
+                        """,
                 "<p>Wir haben eine neue <strong>Drehleiter DLA(K) 23/12</strong> erhalten! Das Fahrzeug wird in den nächsten Wochen in den Dienst gestellt.</p><h2>Besichtigung</h2><p>Alle Partnereinheiten sind herzlich eingeladen, sich das Fahrzeug bei der nächsten gemeinsamen Übung anzuschauen.</p><p>Wir freuen uns auf euren Besuch! 🚒</p>",
                 stationMemberRepository.resolveIdentity(partnerMember.id()),
                 List.of(),
@@ -674,21 +690,5 @@ public class DemoFederationSeeder {
                 mirrored);
     }
 
-    /**
-     * Returns the next upcoming occurrence date of a recurring event. For weekly events we
-     * walk forward to the next matching {@code day_of_week}; for non-weekly recurrences we
-     * fall back to the event's anchor start time so the demo data still gets a sensible
-     * date attached to the comment.
-     */
-    private static LocalDate nextOccurrenceOf(StationEvent event) {
-        var today = LocalDate.now();
-        if (event.eventType() == StationEvent.EventType.RECURRING && event.dayOfWeek() != null) {
-            DayOfWeek target = DayOfWeek.of(event.dayOfWeek());
-            int delta = (target.getValue() - today.getDayOfWeek().getValue() + 7) % 7;
-            return today.plusDays(delta == 0 ? 7 : delta);
-        }
-        return event.startTime() != null
-                ? event.startTime().atZone(ZoneId.systemDefault()).toLocalDate()
-                : today;
-    }
+    public record SeedResult(int partnerStationId, int partnerMemberId) {}
 }

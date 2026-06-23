@@ -33,6 +33,27 @@ public sealed interface CellConfig {
 
     CellConfig EMPTY = new MarkdownConfig();
 
+    static CellConfig parse(CellContentType type, String json) {
+        if (json == null || json.isBlank() || "{}".equals(json)) {
+            return type.emptyConfig();
+        }
+        try {
+            return MAPPER.readValue(json, type.configClass());
+        } catch (Exception e) {
+            log.error("Failed to parse CellConfig for type {}: {}", type, json, e);
+            return type.emptyConfig();
+        }
+    }
+
+    default String toJson() {
+        try {
+            return MAPPER.writeValueAsString(this);
+        } catch (Exception e) {
+            log.error("Failed to serialize CellConfig", e);
+            return "{}";
+        }
+    }
+
     enum ImageFit {
         COVER,
         CONTAIN,
@@ -383,25 +404,4 @@ public sealed interface CellConfig {
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record NestedRowsConfig(JsonNode rows) implements CellConfig {}
-
-    static CellConfig parse(CellContentType type, String json) {
-        if (json == null || json.isBlank() || "{}".equals(json)) {
-            return type.emptyConfig();
-        }
-        try {
-            return MAPPER.readValue(json, type.configClass());
-        } catch (Exception e) {
-            log.error("Failed to parse CellConfig for type {}: {}", type, json, e);
-            return type.emptyConfig();
-        }
-    }
-
-    default String toJson() {
-        try {
-            return MAPPER.writeValueAsString(this);
-        } catch (Exception e) {
-            log.error("Failed to serialize CellConfig", e);
-            return "{}";
-        }
-    }
 }

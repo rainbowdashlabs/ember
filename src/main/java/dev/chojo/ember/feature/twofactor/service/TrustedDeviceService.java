@@ -41,14 +41,18 @@ public class TrustedDeviceService {
         this.settings = settings;
     }
 
+    private static String newToken() {
+        byte[] bytes = new byte[TOKEN_BYTES];
+        RANDOM.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
     /**
      * Returns the operator-configured maximum window for trusted-device cookies, capped at 30 days.
      */
     public int maxDays() {
         return settings.trustedDeviceMaxDays();
     }
-
-    public record Issued(String token, TrustedDevice device) {}
 
     /**
      * Creates a trusted-device row for {@code accountId}. {@code requestedDays} is clamped to
@@ -86,9 +90,5 @@ public class TrustedDeviceService {
         repository.revokeAllTrustedDevices(accountId);
     }
 
-    private static String newToken() {
-        byte[] bytes = new byte[TOKEN_BYTES];
-        RANDOM.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
+    public record Issued(String token, TrustedDevice device) {}
 }

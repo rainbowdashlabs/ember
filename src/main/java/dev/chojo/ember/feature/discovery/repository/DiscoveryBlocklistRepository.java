@@ -34,10 +34,10 @@ public class DiscoveryBlocklistRepository {
 
     public void add(BlocklistKind kind, String value, String note) {
         query("""
-                                INSERT INTO discovery_blocklist (value, kind, note)
-                                VALUES (:value, :kind, :note)
-                                ON CONFLICT (value) DO UPDATE
-                                SET kind = EXCLUDED.kind, note = EXCLUDED.note;""")
+                INSERT INTO discovery_blocklist (value, kind, note)
+                VALUES (:value, :kind, :note)
+                ON CONFLICT (value) DO UPDATE
+                SET kind = excluded.kind, note = excluded.note;""")
                 .single(call().bind("value", value).bind("kind", kind.name()).bind("note", note))
                 .insert();
     }

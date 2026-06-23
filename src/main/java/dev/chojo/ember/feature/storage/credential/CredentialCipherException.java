@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.feature.storage.credential;
 
-/** Wraps every cipher failure on the credential encrypt / decrypt path. */
+/**
+ * Wraps every cipher failure on the credential encrypt / decrypt path.
+ */
 public class CredentialCipherException extends RuntimeException {
     public CredentialCipherException(String message) {
         super(message);

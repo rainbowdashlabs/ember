@@ -43,31 +43,9 @@ public sealed interface FormAnswerValue {
                     .withGetterVisibility(JsonAutoDetect.Visibility.NONE))
             .build();
 
-    /** Selected choice indices + optional other text. */
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Choice(List<Integer> selected, String other) implements FormAnswerValue {}
-
-    /** Free text answer. */
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Text(String text) implements FormAnswerValue {}
-
-    /** Numeric rating. */
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Rating(int rating) implements FormAnswerValue {}
-
-    /** Date answer. */
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    record DateValue(String date) implements FormAnswerValue {}
-
-    /** Ordered ranking. */
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Ranking(List<Integer> order) implements FormAnswerValue {}
-
-    /** Likert scale ratings per sub-item. */
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Likert(Map<String, Integer> ratings) implements FormAnswerValue {}
-
-    /** Parses a JSON string into the appropriate answer value for the given question type. */
+    /**
+     * Parses a JSON string into the appropriate answer value for the given question type.
+     */
     static FormAnswerValue parse(FormQuestionType formQuestionType, String json) {
         if (json == null || json.isBlank()) return null;
         try {
@@ -78,7 +56,9 @@ public sealed interface FormAnswerValue {
         }
     }
 
-    /** Serializes this answer value to a JSON string. */
+    /**
+     * Serializes this answer value to a JSON string.
+     */
     default String toJson() {
         try {
             return MAPPER.writeValueAsString(this);
@@ -86,4 +66,40 @@ public sealed interface FormAnswerValue {
             return "{}";
         }
     }
+
+    /**
+     * Selected choice indices + optional other text.
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record Choice(List<Integer> selected, String other) implements FormAnswerValue {}
+
+    /**
+     * Free text answer.
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record Text(String text) implements FormAnswerValue {}
+
+    /**
+     * Numeric rating.
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record Rating(int rating) implements FormAnswerValue {}
+
+    /**
+     * Date answer.
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record DateValue(String date) implements FormAnswerValue {}
+
+    /**
+     * Ordered ranking.
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record Ranking(List<Integer> order) implements FormAnswerValue {}
+
+    /**
+     * Likert scale ratings per sub-item.
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record Likert(Map<String, Integer> ratings) implements FormAnswerValue {}
 }

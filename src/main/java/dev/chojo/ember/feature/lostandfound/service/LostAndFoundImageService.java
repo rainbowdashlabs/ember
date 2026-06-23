@@ -31,23 +31,31 @@ public class LostAndFoundImageService {
         this.stationRepository = stationRepository;
     }
 
-    /** Persists the image for a (stationId, itemId) pair at all standard size variants. */
+    /**
+     * Persists the image for a (stationId, itemId) pair at all standard size variants.
+     */
     public void store(int stationId, int itemId, byte[] data, String declaredMime, int maxBytes) throws IOException {
         variants.store(
                 scope(stationId), StorageCategory.IMAGE_LOST_AND_FOUND, key(itemId), data, declaredMime, maxBytes);
     }
 
-    /** Reads the requested image size, falling back to the original when missing. */
+    /**
+     * Reads the requested image size, falling back to the original when missing.
+     */
     public Optional<ImageVariantService.ImageData> read(int stationId, int itemId, int size) {
         return variants.read(scope(stationId), StorageCategory.IMAGE_LOST_AND_FOUND, key(itemId), size);
     }
 
-    /** Whether an image exists for the given item. */
+    /**
+     * Whether an image exists for the given item.
+     */
     public boolean exists(int stationId, int itemId) {
         return variants.exists(scope(stationId), StorageCategory.IMAGE_LOST_AND_FOUND, key(itemId));
     }
 
-    /** Removes every variant for the given item's image. */
+    /**
+     * Removes every variant for the given item's image.
+     */
     public void delete(int stationId, int itemId) {
         variants.delete(scope(stationId), StorageCategory.IMAGE_LOST_AND_FOUND, key(itemId));
     }

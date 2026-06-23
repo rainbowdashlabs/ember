@@ -56,6 +56,11 @@ public class SitemapRoutes implements Routes {
         this.kbService = kbService;
     }
 
+    private static String formatDate(Instant instant) {
+        if (instant == null) return null;
+        return W3C_DATETIME.format(instant.atOffset(ZoneOffset.UTC));
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get("/sitemap.xml", this::sitemapIndex);
@@ -158,11 +163,6 @@ public class SitemapRoutes implements Routes {
 
     private String baseUrl(Context ctx) {
         return ctx.scheme() + "://" + ctx.host();
-    }
-
-    private static String formatDate(Instant instant) {
-        if (instant == null) return null;
-        return W3C_DATETIME.format(instant.atOffset(ZoneOffset.UTC));
     }
 
     @JsonRootName(value = "sitemapindex", namespace = SITEMAP_NS)

@@ -29,7 +29,7 @@ public record AttendanceReportPreset(
                 row.getInt("id"),
                 row.getInt("station_id"),
                 row.getString("name"),
-                row.getString("role_name") != null ? StationUserType.valueOf(row.getString("role_name")) : null,
+                row.getEnum("role_name", StationUserType.class),
                 row.getObject("group_id", Integer.class),
                 row.getString("period"),
                 row.getString("rounding"));

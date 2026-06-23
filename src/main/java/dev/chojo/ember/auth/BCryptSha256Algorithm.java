@@ -25,6 +25,16 @@ import java.util.Base64;
 public class BCryptSha256Algorithm implements HashAlgorithm {
     private static final int COST = 12;
 
+    private static String prehash(String password) {
+        try {
+            var digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashed = digest.digest(password.getBytes(StandardCharsets.UTF_8));
+            return Base64.getEncoder().encodeToString(hashed);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 not available", e);
+        }
+    }
+
     @Override
     public String name() {
         return "bcrypt-sha256";
@@ -40,15 +50,5 @@ public class BCryptSha256Algorithm implements HashAlgorithm {
     public boolean verify(String password, PasswordHash hash) {
         BCrypt.Result result = BCrypt.verifyer().verify(prehash(password).toCharArray(), hash.hash());
         return result.verified;
-    }
-
-    private static String prehash(String password) {
-        try {
-            var digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashed = digest.digest(password.getBytes(StandardCharsets.UTF_8));
-            return Base64.getEncoder().encodeToString(hashed);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
-        }
     }
 }

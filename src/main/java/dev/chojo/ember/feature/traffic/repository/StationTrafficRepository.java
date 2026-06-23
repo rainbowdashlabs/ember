@@ -39,39 +39,6 @@ public class StationTrafficRepository {
         }
     }
 
-    private void upsertStation(TrafficBucket bucket) {
-        query("""
-                INSERT INTO station_traffic_hourly(hour, station_id, auth, ingress_bytes, egress_bytes, requests)
-                VALUES (:hour, :station_id, :auth, :ingress, :egress, :requests)
-                ON CONFLICT (hour, station_id, auth) WHERE station_id IS NOT NULL DO UPDATE
-                SET ingress_bytes = station_traffic_hourly.ingress_bytes + EXCLUDED.ingress_bytes,
-                    egress_bytes  = station_traffic_hourly.egress_bytes  + EXCLUDED.egress_bytes,
-                    requests      = station_traffic_hourly.requests      + EXCLUDED.requests;""")
-                .single(call().bind("hour", bucket.hour(), INSTANT_TIMESTAMP)
-                        .bind("station_id", bucket.stationId())
-                        .bind("auth", bucket.auth().name())
-                        .bind("ingress", bucket.ingressBytes())
-                        .bind("egress", bucket.egressBytes())
-                        .bind("requests", bucket.requests()))
-                .insert();
-    }
-
-    private void upsertGlobal(TrafficBucket bucket) {
-        query("""
-                INSERT INTO station_traffic_hourly(hour, station_id, auth, ingress_bytes, egress_bytes, requests)
-                VALUES (:hour, NULL, :auth, :ingress, :egress, :requests)
-                ON CONFLICT (hour, auth) WHERE station_id IS NULL DO UPDATE
-                SET ingress_bytes = station_traffic_hourly.ingress_bytes + EXCLUDED.ingress_bytes,
-                    egress_bytes  = station_traffic_hourly.egress_bytes  + EXCLUDED.egress_bytes,
-                    requests      = station_traffic_hourly.requests      + EXCLUDED.requests;""")
-                .single(call().bind("hour", bucket.hour(), INSTANT_TIMESTAMP)
-                        .bind("auth", bucket.auth().name())
-                        .bind("ingress", bucket.ingressBytes())
-                        .bind("egress", bucket.egressBytes())
-                        .bind("requests", bucket.requests()))
-                .insert();
-    }
-
     /**
      * Returns hourly rows for the given window, optionally filtered by station and auth
      * bucket. {@code stationId == null} returns rows for every station (use
@@ -96,7 +63,7 @@ public class StationTrafficRepository {
                 .map(row -> new TrafficBucket(
                         row.get("hour", INSTANT_TIMESTAMP),
                         row.getObject("station_id") == null ? null : row.getInt("station_id"),
-                        AuthBucket.valueOf(row.getString("auth")),
+                        row.getEnum("auth", AuthBucket.class),
                         row.getLong("ingress_bytes"),
                         row.getLong("egress_bytes"),
                         row.getLong("requests")))
@@ -124,7 +91,7 @@ public class StationTrafficRepository {
                 .map(row -> new TrafficBucket(
                         row.get("hour", INSTANT_TIMESTAMP),
                         null,
-                        AuthBucket.valueOf(row.getString("auth")),
+                        row.getEnum("auth", AuthBucket.class),
                         row.getLong("ingress_bytes"),
                         row.getLong("egress_bytes"),
                         row.getLong("requests")))
@@ -142,5 +109,38 @@ public class StationTrafficRepository {
                 .single(call().bind("cutoff", cutoff, INSTANT_TIMESTAMP))
                 .delete()
                 .rows();
+    }
+
+    private void upsertStation(TrafficBucket bucket) {
+        query("""
+                INSERT INTO station_traffic_hourly(hour, station_id, auth, ingress_bytes, egress_bytes, requests)
+                VALUES (:hour, :station_id, :auth, :ingress, :egress, :requests)
+                ON CONFLICT (hour, station_id, auth) WHERE station_id IS NOT NULL DO UPDATE
+                SET ingress_bytes = station_traffic_hourly.ingress_bytes + excluded.ingress_bytes,
+                    egress_bytes  = station_traffic_hourly.egress_bytes  + excluded.egress_bytes,
+                    requests      = station_traffic_hourly.requests      + excluded.requests;""")
+                .single(call().bind("hour", bucket.hour(), INSTANT_TIMESTAMP)
+                        .bind("station_id", bucket.stationId())
+                        .bind("auth", bucket.auth().name())
+                        .bind("ingress", bucket.ingressBytes())
+                        .bind("egress", bucket.egressBytes())
+                        .bind("requests", bucket.requests()))
+                .insert();
+    }
+
+    private void upsertGlobal(TrafficBucket bucket) {
+        query("""
+                INSERT INTO station_traffic_hourly(hour, station_id, auth, ingress_bytes, egress_bytes, requests)
+                VALUES (:hour, NULL, :auth, :ingress, :egress, :requests)
+                ON CONFLICT (hour, auth) WHERE station_id IS NULL DO UPDATE
+                SET ingress_bytes = station_traffic_hourly.ingress_bytes + excluded.ingress_bytes,
+                    egress_bytes  = station_traffic_hourly.egress_bytes  + excluded.egress_bytes,
+                    requests      = station_traffic_hourly.requests      + excluded.requests;""")
+                .single(call().bind("hour", bucket.hour(), INSTANT_TIMESTAMP)
+                        .bind("auth", bucket.auth().name())
+                        .bind("ingress", bucket.ingressBytes())
+                        .bind("egress", bucket.egressBytes())
+                        .bind("requests", bucket.requests()))
+                .insert();
     }
 }

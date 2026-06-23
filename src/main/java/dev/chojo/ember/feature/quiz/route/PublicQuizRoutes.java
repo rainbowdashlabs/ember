@@ -39,6 +39,25 @@ public class PublicQuizRoutes implements Routes {
         this.stationRepository = stationRepository;
     }
 
+    private static List<Integer> parseCatalogIds(String raw) {
+        var out = new ArrayList<Integer>();
+        for (String token : raw.split(",")) {
+            String trimmed = token.trim();
+            if (trimmed.isEmpty()) continue;
+            try {
+                out.add(Integer.parseInt(trimmed));
+            } catch (NumberFormatException ignored) {
+                throw new BadRequestResponse("catalogs contains a non-numeric id: " + trimmed);
+            }
+        }
+        return out;
+    }
+
+    private static PublicQuestion toPublicQuestion(QuizQuestion q) {
+        return new PublicQuestion(
+                q.id(), q.quizQuestionType().name(), q.title(), q.description(), q.imageUrl(), q.configNode());
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/public/quiz/{stationUid}/catalogs", this::listPublicCatalogs);
@@ -76,25 +95,6 @@ public class PublicQuizRoutes implements Routes {
                 catalogRepository.findRandomPublicQuestion(station.id(), ids).orElseThrow(NotFoundResponse::new);
         ctx.header("Cache-Control", "no-store, no-cache, must-revalidate");
         ctx.json(toPublicQuestion(picked));
-    }
-
-    private static List<Integer> parseCatalogIds(String raw) {
-        var out = new ArrayList<Integer>();
-        for (String token : raw.split(",")) {
-            String trimmed = token.trim();
-            if (trimmed.isEmpty()) continue;
-            try {
-                out.add(Integer.parseInt(trimmed));
-            } catch (NumberFormatException ignored) {
-                throw new BadRequestResponse("catalogs contains a non-numeric id: " + trimmed);
-            }
-        }
-        return out;
-    }
-
-    private static PublicQuestion toPublicQuestion(QuizQuestion q) {
-        return new PublicQuestion(
-                q.id(), q.quizQuestionType().name(), q.title(), q.description(), q.imageUrl(), q.configNode());
     }
 
     /**

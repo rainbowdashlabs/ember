@@ -162,15 +162,11 @@ public enum StorageCategory {
      * sentinel; callers iterating over the list should treat it as "no restriction".
      */
     public static final List<String> MIME_ANY = MimeLists.ANY;
-
     /**
-     * Nested holder so the {@code MIME_ANY} sentinel can be referenced from enum-literal
-     * initializers without triggering Java's "illegal forward reference" check on
-     * {@code static final} fields declared after the literals.
+     * Set of legacy categories kept around so the existing quota tables and routes keep
+     * working while the rollout is in progress. New code must not branch on these.
      */
-    private static final class MimeLists {
-        private static final List<String> ANY = List.of("*/*");
-    }
+    public static final Set<StorageCategory> LEGACY_CATEGORIES = Set.of(AVATARS, IMAGES);
 
     private final String prefix;
     private final StorageScope.Kind scopeKind;
@@ -225,27 +221,37 @@ public enum StorageCategory {
         return movable;
     }
 
-    /** Inverse of {@link #isMovable()}. */
+    /**
+     * Inverse of {@link #isMovable()}.
+     */
     public boolean isLocalPinned() {
         return !movable;
     }
 
-    /** Quota tracking mode — {@code ENFORCED}, {@code TRACKED}, or {@code UNTRACKED}. */
+    /**
+     * Quota tracking mode — {@code ENFORCED}, {@code TRACKED}, or {@code UNTRACKED}.
+     */
     public QuotaMode quotaMode() {
         return quotaMode;
     }
 
-    /** Whether bytes in this category count against and are checked against a station quota. */
+    /**
+     * Whether bytes in this category count against and are checked against a station quota.
+     */
     public boolean enforcesQuota() {
         return quotaMode == QuotaMode.ENFORCED;
     }
 
-    /** Whether bytes in this category should be tracked in {@code storage_usage}. */
+    /**
+     * Whether bytes in this category should be tracked in {@code storage_usage}.
+     */
     public boolean tracksUsage() {
         return quotaMode != QuotaMode.UNTRACKED;
     }
 
-    /** Immutable list of accepted MIME types. {@link #MIME_ANY} marks "no restriction". */
+    /**
+     * Immutable list of accepted MIME types. {@link #MIME_ANY} marks "no restriction".
+     */
     public List<String> acceptedMimeTypes() {
         return acceptedMimeTypes;
     }
@@ -291,18 +297,29 @@ public enum StorageCategory {
     }
 
     /**
-     * Set of legacy categories kept around so the existing quota tables and routes keep
-     * working while the rollout is in progress. New code must not branch on these.
+     * Quota tracking mode — see concept §4.5.
      */
-    public static final Set<StorageCategory> LEGACY_CATEGORIES = Set.of(AVATARS, IMAGES);
-
-    /** Quota tracking mode — see concept §4.5. */
     public enum QuotaMode {
-        /** Counted in {@code storage_usage} and rejected past the per-station limit. */
+        /**
+         * Counted in {@code storage_usage} and rejected past the per-station limit.
+         */
         ENFORCED,
-        /** Counted in {@code storage_usage} but never rejected. */
+        /**
+         * Counted in {@code storage_usage} but never rejected.
+         */
         TRACKED,
-        /** Not counted at all. */
+        /**
+         * Not counted at all.
+         */
         UNTRACKED
+    }
+
+    /**
+     * Nested holder so the {@code MIME_ANY} sentinel can be referenced from enum-literal
+     * initializers without triggering Java's "illegal forward reference" check on
+     * {@code static final} fields declared after the literals.
+     */
+    private static final class MimeLists {
+        private static final List<String> ANY = List.of("*/*");
     }
 }

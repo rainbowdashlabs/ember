@@ -74,6 +74,13 @@ public class PageHitRecorder {
         this.metrics = metrics;
     }
 
+    private static String normalizeCountry(String country) {
+        if (country == null || country.isBlank()) return "XX";
+        String trimmed = country.trim();
+        if (trimmed.length() != 2) return "XX";
+        return trimmed.toUpperCase(Locale.ROOT);
+    }
+
     /**
      * Schedules the flush and prune tasks. Idempotent — call once at boot from
      * {@code ApiServer}.
@@ -131,32 +138,6 @@ public class PageHitRecorder {
         }
     }
 
-    private String collapseLongTail(int pageId, String refererDomain, Instant since) {
-        if (refererDomain.equals("direct") || refererDomain.equals("internal") || refererDomain.equals(OTHER)) {
-            return refererDomain;
-        }
-        try {
-            long historical = repository.recentRefererCount(pageId, refererDomain, since);
-            if (historical < LONG_TAIL_MIN_HITS) return OTHER;
-        } catch (Exception e) {
-            log.debug("Long-tail lookup failed for referer={} page={}; keeping raw value", refererDomain, pageId, e);
-        }
-        return refererDomain;
-    }
-
-    private void prune() {
-        try {
-            int days = Math.max(1, metrics.webStatsRetentionDays());
-            Instant cutoff = Instant.now().minus(Duration.ofDays(days));
-            int removed = repository.pruneBefore(cutoff);
-            if (removed > 0) {
-                log.info("Pruned {} expired page-hit buckets older than {} days", removed, days);
-            }
-        } catch (Exception e) {
-            log.warn("Failed to prune expired page-hit buckets", e);
-        }
-    }
-
     /**
      * Returns the number of in-memory accumulators currently buffered. Useful for tests
      * and operational metrics.
@@ -183,11 +164,30 @@ public class PageHitRecorder {
         return out;
     }
 
-    private static String normalizeCountry(String country) {
-        if (country == null || country.isBlank()) return "XX";
-        String trimmed = country.trim();
-        if (trimmed.length() != 2) return "XX";
-        return trimmed.toUpperCase(Locale.ROOT);
+    private String collapseLongTail(int pageId, String refererDomain, Instant since) {
+        if (refererDomain.equals("direct") || refererDomain.equals("internal") || refererDomain.equals(OTHER)) {
+            return refererDomain;
+        }
+        try {
+            long historical = repository.recentRefererCount(pageId, refererDomain, since);
+            if (historical < LONG_TAIL_MIN_HITS) return OTHER;
+        } catch (Exception e) {
+            log.debug("Long-tail lookup failed for referer={} page={}; keeping raw value", refererDomain, pageId, e);
+        }
+        return refererDomain;
+    }
+
+    private void prune() {
+        try {
+            int days = Math.max(1, metrics.webStatsRetentionDays());
+            Instant cutoff = Instant.now().minus(Duration.ofDays(days));
+            int removed = repository.pruneBefore(cutoff);
+            if (removed > 0) {
+                log.info("Pruned {} expired page-hit buckets older than {} days", removed, days);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to prune expired page-hit buckets", e);
+        }
     }
 
     private Instant currentHour() {

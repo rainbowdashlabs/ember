@@ -251,7 +251,7 @@ public class TwoFactorRepository {
 
     public boolean markBackupCodeUsed(int codeId, String ip) {
         return query(
-                        "UPDATE account_2fa_backup_code SET used_at = now(), used_via_ip = CAST(:ip AS CIDR) WHERE id = :id AND used_at IS NULL;")
+                        "UPDATE account_2fa_backup_code SET used_at = now(), used_via_ip = cast(:ip AS CIDR) WHERE id = :id AND used_at IS NULL;")
                 .single(call().bind("id", codeId).bind("ip", ip))
                 .update()
                 .changed();
@@ -267,7 +267,7 @@ public class TwoFactorRepository {
         query("""
                 UPDATE account_2fa_backup_code SET used_at = now()
                 WHERE used_at IS NULL AND factor_id IN (
-                    SELECT id FROM account_2fa_factor WHERE account_id = :account_id AND kind = CAST('BACKUP_CODES' AS two_factor_kind)
+                    SELECT id FROM account_2fa_factor WHERE account_id = :account_id AND kind = cast('BACKUP_CODES' AS TWO_FACTOR_KIND)
                 );""").single(call().bind("account_id", accountId)).update();
     }
 

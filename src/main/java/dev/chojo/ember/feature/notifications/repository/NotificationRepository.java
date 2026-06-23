@@ -33,9 +33,9 @@ public class NotificationRepository {
      */
     public Notification create(int memberId, NotificationType type, NotificationData data) {
         return query("""
-                            INSERT INTO notification(member_id, type, data)
-                            VALUES(:member_id, :type, :data::JSONB)
-                            RETURNING *;""")
+                INSERT INTO notification(member_id, type, data)
+                VALUES(:member_id, :type, :data::JSONB)
+                RETURNING *;""")
                 .single(call().bind("member_id", memberId).bind("type", type).bind("data", data.toJson()))
                 .map(Notification.map())
                 .first()
@@ -52,11 +52,11 @@ public class NotificationRepository {
      */
     public boolean exists(int memberId, NotificationType type, String dataJson) {
         return query("""
-                            SELECT 1 FROM notification
-                            WHERE member_id = :member_id
-                              AND type = :type
-                              AND data = :data::JSONB
-                              AND acknowledged_at IS NULL;""")
+                SELECT 1 FROM notification
+                WHERE member_id = :member_id
+                  AND type = :type
+                  AND data = :data::JSONB
+                  AND acknowledged_at IS NULL;""")
                 .single(call().bind("member_id", memberId).bind("type", type).bind("data", dataJson))
                 .map(row -> true)
                 .first()
@@ -107,9 +107,6 @@ public class NotificationRepository {
                 .first()
                 .orElse(new Stamp(0, Instant.EPOCH));
     }
-
-    /** Snapshot of the latest notification state for a member. */
-    public record Stamp(int maxId, Instant maxCreatedAt) {}
 
     /**
      * Counts unacknowledged notifications for a member.
@@ -165,10 +162,10 @@ public class NotificationRepository {
      */
     public int deleteByTypeContaining(NotificationType type, String partialDataJson) {
         return query("""
-                            DELETE FROM notification
-                            WHERE type = :type
-                              AND data @> :partial::JSONB
-                              AND acknowledged_at IS NULL;""")
+                DELETE FROM notification
+                WHERE type = :type
+                  AND data @> :partial::JSONB
+                  AND acknowledged_at IS NULL;""")
                 .single(call().bind("type", type).bind("partial", partialDataJson))
                 .delete()
                 .rows();
@@ -210,4 +207,9 @@ public class NotificationRepository {
                     .update();
         }
     }
+
+    /**
+     * Snapshot of the latest notification state for a member.
+     */
+    public record Stamp(int maxId, Instant maxCreatedAt) {}
 }

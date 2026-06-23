@@ -40,6 +40,14 @@ public class PublicMapsRoutes implements Routes {
         this.cacheService = cacheService;
     }
 
+    private static int parseInt(String value, String fieldName) {
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            throw new BadRequestResponse(fieldName + " must be an integer");
+        }
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/public/settings/maps", this::getConfig);
@@ -76,14 +84,6 @@ public class PublicMapsRoutes implements Routes {
         ctx.header("X-Tile-Cache", response.status().name());
         ctx.header("X-Robots-Tag", "noindex");
         ctx.result(response.body());
-    }
-
-    private static int parseInt(String value, String fieldName) {
-        try {
-            return Integer.parseInt(value);
-        } catch (NumberFormatException e) {
-            throw new BadRequestResponse(fieldName + " must be an integer");
-        }
     }
 
     /**

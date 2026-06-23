@@ -73,7 +73,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class DemoService {
     private static final Logger log = LoggerFactory.getLogger(DemoService.class);
     private static final String PASSWORD = "demo";
-
+    private static final Path SCHEMA_HASH_FILE = Path.of(".demo-schema-hash");
     private final Demo demoConfig;
     private final Database databaseConfig;
     private final DataSource dataSource;
@@ -223,6 +223,17 @@ public class DemoService {
         needsReset = true;
     }
 
+    public void resetAndSeed() {
+        log.info("Demo: Wiping and re-seeding database...");
+        try {
+            wipeDatabase();
+            seedData();
+            log.info("Demo: Database seeded successfully");
+        } catch (Exception e) {
+            log.error("Demo: Failed to seed database", e);
+        }
+    }
+
     private void checkIdleReset() {
         if (!needsReset) return;
         var idleMinutes = Duration.between(lastActivity, Instant.now()).toMinutes();
@@ -232,8 +243,6 @@ public class DemoService {
             resetAndSeed();
         }
     }
-
-    private static final Path SCHEMA_HASH_FILE = Path.of(".demo-schema-hash");
 
     private boolean schemaUnchanged() {
         try {
@@ -271,17 +280,6 @@ public class DemoService {
             return HexFormat.of().formatHex(digest.digest());
         } catch (NoSuchAlgorithmException | IOException e) {
             throw new RuntimeException("Failed to compute schema hash", e);
-        }
-    }
-
-    public void resetAndSeed() {
-        log.info("Demo: Wiping and re-seeding database...");
-        try {
-            wipeDatabase();
-            seedData();
-            log.info("Demo: Database seeded successfully");
-        } catch (Exception e) {
-            log.error("Demo: Failed to seed database", e);
         }
     }
 

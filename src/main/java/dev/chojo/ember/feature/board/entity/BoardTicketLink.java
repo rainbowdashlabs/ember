@@ -11,6 +11,6 @@ public record BoardTicketLink(int ticketId, int linkedTicketId, LinkType linkTyp
 
     public static RowMapping<BoardTicketLink> map() {
         return row -> new BoardTicketLink(
-                row.getInt("ticket_id"), row.getInt("linked_ticket_id"), LinkType.valueOf(row.getString("link_type")));
+                row.getInt("ticket_id"), row.getInt("linked_ticket_id"), row.getEnum("link_type", LinkType.class));
     }
 }

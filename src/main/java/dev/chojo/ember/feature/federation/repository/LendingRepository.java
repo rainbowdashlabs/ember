@@ -31,9 +31,9 @@ public class LendingRepository {
     public LendingRequest createRequest(
             int requestingStationId, int owningStationId, LocalDate dateFrom, LocalDate dateTo, int createdBy) {
         return query("""
-                        INSERT INTO federation_lending_request(requesting_station_id, owning_station_id, status, requested_date_from, requested_date_to, created_by)
-                        VALUES (:requesting_station_id, :owning_station_id, :status, :date_from, :date_to, :created_by)
-                        RETURNING *;""")
+                INSERT INTO federation_lending_request(requesting_station_id, owning_station_id, status, requested_date_from, requested_date_to, created_by)
+                VALUES (:requesting_station_id, :owning_station_id, :status, :date_from, :date_to, :created_by)
+                RETURNING *;""")
                 .single(call().bind("requesting_station_id", requestingStationId)
                         .bind("owning_station_id", owningStationId)
                         .bind("status", LendingStatus.REQUESTED)
@@ -76,9 +76,9 @@ public class LendingRepository {
 
     public LendingRequestItem addRequestItem(int requestId, Integer inventoryId, Integer itemId, int quantity) {
         return query("""
-                        INSERT INTO federation_lending_request_item(request_id, inventory_id, item_id, quantity)
-                        VALUES (:request_id, :inventory_id, :item_id, :quantity)
-                        RETURNING *;""")
+                INSERT INTO federation_lending_request_item(request_id, inventory_id, item_id, quantity)
+                VALUES (:request_id, :inventory_id, :item_id, :quantity)
+                RETURNING *;""")
                 .single(call().bind("request_id", requestId)
                         .bind("inventory_id", inventoryId)
                         .bind("item_id", itemId)
@@ -100,34 +100,6 @@ public class LendingRepository {
                 .single(call().bind("id", requestItemId).bind("assigned_item_id", assignedItemId))
                 .update()
                 .changed();
-    }
-
-    /**
-     * Finds items from lending requests that are currently lent out (APPROVED or LENT status)
-     * for a specific inventory, owned by a specific station.
-     */
-    public record LentOutItem(
-            int requestItemId,
-            int requestId,
-            Integer itemId,
-            int quantity,
-            Integer assignedItemId,
-            String status,
-            LocalDate dateFrom,
-            LocalDate dateTo,
-            String requestingStationName) {
-        public static RowMapping<LentOutItem> map() {
-            return row -> new LentOutItem(
-                    row.getInt("request_item_id"),
-                    row.getInt("request_id"),
-                    row.getObject("item_id", Integer.class),
-                    row.getInt("quantity"),
-                    row.getObject("assigned_item_id", Integer.class),
-                    row.getString("status"),
-                    row.getObject("date_from", LocalDate.class),
-                    row.getObject("date_to", LocalDate.class),
-                    row.getString("requesting_station_name"));
-        }
     }
 
     public List<LentOutItem> findLentOutByInventory(int inventoryId, int owningStationId) {
@@ -157,14 +129,12 @@ public class LendingRepository {
                 .all();
     }
 
-    // -- Messages --
-
     public LendingMessage createMessage(
             int requestId, int senderStationId, Integer senderMemberId, String message, boolean isSystem) {
         return query("""
-                        INSERT INTO federation_lending_message(request_id, sender_station_id, sender_member_id, message, is_system)
-                        VALUES (:request_id, :sender_station_id, :sender_member_id, :message, :is_system)
-                        RETURNING *;""")
+                INSERT INTO federation_lending_message(request_id, sender_station_id, sender_member_id, message, is_system)
+                VALUES (:request_id, :sender_station_id, :sender_member_id, :message, :is_system)
+                RETURNING *;""")
                 .single(call().bind("request_id", requestId)
                         .bind("sender_station_id", senderStationId)
                         .bind("sender_member_id", senderMemberId)
@@ -174,6 +144,8 @@ public class LendingRepository {
                 .first()
                 .orElseThrow();
     }
+
+    // -- Messages --
 
     public List<LendingMessage> findMessagesByRequest(int requestId) {
         return query("SELECT * FROM federation_lending_message WHERE request_id = :request_id ORDER BY created_at;")
@@ -199,14 +171,12 @@ public class LendingRepository {
                 .all();
     }
 
-    // -- Inventory Blocks --
-
     public InventoryBlock createBlock(
             int stationId, Integer inventoryId, Integer itemId, LocalDate blockFrom, LocalDate blockTo, String reason) {
         return query("""
-                        INSERT INTO federation_inventory_block(station_id, inventory_id, item_id, block_from, block_to, reason)
-                        VALUES (:station_id, :inventory_id, :item_id, :block_from, :block_to, :reason)
-                        RETURNING *;""")
+                INSERT INTO federation_inventory_block(station_id, inventory_id, item_id, block_from, block_to, reason)
+                VALUES (:station_id, :inventory_id, :item_id, :block_from, :block_to, :reason)
+                RETURNING *;""")
                 .single(call().bind("station_id", stationId)
                         .bind("inventory_id", inventoryId)
                         .bind("item_id", itemId)
@@ -217,6 +187,8 @@ public class LendingRepository {
                 .first()
                 .orElseThrow();
     }
+
+    // -- Inventory Blocks --
 
     public List<InventoryBlock> findBlocksByStation(int stationId) {
         return query("SELECT * FROM federation_inventory_block WHERE station_id = :station_id ORDER BY block_from;")
@@ -234,10 +206,10 @@ public class LendingRepository {
 
     public List<InventoryBlock> findActiveBlocks(int stationId, LocalDate dateFrom, LocalDate dateTo) {
         return query("""
-                        SELECT * FROM federation_inventory_block
-                        WHERE station_id = :station_id
-                          AND block_from <= :date_to AND block_to >= :date_from
-                        ORDER BY block_from;""")
+                SELECT * FROM federation_inventory_block
+                WHERE station_id = :station_id
+                  AND block_from <= :date_to AND block_to >= :date_from
+                ORDER BY block_from;""")
                 .single(call().bind("station_id", stationId)
                         .bind("date_from", dateFrom)
                         .bind("date_to", dateTo))
@@ -271,5 +243,33 @@ public class LendingRepository {
                 .map(row -> row.getInt("cnt"))
                 .first()
                 .orElse(0);
+    }
+
+    /**
+     * Finds items from lending requests that are currently lent out (APPROVED or LENT status)
+     * for a specific inventory, owned by a specific station.
+     */
+    public record LentOutItem(
+            int requestItemId,
+            int requestId,
+            Integer itemId,
+            int quantity,
+            Integer assignedItemId,
+            String status,
+            LocalDate dateFrom,
+            LocalDate dateTo,
+            String requestingStationName) {
+        public static RowMapping<LentOutItem> map() {
+            return row -> new LentOutItem(
+                    row.getInt("request_item_id"),
+                    row.getInt("request_id"),
+                    row.getObject("item_id", Integer.class),
+                    row.getInt("quantity"),
+                    row.getObject("assigned_item_id", Integer.class),
+                    row.getString("status"),
+                    row.getObject("date_from", LocalDate.class),
+                    row.getObject("date_to", LocalDate.class),
+                    row.getString("requesting_station_name"));
+        }
     }
 }

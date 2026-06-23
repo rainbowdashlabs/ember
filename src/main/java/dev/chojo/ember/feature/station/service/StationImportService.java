@@ -86,12 +86,12 @@ public class StationImportService {
     private final DataTracking tracking;
 
     private final ConcurrentHashMap<Integer, ImportProgress> activeImports = new ConcurrentHashMap<>();
-    private volatile RemoteImportSession activeRemoteSession;
     private final ExecutorService importExecutor = Executors.newSingleThreadExecutor(r -> {
         var t = new Thread(r, "station-import");
         t.setDaemon(true);
         return t;
     });
+    private volatile RemoteImportSession activeRemoteSession;
 
     @Inject
     public StationImportService(
@@ -124,58 +124,6 @@ public class StationImportService {
     // -- Public API --
 
     /**
-     * Synchronously imports a bundle keyed by table name into a new station. Used by tests.
-     * The bundle's {@code station} entry must be a {@code Map<String, Object>} (SINGLE shape).
-     */
-    public ImportResult importStation(Map<String, Object> bundle) {
-        Map<String, Object> stationData = asMap(bundle.get("station"));
-        String name = stationData == null ? "Imported Station" : asString(stationData.get("name"), "Imported Station");
-        Station station = stationRepository.create(name);
-        int stationId = station.id();
-        applyStationFields(stationId, stationData);
-        // Seed the id-remap for the station itself so any cross-table FK to station(id) — e.g.
-        // federation_lending_request.requesting_station_id / owning_station_id, or station_ai_provider
-        // — can be resolved during the rest of the import.
-        var idMap = new IdRemapper();
-        seedStationRemap(idMap, stationData, stationId);
-        int total = 1 + runImport(stationId, bundle, idMap);
-        return new ImportResult(stationId, name, total);
-    }
-
-    /**
-     * Synchronously merges a bundle into an existing station. The station's own settings get
-     * applied (timezone, locale, themes, public toggles); all other TRACKED tables are inserted
-     * alongside the station's existing data.
-     */
-    public ImportResult importStationInto(int targetStationId, Map<String, Object> bundle) {
-        Map<String, Object> stationData = asMap(bundle.get("station"));
-        if (stationData != null) applyStationFields(targetStationId, stationData);
-        String name =
-                stationRepository.findById(targetStationId).map(Station::name).orElse("Station");
-        var idMap = new IdRemapper();
-        seedStationRemap(idMap, stationData, targetStationId);
-        int total = runImport(targetStationId, bundle, idMap);
-        return new ImportResult(targetStationId, name, total);
-    }
-
-    /**
-     * Walks the topological table order and imports each payload from the bundle. Returns the total
-     * number of rows imported across all tables. Also sets the station owner to the first imported
-     * MANAGER member when no owner is set yet.
-     */
-    private int runImport(int stationId, Map<String, Object> bundle, IdRemapper idMap) {
-        int total = 0;
-        for (String table : tableOrder) {
-            if ("station".equals(table)) continue;
-            Object payload = bundle.get(table);
-            if (payload == null) continue;
-            total += importTable(stationId, table, payload, idMap);
-        }
-        assignDefaultOwnerIfNeeded(stationId);
-        return total;
-    }
-
-    /**
      * Registers the source-station-id → target-station-id mapping so FKs from other tables that
      * reference {@code station(id)} resolve correctly. The source id is carried on the {@code station}
      * wire entry (the int-id column is otherwise dropped by {@link #applyStationFields}).
@@ -198,20 +146,89 @@ public class StationImportService {
         return null;
     }
 
+    private static List<StorageCategory> transferrableStationCategories() {
+        var out = new ArrayList<StorageCategory>();
+        for (StorageCategory c : StorageCategory.values()) {
+            if (c.scopeKind() != StorageScope.Kind.STATION) continue;
+            if (!c.isMovable()) continue;
+            if (StorageCategory.LEGACY_CATEGORIES.contains(c)) continue;
+            out.add(c);
+        }
+        return out;
+    }
+
     /**
-     * If the target station has no owner yet, assigns the first MANAGER member as owner. This
-     * preserves the semantic the legacy importer applied while processing memberUserTypes.
+     * URL-encodes each path segment of a relative key, keeping the {@code /} separators intact.
      */
-    private void assignDefaultOwnerIfNeeded(int stationId) {
-        var station = stationRepository.findById(stationId).orElse(null);
-        if (station == null || station.ownerMemberId() != null) return;
-        query("""
-                SELECT id FROM station_member WHERE station_id = :station_id AND user_type = 'MANAGER'
-                 ORDER BY id LIMIT 1;""")
-                .single(call().bind("station_id", stationId))
-                .map(row -> row.getInt("id"))
-                .first()
-                .ifPresent(memberId -> stationRepository.setOwner(stationId, memberId));
+    private static String encodeKeyPath(String key) {
+        String[] parts = key.split("/", -1);
+        var sb = new StringBuilder();
+        for (int i = 0; i < parts.length; i++) {
+            if (i > 0) sb.append('/');
+            sb.append(java.net.URLEncoder.encode(parts[i], java.nio.charset.StandardCharsets.UTF_8)
+                    .replace("+", "%20"));
+        }
+        return sb.toString();
+    }
+
+    private static UUID parseUuidOrNull(Object raw) {
+        if (raw == null) return null;
+        try {
+            return UUID.fromString(raw.toString());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private static String columnType(List<ColumnEntry> cols, String name) {
+        for (var c : cols) if (c.name().equals(name)) return c.type();
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> asMap(Object o) {
+        return o instanceof Map ? (Map<String, Object>) o : null;
+    }
+
+    private static String asString(Object o, String defaultValue) {
+        return o == null ? defaultValue : o.toString();
+    }
+
+    /**
+     * Synchronously imports a bundle keyed by table name into a new station. Used by tests.
+     * The bundle's {@code station} entry must be a {@code Map<String, Object>} (SINGLE shape).
+     */
+    public ImportResult importStation(Map<String, Object> bundle) {
+        Map<String, Object> stationData = asMap(bundle.get("station"));
+        String name = stationData == null ? "Imported Station" : asString(stationData.get("name"), "Imported Station");
+        Station station = stationRepository.create(name);
+        int stationId = station.id();
+        applyStationFields(stationId, stationData);
+        // Seed the id-remap for the station itself so any cross-table FK to station(id) — e.g.
+        // federation_lending_request.requesting_station_id / owning_station_id, or station_ai_provider
+        // — can be resolved during the rest of the import.
+        var idMap = new IdRemapper();
+        seedStationRemap(idMap, stationData, stationId);
+        int total = 1 + runImport(stationId, bundle, idMap);
+        return new ImportResult(stationId, name, total);
+    }
+
+    // -- Internals --
+
+    /**
+     * Synchronously merges a bundle into an existing station. The station's own settings get
+     * applied (timezone, locale, themes, public toggles); all other TRACKED tables are inserted
+     * alongside the station's existing data.
+     */
+    public ImportResult importStationInto(int targetStationId, Map<String, Object> bundle) {
+        Map<String, Object> stationData = asMap(bundle.get("station"));
+        if (stationData != null) applyStationFields(targetStationId, stationData);
+        String name =
+                stationRepository.findById(targetStationId).map(Station::name).orElse("Station");
+        var idMap = new IdRemapper();
+        seedStationRemap(idMap, stationData, targetStationId);
+        int total = runImport(targetStationId, bundle, idMap);
+        return new ImportResult(targetStationId, name, total);
     }
 
     /**
@@ -268,7 +285,38 @@ public class StationImportService {
         return new ImportResult(stationId, stationName, 0);
     }
 
-    // -- Internals --
+    /**
+     * Walks the topological table order and imports each payload from the bundle. Returns the total
+     * number of rows imported across all tables. Also sets the station owner to the first imported
+     * MANAGER member when no owner is set yet.
+     */
+    private int runImport(int stationId, Map<String, Object> bundle, IdRemapper idMap) {
+        int total = 0;
+        for (String table : tableOrder) {
+            if ("station".equals(table)) continue;
+            Object payload = bundle.get(table);
+            if (payload == null) continue;
+            total += importTable(stationId, table, payload, idMap);
+        }
+        assignDefaultOwnerIfNeeded(stationId);
+        return total;
+    }
+
+    /**
+     * If the target station has no owner yet, assigns the first MANAGER member as owner. This
+     * preserves the semantic the legacy importer applied while processing memberUserTypes.
+     */
+    private void assignDefaultOwnerIfNeeded(int stationId) {
+        var station = stationRepository.findById(stationId).orElse(null);
+        if (station == null || station.ownerMemberId() != null) return;
+        query("""
+                SELECT id FROM station_member WHERE station_id = :station_id AND user_type = 'MANAGER'
+                 ORDER BY id LIMIT 1;""")
+                .single(call().bind("station_id", stationId))
+                .map(row -> row.getInt("id"))
+                .first()
+                .ifPresent(memberId -> stationRepository.setOwner(stationId, memberId));
+    }
 
     private void runRemoteImport(
             int stationId, String baseUrl, String token, HttpClient httpClient, ObjectMapper mapper, ImportProgress p) {
@@ -443,48 +491,6 @@ public class StationImportService {
         }
     }
 
-    private static List<StorageCategory> transferrableStationCategories() {
-        var out = new ArrayList<StorageCategory>();
-        for (StorageCategory c : StorageCategory.values()) {
-            if (c.scopeKind() != StorageScope.Kind.STATION) continue;
-            if (!c.isMovable()) continue;
-            if (StorageCategory.LEGACY_CATEGORIES.contains(c)) continue;
-            out.add(c);
-        }
-        return out;
-    }
-
-    /** URL-encodes each path segment of a relative key, keeping the {@code /} separators intact. */
-    private static String encodeKeyPath(String key) {
-        String[] parts = key.split("/", -1);
-        var sb = new StringBuilder();
-        for (int i = 0; i < parts.length; i++) {
-            if (i > 0) sb.append('/');
-            sb.append(java.net.URLEncoder.encode(parts[i], java.nio.charset.StandardCharsets.UTF_8)
-                    .replace("+", "%20"));
-        }
-        return sb.toString();
-    }
-
-    private record ListKeysPage(List<String> keys, String next) {}
-
-    /**
-     * Tracks state that lives only for the duration of a single async remote import. The
-     * single-thread executor guarantees only one session is active at a time; the volatile
-     * field on the service exposes it to the table-import branches (notably
-     * {@link #importAccounts}) without threading a parameter through every handler.
-     */
-    private static final class RemoteImportSession {
-        private final List<NewAccountRef> newAccounts = new ArrayList<>();
-
-        List<NewAccountRef> newAccounts() {
-            return newAccounts;
-        }
-    }
-
-    /** Pairs the source's account UID with the destination UID created for the same email. */
-    private record NewAccountRef(UUID sourceUid, UUID destinationUid) {}
-
     /**
      * Streams the avatar for every account this import created on the destination. Existing
      * accounts on the destination are skipped; we never overwrite an avatar a user has already
@@ -577,7 +583,9 @@ public class StationImportService {
         };
     }
 
-    /** Match-by-email; create with no credential if the email is new. */
+    /**
+     * Match-by-email; create with no credential if the email is new.
+     */
     private int importAccounts(List<Map<String, Object>> rows) {
         int created = 0;
         var session = activeRemoteSession;
@@ -598,15 +606,6 @@ public class StationImportService {
             }
         }
         return created;
-    }
-
-    private static UUID parseUuidOrNull(Object raw) {
-        if (raw == null) return null;
-        try {
-            return UUID.fromString(raw.toString());
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
     }
 
     /**
@@ -722,17 +721,10 @@ public class StationImportService {
         }
     }
 
-    private static String columnType(List<ColumnEntry> cols, String name) {
-        for (var c : cols) if (c.name().equals(name)) return c.type();
-        return null;
-    }
-
     private OutputShape shapeOf(String table) {
         var e = tracking.tables() == null ? null : tracking.tables().get(table);
         return e == null ? OutputShape.ROWS : e.effectiveShape();
     }
-
-    // -- HTTP --
 
     /**
      * Builds a GET request and pins the destination instance URL on the source so the source
@@ -747,6 +739,8 @@ public class StationImportService {
         }
         return builder.build();
     }
+
+    // -- HTTP --
 
     @SuppressWarnings("unchecked")
     private void verifyRemoteSchemaHash(HttpClient httpClient, ObjectMapper mapper, String baseUrl, String token) {
@@ -808,16 +802,28 @@ public class StationImportService {
         }
     }
 
+    private record ListKeysPage(List<String> keys, String next) {}
+
     // -- Coercion helpers --
 
-    @SuppressWarnings("unchecked")
-    private static Map<String, Object> asMap(Object o) {
-        return o instanceof Map ? (Map<String, Object>) o : null;
+    /**
+     * Tracks state that lives only for the duration of a single async remote import. The
+     * single-thread executor guarantees only one session is active at a time; the volatile
+     * field on the service exposes it to the table-import branches (notably
+     * {@link #importAccounts}) without threading a parameter through every handler.
+     */
+    private static final class RemoteImportSession {
+        private final List<NewAccountRef> newAccounts = new ArrayList<>();
+
+        List<NewAccountRef> newAccounts() {
+            return newAccounts;
+        }
     }
 
-    private static String asString(Object o, String defaultValue) {
-        return o == null ? defaultValue : o.toString();
-    }
+    /**
+     * Pairs the source's account UID with the destination UID created for the same email.
+     */
+    private record NewAccountRef(UUID sourceUid, UUID destinationUid) {}
 
     // -- Public records --
 
@@ -828,16 +834,9 @@ public class StationImportService {
      * readable from polling endpoints without locks.
      */
     public static class ImportProgress {
-        public enum Status {
-            IN_PROGRESS,
-            COMPLETED,
-            FAILED
-        }
-
         private final int stationId;
         private final String stationName;
         private final int totalTables;
-
         private volatile Status status = Status.IN_PROGRESS;
         private volatile String currentTable;
         private volatile int completedTables;
@@ -893,6 +892,12 @@ public class StationImportService {
         void fail(String error) {
             this.status = Status.FAILED;
             this.error = error;
+        }
+
+        public enum Status {
+            IN_PROGRESS,
+            COMPLETED,
+            FAILED
         }
     }
 }

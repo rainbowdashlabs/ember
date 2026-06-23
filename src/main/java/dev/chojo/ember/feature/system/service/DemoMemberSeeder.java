@@ -60,24 +60,6 @@ public class DemoMemberSeeder {
         this.userTagRepository = userTagRepository;
     }
 
-    /**
-     * Result of member seeding, containing all created member groups and lists needed by other seeders.
-     * The {@code head} is the station's primary manager — used by downstream seeders as the
-     * creator / owner of station-scoped content (news, events, KB, pages, …).
-     */
-    public record SeedResult(
-            StationMember head,
-            List<StationMember> betreuer,
-            List<StationMember> anfaenger,
-            List<StationMember> fortgeschritten,
-            List<StationMember> eltern,
-            MemberGroup groupBetreuer,
-            MemberGroup groupEltern,
-            MemberGroup groupAnfaenger,
-            MemberGroup groupFortgeschritten,
-            UserTag tagWettkampf,
-            UserTag tagErsthelfer) {}
-
     public SeedResult seed(int stationId, String passwordHash, Random rng) {
         var loginRole = stationMemberRepository
                 .findPermissionByName(StationPermission.LOGIN)
@@ -650,4 +632,22 @@ public class DemoMemberSeeder {
                 "Keine");
         return allergies.get(rng.nextInt(allergies.size()));
     }
+
+    /**
+     * Result of member seeding, containing all created member groups and lists needed by other seeders.
+     * The {@code head} is the station's primary manager — used by downstream seeders as the
+     * creator / owner of station-scoped content (news, events, KB, pages, …).
+     */
+    public record SeedResult(
+            StationMember head,
+            List<StationMember> betreuer,
+            List<StationMember> anfaenger,
+            List<StationMember> fortgeschritten,
+            List<StationMember> eltern,
+            MemberGroup groupBetreuer,
+            MemberGroup groupEltern,
+            MemberGroup groupAnfaenger,
+            MemberGroup groupFortgeschritten,
+            UserTag tagWettkampf,
+            UserTag tagErsthelfer) {}
 }

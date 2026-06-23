@@ -72,11 +72,11 @@ public class QuizTestRepository {
                 SELECT %s
                 FROM quiz_test t
                 WHERE t.station_id = :station_id
-                  AND t.forced = true
+                  AND t.forced = TRUE
                   AND t.status = 'ACTIVE'
                   AND (t.start_at IS NULL OR t.start_at <= now())
                   AND (t.end_at IS NULL OR t.end_at >= now())
-                  AND NOT EXISTS (
+                  AND NOT exists (
                       SELECT 1 FROM quiz_test_attempt a
                       WHERE a.test_id = t.id AND a.member_id = :member_id
                         AND a.status IN ('SUBMITTED', 'GRADED'))
@@ -112,10 +112,10 @@ public class QuizTestRepository {
             Instant startAt,
             Instant endAt) {
         return query("""
-                        UPDATE quiz_test
-                        SET title = :title, description = :description, time_limit = :time_limit,
-                            shuffle = :shuffle, start_at = :start_at, end_at = :end_at, updated_at = now()
-                        WHERE id = :id;""")
+                UPDATE quiz_test
+                SET title = :title, description = :description, time_limit = :time_limit,
+                    shuffle = :shuffle, start_at = :start_at, end_at = :end_at, updated_at = now()
+                WHERE id = :id;""")
                 .single(call().bind("id", id)
                         .bind("title", title)
                         .bind("description", description)
@@ -160,9 +160,9 @@ public class QuizTestRepository {
 
     public QuizTestSection createSection(int testId, String title, String description, int position) {
         return query("""
-                        INSERT INTO quiz_test_section(test_id, title, description, position)
-                        VALUES (:test_id, :title, :description, :position)
-                        RETURNING *;""")
+                INSERT INTO quiz_test_section(test_id, title, description, position)
+                VALUES (:test_id, :title, :description, :position)
+                RETURNING *;""")
                 .single(call().bind("test_id", testId)
                         .bind("title", title)
                         .bind("description", description)
@@ -207,9 +207,9 @@ public class QuizTestRepository {
 
     public QuizTestSectionSource createSource(int sectionId, int catalogId, Integer categoryId, int questionCount) {
         return query("""
-                        INSERT INTO quiz_test_section_source(section_id, catalog_id, category_id, question_count)
-                        VALUES (:section_id, :catalog_id, :category_id, :question_count)
-                        RETURNING *;""")
+                INSERT INTO quiz_test_section_source(section_id, catalog_id, category_id, question_count)
+                VALUES (:section_id, :catalog_id, :category_id, :question_count)
+                RETURNING *;""")
                 .single(call().bind("section_id", sectionId)
                         .bind("catalog_id", catalogId)
                         .bind("category_id", categoryId)
@@ -257,10 +257,10 @@ public class QuizTestRepository {
 
     public QuizTestAttempt createAttempt(int testId, int memberId, double maxPoints) {
         return query("""
-                        INSERT INTO quiz_test_attempt(test_id, member_id, max_points)
-                        VALUES (:test_id, :member_id, :max_points)
-                        ON CONFLICT (test_id, member_id) DO NOTHING
-                        RETURNING *;""")
+                INSERT INTO quiz_test_attempt(test_id, member_id, max_points)
+                VALUES (:test_id, :member_id, :max_points)
+                ON CONFLICT (test_id, member_id) DO NOTHING
+                RETURNING *;""")
                 .single(call().bind("test_id", testId)
                         .bind("member_id", memberId)
                         .bind("max_points", maxPoints))
@@ -286,9 +286,9 @@ public class QuizTestRepository {
 
     public boolean gradeAttempt(int id, double totalPoints, int gradedBy) {
         return query("""
-                        UPDATE quiz_test_attempt
-                        SET status = 'GRADED', total_points = :total_points, graded_at = now(), graded_by = :graded_by
-                        WHERE id = :id;""")
+                UPDATE quiz_test_attempt
+                SET status = 'GRADED', total_points = :total_points, graded_at = now(), graded_by = :graded_by
+                WHERE id = :id;""")
                 .single(call().bind("id", id).bind("total_points", totalPoints).bind("graded_by", gradedBy))
                 .update()
                 .changed();
@@ -305,8 +305,8 @@ public class QuizTestRepository {
 
     public void createAttemptQuestion(int attemptId, int questionId, Integer sectionId, int position) {
         query("""
-                        INSERT INTO quiz_test_attempt_question(attempt_id, question_id, section_id, position)
-                        VALUES (:attempt_id, :question_id, :section_id, :position);""")
+                INSERT INTO quiz_test_attempt_question(attempt_id, question_id, section_id, position)
+                VALUES (:attempt_id, :question_id, :section_id, :position);""")
                 .single(call().bind("attempt_id", attemptId)
                         .bind("question_id", questionId)
                         .bind("section_id", sectionId)
@@ -325,9 +325,9 @@ public class QuizTestRepository {
 
     public void upsertAnswer(int attemptId, int questionId, Integer sectionId, String answer, int position) {
         query("""
-                        INSERT INTO quiz_test_answer(attempt_id, question_id, section_id, answer, position)
-                        VALUES (:attempt_id, :question_id, :section_id, :answer::jsonb, :position)
-                        ON CONFLICT (attempt_id, question_id) DO UPDATE SET answer = EXCLUDED.answer, section_id = EXCLUDED.section_id, position = EXCLUDED.position;""")
+                INSERT INTO quiz_test_answer(attempt_id, question_id, section_id, answer, position)
+                VALUES (:attempt_id, :question_id, :section_id, :answer::JSONB, :position)
+                ON CONFLICT (attempt_id, question_id) DO UPDATE SET answer = excluded.answer, section_id = excluded.section_id, position = excluded.position;""")
                 .single(call().bind("attempt_id", attemptId)
                         .bind("question_id", questionId)
                         .bind("section_id", sectionId)
@@ -338,9 +338,9 @@ public class QuizTestRepository {
 
     public void saveAnswer(int attemptId, int questionId, String answer) {
         query("""
-                        INSERT INTO quiz_test_answer(attempt_id, question_id, answer)
-                        VALUES (:attempt_id, :question_id, :answer::jsonb)
-                        ON CONFLICT (attempt_id, question_id) DO UPDATE SET answer = EXCLUDED.answer;""")
+                INSERT INTO quiz_test_answer(attempt_id, question_id, answer)
+                VALUES (:attempt_id, :question_id, :answer::jsonb)
+                ON CONFLICT (attempt_id, question_id) DO UPDATE SET answer = EXCLUDED.answer;""")
                 .single(call().bind("attempt_id", attemptId)
                         .bind("question_id", questionId)
                         .bind("answer", answer))
@@ -348,7 +348,7 @@ public class QuizTestRepository {
     }
 
     public boolean gradeAnswer(int answerId, double points) {
-        return query("UPDATE quiz_test_answer SET points = :points, graded = true WHERE id = :id;")
+        return query("UPDATE quiz_test_answer SET points = :points, graded = TRUE WHERE id = :id;")
                 .single(call().bind("id", answerId).bind("points", points))
                 .update()
                 .changed();
@@ -358,9 +358,9 @@ public class QuizTestRepository {
 
     public void grantMemberAccess(int testId, int memberId, Instant closesAt) {
         query("""
-                        INSERT INTO quiz_test_member_access(test_id, member_id, closes_at)
-                        VALUES (:test_id, :member_id, :closes_at)
-                        ON CONFLICT (test_id, member_id) DO UPDATE SET closes_at = :closes_at, opened_at = now();""")
+                INSERT INTO quiz_test_member_access(test_id, member_id, closes_at)
+                VALUES (:test_id, :member_id, :closes_at)
+                ON CONFLICT (test_id, member_id) DO UPDATE SET closes_at = :closes_at, opened_at = now();""")
                 .single(call().bind("test_id", testId)
                         .bind("member_id", memberId)
                         .bind("closes_at", closesAt, INSTANT_TIMESTAMP))
@@ -369,9 +369,9 @@ public class QuizTestRepository {
 
     public boolean hasMemberAccess(int testId, int memberId) {
         return query("""
-                        SELECT 1 FROM quiz_test_member_access
-                        WHERE test_id = :test_id AND member_id = :member_id
-                        AND (closes_at IS NULL OR closes_at > now());""")
+                SELECT 1 FROM quiz_test_member_access
+                WHERE test_id = :test_id AND member_id = :member_id
+                AND (closes_at IS NULL OR closes_at > now());""")
                 .single(call().bind("test_id", testId).bind("member_id", memberId))
                 .map(row -> true)
                 .first()
@@ -395,8 +395,8 @@ public class QuizTestRepository {
 
     public void createFrozenQuestion(int testId, int questionId, Integer sectionId, int position) {
         query("""
-                        INSERT INTO quiz_test_frozen_question(test_id, question_id, section_id, position)
-                        VALUES (:test_id, :question_id, :section_id, :position);""")
+                INSERT INTO quiz_test_frozen_question(test_id, question_id, section_id, position)
+                VALUES (:test_id, :question_id, :section_id, :position);""")
                 .single(call().bind("test_id", testId)
                         .bind("question_id", questionId)
                         .bind("section_id", sectionId)

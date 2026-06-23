@@ -33,10 +33,10 @@ public class AiProviderRepository {
 
     public void upsert(int stationId, String provider, String apiKey, String model) {
         query("""
-                        INSERT INTO station_ai_provider(station_id, provider, api_key, model)
-                        VALUES (:station_id, :provider, :api_key, :model)
-                        ON CONFLICT (station_id, provider)
-                        DO UPDATE SET api_key = :api_key, model = :model;""")
+                INSERT INTO station_ai_provider(station_id, provider, api_key, model)
+                VALUES (:station_id, :provider, :api_key, :model)
+                ON CONFLICT (station_id, provider)
+                DO UPDATE SET api_key = :api_key, model = :model;""")
                 .single(call().bind("station_id", stationId)
                         .bind("provider", provider)
                         .bind("api_key", apiKey)

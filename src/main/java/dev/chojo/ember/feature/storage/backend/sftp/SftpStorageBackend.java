@@ -70,12 +70,22 @@ public class SftpStorageBackend implements StorageBackend, AutoCloseable {
         this(config, defaultClient(config));
     }
 
-    /** Visible for tests that want to inject a pre-configured {@link SshClient}. */
+    /**
+     * Visible for tests that want to inject a pre-configured {@link SshClient}.
+     */
     SftpStorageBackend(SftpBackendConfig config, SshClient sshClient) {
         this.config = config;
         this.sshClient = sshClient;
         this.basePath = normalizeBasePath(config.basePath());
         this.sshClient.start();
+    }
+
+    /**
+     * Returns the public key fingerprint computed by smbj's {@link KeyUtils} for the supplied
+     * key. Used by callers wiring host-key verification to compare against a stored fingerprint.
+     */
+    public static String fingerprintOf(PublicKey key) {
+        return KeyUtils.getFingerPrint(key);
     }
 
     private static SshClient defaultClient(SftpBackendConfig config) {
@@ -99,6 +109,19 @@ public class SftpStorageBackend implements StorageBackend, AutoCloseable {
         while (trimmed.endsWith("/")) trimmed = trimmed.substring(0, trimmed.length() - 1);
         if (!trimmed.startsWith("/")) trimmed = "/" + trimmed;
         return trimmed;
+    }
+
+    private static java.security.KeyPair parsePrivateKey(String pem) {
+        try {
+            var loader = SecurityUtils.getKeyPairResourceParser();
+            var keys = loader.loadKeyPairs(
+                    null, null, null, new ByteArrayInputStream(pem.getBytes(StandardCharsets.UTF_8)));
+            var it = keys.iterator();
+            if (!it.hasNext()) throw new StorageException("SFTP private key PEM is empty");
+            return it.next();
+        } catch (IOException | GeneralSecurityException e) {
+            throw new StorageException("Failed to parse SFTP private key", e);
+        }
     }
 
     @Override
@@ -251,19 +274,6 @@ public class SftpStorageBackend implements StorageBackend, AutoCloseable {
         }
     }
 
-    private static java.security.KeyPair parsePrivateKey(String pem) {
-        try {
-            var loader = SecurityUtils.getKeyPairResourceParser();
-            var keys = loader.loadKeyPairs(
-                    null, null, null, new ByteArrayInputStream(pem.getBytes(StandardCharsets.UTF_8)));
-            var it = keys.iterator();
-            if (!it.hasNext()) throw new StorageException("SFTP private key PEM is empty");
-            return it.next();
-        } catch (IOException | GeneralSecurityException e) {
-            throw new StorageException("Failed to parse SFTP private key", e);
-        }
-    }
-
     private String path(String fullKey) {
         if (fullKey == null || fullKey.isEmpty()) {
             throw new IllegalArgumentException("fullKey must not be empty");
@@ -383,13 +393,5 @@ public class SftpStorageBackend implements StorageBackend, AutoCloseable {
             current = parent;
             slash = parent.lastIndexOf('/');
         }
-    }
-
-    /**
-     * Returns the public key fingerprint computed by smbj's {@link KeyUtils} for the supplied
-     * key. Used by callers wiring host-key verification to compare against a stored fingerprint.
-     */
-    public static String fingerprintOf(PublicKey key) {
-        return KeyUtils.getFingerPrint(key);
     }
 }

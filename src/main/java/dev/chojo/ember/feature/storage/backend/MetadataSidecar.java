@@ -22,7 +22,9 @@ import java.util.Optional;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record MetadataSidecar(String contentType, String sha256, String originalFilename, String contentEncoding) {
 
-    /** Captures the persistent fields of {@code metadata} into a typed JSON-friendly record. */
+    /**
+     * Captures the persistent fields of {@code metadata} into a typed JSON-friendly record.
+     */
     public static MetadataSidecar from(ObjectMetadata metadata) {
         return new MetadataSidecar(
                 metadata.contentType(),
@@ -31,7 +33,9 @@ public record MetadataSidecar(String contentType, String sha256, String original
                 metadata.contentEncoding().orElse(""));
     }
 
-    /** Returns the in-memory {@link ObjectMetadata} this sidecar represents. */
+    /**
+     * Returns the in-memory {@link ObjectMetadata} this sidecar represents.
+     */
     public ObjectMetadata toObjectMetadata() {
         String ct = contentType == null || contentType.isBlank() ? "application/octet-stream" : contentType;
         String sha = sha256 == null ? "" : sha256;

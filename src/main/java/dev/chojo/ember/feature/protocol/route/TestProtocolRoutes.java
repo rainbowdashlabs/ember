@@ -193,11 +193,6 @@ public class TestProtocolRoutes implements Routes {
         ctx.json(new ProtocolListResponse(protocols, shared));
     }
 
-    private record ProtocolListResponse(List<TestProtocol> protocols, List<SharedProtocolItem> shared) {}
-
-    private record SharedProtocolItem(
-            int id, String name, String description, String stationName, int sourceStationId) {}
-
     private void createProtocol(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(ProtocolRequest.class);
@@ -234,8 +229,6 @@ public class TestProtocolRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    // -- Sections --
-
     private void createSection(Context ctx) {
         int protocolId = ctx.pathParamAsClass("id", Integer.class).get();
         var req = ctx.bodyAsClass(SectionRequest.class);
@@ -263,13 +256,13 @@ public class TestProtocolRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    // -- Sections --
+
     private void deleteSection(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         service.deleteSection(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
-
-    // -- Items --
 
     private void createItem(Context ctx) {
         int sectionId = ctx.pathParamAsClass("id", Integer.class).get();
@@ -295,13 +288,13 @@ public class TestProtocolRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    // -- Items --
+
     private void deleteItem(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         service.deleteItem(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
-
-    // -- Runs --
 
     private void listRuns(Context ctx) {
         var session = UserSession.from(ctx);
@@ -347,6 +340,8 @@ public class TestProtocolRoutes implements Routes {
         ctx.status(HttpStatus.CREATED).json(run);
     }
 
+    // -- Runs --
+
     private void getRun(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var run = service.findRun(id).orElseThrow(NotFoundResponse::new);
@@ -379,8 +374,6 @@ public class TestProtocolRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    // -- Grading --
-
     private void lockMember(Context ctx) {
         var session = UserSession.from(ctx);
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
@@ -397,6 +390,8 @@ public class TestProtocolRoutes implements Routes {
         service.unlockMember(runId, memberId);
         ctx.json(service.findRunMember(runId, memberId).orElseThrow());
     }
+
+    // -- Grading --
 
     private void getChecks(Context ctx) {
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
@@ -560,54 +555,6 @@ public class TestProtocolRoutes implements Routes {
         ctx.result(pdf);
     }
 
-    // -- Records --
-
-    public record ProtocolRequest(String name, String description, Integer passThreshold) {}
-
-    public record SectionRequest(
-            Integer parentId,
-            String name,
-            String description,
-            Integer maxPoints,
-            Integer passThreshold,
-            Integer position) {}
-
-    public record ItemRequest(String label, String description, Double points, Integer position) {}
-
-    public record RunRequest(
-            String name,
-            LocalDate testDate,
-            List<Integer> memberIds,
-            List<String> userTypes,
-            List<Integer> groupIds,
-            List<Integer> tagIds) {}
-
-    public record ChecksRequest(Map<Integer, Boolean> checks) {}
-
-    public record ProtocolDetailResponse(
-            TestProtocol protocol, List<TestProtocolSection> sections, List<TestProtocolItem> items) {}
-
-    public record RunMemberWithProgress(TestProtocolRunMember member, int sectionsDone, int sectionsTotal) {}
-
-    public record RunDetailResponse(TestProtocolRun run, List<RunMemberWithProgress> members) {}
-
-    public record EvalMemberData(int memberId, Double totalScore, Map<Integer, Double> sectionScores) {}
-
-    public record EvaluationResponse(
-            String protocolName,
-            LocalDate testDate,
-            List<TestProtocolSection> sections,
-            Map<Integer, Double> sectionMaxPoints,
-            List<EvalMemberData> members,
-            Integer passThreshold) {}
-
-    private record RemoteProtocolSummary(int id, String name, String description, String updatedAt) {}
-
-    private record RemoteProtocolDetail(
-            TestProtocol protocol, List<TestProtocolSection> sections, List<TestProtocolItem> items) {}
-
-    // -- Federated endpoints (user-facing, aggregates from partners) --
-
     private void federatedBrowseProtocols(Context ctx) {
         var session = UserSession.from(ctx);
         var items = service.browseSharedProtocols(session.stationId());
@@ -629,14 +576,14 @@ public class TestProtocolRoutes implements Routes {
         ctx.json(service.getFederatedProtocol(session.stationId(), stationUid, protocolId));
     }
 
+    // -- Records --
+
     private void federatedCopyProtocol(Context ctx) {
         var session = UserSession.from(ctx);
         int protocolId = ctx.pathParamAsClass("id", Integer.class).get();
         var copied = service.copyProtocol(protocolId, session.stationId());
         ctx.status(HttpStatus.CREATED).json(copied);
     }
-
-    // -- Remote endpoints (server-to-server, RSA signature auth) --
 
     private void remoteBrowseProtocols(Context ctx) {
         var partner = requireFederationPartner(ctx);
@@ -666,8 +613,6 @@ public class TestProtocolRoutes implements Routes {
         ctx.json(new RemoteProtocolDetail(protocol, sections, items));
     }
 
-    // -- Federation helpers --
-
     private FederationPartner requireFederationPartner(Context ctx) {
         var session = FederationSession.from(ctx);
         if (session == null) {
@@ -675,4 +620,59 @@ public class TestProtocolRoutes implements Routes {
         }
         return session.partner();
     }
+
+    private record ProtocolListResponse(List<TestProtocol> protocols, List<SharedProtocolItem> shared) {}
+
+    private record SharedProtocolItem(
+            int id, String name, String description, String stationName, int sourceStationId) {}
+
+    public record ProtocolRequest(String name, String description, Integer passThreshold) {}
+
+    public record SectionRequest(
+            Integer parentId,
+            String name,
+            String description,
+            Integer maxPoints,
+            Integer passThreshold,
+            Integer position) {}
+
+    public record ItemRequest(String label, String description, Double points, Integer position) {}
+
+    public record RunRequest(
+            String name,
+            LocalDate testDate,
+            List<Integer> memberIds,
+            List<String> userTypes,
+            List<Integer> groupIds,
+            List<Integer> tagIds) {}
+
+    public record ChecksRequest(Map<Integer, Boolean> checks) {}
+
+    public record ProtocolDetailResponse(
+            TestProtocol protocol, List<TestProtocolSection> sections, List<TestProtocolItem> items) {}
+
+    // -- Federated endpoints (user-facing, aggregates from partners) --
+
+    public record RunMemberWithProgress(TestProtocolRunMember member, int sectionsDone, int sectionsTotal) {}
+
+    public record RunDetailResponse(TestProtocolRun run, List<RunMemberWithProgress> members) {}
+
+    public record EvalMemberData(int memberId, Double totalScore, Map<Integer, Double> sectionScores) {}
+
+    // -- Remote endpoints (server-to-server, RSA signature auth) --
+
+    public record EvaluationResponse(
+            String protocolName,
+            LocalDate testDate,
+            List<TestProtocolSection> sections,
+            Map<Integer, Double> sectionMaxPoints,
+            List<EvalMemberData> members,
+            Integer passThreshold) {}
+
+    private record RemoteProtocolSummary(int id, String name, String description, String updatedAt) {}
+
+    // -- Federation helpers --
+
+    private record RemoteProtocolDetail(
+            TestProtocol protocol, List<TestProtocolSection> sections, List<TestProtocolItem> items) {}
 }

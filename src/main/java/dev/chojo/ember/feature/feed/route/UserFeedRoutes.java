@@ -66,10 +66,14 @@ import java.util.stream.Collectors;
 public class UserFeedRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(UserFeedRoutes.class);
 
-    /** Past iCal window: keep the last week of cancelled or recently-finished events visible. */
+    /**
+     * Past iCal window: keep the last week of cancelled or recently-finished events visible.
+     */
     private static final Duration ICAL_WINDOW_PAST = Duration.ofDays(7);
 
-    /** Forward iCal window: cover annual events without unbounded growth on long-running stations. */
+    /**
+     * Forward iCal window: cover annual events without unbounded growth on long-running stations.
+     */
     private static final Duration ICAL_WINDOW_FUTURE = Duration.ofDays(365);
 
     /**
@@ -123,15 +127,6 @@ public class UserFeedRoutes implements Routes {
     }
 
     /**
-     * Records a finished feed render to the metrics service. Should be called from a
-     * {@code finally} so 429 / 304 / 500 paths all get accounted for.
-     */
-    private void recordMetric(Context ctx, String type, long startNanos, int entries) {
-        long durationMs = (System.nanoTime() - startNanos) / 1_000_000L;
-        metricsService.recordRender(type, ctx.status().getCode(), durationMs, entries, ctx.header("User-Agent"));
-    }
-
-    /**
      * Applies the cross-cutting privacy headers used by every public feed endpoint:
      * {@code Referrer-Policy: no-referrer} so the feed token never leaks via {@code Referer}
      * to embedded image hosts or reader proxies, and {@code X-Robots-Tag: noindex} so leaked
@@ -141,6 +136,23 @@ public class UserFeedRoutes implements Routes {
     private static void applyPrivacyHeaders(Context ctx) {
         ctx.header("Referrer-Policy", "no-referrer");
         ctx.header("X-Robots-Tag", "noindex");
+    }
+
+    @Override
+    public void register(JavalinDefaultRoutingApi routes, String prefix) {
+        routes.get(prefix + "/public/feed/{token}/events.ics", this::icalFeed);
+        routes.get(prefix + "/public/feed/{token}/notifications.rss", this::rssFeed);
+        routes.get(prefix + "/public/feed/{token}/notifications.atom", this::atomFeed);
+        routes.get(prefix + "/public/feed/{token}/lost-and-found/{id}/image", this::lostAndFoundImage);
+    }
+
+    /**
+     * Records a finished feed render to the metrics service. Should be called from a
+     * {@code finally} so 429 / 304 / 500 paths all get accounted for.
+     */
+    private void recordMetric(Context ctx, String type, long startNanos, int entries) {
+        long durationMs = (System.nanoTime() - startNanos) / 1_000_000L;
+        metricsService.recordRender(type, ctx.status().getCode(), durationMs, entries, ctx.header("User-Agent"));
     }
 
     /**
@@ -158,14 +170,6 @@ public class UserFeedRoutes implements Routes {
                     return true;
                 })
                 .orElse(false);
-    }
-
-    @Override
-    public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/public/feed/{token}/events.ics", this::icalFeed);
-        routes.get(prefix + "/public/feed/{token}/notifications.rss", this::rssFeed);
-        routes.get(prefix + "/public/feed/{token}/notifications.atom", this::atomFeed);
-        routes.get(prefix + "/public/feed/{token}/lost-and-found/{id}/image", this::lostAndFoundImage);
     }
 
     private StationMember resolveToken(Context ctx) {

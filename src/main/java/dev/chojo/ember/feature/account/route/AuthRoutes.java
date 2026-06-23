@@ -55,10 +55,6 @@ public class AuthRoutes implements Routes {
         return s == null || s.isBlank();
     }
 
-    private String clientIp(Context ctx) {
-        return ClientIp.resolve(ctx, network).getHostAddress();
-    }
-
     private static void enforceLimit(Optional<Long> retryAfter) {
         if (retryAfter.isEmpty()) return;
         long seconds = retryAfter.get();
@@ -66,6 +62,16 @@ public class AuthRoutes implements Routes {
                 HttpStatus.TOO_MANY_REQUESTS.getCode(),
                 "Too many requests, please try again later",
                 Map.of("Retry-After", Long.toString(seconds)));
+    }
+
+    private static String extractBearerToken(Context ctx) {
+        String header = ctx.header("Authorization");
+        if (header == null) return null;
+        String prefix = "Bearer ";
+        if (header.regionMatches(true, 0, prefix, 0, prefix.length())) {
+            return header.substring(prefix.length()).trim();
+        }
+        return null;
     }
 
     @Override
@@ -84,6 +90,10 @@ public class AuthRoutes implements Routes {
                 StationPermission.LOGIN,
                 StepUpCategory.ACCOUNT_SECURITY);
         routes.post(prefix + "/auth/confirm-email-change", this::confirmEmailChange);
+    }
+
+    private String clientIp(Context ctx) {
+        return ClientIp.resolve(ctx, network).getHostAddress();
     }
 
     @OpenApi(
@@ -330,16 +340,6 @@ public class AuthRoutes implements Routes {
             throw new BadRequestResponse("Current password is incorrect");
         }
         ctx.json(new MessageResponse("Password changed"));
-    }
-
-    private static String extractBearerToken(Context ctx) {
-        String header = ctx.header("Authorization");
-        if (header == null) return null;
-        String prefix = "Bearer ";
-        if (header.regionMatches(true, 0, prefix, 0, prefix.length())) {
-            return header.substring(prefix.length()).trim();
-        }
-        return null;
     }
 
     @OpenApi(

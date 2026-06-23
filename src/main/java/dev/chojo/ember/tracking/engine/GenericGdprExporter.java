@@ -47,31 +47,6 @@ public final class GenericGdprExporter {
     }
 
     /**
-     * Returns every TRACKED row matching the given identity. Keyed by table name; the value is the
-     * list of rows (column → value). Tables without any matching identity column for {@code type}
-     * are skipped.
-     */
-    public Map<String, List<Map<String, Object>>> exportByIdentity(IdentityType type, Object identityValue) {
-        Map<String, List<Map<String, Object>>> result = new LinkedHashMap<>();
-        if (tracking.tables() == null) return result;
-
-        for (var entry : tracking.tables().entrySet()) {
-            String tableName = entry.getKey();
-            TableEntry table = entry.getValue();
-            GdprExportContext ctx = table.gdprExport();
-            if (ctx == null || ctx.status() != Status.TRACKED) continue;
-
-            var matching = matchingIdentityColumns(ctx, type, table);
-            if (matching.isEmpty()) continue;
-
-            String sql = buildSelectSql(table, tableName, matching, ctx, type);
-            List<Map<String, Object>> rows = runQuery(sql, type, identityValue);
-            if (!rows.isEmpty()) result.put(tableName, rows);
-        }
-        return result;
-    }
-
-    /**
      * Returns the identity columns on {@code ctx} whose {@link IdentityType} matches {@code type}
      * AND that actually exist on the table. The schema-mismatch check guards against drift.
      */
@@ -155,6 +130,31 @@ public final class GenericGdprExporter {
             for (var fk : table.foreignKeys()) if (column.equals(fk.column())) return fk;
         }
         return null;
+    }
+
+    /**
+     * Returns every TRACKED row matching the given identity. Keyed by table name; the value is the
+     * list of rows (column → value). Tables without any matching identity column for {@code type}
+     * are skipped.
+     */
+    public Map<String, List<Map<String, Object>>> exportByIdentity(IdentityType type, Object identityValue) {
+        Map<String, List<Map<String, Object>>> result = new LinkedHashMap<>();
+        if (tracking.tables() == null) return result;
+
+        for (var entry : tracking.tables().entrySet()) {
+            String tableName = entry.getKey();
+            TableEntry table = entry.getValue();
+            GdprExportContext ctx = table.gdprExport();
+            if (ctx == null || ctx.status() != Status.TRACKED) continue;
+
+            var matching = matchingIdentityColumns(ctx, type, table);
+            if (matching.isEmpty()) continue;
+
+            String sql = buildSelectSql(table, tableName, matching, ctx, type);
+            List<Map<String, Object>> rows = runQuery(sql, type, identityValue);
+            if (!rows.isEmpty()) result.put(tableName, rows);
+        }
+        return result;
     }
 
     private List<Map<String, Object>> runQuery(String sql, IdentityType type, Object identityValue) {

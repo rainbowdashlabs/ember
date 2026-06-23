@@ -237,19 +237,6 @@ public class StationMemberRoutes implements Routes {
                 .orElse(null);
     }
 
-    /**
-     * Picker result shape — avatar is inlined as a {@code data:} URL so the frontend can render
-     * it without a separate authenticated request. {@code displayTag} carries the member's
-     * highest-priority visible tag (and color); {@code null} when none is set.
-     */
-    public record MemberSearchResult(
-            UUID memberUid,
-            String displayName,
-            String userType,
-            String displayTag,
-            String displayTagColor,
-            String avatarUrl) {}
-
     private void completions(Context ctx) {
         var session = UserSession.from(ctx);
         var completions = stationMemberRepository.findCompletions(session.stationId());
@@ -507,8 +494,6 @@ public class StationMemberRoutes implements Routes {
         ctx.json(new FormerCheckResponse(true, null));
     }
 
-    // -- User Type --
-
     @OpenApi(
             path = "/api/v1/station-members/{id}/user-type",
             methods = HttpMethod.PUT,
@@ -527,7 +512,7 @@ public class StationMemberRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    // -- Join Date --
+    // -- User Type --
 
     @OpenApi(
             path = "/api/v1/station-members/{id}/join-date",
@@ -547,7 +532,7 @@ public class StationMemberRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    // -- User Type Permissions --
+    // -- Join Date --
 
     @OpenApi(
             path = "/api/v1/user-type-permissions/{userType}",
@@ -561,6 +546,8 @@ public class StationMemberRoutes implements Routes {
         StationUserType userType = StationUserType.valueOf(ctx.pathParam("userType"));
         ctx.json(stationMemberRepository.findUserTypePermissions(session.stationId(), userType));
     }
+
+    // -- User Type Permissions --
 
     @OpenApi(
             path = "/api/v1/user-type-permissions/{userType}",
@@ -602,6 +589,19 @@ public class StationMemberRoutes implements Routes {
 
         ctx.json(expanded.stream().map(Enum::name).sorted().toList());
     }
+
+    /**
+     * Picker result shape — avatar is inlined as a {@code data:} URL so the frontend can render
+     * it without a separate authenticated request. {@code displayTag} carries the member's
+     * highest-priority visible tag (and color); {@code null} when none is set.
+     */
+    public record MemberSearchResult(
+            UUID memberUid,
+            String displayName,
+            String userType,
+            String displayTag,
+            String displayTagColor,
+            String avatarUrl) {}
 
     public record CreateMemberRequest(Integer stationId, Integer accountId) {}
 

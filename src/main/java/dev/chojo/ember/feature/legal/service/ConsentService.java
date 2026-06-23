@@ -54,6 +54,32 @@ public class ConsentService {
     }
 
     /**
+     * Returns a privacy-preserving form of the given client IP for proof of consent.
+     * The last octet of an IPv4 address is zeroed (e.g. {@code 203.0.113.7} → {@code 203.0.113.0}),
+     * the last 80 bits of an IPv6 address are zeroed (so only the /48 prefix is kept).
+     * This is the de-facto GDPR-compliant truncation used by Matomo and Plausible; it
+     * still establishes geography for an audit, but is no longer personal data.
+     *
+     * @param address the resolved client {@link InetAddress}
+     * @return the anonymised IP as a string in standard textual form
+     */
+    public static String anonymizeIp(InetAddress address) {
+        byte[] bytes = address.getAddress();
+        if (bytes.length == 4) {
+            bytes[3] = 0;
+        } else if (bytes.length == 16) {
+            Arrays.fill(bytes, 6, 16, (byte) 0);
+        }
+        try {
+            return InetAddress.getByAddress(bytes).getHostAddress();
+        } catch (UnknownHostException e) {
+            return address.getHostAddress();
+        }
+    }
+
+    // -- Document retrieval --
+
+    /**
      * Called on application startup. Initializes all legal documents,
      * detects version changes, archives old content.
      */
@@ -71,8 +97,6 @@ public class ConsentService {
                     consentChanged ? "CHANGED" : "unchanged");
         }
     }
-
-    // -- Document retrieval --
 
     /**
      * Retrieves the privacy policy rendered for the given locale.
@@ -104,6 +128,8 @@ public class ConsentService {
         return documentService.getDocument(imprintDir, locale);
     }
 
+    // -- Version info --
+
     /**
      * Retrieves the GDPR consent text rendered for the given locale.
      *
@@ -114,7 +140,7 @@ public class ConsentService {
         return documentService.getDocument(consentDir, locale);
     }
 
-    // -- Version info --
+    // -- Diff --
 
     /**
      * Returns the current version hashes of all legal documents.
@@ -128,8 +154,6 @@ public class ConsentService {
                 documentService.getDocument(consentDir).version());
     }
 
-    // -- Diff --
-
     /**
      * Gets the diff between two privacy policy versions.
      *
@@ -141,6 +165,8 @@ public class ConsentService {
         return documentService.getDiff(privacyPolicyDir, fromVersion, toVersion);
     }
 
+    // -- Consent recording --
+
     /**
      * Gets the diff between two terms of service versions.
      *
@@ -151,8 +177,6 @@ public class ConsentService {
     public String getTosDiff(String fromVersion, String toVersion) {
         return documentService.getDiff(tosDir, fromVersion, toVersion);
     }
-
-    // -- Consent recording --
 
     /**
      * Records a consent proof for the given account, storing document versions and client metadata.
@@ -227,29 +251,5 @@ public class ConsentService {
         String userAgent = ctx.userAgent();
         return new ConsentProof(
                 consentVersion, privacyVersion, tosVersion, ipAddress, country, userAgent, Instant.now());
-    }
-
-    /**
-     * Returns a privacy-preserving form of the given client IP for proof of consent.
-     * The last octet of an IPv4 address is zeroed (e.g. {@code 203.0.113.7} → {@code 203.0.113.0}),
-     * the last 80 bits of an IPv6 address are zeroed (so only the /48 prefix is kept).
-     * This is the de-facto GDPR-compliant truncation used by Matomo and Plausible; it
-     * still establishes geography for an audit, but is no longer personal data.
-     *
-     * @param address the resolved client {@link InetAddress}
-     * @return the anonymised IP as a string in standard textual form
-     */
-    public static String anonymizeIp(InetAddress address) {
-        byte[] bytes = address.getAddress();
-        if (bytes.length == 4) {
-            bytes[3] = 0;
-        } else if (bytes.length == 16) {
-            Arrays.fill(bytes, 6, 16, (byte) 0);
-        }
-        try {
-            return InetAddress.getByAddress(bytes).getHostAddress();
-        } catch (UnknownHostException e) {
-            return address.getHostAddress();
-        }
     }
 }

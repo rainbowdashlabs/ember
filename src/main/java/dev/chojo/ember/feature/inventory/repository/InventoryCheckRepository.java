@@ -39,9 +39,9 @@ public class InventoryCheckRepository {
      */
     public InventoryCheck createCheck(int stationId, int memberId, int checkedBy) {
         return query("""
-                            INSERT INTO inventory_check(station_id, member_id, checked_by)
-                            VALUES (:station_id, :member_id, :checked_by)
-                            RETURNING id, station_id, member_id, checked_by, checked_at;""")
+                INSERT INTO inventory_check(station_id, member_id, checked_by)
+                VALUES (:station_id, :member_id, :checked_by)
+                RETURNING id, station_id, member_id, checked_by, checked_at;""")
                 .single(call().bind("station_id", stationId)
                         .bind("member_id", memberId)
                         .bind("checked_by", checkedBy))
@@ -126,9 +126,7 @@ public class InventoryCheckRepository {
                         row.getObject("locked_by", Integer.class),
                         row.getString("locker_first_name"),
                         row.getString("locker_last_name"),
-                        row.getString("user_type") != null
-                                ? StationUserType.valueOf(row.getString("user_type"))
-                                : null))
+                        row.getEnum("user_type", StationUserType.class)))
                 .all();
     }
 
@@ -144,9 +142,9 @@ public class InventoryCheckRepository {
         var items = findCheckItems(check.get().id());
         // Get checker name
         var names = query("""
-                                 SELECT a.first_name, a.last_name FROM station_member sm
-                                     JOIN account a ON a.id = sm.account_id
-                                 WHERE sm.id = :id;""")
+                SELECT a.first_name, a.last_name FROM station_member sm
+                    JOIN account a ON a.id = sm.account_id
+                WHERE sm.id = :id;""")
                 .single(call().bind("id", check.get().checkedBy()))
                 .map(row -> new String[] {row.getString("first_name"), row.getString("last_name")})
                 .first()
@@ -169,9 +167,9 @@ public class InventoryCheckRepository {
     public InventoryCheckItem createCheckItem(
             int checkId, Integer itemId, Integer inventoryId, CheckResult result, String note) {
         return query("""
-                            INSERT INTO inventory_check_item(check_id, item_id, inventory_id, result, note)
-                            VALUES (:check_id, :item_id, :inventory_id, :result, :note)
-                            RETURNING id, check_id, item_id, inventory_id, result, note;""")
+                INSERT INTO inventory_check_item(check_id, item_id, inventory_id, result, note)
+                VALUES (:check_id, :item_id, :inventory_id, :result, :note)
+                RETURNING id, check_id, item_id, inventory_id, result, note;""")
                 .single(call().bind("check_id", checkId)
                         .bind("item_id", itemId)
                         .bind("inventory_id", inventoryId)
@@ -209,10 +207,10 @@ public class InventoryCheckRepository {
      */
     public Optional<InventoryCheckLock> acquireLock(int stationId, int memberId, int lockedBy) {
         return query("""
-                            INSERT INTO inventory_check_lock(station_id, member_id, locked_by)
-                            VALUES (:station_id, :member_id, :locked_by)
-                            ON CONFLICT (member_id) DO NOTHING
-                            RETURNING id, station_id, member_id, locked_by, locked_at;""")
+                INSERT INTO inventory_check_lock(station_id, member_id, locked_by)
+                VALUES (:station_id, :member_id, :locked_by)
+                ON CONFLICT (member_id) DO NOTHING
+                RETURNING id, station_id, member_id, locked_by, locked_at;""")
                 .single(call().bind("station_id", stationId)
                         .bind("member_id", memberId)
                         .bind("locked_by", lockedBy))

@@ -14,15 +14,15 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 /**
  * Represents an active login session for an account.
  *
- * @param id         the unique session identifier
- * @param accountId  the associated account identifier
- * @param tokenHash  the HMAC-SHA-256 hash of the bearer token; the raw bearer is never persisted
- * @param expiresAt  when the session expires
- * @param createdAt  when the session was created
- * @param userAgent  the user agent string from the client that created the session
- * @param lastUsedAt           when the session was last used
- * @param location             the client's location (e.g. country code from CF-IPCountry)
- * @param twoFactorVerifiedAt  when 2FA was last verified on this session (null if never)
+ * @param id                  the unique session identifier
+ * @param accountId           the associated account identifier
+ * @param tokenHash           the HMAC-SHA-256 hash of the bearer token; the raw bearer is never persisted
+ * @param expiresAt           when the session expires
+ * @param createdAt           when the session was created
+ * @param userAgent           the user agent string from the client that created the session
+ * @param lastUsedAt          when the session was last used
+ * @param location            the client's location (e.g. country code from CF-IPCountry)
+ * @param twoFactorVerifiedAt when 2FA was last verified on this session (null if never)
  */
 public record AccountSession(
         int id,

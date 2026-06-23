@@ -58,7 +58,24 @@ public class AdminSettingsRoutes implements Routes {
     private static final String FORCE_PRIDE_FLAG = "force_pride_flag";
 
     private static final Logger log = LoggerFactory.getLogger(AdminSettingsRoutes.class);
+    /**
+     * Pattern allowed for the {@code {name}} path segment on the public logo routes.
+     * Restricting to {@code [A-Za-z0-9_-]+} forbids slashes, dots, and {@code ..} so
+     * the value can never escape the configured image directory regardless of how
+     * the underlying filesystem resolver normalises the path.
+     */
+    private static final Pattern SAFE_LOGO_NAME = Pattern.compile("^[A-Za-z0-9_-]+$");
+    /**
+     * Pattern allowed for the {@code {locale}} path segment on the admin legal
+     * routes. Restricting to two lowercase letters with an optional uppercase
+     * region tag rejects {@code ..} segments, slashes, and any value that would
+     * otherwise let an admin write or list files outside the configured legal
+     * directory.
+     */
+    private static final Pattern SAFE_LOCALE = Pattern.compile("^[a-z]{2}(-[A-Z]{2})?$");
 
+    private static final Set<String> TOTP_ALGORITHMS = Set.of("SHA1", "SHA256", "SHA512");
+    private static final Set<String> WEBAUTHN_ATTESTATIONS = Set.of("none", "indirect", "direct");
     private final ApplicationSettingRepository settingRepository;
     private final LogoFragmentService logoFragmentService;
     private final Conf conf;
@@ -72,6 +89,54 @@ public class AdminSettingsRoutes implements Routes {
         this.conf = conf;
         this.documentService = new LegalDocumentService();
         initializeLogoFragments();
+    }
+
+    /**
+     * Parses the {@code locale} path parameter, validates it against
+     * {@link #SAFE_LOCALE}, and checks that the resolved directory stays inside
+     * {@code base}. Throws {@link io.javalin.http.BadRequestResponse} on any
+     * mismatch so the route returns 400 with a static, user-safe message.
+     */
+    private static String safeLocale(Context ctx, Path base) {
+        String locale = ctx.pathParam("locale");
+        if (locale == null || !SAFE_LOCALE.matcher(locale).matches()) {
+            throw new io.javalin.http.BadRequestResponse("Invalid locale");
+        }
+        Path resolved = base.resolve(locale).normalize();
+        if (!resolved.startsWith(base.normalize())) {
+            throw new io.javalin.http.BadRequestResponse("Invalid locale");
+        }
+        return locale;
+    }
+
+    private static Path resolveLocaleDir(Path base, String locale) {
+        // safeLocale has already validated the value, but re-check the resolved
+        // path so a future caller that forgets the validation gate is still
+        // caught here rather than escaping the legal directory.
+        Path resolved = base.resolve(locale).normalize();
+        if (!resolved.startsWith(base.normalize())) {
+            throw new io.javalin.http.BadRequestResponse("Invalid locale");
+        }
+        return resolved;
+    }
+
+    private static String safeLogoName(Context ctx) {
+        String name = ctx.pathParam("name");
+        if (name == null) return null;
+        if (name.endsWith(".png")) name = name.substring(0, name.length() - 4);
+        return SAFE_LOGO_NAME.matcher(name).matches() ? name : null;
+    }
+
+    private static void requireRange(int value, int min, int max, String field) {
+        if (value < min || value > max) {
+            throw new BadRequestResponse(field + " must be between " + min + " and " + max);
+        }
+    }
+
+    private static void setField(Class<?> clazz, Object target, String fieldName, Object value) throws Exception {
+        Field field = clazz.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        field.set(target, value);
     }
 
     @Override
@@ -234,58 +299,7 @@ public class AdminSettingsRoutes implements Routes {
                         () -> ctx.status(HttpStatus.NOT_FOUND));
     }
 
-    /**
-     * Pattern allowed for the {@code {name}} path segment on the public logo routes.
-     * Restricting to {@code [A-Za-z0-9_-]+} forbids slashes, dots, and {@code ..} so
-     * the value can never escape the configured image directory regardless of how
-     * the underlying filesystem resolver normalises the path.
-     */
-    private static final Pattern SAFE_LOGO_NAME = Pattern.compile("^[A-Za-z0-9_-]+$");
-
-    /**
-     * Pattern allowed for the {@code {locale}} path segment on the admin legal
-     * routes. Restricting to two lowercase letters with an optional uppercase
-     * region tag rejects {@code ..} segments, slashes, and any value that would
-     * otherwise let an admin write or list files outside the configured legal
-     * directory.
-     */
-    private static final Pattern SAFE_LOCALE = Pattern.compile("^[a-z]{2}(-[A-Z]{2})?$");
-
-    /**
-     * Parses the {@code locale} path parameter, validates it against
-     * {@link #SAFE_LOCALE}, and checks that the resolved directory stays inside
-     * {@code base}. Throws {@link io.javalin.http.BadRequestResponse} on any
-     * mismatch so the route returns 400 with a static, user-safe message.
-     */
-    private static String safeLocale(Context ctx, Path base) {
-        String locale = ctx.pathParam("locale");
-        if (locale == null || !SAFE_LOCALE.matcher(locale).matches()) {
-            throw new io.javalin.http.BadRequestResponse("Invalid locale");
-        }
-        Path resolved = base.resolve(locale).normalize();
-        if (!resolved.startsWith(base.normalize())) {
-            throw new io.javalin.http.BadRequestResponse("Invalid locale");
-        }
-        return locale;
-    }
-
-    private static Path resolveLocaleDir(Path base, String locale) {
-        // safeLocale has already validated the value, but re-check the resolved
-        // path so a future caller that forgets the validation gate is still
-        // caught here rather than escaping the legal directory.
-        Path resolved = base.resolve(locale).normalize();
-        if (!resolved.startsWith(base.normalize())) {
-            throw new io.javalin.http.BadRequestResponse("Invalid locale");
-        }
-        return resolved;
-    }
-
-    private static String safeLogoName(Context ctx) {
-        String name = ctx.pathParam("name");
-        if (name == null) return null;
-        if (name.endsWith(".png")) name = name.substring(0, name.length() - 4);
-        return SAFE_LOGO_NAME.matcher(name).matches() ? name : null;
-    }
+    // -- Security config: tokens & sessions --
 
     @OpenApi(
             path = "/api/v1/public/settings/station-registration",
@@ -356,7 +370,7 @@ public class AdminSettingsRoutes implements Routes {
                 request.forcePrideFlag()));
     }
 
-    // -- Security config: tokens & sessions --
+    // -- Security config: HIBP --
 
     private void getTokensConfig(Context ctx) {
         var auth = conf.main().auth();
@@ -401,6 +415,8 @@ public class AdminSettingsRoutes implements Routes {
         }
     }
 
+    // -- Security config: 2FA core --
+
     private TokensConfigResponse buildTokensResponse(Auth auth) {
         return new TokensConfigResponse(
                 auth.tokenBytes(),
@@ -409,8 +425,6 @@ public class AdminSettingsRoutes implements Routes {
                 auth.sessionMinutes(),
                 auth.tokenPepper() != null && !auth.tokenPepper().isBlank());
     }
-
-    // -- Security config: HIBP --
 
     private void getHibpConfig(Context ctx) {
         var hibp = conf.main().auth().hibp();
@@ -442,7 +456,7 @@ public class AdminSettingsRoutes implements Routes {
         return new HibpConfigResponse(hibp.enabled(), hibp.endpoint(), hibp.staleAfterDays(), hibp.timeoutSeconds());
     }
 
-    // -- Security config: 2FA core --
+    // -- Security config: TOTP --
 
     private void getTwoFactorCoreConfig(Context ctx) {
         var twoFactor = conf.main().auth().twoFactor();
@@ -486,6 +500,8 @@ public class AdminSettingsRoutes implements Routes {
         }
     }
 
+    // -- Security config: backup codes --
+
     private TwoFactorCoreConfigResponse buildTwoFactorCoreResponse(TwoFactorSettings twoFactor) {
         return new TwoFactorCoreConfigResponse(
                 twoFactor.enabled(),
@@ -495,12 +511,12 @@ public class AdminSettingsRoutes implements Routes {
                 twoFactor.secretKey() != null && !twoFactor.secretKey().isBlank());
     }
 
-    // -- Security config: TOTP --
-
     private void getTotpConfig(Context ctx) {
         var totp = conf.main().auth().twoFactor().totp();
         ctx.json(buildTotpResponse(totp));
     }
+
+    // -- Security config: WebAuthn --
 
     private void updateTotpConfig(Context ctx) {
         var request = ctx.bodyAsClass(TotpConfigRequest.class);
@@ -535,8 +551,6 @@ public class AdminSettingsRoutes implements Routes {
                 totp.digits(), totp.periodSeconds(), totp.algorithm(), totp.driftWindow(), totp.issuer());
     }
 
-    // -- Security config: backup codes --
-
     private void getBackupCodesConfig(Context ctx) {
         var backup = conf.main().auth().twoFactor().backupCodes();
         ctx.json(new BackupCodesConfigResponse(backup.count()));
@@ -555,8 +569,6 @@ public class AdminSettingsRoutes implements Routes {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
-    // -- Security config: WebAuthn --
 
     private void getWebAuthnConfig(Context ctx) {
         var webauthn = conf.main().auth().twoFactor().webauthn();
@@ -598,6 +610,8 @@ public class AdminSettingsRoutes implements Routes {
         }
     }
 
+    // -- Mailing config --
+
     private WebAuthnConfigResponse buildWebAuthnResponse(TwoFactorSettings.WebAuthnConfig webauthn) {
         return new WebAuthnConfigResponse(
                 webauthn.rpId(),
@@ -606,17 +620,6 @@ public class AdminSettingsRoutes implements Routes {
                 webauthn.timeoutSeconds(),
                 webauthn.requireResidentKey());
     }
-
-    private static final Set<String> TOTP_ALGORITHMS = Set.of("SHA1", "SHA256", "SHA512");
-    private static final Set<String> WEBAUTHN_ATTESTATIONS = Set.of("none", "indirect", "direct");
-
-    private static void requireRange(int value, int min, int max, String field) {
-        if (value < min || value > max) {
-            throw new BadRequestResponse(field + " must be between " + min + " and " + max);
-        }
-    }
-
-    // -- Mailing config --
 
     private void getMailingConfig(Context ctx) {
         var mailing = conf.main().mailing();
@@ -634,6 +637,8 @@ public class AdminSettingsRoutes implements Routes {
                 mailing.dailySendLimit(),
                 mailing.notificationDigestIntervalMinutes()));
     }
+
+    // -- Legal documents --
 
     private void updateMailingConfig(Context ctx) {
         var request = ctx.bodyAsClass(MailingConfigRequest.class);
@@ -678,8 +683,6 @@ public class AdminSettingsRoutes implements Routes {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
-    // -- Legal documents --
 
     private void getLegalDocument(Context ctx) {
         LegalDocumentType type = parseLegalType(ctx);
@@ -818,12 +821,6 @@ public class AdminSettingsRoutes implements Routes {
         } catch (IllegalArgumentException e) {
             throw new BadRequestResponse("Invalid legal document type: " + ctx.pathParam("type"));
         }
-    }
-
-    private static void setField(Class<?> clazz, Object target, String fieldName, Object value) throws Exception {
-        Field field = clazz.getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(target, value);
     }
 
     @OpenApiName("StationRegistrationStatus")

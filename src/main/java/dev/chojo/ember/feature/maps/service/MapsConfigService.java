@@ -35,6 +35,23 @@ public class MapsConfigService {
         this.settings = settings;
     }
 
+    private static void validate(MapsTilesConfig config) {
+        if (config == null || config.provider() == null) {
+            throw new BadRequestResponse("provider required");
+        }
+        if (config.minZoom() < 0 || config.maxZoom() > 22 || config.minZoom() > config.maxZoom()) {
+            throw new BadRequestResponse("zoom range must satisfy 0 <= minZoom <= maxZoom <= 22");
+        }
+        if (config.provider().requiresApiKey()
+                && (config.apiKey() == null || config.apiKey().isBlank())) {
+            throw new BadRequestResponse(config.provider() + " requires an API key");
+        }
+        if (config.provider() == MapTileProvider.CUSTOM
+                && (config.urlTemplate() == null || config.urlTemplate().isBlank())) {
+            throw new BadRequestResponse("CUSTOM provider requires a urlTemplate");
+        }
+    }
+
     public MapsTilesConfig tilesConfig() {
         return settings.get(KEY_TILES).map(MapsTilesConfig::parse).orElse(MapsTilesConfig.DEFAULT);
     }
@@ -69,22 +86,5 @@ public class MapsConfigService {
             throw new BadRequestResponse("max cache size must be between 0 and " + MAX_TILE_CACHE_MB + " MB");
         }
         settings.set(KEY_CACHE_MB, Integer.toString(maxMb));
-    }
-
-    private static void validate(MapsTilesConfig config) {
-        if (config == null || config.provider() == null) {
-            throw new BadRequestResponse("provider required");
-        }
-        if (config.minZoom() < 0 || config.maxZoom() > 22 || config.minZoom() > config.maxZoom()) {
-            throw new BadRequestResponse("zoom range must satisfy 0 <= minZoom <= maxZoom <= 22");
-        }
-        if (config.provider().requiresApiKey()
-                && (config.apiKey() == null || config.apiKey().isBlank())) {
-            throw new BadRequestResponse(config.provider() + " requires an API key");
-        }
-        if (config.provider() == MapTileProvider.CUSTOM
-                && (config.urlTemplate() == null || config.urlTemplate().isBlank())) {
-            throw new BadRequestResponse("CUSTOM provider requires a urlTemplate");
-        }
     }
 }

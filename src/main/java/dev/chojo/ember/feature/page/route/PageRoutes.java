@@ -380,16 +380,6 @@ public class PageRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    record PruneResult(int removed) {}
-
-    record FileMetaRequest(String altText, String description) {}
-
-    record FolderRequest(Integer parentId, String name, Integer sortOrder) {}
-
-    record TagRequest(String name, String color) {}
-
-    record MoveFileRequest(Integer folderId) {}
-
     private void moveFileFolder(Context ctx) {
         var session = UserSession.from(ctx);
         int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
@@ -496,6 +486,16 @@ public class PageRoutes implements Routes {
             throw new BadRequestResponse("Failed to upload file");
         }
     }
+
+    record PruneResult(int removed) {}
+
+    record FileMetaRequest(String altText, String description) {}
+
+    record FolderRequest(Integer parentId, String name, Integer sortOrder) {}
+
+    record TagRequest(String name, String color) {}
+
+    record MoveFileRequest(Integer folderId) {}
 
     // Response records
     record PagesListResponse(List<StationPage> pages, Integer landingPageId) {}

@@ -38,6 +38,29 @@ public class KnowledgeBaseRepository {
             "id, station_id, folder_id, name, description, file_type, mime_type, file_size, icon_url, youtube_url, link_url, position, created_by, created_at, updated_at, source_file_id, source_station_id, restriction_mode, EXISTS(SELECT 1 FROM kb_access_restriction r WHERE r.file_id = id) AS restricted, conversion_status";
 
     // -- Folders --
+    private static final Set<String> VALID_TS_CONFIGS =
+            Set.of("simple", "german", "english", "french", "spanish", "italian", "dutch", "portuguese", "russian");
+
+    /**
+     * Build a tsquery that supports prefix matching.
+     * Each word gets :* appended so "Notr" matches "Notruf".
+     * Multiple words are combined with &amp; (AND).
+     */
+    private static String buildPrefixTsQuery(String cfg, String query) {
+        // to_tsquery with :* suffix for prefix matching
+        return "to_tsquery('%s', :tsquery)".formatted(cfg);
+    }
+
+    private static String preparePrefixQuery(String query) {
+        return Arrays.stream(query.trim().split("\\s+"))
+                .filter(w -> !w.isBlank())
+                .map(w -> w.replaceAll("[^\\w\\p{L}]", "") + ":*")
+                .collect(Collectors.joining(" & "));
+    }
+
+    private static String sanitizeTsConfig(String config) {
+        return VALID_TS_CONFIGS.contains(config) ? config : "simple";
+    }
 
     public List<KbFolder> findFolders(int stationId, Integer parentId) {
         if (parentId == null) {
@@ -65,6 +88,8 @@ public class KnowledgeBaseRepository {
                 .map(KbFolder.map())
                 .all();
     }
+
+    // -- Files --
 
     public Optional<KbFolder> findFolderById(int id) {
         return query("SELECT %s FROM kb_folder fo WHERE fo.id = :id;", FOLDER_COLUMNS)
@@ -113,8 +138,6 @@ public class KnowledgeBaseRepository {
                 .delete()
                 .changed();
     }
-
-    // -- Files --
 
     public List<KbFile> findFiles(int stationId, Integer folderId) {
         if (folderId == null) {
@@ -194,6 +217,8 @@ public class KnowledgeBaseRepository {
                 .orElseThrow();
     }
 
+    // -- File Content --
+
     public boolean updateFile(int id, String name, String description, String iconUrl, int position) {
         return query("""
                 UPDATE kb_file
@@ -220,6 +245,8 @@ public class KnowledgeBaseRepository {
                 .changed();
     }
 
+    // -- Version History (Markdown) --
+
     public boolean setSourceReference(int fileId, int sourceFileId, int sourceStationId) {
         return query(
                         "UPDATE kb_file SET source_file_id = :source_file_id, source_station_id = :source_station_id WHERE id = :id;")
@@ -237,8 +264,6 @@ public class KnowledgeBaseRepository {
                 .changed();
     }
 
-    // -- File Content --
-
     public void storeTextContent(int fileId, String textContent) {
         query("""
                 INSERT INTO kb_file_content(file_id, text_content) VALUES (:file_id, :text_content)
@@ -254,7 +279,7 @@ public class KnowledgeBaseRepository {
                 .first();
     }
 
-    // -- Version History (Markdown) --
+    // -- Search Index --
 
     public List<KbFileVersion> findVersions(int fileId) {
         return query("SELECT * FROM kb_file_version WHERE file_id = :file_id ORDER BY version DESC;")
@@ -293,8 +318,6 @@ public class KnowledgeBaseRepository {
                 .orElseThrow();
     }
 
-    // -- Search Index --
-
     public void updateSearchIndex(int fileId, String plainText, String tsConfig) {
         String config = sanitizeTsConfig(tsConfig);
         query("""
@@ -307,23 +330,6 @@ public class KnowledgeBaseRepository {
                     search_text = excluded.search_text;""", config)
                 .single(call().bind("file_id", fileId).bind("text", plainText))
                 .insert();
-    }
-
-    /**
-     * Build a tsquery that supports prefix matching.
-     * Each word gets :* appended so "Notr" matches "Notruf".
-     * Multiple words are combined with &amp; (AND).
-     */
-    private static String buildPrefixTsQuery(String cfg, String query) {
-        // to_tsquery with :* suffix for prefix matching
-        return "to_tsquery('%s', :tsquery)".formatted(cfg);
-    }
-
-    private static String preparePrefixQuery(String query) {
-        return Arrays.stream(query.trim().split("\\s+"))
-                .filter(w -> !w.isBlank())
-                .map(w -> w.replaceAll("[^\\w\\p{L}]", "") + ":*")
-                .collect(Collectors.joining(" & "));
     }
 
     public List<KbFile> search(int stationId, String query, String tsConfig) {
@@ -369,13 +375,6 @@ public class KnowledgeBaseRepository {
                 .single(call().bind("station_id", stationId).bind("tsquery", preparePrefixQuery(query)))
                 .map(row -> new KbSearchResult(KbFile.map().map(row), row.getString("snippet")))
                 .all();
-    }
-
-    private static final Set<String> VALID_TS_CONFIGS =
-            Set.of("simple", "german", "english", "french", "spanish", "italian", "dutch", "portuguese", "russian");
-
-    private static String sanitizeTsConfig(String config) {
-        return VALID_TS_CONFIGS.contains(config) ? config : "simple";
     }
 
     // -- Access Restrictions --
@@ -472,16 +471,16 @@ public class KnowledgeBaseRepository {
 
     public List<KbTag> findFileTags(int fileId) {
         return query("""
-                        SELECT
-                            t.id,
-                            t.station_id,
-                            t.name
-                        FROM
-                            kb_tag t
-                                JOIN kb_file_tag ft
-                                ON ft.tag_id = t.id
-                        WHERE ft.file_id = :file_id
-                        ORDER BY t.name;""")
+                SELECT
+                    t.id,
+                    t.station_id,
+                    t.name
+                FROM
+                    kb_tag t
+                        JOIN kb_file_tag ft
+                        ON ft.tag_id = t.id
+                WHERE ft.file_id = :file_id
+                ORDER BY t.name;""")
                 .single(call().bind("file_id", fileId))
                 .map(KbTag.map())
                 .all();
@@ -503,17 +502,17 @@ public class KnowledgeBaseRepository {
 
     public List<KbFile> findFilesByTag(int stationId, String tagName) {
         return query("""
-                        SELECT
-                            %s
-                        FROM
-                            kb_file f
-                                JOIN kb_file_tag ft
-                                ON ft.file_id = f.id
-                                JOIN kb_tag t
-                                ON t.id = ft.tag_id
-                        WHERE f.station_id = :station_id
-                          AND lower(t.name) = lower(:tag_name)
-                        ORDER BY f.name;""", FILE_COLUMNS)
+                SELECT
+                    %s
+                FROM
+                    kb_file f
+                        JOIN kb_file_tag ft
+                        ON ft.file_id = f.id
+                        JOIN kb_tag t
+                        ON t.id = ft.tag_id
+                WHERE f.station_id = :station_id
+                  AND lower(t.name) = lower(:tag_name)
+                ORDER BY f.name;""", FILE_COLUMNS)
                 .single(call().bind("station_id", stationId).bind("tag_name", tagName))
                 .map(KbFile.map())
                 .all();
@@ -527,16 +526,16 @@ public class KnowledgeBaseRepository {
 
     public List<KbTag> findFolderTags(int folderId) {
         return query("""
-                        SELECT
-                            t.id,
-                            t.station_id,
-                            t.name
-                        FROM
-                            kb_tag t
-                                JOIN kb_folder_tag ft
-                                ON ft.tag_id = t.id
-                        WHERE ft.folder_id = :folder_id
-                        ORDER BY t.name;""")
+                SELECT
+                    t.id,
+                    t.station_id,
+                    t.name
+                FROM
+                    kb_tag t
+                        JOIN kb_folder_tag ft
+                        ON ft.tag_id = t.id
+                WHERE ft.folder_id = :folder_id
+                ORDER BY t.name;""")
                 .single(call().bind("folder_id", folderId))
                 .map(KbTag.map())
                 .all();
@@ -614,14 +613,14 @@ public class KnowledgeBaseRepository {
 
     public List<KbFile> findFavourites(int memberId) {
         return query("""
-                        SELECT
-                            %s
-                        FROM
-                            kb_file f
-                                JOIN kb_favourite fav
-                                ON fav.file_id = f.id
-                        WHERE fav.member_id = :member_id
-                        ORDER BY fav.created_at DESC;""", FILE_COLUMNS)
+                SELECT
+                    %s
+                FROM
+                    kb_file f
+                        JOIN kb_favourite fav
+                        ON fav.file_id = f.id
+                WHERE fav.member_id = :member_id
+                ORDER BY fav.created_at DESC;""", FILE_COLUMNS)
                 .single(call().bind("member_id", memberId))
                 .map(KbFile.map())
                 .all();

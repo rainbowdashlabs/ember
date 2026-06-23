@@ -288,14 +288,14 @@ public class FormService {
     /**
      * Creates a new question for a form.
      *
-     * @param formId       the form to add the question to
-     * @param position     display order position
+     * @param formId           the form to add the question to
+     * @param position         display order position
      * @param formQuestionType the type of question
-     * @param title        the question text
-     * @param description  optional description
-     * @param required     whether an answer is mandatory
-     * @param shuffle      whether answer options should be randomized
-     * @param config       type-specific configuration as JSON
+     * @param title            the question text
+     * @param description      optional description
+     * @param required         whether an answer is mandatory
+     * @param shuffle          whether answer options should be randomized
+     * @param config           type-specific configuration as JSON
      * @return the newly created question
      */
     // Individual CRUD — routes use replaceQuestions() instead, kept for programmatic use
@@ -361,7 +361,9 @@ public class FormService {
         return repository.findResponse(formId, memberId);
     }
 
-    /** Looks up a single response by its primary key (any form / any submitter). */
+    /**
+     * Looks up a single response by its primary key (any form / any submitter).
+     */
     public Optional<FormResponse> findResponseById(int responseId) {
         return repository.findResponseById(responseId);
     }
@@ -445,6 +447,55 @@ public class FormService {
         return repository.findAnonymousResponse(formId, submitterHash).isPresent();
     }
 
+    /**
+     * Retrieves all answers for a specific response.
+     *
+     * @param responseId the response ID
+     * @return list of answers
+     */
+    public List<FormAnswer> findAnswers(int responseId) {
+        return repository.findAnswers(responseId);
+    }
+
+    // -- Answers --
+
+    /**
+     * Retrieves all answers submitted for a specific question across all responses. Useful for analytics.
+     *
+     * @param questionId the question ID
+     * @return list of answers from all respondents
+     */
+    public List<FormAnswer> findAllAnswersForQuestion(int questionId) {
+        return repository.findAllAnswersForQuestion(questionId);
+    }
+
+    /**
+     * Replaces all access restrictions for a form. Null lists are treated as empty.
+     *
+     * @param formId    the form ID
+     * @param userTypes user type names to restrict access to, or {@code null} for none
+     * @param groupIds  group IDs to restrict access to, or {@code null} for none
+     * @param tagIds    tag IDs to restrict access to, or {@code null} for none
+     * @param memberIds member IDs to restrict access to, or {@code null} for none
+     */
+    public void setRestrictions(
+            int formId,
+            List<StationUserType> userTypes,
+            List<Integer> groupIds,
+            List<Integer> tagIds,
+            List<Integer> memberIds) {
+        restrictionRepository.setRestrictions(
+                RestrictionType.FORM.table(),
+                RestrictionType.FORM.fkColumn(),
+                formId,
+                userTypes != null ? userTypes : List.of(),
+                groupIds != null ? groupIds : List.of(),
+                tagIds != null ? tagIds : List.of(),
+                memberIds != null ? memberIds : List.of());
+    }
+
+    // -- Restrictions --
+
     private void validateAnswers(int formId, Map<Integer, FormAnswerValue> answers) {
         var questions = repository.findQuestions(formId);
         var questionMap = questions.stream().collect(Collectors.toMap(FormQuestion::id, q -> q));
@@ -474,54 +525,5 @@ public class FormService {
         if (!errors.isEmpty()) {
             throw new BadRequestResponse(String.join("; ", errors));
         }
-    }
-
-    // -- Answers --
-
-    /**
-     * Retrieves all answers for a specific response.
-     *
-     * @param responseId the response ID
-     * @return list of answers
-     */
-    public List<FormAnswer> findAnswers(int responseId) {
-        return repository.findAnswers(responseId);
-    }
-
-    /**
-     * Retrieves all answers submitted for a specific question across all responses. Useful for analytics.
-     *
-     * @param questionId the question ID
-     * @return list of answers from all respondents
-     */
-    public List<FormAnswer> findAllAnswersForQuestion(int questionId) {
-        return repository.findAllAnswersForQuestion(questionId);
-    }
-
-    // -- Restrictions --
-
-    /**
-     * Replaces all access restrictions for a form. Null lists are treated as empty.
-     *
-     * @param formId    the form ID
-     * @param userTypes user type names to restrict access to, or {@code null} for none
-     * @param groupIds  group IDs to restrict access to, or {@code null} for none
-     * @param tagIds    tag IDs to restrict access to, or {@code null} for none
-     * @param memberIds member IDs to restrict access to, or {@code null} for none
-     */
-    public void setRestrictions(
-            int formId,
-            List<StationUserType> userTypes,
-            List<Integer> groupIds,
-            List<Integer> tagIds,
-            List<Integer> memberIds) {
-        restrictionRepository.setRestrictions(
-                RestrictionType.FORM.table(),
-                RestrictionType.FORM.fkColumn(),
-                formId,
-                userTypes != null ? userTypes : List.of(),
-                groupIds != null ? groupIds : List.of(),
-                tagIds != null ? tagIds : List.of(),
-                memberIds != null ? memberIds : List.of());
     }
 }

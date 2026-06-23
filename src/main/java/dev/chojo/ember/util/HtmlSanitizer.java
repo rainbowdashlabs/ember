@@ -170,9 +170,13 @@ public final class HtmlSanitizer {
      * Policy selector for {@link HtmlSanitizer#sanitize(String, Policy)}.
      */
     public enum Policy {
-        /** Allows images, tables, and YouTube embeds — for KB / page content. */
+        /**
+         * Allows images, tables, and YouTube embeds — for KB / page content.
+         */
         RICH,
-        /** Forbids images and iframes — for admin-authored legal documents. */
+        /**
+         * Forbids images and iframes — for admin-authored legal documents.
+         */
         STRICT
     }
 

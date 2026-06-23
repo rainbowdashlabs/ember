@@ -84,11 +84,11 @@ public class EventLayoutRepository {
         for (int i = 0; i < fields.size(); i++) {
             var f = fields.get(i);
             query("""
-                         INSERT
-                         INTO
-                             event_layout_field(layout_id, name, field_type, config, position, overview, attendance_field_id)
-                         VALUES
-                             (:layout_id, :name, :field_type, :config::JSONB, :position, :overview, :attendance_field_id);""")
+                    INSERT
+                    INTO
+                        event_layout_field(layout_id, name, field_type, config, position, overview, attendance_field_id)
+                    VALUES
+                        (:layout_id, :name, :field_type, :config::JSONB, :position, :overview, :attendance_field_id);""")
                     .single(call().bind("layout_id", layoutId)
                             .bind("name", f.name())
                             .bind("field_type", f.fieldType() != null ? f.fieldType() : EventFieldType.STRING)

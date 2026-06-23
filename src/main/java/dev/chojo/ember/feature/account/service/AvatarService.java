@@ -29,29 +29,39 @@ public class AvatarService {
         this.variants = variants;
     }
 
-    /** Persists the avatar for an account at all standard size variants. */
+    /**
+     * Persists the avatar for an account at all standard size variants.
+     */
     public void store(UUID accountUid, byte[] data, String declaredMime, int maxBytes) throws IOException {
         variants.store(scope(accountUid), StorageCategory.IMAGE_AVATAR, key(accountUid), data, declaredMime, maxBytes);
     }
 
-    /** Convenience overload without an upper-bound size check. */
+    /**
+     * Convenience overload without an upper-bound size check.
+     */
     public void store(UUID accountUid, byte[] data, String declaredMime) throws IOException {
         store(accountUid, data, declaredMime, 0);
     }
 
-    /** Reads the requested avatar size, falling back to the original when missing. */
+    /**
+     * Reads the requested avatar size, falling back to the original when missing.
+     */
     public Optional<ImageVariantService.ImageData> read(UUID accountUid, int size) {
         if (accountUid == null) return Optional.empty();
         return variants.read(scope(accountUid), StorageCategory.IMAGE_AVATAR, key(accountUid), size);
     }
 
-    /** Whether an avatar exists for the given account. */
+    /**
+     * Whether an avatar exists for the given account.
+     */
     public boolean exists(UUID accountUid) {
         if (accountUid == null) return false;
         return variants.exists(scope(accountUid), StorageCategory.IMAGE_AVATAR, key(accountUid));
     }
 
-    /** Removes every size variant for the given account's avatar. */
+    /**
+     * Removes every size variant for the given account's avatar.
+     */
     public void delete(UUID accountUid) {
         if (accountUid == null) return;
         variants.delete(scope(accountUid), StorageCategory.IMAGE_AVATAR, key(accountUid));

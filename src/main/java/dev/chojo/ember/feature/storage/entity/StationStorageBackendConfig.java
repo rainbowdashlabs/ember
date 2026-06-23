@@ -28,9 +28,11 @@ import java.util.Optional;
     @JsonSubTypes.Type(value = StationStorageBackendConfig.SftpVariant.class, name = "SFTP")
 })
 public sealed interface StationStorageBackendConfig {
-    StorageBackendType type();
+    JsonMapper MAPPER = JsonMapper.builder().build();
 
-    /** Deserializes a {@code StationStorageBackendConfig} from its JSONB representation. */
+    /**
+     * Deserializes a {@code StationStorageBackendConfig} from its JSONB representation.
+     */
     static StationStorageBackendConfig parse(String json) {
         try {
             return MAPPER.readValue(json, StationStorageBackendConfig.class);
@@ -39,7 +41,11 @@ public sealed interface StationStorageBackendConfig {
         }
     }
 
-    /** Serializes this variant to JSON for storage in the JSONB column. */
+    StorageBackendType type();
+
+    /**
+     * Serializes this variant to JSON for storage in the JSONB column.
+     */
     default String toJson() {
         try {
             return MAPPER.writeValueAsString(this);
@@ -48,9 +54,9 @@ public sealed interface StationStorageBackendConfig {
         }
     }
 
-    JsonMapper MAPPER = JsonMapper.builder().build();
-
-    /** S3 / S3-compatible backend override. */
+    /**
+     * S3 / S3-compatible backend override.
+     */
     record S3Variant(
             String endpoint,
             String region,
@@ -66,7 +72,9 @@ public sealed interface StationStorageBackendConfig {
         }
     }
 
-    /** SMB3 backend override. */
+    /**
+     * SMB3 backend override.
+     */
     record SmbVariant(
             String host,
             int port,
@@ -83,7 +91,9 @@ public sealed interface StationStorageBackendConfig {
         }
     }
 
-    /** SFTP backend override. */
+    /**
+     * SFTP backend override.
+     */
     record SftpVariant(
             String host,
             int port,

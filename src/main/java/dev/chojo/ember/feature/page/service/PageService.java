@@ -86,6 +86,17 @@ public class PageService {
 
     // --- Page CRUD ---
 
+    static String toSlug(String input) {
+        if (input == null) return "";
+        String normalized = Normalizer.normalize(input.toLowerCase(Locale.ROOT), Normalizer.Form.NFD);
+        // Remove diacritics
+        String ascii = normalized.replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+        // Replace non-alphanumeric with hyphens
+        String slug = ascii.replaceAll("[^a-z0-9]+", "-");
+        // Trim leading/trailing hyphens
+        return slug.replaceAll("^-+|-+$", "");
+    }
+
     public StationPage create(int stationId, String title, Integer parentId, int createdBy) {
         if (parentId != null) {
             validateDepth(parentId, 1);
@@ -210,6 +221,8 @@ public class PageService {
         return pageRepository.delete(pageId);
     }
 
+    // --- Landing page ---
+
     public StationPage duplicatePage(int pageId, int createdBy) {
         var source = pageRepository
                 .findById(pageId)
@@ -239,8 +252,6 @@ public class PageService {
                 .orElseThrow();
     }
 
-    // --- Landing page ---
-
     public void setLandingPage(int stationId, Integer pageId) {
         if (pageId != null) {
             var page =
@@ -258,6 +269,8 @@ public class PageService {
         pageRepository.setLandingPage(stationId, pageId);
     }
 
+    // --- Images ---
+
     public Optional<StationPage> getLandingPage(int stationId) {
         return pageRepository
                 .getLandingPageId(stationId)
@@ -267,8 +280,6 @@ public class PageService {
                 .map(this::renderMarkdownCells);
     }
 
-    // --- Images ---
-
     public PageFile uploadPageFile(int pageId, String fileName, String mimeType, byte[] data) throws IOException {
         var page = pageRepository
                 .findById(pageId)
@@ -276,38 +287,11 @@ public class PageService {
         return uploadFile(page.stationId(), pageId, fileName, mimeType, data);
     }
 
-    /** Uploads a file scoped to the station (no owning page). Used by the station-wide browser. */
+    /**
+     * Uploads a file scoped to the station (no owning page). Used by the station-wide browser.
+     */
     public PageFile uploadStationFile(int stationId, String fileName, String mimeType, byte[] data) throws IOException {
         return uploadFile(stationId, null, fileName, mimeType, data);
-    }
-
-    private PageFile uploadFile(int stationId, Integer pageId, String fileName, String mimeType, byte[] data)
-            throws IOException {
-        boolean isImage = mimeType != null && mimeType.startsWith("image/");
-        if (isImage) {
-            quotaService.checkImageSize(stationId, data.length);
-        } else {
-            quotaService.checkFileSize(stationId, data.length);
-        }
-        String contentHash = PageFileStorageService.hash(data);
-        // Per-station dedup: if the same bytes were already uploaded for this station, reuse the
-        // existing row + on-disk file instead of creating a duplicate. Cells just reference the
-        // existing image id.
-        var existing = pageRepository.findByStationAndHash(stationId, contentHash);
-        if (existing.isPresent()) {
-            // Make sure the file is still on disk (defensive: a crashed migration could have left
-            // the row orphaned). store() is idempotent for identical bytes.
-            imageStorage.store(stationId, contentHash, data, mimeType);
-            return existing.get();
-        }
-        quotaService.checkQuota(stationId, StorageCategory.PAGE_FILES, data.length);
-        var image = pageRepository.createFile(pageId, stationId, contentHash, fileName, mimeType, data.length);
-        imageStorage.store(stationId, contentHash, data, mimeType);
-        if (isImage) {
-            variantService.generateVariants(stationId, contentHash, data, mimeType);
-        }
-        quotaService.trackDelta(stationId, StorageCategory.PAGE_FILES, data.length, 1);
-        return image;
     }
 
     /**
@@ -337,7 +321,9 @@ public class PageService {
         return pageRepository.findFilesByStation(stationId);
     }
 
-    /** Lists files in the station with usage + tag-ids. */
+    /**
+     * Lists files in the station with usage + tag-ids.
+     */
     public List<FileListing> listFilesWithUsage(int stationId) {
         var files = pageRepository.findFilesByStation(stationId);
         Set<Integer> unused = findUnusedFileIds(stationId);
@@ -410,8 +396,6 @@ public class PageService {
         return pageRepository.updateFileMeta(fileId, altText, description);
     }
 
-    public record FileListing(PageFile file, boolean inUse, Set<Integer> tagIds) {}
-
     public boolean moveFileToFolder(int stationId, int fileId, Integer folderId) {
         var file = pageRepository.findFile(fileId).orElse(null);
         if (file == null || file.stationId() != stationId) return false;
@@ -424,7 +408,9 @@ public class PageService {
         return imageStorage.read(image.stationId(), image.contentHash());
     }
 
-    /** Reads a file by station + content hash. Used by the public hash-keyed delivery route. */
+    /**
+     * Reads a file by station + content hash. Used by the public hash-keyed delivery route.
+     */
     public Optional<PageFileStorageService.FileData> readFile(int stationId, String contentHash) {
         if (contentHash == null || contentHash.isBlank()) return Optional.empty();
         var file = pageRepository.findByStationAndHash(stationId, contentHash).orElse(null);
@@ -448,7 +434,83 @@ public class PageService {
                 .map(StationPage::slug);
     }
 
+    /**
+     * Returns the ids of files in the station that no cell currently references. Used by the
+     * listing endpoint to flag candidates for pruning in the file browser.
+     */
+    public Set<Integer> findUnusedFileIds(int stationId) {
+        Set<String> referenced = collectFileReferences(stationId);
+        Set<Integer> unused = new HashSet<>();
+        for (var file : pageRepository.findFilesByStation(stationId)) {
+            boolean inUse = (file.contentHash() != null && referenced.contains(file.contentHash()))
+                    || referenced.contains(String.valueOf(file.id()));
+            if (!inUse) unused.add(file.id());
+        }
+        return unused;
+    }
+
     // --- Markdown rendering ---
+
+    /**
+     * Deletes every page file in the station that is no longer referenced from any cell.
+     * Returns the number of files removed. Only invoked when the user explicitly asks to prune.
+     */
+    public int pruneUnusedFiles(int stationId) {
+        Set<String> referenced = collectFileReferences(stationId);
+        int removed = 0;
+        for (var file : pageRepository.findFilesByStation(stationId)) {
+            boolean inUse = (file.contentHash() != null && referenced.contains(file.contentHash()))
+                    || referenced.contains(String.valueOf(file.id()));
+            if (inUse) continue;
+            if (file.contentHash() != null) {
+                imageStorage.delete(file.stationId(), file.contentHash());
+            }
+            pageRepository.deleteFile(file.id());
+            quotaService.onFileDeleted(stationId, StorageCategory.PAGE_FILES, file.fileSize());
+            removed++;
+        }
+        return removed;
+    }
+
+    String generateUniqueSlug(int stationId, String base, int excludePageId) {
+        String slug = toSlug(base);
+        if (slug.isBlank()) slug = "page";
+        if (!pageRepository.slugExists(stationId, slug, excludePageId)) return slug;
+        for (int i = 2; i < 1000; i++) {
+            String candidate = slug + "-" + i;
+            if (!pageRepository.slugExists(stationId, candidate, excludePageId)) return candidate;
+        }
+        throw new IllegalStateException("Could not generate unique slug");
+    }
+
+    private PageFile uploadFile(int stationId, Integer pageId, String fileName, String mimeType, byte[] data)
+            throws IOException {
+        boolean isImage = mimeType != null && mimeType.startsWith("image/");
+        if (isImage) {
+            quotaService.checkImageSize(stationId, data.length);
+        } else {
+            quotaService.checkFileSize(stationId, data.length);
+        }
+        String contentHash = PageFileStorageService.hash(data);
+        // Per-station dedup: if the same bytes were already uploaded for this station, reuse the
+        // existing row + on-disk file instead of creating a duplicate. Cells just reference the
+        // existing image id.
+        var existing = pageRepository.findByStationAndHash(stationId, contentHash);
+        if (existing.isPresent()) {
+            // Make sure the file is still on disk (defensive: a crashed migration could have left
+            // the row orphaned). store() is idempotent for identical bytes.
+            imageStorage.store(stationId, contentHash, data, mimeType);
+            return existing.get();
+        }
+        quotaService.checkQuota(stationId, StorageCategory.PAGE_FILES, data.length);
+        var image = pageRepository.createFile(pageId, stationId, contentHash, fileName, mimeType, data.length);
+        imageStorage.store(stationId, contentHash, data, mimeType);
+        if (isImage) {
+            variantService.generateVariants(stationId, contentHash, data, mimeType);
+        }
+        quotaService.trackDelta(stationId, StorageCategory.PAGE_FILES, data.length, 1);
+        return image;
+    }
 
     private StationPage renderMarkdownCells(StationPage page) {
         int stationId = page.stationId();
@@ -501,50 +563,14 @@ public class PageService {
         return cell;
     }
 
+    // --- Internal helpers ---
+
     private String renderMarkdown(String markdown) {
         if (markdown == null || markdown.isBlank()) return "";
         var document = markdownParser.parse(markdown);
         String html = htmlRenderer.render(document);
         return HtmlSanitizer.sanitize(html, HtmlSanitizer.Policy.RICH);
     }
-
-    /**
-     * Returns the ids of files in the station that no cell currently references. Used by the
-     * listing endpoint to flag candidates for pruning in the file browser.
-     */
-    public Set<Integer> findUnusedFileIds(int stationId) {
-        Set<String> referenced = collectFileReferences(stationId);
-        Set<Integer> unused = new HashSet<>();
-        for (var file : pageRepository.findFilesByStation(stationId)) {
-            boolean inUse = (file.contentHash() != null && referenced.contains(file.contentHash()))
-                    || referenced.contains(String.valueOf(file.id()));
-            if (!inUse) unused.add(file.id());
-        }
-        return unused;
-    }
-
-    /**
-     * Deletes every page file in the station that is no longer referenced from any cell.
-     * Returns the number of files removed. Only invoked when the user explicitly asks to prune.
-     */
-    public int pruneUnusedFiles(int stationId) {
-        Set<String> referenced = collectFileReferences(stationId);
-        int removed = 0;
-        for (var file : pageRepository.findFilesByStation(stationId)) {
-            boolean inUse = (file.contentHash() != null && referenced.contains(file.contentHash()))
-                    || referenced.contains(String.valueOf(file.id()));
-            if (inUse) continue;
-            if (file.contentHash() != null) {
-                imageStorage.delete(file.stationId(), file.contentHash());
-            }
-            pageRepository.deleteFile(file.id());
-            quotaService.onFileDeleted(stationId, StorageCategory.PAGE_FILES, file.fileSize());
-            removed++;
-        }
-        return removed;
-    }
-
-    // --- Internal helpers ---
 
     /**
      * Collects every page-file reference used anywhere in the station: IMAGE cell contents
@@ -622,27 +648,7 @@ public class PageService {
         }
     }
 
-    String generateUniqueSlug(int stationId, String base, int excludePageId) {
-        String slug = toSlug(base);
-        if (slug.isBlank()) slug = "page";
-        if (!pageRepository.slugExists(stationId, slug, excludePageId)) return slug;
-        for (int i = 2; i < 1000; i++) {
-            String candidate = slug + "-" + i;
-            if (!pageRepository.slugExists(stationId, candidate, excludePageId)) return candidate;
-        }
-        throw new IllegalStateException("Could not generate unique slug");
-    }
-
-    static String toSlug(String input) {
-        if (input == null) return "";
-        String normalized = Normalizer.normalize(input.toLowerCase(Locale.ROOT), Normalizer.Form.NFD);
-        // Remove diacritics
-        String ascii = normalized.replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
-        // Replace non-alphanumeric with hyphens
-        String slug = ascii.replaceAll("[^a-z0-9]+", "-");
-        // Trim leading/trailing hyphens
-        return slug.replaceAll("^-+|-+$", "");
-    }
+    public record FileListing(PageFile file, boolean inUse, Set<Integer> tagIds) {}
 
     public record RowData(int sortOrder, List<CellData> cells) {}
 

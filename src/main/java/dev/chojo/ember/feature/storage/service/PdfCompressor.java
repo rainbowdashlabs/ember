@@ -43,6 +43,49 @@ public class PdfCompressor {
     }
 
     /**
+     * Returns whether the configured {@code qpdf} binary can be invoked. Result is cached
+     * after the first probe; restart the JVM to pick up a freshly installed binary.
+     */
+    public static boolean isAvailable() {
+        Boolean cached = availabilityCache;
+        if (cached != null) return cached;
+        synchronized (PdfCompressor.class) {
+            if (availabilityCache != null) return availabilityCache;
+            try {
+                var process = new ProcessBuilder(QPDF_BIN, "--version")
+                        .redirectErrorStream(true)
+                        .start();
+                int exit = process.waitFor();
+                availabilityCache = exit == 0;
+            } catch (IOException | InterruptedException e) {
+                if (e instanceof InterruptedException) Thread.currentThread().interrupt();
+                log.info("qpdf not available on PATH (QPDF_BIN={}); PDF compression will be skipped.", QPDF_BIN);
+                availabilityCache = false;
+            }
+            return availabilityCache;
+        }
+    }
+
+    /**
+     * Resets the cached availability probe. Used by tests that toggle the binary path.
+     */
+    public static void resetAvailabilityCacheForTests() {
+        availabilityCache = null;
+    }
+
+    private static void cleanup(Path dir) {
+        try (var walk = Files.walk(dir)) {
+            walk.sorted(Comparator.reverseOrder()).forEach(p -> {
+                try {
+                    Files.deleteIfExists(p);
+                } catch (IOException ignored) {
+                }
+            });
+        } catch (IOException ignored) {
+        }
+    }
+
+    /**
      * Returns {@code true} when the file is a PDF, larger than the configured threshold, the
      * config toggle is on, and {@code qpdf} is available. The toggle-on-but-no-binary case
      * returns {@code false} so callers fall back to storing the original without an exception.
@@ -102,49 +145,6 @@ public class PdfCompressor {
             return data;
         } finally {
             cleanup(workDir);
-        }
-    }
-
-    /**
-     * Returns whether the configured {@code qpdf} binary can be invoked. Result is cached
-     * after the first probe; restart the JVM to pick up a freshly installed binary.
-     */
-    public static boolean isAvailable() {
-        Boolean cached = availabilityCache;
-        if (cached != null) return cached;
-        synchronized (PdfCompressor.class) {
-            if (availabilityCache != null) return availabilityCache;
-            try {
-                var process = new ProcessBuilder(QPDF_BIN, "--version")
-                        .redirectErrorStream(true)
-                        .start();
-                int exit = process.waitFor();
-                availabilityCache = exit == 0;
-            } catch (IOException | InterruptedException e) {
-                if (e instanceof InterruptedException) Thread.currentThread().interrupt();
-                log.info("qpdf not available on PATH (QPDF_BIN={}); PDF compression will be skipped.", QPDF_BIN);
-                availabilityCache = false;
-            }
-            return availabilityCache;
-        }
-    }
-
-    /**
-     * Resets the cached availability probe. Used by tests that toggle the binary path.
-     */
-    public static void resetAvailabilityCacheForTests() {
-        availabilityCache = null;
-    }
-
-    private static void cleanup(Path dir) {
-        try (var walk = Files.walk(dir)) {
-            walk.sorted(Comparator.reverseOrder()).forEach(p -> {
-                try {
-                    Files.deleteIfExists(p);
-                } catch (IOException ignored) {
-                }
-            });
-        } catch (IOException ignored) {
         }
     }
 }

@@ -68,7 +68,7 @@ public class AccountRepository {
      * @return the account, or empty if not found
      */
     public Optional<Account> findByUid(UUID uid) {
-        return query("SELECT %s FROM account WHERE uid = :uid::uuid;", ACCOUNT_COLUMNS)
+        return query("SELECT %s FROM account WHERE uid = :uid::UUID;", ACCOUNT_COLUMNS)
                 .single(call().bind("uid", uid, UUID_STRING))
                 .map(Account.map())
                 .first();
@@ -138,7 +138,7 @@ public class AccountRepository {
         return query("""
                 SELECT id,
                        uid,
-                       COALESCE(NULLIF(full_name, ''), TRIM(BOTH ' ' FROM first_name || ' ' || last_name)) AS display_name,
+                       coalesce(nullif(full_name, ''), trim(BOTH ' ' FROM first_name || ' ' || last_name)) AS display_name,
                        first_name,
                        last_name,
                        email
@@ -159,31 +159,15 @@ public class AccountRepository {
         return query("""
                 SELECT id,
                        uid,
-                       COALESCE(NULLIF(full_name, ''), TRIM(BOTH ' ' FROM first_name || ' ' || last_name)) AS display_name,
+                       coalesce(nullif(full_name, ''), trim(BOTH ' ' FROM first_name || ' ' || last_name)) AS display_name,
                        first_name,
                        last_name,
                        email
                 FROM account
-                WHERE uid = :uid::uuid;""")
+                WHERE uid = :uid::UUID;""")
                 .single(call().bind("uid", uid, UUID_STRING))
                 .map(PickerAccount.map())
                 .first();
-    }
-
-    /**
-     * Lightweight result row for the admin account-search picker. Carries both the internal id
-     * (needed for admin-scoped 2FA reset / audit filter calls) and the public UUID.
-     */
-    public record PickerAccount(int id, UUID uid, String displayName, String firstName, String lastName, String email) {
-        public static RowMapping<PickerAccount> map() {
-            return row -> new PickerAccount(
-                    row.getInt("id"),
-                    row.get("uid", UUID_STRING),
-                    row.getString("display_name"),
-                    row.getString("first_name"),
-                    row.getString("last_name"),
-                    row.getString("email"));
-        }
     }
 
     /**
@@ -236,8 +220,6 @@ public class AccountRepository {
                 .orElseThrow();
     }
 
-    // -- Instance User Type --
-
     /**
      * Checks whether an account is an instance administrator.
      */
@@ -248,6 +230,8 @@ public class AccountRepository {
                 .first()
                 .isPresent();
     }
+
+    // -- Instance User Type --
 
     /**
      * Checks whether any account in the system is an administrator.
@@ -320,8 +304,6 @@ public class AccountRepository {
                 UPDATE account SET email_verified = TRUE WHERE id = :id;""").single(call().bind("id", id)).update().changed();
     }
 
-    // -- Credentials --
-
     /**
      * Deletes an account by its identifier.
      *
@@ -332,6 +314,8 @@ public class AccountRepository {
         return query("""
                 DELETE FROM account WHERE id = :id;""").single(call().bind("id", id)).delete().changed();
     }
+
+    // -- Credentials --
 
     /**
      * Finds the password credential for an account.
@@ -429,8 +413,6 @@ public class AccountRepository {
                 .changed();
     }
 
-    // -- External Auth --
-
     /**
      * Deletes the password credential for an account.
      *
@@ -443,6 +425,8 @@ public class AccountRepository {
                 .delete()
                 .changed();
     }
+
+    // -- External Auth --
 
     /**
      * Retrieves all external authentication links for an account.
@@ -501,8 +485,6 @@ public class AccountRepository {
                 .insert();
     }
 
-    // -- Tokens --
-
     /**
      * Deletes an external authentication record by its identifier.
      *
@@ -515,6 +497,8 @@ public class AccountRepository {
                 .delete()
                 .changed();
     }
+
+    // -- Tokens --
 
     /**
      * Finds a token by its token string.
@@ -647,8 +631,6 @@ public class AccountRepository {
                 .changed();
     }
 
-    // -- Sessions --
-
     /**
      * Deletes all tokens of a specific type for an account, typically before creating a replacement.
      *
@@ -662,6 +644,8 @@ public class AccountRepository {
                 .delete()
                 .changed();
     }
+
+    // -- Sessions --
 
     /**
      * Deletes every recovery / verification token for an account. Used on a successful
@@ -882,8 +866,6 @@ public class AccountRepository {
                 .changed();
     }
 
-    // -- GDPR Consent --
-
     /**
      * Deletes all expired sessions from the database.
      *
@@ -895,6 +877,8 @@ public class AccountRepository {
                 .delete()
                 .changed();
     }
+
+    // -- GDPR Consent --
 
     /**
      * Records a GDPR consent entry for an account with version information and client metadata.
@@ -965,5 +949,21 @@ public class AccountRepository {
                 .single(call().bind("account_id", accountId))
                 .map(GdprConsent.map())
                 .all();
+    }
+
+    /**
+     * Lightweight result row for the admin account-search picker. Carries both the internal id
+     * (needed for admin-scoped 2FA reset / audit filter calls) and the public UUID.
+     */
+    public record PickerAccount(int id, UUID uid, String displayName, String firstName, String lastName, String email) {
+        public static RowMapping<PickerAccount> map() {
+            return row -> new PickerAccount(
+                    row.getInt("id"),
+                    row.get("uid", UUID_STRING),
+                    row.getString("display_name"),
+                    row.getString("first_name"),
+                    row.getString("last_name"),
+                    row.getString("email"));
+        }
     }
 }

@@ -18,7 +18,7 @@ public class HibpSettings {
 
     /**
      * @return {@code true} when the breach lookup is enabled; otherwise both the
-     *         synchronous and asynchronous checks become no-ops.
+     * synchronous and asynchronous checks become no-ops.
      */
     public boolean enabled() {
         return enabled;
@@ -26,7 +26,7 @@ public class HibpSettings {
 
     /**
      * @return the number of days after the last successful check when the next
-     *         post-login lookup is allowed to run for the same credential.
+     * post-login lookup is allowed to run for the same credential.
      */
     public int staleAfterDays() {
         return staleAfterDays;
@@ -34,8 +34,8 @@ public class HibpSettings {
 
     /**
      * @return the HIBP range endpoint, including the trailing {@code /}. The
-     *         first five hex characters of {@code SHA-1(plaintext)} are appended
-     *         to form the request URL.
+     * first five hex characters of {@code SHA-1(plaintext)} are appended
+     * to form the request URL.
      */
     public String endpoint() {
         return endpoint;

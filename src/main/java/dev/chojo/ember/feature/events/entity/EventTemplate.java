@@ -32,13 +32,11 @@ public record EventTemplate(
                 row.getString("title"),
                 row.getString("description"),
                 row.getObject("category_id", Integer.class),
-                row.getString("event_type") != null ? EventType.valueOf(row.getString("event_type")) : null,
+                row.getEnum("event_type", EventType.class),
                 row.getObject("requires_registration", Boolean.class),
                 row.getString("registration_deadline_offset"),
                 row.getObject("requires_confirmation", Boolean.class),
-                row.getString("restriction_mode") != null
-                        ? RestrictionMode.valueOf(row.getString("restriction_mode"))
-                        : null,
+                row.getEnum("restriction_mode", RestrictionMode.class),
                 row.getObject("attendance_template_id", Integer.class),
                 row.getObject("registration_limit", Integer.class));
     }

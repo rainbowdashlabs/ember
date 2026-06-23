@@ -32,14 +32,6 @@ public record InventoryItemMetadata(boolean owned) {
         return EMPTY;
     }
 
-    public String toJson() {
-        try {
-            return MAPPER.writeValueAsString(this);
-        } catch (Exception e) {
-            return "{}";
-        }
-    }
-
     /**
      * Parses a JSON string into an {@link InventoryItemMetadata}, returning a default empty value on failure.
      *
@@ -53,6 +45,14 @@ public record InventoryItemMetadata(boolean owned) {
         } catch (Exception e) {
             log.error("Failed to parse inventory item metadata: {}", json, e);
             return EMPTY;
+        }
+    }
+
+    public String toJson() {
+        try {
+            return MAPPER.writeValueAsString(this);
+        } catch (Exception e) {
+            return "{}";
         }
     }
 }

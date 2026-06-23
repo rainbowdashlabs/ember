@@ -70,7 +70,9 @@ public class StorageReconciliationService {
         scheduler.scheduleWithFixedDelay(this::reconcileAll, 1, intervalHours * 60L, TimeUnit.MINUTES);
     }
 
-    /** Reconciles storage usage for every station. */
+    /**
+     * Reconciles storage usage for every station.
+     */
     public void reconcileAll() {
         try {
             log.info("Starting storage reconciliation for all stations");
@@ -84,7 +86,9 @@ public class StorageReconciliationService {
         }
     }
 
-    /** Reconciles storage usage for one station. */
+    /**
+     * Reconciles storage usage for one station.
+     */
     public void reconcileStation(int stationId) {
         try {
             UUID stationUid = stationRepository.resolveUid(stationId);

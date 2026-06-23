@@ -40,12 +40,16 @@ public record SftpBackendConfig(
         }
     }
 
-    /** Returns a copy with the supplied {@code basePath} replacing the existing one. */
+    /**
+     * Returns a copy with the supplied {@code basePath} replacing the existing one.
+     */
     public SftpBackendConfig withBasePath(String basePath) {
         return new SftpBackendConfig(host, port, username, password, privateKey, knownHostsFingerprint, basePath);
     }
 
-    /** Whether the config skips host-key verification — only valid in dev. */
+    /**
+     * Whether the config skips host-key verification — only valid in dev.
+     */
     public boolean trustsAnyHost() {
         return knownHostsFingerprint == null || knownHostsFingerprint.isBlank();
     }

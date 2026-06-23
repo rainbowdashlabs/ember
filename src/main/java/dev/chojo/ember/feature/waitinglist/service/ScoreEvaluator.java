@@ -93,16 +93,6 @@ public final class ScoreEvaluator {
 
     // --- Tokenizer ---
 
-    private sealed interface Token permits TNum, TStr, TOp, TEof {}
-
-    private record TNum(double value) implements Token {}
-
-    private record TStr(String value) implements Token {}
-
-    private record TOp(String op) implements Token {}
-
-    private record TEof() implements Token {}
-
     private static List<Token> tokenize(String input) {
         var tokens = new ArrayList<Token>();
         int i = 0;
@@ -149,6 +139,16 @@ public final class ScoreEvaluator {
         return tokens;
     }
 
+    private sealed interface Token permits TNum, TStr, TOp, TEof {}
+
+    private record TNum(double value) implements Token {}
+
+    private record TStr(String value) implements Token {}
+
+    private record TOp(String op) implements Token {}
+
+    private record TEof() implements Token {}
+
     // --- Parser (recursive descent) ---
 
     private static class Parser {
@@ -158,6 +158,18 @@ public final class ScoreEvaluator {
         Parser(List<Token> tokens) {
             this.tokens = tokens;
             this.pos = 0;
+        }
+
+        // ternary: comparison ? expression : expression
+        double parseTernary() {
+            double cond = parseComparison();
+            if (matchOp("?")) {
+                double ifTrue = parseTernary();
+                if (!matchOp(":")) throw new IllegalArgumentException("Expected ':'");
+                double ifFalse = parseTernary();
+                return cond != 0.0 ? ifTrue : ifFalse;
+            }
+            return cond;
         }
 
         private Token peek() {
@@ -174,18 +186,6 @@ public final class ScoreEvaluator {
                 return true;
             }
             return false;
-        }
-
-        // ternary: comparison ? expression : expression
-        double parseTernary() {
-            double cond = parseComparison();
-            if (matchOp("?")) {
-                double ifTrue = parseTernary();
-                if (!matchOp(":")) throw new IllegalArgumentException("Expected ':'");
-                double ifFalse = parseTernary();
-                return cond != 0.0 ? ifTrue : ifFalse;
-            }
-            return cond;
         }
 
         // comparison: additive (==|!=|>|<|>=|<= additive)*

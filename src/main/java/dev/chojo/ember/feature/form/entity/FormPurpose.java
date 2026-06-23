@@ -16,10 +16,16 @@ import io.javalin.openapi.OpenApiName;
  */
 @OpenApiName("FormPurpose")
 public enum FormPurpose {
-    /** Members-only form, surfaced under {@code /station/forms}. */
+    /**
+     * Members-only form, surfaced under {@code /station/forms}.
+     */
     INTERNAL,
-    /** Publicly answerable contact form, surfaced under {@code /station/pages/forms}. */
+    /**
+     * Publicly answerable contact form, surfaced under {@code /station/pages/forms}.
+     */
     CONTACT,
-    /** Publicly answerable poll, surfaced under {@code /station/pages/polls}. */
+    /**
+     * Publicly answerable poll, surfaced under {@code /station/pages/polls}.
+     */
     POLL
 }

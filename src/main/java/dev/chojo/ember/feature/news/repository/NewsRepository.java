@@ -45,7 +45,7 @@ public class NewsRepository {
     public News create(int stationId, String title, String contentMarkdown, String contentHtml, MemberIdentity author) {
         return query("""
                 INSERT INTO news(station_id, title, content_markdown, content_html, author_station_uid, author_member_uid, published_at)
-                VALUES (:station_id, :title, :content_markdown, :content_html, :author_station_uid::uuid, :author_member_uid::uuid, :published_at)
+                VALUES (:station_id, :title, :content_markdown, :content_html, :author_station_uid::UUID, :author_member_uid::UUID, :published_at)
                 RETURNING %s;""", NEWS_COLUMNS_BARE)
                 .single(call().bind("station_id", stationId)
                         .bind("title", title)
@@ -141,8 +141,8 @@ public class NewsRepository {
      */
     public boolean update(int id, String title, String contentMarkdown, String contentHtml) {
         return query("""
-                            UPDATE news SET title = :title, content_markdown = :content_markdown, content_html = :content_html
-                            WHERE id = :id;""")
+                UPDATE news SET title = :title, content_markdown = :content_markdown, content_html = :content_html
+                WHERE id = :id;""")
                 .single(call().bind("id", id)
                         .bind("title", title)
                         .bind("content_markdown", contentMarkdown)
@@ -228,12 +228,12 @@ public class NewsRepository {
 
     public boolean hasPublicBlogEntries(int stationId) {
         return query("""
-                        SELECT EXISTS(
-                            SELECT 1 FROM news n
-                            WHERE n.station_id = :station_id AND n.public_blog = TRUE
-                            AND n.published_at IS NOT NULL
-                            AND NOT EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = n.id)
-                        ) AS exists;""")
+                SELECT exists(
+                    SELECT 1 FROM news n
+                    WHERE n.station_id = :station_id AND n.public_blog = TRUE
+                    AND n.published_at IS NOT NULL
+                    AND NOT exists(SELECT 1 FROM news_restriction r WHERE r.news_id = n.id)
+                ) AS exists;""")
                 .single(call().bind("station_id", stationId))
                 .map(row -> row.getBoolean("exists"))
                 .first()
@@ -253,9 +253,9 @@ public class NewsRepository {
      */
     public NewsComment createComment(int newsId, Integer parentId, MemberIdentity author, String content) {
         return query("""
-                            INSERT INTO news_comment(news_id, parent_id, author_station_uid, author_member_uid, content)
-                            VALUES(:news_id, :parent_id, :author_station_uid::uuid, :author_member_uid::uuid, :content)
-                            RETURNING *;""")
+                INSERT INTO news_comment(news_id, parent_id, author_station_uid, author_member_uid, content)
+                VALUES(:news_id, :parent_id, :author_station_uid::UUID, :author_member_uid::UUID, :content)
+                RETURNING *;""")
                 .single(call().bind("news_id", newsId)
                         .bind("parent_id", parentId)
                         .bind(
@@ -355,7 +355,7 @@ public class NewsRepository {
      * @return {@code true} if the comment has children
      */
     public boolean hasCommentChildren(int id) {
-        return query("SELECT EXISTS(SELECT 1 FROM news_comment WHERE parent_id = :id);")
+        return query("SELECT exists(SELECT 1 FROM news_comment WHERE parent_id = :id);")
                 .single(call().bind("id", id))
                 .map(row -> row.getBoolean(1))
                 .first()
@@ -402,11 +402,11 @@ public class NewsRepository {
      */
     public int countUnacknowledged(int stationId, int memberId) {
         return query("""
-                            SELECT count(*) AS cnt FROM news n
-                            WHERE n.station_id = :station_id
-                              AND n.published_at IS NOT NULL
-                              AND NOT exists (SELECT 1 FROM news_acknowledgement na WHERE na.news_id = n.id AND na.member_id = :member_id)
-                              AND check_restriction('news_restriction', 'news_id', 'news', 'id', n.id, :member_id, 'NEWS_MANAGER');""")
+                SELECT count(*) AS cnt FROM news n
+                WHERE n.station_id = :station_id
+                  AND n.published_at IS NOT NULL
+                  AND NOT exists (SELECT 1 FROM news_acknowledgement na WHERE na.news_id = n.id AND na.member_id = :member_id)
+                  AND check_restriction('news_restriction', 'news_id', 'news', 'id', n.id, :member_id, 'NEWS_MANAGER');""")
                 .single(call().bind("station_id", stationId).bind("member_id", memberId))
                 .map(row -> row.getInt("cnt"))
                 .first()
@@ -431,12 +431,12 @@ public class NewsRepository {
      */
     public List<NewsViewer> findSeenViewers(int newsId) {
         return query("""
-                            SELECT st.uid AS station_uid, sm.uid AS member_uid, nv.seen_at
-                            FROM news_view nv
-                            JOIN station_member sm ON sm.id = nv.member_id
-                            JOIN station st ON st.id = sm.station_id
-                            WHERE nv.news_id = :news_id
-                            ORDER BY nv.seen_at DESC;""")
+                SELECT st.uid AS station_uid, sm.uid AS member_uid, nv.seen_at
+                FROM news_view nv
+                JOIN station_member sm ON sm.id = nv.member_id
+                JOIN station st ON st.id = sm.station_id
+                WHERE nv.news_id = :news_id
+                ORDER BY nv.seen_at DESC;""")
                 .single(call().bind("news_id", newsId))
                 .map(NewsViewer.map())
                 .all();
@@ -478,16 +478,16 @@ public class NewsRepository {
      */
     public List<NewsViewer> findUnseenViewers(int newsId, int stationId) {
         return query("""
-                            SELECT st.uid AS station_uid, sm.uid AS member_uid, NULL::timestamptz AS seen_at
-                            FROM station_member sm
-                            JOIN station st ON st.id = sm.station_id
-                            WHERE sm.station_id = :station_id
-                              AND sm.former = FALSE
-                              AND check_restriction('news_restriction', 'news_id', 'news', 'id', :news_id, sm.id, 'NEWS_MANAGER')
-                              AND NOT EXISTS (
-                                  SELECT 1 FROM news_view nv
-                                  WHERE nv.news_id = :news_id AND nv.member_id = sm.id)
-                            ORDER BY sm.id;""")
+                SELECT st.uid AS station_uid, sm.uid AS member_uid, NULL::TIMESTAMPTZ AS seen_at
+                FROM station_member sm
+                JOIN station st ON st.id = sm.station_id
+                WHERE sm.station_id = :station_id
+                  AND sm.former = FALSE
+                  AND check_restriction('news_restriction', 'news_id', 'news', 'id', :news_id, sm.id, 'NEWS_MANAGER')
+                  AND NOT exists (
+                      SELECT 1 FROM news_view nv
+                      WHERE nv.news_id = :news_id AND nv.member_id = sm.id)
+                ORDER BY sm.id;""")
                 .single(call().bind("news_id", newsId).bind("station_id", stationId))
                 .map(NewsViewer.map())
                 .all();

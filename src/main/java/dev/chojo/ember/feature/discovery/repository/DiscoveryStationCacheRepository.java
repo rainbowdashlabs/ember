@@ -25,11 +25,11 @@ public class DiscoveryStationCacheRepository {
      */
     public void upsert(String instancePublicKey, DiscoveryStationCard card, Instant fetchedAt) {
         query("""
-                                INSERT INTO discovery_station_cache (instance_public_key, station_uid, payload, fetched_at)
-                                VALUES (:instance_public_key, :station_uid, :payload::jsonb, :fetched_at)
-                                ON CONFLICT (instance_public_key, station_uid) DO UPDATE
-                                SET payload    = EXCLUDED.payload,
-                                    fetched_at = EXCLUDED.fetched_at;""")
+                INSERT INTO discovery_station_cache (instance_public_key, station_uid, payload, fetched_at)
+                VALUES (:instance_public_key, :station_uid, :payload::JSONB, :fetched_at)
+                ON CONFLICT (instance_public_key, station_uid) DO UPDATE
+                SET payload    = excluded.payload,
+                    fetched_at = excluded.fetched_at;""")
                 .single(call().bind("instance_public_key", instancePublicKey)
                         .bind("station_uid", card.stationUid())
                         .bind("payload", card.toJsonString())
@@ -49,9 +49,9 @@ public class DiscoveryStationCacheRepository {
                     .rows();
         }
         return query("""
-                                DELETE FROM discovery_station_cache
-                                WHERE instance_public_key = :instance_public_key
-                                  AND station_uid <> ALL(:present);""")
+                DELETE FROM discovery_station_cache
+                WHERE instance_public_key = :instance_public_key
+                  AND station_uid <> ALL(:present);""")
                 .single(call().bind("instance_public_key", instancePublicKey)
                         .bind("present", presentStationUids, PostgreSqlTypes.VARCHAR))
                 .delete()
@@ -60,11 +60,11 @@ public class DiscoveryStationCacheRepository {
 
     public List<CachedDiscoveryStation> findAll() {
         return query("""
-                                SELECT c.*
-                                FROM discovery_station_cache c
-                                JOIN discovery_peer p ON p.public_key = c.instance_public_key
-                                WHERE p.reachable = true AND p.blocked = false
-                                ORDER BY c.fetched_at DESC;""").single(call()).map(CachedDiscoveryStation.map()).all();
+                SELECT c.*
+                FROM discovery_station_cache c
+                JOIN discovery_peer p ON p.public_key = c.instance_public_key
+                WHERE p.reachable = TRUE AND p.blocked = FALSE
+                ORDER BY c.fetched_at DESC;""").single(call()).map(CachedDiscoveryStation.map()).all();
     }
 
     public List<CachedDiscoveryStation> findForPeer(String instancePublicKey) {
@@ -82,15 +82,17 @@ public class DiscoveryStationCacheRepository {
      * begin with (the `/public/discovery/stations` source endpoint excludes private ones), so
      * every result is selectable. Empty {@code search} returns the most recently fetched rows.
      */
-    /** Look up cached station cards by their UUIDs (across all reachable peers). */
+    /**
+     * Look up cached station cards by their UUIDs (across all reachable peers).
+     */
     public List<CachedDiscoveryStation> findByStationUids(List<String> stationUids) {
         if (stationUids == null || stationUids.isEmpty()) return List.of();
         return query("""
-                                SELECT c.*
-                                FROM discovery_station_cache c
-                                JOIN discovery_peer p ON p.public_key = c.instance_public_key
-                                WHERE p.reachable = true AND p.blocked = false
-                                  AND c.station_uid = ANY(:uids);""")
+                SELECT c.*
+                FROM discovery_station_cache c
+                JOIN discovery_peer p ON p.public_key = c.instance_public_key
+                WHERE p.reachable = TRUE AND p.blocked = FALSE
+                  AND c.station_uid = ANY(:uids);""")
                 .single(call().bind("uids", stationUids, PostgreSqlTypes.VARCHAR))
                 .map(CachedDiscoveryStation.map())
                 .all();
@@ -110,10 +112,10 @@ public class DiscoveryStationCacheRepository {
                 SELECT c.*
                 FROM discovery_station_cache c
                 JOIN discovery_peer p ON p.public_key = c.instance_public_key
-                WHERE p.reachable = true
-                  AND p.blocked = false
+                WHERE p.reachable = TRUE
+                  AND p.blocked = FALSE
                   %s
-                ORDER BY c.fetched_at DESC
+                ORDER BY C.fetched_at DESC
                 LIMIT :limit;""", predicate).single(c).map(CachedDiscoveryStation.map()).all();
     }
 }

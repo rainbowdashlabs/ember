@@ -54,6 +54,11 @@ public class DiscoveryHttpClient {
                 .build();
     }
 
+    private static String joinUrl(String baseUrl, String path) {
+        String host = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+        return host + path;
+    }
+
     /**
      * Performs an unauthenticated GET and deserializes the response. Returns {@code null} on
      * non-2xx or transport failure.
@@ -81,8 +86,8 @@ public class DiscoveryHttpClient {
      * Sends a signed POST. Returns true on 2xx, false otherwise.
      *
      * @param baseUrl peer base URL (without {@code /api/v1})
-     * @param path API path including the {@code /api/v1} prefix
-     * @param body Java object to serialize as the request body
+     * @param path    API path including the {@code /api/v1} prefix
+     * @param body    Java object to serialize as the request body
      */
     public boolean signedPost(String baseUrl, String path, Object body) {
         try {
@@ -101,10 +106,5 @@ public class DiscoveryHttpClient {
             log.debug("Discovery POST {} on {} failed: {}", path, baseUrl, e.getMessage(), e);
             return false;
         }
-    }
-
-    private static String joinUrl(String baseUrl, String path) {
-        String host = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
-        return host + path;
     }
 }

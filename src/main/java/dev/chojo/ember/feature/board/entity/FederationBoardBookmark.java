@@ -31,7 +31,7 @@ public record FederationBoardBookmark(
                 row.get("remote_board_uid", StandardValueConverter.UUID_STRING),
                 row.getString("remote_board_name"),
                 row.getString("remote_board_short_key"),
-                BoardShareMode.valueOf(row.getString("share_mode")),
+                row.getEnum("share_mode", BoardShareMode.class),
                 row.get("created_at", INSTANT_TIMESTAMP));
     }
 }

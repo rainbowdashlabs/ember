@@ -38,13 +38,19 @@ public final class PasswordPolicy {
      * length + breach check applied by {@code AuthService}.
      */
     public enum Result {
-        /** The password meets the policy. */
+        /**
+         * The password meets the policy.
+         */
         OK,
 
-        /** The password is shorter than {@link #MIN_LENGTH}. */
+        /**
+         * The password is shorter than {@link #MIN_LENGTH}.
+         */
         TOO_SHORT,
 
-        /** The password was found in a known breach corpus via HIBP. */
+        /**
+         * The password was found in a known breach corpus via HIBP.
+         */
         BREACHED;
 
         /**

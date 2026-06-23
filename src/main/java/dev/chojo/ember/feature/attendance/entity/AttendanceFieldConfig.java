@@ -36,14 +36,6 @@ public record AttendanceFieldConfig(
             .build();
     private static final AttendanceFieldConfig EMPTY = new AttendanceFieldConfig(false, null, false, null, null);
 
-    public String toJson() {
-        try {
-            return MAPPER.writeValueAsString(this);
-        } catch (Exception e) {
-            return "{}";
-        }
-    }
-
     /**
      * Parses a JSON string into an {@link AttendanceFieldConfig}, returning an empty default on failure.
      *
@@ -57,6 +49,14 @@ public record AttendanceFieldConfig(
         } catch (Exception e) {
             log.error("Failed to parse attendance field config: {}", json, e);
             return EMPTY;
+        }
+    }
+
+    public String toJson() {
+        try {
+            return MAPPER.writeValueAsString(this);
+        } catch (Exception e) {
+            return "{}";
         }
     }
 

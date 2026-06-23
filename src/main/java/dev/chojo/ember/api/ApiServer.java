@@ -165,6 +165,100 @@ public class ApiServer {
     }
 
     /**
+     * Estimates the inbound byte count for a request: declared content length (zero when
+     * not set or unknown) plus a cheap header-bytes approximation. Used by the per-station
+     * traffic recorder; the precision is operational-observability grade, not billing-grade.
+     */
+    private static long estimateIngressBytes(Context ctx) {
+        long bodyBytes = Math.max(0, ctx.req().getContentLengthLong());
+        long headerBytes = 0;
+        for (var entry : ctx.headerMap().entrySet()) {
+            String name = entry.getKey();
+            String value = entry.getValue();
+            if (name != null) headerBytes += name.length();
+            if (value != null) headerBytes += value.length();
+            headerBytes += 4;
+        }
+        String method = ctx.method() != null ? ctx.method().name() : "";
+        String path = ctx.path() != null ? ctx.path() : "";
+        return bodyBytes + headerBytes + method.length() + path.length() + 12;
+    }
+
+    /**
+     * Estimates the outbound byte count for a response. Resolution order:
+     *
+     * <ol>
+     *   <li>{@link #jettyContentCount Jetty's response-side content counter}, which covers
+     *       streamed downloads (page files, feeds, large JSON) that never set a
+     *       {@code Content-Length} header.</li>
+     *   <li>The declared {@code Content-Length} response header for fixed-length responses.</li>
+     *   <li>The length of {@code ctx.result()} for legacy {@code String}-bodied routes.</li>
+     * </ol>
+     *
+     * <p>Adds an approximation of response header bytes on top — same precision target as
+     * ingress.
+     */
+    private static long estimateEgressBytes(Context ctx) {
+        long bodyBytes = jettyContentCount(ctx);
+        if (bodyBytes <= 0) {
+            String contentLength = ctx.res().getHeader("Content-Length");
+            if (contentLength != null) {
+                try {
+                    bodyBytes = Long.parseLong(contentLength);
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+        if (bodyBytes <= 0 && ctx.result() != null) {
+            bodyBytes = ctx.result().length();
+        }
+        long headerBytes = 0;
+        for (String name : ctx.res().getHeaderNames()) {
+            headerBytes += name.length();
+            String value = ctx.res().getHeader(name);
+            if (value != null) headerBytes += value.length();
+            headerBytes += 4;
+        }
+        return Math.max(0, bodyBytes) + headerBytes + 12;
+    }
+
+    /**
+     * Returns the number of bytes Jetty has written for the current response, by walking the
+     * servlet response wrapper chain and reflectively invoking
+     * {@code org.eclipse.jetty.server.Response#getContentCount()}. Returns {@code -1} when
+     * the lookup fails — callers must fall back to {@code Content-Length} / {@code ctx.result()}.
+     *
+     * <p>Reflection lets the recorder stay independent of the Jetty version pinned by Javalin
+     * — Jetty 11 named the method {@code getContentCount}; Jetty 12 added
+     * {@code getBytesWritten}. We try both.
+     */
+    private static long jettyContentCount(Context ctx) {
+        HttpServletResponse res = ctx.res();
+        while (res instanceof HttpServletResponseWrapper wrapper
+                && wrapper.getResponse() instanceof HttpServletResponse inner) {
+            res = inner;
+        }
+        for (String method : new String[] {"getContentCount", "getBytesWritten"}) {
+            try {
+                var m = res.getClass().getMethod(method);
+                Object value = m.invoke(res);
+                if (value instanceof Long l) return l;
+            } catch (ReflectiveOperationException ignored) {
+            }
+        }
+        return -1;
+    }
+
+    private static String bodyDigest(String body) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(body.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest, 0, 8);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 not available", e);
+        }
+    }
+
+    /**
      * Creates the Javalin application, registers all middleware, routes, and plugins, then starts the server.
      */
     public void start() {
@@ -701,91 +795,6 @@ public class ApiServer {
     }
 
     /**
-     * Estimates the inbound byte count for a request: declared content length (zero when
-     * not set or unknown) plus a cheap header-bytes approximation. Used by the per-station
-     * traffic recorder; the precision is operational-observability grade, not billing-grade.
-     */
-    private static long estimateIngressBytes(Context ctx) {
-        long bodyBytes = Math.max(0, ctx.req().getContentLengthLong());
-        long headerBytes = 0;
-        for (var entry : ctx.headerMap().entrySet()) {
-            String name = entry.getKey();
-            String value = entry.getValue();
-            if (name != null) headerBytes += name.length();
-            if (value != null) headerBytes += value.length();
-            headerBytes += 4;
-        }
-        String method = ctx.method() != null ? ctx.method().name() : "";
-        String path = ctx.path() != null ? ctx.path() : "";
-        return bodyBytes + headerBytes + method.length() + path.length() + 12;
-    }
-
-    /**
-     * Estimates the outbound byte count for a response. Resolution order:
-     *
-     * <ol>
-     *   <li>{@link #jettyContentCount Jetty's response-side content counter}, which covers
-     *       streamed downloads (page files, feeds, large JSON) that never set a
-     *       {@code Content-Length} header.</li>
-     *   <li>The declared {@code Content-Length} response header for fixed-length responses.</li>
-     *   <li>The length of {@code ctx.result()} for legacy {@code String}-bodied routes.</li>
-     * </ol>
-     *
-     * <p>Adds an approximation of response header bytes on top — same precision target as
-     * ingress.
-     */
-    private static long estimateEgressBytes(Context ctx) {
-        long bodyBytes = jettyContentCount(ctx);
-        if (bodyBytes <= 0) {
-            String contentLength = ctx.res().getHeader("Content-Length");
-            if (contentLength != null) {
-                try {
-                    bodyBytes = Long.parseLong(contentLength);
-                } catch (NumberFormatException ignored) {
-                }
-            }
-        }
-        if (bodyBytes <= 0 && ctx.result() != null) {
-            bodyBytes = ctx.result().length();
-        }
-        long headerBytes = 0;
-        for (String name : ctx.res().getHeaderNames()) {
-            headerBytes += name.length();
-            String value = ctx.res().getHeader(name);
-            if (value != null) headerBytes += value.length();
-            headerBytes += 4;
-        }
-        return Math.max(0, bodyBytes) + headerBytes + 12;
-    }
-
-    /**
-     * Returns the number of bytes Jetty has written for the current response, by walking the
-     * servlet response wrapper chain and reflectively invoking
-     * {@code org.eclipse.jetty.server.Response#getContentCount()}. Returns {@code -1} when
-     * the lookup fails — callers must fall back to {@code Content-Length} / {@code ctx.result()}.
-     *
-     * <p>Reflection lets the recorder stay independent of the Jetty version pinned by Javalin
-     * — Jetty 11 named the method {@code getContentCount}; Jetty 12 added
-     * {@code getBytesWritten}. We try both.
-     */
-    private static long jettyContentCount(Context ctx) {
-        HttpServletResponse res = ctx.res();
-        while (res instanceof HttpServletResponseWrapper wrapper
-                && wrapper.getResponse() instanceof HttpServletResponse inner) {
-            res = inner;
-        }
-        for (String method : new String[] {"getContentCount", "getBytesWritten"}) {
-            try {
-                var m = res.getClass().getMethod(method);
-                Object value = m.invoke(res);
-                if (value instanceof Long l) return l;
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-        return -1;
-    }
-
-    /**
      * After-handler that sets appropriate Cache-Control and ETag headers based on the request path.
      */
     private void applyCacheHeaders(@NotNull Context ctx) {
@@ -866,15 +875,6 @@ public class ApiServer {
         if (etag.equals(ifNoneMatch)) {
             ctx.status(HttpStatus.NOT_MODIFIED);
             ctx.result("");
-        }
-    }
-
-    private static String bodyDigest(String body) {
-        try {
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(body.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(digest, 0, 8);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
         }
     }
 

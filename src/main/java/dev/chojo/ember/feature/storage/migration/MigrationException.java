@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.feature.storage.migration;
 
-/** Wraps every failure on the migration tool's hot path so the route layer catches a single type. */
+/**
+ * Wraps every failure on the migration tool's hot path so the route layer catches a single type.
+ */
 public class MigrationException extends RuntimeException {
     public MigrationException(String message) {
         super(message);

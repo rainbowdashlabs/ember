@@ -131,35 +131,23 @@ public class KnowledgeBaseRoutes implements Routes {
         this.memberIdentityFactory = memberIdentityFactory;
     }
 
-    private String resolveFolderPath(Integer folderId) {
-        if (folderId == null) return "/";
-        var parts = new ArrayList<String>();
-        Integer current = folderId;
-        while (current != null) {
-            var folder = service.findFolder(current);
-            if (folder.isEmpty()) break;
-            parts.addFirst(folder.get().name());
-            current = folder.get().parentId();
+    private static String detectPandocFormat(String filename, String mimeType) {
+        if (filename != null) {
+            String lower = filename.toLowerCase();
+            if (lower.endsWith(".docx")) return "docx";
+            if (lower.endsWith(".odt")) return "odt";
+            if (lower.endsWith(".html") || lower.endsWith(".htm")) return "html";
+            if (lower.endsWith(".rtf")) return "rtf";
+            if (lower.endsWith(".epub")) return "epub";
+            if (lower.endsWith(".tex") || lower.endsWith(".latex")) return "latex";
         }
-        return "/" + String.join("/", parts);
-    }
-
-    private String resolveMemberName(int memberId) {
-        return stationMemberRepository
-                .findById(memberId)
-                .map(member -> {
-                    if (member.displayName() != null && !member.displayName().isBlank()) {
-                        return member.displayName();
-                    }
-                    if (member.accountId() != null) {
-                        return accountRepository
-                                .findById(member.accountId())
-                                .map(Account::fullName)
-                                .orElse("Unbekannt");
-                    }
-                    return "Unbekannt";
-                })
-                .orElse("Unbekannt");
+        if (mimeType != null) {
+            if (mimeType.contains("wordprocessingml") || mimeType.contains("msword")) return "docx";
+            if (mimeType.contains("opendocument.text")) return "odt";
+            if (mimeType.equals("text/html")) return "html";
+            if (mimeType.equals("text/rtf") || mimeType.equals("application/rtf")) return "rtf";
+        }
+        return null;
     }
 
     @Override
@@ -312,7 +300,38 @@ public class KnowledgeBaseRoutes implements Routes {
         routes.delete(prefix + "/remote/kb/comments/{commentId}", this::remoteDeleteComment);
     }
 
+    private String resolveFolderPath(Integer folderId) {
+        if (folderId == null) return "/";
+        var parts = new ArrayList<String>();
+        Integer current = folderId;
+        while (current != null) {
+            var folder = service.findFolder(current);
+            if (folder.isEmpty()) break;
+            parts.addFirst(folder.get().name());
+            current = folder.get().parentId();
+        }
+        return "/" + String.join("/", parts);
+    }
+
     // -- Folders --
+
+    private String resolveMemberName(int memberId) {
+        return stationMemberRepository
+                .findById(memberId)
+                .map(member -> {
+                    if (member.displayName() != null && !member.displayName().isBlank()) {
+                        return member.displayName();
+                    }
+                    if (member.accountId() != null) {
+                        return accountRepository
+                                .findById(member.accountId())
+                                .map(Account::fullName)
+                                .orElse("Unbekannt");
+                    }
+                    return "Unbekannt";
+                })
+                .orElse("Unbekannt");
+    }
 
     private void listFolders(Context ctx) {
         var session = UserSession.from(ctx);
@@ -362,6 +381,8 @@ public class KnowledgeBaseRoutes implements Routes {
         });
     }
 
+    // -- Files --
+
     private void deleteFolder(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var session = UserSession.from(ctx);
@@ -372,8 +393,6 @@ public class KnowledgeBaseRoutes implements Routes {
         if (!service.deleteFolder(id)) throw new NotFoundResponse();
         ctx.status(204);
     }
-
-    // -- Files --
 
     private void listFiles(Context ctx) {
         var session = UserSession.from(ctx);
@@ -414,6 +433,8 @@ public class KnowledgeBaseRoutes implements Routes {
         });
     }
 
+    // -- File Creation --
+
     private void deleteFile(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var session = UserSession.from(ctx);
@@ -424,8 +445,6 @@ public class KnowledgeBaseRoutes implements Routes {
         if (!service.deleteFile(id)) throw new NotFoundResponse();
         ctx.status(204);
     }
-
-    // -- File Creation --
 
     private void createMarkdownFile(Context ctx) {
         var session = UserSession.from(ctx);
@@ -533,25 +552,6 @@ public class KnowledgeBaseRoutes implements Routes {
             log.warn("Document conversion failed for KB import", e);
             throw new BadRequestResponse("Document conversion failed");
         }
-    }
-
-    private static String detectPandocFormat(String filename, String mimeType) {
-        if (filename != null) {
-            String lower = filename.toLowerCase();
-            if (lower.endsWith(".docx")) return "docx";
-            if (lower.endsWith(".odt")) return "odt";
-            if (lower.endsWith(".html") || lower.endsWith(".htm")) return "html";
-            if (lower.endsWith(".rtf")) return "rtf";
-            if (lower.endsWith(".epub")) return "epub";
-            if (lower.endsWith(".tex") || lower.endsWith(".latex")) return "latex";
-        }
-        if (mimeType != null) {
-            if (mimeType.contains("wordprocessingml") || mimeType.contains("msword")) return "docx";
-            if (mimeType.contains("opendocument.text")) return "odt";
-            if (mimeType.equals("text/html")) return "html";
-            if (mimeType.equals("text/rtf") || mimeType.equals("application/rtf")) return "rtf";
-        }
-        return null;
     }
 
     // -- Content --
@@ -900,38 +900,6 @@ public class KnowledgeBaseRoutes implements Routes {
 
     // -- Request/Response Records --
 
-    public record FolderRequest(Integer parentId, String name, String description, String iconUrl, Integer position) {}
-
-    public record PublicVisibilityRequest(Boolean visible) {}
-
-    public record PublicVisibilityResponse(Boolean visible) {}
-
-    public record FileUpdateRequest(String name, String description, String iconUrl, Integer position) {}
-
-    public record MarkdownFileRequest(Integer folderId, String name, String description, String content) {}
-
-    public record YoutubeFileRequest(Integer folderId, String name, String description, String youtubeUrl) {}
-
-    public record LinkFileRequest(Integer folderId, String name, String description, String linkUrl) {}
-
-    public record RestrictionRequest(
-            List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {}
-
-    public record ContentUpdateRequest(String content) {}
-
-    public record YoutubeResponse(String youtubeUrl) {}
-
-    public record LinkResponse(String linkUrl) {}
-
-    public record MarkdownHtmlResponse(String html, String markdown) {}
-
-    public record RestrictionResponse(
-            List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {}
-
-    public record BrowseResponse(KbFolder currentFolder, List<KbFolder> folders, List<KbFileSummary> files) {}
-
-    // -- Folder Icons --
-
     private void getFolderIcon(Context ctx) {
         var session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
@@ -974,8 +942,6 @@ public class KnowledgeBaseRoutes implements Routes {
         }
     }
 
-    // -- KB Images --
-
     private void uploadKbImage(Context ctx) {
         int fileId = ctx.pathParamAsClass("id", Integer.class).get();
         var session = UserSession.from(ctx);
@@ -1016,8 +982,6 @@ public class KnowledgeBaseRoutes implements Routes {
                         },
                         () -> ctx.status(HttpStatus.NOT_FOUND));
     }
-
-    // -- Tags --
 
     private void listTags(Context ctx) {
         var session = UserSession.from(ctx);
@@ -1088,8 +1052,6 @@ public class KnowledgeBaseRoutes implements Routes {
         ctx.json(new TagScopeResponse(matchingFileIds, new ArrayList<>(ancestorFolderIds)));
     }
 
-    public record TagScopeResponse(List<Integer> matchingFileIds, List<Integer> ancestorFolderIds) {}
-
     private void setFolderTags(Context ctx) {
         var session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
@@ -1100,33 +1062,6 @@ public class KnowledgeBaseRoutes implements Routes {
         var req = ctx.bodyAsClass(TagRequest.class);
         ctx.json(service.setFolderTags(id, req.tags(), session.stationId()));
     }
-
-    public record TagRequest(List<String> tags) {}
-
-    public record RelatedFilesRequest(List<Integer> fileIds) {}
-
-    public record FileResponse(KbFile file, String lastEditedByName) {
-        // Jackson will serialize both the file fields and the name
-    }
-
-    public record VersionResponse(
-            int id, int version, boolean isFull, int createdBy, String createdByName, Instant createdAt) {}
-
-    public record SearchResultResponse(
-            KbFile file, String snippet, String folderPath, String stationName, String sourceStationId) {}
-
-    public record ImageUploadResponse(String imageId) {}
-
-    public record FederatedKbItem(
-            int remoteId, String title, String description, String stationName, int stationId, int partnerId) {}
-
-    public record FileContentResponse(int fileId, String content) {}
-
-    public record RemoteKbFileSummary(int id, String name, String description, String fileType, String updatedAt) {}
-
-    public record RemoteKbSearchResultItem(int id, String name, String description, String snippet) {}
-
-    // -- Federated endpoints (user-facing, aggregates from partners) --
 
     private void federatedBrowseKb(Context ctx) {
         var session = UserSession.from(ctx);
@@ -1171,7 +1106,7 @@ public class KnowledgeBaseRoutes implements Routes {
         ctx.status(HttpStatus.CREATED).json(copied);
     }
 
-    // -- Remote endpoints (server-to-server, RSA signature auth) --
+    // -- Folder Icons --
 
     private void remoteBrowseKb(Context ctx) {
         var partner = requireFederationPartner(ctx);
@@ -1213,6 +1148,8 @@ public class KnowledgeBaseRoutes implements Routes {
                 .toList());
     }
 
+    // -- KB Images --
+
     private void remoteGetFile(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int fileId = ctx.pathParamAsClass("id", Integer.class).get();
@@ -1234,7 +1171,7 @@ public class KnowledgeBaseRoutes implements Routes {
         ctx.json(new FileContentResponse(fileId, content));
     }
 
-    // -- Local KB comment endpoints --
+    // -- Tags --
 
     private void listComments(Context ctx) {
         int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
@@ -1294,8 +1231,6 @@ public class KnowledgeBaseRoutes implements Routes {
         }
     }
 
-    // -- Remote KB comment endpoints (server-to-server) --
-
     private void remoteListComments(Context ctx) {
         requireFederationPartner(ctx);
         int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
@@ -1351,8 +1286,6 @@ public class KnowledgeBaseRoutes implements Routes {
             throw new NotFoundResponse();
         }
     }
-
-    // -- Federated KB comment proxy endpoints (user-facing) --
 
     private void federatedListComments(Context ctx) {
         UserSession session = UserSession.from(ctx);
@@ -1475,8 +1408,6 @@ public class KnowledgeBaseRoutes implements Routes {
         }
     }
 
-    // -- Federation helpers --
-
     private FederationPartner requireFederationPartner(Context ctx) {
         var session = FederationSession.from(ctx);
         if (session == null) {
@@ -1491,8 +1422,6 @@ public class KnowledgeBaseRoutes implements Routes {
                 .findPartnerByStationAndRemoteUid(stationId, partnerUid)
                 .orElseThrow(() -> new NotFoundResponse("Unknown partner"));
     }
-
-    // -- KB Comment response mapping --
 
     private KbCommentResponse toCommentResponse(KbComment comment) {
         if (comment.deleted()) {
@@ -1527,6 +1456,77 @@ public class KnowledgeBaseRoutes implements Routes {
                 comment.createdAt(),
                 comment.updatedAt());
     }
+
+    public record FolderRequest(Integer parentId, String name, String description, String iconUrl, Integer position) {}
+
+    public record PublicVisibilityRequest(Boolean visible) {}
+
+    // -- Federated endpoints (user-facing, aggregates from partners) --
+
+    public record PublicVisibilityResponse(Boolean visible) {}
+
+    public record FileUpdateRequest(String name, String description, String iconUrl, Integer position) {}
+
+    public record MarkdownFileRequest(Integer folderId, String name, String description, String content) {}
+
+    public record YoutubeFileRequest(Integer folderId, String name, String description, String youtubeUrl) {}
+
+    // -- Remote endpoints (server-to-server, RSA signature auth) --
+
+    public record LinkFileRequest(Integer folderId, String name, String description, String linkUrl) {}
+
+    public record RestrictionRequest(
+            List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {}
+
+    public record ContentUpdateRequest(String content) {}
+
+    public record YoutubeResponse(String youtubeUrl) {}
+
+    // -- Local KB comment endpoints --
+
+    public record LinkResponse(String linkUrl) {}
+
+    public record MarkdownHtmlResponse(String html, String markdown) {}
+
+    public record RestrictionResponse(
+            List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {}
+
+    public record BrowseResponse(KbFolder currentFolder, List<KbFolder> folders, List<KbFileSummary> files) {}
+
+    // -- Remote KB comment endpoints (server-to-server) --
+
+    public record TagScopeResponse(List<Integer> matchingFileIds, List<Integer> ancestorFolderIds) {}
+
+    public record TagRequest(List<String> tags) {}
+
+    public record RelatedFilesRequest(List<Integer> fileIds) {}
+
+    public record FileResponse(KbFile file, String lastEditedByName) {
+        // Jackson will serialize both the file fields and the name
+    }
+
+    // -- Federated KB comment proxy endpoints (user-facing) --
+
+    public record VersionResponse(
+            int id, int version, boolean isFull, int createdBy, String createdByName, Instant createdAt) {}
+
+    public record SearchResultResponse(
+            KbFile file, String snippet, String folderPath, String stationName, String sourceStationId) {}
+
+    public record ImageUploadResponse(String imageId) {}
+
+    public record FederatedKbItem(
+            int remoteId, String title, String description, String stationName, int stationId, int partnerId) {}
+
+    // -- Federation helpers --
+
+    public record FileContentResponse(int fileId, String content) {}
+
+    public record RemoteKbFileSummary(int id, String name, String description, String fileType, String updatedAt) {}
+
+    // -- KB Comment response mapping --
+
+    public record RemoteKbSearchResultItem(int id, String name, String description, String snippet) {}
 
     // -- KB Comment request/response records --
 

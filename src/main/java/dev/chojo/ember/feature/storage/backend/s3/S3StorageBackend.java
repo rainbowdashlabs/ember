@@ -70,7 +70,9 @@ public class S3StorageBackend implements StorageBackend, AutoCloseable {
         this(config, defaultClient(config));
     }
 
-    /** Visible for tests that want to inject a pre-configured {@link S3Client}. */
+    /**
+     * Visible for tests that want to inject a pre-configured {@link S3Client}.
+     */
     S3StorageBackend(S3BackendConfig config, S3Client s3) {
         this.config = config;
         this.s3 = s3;
@@ -95,6 +97,24 @@ public class S3StorageBackend implements StorageBackend, AutoCloseable {
         while (trimmed.startsWith("/")) trimmed = trimmed.substring(1);
         while (trimmed.endsWith("/")) trimmed = trimmed.substring(0, trimmed.length() - 1);
         return trimmed;
+    }
+
+    private static Map<String, String> encodeMetadata(ObjectMetadata metadata) {
+        var meta = new HashMap<String, String>();
+        if (metadata.sha256() != null && !metadata.sha256().isEmpty()) {
+            meta.put(META_SHA256, metadata.sha256());
+        }
+        metadata.originalFilename().ifPresent(name -> meta.put(META_FILENAME, name));
+        metadata.contentEncoding().ifPresent(enc -> meta.put(META_ENCODING, enc));
+        return meta;
+    }
+
+    private static ObjectMetadata decodeMetadata(String contentType, Map<String, String> userMeta) {
+        String ct = contentType == null || contentType.isBlank() ? "application/octet-stream" : contentType;
+        String sha = userMeta.getOrDefault(META_SHA256, "");
+        Optional<String> filename = Optional.ofNullable(userMeta.get(META_FILENAME));
+        Optional<String> encoding = Optional.ofNullable(userMeta.get(META_ENCODING));
+        return new ObjectMetadata(ct, sha, filename, encoding);
     }
 
     @Override
@@ -272,23 +292,5 @@ public class S3StorageBackend implements StorageBackend, AutoCloseable {
         if (objectKey.equals(basePath)) return null;
         if (!objectKey.startsWith(prefix)) return null;
         return objectKey.substring(prefix.length());
-    }
-
-    private static Map<String, String> encodeMetadata(ObjectMetadata metadata) {
-        var meta = new HashMap<String, String>();
-        if (metadata.sha256() != null && !metadata.sha256().isEmpty()) {
-            meta.put(META_SHA256, metadata.sha256());
-        }
-        metadata.originalFilename().ifPresent(name -> meta.put(META_FILENAME, name));
-        metadata.contentEncoding().ifPresent(enc -> meta.put(META_ENCODING, enc));
-        return meta;
-    }
-
-    private static ObjectMetadata decodeMetadata(String contentType, Map<String, String> userMeta) {
-        String ct = contentType == null || contentType.isBlank() ? "application/octet-stream" : contentType;
-        String sha = userMeta.getOrDefault(META_SHA256, "");
-        Optional<String> filename = Optional.ofNullable(userMeta.get(META_FILENAME));
-        Optional<String> encoding = Optional.ofNullable(userMeta.get(META_ENCODING));
-        return new ObjectMetadata(ct, sha, filename, encoding);
     }
 }

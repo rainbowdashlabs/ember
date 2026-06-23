@@ -67,6 +67,16 @@ public class ProfileFieldService {
 
     // -- Field Definitions --
 
+    private static ProfileFieldScope scopeForUserType(StationUserType userType) {
+        if (userType == null) return ProfileFieldScope.MEMBER;
+        return switch (userType) {
+            case TRIAL, MEMBER -> ProfileFieldScope.MEMBER;
+            case GUARDIAN -> ProfileFieldScope.GUARDIAN;
+            case TEAM -> ProfileFieldScope.TEAM;
+            case MANAGER -> ProfileFieldScope.MANAGER;
+        };
+    }
+
     public List<ProfileField> findByStation(int stationId) {
         return profileFieldRepository.findByStation(stationId);
     }
@@ -81,16 +91,6 @@ public class ProfileFieldService {
         var scope = scopeForUserType(member.userType());
         if (scope == null) return List.of();
         return profileFieldRepository.findByStationAndScope(member.stationId(), scope);
-    }
-
-    private static ProfileFieldScope scopeForUserType(StationUserType userType) {
-        if (userType == null) return ProfileFieldScope.MEMBER;
-        return switch (userType) {
-            case TRIAL, MEMBER -> ProfileFieldScope.MEMBER;
-            case GUARDIAN -> ProfileFieldScope.GUARDIAN;
-            case TEAM -> ProfileFieldScope.TEAM;
-            case MANAGER -> ProfileFieldScope.MANAGER;
-        };
     }
 
     public Optional<ProfileField> findById(int id) {

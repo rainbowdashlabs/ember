@@ -148,6 +148,41 @@ public class StorageQuotaService {
     }
 
     /**
+     * Updates a station's individual quota overrides.
+     */
+    public void updateStationQuotas(
+            int stationId,
+            Long totalBytes,
+            Long kbBytes,
+            Long boardBytes,
+            Long imagesBytes,
+            Long pagesBytes,
+            Long perFileBytes,
+            Long perImageBytes) {
+        query("""
+                UPDATE station SET
+                    storage_quota_bytes = :total,
+                    storage_quota_kb_bytes = :kb,
+                    storage_quota_board_bytes = :board,
+                    storage_quota_images_bytes = :images,
+                    storage_quota_pages_bytes = :pages,
+                    storage_per_file_bytes = :per_file,
+                    storage_per_image_bytes = :per_image,
+                    storage_preset_id = NULL
+                WHERE id = :id;
+                """)
+                .single(call().bind("id", stationId)
+                        .bind("total", totalBytes)
+                        .bind("kb", kbBytes)
+                        .bind("board", boardBytes)
+                        .bind("images", imagesBytes)
+                        .bind("pages", pagesBytes)
+                        .bind("per_file", perFileBytes)
+                        .bind("per_image", perImageBytes))
+                .update();
+    }
+
+    /**
      * Resolves per-station quota overrides from the station table.
      */
     StationStorageQuota resolveQuotas(int stationId) {
@@ -211,41 +246,6 @@ public class StorageQuotaService {
     private void setWarningSent(int stationId, boolean sent) {
         query("UPDATE station SET storage_warning_sent = :sent WHERE id = :id;")
                 .single(call().bind("sent", sent).bind("id", stationId))
-                .update();
-    }
-
-    /**
-     * Updates a station's individual quota overrides.
-     */
-    public void updateStationQuotas(
-            int stationId,
-            Long totalBytes,
-            Long kbBytes,
-            Long boardBytes,
-            Long imagesBytes,
-            Long pagesBytes,
-            Long perFileBytes,
-            Long perImageBytes) {
-        query("""
-                UPDATE station SET
-                    storage_quota_bytes = :total,
-                    storage_quota_kb_bytes = :kb,
-                    storage_quota_board_bytes = :board,
-                    storage_quota_images_bytes = :images,
-                    storage_quota_pages_bytes = :pages,
-                    storage_per_file_bytes = :per_file,
-                    storage_per_image_bytes = :per_image,
-                    storage_preset_id = NULL
-                WHERE id = :id;
-                """)
-                .single(call().bind("id", stationId)
-                        .bind("total", totalBytes)
-                        .bind("kb", kbBytes)
-                        .bind("board", boardBytes)
-                        .bind("images", imagesBytes)
-                        .bind("pages", pagesBytes)
-                        .bind("per_file", perFileBytes)
-                        .bind("per_image", perImageBytes))
                 .update();
     }
 

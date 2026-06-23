@@ -42,6 +42,14 @@ public class LogoFragmentService {
         this.storage = storage;
     }
 
+    private static String sha256(byte[] data) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(data));
+        } catch (NoSuchAlgorithmException e) {
+            throw new AssertionError("SHA-256 not available", e);
+        }
+    }
+
     /**
      * Persists the fragment when its source hash differs from what is already stored. Returns
      * {@code true} when the bytes were written, {@code false} when the stored marker matched.
@@ -58,7 +66,9 @@ public class LogoFragmentService {
         return true;
     }
 
-    /** Reads the requested fragment size, falling back to the original when missing. */
+    /**
+     * Reads the requested fragment size, falling back to the original when missing.
+     */
     public Optional<ImageVariantService.ImageData> read(String name, int size) {
         return variants.read(scope(), StorageCategory.IMAGE_LOGO_FRAGMENT, name, size);
     }
@@ -80,13 +90,5 @@ public class LogoFragmentService {
 
     private StorageScope.Instance scope() {
         return new StorageScope.Instance();
-    }
-
-    private static String sha256(byte[] data) {
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(data));
-        } catch (NoSuchAlgorithmException e) {
-            throw new AssertionError("SHA-256 not available", e);
-        }
     }
 }

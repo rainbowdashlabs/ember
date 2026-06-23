@@ -80,7 +80,9 @@ public class KbFileStorageService {
         }
     }
 
-    /** Reads the binary content for a (stationId, fileId). Transparently decompresses gzip. */
+    /**
+     * Reads the binary content for a (stationId, fileId). Transparently decompresses gzip.
+     */
     public Optional<FileData> read(int stationId, int fileId) {
         StorageScope.Station scope = stationScope(stationId);
         Optional<byte[]> gz =
@@ -99,12 +101,16 @@ public class KbFileStorageService {
         return Optional.empty();
     }
 
-    /** Removes the file and any sidecar variants (raw / gzipped / converted PDF). */
+    /**
+     * Removes the file and any sidecar variants (raw / gzipped / converted PDF).
+     */
     public void delete(int stationId, int fileId) {
         storage.deletePrefix(stationScope(stationId), StorageCategory.KB_FILES, fileKey(fileId));
     }
 
-    /** Persists the converted PDF artefact for a presentation file. */
+    /**
+     * Persists the converted PDF artefact for a presentation file.
+     */
     public void storePresentationPdf(int stationId, int fileId, byte[] pdfData) {
         storage.store(
                 stationScope(stationId),
@@ -115,7 +121,9 @@ public class KbFileStorageService {
                 "application/pdf");
     }
 
-    /** Reads the converted PDF artefact for a presentation file. */
+    /**
+     * Reads the converted PDF artefact for a presentation file.
+     */
     public Optional<FileData> readPresentationPdf(int stationId, int fileId) {
         return storage.readAllBytes(
                         stationScope(stationId),
@@ -195,6 +203,8 @@ public class KbFileStorageService {
         }
     }
 
-    /** Decoded payload + the MIME type the upload was stored under. */
+    /**
+     * Decoded payload + the MIME type the upload was stored under.
+     */
     public record FileData(byte[] data, String contentType) {}
 }

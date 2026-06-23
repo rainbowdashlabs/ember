@@ -28,22 +28,6 @@ public final class SafeContentDisposition {
     private SafeContentDisposition() {}
 
     /**
-     * Disposition type.
-     */
-    public enum Disposition {
-        /** Render the file in the browser viewport (PDF / image preview). */
-        INLINE("inline"),
-        /** Force the browser's save dialog. */
-        ATTACHMENT("attachment");
-
-        private final String token;
-
-        Disposition(String token) {
-            this.token = token;
-        }
-    }
-
-    /**
      * Returns a {@code Content-Disposition} header value of the form
      * {@code <inline|attachment>; filename="<ascii>"; filename*=UTF-8''<encoded>}.
      * When the filename is blank or scrubs down to nothing, a generic
@@ -111,5 +95,25 @@ public final class SafeContentDisposition {
 
     private static char hex(int nibble) {
         return (char) (nibble < 10 ? '0' + nibble : 'A' + (nibble - 10));
+    }
+
+    /**
+     * Disposition type.
+     */
+    public enum Disposition {
+        /**
+         * Render the file in the browser viewport (PDF / image preview).
+         */
+        INLINE("inline"),
+        /**
+         * Force the browser's save dialog.
+         */
+        ATTACHMENT("attachment");
+
+        private final String token;
+
+        Disposition(String token) {
+            this.token = token;
+        }
     }
 }

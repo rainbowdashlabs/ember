@@ -99,8 +99,6 @@ public class TwoFactorService {
 
     // -- TOTP enrollment --
 
-    public record TotpEnrollment(String secret, String otpauthUri, byte[] qrPng, List<String> recoveryCodes) {}
-
     public TotpEnrollment beginTotpEnrollment(int accountId, String email) {
         String secret = totpService.generateSecret();
         String uri = totpService.buildOtpauthUri(secret, email);
@@ -184,8 +182,6 @@ public class TwoFactorService {
         return true;
     }
 
-    // -- Backup codes --
-
     public List<String> regenerateBackupCodes(int accountId, String userAgent, String country) {
         var existing = repository.findActiveFactor(accountId, TwoFactorKind.BACKUP_CODES);
         existing.ifPresent(f -> repository.disableFactor(f.id()));
@@ -203,12 +199,7 @@ public class TwoFactorService {
         return codes;
     }
 
-    private void createBackupCodeFactor(int accountId, List<String> plaintextCodes) {
-        var factor = repository.createFactor(accountId, TwoFactorKind.BACKUP_CODES, "Backup Codes");
-        for (String code : plaintextCodes) {
-            repository.createBackupCode(factor.id(), backupCodeService.hashCode(code));
-        }
-    }
+    // -- Backup codes --
 
     /**
      * Generates a fresh set of backup codes for the account when none are active yet, returns
@@ -230,8 +221,6 @@ public class TwoFactorService {
                 country);
         return codes;
     }
-
-    // -- Verification --
 
     public boolean verifyTotp(int accountId, String code) {
         var factor = repository.findActiveFactor(accountId, TwoFactorKind.TOTP);
@@ -263,9 +252,20 @@ public class TwoFactorService {
         return new VerifyBackupCodeResult(false, unused.size());
     }
 
-    public record VerifyBackupCodeResult(boolean valid, int remainingCodes) {}
+    // -- Verification --
 
     public void markSessionTwoFactorVerified(int sessionId) {
         repository.setTwoFactorVerified(sessionId);
     }
+
+    private void createBackupCodeFactor(int accountId, List<String> plaintextCodes) {
+        var factor = repository.createFactor(accountId, TwoFactorKind.BACKUP_CODES, "Backup Codes");
+        for (String code : plaintextCodes) {
+            repository.createBackupCode(factor.id(), backupCodeService.hashCode(code));
+        }
+    }
+
+    public record TotpEnrollment(String secret, String otpauthUri, byte[] qrPng, List<String> recoveryCodes) {}
+
+    public record VerifyBackupCodeResult(boolean valid, int remainingCodes) {}
 }

@@ -230,6 +230,18 @@ public class EventTemplateRoutes implements Routes {
         ctx.json(eventTemplateService.findRestrictions(id));
     }
 
+    private void getReminders(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        ctx.json(eventTemplateService.findReminderDays(id));
+    }
+
+    private void setReminders(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var req = ctx.bodyAsClass(SetRemindersRequest.class);
+        eventTemplateService.setReminders(id, req.daysBefore() != null ? req.daysBefore() : List.of());
+        ctx.json(eventTemplateService.findReminderDays(id));
+    }
+
     public record CreateTemplateRequest(String name) {}
 
     public record UpdateTemplateRequest(
@@ -256,16 +268,4 @@ public class EventTemplateRoutes implements Routes {
     public record SetRestrictionsRequest(List<StationUserType> userTypes) {}
 
     public record SetRemindersRequest(List<Integer> daysBefore) {}
-
-    private void getReminders(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        ctx.json(eventTemplateService.findReminderDays(id));
-    }
-
-    private void setReminders(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var req = ctx.bodyAsClass(SetRemindersRequest.class);
-        eventTemplateService.setReminders(id, req.daysBefore() != null ? req.daysBefore() : List.of());
-        ctx.json(eventTemplateService.findReminderDays(id));
-    }
 }

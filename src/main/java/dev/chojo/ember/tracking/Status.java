@@ -10,12 +10,18 @@ package dev.chojo.ember.tracking;
  * (station export, station import, GDPR export, GDPR deletion).
  */
 public enum Status {
-    /** Handled by the service and verified. */
+    /**
+     * Handled by the service and verified.
+     */
     TRACKED,
 
-    /** Intentionally not handled. Requires a non-empty {@code reason}. */
+    /**
+     * Intentionally not handled. Requires a non-empty {@code reason}.
+     */
     IGNORED,
 
-    /** New or changed — reviewer must decide. Verification test fails until resolved. */
+    /**
+     * New or changed — reviewer must decide. Verification test fails until resolved.
+     */
     UNVERIFIED
 }

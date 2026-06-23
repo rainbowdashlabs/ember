@@ -39,28 +39,6 @@ public class StationTrafficRoutes implements Routes {
         this.repository = repository;
     }
 
-    @Override
-    public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/station/traffic/hourly", this::hourly, StationPermission.STATION_ADMINISTRATOR);
-    }
-
-    private void hourly(Context ctx) {
-        var session = UserSession.from(ctx);
-        if (session.stationId() == null) {
-            throw new BadRequestResponse("No station selected");
-        }
-        Instant from = parseInstant(ctx, "from");
-        Instant to = parseInstant(ctx, "to");
-        if (to.isBefore(from)) {
-            throw new BadRequestResponse("`to` must be on or after `from`");
-        }
-        AuthBucket auth = parseOptionalAuth(ctx);
-
-        var rows = repository.findHourly(from, to, session.stationId(), auth);
-        ctx.json(new HourlyTrafficResponse(
-                rows.stream().map(HourlyTrafficRow::from).toList()));
-    }
-
     private static Instant parseInstant(Context ctx, String paramName) {
         String raw = ctx.queryParam(paramName);
         if (raw == null || raw.isBlank()) {
@@ -81,5 +59,27 @@ public class StationTrafficRoutes implements Routes {
         } catch (IllegalArgumentException e) {
             throw new BadRequestResponse("auth must be one of: AUTHENTICATED, UNAUTHENTICATED, FEDERATION");
         }
+    }
+
+    @Override
+    public void register(JavalinDefaultRoutingApi routes, String prefix) {
+        routes.get(prefix + "/station/traffic/hourly", this::hourly, StationPermission.STATION_ADMINISTRATOR);
+    }
+
+    private void hourly(Context ctx) {
+        var session = UserSession.from(ctx);
+        if (session.stationId() == null) {
+            throw new BadRequestResponse("No station selected");
+        }
+        Instant from = parseInstant(ctx, "from");
+        Instant to = parseInstant(ctx, "to");
+        if (to.isBefore(from)) {
+            throw new BadRequestResponse("`to` must be on or after `from`");
+        }
+        AuthBucket auth = parseOptionalAuth(ctx);
+
+        var rows = repository.findHourly(from, to, session.stationId(), auth);
+        ctx.json(new HourlyTrafficResponse(
+                rows.stream().map(HourlyTrafficRow::from).toList()));
     }
 }

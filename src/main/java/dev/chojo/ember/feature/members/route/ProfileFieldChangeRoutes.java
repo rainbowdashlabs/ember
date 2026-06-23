@@ -116,9 +116,6 @@ public class ProfileFieldChangeRoutes implements Routes {
         ctx.json(enriched);
     }
 
-    public record EnrichedMemberChangeSummary(
-            int memberId, String memberName, int pendingCount, Instant latestChange, MemberIdentity identity) {}
-
     @OpenApi(
             path = "/api/v1/station-members/{memberId}/profile-changes",
             methods = HttpMethod.GET,
@@ -170,6 +167,9 @@ public class ProfileFieldChangeRoutes implements Routes {
         var request = ctx.bodyAsClass(AcknowledgeRequest.class);
         ctx.json(profileFieldService.acknowledgeAll(memberId, session.member().id(), request.comment()));
     }
+
+    public record EnrichedMemberChangeSummary(
+            int memberId, String memberName, int pendingCount, Instant latestChange, MemberIdentity identity) {}
 
     public record AcknowledgeRequest(String comment) {}
 

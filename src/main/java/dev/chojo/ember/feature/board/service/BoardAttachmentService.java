@@ -67,7 +67,9 @@ public class BoardAttachmentService {
         return UUID.randomUUID() + "_" + safeName;
     }
 
-    /** Stores the attachment bytes for {@code (stationId, ticketId, filename)}. */
+    /**
+     * Stores the attachment bytes for {@code (stationId, ticketId, filename)}.
+     */
     public void store(int stationId, int ticketId, String filename, byte[] data, String contentType) {
         storage.store(
                 stationScope(stationId),
@@ -77,17 +79,23 @@ public class BoardAttachmentService {
                 contentType == null ? "application/octet-stream" : contentType);
     }
 
-    /** Streams the attachment back; the caller is responsible for closing the {@link StoredStream}. */
+    /**
+     * Streams the attachment back; the caller is responsible for closing the {@link StoredStream}.
+     */
     public Optional<StoredStream> read(int stationId, int ticketId, String filename) {
         return storage.read(stationScope(stationId), StorageCategory.BOARD_ATTACHMENTS, ticketKey(ticketId, filename));
     }
 
-    /** Deletes a single attachment file. No-op when it does not exist. */
+    /**
+     * Deletes a single attachment file. No-op when it does not exist.
+     */
     public void delete(int stationId, int ticketId, String filename) {
         storage.delete(stationScope(stationId), StorageCategory.BOARD_ATTACHMENTS, ticketKey(ticketId, filename));
     }
 
-    /** Deletes every attachment that belongs to {@code (stationId, ticketId)}. */
+    /**
+     * Deletes every attachment that belongs to {@code (stationId, ticketId)}.
+     */
     public void deleteAllForTicket(int stationId, int ticketId) {
         storage.deletePrefix(stationScope(stationId), StorageCategory.BOARD_ATTACHMENTS, String.valueOf(ticketId));
     }

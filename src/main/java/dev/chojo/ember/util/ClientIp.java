@@ -91,10 +91,6 @@ public final class ClientIp {
         return immediateHop;
     }
 
-    static boolean isCloudflareEdge(InetAddress address) {
-        return matches(address, cloudflareRanges);
-    }
-
     /**
      * Replaces the in-memory Cloudflare edge range list with the entries parsed
      * from the given text body (one CIDR per line, {@code #} comments ignored).
@@ -120,6 +116,10 @@ public final class ClientIp {
      */
     public static int cloudflareRangeCount() {
         return cloudflareRanges.size();
+    }
+
+    static boolean isCloudflareEdge(InetAddress address) {
+        return matches(address, cloudflareRanges);
     }
 
     private static boolean matches(InetAddress address, List<Cidr> cidrs) {

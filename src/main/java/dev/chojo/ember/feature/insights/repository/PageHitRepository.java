@@ -29,6 +29,16 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class PageHitRepository {
 
+    private static PageHitBucket mapBucket(Row row) throws SQLException {
+        return new PageHitBucket(
+                row.get("hour", INSTANT_TIMESTAMP),
+                row.getInt("page_id"),
+                row.getString("country"),
+                row.getString("referer_domain"),
+                row.getBoolean("is_bot"),
+                row.getLong("hits"));
+    }
+
     /**
      * Upserts a single hit bucket — adds the given hit count on top of the existing row if
      * one already exists for the {@code (hour, page_id, country, referer_domain, is_bot)}
@@ -39,7 +49,7 @@ public class PageHitRepository {
                 INSERT INTO page_hit_hourly(hour, page_id, country, referer_domain, is_bot, hits)
                 VALUES (:hour, :page_id, :country, :referer_domain, :is_bot, :hits)
                 ON CONFLICT (hour, page_id, country, referer_domain, is_bot) DO UPDATE
-                SET hits = page_hit_hourly.hits + EXCLUDED.hits;""")
+                SET hits = page_hit_hourly.hits + excluded.hits;""")
                 .single(call().bind("hour", bucket.hour(), INSTANT_TIMESTAMP)
                         .bind("page_id", bucket.pageId())
                         .bind("country", bucket.country())
@@ -78,8 +88,8 @@ public class PageHitRepository {
                 SELECT p.id AS page_id,
                        p.title AS title,
                        p.slug AS slug,
-                       COALESCE(SUM(h.hits) FILTER (WHERE h.is_bot = FALSE), 0) AS hits,
-                       COALESCE(SUM(h.hits) FILTER (WHERE h.is_bot = TRUE), 0)  AS bot_hits
+                       coalesce(sum(h.hits) FILTER (WHERE h.is_bot = FALSE), 0) AS hits,
+                       coalesce(sum(h.hits) FILTER (WHERE h.is_bot = TRUE), 0)  AS bot_hits
                 FROM station_page p
                 LEFT JOIN page_hit_hourly h
                        ON h.page_id = p.id
@@ -107,7 +117,7 @@ public class PageHitRepository {
      */
     public List<DimensionTotal> countryTotalsForPage(int pageId, Instant from, Instant to) {
         return query("""
-                SELECT country AS dim, SUM(hits) AS hits
+                SELECT country AS dim, sum(hits) AS hits
                 FROM page_hit_hourly
                 WHERE page_id = :page_id
                   AND hour >= :from
@@ -128,7 +138,7 @@ public class PageHitRepository {
      */
     public List<DimensionTotal> refererTotalsForPage(int pageId, Instant from, Instant to) {
         return query("""
-                SELECT referer_domain AS dim, SUM(hits) AS hits
+                SELECT referer_domain AS dim, sum(hits) AS hits
                 FROM page_hit_hourly
                 WHERE page_id = :page_id
                   AND hour >= :from
@@ -150,7 +160,7 @@ public class PageHitRepository {
     public List<HourlyTotal> stationHourlyTotals(int stationId, Instant from, Instant to, boolean includeBots) {
         String botPredicate = includeBots ? "" : "AND h.is_bot = FALSE";
         return query("""
-                SELECT h.hour AS hour, SUM(h.hits) AS hits
+                SELECT h.hour AS hour, sum(h.hits) AS hits
                 FROM page_hit_hourly h
                 JOIN station_page p ON p.id = h.page_id
                 WHERE p.station_id = :station_id
@@ -173,7 +183,7 @@ public class PageHitRepository {
      */
     public long recentRefererCount(int pageId, String refererDomain, Instant since) {
         return query("""
-                SELECT COALESCE(SUM(hits), 0) AS total
+                SELECT coalesce(sum(hits), 0) AS total
                 FROM page_hit_hourly
                 WHERE page_id = :page_id
                   AND referer_domain = :referer_domain
@@ -197,16 +207,6 @@ public class PageHitRepository {
                 .single(call().bind("cutoff", cutoff, INSTANT_TIMESTAMP))
                 .delete()
                 .rows();
-    }
-
-    private static PageHitBucket mapBucket(Row row) throws SQLException {
-        return new PageHitBucket(
-                row.get("hour", INSTANT_TIMESTAMP),
-                row.getInt("page_id"),
-                row.getString("country"),
-                row.getString("referer_domain"),
-                row.getBoolean("is_bot"),
-                row.getLong("hits"));
     }
 
     /**

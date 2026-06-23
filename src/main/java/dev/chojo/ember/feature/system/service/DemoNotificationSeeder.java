@@ -44,23 +44,6 @@ public class DemoNotificationSeeder {
         this.notificationRepository = notificationRepository;
     }
 
-    public record ShowcaseContext(
-            Integer newsId,
-            Integer oneTimeEventId,
-            Integer recurringEventId,
-            String recurringEventDate,
-            Integer formId,
-            Integer lostAndFoundItemId,
-            Integer lendingRequestId,
-            Integer boardId,
-            String boardKey,
-            Integer boardTicketId,
-            Integer boardTicketNumber,
-            Integer procedureId,
-            Integer inventoryId,
-            Integer waitlistChildId,
-            Integer stationIdForStorage) {}
-
     public void seedShowcase(StationMember admin, List<StationMember> anfaenger, ShowcaseContext ctx) {
         int memberId = admin.id();
         int otherMemberId =
@@ -348,4 +331,21 @@ public class DemoNotificationSeeder {
                 NotificationType.STORAGE_WARNING,
                 NotificationData.of(new NotificationParams.StorageWarning(91, "9.1 GiB", "10 GiB"), storageLink));
     }
+
+    public record ShowcaseContext(
+            Integer newsId,
+            Integer oneTimeEventId,
+            Integer recurringEventId,
+            String recurringEventDate,
+            Integer formId,
+            Integer lostAndFoundItemId,
+            Integer lendingRequestId,
+            Integer boardId,
+            String boardKey,
+            Integer boardTicketId,
+            Integer boardTicketNumber,
+            Integer procedureId,
+            Integer inventoryId,
+            Integer waitlistChildId,
+            Integer stationIdForStorage) {}
 }

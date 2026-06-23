@@ -26,10 +26,19 @@ public record FederationPartner(
         Instant updatedAt,
         String remoteHost) {
 
-    public enum FederationStatus {
-        PENDING,
-        ACTIVE,
-        SUSPENDED
+    public static RowMapping<FederationPartner> map() {
+        return row -> new FederationPartner(
+                row.getInt("id"),
+                row.getInt("station_id"),
+                row.get("partner_station_id", StandardValueConverter.UUID_STRING),
+                row.getString("invite_code"),
+                row.getString("public_key"),
+                row.getString("partner_public_key"),
+                row.getEnum("status", FederationStatus.class),
+                row.getString("federation_version"),
+                row.get("created_at", INSTANT_TIMESTAMP),
+                row.get("updated_at", INSTANT_TIMESTAMP),
+                row.getString("remote_host"));
     }
 
     /**
@@ -40,18 +49,9 @@ public record FederationPartner(
         return remoteHost != null;
     }
 
-    public static RowMapping<FederationPartner> map() {
-        return row -> new FederationPartner(
-                row.getInt("id"),
-                row.getInt("station_id"),
-                row.get("partner_station_id", StandardValueConverter.UUID_STRING),
-                row.getString("invite_code"),
-                row.getString("public_key"),
-                row.getString("partner_public_key"),
-                FederationStatus.valueOf(row.getString("status")),
-                row.getString("federation_version"),
-                row.get("created_at", INSTANT_TIMESTAMP),
-                row.get("updated_at", INSTANT_TIMESTAMP),
-                row.getString("remote_host"));
+    public enum FederationStatus {
+        PENDING,
+        ACTIVE,
+        SUSPENDED
     }
 }

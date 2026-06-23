@@ -76,7 +76,9 @@ public class SmbStorageBackend implements StorageBackend, AutoCloseable {
         this(config, defaultClient(config));
     }
 
-    /** Visible for tests that want to inject a pre-configured {@link SMBClient}. */
+    /**
+     * Visible for tests that want to inject a pre-configured {@link SMBClient}.
+     */
     SmbStorageBackend(SmbBackendConfig config, SMBClient client) {
         this.config = config;
         this.client = client;

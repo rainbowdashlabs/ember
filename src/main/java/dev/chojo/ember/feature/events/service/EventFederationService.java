@@ -315,40 +315,6 @@ public class EventFederationService {
         return collectResults(futures);
     }
 
-    private List<FederatedEventItem> browseEventsDirect(FederationPartner partner) {
-        int partnerStationId = stationRepository
-                .findByUid(partner.partnerStationId())
-                .map(Station::id)
-                .orElse(0);
-        var eventIds = findSharedEventIds(partner.id(), partnerStationId);
-        var items = new ArrayList<FederatedEventItem>();
-        for (int eventId : eventIds) {
-            eventService
-                    .findById(eventId)
-                    .ifPresent(e -> items.add(new FederatedEventItem(
-                            partner.id(),
-                            partnerStationName(partner),
-                            partner.partnerStationId().toString(),
-                            toEventMap(e))));
-        }
-        return items;
-    }
-
-    private List<FederatedEventItem> browseEventsViaHttp(Station localStation, FederationPartner partner) {
-        var remoteEvents = fetchFederatedEvents(
-                partner.remoteHost(),
-                partner.partnerStationId(),
-                localStation.id(),
-                localStation.federationPrivateKey());
-        return remoteEvents.stream()
-                .map(event -> new FederatedEventItem(
-                        partner.id(),
-                        partnerStationName(partner),
-                        partner.partnerStationId().toString(),
-                        event))
-                .toList();
-    }
-
     /**
      * Fetches a single federated event by partner station UUID and event ID.
      * Transparently handles local and remote partners.
@@ -384,63 +350,6 @@ public class EventFederationService {
         }
         return eventService.findById(eventId).map(this::toEventMap).orElseThrow();
     }
-
-    private String partnerStationName(FederationPartner partner) {
-        return stationRepository
-                .findByUid(partner.partnerStationId())
-                .map(Station::name)
-                .orElse("?");
-    }
-
-    private RemoteEventSummary toEventMap(StationEvent e) {
-        return new RemoteEventSummary(
-                e.id(),
-                e.name(),
-                e.description() != null ? e.description() : "",
-                e.eventType(),
-                e.dayOfWeek() != null ? e.dayOfWeek() : 0,
-                e.startTime() != null ? e.startTime().toString() : "",
-                e.endTime() != null ? e.endTime().toString() : "",
-                e.requiresRegistration(),
-                true);
-    }
-
-    private <T> List<T> collectResults(List<CompletableFuture<List<T>>> futures) {
-        var allFuture = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
-        try {
-            allFuture.join();
-        } catch (Exception e) {
-            log.error("Error during parallel federation event fetch", e);
-        }
-        var result = new ArrayList<T>();
-        for (var future : futures) {
-            try {
-                result.addAll(future.get());
-            } catch (Exception e) {
-                log.error("Error collecting federation event results", e);
-            }
-        }
-        return result;
-    }
-
-    public record MyFederatedRegistration(
-            int eventId, String remoteMemberId, String eventDate, RegistrationStatus status, int partnerId) {}
-
-    public record RemoteEventSummary(
-            int id,
-            String name,
-            String description,
-            StationEvent.EventType eventType,
-            int dayOfWeek,
-            String startTime,
-            String endTime,
-            boolean requiresRegistration,
-            boolean requiresConfirmation) {}
-
-    public record FederatedEventItem(
-            int partnerId, String partnerStationName, String partnerStationUid, Object event) {}
-
-    // -- Comment support --
 
     /**
      * Converts a comment to an enriched response with federated author information.
@@ -614,6 +523,8 @@ public class EventFederationService {
         return FederatedCommentResult.ofSingle(toCommentResponse(updated));
     }
 
+    // -- Comment support --
+
     /**
      * Deletes a comment on a federated event. Local partners use direct DB, remote partners use HTTP.
      */
@@ -637,43 +548,6 @@ public class EventFederationService {
         }
         return commentService.delete(commentId);
     }
-
-    private FederationPartner resolveActivePartner(int stationId, UUID partnerStationUid) {
-        return partnerRepository
-                .findPartnerByStationAndRemoteUid(stationId, partnerStationUid)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
-    }
-
-    /**
-     * Result wrapper for federated comment operations.
-     * Contains typed response objects for both local and remote partners.
-     */
-    public sealed interface FederatedCommentResult {
-        static FederatedCommentResult ofList(List<EventCommentRoutes.CommentResponse> comments) {
-            return new ListResult(comments);
-        }
-
-        static FederatedCommentResult ofSingle(EventCommentRoutes.CommentResponse comment) {
-            return new SingleResult(comment);
-        }
-
-        record ListResult(List<EventCommentRoutes.CommentResponse> comments) implements FederatedCommentResult {}
-
-        record SingleResult(EventCommentRoutes.CommentResponse comment) implements FederatedCommentResult {}
-    }
-
-    /**
-     * Payload for {@code POST /remote/events/{eventId}/comments}. {@code eventDate} is the
-     * occurrence date for date-scoped comments on recurring events; {@code null} for
-     * one-time events or whole-event comments. Older peers that omit the field continue to
-     * work — Jackson maps the absent property to {@code null} on the receiving side.
-     */
-    private record RemoteCommentRequest(
-            String remoteMemberUid, String displayName, int parentId, String content, String eventDate) {}
-
-    private record RemoteCommentUpdateRequest(String remoteMemberUid, String content) {}
-
-    // -- Federation HTTP convenience methods --
 
     public List<RemoteFederatedEvent> fetchFederatedEvents(
             String remoteHost, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64) {
@@ -719,6 +593,132 @@ public class EventFederationService {
                 localStationId,
                 localPrivateKeyBase64);
     }
+
+    private List<FederatedEventItem> browseEventsDirect(FederationPartner partner) {
+        int partnerStationId = stationRepository
+                .findByUid(partner.partnerStationId())
+                .map(Station::id)
+                .orElse(0);
+        var eventIds = findSharedEventIds(partner.id(), partnerStationId);
+        var items = new ArrayList<FederatedEventItem>();
+        for (int eventId : eventIds) {
+            eventService
+                    .findById(eventId)
+                    .ifPresent(e -> items.add(new FederatedEventItem(
+                            partner.id(),
+                            partnerStationName(partner),
+                            partner.partnerStationId().toString(),
+                            toEventMap(e))));
+        }
+        return items;
+    }
+
+    private List<FederatedEventItem> browseEventsViaHttp(Station localStation, FederationPartner partner) {
+        var remoteEvents = fetchFederatedEvents(
+                partner.remoteHost(),
+                partner.partnerStationId(),
+                localStation.id(),
+                localStation.federationPrivateKey());
+        return remoteEvents.stream()
+                .map(event -> new FederatedEventItem(
+                        partner.id(),
+                        partnerStationName(partner),
+                        partner.partnerStationId().toString(),
+                        event))
+                .toList();
+    }
+
+    private String partnerStationName(FederationPartner partner) {
+        return stationRepository
+                .findByUid(partner.partnerStationId())
+                .map(Station::name)
+                .orElse("?");
+    }
+
+    private RemoteEventSummary toEventMap(StationEvent e) {
+        return new RemoteEventSummary(
+                e.id(),
+                e.name(),
+                e.description() != null ? e.description() : "",
+                e.eventType(),
+                e.dayOfWeek() != null ? e.dayOfWeek() : 0,
+                e.startTime() != null ? e.startTime().toString() : "",
+                e.endTime() != null ? e.endTime().toString() : "",
+                e.requiresRegistration(),
+                true);
+    }
+
+    private <T> List<T> collectResults(List<CompletableFuture<List<T>>> futures) {
+        var allFuture = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
+        try {
+            allFuture.join();
+        } catch (Exception e) {
+            log.error("Error during parallel federation event fetch", e);
+        }
+        var result = new ArrayList<T>();
+        for (var future : futures) {
+            try {
+                result.addAll(future.get());
+            } catch (Exception e) {
+                log.error("Error collecting federation event results", e);
+            }
+        }
+        return result;
+    }
+
+    private FederationPartner resolveActivePartner(int stationId, UUID partnerStationUid) {
+        return partnerRepository
+                .findPartnerByStationAndRemoteUid(stationId, partnerStationUid)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
+    }
+
+    /**
+     * Result wrapper for federated comment operations.
+     * Contains typed response objects for both local and remote partners.
+     */
+    public sealed interface FederatedCommentResult {
+        static FederatedCommentResult ofList(List<EventCommentRoutes.CommentResponse> comments) {
+            return new ListResult(comments);
+        }
+
+        static FederatedCommentResult ofSingle(EventCommentRoutes.CommentResponse comment) {
+            return new SingleResult(comment);
+        }
+
+        record ListResult(List<EventCommentRoutes.CommentResponse> comments) implements FederatedCommentResult {}
+
+        record SingleResult(EventCommentRoutes.CommentResponse comment) implements FederatedCommentResult {}
+    }
+
+    public record MyFederatedRegistration(
+            int eventId, String remoteMemberId, String eventDate, RegistrationStatus status, int partnerId) {}
+
+    public record RemoteEventSummary(
+            int id,
+            String name,
+            String description,
+            StationEvent.EventType eventType,
+            int dayOfWeek,
+            String startTime,
+            String endTime,
+            boolean requiresRegistration,
+            boolean requiresConfirmation) {}
+
+    // -- Federation HTTP convenience methods --
+
+    public record FederatedEventItem(
+            int partnerId, String partnerStationName, String partnerStationUid, Object event) {}
+
+    /**
+     * Payload for {@code POST /remote/events/{eventId}/comments}. {@code eventDate} is the
+     * occurrence date for date-scoped comments on recurring events; {@code null} for
+     * one-time events or whole-event comments. Older peers that omit the field continue to
+     * work — Jackson maps the absent property to {@code null} on the receiving side.
+     */
+    private record RemoteCommentRequest(
+            String remoteMemberUid, String displayName, int parentId, String content, String eventDate) {}
+
+    private record RemoteCommentUpdateRequest(String remoteMemberUid, String content) {}
 
     public record RemoteFederatedEvent(
             int id,

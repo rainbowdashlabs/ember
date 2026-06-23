@@ -66,53 +66,41 @@ public class DiscoveryKeyService {
         }
     }
 
-    public PublicKey publicKey() {
-        return keyPair.getPublic();
-    }
-
-    public PrivateKey privateKey() {
-        return keyPair.getPrivate();
-    }
-
     /**
-     * Returns the base64-encoded raw 32-byte Ed25519 public key — the canonical wire format.
+     * Decodes a peer's base64-encoded raw 32-byte Ed25519 public key.
      */
-    public String publicKeyBase64() {
-        return publicKeyBase64;
-    }
-
-    /**
-     * Returns the 16-character hex fingerprint of {@code sha256(publicKey)}, used as the
-     * human-readable instance id.
-     */
-    public String instanceId() {
-        return instanceId;
-    }
-
-    private KeyPair loadOrGenerate() throws Exception {
-        if (Files.exists(PRIVATE_PATH) && Files.exists(PUBLIC_PATH)) {
-            return loadExisting();
+    public static PublicKey decodePeerPublicKey(String base64) throws IOException {
+        try {
+            byte[] raw = Base64.getDecoder().decode(base64);
+            var kf = KeyFactory.getInstance(ALGO);
+            return kf.generatePublic(decodeRawPublic(raw));
+        } catch (Exception e) {
+            throw new IOException("Failed to decode Ed25519 public key", e);
         }
-        return generateAndPersist();
     }
 
-    private KeyPair loadExisting() throws Exception {
-        byte[] privateRaw = Files.readAllBytes(PRIVATE_PATH);
-        byte[] publicRaw = Files.readAllBytes(PUBLIC_PATH);
-        var kf = KeyFactory.getInstance(ALGO);
-        var privateKey = kf.generatePrivate(new PKCS8EncodedKeySpec(privateRaw));
-        var publicKey = kf.generatePublic(decodeRawPublic(publicRaw));
-        return new KeyPair(publicKey, privateKey);
+    /**
+     * Computes the 16-character hex fingerprint of {@code sha256(publicKey)}.
+     */
+    public static String computeInstanceId(byte[] rawPublicKey) {
+        try {
+            var digest = MessageDigest.getInstance("SHA-256").digest(rawPublicKey);
+            return HexFormat.of().formatHex(digest).substring(0, 16);
+        } catch (NoSuchAlgorithmException e) {
+            throw new AssertionError("SHA-256 not available", e);
+        }
     }
 
-    private KeyPair generateAndPersist() throws Exception {
-        log.info("No discovery keypair found, generating a fresh Ed25519 identity...");
-        var generator = KeyPairGenerator.getInstance(ALGO);
-        var pair = generator.generateKeyPair();
-        Files.write(PRIVATE_PATH, pair.getPrivate().getEncoded());
-        Files.write(PUBLIC_PATH, rawPublicKey(pair.getPublic()));
-        tightenPermissions(PRIVATE_PATH);
-        return pair;
+    /**
+     * Convenience: instance id for a peer's base64-encoded public key.
+     */
+    public static String fingerprintOf(String base64PublicKey) {
+        try {
+            byte[] raw = Base64.getDecoder().decode(base64PublicKey);
+            return computeInstanceId(raw);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("publicKey must be base64-encoded", e);
+        }
     }
 
     private static void tightenPermissions(Path path) {
@@ -161,40 +149,52 @@ public class DiscoveryKeyService {
         return new EdECPublicKeySpec(NamedParameterSpec.ED25519, new EdECPoint(xOdd, y));
     }
 
-    /**
-     * Decodes a peer's base64-encoded raw 32-byte Ed25519 public key.
-     */
-    public static PublicKey decodePeerPublicKey(String base64) throws IOException {
-        try {
-            byte[] raw = Base64.getDecoder().decode(base64);
-            var kf = KeyFactory.getInstance(ALGO);
-            return kf.generatePublic(decodeRawPublic(raw));
-        } catch (Exception e) {
-            throw new IOException("Failed to decode Ed25519 public key", e);
-        }
+    public PublicKey publicKey() {
+        return keyPair.getPublic();
+    }
+
+    public PrivateKey privateKey() {
+        return keyPair.getPrivate();
     }
 
     /**
-     * Computes the 16-character hex fingerprint of {@code sha256(publicKey)}.
+     * Returns the base64-encoded raw 32-byte Ed25519 public key — the canonical wire format.
      */
-    public static String computeInstanceId(byte[] rawPublicKey) {
-        try {
-            var digest = MessageDigest.getInstance("SHA-256").digest(rawPublicKey);
-            return HexFormat.of().formatHex(digest).substring(0, 16);
-        } catch (NoSuchAlgorithmException e) {
-            throw new AssertionError("SHA-256 not available", e);
-        }
+    public String publicKeyBase64() {
+        return publicKeyBase64;
     }
 
     /**
-     * Convenience: instance id for a peer's base64-encoded public key.
+     * Returns the 16-character hex fingerprint of {@code sha256(publicKey)}, used as the
+     * human-readable instance id.
      */
-    public static String fingerprintOf(String base64PublicKey) {
-        try {
-            byte[] raw = Base64.getDecoder().decode(base64PublicKey);
-            return computeInstanceId(raw);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("publicKey must be base64-encoded", e);
+    public String instanceId() {
+        return instanceId;
+    }
+
+    private KeyPair loadOrGenerate() throws Exception {
+        if (Files.exists(PRIVATE_PATH) && Files.exists(PUBLIC_PATH)) {
+            return loadExisting();
         }
+        return generateAndPersist();
+    }
+
+    private KeyPair loadExisting() throws Exception {
+        byte[] privateRaw = Files.readAllBytes(PRIVATE_PATH);
+        byte[] publicRaw = Files.readAllBytes(PUBLIC_PATH);
+        var kf = KeyFactory.getInstance(ALGO);
+        var privateKey = kf.generatePrivate(new PKCS8EncodedKeySpec(privateRaw));
+        var publicKey = kf.generatePublic(decodeRawPublic(publicRaw));
+        return new KeyPair(publicKey, privateKey);
+    }
+
+    private KeyPair generateAndPersist() throws Exception {
+        log.info("No discovery keypair found, generating a fresh Ed25519 identity...");
+        var generator = KeyPairGenerator.getInstance(ALGO);
+        var pair = generator.generateKeyPair();
+        Files.write(PRIVATE_PATH, pair.getPrivate().getEncoded());
+        Files.write(PUBLIC_PATH, rawPublicKey(pair.getPublic()));
+        tightenPermissions(PRIVATE_PATH);
+        return pair;
     }
 }

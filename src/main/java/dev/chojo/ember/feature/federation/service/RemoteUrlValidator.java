@@ -79,6 +79,47 @@ public class RemoteUrlValidator {
     }
 
     /**
+     * Test-only helper for asserting the rejection reason format.
+     */
+    public static String rejectReason() {
+        return REJECT_REASON;
+    }
+
+    private static boolean isDenied(InetAddress address) {
+        if (address instanceof Inet4Address v4) {
+            return matches(v4.getAddress(), DENIED_V4);
+        }
+        if (address instanceof Inet6Address v6) {
+            byte[] bytes = v6.getAddress();
+            Optional<Inet4Address> mapped = mappedIpv4(bytes);
+            return mapped.map(inet4Address -> matches(inet4Address.getAddress(), DENIED_V4))
+                    .orElseGet(() -> matches(bytes, DENIED_V6));
+        }
+        return true;
+    }
+
+    private static Optional<Inet4Address> mappedIpv4(byte[] v6) {
+        for (int i = 0; i < 10; i++) {
+            if (v6[i] != 0) return Optional.empty();
+        }
+        if ((v6[10] & 0xff) != 0xff || (v6[11] & 0xff) != 0xff) return Optional.empty();
+        try {
+            byte[] v4 = new byte[] {v6[12], v6[13], v6[14], v6[15]};
+            return Optional.of((Inet4Address) InetAddress.getByAddress(v4));
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    private static boolean matches(byte[] addressBytes, List<Cidr> cidrs) {
+        BigInteger ip = new BigInteger(1, addressBytes);
+        for (Cidr cidr : cidrs) {
+            if (cidr.contains(ip)) return true;
+        }
+        return false;
+    }
+
+    /**
      * Throws {@link IllegalArgumentException} with a static user-safe message
      * when {@code url} is not an acceptable public HTTPS endpoint.
      */
@@ -124,45 +165,7 @@ public class RemoteUrlValidator {
         return true;
     }
 
-    private static boolean isDenied(InetAddress address) {
-        if (address instanceof Inet4Address v4) {
-            return matches(v4.getAddress(), DENIED_V4);
-        }
-        if (address instanceof Inet6Address v6) {
-            byte[] bytes = v6.getAddress();
-            Optional<Inet4Address> mapped = mappedIpv4(bytes);
-            return mapped.map(inet4Address -> matches(inet4Address.getAddress(), DENIED_V4))
-                    .orElseGet(() -> matches(bytes, DENIED_V6));
-        }
-        return true;
-    }
-
-    private static Optional<Inet4Address> mappedIpv4(byte[] v6) {
-        for (int i = 0; i < 10; i++) {
-            if (v6[i] != 0) return Optional.empty();
-        }
-        if ((v6[10] & 0xff) != 0xff || (v6[11] & 0xff) != 0xff) return Optional.empty();
-        try {
-            byte[] v4 = new byte[] {v6[12], v6[13], v6[14], v6[15]};
-            return Optional.of((Inet4Address) InetAddress.getByAddress(v4));
-        } catch (Exception e) {
-            return Optional.empty();
-        }
-    }
-
-    private static boolean matches(byte[] addressBytes, List<Cidr> cidrs) {
-        BigInteger ip = new BigInteger(1, addressBytes);
-        for (Cidr cidr : cidrs) {
-            if (cidr.contains(ip)) return true;
-        }
-        return false;
-    }
-
     private record Cidr(BigInteger network, BigInteger mask) {
-        boolean contains(BigInteger ip) {
-            return ip.and(mask).equals(network);
-        }
-
         static Cidr parse4(String input) {
             return parse(input, 32);
         }
@@ -189,12 +192,9 @@ public class RemoteUrlValidator {
                 throw new IllegalStateException("Invalid CIDR in deny-list: " + input, e);
             }
         }
-    }
 
-    /**
-     * Test-only helper for asserting the rejection reason format.
-     */
-    public static String rejectReason() {
-        return REJECT_REASON;
+        boolean contains(BigInteger ip) {
+            return ip.and(mask).equals(network);
+        }
     }
 }

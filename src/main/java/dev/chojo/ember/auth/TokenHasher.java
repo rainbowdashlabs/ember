@@ -81,6 +81,15 @@ public class TokenHasher {
         return configured;
     }
 
+    private static String toHex(byte[] bytes) {
+        StringBuilder out = new StringBuilder(bytes.length * 2);
+        for (byte b : bytes) {
+            out.append(Character.forDigit((b >> 4) & 0xF, 16));
+            out.append(Character.forDigit(b & 0xF, 16));
+        }
+        return out.toString();
+    }
+
     /**
      * Returns the lowercase hex encoding of {@code HMAC-SHA-256(pepper, rawToken)}.
      * The output is exactly 64 characters and column-stable, suitable for
@@ -98,14 +107,5 @@ public class TokenHasher {
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             throw new IllegalStateException("HMAC-SHA-256 unavailable on this JVM", e);
         }
-    }
-
-    private static String toHex(byte[] bytes) {
-        StringBuilder out = new StringBuilder(bytes.length * 2);
-        for (byte b : bytes) {
-            out.append(Character.forDigit((b >> 4) & 0xF, 16));
-            out.append(Character.forDigit(b & 0xF, 16));
-        }
-        return out.toString();
     }
 }

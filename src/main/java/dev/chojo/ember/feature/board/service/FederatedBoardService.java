@@ -35,12 +35,6 @@ public class FederatedBoardService {
 
     // -- Board Sharing --
 
-    public record PartnerShareConfig(int partnerId, BoardShareMode shareMode, StationUserType requiredUserType) {
-        public PartnerShareConfig(int partnerId, BoardShareMode shareMode) {
-            this(partnerId, shareMode, StationUserType.MEMBER);
-        }
-    }
-
     public void shareBoard(int boardId, List<PartnerShareConfig> partnerConfigs) {
         var share = repository.findShare(boardId).orElseGet(() -> repository.createShare(boardId));
         repository.clearShareTargets(share.id());
@@ -84,11 +78,11 @@ public class FederatedBoardService {
         return repository.findShareMode(boardId, partnerId).isPresent();
     }
 
-    // -- Access Control --
-
     public boolean canFederatedView(int boardId, int partnerId) {
         return repository.findShareMode(boardId, partnerId).isPresent();
     }
+
+    // -- Access Control --
 
     public boolean canFederatedWrite(int boardId, int partnerId) {
         return repository
@@ -112,8 +106,6 @@ public class FederatedBoardService {
         return repository.findFederatedEditUserTypes(boardId);
     }
 
-    // -- Bookmarks --
-
     public FederationBoardBookmark createBookmark(
             int memberId,
             int partnerId,
@@ -124,6 +116,8 @@ public class FederatedBoardService {
         return repository.createBookmark(
                 memberId, partnerId, remoteBoardUid, remoteBoardName, remoteBoardShortKey, shareMode);
     }
+
+    // -- Bookmarks --
 
     public void deleteBookmark(int bookmarkId) {
         repository.deleteBookmark(bookmarkId);
@@ -149,11 +143,11 @@ public class FederatedBoardService {
         repository.updateBookmarkShareMode(partnerId, remoteBoardUid, shareMode);
     }
 
-    // -- Local Overrides --
-
     public void setLocalViewOverride(int partnerId, UUID remoteBoardUid, AccessData access) {
         repository.setLocalViewOverride(partnerId, remoteBoardUid, access);
     }
+
+    // -- Local Overrides --
 
     public void setLocalEditOverride(int partnerId, UUID remoteBoardUid, AccessData access) {
         repository.setLocalEditOverride(partnerId, remoteBoardUid, access);
@@ -173,5 +167,11 @@ public class FederatedBoardService {
 
     public boolean hasLocalEditOverride(int partnerId, UUID remoteBoardUid) {
         return repository.hasLocalEditOverride(partnerId, remoteBoardUid);
+    }
+
+    public record PartnerShareConfig(int partnerId, BoardShareMode shareMode, StationUserType requiredUserType) {
+        public PartnerShareConfig(int partnerId, BoardShareMode shareMode) {
+            this(partnerId, shareMode, StationUserType.MEMBER);
+        }
     }
 }

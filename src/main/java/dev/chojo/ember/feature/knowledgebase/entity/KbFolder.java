@@ -38,7 +38,7 @@ public record KbFolder(
                 row.getInt("created_by"),
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.get("updated_at", INSTANT_TIMESTAMP),
-                RestrictionMode.valueOf(row.getString("restriction_mode")),
+                row.getEnum("restriction_mode", RestrictionMode.class),
                 row.getBoolean("restricted"));
     }
 }

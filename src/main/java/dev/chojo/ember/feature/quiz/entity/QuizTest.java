@@ -35,7 +35,7 @@ public record QuizTest(
                 row.getInt("station_id"),
                 row.getString("title"),
                 row.getString("description"),
-                TestStatus.valueOf(row.getString("status")),
+                row.getEnum("status", TestStatus.class),
                 row.getObject("time_limit", Integer.class),
                 row.getBoolean("shuffle"),
                 row.getBoolean("forced"),
@@ -44,7 +44,7 @@ public record QuizTest(
                 row.getInt("created_by"),
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.get("updated_at", INSTANT_TIMESTAMP),
-                RestrictionMode.valueOf(row.getString("restriction_mode")),
+                row.getEnum("restriction_mode", RestrictionMode.class),
                 row.getBoolean("restricted"));
     }
 }

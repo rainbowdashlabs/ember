@@ -73,7 +73,9 @@ public class StationExportService {
         this.schemaHash = tracking.schemaHash() != null ? tracking.schemaHash() : "unknown";
     }
 
-    /** Returns the topologically-sorted list of TRACKED tables. */
+    /**
+     * Returns the topologically-sorted list of TRACKED tables.
+     */
     public List<String> getTableOrder() {
         return tableOrder;
     }

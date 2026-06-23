@@ -13,7 +13,7 @@ package dev.chojo.ember.feature.discovery.entity;
  *   <li>{@link #GOSSIP} — announced by another peer in a callback.</li>
  *   <li>{@link #MANUAL} — explicitly added by an admin via the discovery admin UI.</li>
  * </ul>
- *
+ * <p>
  * Manually-added peers are exempt from reputation-driven garbage collection.
  */
 public enum PeerSource {

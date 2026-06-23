@@ -60,33 +60,40 @@ public class IcalEventRenderer {
     }
 
     /**
-     * The data the renderer needs for every event in a single feed render.
-     *
-     * @param station                the station that owns the events
-     * @param locale                 the resolved feed locale ({@code de}/{@code en})
-     * @param baseUrl                the public base URL of the deployment, used in
-     *                               {@code URL} and the trailing link in {@code DESCRIPTION}
-     * @param verbose                when {@code false} only the headline + link are rendered
-     * @param categoryMap            event category lookup
-     * @param ownerStatusByEvent     the feed owner's registration status per event id
-     * @param ownerRegisteredEvents  event ids the owner is registered for (any status)
-     * @param managedStatusByEvent   list of managed-member registrations per event id (name +
-     *                               status), in display-name order
+     * Helper for routes assembling the registration map. Keeps the renderer the single source
+     * of truth for which statuses are considered active.
      */
-    public record Context(
-            Station station,
-            String locale,
-            String baseUrl,
-            boolean verbose,
-            Map<Integer, EventCategory> categoryMap,
-            Map<Integer, RegistrationStatus> ownerStatusByEvent,
-            Set<Integer> ownerRegisteredEvents,
-            Map<Integer, List<ManagedRegistration>> managedStatusByEvent) {}
+    public static Map<Integer, RegistrationStatus> buildOwnerStatusMap(
+            Collection<EventRegistration> ownerRegistrations) {
+        var map = new LinkedHashMap<Integer, RegistrationStatus>();
+        for (var r : ownerRegistrations) map.put(r.eventId(), r.status());
+        return map;
+    }
+
+    private static ZoneId resolveZone(Station station) {
+        if (station.timezone() != null && !station.timezone().isBlank()) {
+            try {
+                return ZoneId.of(station.timezone());
+            } catch (Exception ignored) {
+                // fall through to system default
+            }
+        }
+        return ZoneId.systemDefault();
+    }
 
     /**
-     * Registration of a managed member (e.g. a guardian's child) for the event.
+     * Unicode marker prefixed to status labels so the registration state remains visible in
+     * monochrome clients and for users with colour-blindness.
      */
-    public record ManagedRegistration(String memberName, RegistrationStatus status) {}
+    private static String withSymbol(String label, RegistrationStatus status) {
+        if (status == null) return label;
+        return switch (status) {
+            case ACCEPTED -> "✓ " + label;
+            case DENIED, DECLINED -> "✗ " + label;
+            case PENDING -> "… " + label;
+            case WITHDRAWN -> "↶ " + label;
+        };
+    }
 
     /**
      * Personal visibility decision per the feed spec. Hides an event when every relevant
@@ -132,6 +139,8 @@ public class IcalEventRenderer {
                 || ctx.ownerRegisteredEvents().contains(event.id())
                 || anyManagedActive;
     }
+
+    // -- description body --
 
     /**
      * Builds the {@link VEvent} for the given event, applying registration metadata, location,
@@ -190,7 +199,7 @@ public class IcalEventRenderer {
         return vevent;
     }
 
-    // -- description body --
+    // -- helpers --
 
     private String buildDescription(StationEvent event, List<EventField> fields, String deepLink, Context ctx) {
         var sb = new StringBuilder();
@@ -276,8 +285,6 @@ public class IcalEventRenderer {
         return sb.toString().stripTrailing();
     }
 
-    // -- helpers --
-
     private String cancelledPrefix(String locale) {
         return notificationService.resolveLocalized(locale, "ical", "summary.cancelledPrefix", null) + " ";
     }
@@ -306,39 +313,32 @@ public class IcalEventRenderer {
         return fmt.format(instant) + " (" + zone.getId() + ")";
     }
 
-    private static ZoneId resolveZone(Station station) {
-        if (station.timezone() != null && !station.timezone().isBlank()) {
-            try {
-                return ZoneId.of(station.timezone());
-            } catch (Exception ignored) {
-                // fall through to system default
-            }
-        }
-        return ZoneId.systemDefault();
-    }
+    /**
+     * The data the renderer needs for every event in a single feed render.
+     *
+     * @param station               the station that owns the events
+     * @param locale                the resolved feed locale ({@code de}/{@code en})
+     * @param baseUrl               the public base URL of the deployment, used in
+     *                              {@code URL} and the trailing link in {@code DESCRIPTION}
+     * @param verbose               when {@code false} only the headline + link are rendered
+     * @param categoryMap           event category lookup
+     * @param ownerStatusByEvent    the feed owner's registration status per event id
+     * @param ownerRegisteredEvents event ids the owner is registered for (any status)
+     * @param managedStatusByEvent  list of managed-member registrations per event id (name +
+     *                              status), in display-name order
+     */
+    public record Context(
+            Station station,
+            String locale,
+            String baseUrl,
+            boolean verbose,
+            Map<Integer, EventCategory> categoryMap,
+            Map<Integer, RegistrationStatus> ownerStatusByEvent,
+            Set<Integer> ownerRegisteredEvents,
+            Map<Integer, List<ManagedRegistration>> managedStatusByEvent) {}
 
     /**
-     * Unicode marker prefixed to status labels so the registration state remains visible in
-     * monochrome clients and for users with colour-blindness.
+     * Registration of a managed member (e.g. a guardian's child) for the event.
      */
-    private static String withSymbol(String label, RegistrationStatus status) {
-        if (status == null) return label;
-        return switch (status) {
-            case ACCEPTED -> "✓ " + label;
-            case DENIED, DECLINED -> "✗ " + label;
-            case PENDING -> "… " + label;
-            case WITHDRAWN -> "↶ " + label;
-        };
-    }
-
-    /**
-     * Helper for routes assembling the registration map. Keeps the renderer the single source
-     * of truth for which statuses are considered active.
-     */
-    public static Map<Integer, RegistrationStatus> buildOwnerStatusMap(
-            Collection<EventRegistration> ownerRegistrations) {
-        var map = new LinkedHashMap<Integer, RegistrationStatus>();
-        for (var r : ownerRegistrations) map.put(r.eventId(), r.status());
-        return map;
-    }
+    public record ManagedRegistration(String memberName, RegistrationStatus status) {}
 }

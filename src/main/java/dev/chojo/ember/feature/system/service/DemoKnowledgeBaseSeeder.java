@@ -51,24 +51,24 @@ public class DemoKnowledgeBaseSeeder {
 
         // Edit the welcome file to create a version history
         kbService.updateMarkdownContent(welcomeFile.id(), """
-                        # Willkommen im Wiki
+                # Willkommen im Wiki
 
-                        Hier findest du alle wichtigen Informationen rund um die Jugendfeuerwehr.
-                        Schau dich um und lerne etwas Neues!
+                Hier findest du alle wichtigen Informationen rund um die Jugendfeuerwehr.
+                Schau dich um und lerne etwas Neues!
 
-                        ## Was findest du hier?
+                ## Was findest du hier?
 
-                        - **Grundlagen**: Alles über die Feuerwehr und ihre Aufgaben
-                        - **Ausrüstung**: Persönliche Schutzausrüstung und Geräte
-                        - **Erste Hilfe**: Wichtige Maßnahmen bei Notfällen
-                        - **Übungen**: Anleitungen und Tipps für Übungen
-                        - **Videos**: Lehrvideos zu verschiedenen Themen
+                - **Grundlagen**: Alles über die Feuerwehr und ihre Aufgaben
+                - **Ausrüstung**: Persönliche Schutzausrüstung und Geräte
+                - **Erste Hilfe**: Wichtige Maßnahmen bei Notfällen
+                - **Übungen**: Anleitungen und Tipps für Übungen
+                - **Videos**: Lehrvideos zu verschiedenen Themen
 
-                        > Tipp: Nutze die Suchfunktion oben, um schnell das Richtige zu finden!
+                > Tipp: Nutze die Suchfunktion oben, um schnell das Richtige zu finden!
 
-                        ---
-                        *Zuletzt aktualisiert von der Jugendleitung.*
-                        """, createdBy);
+                ---
+                *Zuletzt aktualisiert von der Jugendleitung.*
+                """, createdBy);
 
         // === Formatting Showcase (root level) ===
         var showcaseFile = kbService.createMarkdownFile(
@@ -256,36 +256,36 @@ public class DemoKnowledgeBaseSeeder {
 
         // Edit PSA file to show version history
         kbService.updateMarkdownContent(psaFile.id(), """
-                        # Persönliche Schutzausrüstung (PSA)
+                # Persönliche Schutzausrüstung (PSA)
 
-                        Die PSA schützt dich bei Einsätzen und Übungen. Sie muss regelmäßig gepflegt und kontrolliert werden.
+                Die PSA schützt dich bei Einsätzen und Übungen. Sie muss regelmäßig gepflegt und kontrolliert werden.
 
-                        ## Bestandteile
+                ## Bestandteile
 
-                        - **Helm** mit Visier: Schützt den Kopf vor herabfallenden Teilen und Hitze
-                        - **Handschuhe**: Schutz vor Hitze, Schnitten und Chemikalien
-                        - **Einsatzjacke**: Flammschutz und Schutz vor Wärmestrahlung
-                        - **Einsatzhose**: Wie die Jacke, zusätzlich Knieschutz
-                        - **Stiefel**: Durchtrittsichere Sohle, Knöchelschutz
-                        - **Flammschutzhaube**: Schutz für Nacken und Ohren (bei Atemschutzeinsätzen)
+                - **Helm** mit Visier: Schützt den Kopf vor herabfallenden Teilen und Hitze
+                - **Handschuhe**: Schutz vor Hitze, Schnitten und Chemikalien
+                - **Einsatzjacke**: Flammschutz und Schutz vor Wärmestrahlung
+                - **Einsatzhose**: Wie die Jacke, zusätzlich Knieschutz
+                - **Stiefel**: Durchtrittsichere Sohle, Knöchelschutz
+                - **Flammschutzhaube**: Schutz für Nacken und Ohren (bei Atemschutzeinsätzen)
 
-                        ## Anziehreihenfolge
+                ## Anziehreihenfolge
 
-                        1. Hose
-                        2. Stiefel
-                        3. Jacke
-                        4. Flammschutzhaube (falls benötigt)
-                        5. Handschuhe
-                        6. Helm
+                1. Hose
+                2. Stiefel
+                3. Jacke
+                4. Flammschutzhaube (falls benötigt)
+                5. Handschuhe
+                6. Helm
 
-                        ## Pflege
+                ## Pflege
 
-                        - Nach jedem Einsatz auf Beschädigungen prüfen
-                        - Verschmutzte Kleidung waschen (Herstellerangaben beachten)
-                        - Defekte Teile sofort melden
+                - Nach jedem Einsatz auf Beschädigungen prüfen
+                - Verschmutzte Kleidung waschen (Herstellerangaben beachten)
+                - Defekte Teile sofort melden
 
-                        > Merke: Die PSA muss immer vollständig getragen werden!
-                        """, createdBy);
+                > Merke: Die PSA muss immer vollständig getragen werden!
+                """, createdBy);
 
         kbService.createMarkdownFile(
                 stationId,

@@ -37,7 +37,7 @@ public class DiscoveryPeerRepository {
      */
     public List<DiscoveryPeer> findUsable() {
         return query(
-                        "SELECT * FROM discovery_peer WHERE blocked = false AND reputation > -50 ORDER BY last_seen_at DESC;")
+                        "SELECT * FROM discovery_peer WHERE blocked = FALSE AND reputation > -50 ORDER BY last_seen_at DESC;")
                 .single(call())
                 .map(DiscoveryPeer.map())
                 .all();
@@ -49,7 +49,7 @@ public class DiscoveryPeerRepository {
      */
     public List<DiscoveryPeer> findReachable() {
         return query(
-                        "SELECT * FROM discovery_peer WHERE reachable = true AND blocked = false ORDER BY last_seen_at DESC;")
+                        "SELECT * FROM discovery_peer WHERE reachable = TRUE AND blocked = FALSE ORDER BY last_seen_at DESC;")
                 .single(call())
                 .map(DiscoveryPeer.map())
                 .all();
@@ -76,13 +76,13 @@ public class DiscoveryPeerRepository {
     public DiscoveryPeer upsert(
             String publicKey, String baseUrl, String instanceId, PeerSource source, String introducedBy) {
         return query("""
-                                INSERT INTO discovery_peer (public_key, base_url, instance_id, source, introduced_by)
-                                VALUES (:public_key, :base_url, :instance_id, :source, :introduced_by)
-                                ON CONFLICT (public_key) DO UPDATE
-                                SET base_url     = EXCLUDED.base_url,
-                                    instance_id  = EXCLUDED.instance_id,
-                                    last_seen_at = now()
-                                RETURNING *;""")
+                INSERT INTO discovery_peer (public_key, base_url, instance_id, source, introduced_by)
+                VALUES (:public_key, :base_url, :instance_id, :source, :introduced_by)
+                ON CONFLICT (public_key) DO UPDATE
+                SET base_url     = excluded.base_url,
+                    instance_id  = excluded.instance_id,
+                    last_seen_at = now()
+                RETURNING *;""")
                 .single(call().bind("public_key", publicKey)
                         .bind("base_url", baseUrl)
                         .bind("instance_id", instanceId)
@@ -101,13 +101,13 @@ public class DiscoveryPeerRepository {
 
     public void markReached(String publicKey, Instant when) {
         query(
-                        "UPDATE discovery_peer SET last_reached_at = :when, last_seen_at = :when, reachable = true WHERE public_key = :public_key;")
+                        "UPDATE discovery_peer SET last_reached_at = :when, last_seen_at = :when, reachable = TRUE WHERE public_key = :public_key;")
                 .single(call().bind("public_key", publicKey).bind("when", when, INSTANT_TIMESTAMP))
                 .update();
     }
 
     public void markUnreachable(String publicKey) {
-        query("UPDATE discovery_peer SET reachable = false WHERE public_key = :public_key;")
+        query("UPDATE discovery_peer SET reachable = FALSE WHERE public_key = :public_key;")
                 .single(call().bind("public_key", publicKey))
                 .update();
     }
@@ -137,9 +137,9 @@ public class DiscoveryPeerRepository {
      */
     public int decayReputation(int step) {
         return query("""
-                                UPDATE discovery_peer
-                                SET reputation = LEAST(reputation + :step, 0)
-                                WHERE reputation < 0;""").single(call().bind("step", step)).update().rows();
+                UPDATE discovery_peer
+                SET reputation = least(reputation + :step, 0)
+                WHERE reputation < 0;""").single(call().bind("step", step)).update().rows();
     }
 
     public List<DiscoveryPeer> findManyByKeys(List<String> publicKeys) {

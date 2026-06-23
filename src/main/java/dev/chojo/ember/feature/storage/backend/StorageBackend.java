@@ -27,7 +27,9 @@ import java.util.Set;
  */
 public interface StorageBackend extends AutoCloseable {
 
-    /** Discriminator for the kind of backend implementation. */
+    /**
+     * Discriminator for the kind of backend implementation.
+     */
     StorageBackendType type();
 
     /**
@@ -63,7 +65,9 @@ public interface StorageBackend extends AutoCloseable {
      */
     void delete(String fullKey);
 
-    /** Whether the object exists under {@code fullKey}. */
+    /**
+     * Whether the object exists under {@code fullKey}.
+     */
     boolean exists(String fullKey);
 
     /**
@@ -86,7 +90,9 @@ public interface StorageBackend extends AutoCloseable {
         return total;
     }
 
-    /** Returns the on-backend size of {@code fullKey}, when known. */
+    /**
+     * Returns the on-backend size of {@code fullKey}, when known.
+     */
     default Optional<Long> size(String fullKey) {
         return read(fullKey).map(s -> {
             try (var ignored = s) {
@@ -104,7 +110,9 @@ public interface StorageBackend extends AutoCloseable {
      */
     HealthStatus probe();
 
-    /** Set of optional features this backend supports. */
+    /**
+     * Set of optional features this backend supports.
+     */
     default Set<BackendCapability> capabilities() {
         return EnumSet.noneOf(BackendCapability.class);
     }
@@ -118,7 +126,9 @@ public interface StorageBackend extends AutoCloseable {
         throw new UnsupportedOperationException("touch not supported by " + type());
     }
 
-    /** Returns the last-access timestamp, when the backend records one. */
+    /**
+     * Returns the last-access timestamp, when the backend records one.
+     */
     default Optional<Instant> lastAccessed(String fullKey) {
         return Optional.empty();
     }

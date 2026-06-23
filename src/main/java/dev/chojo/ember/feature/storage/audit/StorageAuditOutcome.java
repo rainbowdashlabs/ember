@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.feature.storage.audit;
 
-/** Whether the action persisted by an audit row succeeded or failed. */
+/**
+ * Whether the action persisted by an audit row succeeded or failed.
+ */
 public enum StorageAuditOutcome {
     OK,
     FAILED

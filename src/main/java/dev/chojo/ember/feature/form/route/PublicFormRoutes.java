@@ -75,6 +75,14 @@ public class PublicFormRoutes implements Routes {
         this.network = network;
     }
 
+    private static UUID parseUid(String raw) {
+        try {
+            return UUID.fromString(raw);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse("Invalid UUID: " + raw);
+        }
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/public/{stationUid}/forms/{publicUid}", this::getPublicForm);
@@ -170,14 +178,6 @@ public class PublicFormRoutes implements Routes {
                     + " — only CONTACT and POLL forms are publicly submittable");
         }
         return form;
-    }
-
-    private static UUID parseUid(String raw) {
-        try {
-            return UUID.fromString(raw);
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("Invalid UUID: " + raw);
-        }
     }
 
     @OpenApiName("PublicForm")

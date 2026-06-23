@@ -40,7 +40,7 @@ public record WaitingListEntry(
                 row.getString("parent_name"),
                 row.getString("email"),
                 row.getString("access_token"),
-                WaitingListEntryStatus.valueOf(row.getString("status")),
+                row.getEnum("status", WaitingListEntryStatus.class),
                 row.get("confirmed_at", INSTANT_TIMESTAMP),
                 row.get("reminder_sent_at", INSTANT_TIMESTAMP),
                 row.get("created_at", INSTANT_TIMESTAMP),

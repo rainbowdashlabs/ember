@@ -46,15 +46,51 @@ public class FederationSigningService {
     private static final Duration MAX_TIMESTAMP_DRIFT = Duration.ofMinutes(5);
 
     /**
+     * Builds the canonical path-with-query string by sorting {@code &}-separated
+     * pairs lexicographically. The path is used verbatim; the query is omitted
+     * entirely when the request has no query string.
+     */
+    public static String canonicalPathWithQuery(String path, String query) {
+        String safePath = path == null ? "" : path;
+        if (query == null || query.isEmpty()) {
+            return safePath;
+        }
+        String[] pairs = query.split("&");
+        Arrays.sort(pairs);
+        return safePath + "?" + String.join("&", pairs);
+    }
+
+    /**
+     * Convenience overload that derives the canonical path-with-query from a
+     * fully-qualified request URI.
+     */
+    public static String canonicalPathWithQuery(URI uri) {
+        return canonicalPathWithQuery(uri.getRawPath(), uri.getRawQuery());
+    }
+
+    private static String canonicalEnvelope(
+            String method, String pathWithQuery, UUID recipientUuid, String timestamp, String body) {
+        return method.toUpperCase(Locale.ROOT)
+                + "\n"
+                + (pathWithQuery == null ? "" : pathWithQuery)
+                + "\n"
+                + recipientUuid
+                + "\n"
+                + timestamp
+                + "\n"
+                + (body == null ? "" : body);
+    }
+
+    /**
      * Signs a federation request with the given private key.
      *
-     * @param method         uppercase HTTP method (GET, POST, …)
-     * @param pathWithQuery  path plus canonical (sorted) query string; see
-     *                       {@link #canonicalPathWithQuery(String, String)}
-     * @param recipientUuid  the UUID of the station that will receive the request
-     * @param body           the request body (use {@code ""} for empty)
-     * @param timestamp      the request timestamp (ISO-8601)
-     * @param privateKey     the signing RSA private key
+     * @param method        uppercase HTTP method (GET, POST, …)
+     * @param pathWithQuery path plus canonical (sorted) query string; see
+     *                      {@link #canonicalPathWithQuery(String, String)}
+     * @param recipientUuid the UUID of the station that will receive the request
+     * @param body          the request body (use {@code ""} for empty)
+     * @param timestamp     the request timestamp (ISO-8601)
+     * @param privateKey    the signing RSA private key
      * @return Base64-encoded signature over the canonical envelope
      */
     public String sign(
@@ -79,13 +115,13 @@ public class FederationSigningService {
      * Verifies a signed federation request using the partner's public key.
      * Rejects requests outside the {@code ±5 min} timestamp window.
      *
-     * @param method         uppercase HTTP method
-     * @param pathWithQuery  path plus canonical (sorted) query string
-     * @param recipientUuid  the UUID of the receiving station (i.e. this instance's own)
-     * @param body           the request body
-     * @param signature      the Base64-encoded signature
-     * @param publicKey      the sender's RSA public key
-     * @param timestamp      the request timestamp
+     * @param method        uppercase HTTP method
+     * @param pathWithQuery path plus canonical (sorted) query string
+     * @param recipientUuid the UUID of the receiving station (i.e. this instance's own)
+     * @param body          the request body
+     * @param signature     the Base64-encoded signature
+     * @param publicKey     the sender's RSA public key
+     * @param timestamp     the request timestamp
      * @return true iff the signature matches and the timestamp is within the window
      */
     public boolean verify(
@@ -143,42 +179,6 @@ public class FederationSigningService {
             log.warn("Federation enrollment signature verification failed", e);
             return false;
         }
-    }
-
-    /**
-     * Builds the canonical path-with-query string by sorting {@code &}-separated
-     * pairs lexicographically. The path is used verbatim; the query is omitted
-     * entirely when the request has no query string.
-     */
-    public static String canonicalPathWithQuery(String path, String query) {
-        String safePath = path == null ? "" : path;
-        if (query == null || query.isEmpty()) {
-            return safePath;
-        }
-        String[] pairs = query.split("&");
-        Arrays.sort(pairs);
-        return safePath + "?" + String.join("&", pairs);
-    }
-
-    /**
-     * Convenience overload that derives the canonical path-with-query from a
-     * fully-qualified request URI.
-     */
-    public static String canonicalPathWithQuery(URI uri) {
-        return canonicalPathWithQuery(uri.getRawPath(), uri.getRawQuery());
-    }
-
-    private static String canonicalEnvelope(
-            String method, String pathWithQuery, UUID recipientUuid, String timestamp, String body) {
-        return method.toUpperCase(Locale.ROOT)
-                + "\n"
-                + (pathWithQuery == null ? "" : pathWithQuery)
-                + "\n"
-                + recipientUuid
-                + "\n"
-                + timestamp
-                + "\n"
-                + (body == null ? "" : body);
     }
 
     /**

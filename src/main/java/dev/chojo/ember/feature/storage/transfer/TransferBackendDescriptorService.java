@@ -31,6 +31,10 @@ public class TransferBackendDescriptorService {
         this.credentialCipher = credentialCipher;
     }
 
+    private static String emptyToNull(String s) {
+        return s == null || s.isBlank() ? null : s;
+    }
+
     /**
      * Returns the descriptor for the given station. Stations on the instance default report
      * {@link TransferBackendDescriptor.Local}.
@@ -81,9 +85,5 @@ public class TransferBackendDescriptorService {
                         emptyToNull(creds.privateKey()));
             }
         };
-    }
-
-    private static String emptyToNull(String s) {
-        return s == null || s.isBlank() ? null : s;
     }
 }

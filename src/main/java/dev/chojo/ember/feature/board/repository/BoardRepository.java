@@ -49,9 +49,9 @@ public class BoardRepository {
 
     public Board create(int stationId, String name, String description, String shortKey) {
         return query("""
-                        INSERT INTO board(station_id, name, description, short_key)
-                        VALUES (:station_id, :name, :description, :short_key)
-                        RETURNING *;""")
+                INSERT INTO board(station_id, name, description, short_key)
+                VALUES (:station_id, :name, :description, :short_key)
+                RETURNING *;""")
                 .single(call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("description", description)
@@ -63,9 +63,9 @@ public class BoardRepository {
 
     public boolean update(int id, String name, String description, int hideDoneAfterDays) {
         return query("""
-                        UPDATE board SET name = :name, description = :description,
-                            hide_done_after_days = :hide_done_after_days
-                        WHERE id = :id;""")
+                UPDATE board SET name = :name, description = :description,
+                    hide_done_after_days = :hide_done_after_days
+                WHERE id = :id;""")
                 .single(call().bind("id", id)
                         .bind("name", name)
                         .bind("description", description)
@@ -130,9 +130,9 @@ public class BoardRepository {
 
     public BoardLane createLane(int boardId, String name, String color, int position) {
         return query("""
-                        INSERT INTO board_lane(board_id, name, color, position)
-                        VALUES (:board_id, :name, :color, :position)
-                        RETURNING *;""")
+                INSERT INTO board_lane(board_id, name, color, position)
+                VALUES (:board_id, :name, :color, :position)
+                RETURNING *;""")
                 .single(call().bind("board_id", boardId)
                         .bind("name", name)
                         .bind("color", color)
@@ -182,7 +182,7 @@ public class BoardRepository {
 
     public BoardLabel createLabel(int boardId, String name, String color) {
         return query("""
-                        INSERT INTO board_label(board_id, name, color) VALUES (:board_id, :name, :color) RETURNING *;""")
+                INSERT INTO board_label(board_id, name, color) VALUES (:board_id, :name, :color) RETURNING *;""")
                 .single(call().bind("board_id", boardId).bind("name", name).bind("color", color))
                 .map(BoardLabel.map())
                 .first()
@@ -205,8 +205,8 @@ public class BoardRepository {
 
     public List<BoardLabel> findLabelsForTicket(int ticketId) {
         return query("""
-                        SELECT l.* FROM board_label l JOIN board_ticket_label tl ON tl.label_id = l.id
-                        WHERE tl.ticket_id = :ticket_id ORDER BY l.name;""")
+                SELECT l.* FROM board_label l JOIN board_ticket_label tl ON tl.label_id = l.id
+                WHERE tl.ticket_id = :ticket_id ORDER BY l.name;""")
                 .single(call().bind("ticket_id", ticketId))
                 .map(BoardLabel.map())
                 .all();
@@ -228,9 +228,9 @@ public class BoardRepository {
 
     public List<TicketLabelMapping> findAllTicketLabels(int boardId) {
         return query("""
-                        SELECT tl.ticket_id, tl.label_id FROM board_ticket_label tl
-                        JOIN board_ticket t ON t.id = tl.ticket_id
-                        WHERE t.board_id = :board_id;""")
+                SELECT tl.ticket_id, tl.label_id FROM board_ticket_label tl
+                JOIN board_ticket t ON t.id = tl.ticket_id
+                WHERE t.board_id = :board_id;""")
                 .single(call().bind("board_id", boardId))
                 .map(row -> new TicketLabelMapping(row.getInt("ticket_id"), row.getInt("label_id")))
                 .all();
@@ -248,9 +248,9 @@ public class BoardRepository {
     public BoardField createField(
             int boardId, String name, BoardFieldType fieldType, BoardFieldConfig config, int position) {
         return query("""
-                        INSERT INTO board_field(board_id, name, field_type, config, position)
-                        VALUES (:board_id, :name, :field_type, :config::JSONB, :position)
-                        RETURNING *;""")
+                INSERT INTO board_field(board_id, name, field_type, config, position)
+                VALUES (:board_id, :name, :field_type, :config::JSONB, :position)
+                RETURNING *;""")
                 .single(call().bind("board_id", boardId)
                         .bind("name", name)
                         .bind("field_type", fieldType)

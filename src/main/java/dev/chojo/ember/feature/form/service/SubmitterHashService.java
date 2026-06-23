@@ -35,10 +35,14 @@ import java.util.Base64;
 @Singleton
 public class SubmitterHashService {
 
-    /** Application-setting key for the per-instance salt. */
+    /**
+     * Application-setting key for the per-instance salt.
+     */
     public static final String SALT_KEY = "form_response.submitter_hash_salt";
 
-    /** Salt size — 32 bytes / 256 bits, matching SHA-256's output width. */
+    /**
+     * Salt size — 32 bytes / 256 bits, matching SHA-256's output width.
+     */
     private static final int SALT_BYTES = 32;
 
     private final ApplicationSettingRepository settings;

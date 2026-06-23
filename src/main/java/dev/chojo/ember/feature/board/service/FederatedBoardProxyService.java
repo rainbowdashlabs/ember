@@ -144,79 +144,6 @@ public class FederatedBoardProxyService {
         return collectResults(futures);
     }
 
-    private List<DiscoveredBoard> discoverBoardsDirect(FederationPartner partner) {
-        // Direct lookup: boards shared with this partner record
-        var boardIds = new ArrayList<>(federatedBoardService.findSharedBoardIds(partner.id()));
-
-        // Reverse lookup: our partner record may differ from the owning station's record.
-        // Find the owning station's partner record that points to our station.
-        var ourStationUid = stationRepository
-                .findById(partner.stationId())
-                .map(Station::uid)
-                .orElse(null);
-        if (ourStationUid != null) {
-            var owningStation =
-                    stationRepository.findByUid(partner.partnerStationId()).orElse(null);
-            if (owningStation != null) {
-                var owningPartner =
-                        federationRepository.findPartnerByStationAndRemoteUid(owningStation.id(), ourStationUid);
-                owningPartner.ifPresent(op -> {
-                    for (var id : federatedBoardService.findSharedBoardIds(op.id())) {
-                        if (!boardIds.contains(id)) boardIds.add(id);
-                    }
-                });
-            }
-        }
-
-        return boardIds.stream()
-                .map(boardId -> boardService
-                        .findById(boardId)
-                        .map(board -> {
-                            var mode =
-                                    getEffectiveShareMode(partner.id(), boardId).orElse(BoardShareMode.READ_ONLY);
-                            var requiredUserType = federatedBoardService
-                                    .getRequiredUserType(boardId, partner.id())
-                                    .orElse(StationUserType.MEMBER);
-                            return new DiscoveredBoard(
-                                    partner.id(),
-                                    partner.partnerStationId().toString(),
-                                    board.uid(),
-                                    board.name(),
-                                    board.shortKey(),
-                                    board.description(),
-                                    mode,
-                                    partnerStationName(partner),
-                                    requiredUserType);
-                        })
-                        .orElse(null))
-                .filter(Objects::nonNull)
-                .toList();
-    }
-
-    private List<DiscoveredBoard> discoverBoardsViaHttp(int localStationId, FederationPartner partner) {
-        var remoteBoards = httpClient.getList(
-                partner.remoteHost(),
-                "/remote/boards",
-                partner.partnerStationId(),
-                localStationId,
-                getPrivateKey(localStationId),
-                RemoteDiscoveredBoard.class);
-        return remoteBoards.stream()
-                .map(b -> new DiscoveredBoard(
-                        partner.id(),
-                        partner.partnerStationId().toString(),
-                        UUID.fromString(b.uid()),
-                        b.name(),
-                        b.shortKey(),
-                        b.description(),
-                        b.shareMode(),
-                        partnerStationName(partner),
-                        b.requiredUserType() != null ? b.requiredUserType() : StationUserType.MEMBER))
-                .toList();
-    }
-
-    // -- Read Proxy Methods --
-
     public FederatedBoardDetail proxyGetBoard(int partnerId, String boardKey) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
@@ -241,6 +168,8 @@ public class FederatedBoardProxyService {
         var board = boardService.findById(boardId).orElseThrow(NotFoundResponse::new);
         return stationMemberRepository.findCompletions(board.stationId());
     }
+
+    // -- Read Proxy Methods --
 
     public List<BoardLane> proxyGetLanes(int partnerId, String boardKey) {
         var partner = findPartner(partnerId);
@@ -434,15 +363,6 @@ public class FederatedBoardProxyService {
         return new FederatedWatcherData(localWatchers, List.of());
     }
 
-    private BoardTicket enrichTicket(BoardTicket ticket) {
-        MemberIdentity assignee =
-                ticket.assignee() != null ? memberNameResolver.enrichDisplay(ticket.assignee()) : null;
-        MemberIdentity creator = ticket.creator() != null ? memberNameResolver.enrichDisplay(ticket.creator()) : null;
-        return ticket.withIdentities(assignee, creator);
-    }
-
-    // -- Write Proxy Methods --
-
     public BoardTicket proxyCreateTicket(
             int partnerId,
             String boardKey,
@@ -527,6 +447,8 @@ public class FederatedBoardProxyService {
         int ticketId = resolveTicketId(boardId, ticketNumber);
         ticketService.deleteTicket(ticketId);
     }
+
+    // -- Write Proxy Methods --
 
     public BoardTicket proxyMoveTicket(
             int partnerId,
@@ -716,8 +638,6 @@ public class FederatedBoardProxyService {
         if (displayName != null) eventFederationRepository.cacheName(partnerId, remoteMemberId, displayName);
     }
 
-    private record LabelActionBody(UUID remoteMemberId, String displayName) {}
-
     public BoardLabel proxyCreateLabel(int partnerId, String boardKey, String name, String color) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
@@ -811,8 +731,6 @@ public class FederatedBoardProxyService {
         ticketService.unlinkTickets(ticketId, linkedTicketId, actorIdentity);
     }
 
-    // -- Access Control --
-
     /**
      * Returns the effective share mode. The share target is stored on the owning station's
      * partner record. When queried from the partner station, the local partner record ID
@@ -885,6 +803,8 @@ public class FederatedBoardProxyService {
         return memberHasUserType(memberId, shareInfo.requiredUserType());
     }
 
+    // -- Access Control --
+
     /**
      * Full write access check.
      * Share mode must be FULL, then same override logic as view + edit override.
@@ -904,40 +824,6 @@ public class FederatedBoardProxyService {
         return true;
     }
 
-    private boolean memberHasUserType(int memberId, StationUserType requiredUserType) {
-        if (requiredUserType == null || requiredUserType == StationUserType.MEMBER) return true;
-        var member = memberService.findById(memberId).orElse(null);
-        if (member == null) return false;
-        return member.userType() == requiredUserType;
-    }
-
-    private record ShareInfo(BoardShareMode shareMode, StationUserType requiredUserType) {}
-
-    private ShareInfo getEffectiveShareInfo(int partnerId, int boardId) {
-        var mode = getEffectiveShareMode(partnerId, boardId);
-        if (mode.isEmpty()) return null;
-        var requiredUserType = getSharedRequiredUserType(partnerId, boardId);
-        return new ShareInfo(mode.get(), requiredUserType);
-    }
-
-    private StationUserType getSharedRequiredUserType(int partnerId, int boardId) {
-        var partner = federationRepository.findPartnerById(partnerId).orElse(null);
-        if (partner == null) return StationUserType.MEMBER;
-        var ourStationUid = stationRepository
-                .findById(partner.stationId())
-                .map(Station::uid)
-                .orElse(null);
-        if (ourStationUid == null) return StationUserType.MEMBER;
-        var board = boardService.findById(boardId).orElse(null);
-        if (board == null) return StationUserType.MEMBER;
-        var owningPartner = federationRepository.findPartnerByStationAndRemoteUid(board.stationId(), ourStationUid);
-        return owningPartner
-                .flatMap(op -> federatedBoardService.getRequiredUserType(boardId, op.id()))
-                .orElse(StationUserType.MEMBER);
-    }
-
-    // -- Local Overrides --
-
     public void setLocalViewOverride(int partnerId, UUID remoteBoardUid, AccessData access) {
         federatedBoardRepository.setLocalViewOverride(partnerId, remoteBoardUid, access);
     }
@@ -953,8 +839,6 @@ public class FederatedBoardProxyService {
     public AccessData getLocalEditOverride(int partnerId, UUID remoteBoardUid) {
         return federatedBoardRepository.findLocalEditOverride(partnerId, remoteBoardUid);
     }
-
-    // -- Bookmarks --
 
     public FederationBoardBookmark createBookmark(
             int memberId, int partnerId, UUID remoteBoardUid, String name, String shortKey, BoardShareMode shareMode) {
@@ -972,6 +856,8 @@ public class FederatedBoardProxyService {
     public List<FederationBoardBookmark> findBookmarks(int memberId) {
         return federatedBoardService.findBookmarks(memberId);
     }
+
+    // -- Local Overrides --
 
     /**
      * Called via webhook when the owning station renames a board.
@@ -996,14 +882,6 @@ public class FederatedBoardProxyService {
         federatedBoardRepository.updateBookmarkShareMode(partnerId, remoteBoardUid, newMode);
     }
 
-    // -- Helpers --
-
-    private FederationPartner findPartner(int partnerId) {
-        return federationRepository
-                .findPartnerById(partnerId)
-                .orElseThrow(() -> new NotFoundResponse("Partner not found: " + partnerId));
-    }
-
     /**
      * Resolves a boardKey to a remote board UUID for the given partner.
      * For local partners, resolves via DB. For remote partners, returns null
@@ -1013,6 +891,8 @@ public class FederatedBoardProxyService {
         var board = resolveFederatedBoard(partnerId, boardKey);
         return board != null ? board.uid() : null;
     }
+
+    // -- Bookmarks --
 
     /**
      * Resolves a boardKey to the full Board entity on the partner station.
@@ -1026,6 +906,122 @@ public class FederatedBoardProxyService {
                 .findByUid(partner.partnerStationId())
                 .flatMap(station -> boardService.findByShortKey(station.id(), boardKey))
                 .orElse(null);
+    }
+
+    private List<DiscoveredBoard> discoverBoardsDirect(FederationPartner partner) {
+        // Direct lookup: boards shared with this partner record
+        var boardIds = new ArrayList<>(federatedBoardService.findSharedBoardIds(partner.id()));
+
+        // Reverse lookup: our partner record may differ from the owning station's record.
+        // Find the owning station's partner record that points to our station.
+        var ourStationUid = stationRepository
+                .findById(partner.stationId())
+                .map(Station::uid)
+                .orElse(null);
+        if (ourStationUid != null) {
+            var owningStation =
+                    stationRepository.findByUid(partner.partnerStationId()).orElse(null);
+            if (owningStation != null) {
+                var owningPartner =
+                        federationRepository.findPartnerByStationAndRemoteUid(owningStation.id(), ourStationUid);
+                owningPartner.ifPresent(op -> {
+                    for (var id : federatedBoardService.findSharedBoardIds(op.id())) {
+                        if (!boardIds.contains(id)) boardIds.add(id);
+                    }
+                });
+            }
+        }
+
+        return boardIds.stream()
+                .map(boardId -> boardService
+                        .findById(boardId)
+                        .map(board -> {
+                            var mode =
+                                    getEffectiveShareMode(partner.id(), boardId).orElse(BoardShareMode.READ_ONLY);
+                            var requiredUserType = federatedBoardService
+                                    .getRequiredUserType(boardId, partner.id())
+                                    .orElse(StationUserType.MEMBER);
+                            return new DiscoveredBoard(
+                                    partner.id(),
+                                    partner.partnerStationId().toString(),
+                                    board.uid(),
+                                    board.name(),
+                                    board.shortKey(),
+                                    board.description(),
+                                    mode,
+                                    partnerStationName(partner),
+                                    requiredUserType);
+                        })
+                        .orElse(null))
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    private List<DiscoveredBoard> discoverBoardsViaHttp(int localStationId, FederationPartner partner) {
+        var remoteBoards = httpClient.getList(
+                partner.remoteHost(),
+                "/remote/boards",
+                partner.partnerStationId(),
+                localStationId,
+                getPrivateKey(localStationId),
+                RemoteDiscoveredBoard.class);
+        return remoteBoards.stream()
+                .map(b -> new DiscoveredBoard(
+                        partner.id(),
+                        partner.partnerStationId().toString(),
+                        UUID.fromString(b.uid()),
+                        b.name(),
+                        b.shortKey(),
+                        b.description(),
+                        b.shareMode(),
+                        partnerStationName(partner),
+                        b.requiredUserType() != null ? b.requiredUserType() : StationUserType.MEMBER))
+                .toList();
+    }
+
+    private BoardTicket enrichTicket(BoardTicket ticket) {
+        MemberIdentity assignee =
+                ticket.assignee() != null ? memberNameResolver.enrichDisplay(ticket.assignee()) : null;
+        MemberIdentity creator = ticket.creator() != null ? memberNameResolver.enrichDisplay(ticket.creator()) : null;
+        return ticket.withIdentities(assignee, creator);
+    }
+
+    private boolean memberHasUserType(int memberId, StationUserType requiredUserType) {
+        if (requiredUserType == null || requiredUserType == StationUserType.MEMBER) return true;
+        var member = memberService.findById(memberId).orElse(null);
+        if (member == null) return false;
+        return member.userType() == requiredUserType;
+    }
+
+    private ShareInfo getEffectiveShareInfo(int partnerId, int boardId) {
+        var mode = getEffectiveShareMode(partnerId, boardId);
+        if (mode.isEmpty()) return null;
+        var requiredUserType = getSharedRequiredUserType(partnerId, boardId);
+        return new ShareInfo(mode.get(), requiredUserType);
+    }
+
+    private StationUserType getSharedRequiredUserType(int partnerId, int boardId) {
+        var partner = federationRepository.findPartnerById(partnerId).orElse(null);
+        if (partner == null) return StationUserType.MEMBER;
+        var ourStationUid = stationRepository
+                .findById(partner.stationId())
+                .map(Station::uid)
+                .orElse(null);
+        if (ourStationUid == null) return StationUserType.MEMBER;
+        var board = boardService.findById(boardId).orElse(null);
+        if (board == null) return StationUserType.MEMBER;
+        var owningPartner = federationRepository.findPartnerByStationAndRemoteUid(board.stationId(), ourStationUid);
+        return owningPartner
+                .flatMap(op -> federatedBoardService.getRequiredUserType(boardId, op.id()))
+                .orElse(StationUserType.MEMBER);
+    }
+
+    // -- Helpers --
+
+    private FederationPartner findPartner(int partnerId) {
+        return federationRepository
+                .findPartnerById(partnerId)
+                .orElseThrow(() -> new NotFoundResponse("Partner not found: " + partnerId));
     }
 
     private int resolveBoardId(String boardKey, FederationPartner partner) {
@@ -1213,6 +1209,10 @@ public class FederatedBoardProxyService {
         }
         return result;
     }
+
+    private record LabelActionBody(UUID remoteMemberId, String displayName) {}
+
+    private record ShareInfo(BoardShareMode shareMode, StationUserType requiredUserType) {}
 
     public record DiscoveredBoard(
             int partnerId,

@@ -41,6 +41,19 @@ public class RefererDomainExtractor {
         this.ownHost = parseHost(api.baseUrl());
     }
 
+    private static String parseHost(String baseUrl) {
+        if (baseUrl == null || baseUrl.isBlank()) return null;
+        try {
+            String host = URI.create(baseUrl).getHost();
+            if (host == null) return null;
+            String normalized = host.toLowerCase(Locale.ROOT);
+            return normalized.startsWith("www.") ? normalized.substring(4) : normalized;
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid api.baseUrl, referer extractor cannot detect internal links: {}", baseUrl);
+            return null;
+        }
+    }
+
     /**
      * Returns the reduced domain label for the given raw {@code Referer} header value.
      */
@@ -63,18 +76,5 @@ public class RefererDomainExtractor {
             return INTERNAL;
         }
         return normalized;
-    }
-
-    private static String parseHost(String baseUrl) {
-        if (baseUrl == null || baseUrl.isBlank()) return null;
-        try {
-            String host = URI.create(baseUrl).getHost();
-            if (host == null) return null;
-            String normalized = host.toLowerCase(Locale.ROOT);
-            return normalized.startsWith("www.") ? normalized.substring(4) : normalized;
-        } catch (IllegalArgumentException e) {
-            log.warn("Invalid api.baseUrl, referer extractor cannot detect internal links: {}", baseUrl);
-            return null;
-        }
     }
 }

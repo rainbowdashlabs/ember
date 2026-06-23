@@ -62,7 +62,9 @@ public class PageFileStorageService {
         migrateLegacyRoot();
     }
 
-    /** Hex SHA-256 of the given bytes (lowercase). */
+    /**
+     * Hex SHA-256 of the given bytes (lowercase).
+     */
     public static String hash(byte[] data) {
         try {
             var digest = MessageDigest.getInstance("SHA-256").digest(data);
@@ -70,6 +72,31 @@ public class PageFileStorageService {
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("SHA-256 unavailable", e);
         }
+    }
+
+    private static String mimeForExtension(String ext) {
+        return switch (ext) {
+            case "jpg", "jpeg" -> "image/jpeg";
+            case "png" -> "image/png";
+            case "gif" -> "image/gif";
+            case "webp" -> "image/webp";
+            case "svg" -> "image/svg+xml";
+            case "pdf" -> "application/pdf";
+            default -> "application/octet-stream";
+        };
+    }
+
+    private static String extensionFor(String mimeType) {
+        if (mimeType == null) return "bin";
+        return switch (mimeType.toLowerCase(Locale.ROOT)) {
+            case "image/jpeg" -> "jpg";
+            case "image/png" -> "png";
+            case "image/gif" -> "gif";
+            case "image/webp" -> "webp";
+            case "image/svg+xml" -> "svg";
+            case "application/pdf" -> "pdf";
+            default -> "bin";
+        };
     }
 
     /**
@@ -228,31 +255,6 @@ public class PageFileStorageService {
         int dot = filename.lastIndexOf('.');
         String ext = dot < 0 ? "" : filename.substring(dot + 1).toLowerCase(Locale.ROOT);
         return mimeForExtension(ext);
-    }
-
-    private static String mimeForExtension(String ext) {
-        return switch (ext) {
-            case "jpg", "jpeg" -> "image/jpeg";
-            case "png" -> "image/png";
-            case "gif" -> "image/gif";
-            case "webp" -> "image/webp";
-            case "svg" -> "image/svg+xml";
-            case "pdf" -> "application/pdf";
-            default -> "application/octet-stream";
-        };
-    }
-
-    private static String extensionFor(String mimeType) {
-        if (mimeType == null) return "bin";
-        return switch (mimeType.toLowerCase(Locale.ROOT)) {
-            case "image/jpeg" -> "jpg";
-            case "image/png" -> "png";
-            case "image/gif" -> "gif";
-            case "image/webp" -> "webp";
-            case "image/svg+xml" -> "svg";
-            case "application/pdf" -> "pdf";
-            default -> "bin";
-        };
     }
 
     /**

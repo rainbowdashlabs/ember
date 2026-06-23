@@ -32,14 +32,16 @@ import java.util.HexFormat;
     @JsonSubTypes.Type(value = RedactedStationConfig.SftpRedacted.class, name = "SFTP")
 })
 public sealed interface RedactedStationConfig {
-    StorageBackendType type();
-
-    /** Constant marker placed in the {@code credentials} field of every redacted variant. */
+    /**
+     * Constant marker placed in the {@code credentials} field of every redacted variant.
+     */
     String REDACTED_MARKER = "redacted";
 
     JsonMapper MAPPER = JsonMapper.builder().build();
 
-    /** Produces the redacted, audit-safe view of a station config. */
+    /**
+     * Produces the redacted, audit-safe view of a station config.
+     */
     static RedactedStationConfig from(StationStorageBackendConfig config) {
         return switch (config) {
             case StationStorageBackendConfig.S3Variant v ->
@@ -75,7 +77,9 @@ public sealed interface RedactedStationConfig {
         };
     }
 
-    /** Convenience for callers that need the JSON string for the JSONB column. */
+    /**
+     * Convenience for callers that need the JSON string for the JSONB column.
+     */
     static String toJson(StationStorageBackendConfig config) {
         try {
             return MAPPER.writeValueAsString(from(config));
@@ -94,6 +98,8 @@ public sealed interface RedactedStationConfig {
             throw new IllegalStateException("SHA-256 unavailable", e);
         }
     }
+
+    StorageBackendType type();
 
     record S3Redacted(
             String endpoint,

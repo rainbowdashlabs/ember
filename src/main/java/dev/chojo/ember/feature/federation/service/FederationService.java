@@ -37,9 +37,8 @@ import java.util.UUID;
 
 @Singleton
 public class FederationService {
-    private static final Logger log = LoggerFactory.getLogger(FederationService.class);
     public static final String FEDERATION_VERSION = loadFederationVersion();
-
+    private static final Logger log = LoggerFactory.getLogger(FederationService.class);
     private final FederationRepository repository;
     private final StationRepository stationRepository;
     private final String instanceHost;
@@ -98,14 +97,6 @@ public class FederationService {
         return generatePairingCode(stationUid) + "-" + token;
     }
 
-    private String generateRandomToken() {
-        var random = new SecureRandom();
-        var chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-        var sb = new StringBuilder();
-        for (int i = 0; i < 12; i++) sb.append(chars.charAt(random.nextInt(chars.length())));
-        return sb.toString();
-    }
-
     /**
      * Parses any pairing/invite code. Returns the parts including an optional token.
      * - 2 segments: discovery code (PENDING request)
@@ -138,14 +129,6 @@ public class FederationService {
         return instanceHost;
     }
 
-    public record PairingCodeParts(UUID stationUid, String host, String token) {
-        public boolean isStationInvite() {
-            return token != null && !token.isBlank();
-        }
-    }
-
-    // -- Keypair --
-
     public KeyPair generateKeyPair() {
         try {
             var generator = KeyPairGenerator.getInstance("RSA");
@@ -160,11 +143,11 @@ public class FederationService {
         return Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded());
     }
 
+    // -- Keypair --
+
     public String encodePrivateKey(KeyPair keyPair) {
         return Base64.getEncoder().encodeToString(keyPair.getPrivate().getEncoded());
     }
-
-    // -- Partner Management --
 
     public List<FederationPartner> findPartners(int stationId) {
         return repository.findPartners(stationId);
@@ -173,6 +156,8 @@ public class FederationService {
     public Optional<FederationPartner> findPartner(int id) {
         return repository.findPartnerById(id);
     }
+
+    // -- Partner Management --
 
     /**
      * Creates a pending pair request from the requesting station to the target station.
@@ -227,11 +212,11 @@ public class FederationService {
      * Accepts a federation invite on the same instance (or cross-instance).
      * Creates bidirectional partner records with optional remote host URLs.
      *
-     * @param acceptingStationId    the station accepting the invite
-     * @param initiatingStationId   the station that created the invite
-     * @param initiatingPublicKey   the initiating station's public key
-     * @param initiatingRemoteHost  the initiating station's base URL (null if same instance)
-     * @param acceptingRemoteHost   the accepting station's base URL (null if same instance)
+     * @param acceptingStationId   the station accepting the invite
+     * @param initiatingStationId  the station that created the invite
+     * @param initiatingPublicKey  the initiating station's public key
+     * @param initiatingRemoteHost the initiating station's base URL (null if same instance)
+     * @param acceptingRemoteHost  the accepting station's base URL (null if same instance)
      */
     public FederationPartner acceptInvite(
             int acceptingStationId,
@@ -310,8 +295,6 @@ public class FederationService {
         return repository.deletePartner(partnerId);
     }
 
-    // -- Capabilities --
-
     public List<FederationCapability> findCapabilities(int partnerId) {
         return repository.findCapabilities(partnerId);
     }
@@ -320,13 +303,13 @@ public class FederationService {
         repository.upsertCapability(partnerId, capability, direction, enabled);
     }
 
+    // -- Capabilities --
+
     public boolean hasCapability(int partnerId, CapabilityType capability, Direction direction) {
         return repository.findCapabilities(partnerId).stream()
                 .anyMatch(
                         c -> c.capability().equals(capability) && c.direction().equals(direction) && c.enabled());
     }
-
-    // -- Sharing --
 
     public List<FederationShare> findKbShares(int stationId) {
         return repository.findKbShares(stationId);
@@ -335,6 +318,8 @@ public class FederationService {
     public FederationShare createKbShare(int stationId, Integer fileId, Integer folderId, ShareScope shareScope) {
         return repository.createKbShare(stationId, fileId, folderId, shareScope);
     }
+
+    // -- Sharing --
 
     public boolean deleteKbShare(int id) {
         return repository.deleteKbShare(id);
@@ -364,8 +349,6 @@ public class FederationService {
         return repository.deleteProtocolShare(id);
     }
 
-    // -- Metadata Cache --
-
     // Available for remote sync — not yet called from routes
     public List<FederationMetadataCache> getCachedMetadata(int partnerId, ContentType contentType) {
         return repository.findCachedMetadata(partnerId, contentType);
@@ -379,6 +362,8 @@ public class FederationService {
         }
     }
 
+    // -- Metadata Cache --
+
     /**
      * Returns the capabilities supported by this instance.
      */
@@ -391,8 +376,6 @@ public class FederationService {
                 CapabilityType.EVENT_SHARE,
                 CapabilityType.BOARD_SHARE);
     }
-
-    // -- Change Tracking --
 
     /**
      * Logs a content change for federation sync polling.
@@ -408,10 +391,26 @@ public class FederationService {
         return repository.findChangesSince(stationId, since);
     }
 
+    // -- Change Tracking --
+
+    private String generateRandomToken() {
+        var random = new SecureRandom();
+        var chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+        var sb = new StringBuilder();
+        for (int i = 0; i < 12; i++) sb.append(chars.charAt(random.nextInt(chars.length())));
+        return sb.toString();
+    }
+
     /**
      * Resolves an internal station ID to its UUID.
      */
     private UUID resolveStationUid(int stationId) {
         return stationRepository.resolveUid(stationId);
+    }
+
+    public record PairingCodeParts(UUID stationUid, String host, String token) {
+        public boolean isStationInvite() {
+            return token != null && !token.isBlank();
+        }
     }
 }

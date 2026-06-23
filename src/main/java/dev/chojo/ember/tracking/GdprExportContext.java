@@ -12,10 +12,10 @@ import java.util.List;
 /**
  * Coverage status for the GDPR data export workflow.
  *
- * @param status           current verification status
- * @param reason           required when {@code status = IGNORED}
- * @param identityColumns  required when {@code status = TRACKED} — columns that link rows to a person
- * @param ignoredColumns   columns excluded from the GDPR export even when the table is TRACKED
+ * @param status          current verification status
+ * @param reason          required when {@code status = IGNORED}
+ * @param identityColumns required when {@code status = TRACKED} — columns that link rows to a person
+ * @param ignoredColumns  columns excluded from the GDPR export even when the table is TRACKED
  */
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public record GdprExportContext(

@@ -27,10 +27,14 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 })
 public sealed interface TransferBackendDescriptor {
 
-    /** Station bytes live on the source's local disk; the destination must byte-copy each key. */
+    /**
+     * Station bytes live on the source's local disk; the destination must byte-copy each key.
+     */
     record Local() implements TransferBackendDescriptor {}
 
-    /** Station owns an S3-compatible bucket; the destination re-encrypts and reuses it as-is. */
+    /**
+     * Station owns an S3-compatible bucket; the destination re-encrypts and reuses it as-is.
+     */
     record S3(
             String endpoint,
             String region,
@@ -42,7 +46,9 @@ public sealed interface TransferBackendDescriptor {
             String secretKey)
             implements TransferBackendDescriptor {}
 
-    /** Station owns an SMB share. */
+    /**
+     * Station owns an SMB share.
+     */
     record Smb(
             String host,
             int port,
@@ -55,7 +61,9 @@ public sealed interface TransferBackendDescriptor {
             String password)
             implements TransferBackendDescriptor {}
 
-    /** Station owns an SFTP target. Exactly one of {@code password} / {@code privateKey} is non-null. */
+    /**
+     * Station owns an SFTP target. Exactly one of {@code password} / {@code privateKey} is non-null.
+     */
     record Sftp(
             String host,
             int port,

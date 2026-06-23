@@ -24,22 +24,30 @@ import java.util.Optional;
 public record ObjectMetadata(
         String contentType, String sha256, Optional<String> originalFilename, Optional<String> contentEncoding) {
 
-    /** Convenience constructor for the common case: known MIME type, no filename, no encoding. */
+    /**
+     * Convenience constructor for the common case: known MIME type, no filename, no encoding.
+     */
     public static ObjectMetadata of(String contentType) {
         return new ObjectMetadata(contentType, "", Optional.empty(), Optional.empty());
     }
 
-    /** Constructor variant that pins a content type and original filename. */
+    /**
+     * Constructor variant that pins a content type and original filename.
+     */
     public static ObjectMetadata of(String contentType, String originalFilename) {
         return new ObjectMetadata(contentType, "", Optional.ofNullable(originalFilename), Optional.empty());
     }
 
-    /** Returns a copy with the SHA-256 hash filled in. */
+    /**
+     * Returns a copy with the SHA-256 hash filled in.
+     */
     public ObjectMetadata withSha256(String hash) {
         return new ObjectMetadata(contentType, hash, originalFilename, contentEncoding);
     }
 
-    /** Returns a copy with the content encoding filled in. */
+    /**
+     * Returns a copy with the content encoding filled in.
+     */
     public ObjectMetadata withContentEncoding(String encoding) {
         return new ObjectMetadata(contentType, sha256, originalFilename, Optional.ofNullable(encoding));
     }

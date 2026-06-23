@@ -28,7 +28,7 @@ public record QuizTestAttempt(
                 row.getInt("id"),
                 row.getInt("test_id"),
                 row.getInt("member_id"),
-                AttemptStatus.valueOf(row.getString("status")),
+                row.getEnum("status", AttemptStatus.class),
                 row.get("started_at", INSTANT_TIMESTAMP),
                 row.get("submitted_at", INSTANT_TIMESTAMP),
                 row.get("graded_at", INSTANT_TIMESTAMP),

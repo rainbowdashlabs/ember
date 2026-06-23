@@ -41,6 +41,10 @@ public class DiscoveryStationProjectionService {
         this.conf = conf;
     }
 
+    private static String stripTrailingSlash(String url) {
+        return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+    }
+
     /**
      * Returns the {@link DiscoveryVisibility#PUBLIC PUBLIC}-scoped station cards exposed to
      * other instances.
@@ -75,14 +79,10 @@ public class DiscoveryStationProjectionService {
     }
 
     private int countMembers(int stationId) {
-        return query("SELECT COUNT(*) AS c FROM station_member WHERE station_id = :station_id AND former = FALSE;")
+        return query("SELECT count(*) AS c FROM station_member WHERE station_id = :station_id AND former = FALSE;")
                 .single(call().bind("station_id", stationId))
                 .map(row -> row.getInt("c"))
                 .first()
                 .orElse(0);
-    }
-
-    private static String stripTrailingSlash(String url) {
-        return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
     }
 }

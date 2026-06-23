@@ -52,7 +52,9 @@ public class TextCompressionPolicy {
         };
     }
 
-    /** GZIP-encodes {@code data}; returns a fresh byte array. */
+    /**
+     * GZIP-encodes {@code data}; returns a fresh byte array.
+     */
     public byte[] gzip(byte[] data) {
         try {
             var out = new ByteArrayOutputStream(Math.max(64, data.length / 3));
@@ -65,7 +67,9 @@ public class TextCompressionPolicy {
         }
     }
 
-    /** GZIP-decodes {@code data}; returns the decompressed payload. */
+    /**
+     * GZIP-decodes {@code data}; returns the decompressed payload.
+     */
     public byte[] gunzip(byte[] data) {
         try (var gzip = new GZIPInputStream(new ByteArrayInputStream(data))) {
             return gzip.readAllBytes();

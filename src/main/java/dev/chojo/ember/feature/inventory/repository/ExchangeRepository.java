@@ -47,9 +47,9 @@ public class ExchangeRepository {
             String reason,
             Integer createdBy) {
         return query("""
-                            INSERT INTO equipment_exchange_request(station_id, member_id, item_id, inventory_id, old_size_id, new_size_id, reason, created_by)
-                            VALUES(:station_id, :member_id, :item_id, :inventory_id, :old_size_id, :new_size_id, :reason, :created_by)
-                            RETURNING *;""")
+                INSERT INTO equipment_exchange_request(station_id, member_id, item_id, inventory_id, old_size_id, new_size_id, reason, created_by)
+                VALUES(:station_id, :member_id, :item_id, :inventory_id, :old_size_id, :new_size_id, :reason, :created_by)
+                RETURNING *;""")
                 .single(call().bind("station_id", stationId)
                         .bind("member_id", memberId)
                         .bind("item_id", itemId)
@@ -151,9 +151,9 @@ public class ExchangeRepository {
     public ExchangeLog createLog(
             int requestId, ExchangeStatus oldStatus, ExchangeStatus newStatus, int changedBy, String note) {
         return query("""
-                            INSERT INTO equipment_exchange_log(request_id, old_status, new_status, changed_by, note)
-                            VALUES(:request_id, :old_status, :new_status, :changed_by, :note)
-                            RETURNING *;""")
+                INSERT INTO equipment_exchange_log(request_id, old_status, new_status, changed_by, note)
+                VALUES(:request_id, :old_status, :new_status, :changed_by, :note)
+                RETURNING *;""")
                 .single(call().bind("request_id", requestId)
                         .bind("old_status", oldStatus)
                         .bind("new_status", newStatus)

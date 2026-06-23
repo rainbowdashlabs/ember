@@ -104,7 +104,10 @@ public class KnowledgeBaseService {
             "nl", "dutch",
             "pt", "portuguese",
             "ru", "russian");
-
+    private static final Set<String> PRESENTATION_MIME_TYPES = Set.of(
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "application/vnd.ms-powerpoint",
+            "application/vnd.oasis.opendocument.presentation");
     private final KnowledgeBaseRepository repository;
     private final StationRepository stationRepository;
     private final KbFileStorageService fileStorage;
@@ -120,6 +123,8 @@ public class KnowledgeBaseService {
     private final PdfCompressor pdfCompressor;
     private final Parser markdownParser;
     private final HtmlRenderer htmlRenderer;
+
+    // -- Folders --
 
     @Inject
     public KnowledgeBaseService(
@@ -159,7 +164,11 @@ public class KnowledgeBaseService {
                 HtmlRenderer.builder().extensions(extensions).sanitizeUrls(true).build();
     }
 
-    // -- Folders --
+    private static String extractJsonString(String json, String key) {
+        var pattern = Pattern.compile("\"" + key + "\"\\s*:\\s*\"([^\"]+)\"");
+        var matcher = pattern.matcher(json);
+        return matcher.find() ? matcher.group(1) : null;
+    }
 
     public List<KbFolder> findFolders(int stationId, Integer parentId) {
         return repository.findFolders(stationId, parentId);
@@ -173,6 +182,8 @@ public class KnowledgeBaseService {
         return repository.createFolder(stationId, parentId, name, description, createdBy);
     }
 
+    // -- Files --
+
     public boolean updateFolder(int id, String name, String description, String iconUrl, int position) {
         return repository.updateFolder(id, name, description, iconUrl, position);
     }
@@ -180,8 +191,6 @@ public class KnowledgeBaseService {
     public boolean deleteFolder(int id) {
         return repository.deleteFolder(id);
     }
-
-    // -- Files --
 
     public List<KbFile> findFiles(int stationId, Integer folderId) {
         return repository.findFiles(stationId, folderId);
@@ -265,22 +274,6 @@ public class KnowledgeBaseService {
         return file;
     }
 
-    /**
-     * Routes a freshly-uploaded blob through the at-rest compressors registered in
-     * {@code feature/storage/service} (concept §11.3). Office archives and PDFs are
-     * recompressed losslessly; everything else is returned untouched. Failures fall back to
-     * the original bytes — compression is opportunistic, never a hard requirement.
-     */
-    private byte[] compressForStorage(byte[] data, String mimeType) {
-        if (officeCompressor.shouldCompress(mimeType, data.length)) {
-            return officeCompressor.compress(data);
-        }
-        if (pdfCompressor.shouldCompress(mimeType, data.length)) {
-            return pdfCompressor.compress(data);
-        }
-        return data;
-    }
-
     public KbFile createLinkFile(
             int stationId, Integer folderId, String name, String description, String linkUrl, int createdBy) {
         // Try to auto-populate name/description from URL metadata
@@ -300,39 +293,6 @@ public class KnowledgeBaseService {
         repository.storeTextContent(file.id(), metaText.trim());
         updateSearchIndex(file.id(), metaText.trim());
         return file;
-    }
-
-    private String fetchYoutubeMetadata(String youtubeUrl) {
-        try {
-            String oembedUrl = "https://www.youtube.com/oembed?url="
-                    + URLEncoder.encode(youtubeUrl, StandardCharsets.UTF_8)
-                    + "&format=json";
-            HttpClient httpClient = HttpClient.newBuilder()
-                    .connectTimeout(Duration.ofSeconds(5))
-                    .build();
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(oembedUrl))
-                    .timeout(Duration.ofSeconds(5))
-                    .GET()
-                    .build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() == 200) {
-                String body = response.body();
-                // Simple JSON parsing for title and author_name
-                String title = extractJsonString(body, "title");
-                String author = extractJsonString(body, "author_name");
-                return (title != null ? title : "") + " " + (author != null ? author : "");
-            }
-        } catch (Exception e) {
-            log.debug("Failed to fetch YouTube metadata for {}: {}", youtubeUrl, e.getMessage());
-        }
-        return null;
-    }
-
-    private static String extractJsonString(String json, String key) {
-        var pattern = Pattern.compile("\"" + key + "\"\\s*:\\s*\"([^\"]+)\"");
-        var matcher = pattern.matcher(json);
-        return matcher.find() ? matcher.group(1) : null;
     }
 
     public UrlMetadata fetchUrlMetadata(String url) {
@@ -378,11 +338,11 @@ public class KnowledgeBaseService {
         }
     }
 
-    // -- Access Restrictions --
-
     public List<KbAccessRestriction> findRestrictions(Integer folderId, Integer fileId) {
         return repository.findRestrictions(folderId, fileId);
     }
+
+    // -- Access Restrictions --
 
     public void setRestrictions(
             Integer folderId,
@@ -447,38 +407,6 @@ public class KnowledgeBaseService {
         return true;
     }
 
-    private boolean canAccessFolder(
-            int memberId,
-            int folderId,
-            StationUserType memberUserType,
-            List<Integer> memberGroupIds,
-            List<Integer> memberTagIds) {
-        var folder = repository.findFolderById(folderId);
-        if (folder.isEmpty()) return true;
-
-        var rawRestrictions = repository.findRestrictions(folderId, null);
-        if (!rawRestrictions.isEmpty()) {
-            RestrictionMode mode =
-                    folder.get().restrictionMode() != null ? folder.get().restrictionMode() : RestrictionMode.AND;
-            var restrictions = toRestrictionSet(rawRestrictions, mode);
-            if (!restrictions.matches(memberUserType, memberGroupIds, memberTagIds, memberId)) return false;
-        }
-
-        // Check parent folder
-        if (folder.get().parentId() != null) {
-            return canAccessFolder(memberId, folder.get().parentId(), memberUserType, memberGroupIds, memberTagIds);
-        }
-
-        return true;
-    }
-
-    private RestrictionSet toRestrictionSet(List<KbAccessRestriction> kbRestrictions, RestrictionMode mode) {
-        var restrictions = kbRestrictions.stream()
-                .map(r -> new Restriction(r.id(), r.userType(), r.groupId(), r.tagId(), r.memberId()))
-                .toList();
-        return new RestrictionSet(restrictions, mode);
-    }
-
     public boolean updateFile(int id, String name, String description, String iconUrl, int position) {
         return repository.updateFile(id, name, description, iconUrl, position);
     }
@@ -491,8 +419,6 @@ public class KnowledgeBaseService {
         repository.findFileById(id).ifPresent(f -> fileStorage.delete(f.stationId(), id));
         return repository.deleteFile(id);
     }
-
-    // -- Public Visibility --
 
     /**
      * Checks if a folder or file is publicly visible based on the station's public KB mode.
@@ -538,30 +464,10 @@ public class KnowledgeBaseService {
         repository.removePublicVisibility(folderId, fileId);
     }
 
+    // -- Public Visibility --
+
     public Optional<Boolean> findPublicVisibility(Integer folderId, Integer fileId) {
         return repository.findPublicVisibility(folderId, fileId);
-    }
-
-    private void storeBinaryFile(int stationId, int fileId, byte[] data, String contentType) {
-        try {
-            fileStorage.store(stationId, fileId, data, contentType);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to store KB file " + fileId + " on disk", e);
-        }
-    }
-
-    private void triggerPresentationConversion(int stationId, int fileId, byte[] data, String filename) {
-        CompletableFuture.runAsync(() -> performPresentationConversion(stationId, fileId, data, filename));
-    }
-
-    void performPresentationConversion(int stationId, int fileId, byte[] data, String filename) {
-        try {
-            byte[] pdfBytes = PresentationConverter.toPdf(data, filename);
-            storePresentationResult(stationId, fileId, pdfBytes);
-        } catch (Exception e) {
-            log.error("Presentation conversion failed for file {}", fileId, e);
-            repository.updateConversionStatus(fileId, ConversionStatus.FAILED);
-        }
     }
 
     public void storePresentationResult(int stationId, int fileId, byte[] pdfBytes) {
@@ -599,8 +505,6 @@ public class KnowledgeBaseService {
         triggerPresentationConversion(file.stationId(), fileId, data, filename);
     }
 
-    // -- Content --
-
     public Optional<String> getMarkdownContent(int fileId) {
         return repository.readTextContent(fileId);
     }
@@ -635,11 +539,11 @@ public class KnowledgeBaseService {
         updateSearchIndex(fileId, newContent);
     }
 
-    // -- Versions --
-
     public List<KbFileVersion> findVersions(int fileId) {
         return repository.findVersions(fileId);
     }
+
+    // -- Content --
 
     public Optional<KbFileVersion> findVersion(int fileId, int version) {
         return repository.findVersion(fileId, version);
@@ -671,8 +575,6 @@ public class KnowledgeBaseService {
         updateMarkdownContent(fileId, reconstructed.get(), revertedBy);
     }
 
-    // -- Search --
-
     public List<KbFile> search(int stationId, String query) {
         if (query == null || query.isBlank()) return List.of();
         return repository.search(stationId, query, resolveTsConfig(stationId));
@@ -683,46 +585,7 @@ public class KnowledgeBaseService {
         return repository.searchWithSnippets(stationId, query, resolveTsConfig(stationId));
     }
 
-    // -- Helpers --
-
-    private void updateSearchIndex(int fileId, String text) {
-        var file = repository.findFileById(fileId);
-        if (file.isEmpty()) return;
-        var f = file.get();
-
-        // Build searchable text: title + description + content
-        var sb = new StringBuilder();
-        sb.append(f.name()).append(' ');
-        if (f.description() != null && !f.description().isBlank()) {
-            sb.append(f.description()).append(' ');
-        }
-        if (text != null && !text.isBlank()) {
-            String plain = text.replaceAll("<[^>]+>", " ") // strip HTML tags
-                    .replaceAll("[#*_\\[\\]()>`~]", " ") // strip markdown syntax
-                    .replaceAll("\\s+", " ")
-                    .trim();
-            sb.append(plain);
-        }
-
-        String combined = sb.toString().trim();
-        if (!combined.isBlank()) {
-            repository.updateSearchIndex(fileId, combined, resolveTsConfig(f.stationId()));
-        }
-    }
-
-    private String resolveTsConfig(int stationId) {
-        return stationRepository
-                .findById(stationId)
-                .map(station -> {
-                    String locale = station.locale();
-                    if (locale == null || locale.isBlank()) return "simple";
-                    String lang = locale.contains("-") ? locale.substring(0, locale.indexOf('-')) : locale;
-                    return LOCALE_TO_TS_CONFIG.getOrDefault(lang.toLowerCase(), "simple");
-                })
-                .orElse("simple");
-    }
-
-    // -- Tags --
+    // -- Versions --
 
     public List<KbTag> findTagsByStation(int stationId) {
         return repository.findTagsByStation(stationId);
@@ -740,6 +603,8 @@ public class KnowledgeBaseService {
         return repository.findAllFolders(stationId);
     }
 
+    // -- Search --
+
     public List<KbTag> setFileTags(int fileId, List<String> tagNames, int stationId) {
         repository.setFileTags(fileId, tagNames, stationId);
         return repository.findFileTags(fileId);
@@ -749,7 +614,7 @@ public class KnowledgeBaseService {
         return repository.findFolderTags(folderId);
     }
 
-    // -- Related Files --
+    // -- Helpers --
 
     public List<KbFile> findRelatedFiles(int fileId) {
         return repository.findRelatedFiles(fileId);
@@ -759,7 +624,7 @@ public class KnowledgeBaseService {
         repository.setRelatedFiles(fileId, targetFileIds);
     }
 
-    // -- Favourites --
+    // -- Tags --
 
     public void addFavourite(int memberId, int fileId) {
         repository.addFavourite(memberId, fileId);
@@ -782,48 +647,6 @@ public class KnowledgeBaseService {
         return repository.findFolderTags(folderId);
     }
 
-    private String extractPdfText(byte[] data) {
-        try (var document = Loader.loadPDF(data)) {
-            var stripper = new PDFTextStripper();
-            return stripper.getText(document);
-        } catch (Exception e) {
-            log.warn("Failed to extract text from PDF: {}", e.getMessage());
-            return null;
-        }
-    }
-
-    private static final Set<String> PRESENTATION_MIME_TYPES = Set.of(
-            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-            "application/vnd.ms-powerpoint",
-            "application/vnd.oasis.opendocument.presentation");
-
-    private KbFileType detectFileType(String mimeType, String filename) {
-        if (mimeType != null) {
-            if (PRESENTATION_MIME_TYPES.contains(mimeType)) return KbFileType.PRESENTATION;
-            if (mimeType.equals("application/pdf")) return KbFileType.PDF;
-            if (mimeType.startsWith("image/")) return KbFileType.IMAGE;
-            if (mimeType.equals("text/markdown") || filename.endsWith(".md")) return KbFileType.MARKDOWN;
-            if (mimeType.startsWith("text/")) return KbFileType.TEXT;
-        }
-        if (filename != null) {
-            String lower = filename.toLowerCase();
-            if (lower.endsWith(".pptx") || lower.endsWith(".ppt") || lower.endsWith(".odp"))
-                return KbFileType.PRESENTATION;
-            if (lower.endsWith(".pdf")) return KbFileType.PDF;
-            if (lower.endsWith(".md") || lower.endsWith(".markdown")) return KbFileType.MARKDOWN;
-            if (lower.endsWith(".txt")) return KbFileType.TEXT;
-            if (lower.endsWith(".png")
-                    || lower.endsWith(".jpg")
-                    || lower.endsWith(".jpeg")
-                    || lower.endsWith(".gif")
-                    || lower.endsWith(".webp")
-                    || lower.endsWith(".svg")) return KbFileType.IMAGE;
-        }
-        return KbFileType.OTHER;
-    }
-
-    // -- Federated KB --
-
     public List<SharedKbItem> browseSharedKb(int stationId) {
         var futures = new ArrayList<CompletableFuture<List<SharedKbItem>>>();
         for (var partner : federationService.findPartners(stationId)) {
@@ -844,46 +667,7 @@ public class KnowledgeBaseService {
         return collectResults(futures);
     }
 
-    private void browseSharedKbDirect(int remoteStationId, FederationPartner partner, List<SharedKbItem> result) {
-        var shares = federationRepository.findKbShares(remoteStationId);
-        for (var share : shares) {
-            if (share.fileId() != null) {
-                findFile(share.fileId()).ifPresent(file -> {
-                    var summary = KbFileSummary.of(file);
-                    result.add(new SharedKbItem(summary, remoteStationId, partner.id()));
-                    federationRepository.upsertMetadataCache(
-                            partner.id(), ContentType.KB, file.id(), file.name(), file.description());
-                });
-            } else if (share.folderId() != null) {
-                for (var file : findFiles(remoteStationId, share.folderId())) {
-                    var summary = KbFileSummary.of(file);
-                    result.add(new SharedKbItem(summary, remoteStationId, partner.id()));
-                    federationRepository.upsertMetadataCache(
-                            partner.id(), ContentType.KB, file.id(), file.name(), file.description());
-                }
-            }
-        }
-    }
-
-    private void browseSharedKbViaHttp(
-            int localStationId, FederationPartner partner, int remoteStationId, List<SharedKbItem> result) {
-        var files = fetchSharedKbFiles(
-                partner.remoteHost(), partner.partnerStationId(), localStationId, getPrivateKey(localStationId));
-        for (var remoteFile : files) {
-            var summary = new KbFileSummary(
-                    remoteFile.id(),
-                    remoteStationId,
-                    null,
-                    remoteFile.name(),
-                    remoteFile.description(),
-                    KbFileType.valueOf(remoteFile.fileType() != null ? remoteFile.fileType() : "MARKDOWN"),
-                    Instant.now(),
-                    false);
-            result.add(new SharedKbItem(summary, remoteStationId, partner.id()));
-            federationRepository.upsertMetadataCache(
-                    partner.id(), ContentType.KB, remoteFile.id(), remoteFile.name(), remoteFile.description());
-        }
-    }
+    // -- Related Files --
 
     public List<FederatedSearchResult> searchFederatedKb(int stationId, String query) {
         var futures = new ArrayList<CompletableFuture<List<FederatedSearchResult>>>();
@@ -906,33 +690,6 @@ public class KnowledgeBaseService {
             }));
         }
         return collectResults(futures);
-    }
-
-    private List<FederatedSearchResult> searchKbDirect(
-            int remoteStationId, String stationName, String stationUid, String query) {
-        return searchWithSnippets(remoteStationId, query).stream()
-                .map(r -> new FederatedSearchResult(KbFileSummary.of(r.file()), r.snippet(), stationName, stationUid))
-                .toList();
-    }
-
-    private List<FederatedSearchResult> searchKbViaHttp(
-            int localStationId,
-            FederationPartner partner,
-            int remoteStationId,
-            String stationName,
-            String stationUid,
-            String query) {
-        String privateKey = getPrivateKey(localStationId);
-        if (privateKey == null) return List.of();
-        var results = searchKb(partner.remoteHost(), partner.partnerStationId(), localStationId, privateKey, query);
-        return results.stream()
-                .map(r -> new FederatedSearchResult(
-                        new KbFileSummary(
-                                r.id(), remoteStationId, null, r.name(), r.description(), null, Instant.now(), false),
-                        r.snippet(),
-                        stationName,
-                        stationUid))
-                .toList();
     }
 
     /**
@@ -958,6 +715,8 @@ public class KnowledgeBaseService {
         }
         return file;
     }
+
+    // -- Favourites --
 
     /**
      * Fetches KB file content from a federated partner, transparently handling local/remote.
@@ -1002,67 +761,6 @@ public class KnowledgeBaseService {
         return findFile(copied.id()).orElseThrow();
     }
 
-    // -- Federation helpers --
-
-    private String getPrivateKey(int stationId) {
-        return stationRepository
-                .findById(stationId)
-                .map(Station::federationPrivateKey)
-                .orElse(null);
-    }
-
-    private int resolvePartnerStationId(FederationPartner partner) {
-        return stationRepository
-                .findByUid(partner.partnerStationId())
-                .map(Station::id)
-                .orElse(0);
-    }
-
-    private FederationPartner resolveActivePartner(int localStationId, UUID partnerStationUid) {
-        var partner = federationRepository
-                .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
-        if (partner.status() != FederationPartner.FederationStatus.ACTIVE) {
-            throw new BadRequestResponse("Partner is not active");
-        }
-        return partner;
-    }
-
-    private FederationPartner findPartnerForStation(int localStationId, int remoteStationId) {
-        var partners = federationService.findPartners(localStationId);
-        for (var partner : partners) {
-            int partnerRemoteId = resolvePartnerStationId(partner);
-            if (partnerRemoteId == remoteStationId && partner.status() == FederationPartner.FederationStatus.ACTIVE) {
-                return partner;
-            }
-        }
-        return null;
-    }
-
-    private <T> List<T> collectResults(List<CompletableFuture<List<T>>> futures) {
-        var allFuture = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
-        try {
-            allFuture.join();
-        } catch (Exception e) {
-            log.error("Error during parallel federation fetch", e);
-        }
-        var result = new ArrayList<T>();
-        for (var future : futures) {
-            try {
-                result.addAll(future.get());
-            } catch (Exception e) {
-                log.error("Error collecting federation results", e);
-            }
-        }
-        return result;
-    }
-
-    public record SharedKbItem(KbFileSummary file, int sourceStationId, int partnerId) {}
-
-    public record FederatedSearchResult(KbFileSummary file, String snippet, String stationName, String stationUid) {}
-
-    // -- Federation HTTP convenience methods --
-
     public List<RemoteKbFile> fetchSharedKbFiles(
             String remoteHost, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64) {
         return federationHttpClient.getList(
@@ -1097,14 +795,6 @@ public class KnowledgeBaseService {
         if (remoteContent == null || remoteContent.content() == null) return "";
         return remoteContent.content();
     }
-
-    public record RemoteKbSearchResult(int id, String name, String description, String snippet) {}
-
-    public record RemoteKbFile(int id, String name, String description, String fileType) {}
-
-    public record RemoteKbContent(int fileId, String content) {}
-
-    // -- KB Comments --
 
     public KbComment createComment(
             int stationId, int fileId, Integer parentId, int authorId, String authorName, String content) {
@@ -1196,4 +886,312 @@ public class KnowledgeBaseService {
         eventFederationRepository.cacheName(partnerId, remoteMemberUid, displayName);
         return comment;
     }
+
+    void performPresentationConversion(int stationId, int fileId, byte[] data, String filename) {
+        try {
+            byte[] pdfBytes = PresentationConverter.toPdf(data, filename);
+            storePresentationResult(stationId, fileId, pdfBytes);
+        } catch (Exception e) {
+            log.error("Presentation conversion failed for file {}", fileId, e);
+            repository.updateConversionStatus(fileId, ConversionStatus.FAILED);
+        }
+    }
+
+    // -- Federated KB --
+
+    /**
+     * Routes a freshly-uploaded blob through the at-rest compressors registered in
+     * {@code feature/storage/service} (concept §11.3). Office archives and PDFs are
+     * recompressed losslessly; everything else is returned untouched. Failures fall back to
+     * the original bytes — compression is opportunistic, never a hard requirement.
+     */
+    private byte[] compressForStorage(byte[] data, String mimeType) {
+        if (officeCompressor.shouldCompress(mimeType, data.length)) {
+            return officeCompressor.compress(data);
+        }
+        if (pdfCompressor.shouldCompress(mimeType, data.length)) {
+            return pdfCompressor.compress(data);
+        }
+        return data;
+    }
+
+    private String fetchYoutubeMetadata(String youtubeUrl) {
+        try {
+            String oembedUrl = "https://www.youtube.com/oembed?url="
+                    + URLEncoder.encode(youtubeUrl, StandardCharsets.UTF_8)
+                    + "&format=json";
+            HttpClient httpClient = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(5))
+                    .build();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(oembedUrl))
+                    .timeout(Duration.ofSeconds(5))
+                    .GET()
+                    .build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200) {
+                String body = response.body();
+                // Simple JSON parsing for title and author_name
+                String title = extractJsonString(body, "title");
+                String author = extractJsonString(body, "author_name");
+                return (title != null ? title : "") + " " + (author != null ? author : "");
+            }
+        } catch (Exception e) {
+            log.debug("Failed to fetch YouTube metadata for {}: {}", youtubeUrl, e.getMessage());
+        }
+        return null;
+    }
+
+    private boolean canAccessFolder(
+            int memberId,
+            int folderId,
+            StationUserType memberUserType,
+            List<Integer> memberGroupIds,
+            List<Integer> memberTagIds) {
+        var folder = repository.findFolderById(folderId);
+        if (folder.isEmpty()) return true;
+
+        var rawRestrictions = repository.findRestrictions(folderId, null);
+        if (!rawRestrictions.isEmpty()) {
+            RestrictionMode mode =
+                    folder.get().restrictionMode() != null ? folder.get().restrictionMode() : RestrictionMode.AND;
+            var restrictions = toRestrictionSet(rawRestrictions, mode);
+            if (!restrictions.matches(memberUserType, memberGroupIds, memberTagIds, memberId)) return false;
+        }
+
+        // Check parent folder
+        if (folder.get().parentId() != null) {
+            return canAccessFolder(memberId, folder.get().parentId(), memberUserType, memberGroupIds, memberTagIds);
+        }
+
+        return true;
+    }
+
+    private RestrictionSet toRestrictionSet(List<KbAccessRestriction> kbRestrictions, RestrictionMode mode) {
+        var restrictions = kbRestrictions.stream()
+                .map(r -> new Restriction(r.id(), r.userType(), r.groupId(), r.tagId(), r.memberId()))
+                .toList();
+        return new RestrictionSet(restrictions, mode);
+    }
+
+    private void storeBinaryFile(int stationId, int fileId, byte[] data, String contentType) {
+        try {
+            fileStorage.store(stationId, fileId, data, contentType);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to store KB file " + fileId + " on disk", e);
+        }
+    }
+
+    private void triggerPresentationConversion(int stationId, int fileId, byte[] data, String filename) {
+        CompletableFuture.runAsync(() -> performPresentationConversion(stationId, fileId, data, filename));
+    }
+
+    private void updateSearchIndex(int fileId, String text) {
+        var file = repository.findFileById(fileId);
+        if (file.isEmpty()) return;
+        var f = file.get();
+
+        // Build searchable text: title + description + content
+        var sb = new StringBuilder();
+        sb.append(f.name()).append(' ');
+        if (f.description() != null && !f.description().isBlank()) {
+            sb.append(f.description()).append(' ');
+        }
+        if (text != null && !text.isBlank()) {
+            String plain = text.replaceAll("<[^>]+>", " ") // strip HTML tags
+                    .replaceAll("[#*_\\[\\]()>`~]", " ") // strip markdown syntax
+                    .replaceAll("\\s+", " ")
+                    .trim();
+            sb.append(plain);
+        }
+
+        String combined = sb.toString().trim();
+        if (!combined.isBlank()) {
+            repository.updateSearchIndex(fileId, combined, resolveTsConfig(f.stationId()));
+        }
+    }
+
+    private String resolveTsConfig(int stationId) {
+        return stationRepository
+                .findById(stationId)
+                .map(station -> {
+                    String locale = station.locale();
+                    if (locale == null || locale.isBlank()) return "simple";
+                    String lang = locale.contains("-") ? locale.substring(0, locale.indexOf('-')) : locale;
+                    return LOCALE_TO_TS_CONFIG.getOrDefault(lang.toLowerCase(), "simple");
+                })
+                .orElse("simple");
+    }
+
+    private String extractPdfText(byte[] data) {
+        try (var document = Loader.loadPDF(data)) {
+            var stripper = new PDFTextStripper();
+            return stripper.getText(document);
+        } catch (Exception e) {
+            log.warn("Failed to extract text from PDF: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    // -- Federation helpers --
+
+    private KbFileType detectFileType(String mimeType, String filename) {
+        if (mimeType != null) {
+            if (PRESENTATION_MIME_TYPES.contains(mimeType)) return KbFileType.PRESENTATION;
+            if (mimeType.equals("application/pdf")) return KbFileType.PDF;
+            if (mimeType.startsWith("image/")) return KbFileType.IMAGE;
+            if (mimeType.equals("text/markdown") || filename.endsWith(".md")) return KbFileType.MARKDOWN;
+            if (mimeType.startsWith("text/")) return KbFileType.TEXT;
+        }
+        if (filename != null) {
+            String lower = filename.toLowerCase();
+            if (lower.endsWith(".pptx") || lower.endsWith(".ppt") || lower.endsWith(".odp"))
+                return KbFileType.PRESENTATION;
+            if (lower.endsWith(".pdf")) return KbFileType.PDF;
+            if (lower.endsWith(".md") || lower.endsWith(".markdown")) return KbFileType.MARKDOWN;
+            if (lower.endsWith(".txt")) return KbFileType.TEXT;
+            if (lower.endsWith(".png")
+                    || lower.endsWith(".jpg")
+                    || lower.endsWith(".jpeg")
+                    || lower.endsWith(".gif")
+                    || lower.endsWith(".webp")
+                    || lower.endsWith(".svg")) return KbFileType.IMAGE;
+        }
+        return KbFileType.OTHER;
+    }
+
+    private void browseSharedKbDirect(int remoteStationId, FederationPartner partner, List<SharedKbItem> result) {
+        var shares = federationRepository.findKbShares(remoteStationId);
+        for (var share : shares) {
+            if (share.fileId() != null) {
+                findFile(share.fileId()).ifPresent(file -> {
+                    var summary = KbFileSummary.of(file);
+                    result.add(new SharedKbItem(summary, remoteStationId, partner.id()));
+                    federationRepository.upsertMetadataCache(
+                            partner.id(), ContentType.KB, file.id(), file.name(), file.description());
+                });
+            } else if (share.folderId() != null) {
+                for (var file : findFiles(remoteStationId, share.folderId())) {
+                    var summary = KbFileSummary.of(file);
+                    result.add(new SharedKbItem(summary, remoteStationId, partner.id()));
+                    federationRepository.upsertMetadataCache(
+                            partner.id(), ContentType.KB, file.id(), file.name(), file.description());
+                }
+            }
+        }
+    }
+
+    private void browseSharedKbViaHttp(
+            int localStationId, FederationPartner partner, int remoteStationId, List<SharedKbItem> result) {
+        var files = fetchSharedKbFiles(
+                partner.remoteHost(), partner.partnerStationId(), localStationId, getPrivateKey(localStationId));
+        for (var remoteFile : files) {
+            var summary = new KbFileSummary(
+                    remoteFile.id(),
+                    remoteStationId,
+                    null,
+                    remoteFile.name(),
+                    remoteFile.description(),
+                    KbFileType.valueOf(remoteFile.fileType() != null ? remoteFile.fileType() : "MARKDOWN"),
+                    Instant.now(),
+                    false);
+            result.add(new SharedKbItem(summary, remoteStationId, partner.id()));
+            federationRepository.upsertMetadataCache(
+                    partner.id(), ContentType.KB, remoteFile.id(), remoteFile.name(), remoteFile.description());
+        }
+    }
+
+    private List<FederatedSearchResult> searchKbDirect(
+            int remoteStationId, String stationName, String stationUid, String query) {
+        return searchWithSnippets(remoteStationId, query).stream()
+                .map(r -> new FederatedSearchResult(KbFileSummary.of(r.file()), r.snippet(), stationName, stationUid))
+                .toList();
+    }
+
+    private List<FederatedSearchResult> searchKbViaHttp(
+            int localStationId,
+            FederationPartner partner,
+            int remoteStationId,
+            String stationName,
+            String stationUid,
+            String query) {
+        String privateKey = getPrivateKey(localStationId);
+        if (privateKey == null) return List.of();
+        var results = searchKb(partner.remoteHost(), partner.partnerStationId(), localStationId, privateKey, query);
+        return results.stream()
+                .map(r -> new FederatedSearchResult(
+                        new KbFileSummary(
+                                r.id(), remoteStationId, null, r.name(), r.description(), null, Instant.now(), false),
+                        r.snippet(),
+                        stationName,
+                        stationUid))
+                .toList();
+    }
+
+    private String getPrivateKey(int stationId) {
+        return stationRepository
+                .findById(stationId)
+                .map(Station::federationPrivateKey)
+                .orElse(null);
+    }
+
+    private int resolvePartnerStationId(FederationPartner partner) {
+        return stationRepository
+                .findByUid(partner.partnerStationId())
+                .map(Station::id)
+                .orElse(0);
+    }
+
+    // -- Federation HTTP convenience methods --
+
+    private FederationPartner resolveActivePartner(int localStationId, UUID partnerStationUid) {
+        var partner = federationRepository
+                .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
+        if (partner.status() != FederationPartner.FederationStatus.ACTIVE) {
+            throw new BadRequestResponse("Partner is not active");
+        }
+        return partner;
+    }
+
+    private FederationPartner findPartnerForStation(int localStationId, int remoteStationId) {
+        var partners = federationService.findPartners(localStationId);
+        for (var partner : partners) {
+            int partnerRemoteId = resolvePartnerStationId(partner);
+            if (partnerRemoteId == remoteStationId && partner.status() == FederationPartner.FederationStatus.ACTIVE) {
+                return partner;
+            }
+        }
+        return null;
+    }
+
+    private <T> List<T> collectResults(List<CompletableFuture<List<T>>> futures) {
+        var allFuture = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
+        try {
+            allFuture.join();
+        } catch (Exception e) {
+            log.error("Error during parallel federation fetch", e);
+        }
+        var result = new ArrayList<T>();
+        for (var future : futures) {
+            try {
+                result.addAll(future.get());
+            } catch (Exception e) {
+                log.error("Error collecting federation results", e);
+            }
+        }
+        return result;
+    }
+
+    public record SharedKbItem(KbFileSummary file, int sourceStationId, int partnerId) {}
+
+    public record FederatedSearchResult(KbFileSummary file, String snippet, String stationName, String stationUid) {}
+
+    public record RemoteKbSearchResult(int id, String name, String description, String snippet) {}
+
+    // -- KB Comments --
+
+    public record RemoteKbFile(int id, String name, String description, String fileType) {}
+
+    public record RemoteKbContent(int fileId, String content) {}
 }

@@ -9,10 +9,16 @@ package dev.chojo.ember.feature.news.entity;
  * The minimum user type on a partner station that may see a federated news article.
  */
 public enum NewsVisibilityRole {
-    /** All members can see the news (lowest visibility threshold). */
+    /**
+     * All members can see the news (lowest visibility threshold).
+     */
     MEMBER,
-    /** Only team members and above can see the news. */
+    /**
+     * Only team members and above can see the news.
+     */
     TEAM,
-    /** Only managers can see the news. */
+    /**
+     * Only managers can see the news.
+     */
     MANAGER
 }

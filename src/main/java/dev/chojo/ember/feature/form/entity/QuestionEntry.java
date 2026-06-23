@@ -9,11 +9,11 @@ package dev.chojo.ember.feature.form.entity;
  * Data transfer object for creating questions during a bulk replace operation.
  *
  * @param formQuestionType the type of question
- * @param title        the question text
- * @param description  optional description
- * @param required     whether an answer is mandatory
- * @param shuffle      whether answer options should be randomized
- * @param config       type-specific configuration as JSON
+ * @param title            the question text
+ * @param description      optional description
+ * @param required         whether an answer is mandatory
+ * @param shuffle          whether answer options should be randomized
+ * @param config           type-specific configuration as JSON
  */
 public record QuestionEntry(
         FormQuestionType formQuestionType,

@@ -67,34 +67,6 @@ public class NewsService {
     }
 
     /**
-     * Creates a news article and optionally applies group restrictions.
-     *
-     * @param stationId       the station to publish in
-     * @param title           article title
-     * @param contentMarkdown article body in Markdown
-     * @param contentHtml     article body as HTML
-     * @param author          identity of the author
-     * @param groupIds        group IDs to restrict visibility to (empty for unrestricted)
-     * @return the newly created news entry
-     */
-    public News create(
-            int stationId,
-            String title,
-            String contentMarkdown,
-            String contentHtml,
-            MemberIdentity author,
-            List<StationUserType> userTypes,
-            List<Integer> groupIds,
-            List<Integer> tagIds,
-            List<Integer> memberIds) {
-        var news = newsRepository.create(stationId, title, contentMarkdown, contentHtml, author);
-        setRestrictions(news.id(), userTypes, groupIds, tagIds, memberIds);
-        String authorName = resolveAuthorName(stationId, author);
-        eventBus.publish(new NewsCreated(stationId, news.id(), title, authorName, previewOf(contentMarkdown)));
-        return news;
-    }
-
-    /**
      * Derives a plain-text preview from a Markdown article body. Strips the most common
      * formatting (headings, emphasis, lists, code fences, links → label) but preserves
      * paragraph structure (single newlines kept, runs of 3+ newlines collapsed to a single
@@ -136,16 +108,32 @@ public class NewsService {
         return stripped.isBlank() ? null : stripped;
     }
 
-    private String resolveAuthorName(int stationId, MemberIdentity author) {
-        if (author == null) return "";
-        return stationMemberRepository
-                .resolveId(stationId, author.memberUid())
-                .flatMap(memberId -> stationMemberRepository
-                        .findById(memberId)
-                        .filter(m -> m.accountId() != null)
-                        .flatMap(m -> accountRepository.findById(m.accountId()))
-                        .map(Account::fullName))
-                .orElse("");
+    /**
+     * Creates a news article and optionally applies group restrictions.
+     *
+     * @param stationId       the station to publish in
+     * @param title           article title
+     * @param contentMarkdown article body in Markdown
+     * @param contentHtml     article body as HTML
+     * @param author          identity of the author
+     * @param groupIds        group IDs to restrict visibility to (empty for unrestricted)
+     * @return the newly created news entry
+     */
+    public News create(
+            int stationId,
+            String title,
+            String contentMarkdown,
+            String contentHtml,
+            MemberIdentity author,
+            List<StationUserType> userTypes,
+            List<Integer> groupIds,
+            List<Integer> tagIds,
+            List<Integer> memberIds) {
+        var news = newsRepository.create(stationId, title, contentMarkdown, contentHtml, author);
+        setRestrictions(news.id(), userTypes, groupIds, tagIds, memberIds);
+        String authorName = resolveAuthorName(stationId, author);
+        eventBus.publish(new NewsCreated(stationId, news.id(), title, authorName, previewOf(contentMarkdown)));
+        return news;
     }
 
     /**
@@ -285,12 +273,6 @@ public class NewsService {
     }
 
     /**
-     * The two halves of the news-views modal: members who have seen the news (with
-     * timestamps) and members who have not.
-     */
-    public record ViewerSummary(List<NewsViewer> seen, List<NewsViewer> unseen) {}
-
-    /**
      * Retrieves the restriction set for a news article.
      */
     public RestrictionSet findRestrictions(int newsId) {
@@ -319,8 +301,6 @@ public class NewsService {
                 memberIds != null ? memberIds : List.of());
     }
 
-    // -- Comments --
-
     /**
      * Counts the total number of comments on a news article.
      *
@@ -334,11 +314,11 @@ public class NewsService {
     /**
      * Creates a comment on a news article.
      *
-     * @param newsId   the news article ID
-     * @param parentId parent comment ID for replies, or {@code null} for top-level comments
-     * @param author   identity of the comment author, or {@code null} for federated/system comments
+     * @param newsId     the news article ID
+     * @param parentId   parent comment ID for replies, or {@code null} for top-level comments
+     * @param author     identity of the comment author, or {@code null} for federated/system comments
      * @param authorName display name of the comment author
-     * @param content  comment text
+     * @param content    comment text
      * @return the newly created comment
      */
     public NewsComment createComment(
@@ -429,6 +409,8 @@ public class NewsService {
         return comment;
     }
 
+    // -- Comments --
+
     /**
      * Retrieves all comments for a news article.
      *
@@ -477,4 +459,22 @@ public class NewsService {
         }
         return false;
     }
+
+    private String resolveAuthorName(int stationId, MemberIdentity author) {
+        if (author == null) return "";
+        return stationMemberRepository
+                .resolveId(stationId, author.memberUid())
+                .flatMap(memberId -> stationMemberRepository
+                        .findById(memberId)
+                        .filter(m -> m.accountId() != null)
+                        .flatMap(m -> accountRepository.findById(m.accountId()))
+                        .map(Account::fullName))
+                .orElse("");
+    }
+
+    /**
+     * The two halves of the news-views modal: members who have seen the news (with
+     * timestamps) and members who have not.
+     */
+    public record ViewerSummary(List<NewsViewer> seen, List<NewsViewer> unseen) {}
 }

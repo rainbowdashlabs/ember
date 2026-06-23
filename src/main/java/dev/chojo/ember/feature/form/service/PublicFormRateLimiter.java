@@ -44,7 +44,7 @@ public class PublicFormRateLimiter {
 
     /**
      * @return empty when the request is allowed, or the seconds until the next refill
-     *         when the caller should be served {@code 429} with {@code Retry-After}
+     * when the caller should be served {@code 429} with {@code Retry-After}
      */
     public Optional<Long> tryAcquire(int formId, byte[] submitterHash) {
         return bucket.tryAcquire(formId + ":" + HexFormat.of().formatHex(submitterHash));

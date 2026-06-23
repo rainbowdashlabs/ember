@@ -44,7 +44,7 @@ public record EventFederationRegistration(
                 row.getInt("partner_id"),
                 row.get("remote_member_id", StandardValueConverter.UUID_STRING),
                 row.getObject("event_date", LocalDate.class),
-                RegistrationStatus.valueOf(row.getString("status")),
+                row.getEnum("status", RegistrationStatus.class),
                 row.get("created_at", INSTANT_TIMESTAMP));
     }
 }

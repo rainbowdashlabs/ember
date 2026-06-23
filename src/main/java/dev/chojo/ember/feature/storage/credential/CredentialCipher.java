@@ -47,7 +47,9 @@ public class CredentialCipher {
         this(storageConfig.credentialEncryptionKey());
     }
 
-    /** Visible for tests that supply the key directly without going through {@link Storage}. */
+    /**
+     * Visible for tests that supply the key directly without going through {@link Storage}.
+     */
     public CredentialCipher(String base64Key) {
         if (base64Key == null || base64Key.isBlank()) {
             this.key = null;
@@ -66,7 +68,9 @@ public class CredentialCipher {
         this.key = new SecretKeySpec(decoded, "AES");
     }
 
-    /** Whether a key is configured; callers that depend on encryption check this on startup. */
+    /**
+     * Whether a key is configured; callers that depend on encryption check this on startup.
+     */
     public boolean isConfigured() {
         return key != null;
     }
@@ -88,12 +92,16 @@ public class CredentialCipher {
         }
     }
 
-    /** Convenience overload for UTF-8 string input. */
+    /**
+     * Convenience overload for UTF-8 string input.
+     */
     public EncryptedBlob encrypt(String plaintext) {
         return encrypt(plaintext.getBytes(StandardCharsets.UTF_8));
     }
 
-    /** Decrypts an {@link EncryptedBlob} produced by {@link #encrypt(byte[])}. */
+    /**
+     * Decrypts an {@link EncryptedBlob} produced by {@link #encrypt(byte[])}.
+     */
     public byte[] decrypt(EncryptedBlob blob) {
         requireKey();
         try {
@@ -105,7 +113,9 @@ public class CredentialCipher {
         }
     }
 
-    /** Convenience overload that returns the plaintext as a UTF-8 string. */
+    /**
+     * Convenience overload that returns the plaintext as a UTF-8 string.
+     */
     public String decryptToString(EncryptedBlob blob) {
         return new String(decrypt(blob), StandardCharsets.UTF_8);
     }

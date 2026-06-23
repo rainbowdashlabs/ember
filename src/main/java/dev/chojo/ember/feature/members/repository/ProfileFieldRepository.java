@@ -107,14 +107,14 @@ public class ProfileFieldRepository {
             int position,
             boolean keepOnArchive) {
         return query("""
-                            UPDATE profile_field
-                            SET
-                                name             = :name,
-                                field_type       = :field_type,
-                                config           = :config::JSONB,
-                                position         = :position,
-                                keep_on_archive  = :keep_on_archive
-                            WHERE id = :id;""")
+                UPDATE profile_field
+                SET
+                    name             = :name,
+                    field_type       = :field_type,
+                    config           = :config::JSONB,
+                    position         = :position,
+                    keep_on_archive  = :keep_on_archive
+                WHERE id = :id;""")
                 .single(call().bind("name", name)
                         .bind("field_type", fieldType)
                         .bind("config", config.toJson())
@@ -152,14 +152,14 @@ public class ProfileFieldRepository {
      */
     public Optional<ProfileFieldValue> findValue(int memberId, int fieldId) {
         return query("""
-                            SELECT
-                                member_id,
-                                field_id,
-                                value
-                            FROM
-                                profile_field_value
-                            WHERE member_id = :member_id
-                              AND field_id = :field_id;""")
+                SELECT
+                    member_id,
+                    field_id,
+                    value
+                FROM
+                    profile_field_value
+                WHERE member_id = :member_id
+                  AND field_id = :field_id;""")
                 .single(call().bind("member_id", memberId).bind("field_id", fieldId))
                 .map(ProfileFieldValue.map())
                 .first();
@@ -170,13 +170,13 @@ public class ProfileFieldRepository {
      */
     public InsertionResult setValue(int memberId, int fieldId, String value) {
         return query("""
-                            INSERT
-                            INTO
-                                profile_field_value(member_id, field_id, value)
-                            VALUES
-                                (:member_id, :field_id, :value::JSONB)
-                            ON CONFLICT (member_id, field_id) DO UPDATE SET
-                                value = excluded.value;""")
+                INSERT
+                INTO
+                    profile_field_value(member_id, field_id, value)
+                VALUES
+                    (:member_id, :field_id, :value::JSONB)
+                ON CONFLICT (member_id, field_id) DO UPDATE SET
+                    value = excluded.value;""")
                 .single(call().bind("member_id", memberId)
                         .bind("field_id", fieldId)
                         .bind("value", value))

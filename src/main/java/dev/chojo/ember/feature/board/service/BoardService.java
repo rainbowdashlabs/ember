@@ -221,27 +221,6 @@ public class BoardService {
                 repository.findEditAccessTagIds(boardId));
     }
 
-    private boolean matchesAccess(
-            int memberId, List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
-        if (!userTypes.isEmpty()) {
-            var member = memberService.findById(memberId);
-            if (member.isPresent() && userTypes.contains(member.get().userType())) return true;
-        }
-        if (!groupIds.isEmpty()) {
-            var memberGroupIds = groupService.findGroupsForMember(memberId).stream()
-                    .map(MemberGroup::id)
-                    .toList();
-            if (memberGroupIds.stream().anyMatch(groupIds::contains)) return true;
-        }
-        if (!tagIds.isEmpty()) {
-            var memberTagIds = tagService.findTagsForMember(memberId).stream()
-                    .map(UserTag::id)
-                    .toList();
-            return memberTagIds.stream().anyMatch(tagIds::contains);
-        }
-        return false;
-    }
-
     public AccessData getViewAccess(int boardId) {
         return new AccessData(
                 repository.findViewAccessUserTypes(boardId),
@@ -264,5 +243,26 @@ public class BoardService {
     public void setEditAccess(
             int boardId, List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
         repository.setEditAccess(boardId, userTypes, groupIds, tagIds);
+    }
+
+    private boolean matchesAccess(
+            int memberId, List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
+        if (!userTypes.isEmpty()) {
+            var member = memberService.findById(memberId);
+            if (member.isPresent() && userTypes.contains(member.get().userType())) return true;
+        }
+        if (!groupIds.isEmpty()) {
+            var memberGroupIds = groupService.findGroupsForMember(memberId).stream()
+                    .map(MemberGroup::id)
+                    .toList();
+            if (memberGroupIds.stream().anyMatch(groupIds::contains)) return true;
+        }
+        if (!tagIds.isEmpty()) {
+            var memberTagIds = tagService.findTagsForMember(memberId).stream()
+                    .map(UserTag::id)
+                    .toList();
+            return memberTagIds.stream().anyMatch(tagIds::contains);
+        }
+        return false;
     }
 }

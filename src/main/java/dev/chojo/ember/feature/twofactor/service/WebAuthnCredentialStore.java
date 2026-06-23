@@ -31,6 +31,24 @@ public class WebAuthnCredentialStore implements CredentialRepository {
         this.repository = repository;
     }
 
+    private static RegisteredCredential toRegistered(WebAuthnCredential c) {
+        return RegisteredCredential.builder()
+                .credentialId(new ByteArray(c.credentialId()))
+                .userHandle(new ByteArray(c.userHandle()))
+                .publicKeyCose(new ByteArray(c.publicKeyCose()))
+                .signatureCount(c.signatureCounter())
+                .build();
+    }
+
+    private static int parseAccountId(String username) {
+        if (username == null) return 0;
+        try {
+            return Integer.parseInt(username);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
     @Override
     public Set<PublicKeyCredentialDescriptor> getCredentialIdsForUsername(String username) {
         int accountId = parseAccountId(username);
@@ -73,23 +91,5 @@ public class WebAuthnCredentialStore implements CredentialRepository {
         return PublicKeyCredentialDescriptor.builder()
                 .id(new ByteArray(c.credentialId()))
                 .build();
-    }
-
-    private static RegisteredCredential toRegistered(WebAuthnCredential c) {
-        return RegisteredCredential.builder()
-                .credentialId(new ByteArray(c.credentialId()))
-                .userHandle(new ByteArray(c.userHandle()))
-                .publicKeyCose(new ByteArray(c.publicKeyCose()))
-                .signatureCount(c.signatureCounter())
-                .build();
-    }
-
-    private static int parseAccountId(String username) {
-        if (username == null) return 0;
-        try {
-            return Integer.parseInt(username);
-        } catch (NumberFormatException e) {
-            return 0;
-        }
     }
 }

@@ -364,23 +364,6 @@ public class SessionRoutes implements Routes {
         ctx.json(new CrossStationDashboard(stationSummaries, limited));
     }
 
-    public record CrossStationDashboard(
-            List<CrossStationSummary> stations, List<CrossStationNotification> recentNotifications) {}
-
-    public record CrossStationSummary(UUID stationId, String stationName, int notifications, int requirements) {}
-
-    public record CrossStationNotification(
-            UUID stationId,
-            String stationName,
-            int id,
-            String type,
-            String localeKey,
-            Map<String, String> params,
-            CrossStationNotificationLink link,
-            Instant createdAt) {}
-
-    public record CrossStationNotificationLink(String route, Map<String, Object> routeParams) {}
-
     @OpenApi(
             path = "/api/v1/session/active",
             methods = HttpMethod.GET,
@@ -420,8 +403,6 @@ public class SessionRoutes implements Routes {
         accountRepository.deleteSessionById(id, session.accountId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
-
-    // -- Response records --
 
     @OpenApi(
             path = "/api/v1/session/invalidate-all",
@@ -500,6 +481,8 @@ public class SessionRoutes implements Routes {
         }
         serveAvatar(ctx, accountUid);
     }
+
+    // -- Response records --
 
     /**
      * Retrieves the avatar for a specific member by their UUID path parameter. Kept for
@@ -667,8 +650,6 @@ public class SessionRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    // -- Avatar --
-
     @OpenApi(
             path = "/api/v1/session/gdpr-export",
             methods = HttpMethod.GET,
@@ -683,6 +664,25 @@ public class SessionRoutes implements Routes {
         ctx.header("Content-Disposition", "attachment; filename=\"gdpr-export.zip\"");
         ctx.result(zipData);
     }
+
+    public record CrossStationDashboard(
+            List<CrossStationSummary> stations, List<CrossStationNotification> recentNotifications) {}
+
+    public record CrossStationSummary(UUID stationId, String stationName, int notifications, int requirements) {}
+
+    public record CrossStationNotification(
+            UUID stationId,
+            String stationName,
+            int id,
+            String type,
+            String localeKey,
+            Map<String, String> params,
+            CrossStationNotificationLink link,
+            Instant createdAt) {}
+
+    // -- Avatar --
+
+    public record CrossStationNotificationLink(String route, Map<String, Object> routeParams) {}
 
     /**
      * Aggregated session information returned to the authenticated user.
