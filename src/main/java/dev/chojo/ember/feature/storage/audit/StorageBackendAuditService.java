@@ -1,0 +1,133 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.feature.storage.audit;
+
+import dev.chojo.ember.feature.storage.entity.RedactedStationConfig;
+import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
+import dev.chojo.ember.feature.storage.entity.StorageCategory;
+import dev.chojo.ember.feature.storage.repository.StorageBackendAuditRepository;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Optional;
+
+/**
+ * Funnels every backend-config event into the {@code storage_backend_audit} table.
+ *
+ * <p>Config snapshots are redacted with {@link RedactedStationConfig#toJson} before they reach
+ * the repository, so cipher material never crosses this boundary. User-triggered probes are
+ * deduped on a {@value #PROBE_DEDUPE_SECONDS}-second window per actor + scope + category +
+ * outcome to keep the admin panel's auto-refresh from flooding the table.
+ */
+@Singleton
+public class StorageBackendAuditService {
+
+    /** Probe rows for the same actor/scope/category/outcome inside this window are dropped. */
+    static final int PROBE_DEDUPE_SECONDS = 60;
+
+    private final StorageBackendAuditRepository repository;
+
+    @Inject
+    public StorageBackendAuditService(StorageBackendAuditRepository repository) {
+        this.repository = repository;
+    }
+
+    /**
+     * Records a successful config-row mutation. Pass {@code null} for {@code oldConfig} on
+     * CREATED events and {@code null} for {@code newConfig} on DELETED events.
+     */
+    public void recordConfigChange(
+            Actor actor,
+            int stationId,
+            StorageCategory category,
+            StorageAuditAction action,
+            StationStorageBackendConfig oldConfig,
+            StationStorageBackendConfig newConfig) {
+        repository.insert(new StorageBackendAuditRepository.NewEntry(
+                actor.accountId(),
+                actor.memberId(),
+                actor.systemActor(),
+                Optional.of(stationId),
+                Optional.of(category),
+                action,
+                Optional.ofNullable(oldConfig).map(RedactedStationConfig::toJson),
+                Optional.ofNullable(newConfig).map(RedactedStationConfig::toJson),
+                StorageAuditOutcome.OK,
+                Optional.empty()));
+    }
+
+    /**
+     * Records a refused mutation. {@code error} is the user-facing reason the request was
+     * rejected (e.g. swap-with-bytes-pinned, invalid credentials, probe failed).
+     */
+    public void recordRejected(
+            Actor actor,
+            int stationId,
+            StorageCategory category,
+            Optional<StationStorageBackendConfig> attempted,
+            String error) {
+        repository.insert(new StorageBackendAuditRepository.NewEntry(
+                actor.accountId(),
+                actor.memberId(),
+                actor.systemActor(),
+                Optional.of(stationId),
+                Optional.of(category),
+                StorageAuditAction.REJECTED,
+                Optional.empty(),
+                attempted.map(RedactedStationConfig::toJson),
+                StorageAuditOutcome.FAILED,
+                Optional.of(error)));
+    }
+
+    /**
+     * Records a user-triggered probe with the dedupe rule. Returns {@code true} when a row was
+     * inserted, {@code false} when an equivalent row inside the dedupe window suppressed it.
+     */
+    public boolean recordProbe(
+            Actor actor, int stationId, StorageCategory category, StorageAuditOutcome outcome, String errorOrNull) {
+        StorageAuditAction action =
+                outcome == StorageAuditOutcome.OK ? StorageAuditAction.PROBE_OK : StorageAuditAction.PROBE_FAILED;
+        Instant cutoff = Instant.now().minus(Duration.ofSeconds(PROBE_DEDUPE_SECONDS));
+        Optional<StorageAuditEntry> recent = repository.findRecentMatching(
+                actor.accountId(),
+                actor.systemActor(),
+                Optional.of(stationId),
+                Optional.of(category),
+                action,
+                outcome,
+                cutoff);
+        if (recent.isPresent()) return false;
+        repository.insert(new StorageBackendAuditRepository.NewEntry(
+                actor.accountId(),
+                actor.memberId(),
+                actor.systemActor(),
+                Optional.of(stationId),
+                Optional.of(category),
+                action,
+                Optional.empty(),
+                Optional.empty(),
+                outcome,
+                Optional.ofNullable(errorOrNull)));
+        return true;
+    }
+
+    /**
+     * Captures the actor for an audit row. Exactly one of {@code accountId} / {@code systemActor}
+     * is set; {@code memberId} is populated only for human actors who are also station members.
+     */
+    public record Actor(Optional<Integer> accountId, Optional<Integer> memberId, Optional<String> systemActor) {
+
+        public static Actor human(int accountId, Integer memberId) {
+            return new Actor(Optional.of(accountId), Optional.ofNullable(memberId), Optional.empty());
+        }
+
+        public static Actor system(String name) {
+            return new Actor(Optional.empty(), Optional.empty(), Optional.of(name));
+        }
+    }
+}

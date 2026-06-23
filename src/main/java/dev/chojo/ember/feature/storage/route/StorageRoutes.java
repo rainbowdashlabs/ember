@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.StorageBackendType;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageUsage;
+import dev.chojo.ember.feature.storage.repository.StorageBackendAuditRepository;
 import dev.chojo.ember.feature.storage.repository.StorageQuotaPresetRepository;
 import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
@@ -41,6 +42,7 @@ public class StorageRoutes implements Routes {
     private final StationRepository stationRepository;
     private final StorageReconciliationService reconciliationService;
     private final StorageBackendResolver backendResolver;
+    private final StorageBackendAuditRepository auditRepository;
     private final Storage storageConfig;
 
     @Inject
@@ -51,6 +53,7 @@ public class StorageRoutes implements Routes {
             StationRepository stationRepository,
             StorageReconciliationService reconciliationService,
             StorageBackendResolver backendResolver,
+            StorageBackendAuditRepository auditRepository,
             Storage storageConfig) {
         this.quotaService = quotaService;
         this.usageRepository = usageRepository;
@@ -58,6 +61,7 @@ public class StorageRoutes implements Routes {
         this.stationRepository = stationRepository;
         this.reconciliationService = reconciliationService;
         this.backendResolver = backendResolver;
+        this.auditRepository = auditRepository;
         this.storageConfig = storageConfig;
     }
 
@@ -103,6 +107,9 @@ public class StorageRoutes implements Routes {
         routes.get(prefix + "/admin/storage/backend", this::getInstanceBackend, InstancePermission.ADMINISTRATOR);
         routes.post(
                 prefix + "/admin/storage/backend/probe", this::probeInstanceBackend, InstancePermission.ADMINISTRATOR);
+
+        // Admin: audit trail
+        routes.get(prefix + "/admin/storage/audit", this::listAudit, InstancePermission.ADMINISTRATOR);
 
         // Admin: station quota management
         routes.put(
@@ -297,6 +304,21 @@ public class StorageRoutes implements Routes {
                 status.healthy(),
                 status.error().orElse(null),
                 status.checkedAt().toString()));
+    }
+
+    private void listAudit(Context ctx) {
+        var before = ctx.queryParam("before") != null
+                ? java.util.Optional.of(java.time.Instant.parse(ctx.queryParam("before")))
+                : java.util.Optional.<java.time.Instant>empty();
+        var stationId = ctx.queryParam("stationUid") == null
+                ? java.util.Optional.<Integer>empty()
+                : stationRepository.resolveId(UUID.fromString(ctx.queryParam("stationUid")));
+        int limit = Math.max(
+                1, Math.min(ctx.queryParamAsClass("limit", Integer.class).getOrDefault(50), 200));
+        var entries = auditRepository.findAll(before, stationId, limit).stream()
+                .map(StationStorageBackendRoutes::toResponse)
+                .toList();
+        ctx.json(entries);
     }
 
     // -- Station quota management --

@@ -11,6 +11,11 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.storage.audit.StorageAuditAction;
+import dev.chojo.ember.feature.storage.audit.StorageAuditEntry;
+import dev.chojo.ember.feature.storage.audit.StorageAuditOutcome;
+import dev.chojo.ember.feature.storage.audit.StorageBackendAuditService;
+import dev.chojo.ember.feature.storage.audit.StorageBackendAuditService.Actor;
 import dev.chojo.ember.feature.storage.backend.HealthStatus;
 import dev.chojo.ember.feature.storage.backend.StorageBackend;
 import dev.chojo.ember.feature.storage.backend.StorageBackendFactory;
@@ -22,6 +27,7 @@ import dev.chojo.ember.feature.storage.credential.StoredCredentials;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
+import dev.chojo.ember.feature.storage.repository.StorageBackendAuditRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -46,6 +52,8 @@ public class StationStorageBackendRoutes implements Routes {
     private final StorageBackendResolver resolver;
     private final CredentialCipher credentialCipher;
     private final StationRepository stationRepository;
+    private final StorageBackendAuditService auditService;
+    private final StorageBackendAuditRepository auditRepository;
 
     @Inject
     public StationStorageBackendRoutes(
@@ -53,12 +61,16 @@ public class StationStorageBackendRoutes implements Routes {
             StorageBackendFactory factory,
             StorageBackendResolver resolver,
             CredentialCipher credentialCipher,
-            StationRepository stationRepository) {
+            StationRepository stationRepository,
+            StorageBackendAuditService auditService,
+            StorageBackendAuditRepository auditRepository) {
         this.repository = repository;
         this.factory = factory;
         this.resolver = resolver;
         this.credentialCipher = credentialCipher;
         this.stationRepository = stationRepository;
+        this.auditService = auditService;
+        this.auditRepository = auditRepository;
     }
 
     @Override
@@ -68,7 +80,50 @@ public class StationStorageBackendRoutes implements Routes {
         routes.delete(prefix + "/station/storage/backend/{category}", this::delete, StationPermission.STATION_MANAGER);
         routes.post(
                 prefix + "/station/storage/backend/{category}/probe", this::probe, StationPermission.STATION_MANAGER);
+        routes.get(prefix + "/station/storage/audit", this::listAudit, StationPermission.STATION_MANAGER);
     }
+
+    private void listAudit(Context ctx) {
+        int stationId = sessionStationId(ctx);
+        Optional<java.time.Instant> before =
+                Optional.ofNullable(ctx.queryParam("before")).map(java.time.Instant::parse);
+        int limit = Math.max(
+                1, Math.min(ctx.queryParamAsClass("limit", Integer.class).getOrDefault(50), 200));
+        List<AuditEntryResponse> entries = auditRepository.findByStation(stationId, before, limit).stream()
+                .map(StationStorageBackendRoutes::toResponse)
+                .toList();
+        ctx.json(entries);
+    }
+
+    static AuditEntryResponse toResponse(StorageAuditEntry entry) {
+        return new AuditEntryResponse(
+                entry.id(),
+                entry.ts().toString(),
+                entry.actorAccountId().orElse(null),
+                entry.actorMemberId().orElse(null),
+                entry.systemActor().orElse(null),
+                entry.stationId().orElse(null),
+                entry.category().map(Enum::name).orElse(null),
+                entry.action(),
+                entry.oldConfig().orElse(null),
+                entry.newConfig().orElse(null),
+                entry.outcome(),
+                entry.error().orElse(null));
+    }
+
+    public record AuditEntryResponse(
+            long id,
+            String ts,
+            Integer actorAccountId,
+            Integer actorMemberId,
+            String systemActor,
+            Integer stationId,
+            String category,
+            StorageAuditAction action,
+            String oldConfig,
+            String newConfig,
+            StorageAuditOutcome outcome,
+            String error) {}
 
     private void list(Context ctx) {
         int stationId = sessionStationId(ctx);
@@ -80,6 +135,7 @@ public class StationStorageBackendRoutes implements Routes {
     }
 
     private void upsert(Context ctx) {
+        Actor actor = actor(ctx);
         int stationId = sessionStationId(ctx);
         StorageCategory category = parseMovableCategory(ctx);
         BackendOverrideRequest request = ctx.bodyAsClass(BackendOverrideRequest.class);
@@ -87,42 +143,76 @@ public class StationStorageBackendRoutes implements Routes {
         try (StorageBackend probe = factory.buildForStation(config)) {
             HealthStatus status = probe.probe();
             if (!status.healthy()) {
-                throw new BadRequestResponse("Probe failed: " + status.error().orElse("unknown error"));
+                String error = status.error().orElse("unknown error");
+                auditService.recordRejected(actor, stationId, category, Optional.of(config), "Probe failed: " + error);
+                throw new BadRequestResponse("Probe failed: " + error);
             }
         } catch (BadRequestResponse e) {
             throw e;
         } catch (Exception e) {
+            auditService.recordRejected(
+                    actor, stationId, category, Optional.of(config), "Probe failed: " + e.getMessage());
             throw new BadRequestResponse("Probe failed: " + e.getMessage());
         }
+        Optional<StationStorageBackendConfig> existing =
+                repository.findOne(stationId, category).map(StationStorageConfigRepository.Row::config);
         repository.upsert(stationId, category, config);
         resolver.invalidateStation(stationId, category);
+        auditService.recordConfigChange(
+                actor,
+                stationId,
+                category,
+                existing.isPresent() ? StorageAuditAction.UPDATED : StorageAuditAction.CREATED,
+                existing.orElse(null),
+                config);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
     private void delete(Context ctx) {
+        Actor actor = actor(ctx);
         int stationId = sessionStationId(ctx);
         StorageCategory category = parseMovableCategory(ctx);
+        Optional<StationStorageBackendConfig> existing =
+                repository.findOne(stationId, category).map(StationStorageConfigRepository.Row::config);
         repository.delete(stationId, category);
         resolver.invalidateStation(stationId, category);
+        if (existing.isPresent()) {
+            auditService.recordConfigChange(
+                    actor, stationId, category, StorageAuditAction.DELETED, existing.get(), null);
+        }
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
     private void probe(Context ctx) {
+        Actor actor = actor(ctx);
         int stationId = sessionStationId(ctx);
         StorageCategory category = parseMovableCategory(ctx);
         var row = repository
                 .findOne(stationId, category)
                 .orElseThrow(() -> new BadRequestResponse("No override configured for this category"));
+        boolean healthy;
+        String errorOrNull;
+        java.time.Instant checkedAt;
         try (StorageBackend backend = factory.buildForStation(row.config())) {
             HealthStatus status = backend.probe();
-            ctx.json(new ProbeResult(
-                    status.healthy(),
-                    status.error().orElse(null),
-                    status.checkedAt().toString()));
+            healthy = status.healthy();
+            errorOrNull = status.error().orElse(null);
+            checkedAt = status.checkedAt();
         } catch (Exception e) {
-            ctx.json(new ProbeResult(
-                    false, e.getMessage(), java.time.Instant.now().toString()));
+            healthy = false;
+            errorOrNull = e.getMessage();
+            checkedAt = java.time.Instant.now();
         }
+        auditService.recordProbe(
+                actor, stationId, category, healthy ? StorageAuditOutcome.OK : StorageAuditOutcome.FAILED, errorOrNull);
+        ctx.json(new ProbeResult(healthy, errorOrNull, checkedAt.toString()));
+    }
+
+    private Actor actor(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        if (session.account() == null) throw new ForbiddenResponse("No account in session");
+        Integer memberId = session.member() != null ? session.member().id() : null;
+        return Actor.human(session.account().id(), memberId);
     }
 
     private int sessionStationId(Context ctx) {

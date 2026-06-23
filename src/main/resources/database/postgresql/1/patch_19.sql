@@ -28,3 +28,33 @@ CREATE TABLE ember_schema.station_storage_config (
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (station_id, category)
 );
+
+-- Append-only audit trail for every backend-config mutation (CREATE / UPDATE / DELETE / REJECT)
+-- plus user-triggered probes and migration lifecycle events. Indefinite retention: actor and
+-- station FKs use ON DELETE SET NULL so the row survives account / station deletion as
+-- proof-of-action; only the attribution thins out.
+-- old_config and new_config carry FULL redacted snapshots — credentials are replaced with
+-- {"credentials":"redacted","sha256OfCiphertext":"…"} before the row is written; raw cipher
+-- material never enters this table.
+
+CREATE TABLE ember_schema.storage_backend_audit (
+    id                BIGSERIAL PRIMARY KEY,
+    ts                TIMESTAMPTZ NOT NULL DEFAULT now(),
+    actor_account_id  INTEGER     NULL REFERENCES ember_schema.account(id) ON DELETE SET NULL,
+    actor_member_id   INTEGER     NULL REFERENCES ember_schema.station_member(id) ON DELETE SET NULL,
+    system_actor      TEXT        NULL,
+    station_id        INTEGER     NULL REFERENCES ember_schema.station(id) ON DELETE SET NULL,
+    category          TEXT        NULL,
+    action            TEXT        NOT NULL,
+    old_config        JSONB       NULL,
+    new_config        JSONB       NULL,
+    outcome           TEXT        NOT NULL,
+    error             TEXT        NULL,
+    CONSTRAINT storage_backend_audit_actor_present
+        CHECK (actor_account_id IS NOT NULL OR system_actor IS NOT NULL)
+);
+
+CREATE INDEX idx_storage_backend_audit_station_ts
+    ON ember_schema.storage_backend_audit (station_id, ts DESC);
+CREATE INDEX idx_storage_backend_audit_ts
+    ON ember_schema.storage_backend_audit (ts DESC);
