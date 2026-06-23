@@ -10,6 +10,9 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.storage.entity.StorageCategory;
+import dev.chojo.ember.feature.storage.entity.StorageScope;
+import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.feature.storage.transfer.TransferBackendDescriptor;
 import dev.chojo.ember.feature.storage.transfer.TransferBackendImporter;
 import dev.chojo.ember.tracking.ColumnEntry;
@@ -27,10 +30,12 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -73,6 +78,7 @@ public class StationImportService {
     private final StationExportService exportService;
     private final Api api;
     private final TransferBackendImporter backendImporter;
+    private final StorageService storageService;
     private final GenericTableImporter engine;
     private final List<String> tableOrder;
     private final DataTracking tracking;
@@ -90,12 +96,14 @@ public class StationImportService {
             AccountRepository accountRepository,
             StationExportService exportService,
             Api api,
-            TransferBackendImporter backendImporter) {
+            TransferBackendImporter backendImporter,
+            StorageService storageService) {
         this.stationRepository = stationRepository;
         this.accountRepository = accountRepository;
         this.exportService = exportService;
         this.api = api;
         this.backendImporter = backendImporter;
+        this.storageService = storageService;
         DataTracking t;
         try {
             t = DataTrackingLoader.loadFromClasspath();
@@ -272,7 +280,10 @@ public class StationImportService {
                 fetchAndImportPaginated(stationId, table, baseUrl, token, httpClient, mapper, idMap);
                 p.completeTable();
             }
-            applySourceBackend(stationId, baseUrl, token, httpClient, mapper);
+            boolean installedRemote = applySourceBackend(stationId, baseUrl, token, httpClient, mapper);
+            if (!installedRemote) {
+                copyLocalFiles(stationId, baseUrl, token, httpClient, mapper);
+            }
             p.complete();
             log.info("Remote import completed for station '{}' (id={})", p.stationName(), stationId);
         } catch (Exception e) {
@@ -299,6 +310,153 @@ public class StationImportService {
         }
         return installed;
     }
+
+    /**
+     * Pulls every key in every station-scoped movable category from the source and stores it on
+     * the destination's backend. Per-key streaming: the response body is piped straight into
+     * {@link StorageService#store}. Keys that already exist on the destination are skipped so
+     * a retried import after a partial failure is idempotent (cheap exists check rather than a
+     * SHA round-trip).
+     */
+    private void copyLocalFiles(
+            int stationId, String baseUrl, String token, HttpClient httpClient, ObjectMapper mapper) {
+        Station station = stationRepository
+                .findById(stationId)
+                .orElseThrow(() -> new RuntimeException("Station " + stationId + " not found after table import"));
+        StorageScope.Station scope = new StorageScope.Station(stationId, station.uid());
+        for (StorageCategory category : transferrableStationCategories()) {
+            copyCategory(scope, category, baseUrl, token, httpClient, mapper);
+        }
+    }
+
+    private void copyCategory(
+            StorageScope.Station scope,
+            StorageCategory category,
+            String baseUrl,
+            String token,
+            HttpClient httpClient,
+            ObjectMapper mapper) {
+        int copied = 0;
+        int skipped = 0;
+        String after = null;
+        while (true) {
+            ListKeysPage page = listRemoteKeys(httpClient, mapper, baseUrl, token, category, after);
+            for (String key : page.keys()) {
+                if (storageService.readRelative(scope, category, key).isPresent()) {
+                    skipped++;
+                    continue;
+                }
+                if (streamRemoteFile(scope, category, baseUrl, token, key, httpClient)) {
+                    copied++;
+                }
+            }
+            if (page.next() == null) break;
+            after = page.next();
+        }
+        if (copied > 0 || skipped > 0) {
+            log.info("Byte-copied {} key(s) for category {} (skipped {} already present)", copied, category, skipped);
+        }
+    }
+
+    /**
+     * Returns {@code true} when the key was streamed successfully; {@code false} when the source
+     * answered 404 (the row was deleted concurrently — acceptable, the row will likely be
+     * re-listed in a later transfer or stay absent).
+     */
+    private boolean streamRemoteFile(
+            StorageScope.Station scope,
+            StorageCategory category,
+            String baseUrl,
+            String token,
+            String key,
+            HttpClient httpClient) {
+        try {
+            String encodedKey = encodeKeyPath(key);
+            var uri = URI.create(
+                    baseUrl + "/api/v1/public/transfer/" + token + "/files/" + category.name() + "/" + encodedKey);
+            var request = newImportRequest(uri);
+            var response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+            if (response.statusCode() == 404) {
+                return false;
+            }
+            if (response.statusCode() != 200) {
+                throw new RuntimeException("Failed to stream key '" + key + "' for category " + category + ": HTTP "
+                        + response.statusCode());
+            }
+            String contentType = response.headers().firstValue("Content-Type").orElse("application/octet-stream");
+            long contentLength = response.headers()
+                    .firstValueAsLong("Content-Length")
+                    .orElseThrow(() ->
+                            new RuntimeException("Source did not advertise Content-Length for key '" + key + "'"));
+            try (InputStream body = response.body()) {
+                storageService.store(scope, category, key, body, contentLength, contentType);
+            }
+            return true;
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to stream key '" + key + "' from remote", e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private ListKeysPage listRemoteKeys(
+            HttpClient httpClient,
+            ObjectMapper mapper,
+            String baseUrl,
+            String token,
+            StorageCategory category,
+            String after) {
+        try {
+            var sb = new StringBuilder(baseUrl)
+                    .append("/api/v1/public/transfer/")
+                    .append(token)
+                    .append("/files/")
+                    .append(category.name());
+            if (after != null && !after.isBlank()) {
+                sb.append("?after=").append(java.net.URLEncoder.encode(after, java.nio.charset.StandardCharsets.UTF_8));
+            }
+            var request = newImportRequest(URI.create(sb.toString()));
+            var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                throw new RuntimeException(
+                        "Failed to list keys for category " + category + ": HTTP " + response.statusCode());
+            }
+            Map<String, Object> body = mapper.readValue(response.body(), Map.class);
+            List<String> keys = (List<String>) body.getOrDefault("keys", List.of());
+            String next = (String) body.get("next");
+            return new ListKeysPage(keys, next);
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to list keys for category " + category, e);
+        }
+    }
+
+    private static List<StorageCategory> transferrableStationCategories() {
+        var out = new ArrayList<StorageCategory>();
+        for (StorageCategory c : StorageCategory.values()) {
+            if (c.scopeKind() != StorageScope.Kind.STATION) continue;
+            if (!c.isMovable()) continue;
+            if (StorageCategory.LEGACY_CATEGORIES.contains(c)) continue;
+            out.add(c);
+        }
+        return out;
+    }
+
+    /** URL-encodes each path segment of a relative key, keeping the {@code /} separators intact. */
+    private static String encodeKeyPath(String key) {
+        String[] parts = key.split("/", -1);
+        var sb = new StringBuilder();
+        for (int i = 0; i < parts.length; i++) {
+            if (i > 0) sb.append('/');
+            sb.append(java.net.URLEncoder.encode(parts[i], java.nio.charset.StandardCharsets.UTF_8)
+                    .replace("+", "%20"));
+        }
+        return sb.toString();
+    }
+
+    private record ListKeysPage(List<String> keys, String next) {}
 
     @SuppressWarnings("unchecked")
     private TransferBackendDescriptor fetchBackendDescriptor(
