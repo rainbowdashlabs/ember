@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.storage.service.StationReadOnlyForTransferException;
 import dev.chojo.ember.feature.system.service.ApiRequestLogger;
 import dev.chojo.ember.feature.system.service.DemoService;
 import dev.chojo.ember.feature.traffic.service.AuthBucketClassifier;
@@ -281,6 +282,7 @@ public class ApiServer {
             }
 
             config.routes.beforeMatched(this::handleAccess);
+            config.routes.beforeMatched(this::handleStationReadOnly);
 
             setupExceptionHandlers(config.routes);
 
@@ -533,6 +535,52 @@ public class ApiServer {
 
         if (stepUpCategory != null && !isStepUpFresh(session)) {
             throw new StepUpRequiredException(stepUpCategory);
+        }
+    }
+
+    /**
+     * Rejects every state-changing request that targets a station which has been flagged
+     * read-only for an in-flight cross-instance transfer. Catches both per-session station
+     * routes ({@code /api/v1/station/*}) and admin routes that name a specific station via
+     * {@code {stationUid}} in the path. GET / HEAD / OPTIONS pass through unchanged. The
+     * {@code /station/transfer/abort} and {@code /station/transfer/status} endpoints are
+     * exempt so the operator can still cancel the transfer and the banner can poll.
+     */
+    private void handleStationReadOnly(@NotNull Context ctx) {
+        var method = ctx.method();
+        if (method == HandlerType.GET || method == HandlerType.HEAD || method == HandlerType.OPTIONS) {
+            return;
+        }
+        String path = ctx.path();
+
+        if (path.startsWith(API_PREFIX + "/station/")) {
+            if (path.equals(API_PREFIX + "/station/transfer/abort")) return;
+            if (path.equals(API_PREFIX + "/station/transfer/status")) return;
+            UserSession session = ctx.attribute(ATTR_SESSION);
+            if (session == null || session.stationId() == null) return;
+            int stationId = session.stationId();
+            if (stationRepository.isReadOnlyForTransfer(stationId)) {
+                throw new StationReadOnlyForTransferException(stationId);
+            }
+            return;
+        }
+
+        if (path.startsWith(API_PREFIX + "/admin/storage/recalculate/")
+                || (path.startsWith(API_PREFIX + "/admin/storage/stations/") && path.contains("/quotas"))) {
+            String stationUidParam = ctx.pathParam("stationUid");
+            if (stationUidParam == null || stationUidParam.isBlank()) return;
+            UUID uid;
+            try {
+                uid = UUID.fromString(stationUidParam);
+            } catch (IllegalArgumentException e) {
+                return;
+            }
+            Optional<Station> stationOpt = stationRepository.findByUid(uid);
+            if (stationOpt.isEmpty()) return;
+            int stationId = stationOpt.get().id();
+            if (stationRepository.isReadOnlyForTransfer(stationId)) {
+                throw new StationReadOnlyForTransferException(stationId);
+            }
         }
     }
 
