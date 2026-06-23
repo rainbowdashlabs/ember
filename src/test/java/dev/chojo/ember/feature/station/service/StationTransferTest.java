@@ -88,7 +88,7 @@ class StationTransferTest extends RepositoryTestBase {
     static void setup() {
         exportService = new StationExportService(stationRepo);
         importService = new StationImportService(
-                stationRepo, accountRepo, exportService, new dev.chojo.ember.conf.file.elements.Api());
+                stationRepo, accountRepo, exportService, new dev.chojo.ember.conf.file.elements.Api(), null);
 
         // Create station with full settings
         var station = stationRepo.create("Jugendfeuerwehr Musterstadt");

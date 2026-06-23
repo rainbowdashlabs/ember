@@ -10,6 +10,8 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.storage.transfer.TransferBackendDescriptor;
+import dev.chojo.ember.feature.storage.transfer.TransferBackendImporter;
 import dev.chojo.ember.tracking.ColumnEntry;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
@@ -70,6 +72,7 @@ public class StationImportService {
     private final AccountRepository accountRepository;
     private final StationExportService exportService;
     private final Api api;
+    private final TransferBackendImporter backendImporter;
     private final GenericTableImporter engine;
     private final List<String> tableOrder;
     private final DataTracking tracking;
@@ -86,11 +89,13 @@ public class StationImportService {
             StationRepository stationRepository,
             AccountRepository accountRepository,
             StationExportService exportService,
-            Api api) {
+            Api api,
+            TransferBackendImporter backendImporter) {
         this.stationRepository = stationRepository;
         this.accountRepository = accountRepository;
         this.exportService = exportService;
         this.api = api;
+        this.backendImporter = backendImporter;
         DataTracking t;
         try {
             t = DataTrackingLoader.loadFromClasspath();
@@ -267,11 +272,49 @@ public class StationImportService {
                 fetchAndImportPaginated(stationId, table, baseUrl, token, httpClient, mapper, idMap);
                 p.completeTable();
             }
+            applySourceBackend(stationId, baseUrl, token, httpClient, mapper);
             p.complete();
             log.info("Remote import completed for station '{}' (id={})", p.stationName(), stationId);
         } catch (Exception e) {
             log.error("Remote import failed for station {}", stationId, e);
             p.fail(e.getMessage());
+        }
+    }
+
+    /**
+     * Pulls the source station's backend descriptor and either installs the same remote backend
+     * on the destination (re-encrypting the carried credentials) or clears any leftover override
+     * row when the source used the instance default. The next phase (LOCAL byte-copy) inspects
+     * the boolean returned here to decide whether to skip the streaming loop.
+     */
+    private boolean applySourceBackend(
+            int stationId, String baseUrl, String token, HttpClient httpClient, ObjectMapper mapper) {
+        TransferBackendDescriptor descriptor = fetchBackendDescriptor(httpClient, mapper, baseUrl, token);
+        boolean installed = backendImporter.apply(stationId, descriptor);
+        if (installed) {
+            log.info(
+                    "Imported source storage backend ({}) for station {}",
+                    descriptor.getClass().getSimpleName(),
+                    stationId);
+        }
+        return installed;
+    }
+
+    @SuppressWarnings("unchecked")
+    private TransferBackendDescriptor fetchBackendDescriptor(
+            HttpClient httpClient, ObjectMapper mapper, String baseUrl, String token) {
+        try {
+            var uri = URI.create(baseUrl + "/api/v1/public/transfer/" + token + "/backend");
+            var request = newImportRequest(uri);
+            var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                throw new RuntimeException("Failed to fetch /backend from remote: HTTP " + response.statusCode());
+            }
+            return mapper.readValue(response.body(), TransferBackendDescriptor.class);
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to fetch backend descriptor from remote", e);
         }
     }
 
