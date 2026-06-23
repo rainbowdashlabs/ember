@@ -5,8 +5,7 @@
  */
 package dev.chojo.ember.feature.page.service;
 
-import dev.chojo.ember.feature.media.service.ImageCategory;
-import dev.chojo.ember.feature.media.service.ImageService;
+import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.page.entity.CellConfig.MemberListSortBy;
 import dev.chojo.ember.feature.page.entity.CellConfig.ResolvedMember;
@@ -38,7 +37,7 @@ public final class MemberListResolver {
 
     public static List<ResolvedMember> resolve(
             StationMemberRepository memberRepository,
-            ImageService imageService,
+            AvatarService avatarService,
             int stationId,
             JsonNode source,
             MemberListSortBy sortBy,
@@ -63,7 +62,7 @@ public final class MemberListResolver {
                 };
         var sorted = sortMembers(picked, sortBy, memberOrder);
         return sorted.stream()
-                .map(m -> toResolved(m, descriptions.get(m.memberUid().toString()), imageService))
+                .map(m -> toResolved(m, descriptions.get(m.memberUid().toString()), avatarService))
                 .toList();
     }
 
@@ -128,21 +127,21 @@ public final class MemberListResolver {
     }
 
     private static ResolvedMember toResolved(
-            StationMemberRepository.PickerMember m, String description, ImageService imageService) {
+            StationMemberRepository.PickerMember m, String description, AvatarService avatarService) {
         return new ResolvedMember(
                 m.memberUid().toString(),
                 m.displayName(),
                 m.userType() != null ? m.userType().name() : null,
                 m.displayTag(),
                 m.displayTagColor(),
-                avatarDataUrl(imageService, m.accountUid()),
+                avatarDataUrl(avatarService, m.accountUid()),
                 description);
     }
 
-    private static String avatarDataUrl(ImageService imageService, UUID accountUid) {
+    private static String avatarDataUrl(AvatarService avatarService, UUID accountUid) {
         if (accountUid == null) return null;
-        return imageService
-                .read(ImageCategory.AVATARS, accountUid.toString(), 64)
+        return avatarService
+                .read(accountUid, 64)
                 .map(img -> "data:" + img.contentType() + ";base64,"
                         + Base64.getEncoder().encodeToString(img.data()))
                 .orElse(null);

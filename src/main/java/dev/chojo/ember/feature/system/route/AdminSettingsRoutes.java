@@ -17,8 +17,7 @@ import dev.chojo.ember.conf.file.elements.Theming;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.feature.legal.entity.LegalDocumentType;
 import dev.chojo.ember.feature.legal.service.LegalDocumentService;
-import dev.chojo.ember.feature.media.service.ImageCategory;
-import dev.chojo.ember.feature.media.service.ImageService;
+import dev.chojo.ember.feature.media.service.LogoFragmentService;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
@@ -43,13 +42,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -64,17 +60,17 @@ public class AdminSettingsRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(AdminSettingsRoutes.class);
 
     private final ApplicationSettingRepository settingRepository;
-    private final ImageService imageService;
+    private final LogoFragmentService logoFragmentService;
     private final Conf conf;
     private final LegalDocumentService documentService;
 
     @Inject
-    public AdminSettingsRoutes(ApplicationSettingRepository settingRepository, ImageService imageService, Conf conf) {
+    public AdminSettingsRoutes(
+            ApplicationSettingRepository settingRepository, LogoFragmentService logoFragmentService, Conf conf) {
         this.settingRepository = settingRepository;
-        this.imageService = imageService;
+        this.logoFragmentService = logoFragmentService;
         this.conf = conf;
         this.documentService = new LegalDocumentService();
-        initializeAppLogos();
         initializeLogoFragments();
     }
 
@@ -82,7 +78,6 @@ public class AdminSettingsRoutes implements Routes {
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/public/settings/station-registration", this::isRegistrationEnabled);
         routes.get(prefix + "/public/settings/theme", this::getPublicTheme);
-        routes.get(prefix + "/public/logo/{name}", this::serveAppLogo);
         routes.get(prefix + "/public/logo-fragment/{name}", this::serveLogoFragment);
         routes.get(prefix + "/admin/settings", this::getSettings, InstancePermission.ADMINISTRATOR);
         routes.put(
@@ -177,28 +172,6 @@ public class AdminSettingsRoutes implements Routes {
                 StepUpCategory.INSTANCE_CONFIG);
     }
 
-    private void initializeAppLogos() {
-        String[] logos = {
-            "IconBG",
-            "IconBG_Blink",
-            "IconBG_FAQ",
-            "IconBG_FAQ_Blink",
-            "IconBG_NoBlush",
-            "IconBG_NoBlush_Blink",
-            "NoBG_OrangeGlow",
-            "NoBG_OrangeGlow_Blink",
-            "NoBG_OrangeGlow_FAQ",
-            "NoBG_OrangeGlow_FAQ_Blink",
-            "NoBG_NoGlow",
-            "NoBG_NoGlow_Blink",
-            "NoBG_NoGlow_FAQ",
-            "NoBG_NoGlow_FAQ_Blink"
-        };
-        for (String logo : logos) {
-            storeIfChanged(ImageCategory.APP_LOGOS, logo, "logo/" + logo + ".png");
-        }
-    }
-
     private void initializeLogoFragments() {
         // Map from API name (used by frontend) to resource filename
         Map.Entry<String, String>[] fragments = new Map.Entry[] {
@@ -219,31 +192,27 @@ public class AdminSettingsRoutes implements Routes {
             Map.entry("fire_woah_two", "fire_woah_two"),
         };
         for (var fragment : fragments) {
-            storeIfChanged(
-                    ImageCategory.LOGO_FRAGMENTS, fragment.getKey(), "logo_fragments/" + fragment.getValue() + ".png");
+            storeLogoFragmentIfChanged(fragment.getKey(), "logo_fragments/" + fragment.getValue() + ".png");
         }
     }
 
-    private void storeIfChanged(ImageCategory category, String id, String resourcePath) {
-        try (var is = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
-            if (is == null) return;
-            byte[] data = is.readAllBytes();
-            String hash = sha256(data);
-            Path hashFile = Path.of("data", "images", category.directory(), id, ".hash");
-            if (Files.exists(hashFile) && Files.readString(hashFile).trim().equals(hash)) return;
-            imageService.store(category, id, data, "image/png");
-            Files.createDirectories(hashFile.getParent());
-            Files.writeString(hashFile, hash);
-        } catch (Exception e) {
-            log.warn("Failed to initialize image {}/{}: {}", category, id, e.getMessage());
-        }
-    }
-
-    private static String sha256(byte[] data) {
+    private void storeLogoFragmentIfChanged(String id, String resourcePath) {
+        byte[] data = readResource(resourcePath);
+        if (data == null) return;
         try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(data));
-        } catch (NoSuchAlgorithmException e) {
-            throw new AssertionError("SHA-256 not available", e);
+            logoFragmentService.storeIfChanged(id, data, "image/png");
+        } catch (Exception e) {
+            log.warn("Failed to initialize logo fragment {}: {}", id, e.getMessage());
+        }
+    }
+
+    private byte[] readResource(String resourcePath) {
+        try (var is = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
+            if (is == null) return null;
+            return is.readAllBytes();
+        } catch (Exception e) {
+            log.warn("Failed to read resource {}: {}", resourcePath, e.getMessage());
+            return null;
         }
     }
 
@@ -254,8 +223,8 @@ public class AdminSettingsRoutes implements Routes {
             return;
         }
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
-        imageService
-                .read(ImageCategory.LOGO_FRAGMENTS, name, size)
+        logoFragmentService
+                .read(name, size)
                 .ifPresentOrElse(
                         img -> {
                             ctx.contentType(img.contentType());
@@ -263,24 +232,6 @@ public class AdminSettingsRoutes implements Routes {
                             ctx.result(img.data());
                         },
                         () -> ctx.status(HttpStatus.NOT_FOUND));
-    }
-
-    private void serveAppLogo(Context ctx) {
-        String name = safeLogoName(ctx);
-        if (name == null) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            return;
-        }
-        int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
-        imageService
-                .read(ImageCategory.APP_LOGOS, name, size)
-                .ifPresentOrElse(
-                        img -> {
-                            ctx.contentType(img.contentType());
-                            ctx.header("Cache-Control", "public, max-age=86400");
-                            ctx.result(img.data());
-                        },
-                        () -> ctx.status(HttpStatus.NO_CONTENT));
     }
 
     /**

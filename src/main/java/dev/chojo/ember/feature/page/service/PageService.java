@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.page.service;
 
-import dev.chojo.ember.feature.media.service.ImageService;
+import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.page.entity.CellConfig;
 import dev.chojo.ember.feature.page.entity.CellContentType;
@@ -54,7 +54,7 @@ public class PageService {
     private final PageImageVariantService variantService;
     private final StorageQuotaService quotaService;
     private final StationMemberRepository stationMemberRepository;
-    private final ImageService imageService;
+    private final AvatarService avatarService;
     private final Parser markdownParser;
     private final HtmlRenderer htmlRenderer;
 
@@ -66,14 +66,14 @@ public class PageService {
             PageImageVariantService variantService,
             StorageQuotaService quotaService,
             StationMemberRepository stationMemberRepository,
-            ImageService imageService) {
+            AvatarService avatarService) {
         this.pageRepository = pageRepository;
         this.metaRepository = metaRepository;
         this.imageStorage = imageStorage;
         this.variantService = variantService;
         this.quotaService = quotaService;
         this.stationMemberRepository = stationMemberRepository;
-        this.imageService = imageService;
+        this.avatarService = avatarService;
         List<Extension> extensions = List.of(
                 TablesExtension.create(),
                 HeadingAnchorExtension.create(),
@@ -475,7 +475,7 @@ public class PageService {
                 && cell.config() instanceof CellConfig.MemberListConfig officers) {
             var resolved = MemberListResolver.resolve(
                     stationMemberRepository,
-                    imageService,
+                    avatarService,
                     stationId,
                     officers.source(),
                     officers.sortBy(),

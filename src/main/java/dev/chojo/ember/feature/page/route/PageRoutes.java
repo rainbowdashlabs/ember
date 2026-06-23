@@ -8,11 +8,11 @@ package dev.chojo.ember.feature.page.route;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler;
 import dev.chojo.ember.feature.form.service.FormService;
-import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.page.entity.CellConfig;
 import dev.chojo.ember.feature.page.entity.CellContentType;
@@ -43,7 +43,7 @@ public class PageRoutes implements Routes {
     private final FormService formService;
     private final FormAnalyticsAssembler formAnalyticsAssembler;
     private final StationMemberRepository stationMemberRepository;
-    private final ImageService imageService;
+    private final AvatarService avatarService;
 
     @Inject
     public PageRoutes(
@@ -51,12 +51,12 @@ public class PageRoutes implements Routes {
             FormService formService,
             FormAnalyticsAssembler formAnalyticsAssembler,
             StationMemberRepository stationMemberRepository,
-            ImageService imageService) {
+            AvatarService avatarService) {
         this.pageService = pageService;
         this.formService = formService;
         this.formAnalyticsAssembler = formAnalyticsAssembler;
         this.stationMemberRepository = stationMemberRepository;
-        this.imageService = imageService;
+        this.avatarService = avatarService;
     }
 
     @Override
@@ -218,7 +218,13 @@ public class PageRoutes implements Routes {
             }
         }
         ctx.json(MemberListResolver.resolve(
-                stationMemberRepository, imageService, session.stationId(), source, sortBy, descriptions, memberOrder));
+                stationMemberRepository,
+                avatarService,
+                session.stationId(),
+                source,
+                sortBy,
+                descriptions,
+                memberOrder));
     }
 
     private void create(Context ctx) {

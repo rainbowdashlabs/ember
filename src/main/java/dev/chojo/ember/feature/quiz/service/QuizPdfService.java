@@ -18,9 +18,6 @@ import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,12 +31,17 @@ public class QuizPdfService {
 
     private final QuizTestRepository testRepository;
     private final QuizCatalogRepository catalogRepository;
+    private final QuizQuestionImageService imageService;
 
     @Inject
     public QuizPdfService(
-            QuizTestRepository testRepository, QuizCatalogRepository catalogRepository, QuizService quizService) {
+            QuizTestRepository testRepository,
+            QuizCatalogRepository catalogRepository,
+            QuizQuestionImageService imageService,
+            QuizService quizService) {
         this.testRepository = testRepository;
         this.catalogRepository = catalogRepository;
+        this.imageService = imageService;
     }
 
     public byte[] exportQuestionPdf(int testId) throws IOException, InterruptedException {
@@ -162,7 +164,7 @@ public class QuizPdfService {
 
                 // Render image if present
                 if (q.imageUrl() != null && !q.imageUrl().isBlank()) {
-                    String imgFile = resolveImage(q.imageUrl(), questionNum - 1, resources);
+                    String imgFile = resolveImage(q.id(), q.catalogId(), questionNum - 1, resources);
                     if (imgFile != null) {
                         sb.append("#image(\"").append(imgFile).append("\", width: 40%)\n\n");
                     }
@@ -502,35 +504,23 @@ public class QuizPdfService {
         sb.append(escape(segment.toString())).append("\n\n");
     }
 
-    private String resolveImage(String imageUrl, int questionNum, Map<String, byte[]> resources) {
-        // Try loading from data/images/ directory (uploaded quiz images)
-        Path imagePath = Path.of("data", "images", "quiz-questions", imageUrl);
-        if (Files.exists(imagePath)) {
-            try {
-                String filename = "img-" + questionNum + getExtension(imageUrl);
-                resources.put(filename, Files.readAllBytes(imagePath));
-                return filename;
-            } catch (IOException e) {
-                log.warn("Failed to read image: {}", imagePath, e);
-            }
-        }
-        // Fallback: try classpath resource (e.g., logo)
-        String resourcePath = "logo/IconBG.png";
-        try (InputStream is = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
-            if (is != null) {
-                String filename = "img-" + questionNum + ".png";
-                resources.put(filename, is.readAllBytes());
-                return filename;
-            }
-        } catch (IOException e) {
-            log.warn("Failed to read fallback image", e);
-        }
-        return null;
+    private String resolveImage(int questionId, int catalogId, int questionNum, Map<String, byte[]> resources) {
+        var catalog = catalogRepository.findById(catalogId).orElse(null);
+        if (catalog == null) return null;
+        var image = imageService.read(catalog.stationId(), questionId, 0).orElse(null);
+        if (image == null) return null;
+        String filename = "img-" + questionNum + extensionFor(image.contentType());
+        resources.put(filename, image.data());
+        return filename;
     }
 
-    private static String getExtension(String filename) {
-        int dot = filename.lastIndexOf('.');
-        return dot >= 0 ? filename.substring(dot) : ".png";
+    private static String extensionFor(String contentType) {
+        return switch (contentType == null ? "" : contentType.toLowerCase()) {
+            case "image/jpeg" -> ".jpg";
+            case "image/webp" -> ".webp";
+            case "image/gif" -> ".gif";
+            default -> ".png";
+        };
     }
 
     private String escape(String text) {

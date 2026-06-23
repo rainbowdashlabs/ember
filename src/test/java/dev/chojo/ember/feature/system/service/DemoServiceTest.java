@@ -13,6 +13,7 @@ import dev.chojo.ember.conf.file.elements.Federation;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.board.service.FederatedBoardService;
@@ -37,7 +38,7 @@ import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
-import dev.chojo.ember.feature.media.service.ImageService;
+import dev.chojo.ember.feature.media.service.ImageVariantService;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -52,6 +53,7 @@ import dev.chojo.ember.feature.page.service.PageImageVariantService;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
+import dev.chojo.ember.feature.quiz.service.QuizQuestionImageService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.feature.storage.service.PdfCompressor;
@@ -138,7 +140,11 @@ class DemoServiceTest extends RepositoryTestBase {
                 stationRepo);
         var protocolService = new TestProtocolService(
                 testProtocolRepo, federationService, federationRepo, federationHttpClient, stationRepo);
-        var imageService = new ImageService();
+        var imageVariantStorage = new dev.chojo.ember.feature.storage.service.StorageService(
+                new dev.chojo.ember.feature.storage.backend.StorageBackendResolver(kbBackend), kbBackend);
+        var imageVariantWriter = new ImageVariantService(imageVariantStorage);
+        var avatarService = new AvatarService(imageVariantWriter);
+        var quizImageService = new QuizQuestionImageService(imageVariantWriter, stationRepo);
         var authService = mock(AuthService.class);
         var stationService =
                 new StationService(stationRepo, stationMemberRepo, accountRepo, authService, federationService);
@@ -209,10 +215,10 @@ class DemoServiceTest extends RepositoryTestBase {
         var notificationSeeder = new DemoNotificationSeeder(notificationRepo);
         var waitingListSeeder = new DemoWaitingListSeeder(
                 waitingListRepo, memberGroupRepo, stationMemberRepo, attendanceRepo, accountRepo);
-        var quizSeeder = new DemoQuizSeeder(quizCatalogRepo, quizTestRepo, quizService, imageService);
+        var quizSeeder = new DemoQuizSeeder(quizCatalogRepo, quizTestRepo, quizService, quizImageService);
         var kbSeeder = new DemoKnowledgeBaseSeeder(kbService, knowledgeBaseRepo);
         var protocolSeeder = new DemoProtocolSeeder(testProtocolRepo);
-        var mediaSeeder = new DemoMediaSeeder(imageService, stationService, accountRepo);
+        var mediaSeeder = new DemoMediaSeeder(avatarService, stationService, accountRepo);
         var federationSeeder = new DemoFederationSeeder(
                 stationRepo,
                 federationService,
@@ -248,7 +254,7 @@ class DemoServiceTest extends RepositoryTestBase {
                         new PageImageVariantService(demoStorage, demoStorageConfig),
                         new StorageQuotaService(storageUsageRepo, demoStorageConfig, noOpBus),
                         stationMemberRepo,
-                        new ImageService()),
+                        avatarService),
                 formRepo,
                 quizCatalogRepo);
         var newsSeeder = new DemoNewsSeeder(newsService, stationMemberRepo);

@@ -21,10 +21,9 @@ import dev.chojo.ember.feature.feed.render.IcalEventRenderer;
 import dev.chojo.ember.feature.feed.render.NotificationFeedRenderer;
 import dev.chojo.ember.feature.feed.service.FeedMetricsService;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
+import dev.chojo.ember.feature.lostandfound.service.LostAndFoundImageService;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
 import dev.chojo.ember.feature.mail.service.EmailService;
-import dev.chojo.ember.feature.media.service.ImageCategory;
-import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.entity.Notification;
@@ -88,7 +87,7 @@ public class UserFeedRoutes implements Routes {
     private final AccountRepository accountRepository;
     private final IcalEventRenderer icalRenderer;
     private final LostAndFoundService lostAndFoundService;
-    private final ImageService imageService;
+    private final LostAndFoundImageService imageService;
     private final NotificationFeedRenderer notificationRenderer;
     private final FeedRateLimiter rateLimiter;
     private final FeedMetricsService metricsService;
@@ -104,7 +103,7 @@ public class UserFeedRoutes implements Routes {
             AccountRepository accountRepository,
             IcalEventRenderer icalRenderer,
             LostAndFoundService lostAndFoundService,
-            ImageService imageService,
+            LostAndFoundImageService imageService,
             NotificationFeedRenderer notificationRenderer,
             FeedRateLimiter rateLimiter,
             FeedMetricsService metricsService) {
@@ -336,9 +335,7 @@ public class UserFeedRoutes implements Routes {
         }
 
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
-        var image = imageService
-                .read(ImageCategory.LOST_AND_FOUND, String.valueOf(itemId), size)
-                .orElseThrow(NotFoundResponse::new);
+        var image = imageService.read(member.stationId(), itemId, size).orElseThrow(NotFoundResponse::new);
 
         ctx.contentType(image.contentType());
         ctx.header("Cache-Control", "public, max-age=86400");

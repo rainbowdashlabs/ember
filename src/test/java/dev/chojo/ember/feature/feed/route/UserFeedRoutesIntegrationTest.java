@@ -15,9 +15,9 @@ import dev.chojo.ember.feature.feed.render.NotificationFeedRenderer;
 import dev.chojo.ember.feature.feed.service.FeedMetricsService;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.feature.lostandfound.service.LostAndFoundImageService;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
 import dev.chojo.ember.feature.mail.service.EmailService;
-import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
@@ -70,7 +70,7 @@ class UserFeedRoutesIntegrationTest {
     private AccountRepository accountRepository;
     private IcalEventRenderer icalRenderer;
     private LostAndFoundService lostAndFoundService;
-    private ImageService imageService;
+    private LostAndFoundImageService imageService;
     private NotificationFeedRenderer notificationRenderer;
     private FeedRateLimiter rateLimiter;
     private FeedMetricsService metricsService;
@@ -92,7 +92,7 @@ class UserFeedRoutesIntegrationTest {
         accountRepository = mock(AccountRepository.class);
         icalRenderer = mock(IcalEventRenderer.class);
         lostAndFoundService = mock(LostAndFoundService.class);
-        imageService = mock(ImageService.class);
+        imageService = mock(LostAndFoundImageService.class);
         notificationRenderer = mock(NotificationFeedRenderer.class);
         clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
         rateLimiter = new FeedRateLimiter(clock);

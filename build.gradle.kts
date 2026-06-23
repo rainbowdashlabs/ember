@@ -322,6 +322,22 @@ tasks {
                     "*.PageFileStorageService*",
                     "*.PageImageVariantService*",
                     "*.PdfCompressor*",
+                    "*.BoardAttachmentService*",
+                    "*.TextCompressionPolicy*",
+                    // Unified storage façade — heavy I/O against the backend layer,
+                    // public-surface paths covered by StorageServiceTest
+                    "*.StorageService*",
+                    "*.StorageBackendResolver*",
+                    "*.LocalStorageBackend*",
+                    // Image variant pipeline and the thin per-domain wrappers over it —
+                    // exercised end-to-end via route tests, not unit-covered.
+                    "*.ImageVariantService*",
+                    "*.AvatarService*",
+                    "*.LostAndFoundImageService*",
+                    "*.QuizQuestionImageService*",
+                    "*.KbIconService*",
+                    "*.KbImageService*",
+                    "*.LogoFragmentService*",
                     // External binary dependent services
                     "*.LegalDocumentService*",
                     // Daemon/scheduler threads

@@ -11,9 +11,9 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.feature.knowledgebase.service.KbIconService;
+import dev.chojo.ember.feature.knowledgebase.service.KbImageService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
-import dev.chojo.ember.feature.media.service.ImageCategory;
-import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -48,17 +48,20 @@ public class PublicKnowledgeBaseRoutes implements Routes {
     private final KnowledgeBaseService kbService;
     private final StationService stationService;
     private final StationRepository stationRepository;
-    private final ImageService imageService;
+    private final KbIconService iconService;
+    private final KbImageService imageService;
 
     @Inject
     public PublicKnowledgeBaseRoutes(
             KnowledgeBaseService kbService,
             StationService stationService,
             StationRepository stationRepository,
-            ImageService imageService) {
+            KbIconService iconService,
+            KbImageService imageService) {
         this.kbService = kbService;
         this.stationService = stationService;
         this.stationRepository = stationRepository;
+        this.iconService = iconService;
         this.imageService = imageService;
     }
 
@@ -275,11 +278,11 @@ public class PublicKnowledgeBaseRoutes implements Routes {
             queryParams = @OpenApiParam(name = "size", type = Integer.class),
             responses = {@OpenApiResponse(status = "200"), @OpenApiResponse(status = "404")})
     private void getFolderIcon(Context ctx) {
-        resolveStation(ctx);
+        var station = resolveStation(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(128);
-        imageService
-                .read(ImageCategory.KB_ICONS, String.valueOf(id), size)
+        iconService
+                .read(station.id(), id, size)
                 .ifPresentOrElse(
                         img -> {
                             ctx.contentType(img.contentType());
@@ -301,11 +304,11 @@ public class PublicKnowledgeBaseRoutes implements Routes {
             queryParams = @OpenApiParam(name = "size", type = Integer.class),
             responses = {@OpenApiResponse(status = "200"), @OpenApiResponse(status = "404")})
     private void getKbImage(Context ctx) {
-        resolveStation(ctx);
+        var station = resolveStation(ctx);
         String imageId = ctx.pathParam("imageId");
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(1024);
         imageService
-                .read(ImageCategory.KB_IMAGES, imageId, size)
+                .read(station.id(), imageId, size)
                 .ifPresentOrElse(
                         img -> {
                             ctx.contentType(img.contentType());

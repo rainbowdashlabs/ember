@@ -20,13 +20,12 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
 import dev.chojo.ember.feature.legal.service.GdprExportService;
-import dev.chojo.ember.feature.media.service.ImageCategory;
-import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -88,7 +87,7 @@ public class SessionRoutes implements Routes {
     private final GdprExportService gdprExportService;
     private final GdprDeletionService gdprDeletionService;
     private final Api apiConfig;
-    private final ImageService imageService;
+    private final AvatarService avatarService;
     private final UserSettingsRepository userSettingsRepository;
     private final UserTagRepository userTagRepository;
     private final Conf conf;
@@ -111,7 +110,7 @@ public class SessionRoutes implements Routes {
             GdprExportService gdprExportService,
             GdprDeletionService gdprDeletionService,
             Api apiConfig,
-            ImageService imageService,
+            AvatarService avatarService,
             UserSettingsRepository userSettingsRepository,
             UserTagRepository userTagRepository,
             Conf conf,
@@ -131,7 +130,7 @@ public class SessionRoutes implements Routes {
         this.gdprExportService = gdprExportService;
         this.gdprDeletionService = gdprDeletionService;
         this.apiConfig = apiConfig;
-        this.imageService = imageService;
+        this.avatarService = avatarService;
         this.userSettingsRepository = userSettingsRepository;
         this.userTagRepository = userTagRepository;
         this.conf = conf;
@@ -473,7 +472,7 @@ public class SessionRoutes implements Routes {
             ctx.status(HttpStatus.NOT_FOUND);
             return;
         }
-        serveAvatar(ctx, accountUid.toString());
+        serveAvatar(ctx, accountUid);
     }
 
     /**
@@ -499,7 +498,7 @@ public class SessionRoutes implements Routes {
             ctx.status(HttpStatus.NOT_FOUND);
             return;
         }
-        serveAvatar(ctx, accountUid.toString());
+        serveAvatar(ctx, accountUid);
     }
 
     /**
@@ -544,7 +543,7 @@ public class SessionRoutes implements Routes {
             ctx.status(HttpStatus.NOT_FOUND);
             return;
         }
-        serveAvatar(ctx, accountUid.toString());
+        serveAvatar(ctx, accountUid);
     }
 
     /**
@@ -611,13 +610,13 @@ public class SessionRoutes implements Routes {
     }
 
     /**
-     * Serves an avatar from disk with appropriate content type and cache headers,
-     * given the disk-key (account UUID string) the avatar is stored under.
+     * Serves an avatar with appropriate content type and cache headers, given the account UUID
+     * the avatar is stored under.
      */
-    private void serveAvatar(Context ctx, String key) {
+    private void serveAvatar(Context ctx, UUID accountUid) {
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
-        imageService
-                .read(ImageCategory.AVATARS, key, size)
+        avatarService
+                .read(accountUid, size)
                 .ifPresentOrElse(
                         img -> {
                             ctx.contentType(img.contentType());
@@ -645,12 +644,7 @@ public class SessionRoutes implements Routes {
         }
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
-            imageService.store(
-                    ImageCategory.AVATARS,
-                    accountUid.toString(),
-                    data,
-                    file.contentType(),
-                    apiConfig.maxImageSizeBytes());
+            avatarService.store(accountUid, data, file.contentType(), apiConfig.maxImageSizeBytes());
             ctx.json(new MessageResponse("Avatar updated"));
         } catch (IllegalArgumentException e) {
             throw new BadRequestResponse(e.getMessage());
@@ -669,7 +663,7 @@ public class SessionRoutes implements Routes {
         if (accountUid == null) {
             throw new BadRequestResponse("Account UUID not found");
         }
-        imageService.delete(ImageCategory.AVATARS, accountUid.toString());
+        avatarService.delete(accountUid);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

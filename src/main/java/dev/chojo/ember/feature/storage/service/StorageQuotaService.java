@@ -177,7 +177,6 @@ public class StorageQuotaService {
                     IMAGE_QUIZ_QUESTION,
                     IMAGE_KB_ICON,
                     IMAGE_KB_IMAGE,
-                    IMAGE_APP_LOGO,
                     IMAGE_LOGO_FRAGMENT ->
                 quota.quotaImagesBytes() != null ? quota.quotaImagesBytes() : storageConfig.defaultImagesBytes();
             case PAGE_FILES, PAGE_IMAGES ->

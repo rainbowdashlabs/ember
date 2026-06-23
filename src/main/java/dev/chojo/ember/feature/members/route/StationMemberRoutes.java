@@ -12,9 +12,8 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
-import dev.chojo.ember.feature.media.service.ImageCategory;
-import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.entity.MemberWithName;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.RichMember;
@@ -66,7 +65,7 @@ public class StationMemberRoutes implements Routes {
     private final MemberIdentityFactory memberIdentityFactory;
     private final RestrictionRepository restrictionRepository;
     private final StationRepository stationRepository;
-    private final ImageService imageService;
+    private final AvatarService avatarService;
 
     @Inject
     public StationMemberRoutes(
@@ -79,7 +78,7 @@ public class StationMemberRoutes implements Routes {
             MemberIdentityFactory memberIdentityFactory,
             RestrictionRepository restrictionRepository,
             StationRepository stationRepository,
-            ImageService imageService) {
+            AvatarService avatarService) {
         this.memberService = memberService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -89,7 +88,7 @@ public class StationMemberRoutes implements Routes {
         this.memberIdentityFactory = memberIdentityFactory;
         this.restrictionRepository = restrictionRepository;
         this.stationRepository = stationRepository;
-        this.imageService = imageService;
+        this.avatarService = avatarService;
     }
 
     @Override
@@ -231,8 +230,8 @@ public class StationMemberRoutes implements Routes {
      */
     private String avatarDataUrlFor(UUID accountUid) {
         if (accountUid == null) return null;
-        return imageService
-                .read(ImageCategory.AVATARS, accountUid.toString(), 64)
+        return avatarService
+                .read(accountUid, 64)
                 .map(img -> "data:" + img.contentType() + ";base64,"
                         + Base64.getEncoder().encodeToString(img.data()))
                 .orElse(null);

@@ -65,15 +65,6 @@ public enum StorageCategory {
             false,
             false,
             null),
-    IMAGE_APP_LOGO(
-            "images/app-logos",
-            StorageScope.Kind.INSTANCE,
-            true,
-            QuotaMode.UNTRACKED,
-            List.of("image/png", "image/jpeg", "image/webp", "image/gif"),
-            false,
-            false,
-            null),
     IMAGE_LOGO_FRAGMENT(
             "images/logo-fragments",
             StorageScope.Kind.INSTANCE,

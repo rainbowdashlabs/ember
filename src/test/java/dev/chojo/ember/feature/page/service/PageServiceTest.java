@@ -8,7 +8,8 @@ package dev.chojo.ember.feature.page.service;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.media.service.ImageService;
+import dev.chojo.ember.feature.account.service.AvatarService;
+import dev.chojo.ember.feature.media.service.ImageVariantService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.page.entity.CellConfig;
 import dev.chojo.ember.feature.page.entity.CellContentType;
@@ -58,7 +59,7 @@ class PageServiceTest extends RepositoryTestBase {
                 new PageImageVariantService(storage, storageConfig),
                 new StorageQuotaService(storageUsageRepo, storageConfig, new DomainEventBus(Set.of())),
                 stationMemberRepo,
-                new ImageService());
+                new AvatarService(new ImageVariantService(storageService)));
         station = stationRepo.create("PageServiceStation");
         account = accountRepo.create("page-svc@test.com", "Page", "Author");
         member = stationMemberRepo.create(station.id(), account.id());

@@ -13,11 +13,15 @@ import de.chojo.sadu.postgresql.mapper.PostgresqlMapper;
 import de.chojo.sadu.queries.api.configuration.QueryConfiguration;
 import de.chojo.sadu.updater.QueryReplacement;
 import de.chojo.sadu.updater.SqlUpdater;
+import dev.chojo.ember.feature.media.service.ImageVariantService;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.storage.backend.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
+import dev.chojo.ember.feature.storage.service.StorageService;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -96,7 +100,10 @@ class QuizPdfExportTest {
         testRepo = new QuizTestRepository();
         quizService = new QuizService(
                 catalogRepo, testRepo, new RestrictionRepository(null, null, null), null, null, null, null);
-        pdfService = new QuizPdfService(testRepo, catalogRepo, quizService);
+        var backend = new LocalStorageBackend();
+        var storage = new StorageService(new StorageBackendResolver(backend), backend);
+        var imageService = new QuizQuestionImageService(new ImageVariantService(storage), stationRepo);
+        pdfService = new QuizPdfService(testRepo, catalogRepo, imageService, quizService);
     }
 
     @Test

@@ -145,7 +145,7 @@ class StorageServiceTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> service.store(
-                        instanceScope(), StorageCategory.IMAGE_APP_LOGO, "logo", new byte[] {1}, "text/plain"));
+                        instanceScope(), StorageCategory.IMAGE_LOGO_FRAGMENT, "logo", new byte[] {1}, "text/plain"));
     }
 
     @Test

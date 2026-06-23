@@ -14,8 +14,6 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import dev.chojo.ember.feature.media.service.ImageCategory;
-import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.quiz.entity.AttemptStatus;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
@@ -32,6 +30,7 @@ import dev.chojo.ember.feature.quiz.entity.SectionEntry;
 import dev.chojo.ember.feature.quiz.entity.SourceEntry;
 import dev.chojo.ember.feature.quiz.entity.TestStatus;
 import dev.chojo.ember.feature.quiz.service.QuizPdfService;
+import dev.chojo.ember.feature.quiz.service.QuizQuestionImageService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -71,7 +70,7 @@ public class QuizRoutes implements Routes {
 
     private final QuizService quizService;
     private final QuizPdfService pdfService;
-    private final ImageService imageService;
+    private final QuizQuestionImageService imageService;
     private final FederationRepository federationRepository;
     private final StationRepository stationRepository;
     private final Api apiConfig;
@@ -81,7 +80,7 @@ public class QuizRoutes implements Routes {
     public QuizRoutes(
             QuizService quizService,
             QuizPdfService pdfService,
-            ImageService imageService,
+            QuizQuestionImageService imageService,
             FederationRepository federationRepository,
             StationRepository stationRepository,
             Api apiConfig,
@@ -1263,10 +1262,11 @@ public class QuizRoutes implements Routes {
     // -- Question Images --
 
     private void getQuestionImage(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
         imageService
-                .read(ImageCategory.QUIZ_QUESTIONS, String.valueOf(id), size)
+                .read(session.stationId(), id, size)
                 .ifPresentOrElse(
                         img -> {
                             ctx.contentType(img.contentType());
@@ -1279,6 +1279,7 @@ public class QuizRoutes implements Routes {
     }
 
     private void uploadQuestionImage(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         quizService.findQuestion(id).orElseThrow(NotFoundResponse::new);
         var file = ctx.uploadedFile("image");
@@ -1290,12 +1291,7 @@ public class QuizRoutes implements Routes {
         }
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
-            imageService.store(
-                    ImageCategory.QUIZ_QUESTIONS,
-                    String.valueOf(id),
-                    data,
-                    file.contentType(),
-                    apiConfig.maxImageSizeBytes());
+            imageService.store(session.stationId(), id, data, file.contentType(), apiConfig.maxImageSizeBytes());
             ctx.json(new SuccessResponse(true));
         } catch (IllegalArgumentException e) {
             log.warn("Invalid argument storing question image for question {}", id, e);
@@ -1307,8 +1303,9 @@ public class QuizRoutes implements Routes {
     }
 
     private void deleteQuestionImage(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        imageService.delete(ImageCategory.QUIZ_QUESTIONS, String.valueOf(id));
+        imageService.delete(session.stationId(), id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

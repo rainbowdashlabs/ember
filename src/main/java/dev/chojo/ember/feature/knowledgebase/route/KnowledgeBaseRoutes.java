@@ -28,9 +28,9 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
+import dev.chojo.ember.feature.knowledgebase.service.KbIconService;
+import dev.chojo.ember.feature.knowledgebase.service.KbImageService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
-import dev.chojo.ember.feature.media.service.ImageCategory;
-import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
@@ -85,7 +85,8 @@ public class KnowledgeBaseRoutes implements Routes {
     private final AccountRepository accountRepository;
     private final MemberGroupRepository memberGroupRepository;
     private final UserTagRepository userTagRepository;
-    private final ImageService imageService;
+    private final KbIconService iconService;
+    private final KbImageService imageService;
     private final FederationRepository federationRepository;
     private final StationRepository stationRepository;
     private final KbCommentRepository kbCommentRepository;
@@ -102,7 +103,8 @@ public class KnowledgeBaseRoutes implements Routes {
             AccountRepository accountRepository,
             MemberGroupRepository memberGroupRepository,
             UserTagRepository userTagRepository,
-            ImageService imageService,
+            KbIconService iconService,
+            KbImageService imageService,
             FederationRepository federationRepository,
             StationRepository stationRepository,
             KbCommentRepository kbCommentRepository,
@@ -117,6 +119,7 @@ public class KnowledgeBaseRoutes implements Routes {
         this.accountRepository = accountRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.userTagRepository = userTagRepository;
+        this.iconService = iconService;
         this.imageService = imageService;
         this.federationRepository = federationRepository;
         this.stationRepository = stationRepository;
@@ -930,10 +933,11 @@ public class KnowledgeBaseRoutes implements Routes {
     // -- Folder Icons --
 
     private void getFolderIcon(Context ctx) {
+        var session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(256);
-        imageService
-                .read(ImageCategory.KB_ICONS, "folder-" + id, size)
+        iconService
+                .read(session.stationId(), id, size)
                 .ifPresentOrElse(
                         img -> {
                             ctx.contentType(img.contentType());
@@ -957,9 +961,9 @@ public class KnowledgeBaseRoutes implements Routes {
         }
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
-            imageService.store(ImageCategory.KB_ICONS, "folder-" + id, data, file.contentType(), 5 * 1024 * 1024);
+            iconService.store(session.stationId(), id, data, file.contentType(), 5 * 1024 * 1024);
             // Mark folder as having an icon so the frontend shows it
-            service.updateFolder(id, folder.name(), folder.description(), "folder-" + id, folder.position());
+            service.updateFolder(id, folder.name(), folder.description(), iconService.key(id), folder.position());
             ctx.json(new MessageResponse("Icon updated"));
         } catch (IllegalArgumentException e) {
             log.warn("Invalid argument storing folder icon for folder {}", id, e);
@@ -987,7 +991,7 @@ public class KnowledgeBaseRoutes implements Routes {
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
             String imageId = "file-" + fileId + "-" + System.currentTimeMillis();
-            imageService.store(ImageCategory.KB_IMAGES, imageId, data, file.contentType(), 10 * 1024 * 1024);
+            imageService.store(session.stationId(), imageId, data, file.contentType(), 10 * 1024 * 1024);
             ctx.json(new ImageUploadResponse(imageId));
         } catch (IllegalArgumentException e) {
             log.warn("Invalid argument storing KB image for file {}", fileId, e);
@@ -999,10 +1003,11 @@ public class KnowledgeBaseRoutes implements Routes {
     }
 
     private void getKbImage(Context ctx) {
+        var session = UserSession.from(ctx);
         String imageId = ctx.pathParam("imageId");
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(1024);
         imageService
-                .read(ImageCategory.KB_IMAGES, imageId, size)
+                .read(session.stationId(), imageId, size)
                 .ifPresentOrElse(
                         img -> {
                             ctx.contentType(img.contentType());
