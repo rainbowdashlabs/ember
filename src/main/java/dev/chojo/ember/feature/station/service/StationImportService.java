@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.station.service;
 
+import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
@@ -68,6 +69,7 @@ public class StationImportService {
     private final StationRepository stationRepository;
     private final AccountRepository accountRepository;
     private final StationExportService exportService;
+    private final Api api;
     private final GenericTableImporter engine;
     private final List<String> tableOrder;
     private final DataTracking tracking;
@@ -83,10 +85,12 @@ public class StationImportService {
     public StationImportService(
             StationRepository stationRepository,
             AccountRepository accountRepository,
-            StationExportService exportService) {
+            StationExportService exportService,
+            Api api) {
         this.stationRepository = stationRepository;
         this.accountRepository = accountRepository;
         this.exportService = exportService;
+        this.api = api;
         DataTracking t;
         try {
             t = DataTrackingLoader.loadFromClasspath();
@@ -447,12 +451,26 @@ public class StationImportService {
 
     // -- HTTP --
 
+    /**
+     * Builds a GET request and pins the destination instance URL on the source so the source
+     * banner can surface where the station is going. The source records the value off the first
+     * {@code /tables} call; subsequent calls re-send it but the source treats them as no-ops.
+     */
+    private HttpRequest newImportRequest(URI uri) {
+        var builder = HttpRequest.newBuilder().uri(uri).GET();
+        String ourUrl = api.baseUrl();
+        if (ourUrl != null && !ourUrl.isBlank()) {
+            builder.header("X-Ember-Importing-From", ourUrl);
+        }
+        return builder.build();
+    }
+
     @SuppressWarnings("unchecked")
     private void verifyRemoteSchemaHash(HttpClient httpClient, ObjectMapper mapper, String baseUrl, String token) {
         String localHash = exportService.getSchemaHash();
         try {
             var uri = URI.create(baseUrl + "/api/v1/public/transfer/" + token + "/tables");
-            var request = HttpRequest.newBuilder().uri(uri).GET().build();
+            var request = newImportRequest(uri);
             var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
                 throw new io.javalin.http.BadRequestResponse(
@@ -493,7 +511,7 @@ public class StationImportService {
         try {
             var uri = URI.create(baseUrl + "/api/v1/public/transfer/" + token + "/" + table + "?offset=" + offset
                     + "&limit=" + limit);
-            var request = HttpRequest.newBuilder().uri(uri).GET().build();
+            var request = newImportRequest(uri);
             var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
                 throw new RuntimeException(
