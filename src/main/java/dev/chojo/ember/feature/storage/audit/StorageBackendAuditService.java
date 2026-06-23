@@ -117,6 +117,35 @@ public class StorageBackendAuditService {
     }
 
     /**
+     * Records a migration lifecycle event. {@code action} is one of {@link
+     * StorageAuditAction#MIGRATION_STARTED} / {@link StorageAuditAction#MIGRATION_COMPLETED} /
+     * {@link StorageAuditAction#MIGRATION_FAILED}. {@code newConfig} is the migration target;
+     * {@code oldConfig} the override the migration is replacing (when one existed).
+     */
+    public void recordMigration(
+            Actor actor,
+            int stationId,
+            StorageCategory category,
+            StorageAuditAction action,
+            StationStorageBackendConfig oldConfig,
+            StationStorageBackendConfig newConfig,
+            String errorOrNull) {
+        StorageAuditOutcome outcome =
+                action == StorageAuditAction.MIGRATION_FAILED ? StorageAuditOutcome.FAILED : StorageAuditOutcome.OK;
+        repository.insert(new StorageBackendAuditRepository.NewEntry(
+                actor.accountId(),
+                actor.memberId(),
+                actor.systemActor(),
+                Optional.of(stationId),
+                Optional.of(category),
+                action,
+                Optional.ofNullable(oldConfig).map(RedactedStationConfig::toJson),
+                Optional.ofNullable(newConfig).map(RedactedStationConfig::toJson),
+                outcome,
+                Optional.ofNullable(errorOrNull)));
+    }
+
+    /**
      * Captures the actor for an audit row. Exactly one of {@code accountId} / {@code systemActor}
      * is set; {@code memberId} is populated only for human actors who are also station members.
      */

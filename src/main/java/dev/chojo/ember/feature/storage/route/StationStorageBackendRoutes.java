@@ -26,6 +26,8 @@ import dev.chojo.ember.feature.storage.credential.EncryptedBlob;
 import dev.chojo.ember.feature.storage.credential.StoredCredentials;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
+import dev.chojo.ember.feature.storage.migration.MigrationException;
+import dev.chojo.ember.feature.storage.migration.StorageMigrationService;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.repository.StorageBackendAuditRepository;
 import io.javalin.http.BadRequestResponse;
@@ -54,6 +56,7 @@ public class StationStorageBackendRoutes implements Routes {
     private final StationRepository stationRepository;
     private final StorageBackendAuditService auditService;
     private final StorageBackendAuditRepository auditRepository;
+    private final StorageMigrationService migrationService;
 
     @Inject
     public StationStorageBackendRoutes(
@@ -63,7 +66,8 @@ public class StationStorageBackendRoutes implements Routes {
             CredentialCipher credentialCipher,
             StationRepository stationRepository,
             StorageBackendAuditService auditService,
-            StorageBackendAuditRepository auditRepository) {
+            StorageBackendAuditRepository auditRepository,
+            StorageMigrationService migrationService) {
         this.repository = repository;
         this.factory = factory;
         this.resolver = resolver;
@@ -71,6 +75,7 @@ public class StationStorageBackendRoutes implements Routes {
         this.stationRepository = stationRepository;
         this.auditService = auditService;
         this.auditRepository = auditRepository;
+        this.migrationService = migrationService;
     }
 
     @Override
@@ -81,7 +86,36 @@ public class StationStorageBackendRoutes implements Routes {
         routes.post(
                 prefix + "/station/storage/backend/{category}/probe", this::probe, StationPermission.STATION_MANAGER);
         routes.get(prefix + "/station/storage/audit", this::listAudit, StationPermission.STATION_MANAGER);
+        routes.post(prefix + "/station/storage/migrate/{category}", this::migrate, StationPermission.STATION_MANAGER);
     }
+
+    private void migrate(Context ctx) {
+        Actor actor = actor(ctx);
+        int stationId = sessionStationId(ctx);
+        StorageCategory category = parseMovableCategory(ctx);
+        BackendOverrideRequest request = ctx.bodyAsClass(BackendOverrideRequest.class);
+        StationStorageBackendConfig target = toEntity(request);
+        StationStorageBackendConfig existing = repository
+                .findOne(stationId, category)
+                .map(StationStorageConfigRepository.Row::config)
+                .orElse(null);
+
+        auditService.recordMigration(
+                actor, stationId, category, StorageAuditAction.MIGRATION_STARTED, existing, target, null);
+        try {
+            var result = migrationService.migrate(stationId, category, target);
+            auditService.recordMigration(
+                    actor, stationId, category, StorageAuditAction.MIGRATION_COMPLETED, existing, target, null);
+            ctx.json(new MigrationResponse(
+                    result.totalKeys(), result.copied(), result.skipped(), result.deleted(), result.copiedBytes()));
+        } catch (MigrationException e) {
+            auditService.recordMigration(
+                    actor, stationId, category, StorageAuditAction.MIGRATION_FAILED, existing, target, e.getMessage());
+            throw new BadRequestResponse("Migration failed: " + e.getMessage());
+        }
+    }
+
+    public record MigrationResponse(int totalKeys, int copied, int skipped, int deleted, long copiedBytes) {}
 
     private void listAudit(Context ctx) {
         int stationId = sessionStationId(ctx);
