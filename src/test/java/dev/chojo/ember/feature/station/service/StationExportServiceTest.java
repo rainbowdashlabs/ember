@@ -38,7 +38,7 @@ class StationExportServiceTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void setup() {
-        exportService = new StationExportService();
+        exportService = new StationExportService(stationRepo);
 
         var station = stationRepo.create("Export Test Station");
         stationId = station.id();

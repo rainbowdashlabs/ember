@@ -49,6 +49,7 @@ public class TransferRoutes implements Routes {
         routes.get(prefix + "/public/version", this::getVersion);
         routes.post(
                 prefix + "/station/transfer/create-token", this::createToken, StationPermission.STATION_IMPORT_EXPORT);
+        routes.post(prefix + "/station/transfer/abort", this::abortTransfer, StationPermission.STATION_IMPORT_EXPORT);
 
         // Token-authenticated export (public, for remote import)
         routes.get(prefix + "/public/transfer/{token}/tables", this::tokenListTables);
@@ -82,6 +83,18 @@ public class TransferRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         String token = exportService.createTransferToken(session.stationId());
         ctx.json(new TokenResponse(token, exportService.getAppVersion()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/station/transfer/abort",
+            methods = HttpMethod.POST,
+            summary = "Abort an in-flight transfer and clear the station's read-only flag",
+            tags = {"Transfer"},
+            responses = @OpenApiResponse(status = "204"))
+    private void abortTransfer(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        exportService.abortTransfer(session.stationId());
+        ctx.status(HttpStatus.NO_CONTENT);
     }
 
     // -- Token-authenticated export --

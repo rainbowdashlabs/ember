@@ -51,7 +51,7 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        exportService = new StationExportService();
+        exportService = new StationExportService(stationRepo);
         importService = new StationImportService(stationRepo, accountRepo, exportService);
     }
 

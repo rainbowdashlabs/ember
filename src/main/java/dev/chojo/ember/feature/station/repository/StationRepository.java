@@ -42,6 +42,10 @@ public class StationRepository {
             .expireAfterAccess(5, TimeUnit.MINUTES)
             .maximumSize(1_000)
             .build();
+    private final Cache<Integer, Boolean> readOnlyCache = Caffeine.newBuilder()
+            .expireAfterWrite(30, TimeUnit.SECONDS)
+            .maximumSize(1_000)
+            .build();
 
     /**
      * Resolves an internal station ID to its external UUID. Cached.
@@ -513,4 +517,41 @@ public class StationRepository {
      * @param contentType the MIME content type
      */
     public record StationLogo(byte[] data, String contentType) {}
+
+    // -- Transfer read-only flag --
+
+    /**
+     * Returns {@code true} when {@code station.read_only_for_transfer} is set, meaning the
+     * source operator has created a transfer token for this station and no fresh uploads must
+     * land while the destination instance is pulling the data over. Cached for 30 seconds so
+     * the per-upload check doesn't hit the database on every call; {@link #markReadOnlyForTransfer}
+     * and {@link #clearReadOnlyForTransfer} actively invalidate so the flip is immediate.
+     */
+    public boolean isReadOnlyForTransfer(int stationId) {
+        Boolean cached = readOnlyCache.getIfPresent(stationId);
+        if (cached != null) return cached;
+        boolean value = query("SELECT read_only_for_transfer FROM station WHERE id = :id;")
+                .single(call().bind("id", stationId))
+                .map(row -> row.getBoolean("read_only_for_transfer"))
+                .first()
+                .orElse(false);
+        readOnlyCache.put(stationId, value);
+        return value;
+    }
+
+    /** Flips the flag on; invalidates the cache so the next read sees the change immediately. */
+    public void markReadOnlyForTransfer(int stationId) {
+        query("UPDATE station SET read_only_for_transfer = TRUE WHERE id = :id;")
+                .single(call().bind("id", stationId))
+                .update();
+        readOnlyCache.invalidate(stationId);
+    }
+
+    /** Clears the flag and invalidates the cache. */
+    public void clearReadOnlyForTransfer(int stationId) {
+        query("UPDATE station SET read_only_for_transfer = FALSE WHERE id = :id;")
+                .single(call().bind("id", stationId))
+                .update();
+        readOnlyCache.invalidate(stationId);
+    }
 }

@@ -55,3 +55,11 @@ CREATE INDEX idx_storage_backend_audit_station_ts
     ON ember_schema.storage_backend_audit (station_id, ts DESC);
 CREATE INDEX idx_storage_backend_audit_ts
     ON ember_schema.storage_backend_audit (ts DESC);
+
+-- Flag set by the source operator when a station export-transfer token is created. While the
+-- flag is on, StorageService.store refuses uploads with 503 so the destination instance does
+-- not race with new writes on the source mid-transfer. The flag clears when the source
+-- operator deletes the station (existing cascade) or calls POST /station/transfer/abort.
+
+ALTER TABLE ember_schema.station
+    ADD COLUMN read_only_for_transfer BOOLEAN NOT NULL DEFAULT FALSE;

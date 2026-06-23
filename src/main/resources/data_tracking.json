@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:12f5e0e8c5ec04236557628d10fb3876689211d1abc7bc3bc034b20ec7361a11",
-  "generatedAt" : "2026-06-23T11:08:37Z",
+  "schemaHash" : "sha256:74d58f33f72dd47e727949633d82a895d192e3acd577d6b850bc887e827fbcb3",
+  "generatedAt" : "2026-06-23T11:21:14Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -10967,7 +10967,7 @@
     "station" : {
       "feature" : "station",
       "scope" : "STATION",
-      "tableHash" : "sha256:9f0dad29553c904b8ee4713f3a34efe0f4e1f9a512835b80d281890f7203ab0d",
+      "tableHash" : "sha256:b3364ad7f745ad2cb926337f8617edaa2f83cec29c497347b3a73c3760a8b136",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -11200,6 +11200,12 @@
         "nullable" : true,
         "verified" : true,
         "description" : "WGS-84 longitude in degrees, [-180, 180]. NULL if the station has not opted into geolocation."
+      }, {
+        "name" : "read_only_for_transfer",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Set to TRUE when the source operator creates a transfer token; while set, StorageService.store refuses uploads with 503 so the destination instance does not race with new writes on the source mid-transfer. Cleared on station deletion or POST /station/transfer/abort."
       } ],
       "foreignKeys" : [ {
         "column" : "landing_page_id",

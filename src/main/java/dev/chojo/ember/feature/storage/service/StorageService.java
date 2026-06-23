@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.storage.service;
 
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.ObjectMetadata;
 import dev.chojo.ember.feature.storage.backend.StorageBackend;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
@@ -49,11 +50,22 @@ public class StorageService {
 
     private final StorageBackendResolver resolver;
     private final LocalStorageBackend localBackend;
+    private final StationRepository stationRepository;
 
     @Inject
-    public StorageService(StorageBackendResolver resolver, LocalStorageBackend localBackend) {
+    public StorageService(
+            StorageBackendResolver resolver, LocalStorageBackend localBackend, StationRepository stationRepository) {
         this.resolver = resolver;
         this.localBackend = localBackend;
+        this.stationRepository = stationRepository;
+    }
+
+    /**
+     * Convenience constructor for tests that do not need the read-only-for-transfer gate.
+     * Skips the {@link StationRepository} lookup; every store call proceeds.
+     */
+    public StorageService(StorageBackendResolver resolver, LocalStorageBackend localBackend) {
+        this(resolver, localBackend, null);
     }
 
     /**
@@ -69,6 +81,7 @@ public class StorageService {
             long contentLength,
             String mimeHint) {
         validateMime(category, mimeHint);
+        guardReadOnlyForTransfer(scope);
         StorageBackend backend = resolver.forScope(scope, category);
         String fullKey = fullKey(scope, category, key, variant);
         DigestingInputStream wrapped = new DigestingInputStream(body);
@@ -229,6 +242,18 @@ public class StorageService {
         if (category.posixMode() == null) return;
         if (!(backend instanceof LocalStorageBackend local)) return;
         local.applyPosixMode(fullKey, category.posixMode());
+    }
+
+    /**
+     * Refuses writes to a station that has been flagged read-only for an in-flight transfer.
+     * Other scopes (instance, account) pass straight through.
+     */
+    private void guardReadOnlyForTransfer(StorageScope scope) {
+        if (stationRepository == null) return;
+        if (!(scope instanceof StorageScope.Station station)) return;
+        if (stationRepository.isReadOnlyForTransfer(station.stationId())) {
+            throw new StationReadOnlyForTransferException(station.stationId());
+        }
     }
 
     private static void validateMime(StorageCategory category, String mimeHint) {

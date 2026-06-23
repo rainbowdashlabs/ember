@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.station.service;
 
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.engine.GenericTableExporter;
@@ -54,9 +55,11 @@ public class StationExportService {
     private final List<String> tableOrder;
     private final String appVersion;
     private final String schemaHash;
+    private final StationRepository stationRepository;
 
     @Inject
-    public StationExportService() {
+    public StationExportService(StationRepository stationRepository) {
+        this.stationRepository = stationRepository;
         DataTracking tracking;
         try {
             tracking = DataTrackingLoader.loadFromClasspath();
@@ -97,7 +100,22 @@ public class StationExportService {
                         .bind("expires_at", expiresAt, StandardValueConverter.INSTANT_TIMESTAMP))
                 .insert();
 
+        // Flip the station into read-only mode for the duration of the transfer; cleared on
+        // station deletion (existing flow) or by POST /station/transfer/abort.
+        stationRepository.markReadOnlyForTransfer(stationId);
+
         return token;
+    }
+
+    /**
+     * Clears the station's read-only-for-transfer flag and invalidates every outstanding
+     * transfer token for the station. Used when the source operator backs out of a transfer.
+     */
+    public void abortTransfer(int stationId) {
+        query("UPDATE transfer_token SET used = TRUE WHERE station_id = :station_id AND used = FALSE;")
+                .single(call().bind("station_id", stationId))
+                .update();
+        stationRepository.clearReadOnlyForTransfer(stationId);
     }
 
     public Optional<Integer> validateToken(String token) {
