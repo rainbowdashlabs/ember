@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:56288e5428908b057e04962130e5fd87f60c3845f1b3672b1e7340c5d5c845d6",
-  "generatedAt" : "2026-06-23T09:24:06Z",
+  "schemaHash" : "sha256:f7edb8aebdd92c25aa41c229c6682eda9cd19e164011569e93e102388b333315",
+  "generatedAt" : "2026-06-23T10:13:46Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -12105,6 +12105,66 @@
       "gdprDeletion" : {
         "status" : "IGNORED",
         "reason" : "Permission catalog, seeded by migrations"
+      }
+    },
+    "station_storage_config" : {
+      "feature" : "storage",
+      "scope" : "STATION",
+      "tableHash" : "sha256:c208c0b095bafe69f93ebef8d13a9ef48abd2aa1987495887e5f4f7c2ef2d32c",
+      "columns" : [ {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Owning station for this remote-backend override."
+      }, {
+        "name" : "category",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Storage category this override applies to (movable categories only)."
+      }, {
+        "name" : "backend_type",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Backend type (S3, SMB or SFTP) — local is not a valid station override."
+      }, {
+        "name" : "config",
+        "type" : "jsonb",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Serialized StationStorageBackendConfig variant; credentials encrypted at rest."
+      }, {
+        "name" : "created_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Row creation timestamp."
+      }, {
+        "name" : "updated_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Last modification timestamp."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "EXCLUDE",
+        "reason" : "Remote-backend credentials are tied to the station manager's external provider account and must be re-entered after a transfer."
+      },
+      "gdprExport" : {
+        "status" : "EXCLUDE",
+        "reason" : "Encrypted operator-supplied credentials; no personal data."
+      },
+      "gdprDeletion" : {
+        "status" : "EXCLUDE",
+        "reason" : "Encrypted operator-supplied credentials; no personal data."
       }
     },
     "station_storage_usage" : {

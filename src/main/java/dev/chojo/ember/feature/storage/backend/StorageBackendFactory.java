@@ -14,6 +14,9 @@ import dev.chojo.ember.feature.storage.backend.sftp.SftpBackendConfig;
 import dev.chojo.ember.feature.storage.backend.sftp.SftpStorageBackend;
 import dev.chojo.ember.feature.storage.backend.smb.SmbBackendConfig;
 import dev.chojo.ember.feature.storage.backend.smb.SmbStorageBackend;
+import dev.chojo.ember.feature.storage.credential.CredentialCipher;
+import dev.chojo.ember.feature.storage.credential.StoredCredentials;
+import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -35,13 +38,16 @@ public class StorageBackendFactory {
 
     private final Storage storageConfig;
     private final LocalStorageBackend localBackend;
+    private final CredentialCipher credentialCipher;
 
     private StorageBackend instanceDefault;
 
     @Inject
-    public StorageBackendFactory(Storage storageConfig, LocalStorageBackend localBackend) {
+    public StorageBackendFactory(
+            Storage storageConfig, LocalStorageBackend localBackend, CredentialCipher credentialCipher) {
         this.storageConfig = storageConfig;
         this.localBackend = localBackend;
+        this.credentialCipher = credentialCipher;
     }
 
     /**
@@ -105,6 +111,59 @@ public class StorageBackendFactory {
                 privateKey,
                 sftp.knownHostsFingerprint(),
                 sftp.basePath());
+    }
+
+    /**
+     * Builds a backend for a station's override row by decrypting its credentials and
+     * combining them with the non-secret fields the row carries. Each call constructs a fresh
+     * backend instance; the resolver caches it on top.
+     */
+    public StorageBackend buildForStation(StationStorageBackendConfig config) {
+        return switch (config) {
+            case StationStorageBackendConfig.S3Variant v -> new S3StorageBackend(toS3Config(v));
+            case StationStorageBackendConfig.SmbVariant v -> new SmbStorageBackend(toSmbConfig(v));
+            case StationStorageBackendConfig.SftpVariant v -> new SftpStorageBackend(toSftpConfig(v));
+        };
+    }
+
+    private S3BackendConfig toS3Config(StationStorageBackendConfig.S3Variant v) {
+        StoredCredentials.S3 creds = StoredCredentials.S3.parse(credentialCipher.decryptToString(v.credentials()));
+        return new S3BackendConfig(
+                v.endpoint(),
+                v.region(),
+                v.bucket(),
+                creds.accessKey(),
+                creds.secretKey(),
+                v.pathStyle(),
+                v.sseAlgorithm(),
+                v.basePath());
+    }
+
+    private SmbBackendConfig toSmbConfig(StationStorageBackendConfig.SmbVariant v) {
+        StoredCredentials.Smb creds = StoredCredentials.Smb.parse(credentialCipher.decryptToString(v.credentials()));
+        return new SmbBackendConfig(
+                v.host(),
+                v.port(),
+                v.share(),
+                v.domain(),
+                creds.username(),
+                creds.password(),
+                v.basePath(),
+                v.seal(),
+                v.dfs());
+    }
+
+    private SftpBackendConfig toSftpConfig(StationStorageBackendConfig.SftpVariant v) {
+        StoredCredentials.Sftp creds = StoredCredentials.Sftp.parse(credentialCipher.decryptToString(v.credentials()));
+        Optional<String> password = creds.password() == null || creds.password().isBlank()
+                ? Optional.empty()
+                : Optional.of(creds.password());
+        Optional<String> privateKey =
+                creds.privateKey() == null || creds.privateKey().isBlank()
+                        ? Optional.empty()
+                        : Optional.of(creds.privateKey());
+        return new SftpBackendConfig(
+                v.host(), v.port(), creds.username(), password, privateKey, v.knownHostsFingerprint(), v.basePath());
     }
 
     private static S3BackendConfig toS3Config(StorageBackendSettings.S3Settings s3) {

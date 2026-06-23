@@ -25,7 +25,7 @@ import java.util.Set;
  *
  * <p>Concept §5.1.
  */
-public interface StorageBackend {
+public interface StorageBackend extends AutoCloseable {
 
     /** Discriminator for the kind of backend implementation. */
     StorageBackendType type();
@@ -122,4 +122,11 @@ public interface StorageBackend {
     default Optional<Instant> lastAccessed(String fullKey) {
         return Optional.empty();
     }
+
+    /**
+     * Releases any I/O resources the backend is holding (SSH session, S3 client, SMB share).
+     * The local backend has nothing to close; remote backends release their connection pools.
+     */
+    @Override
+    default void close() {}
 }
