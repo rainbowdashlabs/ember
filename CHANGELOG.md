@@ -2,6 +2,10 @@
 
 ## v26.9.1
 
+### Changes
+
+- **Legal documents grouped under one directory.** The default paths for the privacy policy, terms of service, consent text and imprint now live under `data/documents/<type>/` instead of four separate top-level directories. Operators upgrading must move existing content into the new layout, or set `privacyPolicyDir`, `tosDir`, `consentDir` and `imprintDir` in `conf.yml` to the existing paths.
+
 ### New Features
 
 - **Barcode and QR scanning for inventory.** A scan button next to every internal-id field opens the camera (rear camera on phones, webcam on laptops) and resolves printed Code 128, Code 39, QR, Data Matrix, EAN and UPC labels to the item's internal id. Available when creating or editing an item, on the inventory search bar, when assigning items to a lending request, and in the rapid inventory-check mode — where the modal stays open in continuous mode so you can sweep a pile of returning items. Decoded values are normalised (uppercased, trimmed) and the same normalisation is applied to hand-typed ids so they always match.
