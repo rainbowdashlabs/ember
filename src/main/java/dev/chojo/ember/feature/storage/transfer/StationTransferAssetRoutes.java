@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.storage.transfer;
 
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationExportService;
@@ -30,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 /**
  * Token-authenticated source-side endpoints that hand the station's storage descriptor, the
@@ -48,17 +50,20 @@ public class StationTransferAssetRoutes implements Routes {
     private final TransferBackendDescriptorService descriptorService;
     private final StationRepository stationRepository;
     private final StorageService storageService;
+    private final AvatarService avatarService;
 
     @Inject
     public StationTransferAssetRoutes(
             StationExportService exportService,
             TransferBackendDescriptorService descriptorService,
             StationRepository stationRepository,
-            StorageService storageService) {
+            StorageService storageService,
+            AvatarService avatarService) {
         this.exportService = exportService;
         this.descriptorService = descriptorService;
         this.stationRepository = stationRepository;
         this.storageService = storageService;
+        this.avatarService = avatarService;
     }
 
     @Override
@@ -66,6 +71,7 @@ public class StationTransferAssetRoutes implements Routes {
         routes.get(prefix + "/public/transfer/{token}/backend", this::getBackendDescriptor);
         routes.get(prefix + "/public/transfer/{token}/files/{category}", this::listFiles);
         routes.get(prefix + "/public/transfer/{token}/files/{category}/<key>", this::streamFile);
+        routes.get(prefix + "/public/transfer/{token}/avatars/{accountUid}", this::streamAvatar);
     }
 
     @OpenApi(
@@ -190,6 +196,37 @@ public class StationTransferAssetRoutes implements Routes {
             }
             throw e;
         }
+    }
+
+    @OpenApi(
+            path = "/api/v1/public/transfer/{token}/avatars/{accountUid}",
+            methods = HttpMethod.GET,
+            summary = "Streams the original avatar bytes for one account",
+            description =
+                    "Used by the destination after table import to carry avatars over for accounts it just created. 404 when the account has no avatar on the source.",
+            tags = {"Transfer"},
+            pathParams = {
+                @OpenApiParam(name = "token", required = true),
+                @OpenApiParam(name = "accountUid", required = true)
+            },
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "400"),
+                @OpenApiResponse(status = "403"),
+                @OpenApiResponse(status = "404")
+            })
+    private void streamAvatar(Context ctx) {
+        String token = ctx.pathParam("token");
+        exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
+        UUID accountUid;
+        try {
+            accountUid = UUID.fromString(ctx.pathParam("accountUid"));
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse("Invalid accountUid");
+        }
+        var avatar = avatarService.read(accountUid, 0).orElseThrow(() -> new NotFoundResponse("Avatar not found"));
+        ctx.contentType(avatar.contentType());
+        ctx.result(avatar.data());
     }
 
     private StorageCategory parseStationFileCategory(String raw) {
