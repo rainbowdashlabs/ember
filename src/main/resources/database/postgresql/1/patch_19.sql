@@ -14,19 +14,17 @@ WHERE category = 'PAGE_IMAGES';
 DELETE FROM ember_schema.station_storage_usage
 WHERE category IN ('AVATARS', 'IMAGES');
 
--- Per-station remote storage backend overrides. Each row binds one movable category at one
--- station to a non-local backend the station manager set up themselves. The config column
--- carries the typed StationStorageBackendConfig variant; credentials inside it are encrypted
--- with storage.credentialEncryptionKey before being written.
+-- Per-station remote storage backend override. One row per station that has opted out of the
+-- instance-default storage; the override applies across every station-scoped movable category
+-- at that station. The config column carries the typed StationStorageBackendConfig variant;
+-- credentials inside it are encrypted with storage.credentialEncryptionKey before being written.
 
 CREATE TABLE ember_schema.station_storage_config (
-    station_id   INTEGER NOT NULL REFERENCES ember_schema.station(id) ON DELETE CASCADE,
-    category     TEXT    NOT NULL,
+    station_id   INTEGER NOT NULL PRIMARY KEY REFERENCES ember_schema.station(id) ON DELETE CASCADE,
     backend_type TEXT    NOT NULL,
     config       JSONB   NOT NULL DEFAULT '{}',
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
-    PRIMARY KEY (station_id, category)
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- Append-only audit trail for every backend-config mutation (CREATE / UPDATE / DELETE / REJECT)
@@ -44,7 +42,6 @@ CREATE TABLE ember_schema.storage_backend_audit (
     actor_member_id   INTEGER     NULL REFERENCES ember_schema.station_member(id) ON DELETE SET NULL,
     system_actor      TEXT        NULL,
     station_id        INTEGER     NULL REFERENCES ember_schema.station(id) ON DELETE SET NULL,
-    category          TEXT        NULL,
     action            TEXT        NOT NULL,
     old_config        JSONB       NULL,
     new_config        JSONB       NULL,

@@ -5,8 +5,6 @@
  */
 package dev.chojo.ember.feature.storage.audit;
 
-import dev.chojo.ember.feature.storage.entity.StorageCategory;
-
 import java.time.Instant;
 import java.util.Optional;
 
@@ -25,7 +23,6 @@ public record StorageAuditEntry(
         Optional<Integer> actorMemberId,
         Optional<String> systemActor,
         Optional<Integer> stationId,
-        Optional<StorageCategory> category,
         StorageAuditAction action,
         Optional<String> oldConfig,
         Optional<String> newConfig,

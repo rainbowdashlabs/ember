@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:9d65fed799abf80fddebb9f0f0eccc048037e0186dc926ea502ce40bd626deb0",
-  "generatedAt" : "2026-06-23T10:27:08Z",
+  "schemaHash" : "sha256:12f5e0e8c5ec04236557628d10fb3876689211d1abc7bc3bc034b20ec7361a11",
+  "generatedAt" : "2026-06-23T11:08:37Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -12110,15 +12110,10 @@
     "station_storage_config" : {
       "feature" : "storage",
       "scope" : "STATION",
-      "tableHash" : "sha256:c208c0b095bafe69f93ebef8d13a9ef48abd2aa1987495887e5f4f7c2ef2d32c",
+      "tableHash" : "sha256:24fda8da3a5f1bcb9408a400c0f25dff553171e7eb6859431e59ae49fd97ffbe",
       "columns" : [ {
         "name" : "station_id",
         "type" : "int4",
-        "nullable" : false,
-        "verified" : true
-      }, {
-        "name" : "category",
-        "type" : "text",
         "nullable" : false,
         "verified" : true
       }, {
@@ -12329,79 +12324,62 @@
     "storage_backend_audit" : {
       "feature" : "storage",
       "scope" : "INSTANCE",
-      "tableHash" : "sha256:8d7a811648733c686db67b7384f482dee4464fd28f9d436b197cd1318e447383",
+      "tableHash" : "sha256:62108f3572c0d1dd577bb97b36c99ee9b42d5b7ef6884c56b994320650b6885c",
       "columns" : [ {
         "name" : "id",
         "type" : "int8",
         "nullable" : false,
-        "verified" : true,
-        "description" : "Auto-incrementing primary key."
+        "verified" : true
       }, {
         "name" : "ts",
         "type" : "timestamptz",
         "nullable" : false,
-        "verified" : true,
-        "description" : "When the event happened."
+        "verified" : true
       }, {
         "name" : "actor_account_id",
         "type" : "int4",
         "nullable" : true,
-        "verified" : true,
-        "description" : "Human actor's account. SET NULL on account deletion so the row survives as proof-of-action."
+        "verified" : true
       }, {
         "name" : "actor_member_id",
         "type" : "int4",
         "nullable" : true,
-        "verified" : true,
-        "description" : "Optional station_member id when the human actor was also a member at the affected station."
+        "verified" : true
       }, {
         "name" : "system_actor",
         "type" : "text",
         "nullable" : true,
-        "verified" : true,
-        "description" : "Set instead of actor_account_id when the actor is automated (cli, bootstrap, scheduled-cleanup, ...)."
+        "verified" : true
       }, {
         "name" : "station_id",
         "type" : "int4",
         "nullable" : true,
-        "verified" : true,
-        "description" : "Owning station for the affected override; NULL for instance-scoped events."
-      }, {
-        "name" : "category",
-        "type" : "text",
-        "nullable" : true,
-        "verified" : true,
-        "description" : "Storage category the event applied to."
+        "verified" : true
       }, {
         "name" : "action",
         "type" : "text",
         "nullable" : false,
-        "verified" : true,
-        "description" : "Event type (CREATED / UPDATED / DELETED / PROBE_OK / PROBE_FAILED / MIGRATION_* / REJECTED)."
+        "verified" : true
       }, {
         "name" : "old_config",
         "type" : "jsonb",
         "nullable" : true,
-        "verified" : true,
-        "description" : "Redacted snapshot of the previous override row, when one existed."
+        "verified" : true
       }, {
         "name" : "new_config",
         "type" : "jsonb",
         "nullable" : true,
-        "verified" : true,
-        "description" : "Redacted snapshot of the override row this event produced, when applicable."
+        "verified" : true
       }, {
         "name" : "outcome",
         "type" : "text",
         "nullable" : false,
-        "verified" : true,
-        "description" : "OK or FAILED. PROBE_* actions carry OK/FAILED to disambiguate the probe result."
+        "verified" : true
       }, {
         "name" : "error",
         "type" : "text",
         "nullable" : true,
-        "verified" : true,
-        "description" : "Free-text error message for FAILED outcomes."
+        "verified" : true
       } ],
       "foreignKeys" : [ {
         "column" : "actor_account_id",

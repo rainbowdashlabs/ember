@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.storage.audit;
 
 import dev.chojo.ember.feature.storage.entity.RedactedStationConfig;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
-import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.repository.StorageBackendAuditRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -21,13 +20,13 @@ import java.util.Optional;
  *
  * <p>Config snapshots are redacted with {@link RedactedStationConfig#toJson} before they reach
  * the repository, so cipher material never crosses this boundary. User-triggered probes are
- * deduped on a {@value #PROBE_DEDUPE_SECONDS}-second window per actor + scope + category +
- * outcome to keep the admin panel's auto-refresh from flooding the table.
+ * deduped on a {@value #PROBE_DEDUPE_SECONDS}-second window per actor + station + outcome to
+ * keep the admin panel's auto-refresh from flooding the table.
  */
 @Singleton
 public class StorageBackendAuditService {
 
-    /** Probe rows for the same actor/scope/category/outcome inside this window are dropped. */
+    /** Probe rows for the same actor/station/outcome inside this window are dropped. */
     static final int PROBE_DEDUPE_SECONDS = 60;
 
     private final StorageBackendAuditRepository repository;
@@ -44,7 +43,6 @@ public class StorageBackendAuditService {
     public void recordConfigChange(
             Actor actor,
             int stationId,
-            StorageCategory category,
             StorageAuditAction action,
             StationStorageBackendConfig oldConfig,
             StationStorageBackendConfig newConfig) {
@@ -53,7 +51,6 @@ public class StorageBackendAuditService {
                 actor.memberId(),
                 actor.systemActor(),
                 Optional.of(stationId),
-                Optional.of(category),
                 action,
                 Optional.ofNullable(oldConfig).map(RedactedStationConfig::toJson),
                 Optional.ofNullable(newConfig).map(RedactedStationConfig::toJson),
@@ -63,20 +60,15 @@ public class StorageBackendAuditService {
 
     /**
      * Records a refused mutation. {@code error} is the user-facing reason the request was
-     * rejected (e.g. swap-with-bytes-pinned, invalid credentials, probe failed).
+     * rejected (e.g. probe failed, swap-with-bytes-pinned).
      */
     public void recordRejected(
-            Actor actor,
-            int stationId,
-            StorageCategory category,
-            Optional<StationStorageBackendConfig> attempted,
-            String error) {
+            Actor actor, int stationId, Optional<StationStorageBackendConfig> attempted, String error) {
         repository.insert(new StorageBackendAuditRepository.NewEntry(
                 actor.accountId(),
                 actor.memberId(),
                 actor.systemActor(),
                 Optional.of(stationId),
-                Optional.of(category),
                 StorageAuditAction.REJECTED,
                 Optional.empty(),
                 attempted.map(RedactedStationConfig::toJson),
@@ -88,26 +80,18 @@ public class StorageBackendAuditService {
      * Records a user-triggered probe with the dedupe rule. Returns {@code true} when a row was
      * inserted, {@code false} when an equivalent row inside the dedupe window suppressed it.
      */
-    public boolean recordProbe(
-            Actor actor, int stationId, StorageCategory category, StorageAuditOutcome outcome, String errorOrNull) {
+    public boolean recordProbe(Actor actor, int stationId, StorageAuditOutcome outcome, String errorOrNull) {
         StorageAuditAction action =
                 outcome == StorageAuditOutcome.OK ? StorageAuditAction.PROBE_OK : StorageAuditAction.PROBE_FAILED;
         Instant cutoff = Instant.now().minus(Duration.ofSeconds(PROBE_DEDUPE_SECONDS));
         Optional<StorageAuditEntry> recent = repository.findRecentMatching(
-                actor.accountId(),
-                actor.systemActor(),
-                Optional.of(stationId),
-                Optional.of(category),
-                action,
-                outcome,
-                cutoff);
+                actor.accountId(), actor.systemActor(), Optional.of(stationId), action, outcome, cutoff);
         if (recent.isPresent()) return false;
         repository.insert(new StorageBackendAuditRepository.NewEntry(
                 actor.accountId(),
                 actor.memberId(),
                 actor.systemActor(),
                 Optional.of(stationId),
-                Optional.of(category),
                 action,
                 Optional.empty(),
                 Optional.empty(),
@@ -125,7 +109,6 @@ public class StorageBackendAuditService {
     public void recordMigration(
             Actor actor,
             int stationId,
-            StorageCategory category,
             StorageAuditAction action,
             StationStorageBackendConfig oldConfig,
             StationStorageBackendConfig newConfig,
@@ -137,7 +120,6 @@ public class StorageBackendAuditService {
                 actor.memberId(),
                 actor.systemActor(),
                 Optional.of(stationId),
-                Optional.of(category),
                 action,
                 Optional.ofNullable(oldConfig).map(RedactedStationConfig::toJson),
                 Optional.ofNullable(newConfig).map(RedactedStationConfig::toJson),

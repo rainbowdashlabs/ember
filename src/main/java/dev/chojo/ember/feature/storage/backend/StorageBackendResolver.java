@@ -14,19 +14,23 @@ import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.Optional;
+
 /**
  * Returns the {@link StorageBackend} that owns bytes for a {@code (scope, category)} pair.
  *
  * <p>Resolution order:
  * <ol>
- *   <li>{@link StorageCategory#isLocalPinned()} → local backend, no overrides apply.</li>
- *   <li>Station override row in {@code station_storage_config} for this {@code (scope, category)}.</li>
+ *   <li>{@link StorageCategory#isLocalPinned()} → local backend, no override applies.</li>
+ *   <li>{@link StorageScope.Station} with an override row in {@code station_storage_config} →
+ *       that backend. The override is per-station, not per-category — it applies across every
+ *       station-scoped movable category.</li>
  *   <li>Instance default from {@code conf.yml}, built by {@link StorageBackendFactory}.</li>
  * </ol>
  *
- * <p>Station overrides are cached per {@code (stationId, category)} so the resolver does not
- * hit the database on every byte-level call; {@link #invalidateStation(int, StorageCategory)}
- * drops a single entry, {@link #invalidateAll()} flushes the cache after schema-wide changes.
+ * <p>Station overrides are cached per {@code stationId} so the resolver does not hit the
+ * database on every byte-level call; {@link #invalidateStation(int)} drops a single entry,
+ * {@link #invalidateAll()} flushes the cache after schema-wide changes.
  */
 @Singleton
 public class StorageBackendResolver {
@@ -34,7 +38,7 @@ public class StorageBackendResolver {
 
     private final StorageBackendFactory factory;
     private final StationStorageConfigRepository overrideRepository;
-    private final Cache<OverrideKey, StorageBackend> overrideCache;
+    private final Cache<Integer, Optional<StorageBackend>> overrideCache;
 
     @Inject
     public StorageBackendResolver(StorageBackendFactory factory, StationStorageConfigRepository overrideRepository) {
@@ -71,8 +75,8 @@ public class StorageBackendResolver {
             return factory.localBackend();
         }
         if (scope instanceof StorageScope.Station station && overrideRepository != null) {
-            StorageBackend override = stationOverride(station.stationId(), category);
-            if (override != null) return override;
+            Optional<StorageBackend> override = stationOverride(station.stationId());
+            if (override.isPresent()) return override.get();
         }
         return factory.instanceDefault();
     }
@@ -82,9 +86,9 @@ public class StorageBackendResolver {
         return factory.instanceDefault();
     }
 
-    /** Drops the cached override for one {@code (station, category)} pair. */
-    public void invalidateStation(int stationId, StorageCategory category) {
-        overrideCache.invalidate(new OverrideKey(stationId, category));
+    /** Drops the cached override for one station. */
+    public void invalidateStation(int stationId) {
+        overrideCache.invalidate(stationId);
     }
 
     /** Flushes the entire station-override cache. */
@@ -92,12 +96,8 @@ public class StorageBackendResolver {
         overrideCache.invalidateAll();
     }
 
-    private StorageBackend stationOverride(int stationId, StorageCategory category) {
-        return overrideCache.get(new OverrideKey(stationId, category), key -> overrideRepository
-                .findOne(key.stationId(), key.category())
-                .map(row -> factory.buildForStation(row.config()))
-                .orElse(null));
+    private Optional<StorageBackend> stationOverride(int stationId) {
+        return overrideCache.get(
+                stationId, id -> overrideRepository.findOne(id).map(row -> factory.buildForStation(row.config())));
     }
-
-    private record OverrideKey(int stationId, StorageCategory category) {}
 }

@@ -9,7 +9,6 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.feature.storage.audit.StorageAuditAction;
 import dev.chojo.ember.feature.storage.audit.StorageAuditEntry;
 import dev.chojo.ember.feature.storage.audit.StorageAuditOutcome;
-import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -28,21 +27,18 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class StorageBackendAuditRepository {
 
-    private static final String SELECT_COLS =
-            "id, ts, actor_account_id, actor_member_id, system_actor, station_id, category, "
-                    + "action, old_config::text AS old_config_text, new_config::text AS new_config_text, "
-                    + "outcome, error";
+    private static final String SELECT_COLS = "id, ts, actor_account_id, actor_member_id, system_actor, station_id, "
+            + "action, old_config::text AS old_config_text, new_config::text AS new_config_text, "
+            + "outcome, error";
 
-    /**
-     * Persists one row. Returns the generated id.
-     */
+    /** Persists one row. Returns the generated id. */
     public long insert(NewEntry entry) {
         return query("""
                 INSERT INTO storage_backend_audit (
-                    actor_account_id, actor_member_id, system_actor, station_id, category,
+                    actor_account_id, actor_member_id, system_actor, station_id,
                     action, old_config, new_config, outcome, error
                 ) VALUES (
-                    :actor_account_id, :actor_member_id, :system_actor, :station_id, :category,
+                    :actor_account_id, :actor_member_id, :system_actor, :station_id,
                     :action, :old_config::JSONB, :new_config::JSONB, :outcome, :error
                 )
                 RETURNING id;
@@ -51,9 +47,6 @@ public class StorageBackendAuditRepository {
                         .bind("actor_member_id", entry.actorMemberId().orElse(null))
                         .bind("system_actor", entry.systemActor().orElse(null))
                         .bind("station_id", entry.stationId().orElse(null))
-                        .bind(
-                                "category",
-                                entry.category().map(StorageCategory::name).orElse(null))
                         .bind("action", entry.action().name())
                         .bind("old_config", entry.oldConfig().orElse(null))
                         .bind("new_config", entry.newConfig().orElse(null))
@@ -65,15 +58,14 @@ public class StorageBackendAuditRepository {
     }
 
     /**
-     * Returns the most recent audit row for the same actor + scope + category + action +
-     * outcome inside the dedupe window. Used by {@code StorageBackendAuditService} to suppress
+     * Returns the most recent audit row for the same actor + station + action + outcome
+     * inside the dedupe window. Used by {@code StorageBackendAuditService} to suppress
      * runaway probe-storm rows on admin-panel auto-refresh.
      */
     public Optional<StorageAuditEntry> findRecentMatching(
             Optional<Integer> actorAccountId,
             Optional<String> systemActor,
             Optional<Integer> stationId,
-            Optional<StorageCategory> category,
             StorageAuditAction action,
             StorageAuditOutcome outcome,
             Instant cutoff) {
@@ -88,8 +80,6 @@ public class StorageBackendAuditRepository {
                         OR system_actor = :system_actor )
                   AND ( (:station_id IS NULL AND station_id IS NULL)
                         OR station_id = :station_id )
-                  AND ( (:category IS NULL AND category IS NULL)
-                        OR category = :category )
                 ORDER BY ts DESC, id DESC
                 LIMIT 1;
                 """, SELECT_COLS)
@@ -98,8 +88,7 @@ public class StorageBackendAuditRepository {
                         .bind("outcome", outcome.name())
                         .bind("actor_account_id", actorAccountId.orElse(null))
                         .bind("system_actor", systemActor.orElse(null))
-                        .bind("station_id", stationId.orElse(null))
-                        .bind("category", category.map(StorageCategory::name).orElse(null)))
+                        .bind("station_id", stationId.orElse(null)))
                 .map(MAP)
                 .first();
     }
@@ -139,7 +128,6 @@ public class StorageBackendAuditRepository {
             Optional.ofNullable((Integer) row.getObject("actor_member_id")),
             Optional.ofNullable(row.getString("system_actor")),
             Optional.ofNullable((Integer) row.getObject("station_id")),
-            Optional.ofNullable(row.getString("category")).map(StorageCategory::valueOf),
             row.getEnum("action", StorageAuditAction.class),
             Optional.ofNullable(row.getString("old_config_text")),
             Optional.ofNullable(row.getString("new_config_text")),
@@ -156,7 +144,6 @@ public class StorageBackendAuditRepository {
             Optional<Integer> actorMemberId,
             Optional<String> systemActor,
             Optional<Integer> stationId,
-            Optional<StorageCategory> category,
             StorageAuditAction action,
             Optional<String> oldConfig,
             Optional<String> newConfig,
