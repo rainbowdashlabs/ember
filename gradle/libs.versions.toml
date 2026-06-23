@@ -77,6 +77,9 @@ pebble = { group = "io.pebbletemplates", name = "pebble", version = "4.1.2" }
 thumbnailator = { group = "net.coobird", name = "thumbnailator", version = "0.4.21" }
 imageio-webp = { group = "com.twelvemonkeys.imageio", name = "imageio-webp", version = "3.13.1" }
 
+# Storage backends
+smbj = { group = "com.hierynomus", name = "smbj", version = "0.14.0" }
+
 # HTML sanitization
 jsoup = { group = "org.jsoup", name = "jsoup", version = "1.22.2" }
 

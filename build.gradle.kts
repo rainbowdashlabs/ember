@@ -61,6 +61,7 @@ dependencies {
     implementation(libs.commons.csv)
     implementation(libs.thumbnailator)
     implementation(libs.imageio.webp)
+    implementation(libs.smbj)
     implementation(libs.pdfbox)
     implementation(libs.ical4j)
     implementation(libs.rome)
