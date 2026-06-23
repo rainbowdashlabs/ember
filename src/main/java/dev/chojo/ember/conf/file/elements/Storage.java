@@ -99,6 +99,21 @@ public class Storage {
     @Overwrite(env = @Env)
     private boolean imageVariantsWebp = true;
 
+    /**
+     * Selects which backend the resolver picks for movable categories and carries the per-
+     * backend connection settings. Local-pinned categories ignore this and stay on the local
+     * disk regardless.
+     */
+    private StorageBackendSettings backend = new StorageBackendSettings();
+
+    /**
+     * AES-256 key used to encrypt station-supplied remote-backend credentials at rest. Read
+     * from {@code STORAGE_CREDENTIAL_ENCRYPTION_KEY}; required once any station opts into
+     * self-service remote storage.
+     */
+    @Overwrite(env = @Env)
+    private String credentialEncryptionKey = "";
+
     public long defaultTotalBytes() {
         return SizeParser.parseBytes(defaultTotal);
     }
@@ -165,6 +180,14 @@ public class Storage {
 
     public boolean imageVariantsWebp() {
         return imageVariantsWebp;
+    }
+
+    public StorageBackendSettings backend() {
+        return backend;
+    }
+
+    public String credentialEncryptionKey() {
+        return credentialEncryptionKey;
     }
 
     /**

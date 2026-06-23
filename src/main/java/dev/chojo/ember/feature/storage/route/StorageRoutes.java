@@ -12,6 +12,9 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.storage.backend.HealthStatus;
+import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
+import dev.chojo.ember.feature.storage.backend.StorageBackendType;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageUsage;
 import dev.chojo.ember.feature.storage.repository.StorageQuotaPresetRepository;
@@ -37,6 +40,8 @@ public class StorageRoutes implements Routes {
     private final StorageQuotaPresetRepository presetRepository;
     private final StationRepository stationRepository;
     private final StorageReconciliationService reconciliationService;
+    private final StorageBackendResolver backendResolver;
+    private final Storage storageConfig;
 
     @Inject
     public StorageRoutes(
@@ -45,12 +50,15 @@ public class StorageRoutes implements Routes {
             StorageQuotaPresetRepository presetRepository,
             StationRepository stationRepository,
             StorageReconciliationService reconciliationService,
+            StorageBackendResolver backendResolver,
             Storage storageConfig) {
         this.quotaService = quotaService;
         this.usageRepository = usageRepository;
         this.presetRepository = presetRepository;
         this.stationRepository = stationRepository;
         this.reconciliationService = reconciliationService;
+        this.backendResolver = backendResolver;
+        this.storageConfig = storageConfig;
     }
 
     @Override
@@ -90,6 +98,11 @@ public class StorageRoutes implements Routes {
                 this::applyPreset,
                 InstancePermission.ADMINISTRATOR,
                 StepUpCategory.INSTANCE_CONFIG);
+
+        // Admin: instance default storage backend
+        routes.get(prefix + "/admin/storage/backend", this::getInstanceBackend, InstancePermission.ADMINISTRATOR);
+        routes.post(
+                prefix + "/admin/storage/backend/probe", this::probeInstanceBackend, InstancePermission.ADMINISTRATOR);
 
         // Admin: station quota management
         routes.put(
@@ -243,6 +256,49 @@ public class StorageRoutes implements Routes {
         ctx.status(HttpStatus.OK);
     }
 
+    // -- Instance default backend --
+
+    private void getInstanceBackend(Context ctx) {
+        var backend = backendResolver.instanceDefault();
+        var settings = storageConfig.backend();
+        InstanceBackendSummary summary =
+                switch (backend.type()) {
+                    case LOCAL -> new LocalSummary(settings.local().root());
+                    case SMB ->
+                        new SmbSummary(
+                                settings.smb().host(),
+                                settings.smb().port(),
+                                settings.smb().share(),
+                                settings.smb().basePath(),
+                                settings.smb().seal(),
+                                settings.smb().dfs());
+                    case SFTP ->
+                        new SftpSummary(
+                                settings.sftp().host(),
+                                settings.sftp().port(),
+                                settings.sftp().username(),
+                                settings.sftp().basePath(),
+                                !settings.sftp().knownHostsFingerprint().isBlank());
+                    case S3 ->
+                        new S3Summary(
+                                settings.s3().endpoint(),
+                                settings.s3().region(),
+                                settings.s3().bucket(),
+                                settings.s3().pathStyle(),
+                                settings.s3().sseAlgorithm(),
+                                settings.s3().basePath());
+                };
+        ctx.json(summary);
+    }
+
+    private void probeInstanceBackend(Context ctx) {
+        HealthStatus status = backendResolver.instanceDefault().probe();
+        ctx.json(new ProbeResult(
+                status.healthy(),
+                status.error().orElse(null),
+                status.checkedAt().toString()));
+    }
+
     // -- Station quota management --
 
     private void updateStationQuotas(Context ctx) {
@@ -310,4 +366,46 @@ public class StorageRoutes implements Routes {
             Long pagesBytes,
             Long perFileBytes,
             Long perImageBytes) {}
+
+    /**
+     * Sealed sum type for the GET /admin/storage/backend response. Each variant carries the
+     * concrete settings for its backend type; credentials are never included.
+     */
+    public sealed interface InstanceBackendSummary {
+        StorageBackendType type();
+    }
+
+    public record LocalSummary(String root) implements InstanceBackendSummary {
+        @Override
+        public StorageBackendType type() {
+            return StorageBackendType.LOCAL;
+        }
+    }
+
+    public record SmbSummary(String host, int port, String share, String basePath, boolean seal, boolean dfs)
+            implements InstanceBackendSummary {
+        @Override
+        public StorageBackendType type() {
+            return StorageBackendType.SMB;
+        }
+    }
+
+    public record SftpSummary(String host, int port, String username, String basePath, boolean knownHostsPinned)
+            implements InstanceBackendSummary {
+        @Override
+        public StorageBackendType type() {
+            return StorageBackendType.SFTP;
+        }
+    }
+
+    public record S3Summary(
+            String endpoint, String region, String bucket, boolean pathStyle, String sseAlgorithm, String basePath)
+            implements InstanceBackendSummary {
+        @Override
+        public StorageBackendType type() {
+            return StorageBackendType.S3;
+        }
+    }
+
+    record ProbeResult(boolean healthy, String error, String checkedAt) {}
 }

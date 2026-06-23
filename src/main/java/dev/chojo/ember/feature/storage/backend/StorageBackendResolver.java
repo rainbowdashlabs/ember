@@ -13,25 +13,30 @@ import jakarta.inject.Singleton;
 /**
  * Returns the {@link StorageBackend} that owns bytes for a {@code (scope, category)} pair.
  *
- * <p>Resolution order (concept §5.2):
+ * <p>Resolution order:
  * <ol>
  *   <li>{@link StorageCategory#isLocalPinned()} → local backend, no overrides apply.</li>
- *   <li>Station override row in {@code station_storage_config} for this {@code (scope, category)}.</li>
- *   <li>Instance-level config in {@code conf.yml}.</li>
- *   <li>Default: {@link LocalStorageBackend} rooted at {@code data/}.</li>
+ *   <li>Station override row in {@code station_storage_config} (wired in a later phase).</li>
+ *   <li>Instance default from {@code conf.yml}, built by {@link StorageBackendFactory}.</li>
  * </ol>
- *
- * <p>Steps 2–3 are wired in later phases; V1 only resolves to the local backend, which keeps
- * the contract stable for every producer that has already migrated to {@code StorageService}.
  */
 @Singleton
 public class StorageBackendResolver {
 
-    private final LocalStorageBackend localBackend;
+    private final StorageBackendFactory factory;
 
     @Inject
+    public StorageBackendResolver(StorageBackendFactory factory) {
+        this.factory = factory;
+    }
+
+    /**
+     * Convenience constructor for tests that already have a {@link LocalStorageBackend} in
+     * hand and want the resolver to pin every category to it without going through the
+     * factory.
+     */
     public StorageBackendResolver(LocalStorageBackend localBackend) {
-        this.localBackend = localBackend;
+        this.factory = new StorageBackendFactory(new dev.chojo.ember.conf.file.elements.Storage(), localBackend);
     }
 
     /**
@@ -45,6 +50,14 @@ public class StorageBackendResolver {
             throw new IllegalArgumentException(
                     "Category %s expects scope %s but got %s".formatted(category, category.scopeKind(), scope.kind()));
         }
-        return localBackend;
+        if (category.isLocalPinned()) {
+            return factory.localBackend();
+        }
+        return factory.instanceDefault();
+    }
+
+    /** Returns the configured instance-default backend, regardless of category. */
+    public StorageBackend instanceDefault() {
+        return factory.instanceDefault();
     }
 }
