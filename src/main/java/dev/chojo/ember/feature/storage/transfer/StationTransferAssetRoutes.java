@@ -65,6 +65,7 @@ public class StationTransferAssetRoutes implements Routes {
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/public/transfer/{token}/backend", this::getBackendDescriptor);
         routes.get(prefix + "/public/transfer/{token}/files/{category}", this::listFiles);
+        routes.get(prefix + "/public/transfer/{token}/files/{category}/<key>", this::streamFile);
     }
 
     @OpenApi(
@@ -139,6 +140,56 @@ public class StationTransferAssetRoutes implements Routes {
         List<String> page = sorted.subList(startIndex, endIndex);
         String next = endIndex < sorted.size() ? page.get(page.size() - 1) : null;
         ctx.json(new ListKeysResponse(List.copyOf(page), next));
+    }
+
+    @OpenApi(
+            path = "/api/v1/public/transfer/{token}/files/{category}/{key}",
+            methods = HttpMethod.GET,
+            summary = "Streams the raw bytes of one file under the given category",
+            description =
+                    "The key is the category-relative path returned by the /files/{category} listing, including any embedded variant segment for image categories. Responds with the original Content-Type stamped at upload. 404 when the key is no longer present (the source may have concurrently deleted the row during the transfer window).",
+            tags = {"Transfer"},
+            pathParams = {
+                @OpenApiParam(name = "token", required = true),
+                @OpenApiParam(name = "category", required = true),
+                @OpenApiParam(name = "key", required = true)
+            },
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "400"),
+                @OpenApiResponse(status = "403"),
+                @OpenApiResponse(status = "404")
+            })
+    private void streamFile(Context ctx) {
+        String token = ctx.pathParam("token");
+        int stationId =
+                exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
+        StorageCategory category = parseStationFileCategory(ctx.pathParam("category"));
+        String key = ctx.pathParam("key");
+        if (key == null || key.isBlank()) {
+            throw new BadRequestResponse("key is required");
+        }
+
+        Station station = stationRepository
+                .findById(stationId)
+                .orElseThrow(() -> new NotFoundResponse("Station " + stationId + " not found"));
+        StorageScope.Station scope = new StorageScope.Station(stationId, station.uid());
+
+        var stream = storageService
+                .readRelative(scope, category, key)
+                .orElseThrow(() -> new NotFoundResponse("Key not found: " + key));
+        ctx.contentType(stream.metadata().contentType());
+        ctx.header("Content-Length", String.valueOf(stream.contentLength()));
+        try {
+            ctx.result(stream.body());
+        } catch (RuntimeException e) {
+            try {
+                stream.close();
+            } catch (Exception suppressed) {
+                e.addSuppressed(suppressed);
+            }
+            throw e;
+        }
     }
 
     private StorageCategory parseStationFileCategory(String raw) {

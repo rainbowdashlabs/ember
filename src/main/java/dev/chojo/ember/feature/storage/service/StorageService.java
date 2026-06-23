@@ -201,6 +201,18 @@ public class StorageService {
         return exists(scope, category, key, Variant.ORIGINAL);
     }
 
+    /**
+     * Streaming read by category-relative key — the inverse of {@link #listKeys}. Unlike
+     * {@link #read(StorageScope, StorageCategory, String)} this does not append the
+     * {@code original} variant suffix, so callers can address variant rows directly
+     * (e.g. the entries returned by {@code listKeys} for image categories).
+     */
+    public Optional<StoredStream> readRelative(StorageScope scope, StorageCategory category, String relativeKey) {
+        StorageBackend backend = resolver.forScope(scope, category);
+        String fullKey = scope.prefix() + "/" + category.prefix() + "/" + relativeKey;
+        return backend.read(fullKey);
+    }
+
     /** Lists keys under a producer-chosen prefix; returns producer-relative keys. */
     public List<String> listKeys(StorageScope scope, StorageCategory category, String keyPrefix) {
         StorageBackend backend = resolver.forScope(scope, category);
