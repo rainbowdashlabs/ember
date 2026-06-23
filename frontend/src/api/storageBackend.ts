@@ -211,8 +211,8 @@ export async function deleteStationBackend(): Promise<void> {
     await client.delete('/station/storage/backend')
 }
 
-export async function probeStationBackend(request: StationBackendRequest): Promise<ProbeResult> {
-    const {data} = await client.post<ProbeResult>('/station/storage/backend/probe', request)
+export async function probeStationBackend(): Promise<ProbeResult> {
+    const {data} = await client.post<ProbeResult>('/station/storage/backend/probe')
     return data
 }
 

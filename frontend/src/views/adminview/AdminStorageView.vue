@@ -18,6 +18,7 @@ import StatValue from '@/components/typography/StatValue.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import {RouterLink} from 'vue-router'
 import StoragePresetPanel from './adminstorageview/StoragePresetPanel.vue'
 import StorageStationTable from './adminstorageview/StorageStationTable.vue'
 import {
@@ -142,6 +143,14 @@ const categoryPieChart = computed(() => {
 
 <template>
   <ViewContent>
+    <div class="mb-4 flex justify-end gap-4 text-sm">
+      <RouterLink :to="{name: 'admin-storage-backend'}" class="underline">
+        {{ t('adminStorageBackend.linkFromUsage') }}
+      </RouterLink>
+      <RouterLink :to="{name: 'admin-storage-audit'}" class="underline">
+        {{ t('adminStorageAudit.title') }}
+      </RouterLink>
+    </div>
     <Spinner v-if="loading" size="lg"/>
     <Alert v-else-if="error" variant="error">{{ error }}</Alert>
     <template v-else>

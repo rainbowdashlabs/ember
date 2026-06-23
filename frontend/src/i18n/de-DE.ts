@@ -4109,6 +4109,27 @@ volumes:
             categoriesText: 'Jede Kategorie hat ein eigenes Kontingent. Profilbilder werden nur erfasst, aber nicht auf das Kontingent angerechnet.',
             tip: 'Die Kontingente koennen nur von der Instanz-Administration geaendert werden.',
         },
+        adminStorageBackend: {
+            title: 'Speicher-Backend der Instanz konfigurieren',
+            subtitle: 'Konfiguration aenderen oder Dateien instanz-weit umziehen.',
+            put: {
+                title: 'Konfiguration speichern',
+                text: 'Mit Speichern aendert sich der Eintrag in der conf.yml. Dabei werden keine Dateien kopiert. Verwende das nur, wenn auf dem Zielsystem bereits dieselben Inhalte liegen.',
+            },
+            migrate: {
+                title: 'Dateien instanz-weit verschieben',
+                text: 'Mit Migrieren werden alle Dateien, die ohne Override auf dem aktuellen Backend liegen, auf das neue Ziel kopiert. Schon vorhandene Dateien mit gleichem Hash werden uebersprungen. Schreibvorgaenge der Instanz pausieren bis zum Abschluss.',
+            },
+            tip: 'Zugangsdaten werden vor dem Schreiben in conf.yml verschluesselt.',
+        },
+        adminStorageAudit: {
+            title: 'Audit-Log fuer Speicher-Aenderungen',
+            subtitle: 'Wer hat wann was am Speicher veraendert?',
+            what: {
+                title: 'Was steht hier?',
+                text: 'Jede Konfigurationsaenderung, jeder Probe-Test, jede Migration landet hier. Du kannst nach Wachen-UID und nach Zeitpunkt filtern.',
+            },
+        },
         stationStorageBackend: {
             title: 'Wo die Dateien meiner Wache liegen',
             subtitle: 'Standard der Instanz nutzen oder eigene Cloud waehlen.',
@@ -6460,6 +6481,85 @@ volumes:
         accepted: 'Angenommen',
         pending: 'Ausstehend',
         declinedReg: 'Abgelehnt',
+    },
+    adminStorageBackend: {
+        title: 'Instanz-Speicher',
+        linkUsage: 'Speicher-Nutzung',
+        linkAudit: 'Speicher-Audit',
+        linkFromUsage: 'Instanz-Backend verwalten →',
+        summary: {
+            title: 'Aktive Konfiguration',
+            current: 'Die Instanz nutzt derzeit ein {type}-Backend.',
+        },
+        banner: {
+            inFlight: 'Eine Speicher-Migration läuft gerade. Schreibvorgänge auf der gesamten Instanz werden mit 503 abgewiesen, bis sie abgeschlossen ist.',
+        },
+        form: {
+            title: 'Neuen Standard festlegen',
+            hint: 'Speichern schreibt die Werte in die Konfiguration, ohne Dateien zu kopieren. Mit "Migrieren" werden alle Dateien ohne eigenen Override auf das neue Ziel verschoben.',
+            type: 'Backend-Typ',
+            saveVsMigrateHint: 'Speichern alleine eignet sich nur, wenn auf dem Zielsystem bereits dieselben Dateien liegen. Sonst nutze Migrieren.',
+            local: {
+                root: 'Verzeichnis (Pfad relativ zum Arbeitsverzeichnis)',
+                hint: 'Üblicher Wert: data',
+            },
+            types: {
+                local: 'LOCAL (Lokales Verzeichnis)',
+                s3: 'S3 / S3-kompatibel',
+                smb: 'SMB',
+                sftp: 'SFTP',
+            },
+        },
+        actions: {
+            probeLive: 'Aktuelles Backend testen',
+            probing: 'Teste …',
+            save: 'Speichern',
+            saving: 'Speichere …',
+            migrate: 'Dateien verschieben',
+            migrating: 'Verschiebe …',
+        },
+        probe: {
+            ok: 'Verbindung erfolgreich getestet.',
+            failed: 'Verbindung fehlgeschlagen: {reason}',
+        },
+        confirm: {
+            title: 'Instanz-weit verschieben?',
+            body: 'Während der Verschiebung sind sämtliche Schreibvorgänge auf der Instanz pausiert. Nach erfolgreichem Kopieren werden die alten Dateien standardmäßig gelöscht.',
+            keepSource: 'Quell-Dateien nach erfolgreicher Verschiebung behalten',
+            cancel: 'Abbrechen',
+            confirm: 'Verschieben',
+        },
+        feedback: {
+            saved: 'Konfiguration gespeichert.',
+            migrated: '{copied} Dateien kopiert, {skipped} übersprungen, {deleted} an der Quelle gelöscht.',
+        },
+        errors: {
+            loadFailed: 'Konnte Speicher-Konfiguration nicht laden.',
+            probeFailed: 'Verbindungstest fehlgeschlagen.',
+            saveFailed: 'Speichern fehlgeschlagen.',
+            migrateFailed: 'Verschiebung fehlgeschlagen.',
+        },
+    },
+    adminStorageAudit: {
+        title: 'Speicher-Audit',
+        linkBackend: 'Zur Backend-Konfiguration',
+        filters: {
+            title: 'Filter',
+            hint: 'Optional nach Wache oder Zeitpunkt eingrenzen.',
+            stationUid: 'Wachen-UID (optional)',
+            before: 'Vor (ISO 8601, optional)',
+            limit: 'Maximale Einträge',
+        },
+        actions: {
+            apply: 'Suchen',
+            loading: 'Lade …',
+        },
+        results: {
+            title: 'Einträge',
+        },
+        errors: {
+            loadFailed: 'Konnte Audit-Einträge nicht laden.',
+        },
     },
     stationStorageBackend: {
         title: 'Speicher-Backend',

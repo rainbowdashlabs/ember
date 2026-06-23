@@ -22,9 +22,9 @@ import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import StorageBackendAuditTable from '@/components/storage/StorageBackendAuditTable.vue'
-import S3BackendForm from './stationstoragebackendview/S3BackendForm.vue'
-import SmbBackendForm from './stationstoragebackendview/SmbBackendForm.vue'
-import SftpBackendForm from './stationstoragebackendview/SftpBackendForm.vue'
+import S3BackendForm from '@/components/storage/S3BackendForm.vue'
+import SmbBackendForm from '@/components/storage/SmbBackendForm.vue'
+import SftpBackendForm from '@/components/storage/SftpBackendForm.vue'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {
@@ -153,15 +153,14 @@ function currentRequest(): StationBackendRequest | null {
 }
 
 async function probe() {
-    const req = currentRequest()
-    if (!req) {
+    if (!hasOverride.value) {
         probeOutcome.value = null
         return
     }
     probing.value = true
     probeOutcome.value = null
     try {
-        probeOutcome.value = await probeStationBackend(req)
+        probeOutcome.value = await probeStationBackend()
     } catch (e: any) {
         probeOutcome.value = {
             healthy: false,
@@ -334,7 +333,7 @@ function newSftp(): SftpRequest {
                     </div>
 
                     <div class="flex flex-wrap items-center gap-3">
-                        <SecondaryButton :disabled="probing || selectedType === 'LOCAL'" @click="probe">
+                        <SecondaryButton :disabled="probing || !hasOverride" @click="probe">
                             {{ probing ? t('stationStorageBackend.actions.probing') : t('stationStorageBackend.actions.probe') }}
                         </SecondaryButton>
                         <PrimaryButton :disabled="saving" @click="save">
