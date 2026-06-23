@@ -11,6 +11,7 @@ import {CanvasRenderer} from 'echarts/renderers'
 import {BarChart} from 'echarts/charts'
 import {GridComponent, TitleComponent, TooltipComponent} from 'echarts/components'
 import VChart from 'vue-echarts'
+import {RouterLink} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -104,6 +105,11 @@ const chartOption = computed(() => {
 
 <template>
   <ViewContent>
+    <div class="mb-4 flex justify-end">
+      <RouterLink :to="{name: 'station-storage-backend'}" class="text-sm underline">
+        {{ t('stationStorageBackend.linkFromUsage') }}
+      </RouterLink>
+    </div>
     <Spinner v-if="loading" size="lg"/>
     <Alert v-else-if="error" variant="error">{{ error }}</Alert>
     <template v-else-if="usage">
