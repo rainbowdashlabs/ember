@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:a4649b1436a7a9ee85e5790e0dfbd992f987f42d843015ab6faf368a3c44bf26",
-  "generatedAt" : "2026-06-23T11:53:19Z",
+  "schemaHash" : "sha256:802bd3a1f57f1ac7eefa7826363d6ce06f91f90aa565bdcf8214fae3201c5c49",
+  "generatedAt" : "2026-06-23T12:24:03Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -11204,7 +11204,8 @@
         "name" : "read_only_for_transfer",
         "type" : "bool",
         "nullable" : false,
-        "verified" : true
+        "verified" : true,
+        "description" : "Set by the source operator when a station export-transfer token is created. While the flag is on, StorageService.store refuses uploads with 503 so the destination instance does not race with new writes on the source mid-transfer. The flag clears when the source operator deletes the station (existing cascade) or calls POST /station/transfer/abort."
       } ],
       "foreignKeys" : [ {
         "column" : "landing_page_id",
@@ -12125,12 +12126,14 @@
         "name" : "backend_type",
         "type" : "text",
         "nullable" : false,
-        "verified" : true
+        "verified" : true,
+        "description" : "Discriminator for the typed StationStorageBackendConfig variant carried in config."
       }, {
         "name" : "config",
         "type" : "jsonb",
         "nullable" : false,
-        "verified" : true
+        "verified" : true,
+        "description" : "Typed StationStorageBackendConfig variant. Credentials inside it are encrypted with storage.credentialEncryptionKey before being written."
       }, {
         "name" : "created_at",
         "type" : "timestamptz",
@@ -12159,7 +12162,8 @@
       "gdprDeletion" : {
         "status" : "IGNORED",
         "reason" : "Encrypted operator-supplied credentials; no personal data."
-      }
+      },
+      "description" : "Per-station remote storage backend override. One row per station that has opted out of the instance-default storage; the override applies across every station-scoped movable category at that station."
     },
     "station_storage_usage" : {
       "feature" : "station",
@@ -12354,7 +12358,8 @@
         "name" : "system_actor",
         "type" : "text",
         "nullable" : true,
-        "verified" : true
+        "verified" : true,
+        "description" : "Identifier of the system actor (scheduler, migration, boot) when no human actor is present."
       }, {
         "name" : "station_id",
         "type" : "int4",
@@ -12369,12 +12374,14 @@
         "name" : "old_config",
         "type" : "jsonb",
         "nullable" : true,
-        "verified" : true
+        "verified" : true,
+        "description" : "Full redacted snapshot of the prior config. Credentials are replaced with {\"credentials\":\"redacted\",\"sha256OfCiphertext\":\"…\"} before the row is written; raw cipher material never enters this table."
       }, {
         "name" : "new_config",
         "type" : "jsonb",
         "nullable" : true,
-        "verified" : true
+        "verified" : true,
+        "description" : "Full redacted snapshot of the new config. Credentials are replaced with {\"credentials\":\"redacted\",\"sha256OfCiphertext\":\"…\"} before the row is written; raw cipher material never enters this table."
       }, {
         "name" : "outcome",
         "type" : "text",
@@ -12413,7 +12420,8 @@
       "gdprDeletion" : {
         "status" : "IGNORED",
         "reason" : "Append-only retention. Actor attribution thins out via SET NULL when the account is deleted."
-      }
+      },
+      "description" : "Append-only audit trail for every backend-config mutation (CREATE / UPDATE / DELETE / REJECT) plus user-triggered probes and migration lifecycle events. Indefinite retention: actor and station FKs use ON DELETE SET NULL so the row survives account / station deletion as proof-of-action; only the attribution thins out."
     },
     "storage_quota_preset" : {
       "feature" : "storage",
@@ -12996,7 +13004,7 @@
     "transfer_token" : {
       "feature" : "station",
       "scope" : "INSTANCE",
-      "tableHash" : "sha256:1b8146b7686145e67391245b3118a4d603ee3c9f2349d8295d3ea4ac07c1ad83",
+      "tableHash" : "sha256:7f6d0f2d7cd815702a07cb3e291ddba2b71c20e70973817aec2507f12d8bb227",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -13038,7 +13046,13 @@
         "type" : "text",
         "nullable" : true,
         "verified" : true,
-        "description" : "Destination instance URL identified by the X-Ember-Importing-From header on first pull. Surfaced on the source's transfer banner so users see where the station is going."
+        "description" : "Identifies the destination instance that is currently importing the station. The destination sends X-Ember-Importing-From on its first /public/transfer/{token}/tables call; the source records the value here so the station settings banner can advertise where the station is going."
+      }, {
+        "name" : "backend_fetched_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Stamped on the first successful /public/transfer/{token}/backend call. The endpoint hands plaintext storage credentials to the destination, so subsequent calls with the same token are rejected with 429 — the destination only needs the descriptor once."
       } ],
       "foreignKeys" : [ {
         "column" : "station_id",

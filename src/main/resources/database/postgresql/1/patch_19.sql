@@ -61,3 +61,9 @@ ALTER TABLE ember_schema.transfer_token
 
 COMMENT ON COLUMN ember_schema.transfer_token.target_instance_url IS
     'Identifies the destination instance that is currently importing the station. The destination sends X-Ember-Importing-From on its first /public/transfer/{token}/tables call; the source records the value here so the station settings banner can advertise where the station is going.';
+
+ALTER TABLE ember_schema.transfer_token
+    ADD COLUMN backend_fetched_at TIMESTAMPTZ NULL;
+
+COMMENT ON COLUMN ember_schema.transfer_token.backend_fetched_at IS
+    'Stamped on the first successful /public/transfer/{token}/backend call. The endpoint hands plaintext storage credentials to the destination, so subsequent calls with the same token are rejected with 429 — the destination only needs the descriptor once.';

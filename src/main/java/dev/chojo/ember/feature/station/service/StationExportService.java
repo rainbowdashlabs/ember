@@ -162,6 +162,27 @@ public class StationExportService {
                 .first();
     }
 
+    /**
+     * Atomically claims the one-shot backend descriptor slot for the given transfer token.
+     * Returns the station id when this is the first successful claim; returns empty when the
+     * descriptor has already been served for this token (the destination must reuse the value
+     * it received on its first call). Callers map empty to {@code 429 Too Many Requests}.
+     */
+    public Optional<Integer> claimBackendDescriptor(String token) {
+        return query("""
+                UPDATE transfer_token
+                SET backend_fetched_at = now()
+                WHERE token = :token
+                  AND used = FALSE
+                  AND expires_at > now()
+                  AND backend_fetched_at IS NULL
+                RETURNING station_id;
+                """)
+                .single(call().bind("token", token))
+                .map(row -> row.getInt("station_id"))
+                .first();
+    }
+
     public Optional<Integer> validateAndConsumeToken(String token) {
         var result = query(
                         "SELECT station_id FROM transfer_token WHERE token = :token AND used = FALSE AND expires_at > now();")
