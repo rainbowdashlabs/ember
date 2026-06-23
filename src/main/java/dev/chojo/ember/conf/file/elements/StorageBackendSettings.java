@@ -6,13 +6,18 @@
 package dev.chojo.ember.conf.file.elements;
 
 import dev.chojo.ember.feature.storage.backend.StorageBackendType;
+import dev.chojo.ember.feature.storage.credential.EncryptedBlob;
 
 /**
  * Instance-default storage backend selection plus per-backend connection settings. Only the
  * sub-block matching {@link #type()} is read; the rest are ignored.
  *
- * <p>Credentials are populated via environment variables on the matching sub-block — the YAML
- * file itself does not carry secrets in normal deployments.
+ * <p>Credential fields exist in two forms: a legacy plain-text variant (e.g. {@code accessKey})
+ * that an operator may set by hand for a fresh deployment, and an encrypted variant (e.g.
+ * {@code accessKeyEnc}) that the in-app instance-storage swap writes back when an
+ * administrator changes the backend through the admin UI. {@code StorageBackendFactory}
+ * prefers the encrypted form and falls back to the plain field when the encrypted slot is
+ * empty so existing deployments keep working unchanged.
  */
 @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
 public class StorageBackendSettings {
@@ -42,7 +47,9 @@ public class StorageBackendSettings {
         return s3;
     }
 
-    /** Settings for the local-disk backend. Default root is {@code data/}. */
+    /**
+     * Settings for the local-disk backend. Default root is {@code data/}.
+     */
     @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
     public static class LocalSettings {
         private String root = "data";
@@ -52,7 +59,10 @@ public class StorageBackendSettings {
         }
     }
 
-    /** Settings for the SMB3 backend. Credentials read from env vars only. */
+    /**
+     * Settings for the SMB3 backend. {@code password} carries plain-text from a hand-edited
+     * config; {@code passwordEnc} carries the encrypted form written back by the admin UI.
+     */
     @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
     public static class SmbSettings {
         private String host = "";
@@ -61,6 +71,7 @@ public class StorageBackendSettings {
         private String domain = "";
         private String username = "";
         private String password = "";
+        private EncryptedBlob passwordEnc = null;
         private String basePath = "";
         private boolean seal = true;
         private boolean dfs = false;
@@ -89,6 +100,10 @@ public class StorageBackendSettings {
             return password;
         }
 
+        public EncryptedBlob passwordEnc() {
+            return passwordEnc;
+        }
+
         public String basePath() {
             return basePath;
         }
@@ -102,14 +117,19 @@ public class StorageBackendSettings {
         }
     }
 
-    /** Settings for the SFTP backend. Either {@code password} or {@code privateKey} is set. */
+    /**
+     * Settings for the SFTP backend. Either {@code password} (or its {@code passwordEnc}
+     * counterpart) or {@code privateKey} (or {@code privateKeyEnc}) is set.
+     */
     @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
     public static class SftpSettings {
         private String host = "";
         private int port = 22;
         private String username = "";
         private String password = "";
+        private EncryptedBlob passwordEnc = null;
         private String privateKey = "";
+        private EncryptedBlob privateKeyEnc = null;
         private String knownHostsFingerprint = "";
         private String basePath = "";
 
@@ -129,8 +149,16 @@ public class StorageBackendSettings {
             return password;
         }
 
+        public EncryptedBlob passwordEnc() {
+            return passwordEnc;
+        }
+
         public String privateKey() {
             return privateKey;
+        }
+
+        public EncryptedBlob privateKeyEnc() {
+            return privateKeyEnc;
         }
 
         public String knownHostsFingerprint() {
@@ -142,14 +170,18 @@ public class StorageBackendSettings {
         }
     }
 
-    /** Settings for the S3 backend. Works against AWS S3 and any S3-compatible endpoint. */
+    /**
+     * Settings for the S3 backend. Works against AWS S3 and any S3-compatible endpoint.
+     */
     @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
     public static class S3Settings {
         private String endpoint = "";
         private String region = "";
         private String bucket = "";
         private String accessKey = "";
+        private EncryptedBlob accessKeyEnc = null;
         private String secretKey = "";
+        private EncryptedBlob secretKeyEnc = null;
         private boolean pathStyle = false;
         private String sseAlgorithm = "";
         private String basePath = "";
@@ -170,8 +202,16 @@ public class StorageBackendSettings {
             return accessKey;
         }
 
+        public EncryptedBlob accessKeyEnc() {
+            return accessKeyEnc;
+        }
+
         public String secretKey() {
             return secretKey;
+        }
+
+        public EncryptedBlob secretKeyEnc() {
+            return secretKeyEnc;
         }
 
         public boolean pathStyle() {

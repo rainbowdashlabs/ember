@@ -78,14 +78,29 @@ public class StationStorageBackendRoutes implements Routes {
         this.migrationService = migrationService;
     }
 
+    static AuditEntryResponse toResponse(StorageAuditEntry entry) {
+        return new AuditEntryResponse(
+                entry.id(),
+                entry.ts().toString(),
+                entry.actorAccountId().orElse(null),
+                entry.actorMemberId().orElse(null),
+                entry.systemActor().orElse(null),
+                entry.stationId().orElse(null),
+                entry.action(),
+                entry.oldConfig().orElse(null),
+                entry.newConfig().orElse(null),
+                entry.outcome(),
+                entry.error().orElse(null));
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/station/storage/backend", this::get, StationPermission.STATION_MANAGER);
-        routes.put(prefix + "/station/storage/backend", this::upsert, StationPermission.STATION_MANAGER);
-        routes.delete(prefix + "/station/storage/backend", this::delete, StationPermission.STATION_MANAGER);
-        routes.post(prefix + "/station/storage/backend/probe", this::probe, StationPermission.STATION_MANAGER);
-        routes.get(prefix + "/station/storage/audit", this::listAudit, StationPermission.STATION_MANAGER);
-        routes.post(prefix + "/station/storage/migrate", this::migrate, StationPermission.STATION_MANAGER);
+        routes.get(prefix + "/station/storage/backend", this::get, StationPermission.STATION_ADMINISTRATOR);
+        routes.put(prefix + "/station/storage/backend", this::upsert, StationPermission.STATION_ADMINISTRATOR);
+        routes.delete(prefix + "/station/storage/backend", this::delete, StationPermission.STATION_ADMINISTRATOR);
+        routes.post(prefix + "/station/storage/backend/probe", this::probe, StationPermission.STATION_ADMINISTRATOR);
+        routes.get(prefix + "/station/storage/audit", this::listAudit, StationPermission.STATION_ADMINISTRATOR);
+        routes.post(prefix + "/station/storage/migrate", this::migrate, StationPermission.STATION_ADMINISTRATOR);
     }
 
     private void get(Context ctx) {
@@ -199,34 +214,6 @@ public class StationStorageBackendRoutes implements Routes {
         ctx.json(entries);
     }
 
-    static AuditEntryResponse toResponse(StorageAuditEntry entry) {
-        return new AuditEntryResponse(
-                entry.id(),
-                entry.ts().toString(),
-                entry.actorAccountId().orElse(null),
-                entry.actorMemberId().orElse(null),
-                entry.systemActor().orElse(null),
-                entry.stationId().orElse(null),
-                entry.action(),
-                entry.oldConfig().orElse(null),
-                entry.newConfig().orElse(null),
-                entry.outcome(),
-                entry.error().orElse(null));
-    }
-
-    public record AuditEntryResponse(
-            long id,
-            String ts,
-            Integer actorAccountId,
-            Integer actorMemberId,
-            String systemActor,
-            Integer stationId,
-            StorageAuditAction action,
-            String oldConfig,
-            String newConfig,
-            StorageAuditOutcome outcome,
-            String error) {}
-
     private int sessionStationId(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer stationId = session.stationId();
@@ -315,13 +302,34 @@ public class StationStorageBackendRoutes implements Routes {
         };
     }
 
-    // -- Response shapes --
-
-    public record BackendOverrideResponse(StorageBackendType instanceDefault, BackendOverrideSummary override) {}
-
     public sealed interface BackendOverrideSummary {
         StorageBackendType type();
     }
+
+    // -- Response shapes --
+
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes({
+        @JsonSubTypes.Type(value = S3Request.class, name = "S3"),
+        @JsonSubTypes.Type(value = SmbRequest.class, name = "SMB"),
+        @JsonSubTypes.Type(value = SftpRequest.class, name = "SFTP")
+    })
+    public sealed interface BackendOverrideRequest {}
+
+    public record AuditEntryResponse(
+            long id,
+            String ts,
+            Integer actorAccountId,
+            Integer actorMemberId,
+            String systemActor,
+            Integer stationId,
+            StorageAuditAction action,
+            String oldConfig,
+            String newConfig,
+            StorageAuditOutcome outcome,
+            String error) {}
+
+    public record BackendOverrideResponse(StorageBackendType instanceDefault, BackendOverrideSummary override) {}
 
     public record S3Summary(
             String endpoint, String region, String bucket, boolean pathStyle, String sseAlgorithm, String basePath)
@@ -351,17 +359,9 @@ public class StationStorageBackendRoutes implements Routes {
 
     public record ProbeResult(boolean healthy, String error, String checkedAt) {}
 
-    public record MigrationResponse(int totalKeys, int copied, int skipped, int deleted, long copiedBytes) {}
-
     // -- Request shapes (plaintext credentials in transit only; server encrypts before persisting) --
 
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-    @JsonSubTypes({
-        @JsonSubTypes.Type(value = S3Request.class, name = "S3"),
-        @JsonSubTypes.Type(value = SmbRequest.class, name = "SMB"),
-        @JsonSubTypes.Type(value = SftpRequest.class, name = "SFTP")
-    })
-    public sealed interface BackendOverrideRequest {}
+    public record MigrationResponse(int totalKeys, int copied, int skipped, int deleted, long copiedBytes) {}
 
     public record S3Request(
             String endpoint,

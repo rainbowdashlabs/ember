@@ -50,6 +50,63 @@ public class StorageBackendFactory {
         this.credentialCipher = credentialCipher;
     }
 
+    private SmbBackendConfig toSmbConfig(StorageBackendSettings.SmbSettings smb) {
+        return new SmbBackendConfig(
+                smb.host(),
+                smb.port(),
+                smb.share(),
+                smb.domain(),
+                smb.username(),
+                resolveCredential(smb.passwordEnc(), smb.password()),
+                smb.basePath(),
+                smb.seal(),
+                smb.dfs());
+    }
+
+    private SftpBackendConfig toSftpConfig(StorageBackendSettings.SftpSettings sftp) {
+        String passwordPlain = resolveCredential(sftp.passwordEnc(), sftp.password());
+        String privateKeyPlain = resolveCredential(sftp.privateKeyEnc(), sftp.privateKey());
+        Optional<String> password =
+                passwordPlain == null || passwordPlain.isBlank() ? Optional.empty() : Optional.of(passwordPlain);
+        Optional<String> privateKey =
+                privateKeyPlain == null || privateKeyPlain.isBlank() ? Optional.empty() : Optional.of(privateKeyPlain);
+        return new SftpBackendConfig(
+                sftp.host(),
+                sftp.port(),
+                sftp.username(),
+                password,
+                privateKey,
+                sftp.knownHostsFingerprint(),
+                sftp.basePath());
+    }
+
+    private S3BackendConfig toS3Config(StorageBackendSettings.S3Settings s3) {
+        Optional<String> sse = s3.sseAlgorithm() == null || s3.sseAlgorithm().isBlank()
+                ? Optional.empty()
+                : Optional.of(s3.sseAlgorithm());
+        return new S3BackendConfig(
+                s3.endpoint(),
+                s3.region(),
+                s3.bucket(),
+                resolveCredential(s3.accessKeyEnc(), s3.accessKey()),
+                resolveCredential(s3.secretKeyEnc(), s3.secretKey()),
+                s3.pathStyle(),
+                sse,
+                s3.basePath());
+    }
+
+    /**
+     * Prefers the encrypted form when present (decrypting via {@link CredentialCipher}); falls
+     * back to the plain-text value otherwise so existing deployments that hand-wrote the legacy
+     * fields continue to work unchanged.
+     */
+    private String resolveCredential(dev.chojo.ember.feature.storage.credential.EncryptedBlob encrypted, String plain) {
+        if (encrypted != null) {
+            return credentialCipher.decryptToString(encrypted);
+        }
+        return plain;
+    }
+
     /**
      * Returns the always-on local backend, used by every local-pinned category regardless of
      * the configured instance default.
@@ -58,13 +115,28 @@ public class StorageBackendFactory {
         return localBackend;
     }
 
-    /** Returns the configured instance-default backend, building it lazily on first call. */
+    /**
+     * Returns the configured instance-default backend, building it lazily on first call.
+     */
     public synchronized StorageBackend instanceDefault() {
         if (instanceDefault == null) {
             instanceDefault = build(storageConfig.backend());
             log.info("Storage instance-default backend resolved to {}", instanceDefault.type());
         }
         return instanceDefault;
+    }
+
+    /**
+     * Builds a backend for a station's override row by decrypting its credentials and
+     * combining them with the non-secret fields the row carries. Each call constructs a fresh
+     * backend instance; the resolver caches it on top.
+     */
+    public StorageBackend buildForStation(StationStorageBackendConfig config) {
+        return switch (config) {
+            case StationStorageBackendConfig.S3Variant v -> new S3StorageBackend(toS3Config(v));
+            case StationStorageBackendConfig.SmbVariant v -> new SmbStorageBackend(toSmbConfig(v));
+            case StationStorageBackendConfig.SftpVariant v -> new SftpStorageBackend(toSftpConfig(v));
+        };
     }
 
     private StorageBackend build(StorageBackendSettings settings) {
@@ -81,49 +153,6 @@ public class StorageBackendFactory {
         String root = local.root() == null || local.root().isBlank() ? "data" : local.root();
         if ("data".equals(root)) return localBackend;
         return new LocalStorageBackend(Paths.get(root));
-    }
-
-    private static SmbBackendConfig toSmbConfig(StorageBackendSettings.SmbSettings smb) {
-        return new SmbBackendConfig(
-                smb.host(),
-                smb.port(),
-                smb.share(),
-                smb.domain(),
-                smb.username(),
-                smb.password(),
-                smb.basePath(),
-                smb.seal(),
-                smb.dfs());
-    }
-
-    private static SftpBackendConfig toSftpConfig(StorageBackendSettings.SftpSettings sftp) {
-        Optional<String> password =
-                sftp.password() == null || sftp.password().isBlank() ? Optional.empty() : Optional.of(sftp.password());
-        Optional<String> privateKey =
-                sftp.privateKey() == null || sftp.privateKey().isBlank()
-                        ? Optional.empty()
-                        : Optional.of(sftp.privateKey());
-        return new SftpBackendConfig(
-                sftp.host(),
-                sftp.port(),
-                sftp.username(),
-                password,
-                privateKey,
-                sftp.knownHostsFingerprint(),
-                sftp.basePath());
-    }
-
-    /**
-     * Builds a backend for a station's override row by decrypting its credentials and
-     * combining them with the non-secret fields the row carries. Each call constructs a fresh
-     * backend instance; the resolver caches it on top.
-     */
-    public StorageBackend buildForStation(StationStorageBackendConfig config) {
-        return switch (config) {
-            case StationStorageBackendConfig.S3Variant v -> new S3StorageBackend(toS3Config(v));
-            case StationStorageBackendConfig.SmbVariant v -> new SmbStorageBackend(toSmbConfig(v));
-            case StationStorageBackendConfig.SftpVariant v -> new SftpStorageBackend(toSftpConfig(v));
-        };
     }
 
     private S3BackendConfig toS3Config(StationStorageBackendConfig.S3Variant v) {
@@ -164,20 +193,5 @@ public class StorageBackendFactory {
                         : Optional.of(creds.privateKey());
         return new SftpBackendConfig(
                 v.host(), v.port(), creds.username(), password, privateKey, v.knownHostsFingerprint(), v.basePath());
-    }
-
-    private static S3BackendConfig toS3Config(StorageBackendSettings.S3Settings s3) {
-        Optional<String> sse = s3.sseAlgorithm() == null || s3.sseAlgorithm().isBlank()
-                ? Optional.empty()
-                : Optional.of(s3.sseAlgorithm());
-        return new S3BackendConfig(
-                s3.endpoint(),
-                s3.region(),
-                s3.bucket(),
-                s3.accessKey(),
-                s3.secretKey(),
-                s3.pathStyle(),
-                sse,
-                s3.basePath());
     }
 }
