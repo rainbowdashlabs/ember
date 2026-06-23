@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:74d58f33f72dd47e727949633d82a895d192e3acd577d6b850bc887e827fbcb3",
-  "generatedAt" : "2026-06-23T11:21:14Z",
+  "schemaHash" : "sha256:a4649b1436a7a9ee85e5790e0dfbd992f987f42d843015ab6faf368a3c44bf26",
+  "generatedAt" : "2026-06-23T11:53:19Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -11204,8 +11204,7 @@
         "name" : "read_only_for_transfer",
         "type" : "bool",
         "nullable" : false,
-        "verified" : true,
-        "description" : "Set to TRUE when the source operator creates a transfer token; while set, StorageService.store refuses uploads with 503 so the destination instance does not race with new writes on the source mid-transfer. Cleared on station deletion or POST /station/transfer/abort."
+        "verified" : true
       } ],
       "foreignKeys" : [ {
         "column" : "landing_page_id",
@@ -12997,7 +12996,7 @@
     "transfer_token" : {
       "feature" : "station",
       "scope" : "INSTANCE",
-      "tableHash" : "sha256:0e31349e57aaedab55dc2aebf3c67bce7b6dafdf0f938a4ee293b693e68ab5f8",
+      "tableHash" : "sha256:1b8146b7686145e67391245b3118a4d603ee3c9f2349d8295d3ea4ac07c1ad83",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -13034,6 +13033,12 @@
         "nullable" : false,
         "verified" : true,
         "description" : "Whether the token has been used."
+      }, {
+        "name" : "target_instance_url",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Destination instance URL identified by the X-Ember-Importing-From header on first pull. Surfaced on the source's transfer banner so users see where the station is going."
       } ],
       "foreignKeys" : [ {
         "column" : "station_id",

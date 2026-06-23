@@ -126,6 +126,42 @@ public class StationExportService {
                 .first();
     }
 
+    /**
+     * Records the destination instance URL against the token if it hasn't already been pinned.
+     * Called from {@code /public/transfer/{token}/tables} on first pull when the destination
+     * sends {@code X-Ember-Importing-From}. Subsequent calls with a different value are
+     * ignored — the first pull wins so the banner stays stable.
+     */
+    public void recordTransferTarget(String token, String targetInstanceUrl) {
+        if (targetInstanceUrl == null || targetInstanceUrl.isBlank()) return;
+        query("""
+                UPDATE transfer_token
+                SET target_instance_url = :url
+                WHERE token = :token AND target_instance_url IS NULL;
+                """)
+                .single(call().bind("token", token).bind("url", targetInstanceUrl.trim()))
+                .update();
+    }
+
+    /**
+     * Returns the destination instance URL recorded for any active (or recently-completed)
+     * transfer token belonging to {@code stationId}. Surfaced via the station banner so users
+     * see where the station is being transferred to.
+     */
+    public Optional<String> findTransferTarget(int stationId) {
+        return query("""
+                SELECT target_instance_url
+                FROM transfer_token
+                WHERE station_id = :station_id
+                  AND target_instance_url IS NOT NULL
+                ORDER BY expires_at DESC
+                LIMIT 1;
+                """)
+                .single(call().bind("station_id", stationId))
+                .map(row -> row.getString("target_instance_url"))
+                .first();
+    }
+
     public Optional<Integer> validateAndConsumeToken(String token) {
         var result = query(
                         "SELECT station_id FROM transfer_token WHERE token = :token AND used = FALSE AND expires_at > now();")

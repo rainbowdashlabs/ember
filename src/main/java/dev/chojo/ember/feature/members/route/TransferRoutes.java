@@ -9,6 +9,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
 import io.javalin.http.BadRequestResponse;
@@ -37,11 +38,16 @@ import java.util.List;
 public class TransferRoutes implements Routes {
     private final StationExportService exportService;
     private final StationImportService importService;
+    private final StationRepository stationRepository;
 
     @Inject
-    public TransferRoutes(StationExportService exportService, StationImportService importService) {
+    public TransferRoutes(
+            StationExportService exportService,
+            StationImportService importService,
+            StationRepository stationRepository) {
         this.exportService = exportService;
         this.importService = importService;
+        this.stationRepository = stationRepository;
     }
 
     @Override
@@ -50,6 +56,7 @@ public class TransferRoutes implements Routes {
         routes.post(
                 prefix + "/station/transfer/create-token", this::createToken, StationPermission.STATION_IMPORT_EXPORT);
         routes.post(prefix + "/station/transfer/abort", this::abortTransfer, StationPermission.STATION_IMPORT_EXPORT);
+        routes.get(prefix + "/station/transfer/status", this::transferStatus, StationPermission.LOGIN);
 
         // Token-authenticated export (public, for remote import)
         routes.get(prefix + "/public/transfer/{token}/tables", this::tokenListTables);
@@ -97,6 +104,21 @@ public class TransferRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/station/transfer/status",
+            methods = HttpMethod.GET,
+            summary = "Returns whether the current station is being transferred out, and where to",
+            tags = {"Transfer"},
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = TransferStatusResponse.class)))
+    private void transferStatus(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int stationId = session.stationId();
+        boolean readOnly = stationRepository.isReadOnlyForTransfer(stationId);
+        String target = readOnly ? exportService.findTransferTarget(stationId).orElse(null) : null;
+        ctx.json(new TransferStatusResponse(readOnly, target));
+    }
+
     // -- Token-authenticated export --
 
     @OpenApi(
@@ -109,6 +131,10 @@ public class TransferRoutes implements Routes {
     private void tokenListTables(Context ctx) {
         String token = ctx.pathParam("token");
         exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
+        String importingFrom = ctx.header("X-Ember-Importing-From");
+        if (importingFrom != null && !importingFrom.isBlank()) {
+            exportService.recordTransferTarget(token, importingFrom);
+        }
         ctx.json(new TablesResponse(
                 exportService.getTableOrder(), exportService.getSchemaHash(), exportService.getAppVersion()));
     }
@@ -195,6 +221,8 @@ public class TransferRoutes implements Routes {
                 progress.currentTable(),
                 progress.error()));
     }
+
+    public record TransferStatusResponse(boolean readOnly, String targetInstanceUrl) {}
 
     public record VersionResponse(String version) {}
 

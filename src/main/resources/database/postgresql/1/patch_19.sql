@@ -63,3 +63,11 @@ CREATE INDEX idx_storage_backend_audit_ts
 
 ALTER TABLE ember_schema.station
     ADD COLUMN read_only_for_transfer BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Identifies the destination instance that is currently importing the station. The destination
+-- sends X-Ember-Importing-From on its first /public/transfer/{token}/tables call; the source
+-- records the value here so the station settings banner can advertise where the station is
+-- going.
+
+ALTER TABLE ember_schema.transfer_token
+    ADD COLUMN target_instance_url TEXT NULL;
