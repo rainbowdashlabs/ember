@@ -19,10 +19,16 @@ const {t} = useI18n()
     >
         <HelpSection :title="t('helpCenter.stationStorageBackend.where.title')">
             <p>{{ t('helpCenter.stationStorageBackend.where.text') }}</p>
+            <p>{{ t('helpCenter.stationStorageBackend.where.types') }}</p>
         </HelpSection>
 
         <HelpSection :title="t('helpCenter.stationStorageBackend.moving.title')">
             <p>{{ t('helpCenter.stationStorageBackend.moving.text') }}</p>
+            <p>{{ t('helpCenter.stationStorageBackend.moving.window') }}</p>
+        </HelpSection>
+
+        <HelpSection :title="t('helpCenter.stationStorageBackend.audit.title')">
+            <p>{{ t('helpCenter.stationStorageBackend.audit.text') }}</p>
         </HelpSection>
 
         <HelpTip>{{ t('helpCenter.stationStorageBackend.tip') }}</HelpTip>

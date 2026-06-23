@@ -4115,12 +4115,19 @@ volumes:
             put: {
                 title: 'Konfiguration speichern',
                 text: 'Mit Speichern aendert sich der Eintrag in der conf.yml. Dabei werden keine Dateien kopiert. Verwende das nur, wenn auf dem Zielsystem bereits dieselben Inhalte liegen.',
+                warning: 'Wenn das Zielsystem leer ist und du nur speicherst, finden die Apps die alten Dateien nicht mehr. Im Zweifel immer Migrieren.',
             },
             migrate: {
                 title: 'Dateien instanz-weit verschieben',
-                text: 'Mit Migrieren werden alle Dateien, die ohne Override auf dem aktuellen Backend liegen, auf das neue Ziel kopiert. Schon vorhandene Dateien mit gleichem Hash werden uebersprungen. Schreibvorgaenge der Instanz pausieren bis zum Abschluss.',
+                text: 'Mit Migrieren werden alle Dateien, die ohne Override auf dem aktuellen Backend liegen, auf das neue Ziel kopiert. Schon vorhandene Dateien mit gleichem Hash werden uebersprungen.',
+                window: 'Waehrend der Verschiebung pausieren Uploads auf der gesamten Instanz und beantworten Anfragen mit 503. Lesen funktioniert weiterhin. Plane das wie eine Wartungsfenster ein.',
+                overrides: 'Wachen mit eigenem Backend-Override sind nicht betroffen — ihre Dateien liegen ja schon woanders. Diese Wachen werden uebersprungen.',
             },
-            tip: 'Zugangsdaten werden vor dem Schreiben in conf.yml verschluesselt.',
+            locks: {
+                title: 'Was passiert mit gleichzeitigen Wachen-Migrationen?',
+                text: 'Solange eine Wache gerade migriert, kannst du keine Instanz-Migration starten. Umgekehrt blockiert eine laufende Instanz-Migration alle Wachen-Migrationen. Die Buttons reagieren dann mit einem klaren Fehler.',
+            },
+            tip: 'Zugangsdaten werden vor dem Schreiben in conf.yml verschluesselt — also nicht im Klartext durch dein Dateisystem rotiert.',
         },
         adminStorageAudit: {
             title: 'Audit-Log fuer Speicher-Aenderungen',
@@ -4135,11 +4142,17 @@ volumes:
             subtitle: 'Standard der Instanz nutzen oder eigene Cloud waehlen.',
             where: {
                 title: 'Was passiert hier?',
-                text: 'Standardmaessig liegen alle Dateien deiner Wache dort, wo die Instanz sie hinlegt. Wenn deine Wache eigenes S3, SMB oder SFTP hat, kannst du das hier eintragen. Dann landen neue Uploads sofort dort.',
+                text: 'Standardmaessig liegen alle Dateien deiner Wache dort, wo die Instanz sie hinlegt — das nennen wir den Instanz-Standard. Wenn deine Wache ein eigenes S3, SMB oder SFTP hat, kannst du das hier eintragen. Neue Uploads landen ab dann dort.',
+                types: 'S3 ist eine Cloud-Speicherart fuer Dateien (z.B. Amazon S3 oder Hetzner Object Storage). SMB ist eine Windows-Freigabe im Netzwerk. SFTP ist ein verschluesselter Datei-Transfer per SSH. LOCAL bedeutet: zurueck zum Instanz-Standard.',
             },
             moving: {
                 title: 'Bestehende Dateien verschieben',
-                text: 'Sobald ein Override gespeichert ist, kannst du mit "Dateien verschieben" alle vorhandenen Dateien auf das neue Ziel kopieren. Waehrend des Vorgangs sind Uploads kurzzeitig pausiert.',
+                text: 'Sobald ein Override gespeichert ist, kannst du mit "Dateien verschieben" alle vorhandenen Dateien auf das neue Ziel kopieren. Schon vorhandene Dateien mit gleichem Inhalt werden uebersprungen, der Rest wird umkopiert.',
+                window: 'Waehrend des Vorgangs sind Uploads fuer diese Wache pausiert. Andere Wachen sind nicht betroffen. Plane die Verschiebung daher in eine ruhige Zeit ein.',
+            },
+            audit: {
+                title: 'Wer hat was geaendert?',
+                text: 'Unten auf der Seite siehst du die letzten Aenderungen am Speicher-Backend dieser Wache. Falls ein Verbindungstest fehlschlaegt, steht hier der Grund.',
             },
             tip: 'Zugangsdaten werden vor dem Speichern verschluesselt. Auch nach dem Save siehst du sie aus Sicherheitsgruenden nicht im Klartext.',
         },
