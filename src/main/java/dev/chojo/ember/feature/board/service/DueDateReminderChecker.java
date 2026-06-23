@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.board.service;
 
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.BoardTicketChanged;
+import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -28,10 +29,12 @@ public class DueDateReminderChecker {
     private static final Logger log = LoggerFactory.getLogger(DueDateReminderChecker.class);
 
     private final DomainEventBus eventBus;
+    private final StationReadOnlyGuard readOnlyGuard;
 
     @Inject
-    public DueDateReminderChecker(DomainEventBus eventBus) {
+    public DueDateReminderChecker(DomainEventBus eventBus, StationReadOnlyGuard readOnlyGuard) {
         this.eventBus = eventBus;
+        this.readOnlyGuard = readOnlyGuard;
 
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             var t = new Thread(r, "board-due-date-checker");
@@ -45,6 +48,7 @@ public class DueDateReminderChecker {
         try {
             var overdue = findOverdueTickets();
             for (var ticket : overdue) {
+                if (!readOnlyGuard.isWritable(ticket.stationId)) continue;
                 eventBus.publish(new BoardTicketChanged(
                         ticket.stationId,
                         ticket.boardId,

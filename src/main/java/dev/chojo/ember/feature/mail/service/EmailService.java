@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.mail.service.mail.MailProvider;
 import dev.chojo.ember.feature.mail.service.mail.SmtpMailProvider;
 import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
+import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -42,6 +43,7 @@ public class EmailService {
     private final StationMailConfigRepository mailConfigRepository;
     private final MailTemplateRenderer templateRenderer;
     private final MailProvider globalProvider;
+    private final StationReadOnlyGuard readOnlyGuard;
 
     @Inject
     public EmailService(
@@ -50,13 +52,15 @@ public class EmailService {
             Demo demoConfig,
             EmailQueueRepository queueRepository,
             StationMailConfigRepository mailConfigRepository,
-            MailTemplateRenderer templateRenderer) {
+            MailTemplateRenderer templateRenderer,
+            StationReadOnlyGuard readOnlyGuard) {
         this.mailing = mailing;
         this.api = api;
         this.demoConfig = demoConfig;
         this.queueRepository = queueRepository;
         this.mailConfigRepository = mailConfigRepository;
         this.templateRenderer = templateRenderer;
+        this.readOnlyGuard = readOnlyGuard;
         this.globalProvider = createGlobalProvider();
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             var t = new Thread(r, "email-worker");
@@ -570,7 +574,10 @@ public class EmailService {
             for (var email : batch) {
                 MailProvider provider;
                 if (email.stationId() != null) {
-                    // Station email — check limits and use station provider
+                    if (!readOnlyGuard.isWritable(email.stationId())) {
+                        queueRepository.requeue(email.id());
+                        continue;
+                    }
                     if (!canStationSend(email.stationId())) {
                         queueRepository.markFailed(email.id());
                         continue;
