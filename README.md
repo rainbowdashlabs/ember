@@ -130,10 +130,10 @@ api:
   baseUrl: "https://..."
   demoUrl: ""
   maxImageSizeBytes: 5242880
-  privacyPolicyDir: "data/privacy"
-  consentDir: "data/consent"
-  tosDir: "data/tos"
-  imprintDir: "data/imprint"
+  privacyPolicyDir: "data/documents/privacy"
+  consentDir: "data/documents/consent"
+  tosDir: "data/documents/tos"
+  imprintDir: "data/documents/imprint"
 
 auth:
   sessionMinutes: 30

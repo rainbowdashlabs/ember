@@ -42,16 +42,16 @@ public class Api {
     private int maxImageSizeBytes = 5 * 1024 * 1024;
 
     @Overwrite(env = @Env)
-    private String privacyPolicyDir = "data/privacy";
+    private String privacyPolicyDir = "data/documents/privacy";
 
     @Overwrite(env = @Env)
-    private String consentDir = "data/consent";
+    private String consentDir = "data/documents/consent";
 
     @Overwrite(env = @Env)
-    private String tosDir = "data/tos";
+    private String tosDir = "data/documents/tos";
 
     @Overwrite(env = @Env)
-    private String imprintDir = "data/imprint";
+    private String imprintDir = "data/documents/imprint";
 
     /**
      * Whether to gzip text-shaped responses (JSON, HTML, CSS, XML/RSS/Atom, SVG, plain text,

@@ -36,7 +36,7 @@ import java.util.List;
  *
  * <p>Directory structure:
  * <pre>
- * data/privacy/
+ * data/documents/privacy/
  *   de/
  *     01-general.md
  *     02-rights.md

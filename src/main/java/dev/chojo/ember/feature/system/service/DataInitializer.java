@@ -23,16 +23,16 @@ public class DataInitializer {
     private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);
 
     private static final String[] TEMPLATE_FILES = {
-        "consent/de/01-consent.md",
-        "consent/en/01-consent.md",
-        "imprint/de/01-impressum.md",
-        "imprint/en/01-imprint.md",
-        "privacy/de/01-general.md",
-        "privacy/de/02-rights.md",
-        "privacy/en/01-general.md",
-        "privacy/en/02-rights.md",
-        "tos/de/01-nutzungsbedingungen.md",
-        "tos/en/01-terms.md",
+        "documents/consent/de/01-consent.md",
+        "documents/consent/en/01-consent.md",
+        "documents/imprint/de/01-impressum.md",
+        "documents/imprint/en/01-imprint.md",
+        "documents/privacy/de/01-general.md",
+        "documents/privacy/de/02-rights.md",
+        "documents/privacy/en/01-general.md",
+        "documents/privacy/en/02-rights.md",
+        "documents/tos/de/01-nutzungsbedingungen.md",
+        "documents/tos/en/01-terms.md",
     };
 
     /**
