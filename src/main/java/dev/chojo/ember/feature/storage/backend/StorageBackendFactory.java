@@ -127,6 +127,32 @@ public class StorageBackendFactory {
     }
 
     /**
+     * Drops the cached instance-default backend so the next call rebuilds against the current
+     * {@link Storage#backend()} state. Called by the instance-wide migration after it has
+     * flipped the YAML so subsequent {@link StorageBackendResolver} reads pick up the new
+     * target. The previously-cached backend instance is closed to release its connection pool.
+     */
+    public synchronized void invalidateInstanceDefault() {
+        StorageBackend previous = instanceDefault;
+        instanceDefault = null;
+        if (previous == null) return;
+        try {
+            previous.close();
+        } catch (Exception e) {
+            log.warn("Failed to close previously-cached instance-default backend", e);
+        }
+    }
+
+    /**
+     * Builds a fresh instance-target backend from the supplied {@link StorageBackendSettings}.
+     * Used by the instance-wide migration probe + byte-copy loop so the target can be
+     * exercised before the YAML flip lands.
+     */
+    public StorageBackend buildForInstance(StorageBackendSettings settings) {
+        return build(settings);
+    }
+
+    /**
      * Builds a backend for a station's override row by decrypting its credentials and
      * combining them with the non-secret fields the row carries. Each call constructs a fresh
      * backend instance; the resolver caches it on top.

@@ -51,21 +51,36 @@ public class StorageService {
     private final StorageBackendResolver resolver;
     private final LocalStorageBackend localBackend;
     private final StationRepository stationRepository;
+    private final InstanceStorageReadOnlyState instanceReadOnly;
 
     @Inject
     public StorageService(
-            StorageBackendResolver resolver, LocalStorageBackend localBackend, StationRepository stationRepository) {
+            StorageBackendResolver resolver,
+            LocalStorageBackend localBackend,
+            StationRepository stationRepository,
+            InstanceStorageReadOnlyState instanceReadOnly) {
         this.resolver = resolver;
         this.localBackend = localBackend;
         this.stationRepository = stationRepository;
+        this.instanceReadOnly = instanceReadOnly;
     }
 
     /**
-     * Convenience constructor for tests that do not need the read-only-for-transfer gate.
-     * Skips the {@link StationRepository} lookup; every store call proceeds.
+     * Convenience constructor for tests that do not need the read-only-for-transfer / instance
+     * read-only gates. Every store call proceeds.
      */
     public StorageService(StorageBackendResolver resolver, LocalStorageBackend localBackend) {
-        this(resolver, localBackend, null);
+        this(resolver, localBackend, null, null);
+    }
+
+    private static void validateMime(StorageCategory category, String mimeHint) {
+        if (category.acceptedMimeTypes() == StorageCategory.MIME_ANY) return;
+        if (mimeHint == null) {
+            throw new IllegalArgumentException("Category " + category + " requires a MIME hint");
+        }
+        if (!category.acceptsMimeType(mimeHint)) {
+            throw new IllegalArgumentException("MIME type " + mimeHint + " not accepted for category " + category);
+        }
     }
 
     /**
@@ -81,6 +96,7 @@ public class StorageService {
             long contentLength,
             String mimeHint) {
         validateMime(category, mimeHint);
+        guardInstanceReadOnly();
         guardReadOnlyForTransfer(scope);
         StorageBackend backend = resolver.forScope(scope, category);
         String fullKey = fullKey(scope, category, key, variant);
@@ -93,7 +109,9 @@ public class StorageService {
         return new StoredObject(scope, category, key, sealed, contentLength);
     }
 
-    /** Variant-less store; the implicit {@link Variant#ORIGINAL} is used. */
+    /**
+     * Variant-less store; the implicit {@link Variant#ORIGINAL} is used.
+     */
     public StoredObject store(
             StorageScope scope,
             StorageCategory category,
@@ -104,12 +122,16 @@ public class StorageService {
         return store(scope, category, key, Variant.ORIGINAL, body, contentLength, mimeHint);
     }
 
-    /** Byte-array convenience overload that buffers the payload before delegating. */
+    /**
+     * Byte-array convenience overload that buffers the payload before delegating.
+     */
     public StoredObject store(StorageScope scope, StorageCategory category, String key, byte[] bytes, String mimeHint) {
         return store(scope, category, key, Variant.ORIGINAL, new ByteArrayInputStream(bytes), bytes.length, mimeHint);
     }
 
-    /** Byte-array convenience overload with explicit variant. */
+    /**
+     * Byte-array convenience overload with explicit variant.
+     */
     public StoredObject store(
             StorageScope scope, StorageCategory category, String key, Variant variant, byte[] bytes, String mimeHint) {
         return store(scope, category, key, variant, new ByteArrayInputStream(bytes), bytes.length, mimeHint);
@@ -133,7 +155,9 @@ public class StorageService {
         return stream;
     }
 
-    /** Variant-less {@link #read(StorageScope, StorageCategory, String, Variant)}. */
+    /**
+     * Variant-less {@link #read(StorageScope, StorageCategory, String, Variant)}.
+     */
     public Optional<StoredStream> read(StorageScope scope, StorageCategory category, String key) {
         return read(scope, category, key, Variant.ORIGINAL);
     }
@@ -153,19 +177,25 @@ public class StorageService {
         }
     }
 
-    /** Variant-less convenience that buffers the entire object. */
+    /**
+     * Variant-less convenience that buffers the entire object.
+     */
     public Optional<byte[]> readAllBytes(StorageScope scope, StorageCategory category, String key) {
         return readAllBytes(scope, category, key, Variant.ORIGINAL);
     }
 
-    /** Deletes a single object at {@code (scope, category, key, variant)}. */
+    /**
+     * Deletes a single object at {@code (scope, category, key, variant)}.
+     */
     public void delete(StorageScope scope, StorageCategory category, String key, Variant variant) {
         StorageBackend backend = resolver.forScope(scope, category);
         String fullKey = fullKey(scope, category, key, variant);
         backend.delete(fullKey);
     }
 
-    /** Variant-less {@link #delete(StorageScope, StorageCategory, String, Variant)}. */
+    /**
+     * Variant-less {@link #delete(StorageScope, StorageCategory, String, Variant)}.
+     */
     public void delete(StorageScope scope, StorageCategory category, String key) {
         delete(scope, category, key, Variant.ORIGINAL);
     }
@@ -190,13 +220,17 @@ public class StorageService {
         }
     }
 
-    /** Whether an object exists at {@code (scope, category, key, variant)}. */
+    /**
+     * Whether an object exists at {@code (scope, category, key, variant)}.
+     */
     public boolean exists(StorageScope scope, StorageCategory category, String key, Variant variant) {
         StorageBackend backend = resolver.forScope(scope, category);
         return backend.exists(fullKey(scope, category, key, variant));
     }
 
-    /** Variant-less {@link #exists(StorageScope, StorageCategory, String, Variant)}. */
+    /**
+     * Variant-less {@link #exists(StorageScope, StorageCategory, String, Variant)}.
+     */
     public boolean exists(StorageScope scope, StorageCategory category, String key) {
         return exists(scope, category, key, Variant.ORIGINAL);
     }
@@ -213,7 +247,9 @@ public class StorageService {
         return backend.read(fullKey);
     }
 
-    /** Lists keys under a producer-chosen prefix; returns producer-relative keys. */
+    /**
+     * Lists keys under a producer-chosen prefix; returns producer-relative keys.
+     */
     public List<String> listKeys(StorageScope scope, StorageCategory category, String keyPrefix) {
         StorageBackend backend = resolver.forScope(scope, category);
         String categoryPrefix = scope.prefix() + "/" + category.prefix();
@@ -224,14 +260,18 @@ public class StorageService {
                 .toList();
     }
 
-    /** Returns the total bytes under {@code (scope, category)}. Used by reconciliation. */
+    /**
+     * Returns the total bytes under {@code (scope, category)}. Used by reconciliation.
+     */
     public long sumSize(StorageScope scope, StorageCategory category) {
         StorageBackend backend = resolver.forScope(scope, category);
         String prefix = scope.prefix() + "/" + category.prefix();
         return backend.sumSizeByPrefix(prefix);
     }
 
-    /** Reads the last-access timestamp for {@code (scope, category, key)}, when supported. */
+    /**
+     * Reads the last-access timestamp for {@code (scope, category, key)}, when supported.
+     */
     public Optional<java.time.Instant> lastAccessed(StorageScope scope, StorageCategory category, String key) {
         StorageBackend backend = resolver.forScope(scope, category);
         return backend.lastAccessed(fullKey(scope, category, key, Variant.ORIGINAL));
@@ -268,13 +308,14 @@ public class StorageService {
         }
     }
 
-    private static void validateMime(StorageCategory category, String mimeHint) {
-        if (category.acceptedMimeTypes() == StorageCategory.MIME_ANY) return;
-        if (mimeHint == null) {
-            throw new IllegalArgumentException("Category " + category + " requires a MIME hint");
-        }
-        if (!category.acceptsMimeType(mimeHint)) {
-            throw new IllegalArgumentException("MIME type " + mimeHint + " not accepted for category " + category);
+    /**
+     * Refuses every write while an instance-wide storage backend migration is in flight, so
+     * the byte-copy loop and the resolver flip do not race with concurrent uploads.
+     */
+    private void guardInstanceReadOnly() {
+        if (instanceReadOnly == null) return;
+        if (instanceReadOnly.isLocked()) {
+            throw new InstanceReadOnlyForMigrationException();
         }
     }
 
