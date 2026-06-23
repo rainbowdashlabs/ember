@@ -107,7 +107,7 @@ public class InstanceStorageMigrationService {
             }
             try {
                 CopyOutcome outcome = run(source, target);
-                return new PreparedMigration(target, outcome);
+                return new PreparedMigration(source, target, outcome);
             } catch (RuntimeException e) {
                 target.close();
                 throw e;
@@ -279,13 +279,12 @@ public class InstanceStorageMigrationService {
      */
     public MigrationResult commit(PreparedMigration prepared, boolean keepSource) {
         int deleted = 0;
-        try (StorageBackend ignored = prepared.target()) {
+        try {
             if (!keepSource) {
-                StorageBackend source = factory.instanceDefault();
                 for (ScopeKeys scope : prepared.outcome().perScopeKeys()) {
                     for (String key : scope.keys()) {
                         try {
-                            source.delete(key);
+                            prepared.source().delete(key);
                             deleted++;
                         } catch (Exception e) {
                             log.warn("Failed to delete migrated source key {}", key, e);
@@ -293,9 +292,17 @@ public class InstanceStorageMigrationService {
                     }
                 }
             }
-        } catch (Exception e) {
-            log.warn("Failed to close target after commit", e);
         } finally {
+            try {
+                prepared.target().close();
+            } catch (Exception e) {
+                log.warn("Failed to close target after commit", e);
+            }
+            try {
+                prepared.source().close();
+            } catch (Exception e) {
+                log.warn("Failed to close source after commit", e);
+            }
             readOnly.unlock();
             locks.releaseInstance();
         }
@@ -319,12 +326,22 @@ public class InstanceStorageMigrationService {
     }
 
     /**
+     * Whether an instance-wide migration is currently in flight. Surfaced by the status
+     * endpoint so the admin UI can render the banner without re-issuing the migrate request.
+     */
+    public boolean isMigrationInFlight() {
+        return readOnly.isLocked();
+    }
+
+    /**
      * Handle returned by {@link #prepare}. The caller MUST call exactly one of
      * {@link #commit} or {@link #abort} on this object so the read-only flag and lock are
-     * released. {@code target} is a live backend instance holding its own connection pool —
-     * closed by {@code commit}/{@code abort}.
+     * released. {@code source} and {@code target} are live backend instances; both are closed
+     * by {@code commit}/{@code abort}. The source reference is captured at preparation time so
+     * the delete-source step in {@code commit} keeps working even after the caller has
+     * invalidated the factory cache to surface the new backend to subsequent callers.
      */
-    public record PreparedMigration(StorageBackend target, CopyOutcome outcome) {}
+    public record PreparedMigration(StorageBackend source, StorageBackend target, CopyOutcome outcome) {}
 
     /**
      * Result summary returned by {@link #commit}.

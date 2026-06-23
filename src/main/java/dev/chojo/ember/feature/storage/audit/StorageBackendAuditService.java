@@ -26,7 +26,9 @@ import java.util.Optional;
 @Singleton
 public class StorageBackendAuditService {
 
-    /** Probe rows for the same actor/station/outcome inside this window are dropped. */
+    /**
+     * Probe rows for the same actor/station/outcome inside this window are dropped.
+     */
     static final int PROBE_DEDUPE_SECONDS = 60;
 
     private final StorageBackendAuditRepository repository;
@@ -123,6 +125,52 @@ public class StorageBackendAuditService {
                 action,
                 Optional.ofNullable(oldConfig).map(RedactedStationConfig::toJson),
                 Optional.ofNullable(newConfig).map(RedactedStationConfig::toJson),
+                outcome,
+                Optional.ofNullable(errorOrNull)));
+    }
+
+    /**
+     * Records a non-migrating instance-default-backend mutation. {@code oldRedactedJson} and
+     * {@code newRedactedJson} are pre-redacted JSON summaries built by the caller (the route
+     * layer owns the {@link dev.chojo.ember.conf.file.elements.StorageBackendSettings} shape;
+     * a generic redactor here would couple the audit service to it unnecessarily).
+     */
+    public void recordInstanceConfigUpdate(Actor actor, String oldRedactedJson, String newRedactedJson) {
+        repository.insert(new StorageBackendAuditRepository.NewEntry(
+                actor.accountId(),
+                actor.memberId(),
+                actor.systemActor(),
+                Optional.empty(),
+                StorageAuditAction.INSTANCE_DEFAULT_UPDATED,
+                Optional.ofNullable(oldRedactedJson),
+                Optional.ofNullable(newRedactedJson),
+                StorageAuditOutcome.OK,
+                Optional.empty()));
+    }
+
+    /**
+     * Records an instance-wide backend migration lifecycle event. {@code action} is one of
+     * {@link StorageAuditAction#INSTANCE_MIGRATION_STARTED},
+     * {@link StorageAuditAction#INSTANCE_MIGRATION_COMPLETED},
+     * {@link StorageAuditAction#INSTANCE_MIGRATION_FAILED}.
+     */
+    public void recordInstanceMigration(
+            Actor actor,
+            StorageAuditAction action,
+            String oldRedactedJson,
+            String newRedactedJson,
+            String errorOrNull) {
+        StorageAuditOutcome outcome = action == StorageAuditAction.INSTANCE_MIGRATION_FAILED
+                ? StorageAuditOutcome.FAILED
+                : StorageAuditOutcome.OK;
+        repository.insert(new StorageBackendAuditRepository.NewEntry(
+                actor.accountId(),
+                actor.memberId(),
+                actor.systemActor(),
+                Optional.empty(),
+                action,
+                Optional.ofNullable(oldRedactedJson),
+                Optional.ofNullable(newRedactedJson),
                 outcome,
                 Optional.ofNullable(errorOrNull)));
     }

@@ -130,17 +130,12 @@ public class StorageBackendFactory {
      * Drops the cached instance-default backend so the next call rebuilds against the current
      * {@link Storage#backend()} state. Called by the instance-wide migration after it has
      * flipped the YAML so subsequent {@link StorageBackendResolver} reads pick up the new
-     * target. The previously-cached backend instance is closed to release its connection pool.
+     * target. The previously-cached backend instance is intentionally NOT closed here — the
+     * caller (the instance migration service) keeps a reference to delete source bytes after
+     * the flip and closes it itself when done.
      */
     public synchronized void invalidateInstanceDefault() {
-        StorageBackend previous = instanceDefault;
         instanceDefault = null;
-        if (previous == null) return;
-        try {
-            previous.close();
-        } catch (Exception e) {
-            log.warn("Failed to close previously-cached instance-default backend", e);
-        }
     }
 
     /**
