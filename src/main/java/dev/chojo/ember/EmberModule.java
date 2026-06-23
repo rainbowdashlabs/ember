@@ -206,8 +206,8 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(PublicFormRoutes.class);
         routesBinder.addBinding().to(ConsentRoutes.class);
         routesBinder.addBinding().to(LostAndFoundRoutes.class);
-        routesBinder.addBinding().to(TransferRoutes.class);
         routesBinder.addBinding().to(StationTransferAssetRoutes.class);
+        routesBinder.addBinding().to(TransferRoutes.class);
         routesBinder.addBinding().to(AdminSettingsRoutes.class);
         routesBinder.addBinding().to(DataTrackingRoutes.class);
         routesBinder.addBinding().to(ProblemRoutes.class);

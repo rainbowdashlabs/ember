@@ -7,9 +7,9 @@ package dev.chojo.ember.feature.storage.entity;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.databind.json.JsonMapper;
 import dev.chojo.ember.feature.storage.backend.StorageBackendType;
 import dev.chojo.ember.feature.storage.credential.EncryptedBlob;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.Optional;
 

@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.storage.credential;
 
-import com.fasterxml.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Plaintext shapes for the credential payload that lives encrypted inside an
