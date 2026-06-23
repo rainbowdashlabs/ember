@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -79,11 +80,13 @@ public class StationImportService {
     private final Api api;
     private final TransferBackendImporter backendImporter;
     private final StorageService storageService;
+    private final AvatarService avatarService;
     private final GenericTableImporter engine;
     private final List<String> tableOrder;
     private final DataTracking tracking;
 
     private final ConcurrentHashMap<Integer, ImportProgress> activeImports = new ConcurrentHashMap<>();
+    private volatile RemoteImportSession activeRemoteSession;
     private final ExecutorService importExecutor = Executors.newSingleThreadExecutor(r -> {
         var t = new Thread(r, "station-import");
         t.setDaemon(true);
@@ -97,13 +100,15 @@ public class StationImportService {
             StationExportService exportService,
             Api api,
             TransferBackendImporter backendImporter,
-            StorageService storageService) {
+            StorageService storageService,
+            AvatarService avatarService) {
         this.stationRepository = stationRepository;
         this.accountRepository = accountRepository;
         this.exportService = exportService;
         this.api = api;
         this.backendImporter = backendImporter;
         this.storageService = storageService;
+        this.avatarService = avatarService;
         DataTracking t;
         try {
             t = DataTrackingLoader.loadFromClasspath();
@@ -267,6 +272,8 @@ public class StationImportService {
 
     private void runRemoteImport(
             int stationId, String baseUrl, String token, HttpClient httpClient, ObjectMapper mapper, ImportProgress p) {
+        var session = new RemoteImportSession();
+        activeRemoteSession = session;
         try {
             var idMap = new IdRemapper();
             int i = 0;
@@ -284,11 +291,14 @@ public class StationImportService {
             if (!installedRemote) {
                 copyLocalFiles(stationId, baseUrl, token, httpClient, mapper);
             }
+            copyNewAccountAvatars(session, baseUrl, token, httpClient);
             p.complete();
             log.info("Remote import completed for station '{}' (id={})", p.stationName(), stationId);
         } catch (Exception e) {
             log.error("Remote import failed for station {}", stationId, e);
             p.fail(e.getMessage());
+        } finally {
+            activeRemoteSession = null;
         }
     }
 
@@ -458,6 +468,62 @@ public class StationImportService {
 
     private record ListKeysPage(List<String> keys, String next) {}
 
+    /**
+     * Tracks state that lives only for the duration of a single async remote import. The
+     * single-thread executor guarantees only one session is active at a time; the volatile
+     * field on the service exposes it to the table-import branches (notably
+     * {@link #importAccounts}) without threading a parameter through every handler.
+     */
+    private static final class RemoteImportSession {
+        private final List<NewAccountRef> newAccounts = new ArrayList<>();
+
+        List<NewAccountRef> newAccounts() {
+            return newAccounts;
+        }
+    }
+
+    /** Pairs the source's account UID with the destination UID created for the same email. */
+    private record NewAccountRef(UUID sourceUid, UUID destinationUid) {}
+
+    /**
+     * Streams the avatar for every account this import created on the destination. Existing
+     * accounts on the destination are skipped; we never overwrite an avatar a user has already
+     * uploaded locally. 404s from the source are normal (account had no avatar).
+     */
+    private void copyNewAccountAvatars(
+            RemoteImportSession session, String baseUrl, String token, HttpClient httpClient) {
+        if (session.newAccounts().isEmpty()) return;
+        int copied = 0;
+        int skipped = 0;
+        for (NewAccountRef ref : session.newAccounts()) {
+            try {
+                var uri = URI.create(baseUrl + "/api/v1/public/transfer/" + token + "/avatars/" + ref.sourceUid());
+                var request = newImportRequest(uri);
+                var response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+                if (response.statusCode() == 404) {
+                    skipped++;
+                    continue;
+                }
+                if (response.statusCode() != 200) {
+                    log.warn(
+                            "Source returned HTTP {} when fetching avatar for source account {}",
+                            response.statusCode(),
+                            ref.sourceUid());
+                    skipped++;
+                    continue;
+                }
+                String contentType =
+                        response.headers().firstValue("Content-Type").orElse("application/octet-stream");
+                avatarService.store(ref.destinationUid(), response.body(), contentType);
+                copied++;
+            } catch (Exception e) {
+                log.warn("Failed to import avatar for source account {}", ref.sourceUid(), e);
+                skipped++;
+            }
+        }
+        log.info("Avatar carry-over: imported {} (skipped {})", copied, skipped);
+    }
+
     @SuppressWarnings("unchecked")
     private TransferBackendDescriptor fetchBackendDescriptor(
             HttpClient httpClient, ObjectMapper mapper, String baseUrl, String token) {
@@ -514,17 +580,33 @@ public class StationImportService {
     /** Match-by-email; create with no credential if the email is new. */
     private int importAccounts(List<Map<String, Object>> rows) {
         int created = 0;
+        var session = activeRemoteSession;
         for (var row : rows) {
             String email = asString(row.get("email"), null);
             if (email == null || email.isBlank()) continue;
             if (accountRepository.findByEmail(email).isEmpty()) {
                 String first = asString(row.get("first_name"), "");
                 String last = asString(row.get("last_name"), "");
-                accountRepository.create(email, first, last, true);
+                var newAccount = accountRepository.create(email, first, last, true);
+                if (session != null) {
+                    UUID sourceUid = parseUuidOrNull(row.get("uid"));
+                    if (sourceUid != null) {
+                        session.newAccounts().add(new NewAccountRef(sourceUid, newAccount.uid()));
+                    }
+                }
                 created++;
             }
         }
         return created;
+    }
+
+    private static UUID parseUuidOrNull(Object raw) {
+        if (raw == null) return null;
+        try {
+            return UUID.fromString(raw.toString());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     /**
