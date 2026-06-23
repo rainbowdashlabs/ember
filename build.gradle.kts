@@ -64,6 +64,7 @@ dependencies {
     implementation(libs.smbj)
     implementation(libs.sshd.core)
     implementation(libs.sshd.sftp)
+    implementation(libs.aws.s3)
     implementation(libs.pdfbox)
     implementation(libs.ical4j)
     implementation(libs.rome)

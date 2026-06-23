@@ -81,6 +81,7 @@ imageio-webp = { group = "com.twelvemonkeys.imageio", name = "imageio-webp", ver
 smbj = { group = "com.hierynomus", name = "smbj", version = "0.14.0" }
 sshd-core = { group = "org.apache.sshd", name = "sshd-core", version = "2.15.0" }
 sshd-sftp = { group = "org.apache.sshd", name = "sshd-sftp", version = "2.15.0" }
+aws-s3 = { group = "software.amazon.awssdk", name = "s3", version = "2.46.17" }
 
 # HTML sanitization
 jsoup = { group = "org.jsoup", name = "jsoup", version = "1.22.2" }
