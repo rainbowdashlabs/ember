@@ -64,7 +64,7 @@ class BoardServiceTest extends RepositoryTestBase {
         tagService = mock(UserTagService.class);
 
         boardService = new BoardService(boardRepo, memberService, groupService, tagService);
-        var btBackend = new dev.chojo.ember.feature.storage.backend.LocalStorageBackend();
+        var btBackend = new dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend();
         var btResolver = new dev.chojo.ember.feature.storage.backend.StorageBackendResolver(btBackend);
         var btStorage = new dev.chojo.ember.feature.storage.service.StorageService(btResolver, btBackend);
         var attachmentSvc = new BoardAttachmentService(btStorage, stationRepo, btBackend);

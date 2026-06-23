@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.feature.storage.backend.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.entity.Variant;

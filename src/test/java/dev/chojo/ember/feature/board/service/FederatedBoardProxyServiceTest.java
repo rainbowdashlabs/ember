@@ -112,7 +112,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 stationRepo,
                 groupService,
                 tagService);
-        var fbpBackend = new dev.chojo.ember.feature.storage.backend.LocalStorageBackend();
+        var fbpBackend = new dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend();
         var fbpResolver = new dev.chojo.ember.feature.storage.backend.StorageBackendResolver(fbpBackend);
         var fbpStorage = new dev.chojo.ember.feature.storage.service.StorageService(fbpResolver, fbpBackend);
         var attachmentSvc = new BoardAttachmentService(fbpStorage, stationRepo, fbpBackend);

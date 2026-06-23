@@ -7,6 +7,13 @@ package dev.chojo.ember.feature.storage.backend;
 
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.conf.file.elements.StorageBackendSettings;
+import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.backend.s3.S3BackendConfig;
+import dev.chojo.ember.feature.storage.backend.s3.S3StorageBackend;
+import dev.chojo.ember.feature.storage.backend.sftp.SftpBackendConfig;
+import dev.chojo.ember.feature.storage.backend.sftp.SftpStorageBackend;
+import dev.chojo.ember.feature.storage.backend.smb.SmbBackendConfig;
+import dev.chojo.ember.feature.storage.backend.smb.SmbStorageBackend;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;

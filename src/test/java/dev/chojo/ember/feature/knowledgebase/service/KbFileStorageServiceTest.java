@@ -7,8 +7,8 @@ package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.feature.storage.backend.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
+import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

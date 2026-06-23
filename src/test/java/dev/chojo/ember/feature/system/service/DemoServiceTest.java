@@ -111,7 +111,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var memberSvc = new StationMemberService(stationMemberRepo, stationRepo, accountRepo, mock(AuthService.class));
         var commentService = new CommentService(eventCommentRepo, noOpBus, memberSvc, stationRepo);
         var kbStorageConfig = new Storage();
-        var kbBackend = new dev.chojo.ember.feature.storage.backend.LocalStorageBackend();
+        var kbBackend = new dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend();
         var kbResolver = new dev.chojo.ember.feature.storage.backend.StorageBackendResolver(kbBackend);
         var kbStorageSvc = new dev.chojo.ember.feature.storage.service.StorageService(kbResolver, kbBackend);
         var kbCompression = new dev.chojo.ember.feature.knowledgebase.service.TextCompressionPolicy(kbStorageConfig);
@@ -242,7 +242,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 boardRepo, boardTicketRepo, federatedBoardService, federationService, memberIdentityFactory);
         var procedureSeeder = new DemoProcedureSeeder(procedureRepo);
         var demoStorageConfig = new Storage();
-        var demoBackend = new dev.chojo.ember.feature.storage.backend.LocalStorageBackend();
+        var demoBackend = new dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend();
         var demoResolver = new dev.chojo.ember.feature.storage.backend.StorageBackendResolver(demoBackend);
         var demoStorageSvc = new dev.chojo.ember.feature.storage.service.StorageService(demoResolver, demoBackend);
         var demoStorage = new PageFileStorageService(demoStorageSvc, stationRepo, demoBackend);

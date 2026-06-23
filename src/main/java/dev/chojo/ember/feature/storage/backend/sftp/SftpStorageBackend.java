@@ -3,9 +3,16 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.feature.storage.backend;
+package dev.chojo.ember.feature.storage.backend.sftp;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.chojo.ember.feature.storage.backend.HealthStatus;
+import dev.chojo.ember.feature.storage.backend.MetadataSidecar;
+import dev.chojo.ember.feature.storage.backend.ObjectMetadata;
+import dev.chojo.ember.feature.storage.backend.StorageBackend;
+import dev.chojo.ember.feature.storage.backend.StorageBackendType;
+import dev.chojo.ember.feature.storage.backend.StorageException;
+import dev.chojo.ember.feature.storage.backend.StoredStream;
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.future.ConnectFuture;
 import org.apache.sshd.client.session.ClientSession;
@@ -27,7 +34,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -304,12 +310,7 @@ public class SftpStorageBackend implements StorageBackend, AutoCloseable {
     }
 
     private void writeMetadataSidecar(SftpClient sftp, String target, ObjectMetadata metadata) throws IOException {
-        Map<String, Object> data = Map.of(
-                "contentType", metadata.contentType(),
-                "sha256", metadata.sha256(),
-                "originalFilename", metadata.originalFilename().orElse(""),
-                "contentEncoding", metadata.contentEncoding().orElse(""));
-        byte[] bytes = objectMapper.writeValueAsBytes(data);
+        byte[] bytes = objectMapper.writeValueAsBytes(MetadataSidecar.from(metadata));
         String meta = target + META_SUFFIX;
         try (OutputStream out = sftp.write(
                 meta,
@@ -322,18 +323,9 @@ public class SftpStorageBackend implements StorageBackend, AutoCloseable {
         String meta = target + META_SUFFIX;
         if (!fileExists(sftp, meta)) return ObjectMetadata.of("application/octet-stream");
         try (InputStream in = sftp.read(meta)) {
-            Map<String, Object> raw = objectMapper.readValue(
-                    in.readAllBytes(),
-                    objectMapper.getTypeFactory().constructMapType(Map.class, String.class, Object.class));
-            String contentType = (String) raw.getOrDefault("contentType", "application/octet-stream");
-            String sha256 = (String) raw.getOrDefault("sha256", "");
-            String filename = (String) raw.getOrDefault("originalFilename", "");
-            String encoding = (String) raw.getOrDefault("contentEncoding", "");
-            return new ObjectMetadata(
-                    contentType,
-                    sha256,
-                    filename.isEmpty() ? Optional.empty() : Optional.of(filename),
-                    encoding.isEmpty() ? Optional.empty() : Optional.of(encoding));
+            return objectMapper
+                    .readValue(in.readAllBytes(), MetadataSidecar.class)
+                    .toObjectMetadata();
         } catch (IOException e) {
             log.warn("Failed to read SFTP metadata sidecar {}", meta, e);
             return ObjectMetadata.of("application/octet-stream");

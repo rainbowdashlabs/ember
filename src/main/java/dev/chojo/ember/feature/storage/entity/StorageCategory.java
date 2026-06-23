@@ -282,7 +282,7 @@ public enum StorageCategory {
 
     /**
      * Optional POSIX mode (e.g. {@code "0600"}) that {@link
-     * dev.chojo.ember.feature.storage.backend.LocalStorageBackend LocalStorageBackend} applies
+     * dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend LocalStorageBackend} applies
      * after write. {@code null} means inherit the process umask. Remote backends ignore the
      * flag; the resolver guarantees POSIX-mode categories are local-pinned.
      */

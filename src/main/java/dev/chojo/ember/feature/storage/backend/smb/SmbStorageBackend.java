@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.feature.storage.backend;
+package dev.chojo.ember.feature.storage.backend.smb;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hierynomus.msdtyp.AccessMask;
@@ -21,6 +21,13 @@ import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
+import dev.chojo.ember.feature.storage.backend.HealthStatus;
+import dev.chojo.ember.feature.storage.backend.MetadataSidecar;
+import dev.chojo.ember.feature.storage.backend.ObjectMetadata;
+import dev.chojo.ember.feature.storage.backend.StorageBackend;
+import dev.chojo.ember.feature.storage.backend.StorageBackendType;
+import dev.chojo.ember.feature.storage.backend.StorageException;
+import dev.chojo.ember.feature.storage.backend.StoredStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +37,6 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -42,7 +48,7 @@ import java.util.UUID;
  * legacy SMB1 server set it off via {@link SmbBackendConfig}. DFS referral following is off
  * by default and again opt-in.
  *
- * <p>Atomicity matches {@link LocalStorageBackend}: payloads write to {@code <key>.partial.<uuid>}
+ * <p>Atomicity matches the local backend: payloads write to {@code <key>.partial.<uuid>}
  * inside the share, then rename onto the final path on success. Metadata is persisted as a
  * sibling {@code <key>.meta.json} in the same JSON shape the local backend uses, so a future
  * migration tool can copy bytes between backends without touching the metadata.
@@ -309,12 +315,7 @@ public class SmbStorageBackend implements StorageBackend, AutoCloseable {
     }
 
     private void writeMetadataSidecar(DiskShare share, String target, ObjectMetadata metadata) throws IOException {
-        Map<String, Object> data = Map.of(
-                "contentType", metadata.contentType(),
-                "sha256", metadata.sha256(),
-                "originalFilename", metadata.originalFilename().orElse(""),
-                "contentEncoding", metadata.contentEncoding().orElse(""));
-        byte[] bytes = objectMapper.writeValueAsBytes(data);
+        byte[] bytes = objectMapper.writeValueAsBytes(MetadataSidecar.from(metadata));
         String meta = target + META_SUFFIX;
         try (File file = openForWrite(share, meta);
                 OutputStream out = file.getOutputStream()) {
@@ -327,18 +328,9 @@ public class SmbStorageBackend implements StorageBackend, AutoCloseable {
         if (!share.fileExists(meta)) return ObjectMetadata.of("application/octet-stream");
         try (File file = openForRead(share, meta);
                 InputStream in = file.getInputStream()) {
-            Map<String, Object> raw = objectMapper.readValue(
-                    in.readAllBytes(),
-                    objectMapper.getTypeFactory().constructMapType(Map.class, String.class, Object.class));
-            String contentType = (String) raw.getOrDefault("contentType", "application/octet-stream");
-            String sha256 = (String) raw.getOrDefault("sha256", "");
-            String filename = (String) raw.getOrDefault("originalFilename", "");
-            String encoding = (String) raw.getOrDefault("contentEncoding", "");
-            return new ObjectMetadata(
-                    contentType,
-                    sha256,
-                    filename.isEmpty() ? Optional.empty() : Optional.of(filename),
-                    encoding.isEmpty() ? Optional.empty() : Optional.of(encoding));
+            return objectMapper
+                    .readValue(in.readAllBytes(), MetadataSidecar.class)
+                    .toObjectMetadata();
         } catch (IOException | SMBApiException e) {
             log.warn("Failed to read SMB metadata sidecar {}", meta, e);
             return ObjectMetadata.of("application/octet-stream");

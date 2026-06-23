@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.storage.service;
 
-import dev.chojo.ember.feature.storage.backend.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.StoredStream;
+import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.entity.Variant;

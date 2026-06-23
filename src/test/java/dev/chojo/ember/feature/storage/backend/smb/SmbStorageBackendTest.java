@@ -3,8 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.feature.storage.backend;
+package dev.chojo.ember.feature.storage.backend.smb;
 
+import dev.chojo.ember.feature.storage.backend.ObjectMetadata;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;

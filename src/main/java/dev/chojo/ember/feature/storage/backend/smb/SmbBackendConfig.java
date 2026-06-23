@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.feature.storage.backend;
+package dev.chojo.ember.feature.storage.backend.smb;
 
 /**
  * Connection settings for {@link SmbStorageBackend}. Carries everything the smbj client needs

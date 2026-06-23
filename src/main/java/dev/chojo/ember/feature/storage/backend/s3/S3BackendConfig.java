@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.feature.storage.backend;
+package dev.chojo.ember.feature.storage.backend.s3;
 
 import java.util.Optional;
 

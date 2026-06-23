@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.storage.backend;
 
+import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import jakarta.inject.Inject;
