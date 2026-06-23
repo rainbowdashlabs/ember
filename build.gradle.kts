@@ -62,6 +62,8 @@ dependencies {
     implementation(libs.thumbnailator)
     implementation(libs.imageio.webp)
     implementation(libs.smbj)
+    implementation(libs.sshd.core)
+    implementation(libs.sshd.sftp)
     implementation(libs.pdfbox)
     implementation(libs.ical4j)
     implementation(libs.rome)
