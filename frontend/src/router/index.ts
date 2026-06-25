@@ -396,6 +396,26 @@ const router = createRouter({
                     component: () => import('@/views/stationview/inventory/CheckOverviewView.vue'),
                 },
                 {
+                    path: 'inventory/checks/member',
+                    name: 'inventory-check-member-overview',
+                    component: () => import('@/views/stationview/inventory/CheckOverviewView.vue'),
+                },
+                {
+                    path: 'inventory/checks/container',
+                    name: 'inventory-check-container-overview',
+                    component: () => import('@/views/stationview/inventory/CheckContainerOverviewView.vue'),
+                },
+                {
+                    path: 'inventory/storage',
+                    name: 'inventory-storage',
+                    component: () => import('@/views/stationview/inventory/StorageView.vue'),
+                },
+                {
+                    path: 'inventory/storage/:id',
+                    name: 'inventory-container-detail',
+                    component: () => import('@/views/stationview/inventory/ContainerDetailView.vue'),
+                },
+                {
                     path: 'inventory/checks/:memberId',
                     name: 'inventory-check-member',
                     component: () => import('@/views/stationview/inventory/CheckMemberView.vue'),
@@ -1383,6 +1403,26 @@ const router = createRouter({
                     path: 'inventory/checks',
                     name: 'help-inventory-checks',
                     component: () => import('@/views/helpcenter/stationview/inventory/CheckOverviewHelp.vue')
+                },
+                {
+                    path: 'inventory/checks/member',
+                    name: 'help-inventory-check-member-overview',
+                    component: () => import('@/views/helpcenter/stationview/inventory/CheckMemberOverviewHelp.vue')
+                },
+                {
+                    path: 'inventory/checks/container',
+                    name: 'help-inventory-check-container-overview',
+                    component: () => import('@/views/helpcenter/stationview/inventory/CheckContainerHelp.vue')
+                },
+                {
+                    path: 'inventory/storage',
+                    name: 'help-inventory-storage',
+                    component: () => import('@/views/helpcenter/stationview/inventory/StorageHelp.vue')
+                },
+                {
+                    path: 'inventory/storage/:id',
+                    name: 'help-inventory-container-detail',
+                    component: () => import('@/views/helpcenter/stationview/inventory/ContainerDetailHelp.vue')
                 },
                 {
                     path: 'inventory/checks/:memberId',

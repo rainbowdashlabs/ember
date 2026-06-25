@@ -16,6 +16,7 @@ import {inventory, stationMembers} from '@/api'
 import SettingsSection from './editview/SettingsSection.vue'
 import SizesSection from './editview/SizesSection.vue'
 import ItemListSection from './editview/ItemListSection.vue'
+import FieldDefinitionsSection from './editview/FieldDefinitionsSection.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -85,6 +86,8 @@ onMounted(loadData)
 
         <SizesSection v-if="detail.hasSizes" :inventory-id="inventoryId" :sizes="detail.sizes ?? []"
                       @updated="onSizesUpdated" @error="onError"/>
+
+        <FieldDefinitionsSection :inventory-id="inventoryId"/>
 
         <ItemListSection :detail="detail" :items="items" :members="members"
                          @items-changed="onItemsChanged" @error="onError"/>

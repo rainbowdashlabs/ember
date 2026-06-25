@@ -10,6 +10,7 @@ import {useRoute, useRouter} from 'vue-router'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
 import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
 import SidebarLink from '@/components/navigation/SidebarLink.vue'
+import SidebarSubGroup from '@/components/navigation/SidebarSubGroup.vue'
 import StationSwitcher from '@/components/navigation/StationSwitcher.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import AccountMenuButton from '@/components/layout/AccountMenuButton.vue'
@@ -195,43 +196,51 @@ const manageDefaultRoute = computed(() => {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.INVENTORY)" :badge="counts.pendingExchanges + counts.lendingRequests" :icon="['fas', 'boxes-stacked']" :label="t('sidebar.inventory')" prefix="/station/inventory">
-        <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_READ)" :icon="['fas', 'house']" name="inventory-overview" to="/station/inventory"
-                     @navigate="close">
-          {{ t('sidebar.overview') }}
-        </SidebarLink>
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.INVENTORY)" :badge="counts.pendingExchanges + counts.lendingRequests" :icon="['fas', 'boxes-stacked']" :label="t('sidebar.inventory')" prefix="/station/inventory" :to="hasPermission(StationPermission.INVENTORY_READ) ? '/station/inventory' : undefined" name="inventory-overview" @navigate="close">
         <SidebarLink v-if="counts.myInventoryCount > 0" :icon="['fas', 'boxes-stacked']" name="inventory-my" to="/station/inventory/my"
                      @navigate="close">
           {{ t('sidebar.myInventory') }}
         </SidebarLink>
-        <SidebarLink :badge="counts.pendingExchanges" :icon="['fas', 'rotate']" name="inventory-exchanges" to="/station/inventory/exchanges"
+        <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_READ)" :icon="['fas', 'warehouse']" name="inventory-storage" to="/station/inventory/storage"
                      @navigate="close">
-          {{ t('sidebar.inventoryExchanges') }}
+          {{ t('sidebar.inventoryStorage') }}
         </SidebarLink>
+        <SidebarSubGroup v-if="hasPermission(StationPermission.INVENTORY_CHECK)" :icon="['fas', 'clipboard-check']" :label="t('sidebar.inventoryCheck')" prefix="/station/inventory/checks">
+          <SidebarLink :icon="['fas', 'user-check']" name="inventory-check-member-overview" to="/station/inventory/checks/member"
+                       @navigate="close">
+            {{ t('sidebar.inventoryCheckMember') }}
+          </SidebarLink>
+          <SidebarLink :icon="['fas', 'box-open']" name="inventory-check-container-overview" to="/station/inventory/checks/container"
+                       @navigate="close">
+            {{ t('sidebar.inventoryCheckContainer') }}
+          </SidebarLink>
+        </SidebarSubGroup>
         <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_READ)" :icon="['fas', 'users']" name="inventory-members" to="/station/inventory/members"
                      @navigate="close">
           {{ t('sidebar.inventoryMembers') }}
         </SidebarLink>
-        <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_CREATE)" :icon="['fas', 'box-open']" name="inventory-manage" to="/station/inventory/manage"
-                     @navigate="close">
-          {{ t('sidebar.inventoryManage') }}
-        </SidebarLink>
-        <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_READ)" :icon="['fas', 'clipboard-list']" name="inventory-requirements"
-                     to="/station/inventory/requirements" @navigate="close">
-          {{ t('sidebar.inventoryRequirements') }}
-        </SidebarLink>
-        <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_CHECK)" :icon="['fas', 'clipboard-check']" name="inventory-checks" to="/station/inventory/checks"
-                     @navigate="close">
-          {{ t('sidebar.inventoryCheck') }}
-        </SidebarLink>
-        <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_PROCUREMENT)" :icon="['fas', 'folder-plus']" name="inventory-procurement" to="/station/inventory/procurement"
-                     @navigate="close">
-          {{ t('sidebar.inventoryProcurement') }}
-        </SidebarLink>
-        <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_LENDING_REQUEST) || hasPermission(StationPermission.INVENTORY_LENDING_MANAGER)" :badge="counts.lendingRequests" :icon="['fas', 'handshake']" name="inventory-lending" to="/station/inventory/lending"
-                     @navigate="close">
-          {{ t('sidebar.inventoryLending') }}
-        </SidebarLink>
+        <SidebarSubGroup :icon="['fas', 'gears']" :label="t('sidebar.inventoryManageGroup')" prefix="/station/inventory/manage" :badge="counts.pendingExchanges + counts.lendingRequests">
+          <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_CREATE)" :icon="['fas', 'box-open']" name="inventory-manage" to="/station/inventory/manage"
+                       @navigate="close">
+            {{ t('sidebar.inventoryManage') }}
+          </SidebarLink>
+          <SidebarLink :badge="counts.pendingExchanges" :icon="['fas', 'rotate']" name="inventory-exchanges" to="/station/inventory/exchanges"
+                       @navigate="close">
+            {{ t('sidebar.inventoryExchanges') }}
+          </SidebarLink>
+          <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_PROCUREMENT)" :icon="['fas', 'folder-plus']" name="inventory-procurement" to="/station/inventory/procurement"
+                       @navigate="close">
+            {{ t('sidebar.inventoryProcurement') }}
+          </SidebarLink>
+          <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_READ)" :icon="['fas', 'clipboard-list']" name="inventory-requirements"
+                       to="/station/inventory/requirements" @navigate="close">
+            {{ t('sidebar.inventoryRequirements') }}
+          </SidebarLink>
+          <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_LENDING_REQUEST) || hasPermission(StationPermission.INVENTORY_LENDING_MANAGER)" :badge="counts.lendingRequests" :icon="['fas', 'handshake']" name="inventory-lending" to="/station/inventory/lending"
+                       @navigate="close">
+            {{ t('sidebar.inventoryLending') }}
+          </SidebarLink>
+        </SidebarSubGroup>
       </SidebarGroup>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="hasAnyAttendancePermission() && isModuleEnabled(StationModules.ATTENDANCE)" :icon="['fas', 'clipboard-user']" :label="t('sidebar.attendance')"

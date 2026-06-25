@@ -34,6 +34,8 @@ export const StationPermission = {
     INVENTORY_CHECK: 'INVENTORY_CHECK',
     INVENTORY_LENDING_REQUEST: 'INVENTORY_LENDING_REQUEST',
     INVENTORY_LENDING_MANAGER: 'INVENTORY_LENDING_MANAGER',
+    INVENTORY_ASSIGN: 'INVENTORY_ASSIGN',
+    INVENTORY_STORAGE: 'INVENTORY_STORAGE',
     INVENTORY_MANAGER: 'INVENTORY_MANAGER',
     EVENT_MANAGE_TEMPLATE: 'EVENT_MANAGE_TEMPLATE',
     EVENT_MANAGE_CATEGORY: 'EVENT_MANAGE_CATEGORY',
@@ -1046,6 +1048,7 @@ export interface InventoryItem {
     assignedTo?: number | null
     lostAt?: string | null
     itemSource?: string | null
+    containerId?: number | null
 }
 
 export interface ItemRequest {
