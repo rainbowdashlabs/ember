@@ -25,10 +25,6 @@ public record Board(
         Integer backlogLaneId,
         Instant createdAt) {
 
-    public boolean hasBacklog() {
-        return backlogLaneId != null;
-    }
-
     public static RowMapping<Board> map() {
         return row -> new Board(
                 row.getInt("id"),
@@ -41,5 +37,9 @@ public record Board(
                 row.getInt("ticket_counter"),
                 row.getObject("backlog_lane_id", Integer.class),
                 row.get("created_at", INSTANT_TIMESTAMP));
+    }
+
+    public boolean hasBacklog() {
+        return backlogLaneId != null;
     }
 }

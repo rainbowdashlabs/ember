@@ -44,15 +44,17 @@ public final class LeakyBucket {
     private final ConcurrentHashMap<String, Bucket> buckets = new ConcurrentHashMap<>();
 
     /**
-     * @param capacity         maximum tokens the bucket holds (also the burst size)
-     * @param refillPerMinute  sustained refill rate in tokens per minute
-     * @param pruneAfter       buckets idle longer than this are dropped from the map
+     * @param capacity        maximum tokens the bucket holds (also the burst size)
+     * @param refillPerMinute sustained refill rate in tokens per minute
+     * @param pruneAfter      buckets idle longer than this are dropped from the map
      */
     public LeakyBucket(int capacity, int refillPerMinute, Duration pruneAfter) {
         this(capacity, refillPerMinute, pruneAfter, Clock.systemUTC());
     }
 
-    /** Visible-for-testing constructor that lets tests drive time deterministically. */
+    /**
+     * Visible-for-testing constructor that lets tests drive time deterministically.
+     */
     public LeakyBucket(int capacity, int refillPerMinute, Duration pruneAfter, Clock clock) {
         this(capacity, refillIntervalFromPerMinute(refillPerMinute), pruneAfter, clock);
     }
@@ -87,7 +89,7 @@ public final class LeakyBucket {
      * Attempts to consume one token from the bucket for {@code key}.
      *
      * @return empty when the request is allowed, or the seconds until the next token refills
-     *         when the caller should be rate-limited
+     * when the caller should be rate-limited
      */
     public Optional<Long> tryAcquire(String key) {
         Instant now = clock.instant();

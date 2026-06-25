@@ -98,6 +98,12 @@ public class WaitingListService {
 
     // --- List CRUD (delegates) ---
 
+    private static String generatePassword() {
+        byte[] bytes = new byte[16];
+        new SecureRandom().nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
     public List<WaitingList> findByStation(int stationId) {
         return repository.findByStation(stationId);
     }
@@ -154,11 +160,11 @@ public class WaitingListService {
         return repository.updateVisibleFields(id, visibleFieldsJson);
     }
 
+    // --- Fields ---
+
     public void delete(int id) {
         repository.delete(id);
     }
-
-    // --- Fields ---
 
     public List<WaitingListField> findFieldsByList(int listId) {
         return repository.findFieldsByList(listId);
@@ -186,11 +192,11 @@ public class WaitingListService {
         return repository.updateField(fieldId, name, fieldType, config, position, required, isPublic);
     }
 
+    // --- Invites ---
+
     public void deleteField(int fieldId) {
         repository.deleteField(fieldId);
     }
-
-    // --- Invites ---
 
     public List<WaitingListInvite> findInvitesByList(int listId) {
         return repository.findInvitesByList(listId);
@@ -205,11 +211,13 @@ public class WaitingListService {
         return repository.findInviteByCode(code);
     }
 
+    // --- Registration ---
+
     public void deleteInvite(int inviteId) {
         repository.deleteInvite(inviteId);
     }
 
-    // --- Registration ---
+    // --- Public self-service ---
 
     public WaitingListEntry registerViaInvite(
             String inviteCode,
@@ -289,8 +297,6 @@ public class WaitingListService {
         return entry;
     }
 
-    // --- Public self-service ---
-
     public Optional<WaitingListEntry> findEntryByToken(String token) {
         return repository.findEntryByToken(token);
     }
@@ -306,11 +312,11 @@ public class WaitingListService {
                         entry.id(), WaitingListEntryStatus.WITHDRAWN, "withdrawn_at"));
     }
 
+    // --- Entry management ---
+
     public void confirmInterest(String token) {
         repository.findEntryByToken(token).ifPresent(entry -> repository.updateConfirmedAt(entry.id(), Instant.now()));
     }
-
-    // --- Entry management ---
 
     public List<WaitingListEntry> findEntriesByList(int listId) {
         return repository.findEntriesByList(listId);
@@ -384,11 +390,11 @@ public class WaitingListService {
         repository.deleteEntry(entryId);
     }
 
+    // --- State transitions ---
+
     public int countEntries(int listId) {
         return repository.countEntriesByList(listId);
     }
-
-    // --- State transitions ---
 
     /**
      * Invite a WAITING entry: set status to INVITED, create a non-login member, assign testing group, link member.
@@ -527,6 +533,8 @@ public class WaitingListService {
         repository.deleteEntry(entryId);
     }
 
+    // --- Scoring ---
+
     /**
      * Computes the waiting-list position of an entry ranked by score (highest first),
      * with {@link WaitingListEntry#createdAt()} as the tiebreaker so the order is stable.
@@ -560,7 +568,7 @@ public class WaitingListService {
         return 0;
     }
 
-    // --- Scoring ---
+    // --- Confirmation checker ---
 
     public double evaluateScore(
             WaitingListEntry entry, List<WaitingListEntryValue> values, List<WaitingListField> fields, String formula) {
@@ -608,18 +616,6 @@ public class WaitingListService {
         return ScoreEvaluator.evaluate(processedFormula, variables);
     }
 
-    // --- Confirmation checker ---
-
-    private void checkAllExpiredConfirmations() {
-        try {
-            for (var list : repository.findAll()) {
-                checkExpiredConfirmations(list);
-            }
-        } catch (Exception e) {
-            log.warn("Error checking waiting list confirmations", e);
-        }
-    }
-
     public void checkExpiredConfirmations(WaitingList list) {
         String stationName = resolveStationName(list.stationId());
 
@@ -664,72 +660,6 @@ public class WaitingListService {
     public List<WaitingListEntryGuardian> findGuardiansByList(int listId) {
         return repository.findGuardiansByList(listId);
     }
-
-    private void insertGuardians(int entryId, List<GuardianInput> guardians) {
-        for (int i = 0; i < guardians.size(); i++) {
-            var g = guardians.get(i);
-            repository.createGuardian(
-                    entryId,
-                    g.firstname() != null ? g.firstname() : "",
-                    g.lastname() != null ? g.lastname() : "",
-                    g.email() != null ? g.email() : "",
-                    g.phone() != null ? g.phone() : "",
-                    i);
-        }
-    }
-
-    private void createGuardianAccounts(WaitingListEntry entry, int stationId) {
-        var guardians = repository.findGuardiansByEntry(entry.id());
-        if (guardians.isEmpty()) return;
-
-        var loginRole = stationMemberRepository.findPermissionByName(StationPermission.LOGIN);
-        var guardianRole = stationMemberRepository.findPermissionByName(StationPermission.MEMBER_GUARDIAN);
-
-        for (var guardian : guardians) {
-            if (guardian.email().isBlank()) continue;
-
-            // Reuse existing account if email already registered
-            var existingAccount = accountRepository.findByEmail(guardian.email());
-            if (existingAccount.isPresent()) {
-                var existingMember = stationMemberRepository.findByStationAndAccount(
-                        stationId, existingAccount.get().id());
-                if (existingMember.isPresent()) {
-                    stationMemberRepository.addManager(existingMember.get().id(), entry.memberId());
-                    continue;
-                }
-            }
-
-            var account = existingAccount.orElseGet(
-                    () -> accountRepository.create(guardian.email(), guardian.firstname(), guardian.lastname(), true));
-            if (existingAccount.isEmpty()) {
-                String password = generatePassword();
-                accountRepository.createCredential(account.id(), passwordHasher.hash(password));
-            }
-
-            var member = stationMemberRepository.create(stationId, account.id());
-            stationMemberRepository.setUserType(member.id(), StationUserType.GUARDIAN);
-            loginRole.ifPresent(role -> stationMemberRepository.grantPermission(member.id(), role.id()));
-            guardianRole.ifPresent(role -> stationMemberRepository.grantPermission(member.id(), role.id()));
-
-            stationMemberRepository.addManager(member.id(), entry.memberId());
-        }
-    }
-
-    private static String generatePassword() {
-        byte[] bytes = new byte[16];
-        new SecureRandom().nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
-
-    private Integer stationIdForList(int listId) {
-        return repository.findById(listId).map(WaitingList::stationId).orElse(null);
-    }
-
-    private String resolveStationName(int stationId) {
-        return stationRepository.findById(stationId).map(Station::name).orElse("");
-    }
-
-    // --- Public waitlist ---
 
     public List<WaitingList> findPublicByStation(int stationId) {
         return repository.findPublicByStation(stationId);
@@ -818,6 +748,8 @@ public class WaitingListService {
         return true;
     }
 
+    // --- Public waitlist ---
+
     public WaitingListEntry approvePendingEntry(int entryId) {
         var entry =
                 repository.findEntryById(entryId).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
@@ -852,5 +784,73 @@ public class WaitingListService {
             throw new IllegalStateException("Entry is not pending");
         }
         repository.deleteEntry(entryId);
+    }
+
+    private void checkAllExpiredConfirmations() {
+        try {
+            for (var list : repository.findAll()) {
+                checkExpiredConfirmations(list);
+            }
+        } catch (Exception e) {
+            log.warn("Error checking waiting list confirmations", e);
+        }
+    }
+
+    private void insertGuardians(int entryId, List<GuardianInput> guardians) {
+        for (int i = 0; i < guardians.size(); i++) {
+            var g = guardians.get(i);
+            repository.createGuardian(
+                    entryId,
+                    g.firstname() != null ? g.firstname() : "",
+                    g.lastname() != null ? g.lastname() : "",
+                    g.email() != null ? g.email() : "",
+                    g.phone() != null ? g.phone() : "",
+                    i);
+        }
+    }
+
+    private void createGuardianAccounts(WaitingListEntry entry, int stationId) {
+        var guardians = repository.findGuardiansByEntry(entry.id());
+        if (guardians.isEmpty()) return;
+
+        var loginRole = stationMemberRepository.findPermissionByName(StationPermission.LOGIN);
+        var guardianRole = stationMemberRepository.findPermissionByName(StationPermission.MEMBER_GUARDIAN);
+
+        for (var guardian : guardians) {
+            if (guardian.email().isBlank()) continue;
+
+            // Reuse existing account if email already registered
+            var existingAccount = accountRepository.findByEmail(guardian.email());
+            if (existingAccount.isPresent()) {
+                var existingMember = stationMemberRepository.findByStationAndAccount(
+                        stationId, existingAccount.get().id());
+                if (existingMember.isPresent()) {
+                    stationMemberRepository.addManager(existingMember.get().id(), entry.memberId());
+                    continue;
+                }
+            }
+
+            var account = existingAccount.orElseGet(
+                    () -> accountRepository.create(guardian.email(), guardian.firstname(), guardian.lastname(), true));
+            if (existingAccount.isEmpty()) {
+                String password = generatePassword();
+                accountRepository.createCredential(account.id(), passwordHasher.hash(password));
+            }
+
+            var member = stationMemberRepository.create(stationId, account.id());
+            stationMemberRepository.setUserType(member.id(), StationUserType.GUARDIAN);
+            loginRole.ifPresent(role -> stationMemberRepository.grantPermission(member.id(), role.id()));
+            guardianRole.ifPresent(role -> stationMemberRepository.grantPermission(member.id(), role.id()));
+
+            stationMemberRepository.addManager(member.id(), entry.memberId());
+        }
+    }
+
+    private Integer stationIdForList(int listId) {
+        return repository.findById(listId).map(WaitingList::stationId).orElse(null);
+    }
+
+    private String resolveStationName(int stationId) {
+        return stationRepository.findById(stationId).map(Station::name).orElse("");
     }
 }

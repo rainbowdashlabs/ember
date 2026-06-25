@@ -161,19 +161,6 @@ public class CommentService {
     }
 
     /**
-     * Resolves a MemberIdentity to a local member ID on the given station.
-     * Returns {@code null} if the identity is null or the member is not local.
-     */
-    private Integer resolveLocalMemberId(int stationId, MemberIdentity identity) {
-        if (identity == null) return null;
-        // Check if the identity belongs to this station
-        int identityStationId =
-                stationRepository.resolveId(identity.stationUid()).orElse(0);
-        if (identityStationId != stationId) return null;
-        return stationMemberService.resolveId(stationId, identity.memberUid()).orElse(null);
-    }
-
-    /**
      * Updates the content of a comment.
      *
      * @param id      the comment ID
@@ -192,6 +179,19 @@ public class CommentService {
      */
     public boolean delete(int id) {
         return commentRepository.delete(id);
+    }
+
+    /**
+     * Resolves a MemberIdentity to a local member ID on the given station.
+     * Returns {@code null} if the identity is null or the member is not local.
+     */
+    private Integer resolveLocalMemberId(int stationId, MemberIdentity identity) {
+        if (identity == null) return null;
+        // Check if the identity belongs to this station
+        int identityStationId =
+                stationRepository.resolveId(identity.stationUid()).orElse(0);
+        if (identityStationId != stationId) return null;
+        return stationMemberService.resolveId(stationId, identity.memberUid()).orElse(null);
     }
 
     /**

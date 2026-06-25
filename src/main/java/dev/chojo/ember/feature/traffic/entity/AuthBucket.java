@@ -12,10 +12,16 @@ package dev.chojo.ember.feature.traffic.entity;
  * data.
  */
 public enum AuthBucket {
-    /** Authenticated app traffic — a logged-in user session on a non-public route. */
+    /**
+     * Authenticated app traffic — a logged-in user session on a non-public route.
+     */
     AUTHENTICATED,
-    /** Public traffic — anonymous visitors, feeds, sitemap, RSS/Atom/ICS. */
+    /**
+     * Public traffic — anonymous visitors, feeds, sitemap, RSS/Atom/ICS.
+     */
     UNAUTHENTICATED,
-    /** Server-to-server federation traffic — signature-authenticated peer instances. */
+    /**
+     * Server-to-server federation traffic — signature-authenticated peer instances.
+     */
     FEDERATION
 }

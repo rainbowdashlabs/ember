@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.page.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.insights.entity.PageHitBucket;
+import dev.chojo.ember.feature.insights.repository.PageHitRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -155,8 +156,10 @@ class PageHitRepositoryTest extends RepositoryTestBase {
     void hourlyTotalsIncludeBotsWhenRequested() {
         var noBots = pageHitRepo.stationHourlyTotals(station.id(), HOUR, HOUR, false);
         var withBots = pageHitRepo.stationHourlyTotals(station.id(), HOUR, HOUR, true);
-        long noBotsTotal = noBots.stream().mapToLong(t -> t.hits()).sum();
-        long withBotsTotal = withBots.stream().mapToLong(t -> t.hits()).sum();
+        long noBotsTotal =
+                noBots.stream().mapToLong(PageHitRepository.HourlyTotal::hits).sum();
+        long withBotsTotal =
+                withBots.stream().mapToLong(PageHitRepository.HourlyTotal::hits).sum();
         assertTrue(withBotsTotal > noBotsTotal);
     }
 

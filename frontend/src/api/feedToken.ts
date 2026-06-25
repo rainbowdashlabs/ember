@@ -54,7 +54,7 @@ export async function getFeedStatus(): Promise<FeedStatusResponse> {
  * - `minimal` — headline + link only, no inline images or MediaRSS modules
  *
  * The backend treats missing params as "rich", so we only emit the params that override
- * the default. Concept document: see `.concept/feeds.md` §5.
+ * the default.
  */
 export type FeedPreset = 'rich' | 'compact' | 'minimal'
 

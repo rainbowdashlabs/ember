@@ -74,8 +74,6 @@ public class ProblemRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    private record AcknowledgeResult(int acknowledged) {}
-
     @OpenApi(
             path = "/api/v1/admin/problems/acknowledge-all",
             methods = HttpMethod.POST,
@@ -87,4 +85,6 @@ public class ProblemRoutes implements Routes {
         int count = appender != null ? appender.acknowledgeAll() : 0;
         ctx.json(new AcknowledgeResult(count));
     }
+
+    private record AcknowledgeResult(int acknowledged) {}
 }

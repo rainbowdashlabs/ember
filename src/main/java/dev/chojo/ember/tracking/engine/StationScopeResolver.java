@@ -32,16 +32,42 @@ import java.util.Set;
  */
 public final class StationScopeResolver {
 
-    /** Column name used by all station-scoped tables to point at their owning station. */
+    /**
+     * Column name used by all station-scoped tables to point at their owning station.
+     */
     public static final String STATION_ID_COLUMN = "station_id";
 
-    /** The table that represents the station itself; its {@code id} column carries the station id. */
+    /**
+     * The table that represents the station itself; its {@code id} column carries the station id.
+     */
     public static final String STATION_TABLE = "station";
 
     private final DataTracking tracking;
 
     public StationScopeResolver(DataTracking tracking) {
         this.tracking = tracking;
+    }
+
+    private static boolean hasStationIdColumn(TableEntry table) {
+        if (table.columns() == null) return false;
+        for (var c : table.columns()) {
+            if (STATION_ID_COLUMN.equals(c.name())) return true;
+        }
+        return false;
+    }
+
+    private static ScopePath reconstructPath(String root, String terminal, Map<String, Step> predecessors) {
+        List<Join> joins = new ArrayList<>();
+        String node = terminal;
+        while (!node.equals(root)) {
+            Step step = predecessors.get(node);
+            joins.add(new Join(step.parent(), step.fk()));
+            node = step.parent();
+        }
+        // The BFS reconstructs from terminal back to root; reverse to get root → terminal order.
+        Collections.reverse(joins);
+        String scopeColumn = STATION_TABLE.equals(terminal) ? "id" : STATION_ID_COLUMN;
+        return new ScopePath(terminal, scopeColumn, joins);
     }
 
     /**
@@ -89,28 +115,6 @@ public final class StationScopeResolver {
         }
 
         return Optional.empty();
-    }
-
-    private static boolean hasStationIdColumn(TableEntry table) {
-        if (table.columns() == null) return false;
-        for (var c : table.columns()) {
-            if (STATION_ID_COLUMN.equals(c.name())) return true;
-        }
-        return false;
-    }
-
-    private static ScopePath reconstructPath(String root, String terminal, Map<String, Step> predecessors) {
-        List<Join> joins = new ArrayList<>();
-        String node = terminal;
-        while (!node.equals(root)) {
-            Step step = predecessors.get(node);
-            joins.add(new Join(step.parent(), step.fk()));
-            node = step.parent();
-        }
-        // The BFS reconstructs from terminal back to root; reverse to get root → terminal order.
-        Collections.reverse(joins);
-        String scopeColumn = STATION_TABLE.equals(terminal) ? "id" : STATION_ID_COLUMN;
-        return new ScopePath(terminal, scopeColumn, joins);
     }
 
     private record Step(String parent, ForeignKey fk) {}

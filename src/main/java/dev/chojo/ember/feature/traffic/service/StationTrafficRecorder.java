@@ -133,19 +133,6 @@ public class StationTrafficRecorder {
         }
     }
 
-    private void prune() {
-        try {
-            int days = Math.max(1, metrics.trafficRetentionDays());
-            Instant cutoff = Instant.now().minus(Duration.ofDays(days));
-            int removed = repository.pruneBefore(cutoff);
-            if (removed > 0) {
-                log.info("Pruned {} expired traffic buckets older than {} days", removed, days);
-            }
-        } catch (Exception e) {
-            log.warn("Failed to prune expired traffic buckets", e);
-        }
-    }
-
     /**
      * Returns the number of in-memory accumulators currently buffered. Useful for tests
      * and operational metrics.
@@ -169,6 +156,19 @@ public class StationTrafficRecorder {
                     key.hour, key.stationId, key.auth, acc.ingress.get(), acc.egress.get(), acc.requests.get()));
         }
         return out;
+    }
+
+    private void prune() {
+        try {
+            int days = Math.max(1, metrics.trafficRetentionDays());
+            Instant cutoff = Instant.now().minus(Duration.ofDays(days));
+            int removed = repository.pruneBefore(cutoff);
+            if (removed > 0) {
+                log.info("Pruned {} expired traffic buckets older than {} days", removed, days);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to prune expired traffic buckets", e);
+        }
     }
 
     private Instant currentHour() {

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -25,11 +26,14 @@ public class EventThresholdChecker {
 
     private final EventRepository eventRepository;
     private final EventService eventService;
+    private final StationReadOnlyGuard readOnlyGuard;
 
     @Inject
-    public EventThresholdChecker(EventRepository eventRepository, EventService eventService) {
+    public EventThresholdChecker(
+            EventRepository eventRepository, EventService eventService, StationReadOnlyGuard readOnlyGuard) {
         this.eventRepository = eventRepository;
         this.eventService = eventService;
+        this.readOnlyGuard = readOnlyGuard;
         var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             var t = new Thread(r, "event-threshold-checker");
             t.setDaemon(true);
@@ -42,6 +46,7 @@ public class EventThresholdChecker {
         try {
             var events = eventRepository.findAutoCancel();
             for (var event : events) {
+                if (!readOnlyGuard.isWritable(event.stationId())) continue;
                 log.info("Auto-cancelling event {} (id={}) — threshold not met", event.name(), event.id());
                 eventService.cancelEvent(
                         event.stationId(),

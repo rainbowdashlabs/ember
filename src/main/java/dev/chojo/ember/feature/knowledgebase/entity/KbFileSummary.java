@@ -21,6 +21,18 @@ public record KbFileSummary(
         Instant updatedAt,
         boolean restricted) {
 
+    public static KbFileSummary of(KbFile file) {
+        return new KbFileSummary(
+                file.id(),
+                file.stationId(),
+                file.folderId(),
+                file.name(),
+                file.description(),
+                file.fileType(),
+                file.updatedAt(),
+                file.restricted());
+    }
+
     /**
      * Converts this summary back to a full KbFile with default values for fields not in the summary.
      * Used when an API contract requires the full entity shape.
@@ -47,17 +59,5 @@ public record KbFileSummary(
                 null,
                 restricted,
                 null);
-    }
-
-    public static KbFileSummary of(KbFile file) {
-        return new KbFileSummary(
-                file.id(),
-                file.stationId(),
-                file.folderId(),
-                file.name(),
-                file.description(),
-                file.fileType(),
-                file.updatedAt(),
-                file.restricted());
     }
 }

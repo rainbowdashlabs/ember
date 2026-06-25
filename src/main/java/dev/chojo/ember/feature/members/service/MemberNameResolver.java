@@ -32,6 +32,10 @@ public class MemberNameResolver {
     private final StationRepository stationRepository;
     private final MemberGroupService groupService;
     private final UserTagService tagService;
+    private final Cache<UUID, DisplayData> displayCache = Caffeine.newBuilder()
+            .expireAfterAccess(5, TimeUnit.MINUTES)
+            .maximumSize(10_000)
+            .build();
 
     @Inject
     public MemberNameResolver(
@@ -136,26 +140,12 @@ public class MemberNameResolver {
         return null;
     }
 
-    /**
-     * Resolves both the display name and enriched identity (with nameColor and displayTag) in one call.
-     * This is the preferred method for building API responses.
-     */
-    public record ResolvedMember(MemberIdentity identity, String name) {}
-
     public ResolvedMember resolveDisplay(MemberIdentity identity) {
         if (identity == null) return new ResolvedMember(null, null);
         var enriched = enrichDisplay(identity);
         var name = resolve(identity);
         return new ResolvedMember(enriched, name);
     }
-
-    private record DisplayData(
-            String name, String stationName, String nameColor, MemberIdentity.DisplayTag displayTag) {}
-
-    private final Cache<UUID, DisplayData> displayCache = Caffeine.newBuilder()
-            .expireAfterAccess(5, TimeUnit.MINUTES)
-            .maximumSize(10_000)
-            .build();
 
     /**
      * Enriches a MemberIdentity with display metadata (name, station name, name color, visible tag badge).
@@ -215,4 +205,13 @@ public class MemberNameResolver {
                 .map(t -> new MemberIdentity.DisplayTag(t.name(), t.color()))
                 .orElse(null);
     }
+
+    /**
+     * Resolves both the display name and enriched identity (with nameColor and displayTag) in one call.
+     * This is the preferred method for building API responses.
+     */
+    public record ResolvedMember(MemberIdentity identity, String name) {}
+
+    private record DisplayData(
+            String name, String stationName, String nameColor, MemberIdentity.DisplayTag displayTag) {}
 }

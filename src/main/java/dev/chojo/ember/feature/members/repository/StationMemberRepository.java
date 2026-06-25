@@ -37,6 +37,14 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class StationMemberRepository {
 
+    private static final String PRIMARY_TAG_NAME_SUBQUERY = """
+            (SELECT ut.name FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id
+             WHERE ute.member_id = sm.id AND ut.visible = TRUE
+             ORDER BY ut.position DESC LIMIT 1)""";
+    private static final String PRIMARY_TAG_COLOR_SUBQUERY = """
+            (SELECT ut.color FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id
+             WHERE ute.member_id = sm.id AND ut.visible = TRUE
+             ORDER BY ut.position DESC LIMIT 1)""";
     private final Cache<Integer, UUID> memberUidCache = Caffeine.newBuilder()
             .expireAfterAccess(5, TimeUnit.MINUTES)
             .maximumSize(10_000)
@@ -70,7 +78,7 @@ public class StationMemberRepository {
         var key = new MemberKey(stationId, memberUid);
         var cached = memberIdCache.getIfPresent(key);
         if (cached != null) return Optional.of(cached);
-        return query("SELECT id FROM station_member WHERE station_id = :station_id AND uid = :uid::uuid;")
+        return query("SELECT id FROM station_member WHERE station_id = :station_id AND uid = :uid::UUID;")
                 .single(call().bind("station_id", stationId).bind("uid", memberUid, StandardValueConverter.UUID_STRING))
                 .map(row -> row.getInt("id"))
                 .first()
@@ -95,6 +103,8 @@ public class StationMemberRepository {
                 .orElse(null);
     }
 
+    // -- Members --
+
     /**
      * Invalidates caches for a member (on create/delete).
      */
@@ -105,10 +115,6 @@ public class StationMemberRepository {
             memberIdCache.asMap().values().remove(memberId);
         }
     }
-
-    private record MemberKey(int stationId, UUID memberUid) {}
-
-    // -- Members --
 
     /**
      * Finds a station member by its identifier.
@@ -182,17 +188,17 @@ public class StationMemberRepository {
      */
     public List<RichMember> findRichMembers(int stationId, boolean includeFormer) {
         return query("""
-                        SELECT sm.id, sm.station_id, sm.uid, sm.account_id, sm.former, sm.user_type, sm.join_date,
-                               COALESCE(a.full_name, sm.display_name, '') AS name,
-                               COALESCE(a.email, '') AS email,
-                               COALESCE((SELECT json_agg(sp.name) FROM station_member_permission smp JOIN station_permission sp ON sp.id = smp.permission_id WHERE smp.member_id = sm.id), '[]'::json)::text AS roles,
-                               COALESCE((SELECT json_agg(json_build_object('id', mg.id, 'name', mg.name)) FROM member_group_entry mge JOIN member_group mg ON mg.id = mge.group_id WHERE mge.member_id = sm.id), '[]'::json)::text AS groups,
-                               COALESCE((SELECT json_agg(json_build_object('id', ut.id, 'name', ut.name)) FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id WHERE ute.member_id = sm.id), '[]'::json)::text AS tags,
-                               COALESCE((SELECT json_object_agg(pfv.field_id, pfv.value) FROM profile_field_value pfv WHERE pfv.member_id = sm.id), '{}'::json)::text AS profile_values
-                        FROM station_member sm
-                        LEFT JOIN account a ON a.id = sm.account_id
-                        WHERE sm.station_id = :station_id AND (sm.former = FALSE OR :include_former)
-                        ORDER BY a.last_name, a.first_name, sm.display_name;""")
+                SELECT sm.id, sm.station_id, sm.uid, sm.account_id, sm.former, sm.user_type, sm.join_date,
+                       coalesce(a.full_name, sm.display_name, '') AS name,
+                       coalesce(a.email, '') AS email,
+                       coalesce((SELECT json_agg(sp.name) FROM station_member_permission smp JOIN station_permission sp ON sp.id = smp.permission_id WHERE smp.member_id = sm.id), '[]'::JSON)::TEXT AS roles,
+                       coalesce((SELECT json_agg(json_build_object('id', mg.id, 'name', mg.name)) FROM member_group_entry mge JOIN member_group mg ON mg.id = mge.group_id WHERE mge.member_id = sm.id), '[]'::JSON)::TEXT AS groups,
+                       coalesce((SELECT json_agg(json_build_object('id', ut.id, 'name', ut.name)) FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id WHERE ute.member_id = sm.id), '[]'::JSON)::TEXT AS tags,
+                       coalesce((SELECT json_object_agg(pfv.field_id, pfv.value) FROM profile_field_value pfv WHERE pfv.member_id = sm.id), '{}'::JSON)::TEXT AS profile_values
+                FROM station_member sm
+                LEFT JOIN account a ON a.id = sm.account_id
+                WHERE sm.station_id = :station_id AND (sm.former = FALSE OR :include_former)
+                ORDER BY a.last_name, a.first_name, sm.display_name;""")
                 .single(call().bind("station_id", stationId).bind("include_former", includeFormer))
                 .map(RichMember.map())
                 .all();
@@ -207,7 +213,7 @@ public class StationMemberRepository {
     public List<MemberCompletion> findCompletions(int stationId) {
         UUID stationUid = stationRepository.resolveUid(stationId);
         return query(
-                        "SELECT sm.id, sm.uid, COALESCE(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name FROM station_member sm LEFT JOIN account a ON sm.account_id = a.id WHERE sm.station_id = :station_id AND sm.former = FALSE ORDER BY display_name;")
+                        "SELECT sm.id, sm.uid, coalesce(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name FROM station_member sm LEFT JOIN account a ON sm.account_id = a.id WHERE sm.station_id = :station_id AND sm.former = FALSE ORDER BY display_name;")
                 .single(call().bind("station_id", stationId))
                 .map(row -> new MemberCompletion(
                         row.getInt("id"),
@@ -223,8 +229,7 @@ public class StationMemberRepository {
     /**
      * Page-editor picker: case-insensitive substring search on the resolved display name with a
      * small cap. Empty {@code search} returns the most recently joined active members so the
-     * picker has something to show on first focus. Used by the §3.10 / §3.11 search pickers
-     * (concept §4.5). Returns active members only (former excluded).
+     * picker has something to show on first focus. Returns active members only (former excluded).
      */
     public List<PickerMember> searchForPicker(int stationId, String search, int limit) {
         boolean hasSearch = search != null && !search.isBlank();
@@ -237,7 +242,7 @@ public class StationMemberRepository {
         return query("""
                 SELECT sm.uid AS member_uid,
                        a.uid AS account_uid,
-                       COALESCE(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
+                       coalesce(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
                        sm.user_type,
                        %s AS display_tag,
                        %s AS display_tag_color,
@@ -262,7 +267,7 @@ public class StationMemberRepository {
         return query("""
                 SELECT sm.uid AS member_uid,
                        a.uid AS account_uid,
-                       COALESCE(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
+                       coalesce(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
                        sm.user_type,
                        %s AS display_tag,
                        %s AS display_tag_color,
@@ -270,19 +275,21 @@ public class StationMemberRepository {
                 FROM station_member sm
                 LEFT JOIN account a ON sm.account_id = a.id
                 WHERE sm.station_id = :station_id
-                  AND sm.uid = :uid::uuid
+                  AND sm.uid = :uid::UUID
                   AND sm.former = FALSE;""", PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY)
                 .single(call().bind("station_id", stationId).bind("uid", memberUid, StandardValueConverter.UUID_STRING))
                 .map(PickerMember.map())
                 .first();
     }
 
-    /** Active members of the given group, ordered by the membership's stored sort order. */
+    /**
+     * Active members of the given group, ordered by the membership's stored sort order.
+     */
     public List<PickerMember> findOfficersByGroup(int stationId, int groupId) {
         return query("""
                 SELECT sm.uid AS member_uid,
                        a.uid AS account_uid,
-                       COALESCE(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
+                       coalesce(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
                        sm.user_type,
                        %s AS display_tag,
                        %s AS display_tag_color,
@@ -299,12 +306,14 @@ public class StationMemberRepository {
                 .all();
     }
 
-    /** Active members carrying the given tag, ordered alphabetically. */
+    /**
+     * Active members carrying the given tag, ordered alphabetically.
+     */
     public List<PickerMember> findOfficersByTag(int stationId, int tagId) {
         return query("""
                 SELECT sm.uid AS member_uid,
                        a.uid AS account_uid,
-                       COALESCE(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
+                       coalesce(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
                        sm.user_type,
                        %s AS display_tag,
                        %s AS display_tag_color,
@@ -321,14 +330,16 @@ public class StationMemberRepository {
                 .all();
     }
 
-    /** Active members for an explicit list of UUIDs (manual officers source). */
+    /**
+     * Active members for an explicit list of UUIDs (manual officers source).
+     */
     public List<PickerMember> findOfficersByUids(int stationId, List<UUID> memberUids) {
         if (memberUids == null || memberUids.isEmpty()) return List.of();
         var uidStrings = memberUids.stream().map(UUID::toString).toList();
         return query("""
                 SELECT sm.uid AS member_uid,
                        a.uid AS account_uid,
-                       COALESCE(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
+                       coalesce(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
                        sm.user_type,
                        %s AS display_tag,
                        %s AS display_tag_color,
@@ -337,46 +348,10 @@ public class StationMemberRepository {
                 LEFT JOIN account a ON sm.account_id = a.id
                 WHERE sm.station_id = :station_id
                   AND sm.former = FALSE
-                  AND sm.uid::text = ANY(:uids);""", PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY)
+                  AND sm.uid::TEXT = ANY(:uids);""", PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY)
                 .single(call().bind("station_id", stationId).bind("uids", uidStrings, PostgreSqlTypes.VARCHAR))
                 .map(PickerMember.map())
                 .all();
-    }
-
-    private static final String PRIMARY_TAG_NAME_SUBQUERY = """
-            (SELECT ut.name FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id
-             WHERE ute.member_id = sm.id AND ut.visible = TRUE
-             ORDER BY ut.position DESC LIMIT 1)""";
-
-    private static final String PRIMARY_TAG_COLOR_SUBQUERY = """
-            (SELECT ut.color FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id
-             WHERE ute.member_id = sm.id AND ut.visible = TRUE
-             ORDER BY ut.position DESC LIMIT 1)""";
-
-    /**
-     * Lightweight result row for the editor's member-search picker. Exposes the member UUID —
-     * never the internal id — so cell configs survive station transfer. {@code displayTag}
-     * carries the member's highest-priority visible tag name (and color), or {@code null} when
-     * the member has no visible tag.
-     */
-    public record PickerMember(
-            UUID memberUid,
-            UUID accountUid,
-            String displayName,
-            StationUserType userType,
-            String displayTag,
-            String displayTagColor,
-            LocalDate joinDate) {
-        public static RowMapping<PickerMember> map() {
-            return row -> new PickerMember(
-                    row.get("member_uid", StandardValueConverter.UUID_STRING),
-                    row.get("account_uid", StandardValueConverter.UUID_STRING),
-                    row.getString("display_name"),
-                    row.getEnum("user_type", StationUserType.class),
-                    row.getString("display_tag"),
-                    row.getString("display_tag_color"),
-                    row.getObject("join_date", LocalDate.class));
-        }
     }
 
     /**
@@ -418,6 +393,18 @@ public class StationMemberRepository {
                 .orElseThrow();
     }
 
+    /**
+     * Replaces the {@code uid} column for the member. Used by the demo seeder to pin
+     * deterministic UUIDs so demo media does not accumulate on disk across restarts.
+     */
+    public void setUid(int id, UUID uid) {
+        query("UPDATE station_member SET uid = :uid::uuid WHERE id = :id;")
+                .single(call().bind("uid", uid, StandardValueConverter.UUID_STRING)
+                        .bind("id", id))
+                .update();
+        invalidateMemberCache(id);
+    }
+
     public boolean delete(int id) {
         return query("DELETE FROM station_member WHERE id = :id;")
                 .single(call().bind("id", id))
@@ -427,7 +414,7 @@ public class StationMemberRepository {
 
     public boolean setFormer(int id, boolean former) {
         return query(
-                        "UPDATE station_member SET former = :former, former_at = CASE WHEN :former THEN NOW() ELSE NULL END WHERE id = :id;")
+                        "UPDATE station_member SET former = :former, former_at = CASE WHEN :former THEN now() ELSE NULL END WHERE id = :id;")
                 .single(call().bind("id", id).bind("former", former))
                 .update()
                 .changed();
@@ -439,8 +426,6 @@ public class StationMemberRepository {
                 .update();
     }
 
-    // -- Permissions --
-
     public List<Permission> findAllPermissions() {
         return query("SELECT id, name FROM station_permission ORDER BY id;")
                 .single()
@@ -450,30 +435,32 @@ public class StationMemberRepository {
 
     public boolean hasLoginPermission(int accountId) {
         return query("""
-                            SELECT 1
-                            FROM station_member sm
-                            WHERE sm.account_id = :account_id
-                              AND sm.former = FALSE
-                              AND (
-                                sm.user_type IN ('GUARDIAN', 'TEAM', 'MANAGER')
-                                OR EXISTS (
-                                    SELECT 1 FROM station_member_permission smp
-                                    JOIN station_permission sp ON sp.id = smp.permission_id
-                                    WHERE smp.member_id = sm.id AND sp.name = 'LOGIN'
-                                )
-                              )
-                            LIMIT 1;""")
+                SELECT 1
+                FROM station_member sm
+                WHERE sm.account_id = :account_id
+                  AND sm.former = FALSE
+                  AND (
+                    sm.user_type IN ('GUARDIAN', 'TEAM', 'MANAGER')
+                    OR exists (
+                        SELECT 1 FROM station_member_permission smp
+                        JOIN station_permission sp ON sp.id = smp.permission_id
+                        WHERE smp.member_id = sm.id AND sp.name = 'LOGIN'
+                    )
+                  )
+                LIMIT 1;""")
                 .single(call().bind("account_id", accountId))
                 .map(row -> true)
                 .first()
                 .isPresent();
     }
 
+    // -- Permissions --
+
     public List<Permission> findPermissions(int memberId) {
         return query("""
-                            SELECT sp.id, sp.name
-                            FROM station_permission sp JOIN station_member_permission smp ON sp.id = smp.permission_id
-                            WHERE smp.member_id = :member_id;""")
+                SELECT sp.id, sp.name
+                FROM station_permission sp JOIN station_member_permission smp ON sp.id = smp.permission_id
+                WHERE smp.member_id = :member_id;""")
                 .single(call().bind("member_id", memberId))
                 .map(Permission.map())
                 .all();
@@ -512,27 +499,25 @@ public class StationMemberRepository {
      */
     public List<StationMember> findMembersWithPermission(int stationId, StationPermission permission) {
         return query("""
-                            SELECT DISTINCT sm.* FROM station_member sm
-                            WHERE sm.station_id = :station_id AND sm.former = FALSE
-                              AND (
-                                EXISTS (
-                                    SELECT 1 FROM station_member_permission smp
-                                    JOIN station_permission sp ON sp.id = smp.permission_id
-                                    WHERE smp.member_id = sm.id AND sp.name = :permission_name
-                                )
-                                OR EXISTS (
-                                    SELECT 1 FROM member_group_entry mge
-                                    JOIN member_group_permission mgp ON mgp.group_id = mge.group_id
-                                    JOIN station_permission sp ON sp.id = mgp.permission_id
-                                    WHERE mge.member_id = sm.id AND sp.name = :permission_name
-                                )
-                              );""")
+                SELECT DISTINCT sm.* FROM station_member sm
+                WHERE sm.station_id = :station_id AND sm.former = FALSE
+                  AND (
+                    exists (
+                        SELECT 1 FROM station_member_permission smp
+                        JOIN station_permission sp ON sp.id = smp.permission_id
+                        WHERE smp.member_id = sm.id AND sp.name = :permission_name
+                    )
+                    OR exists (
+                        SELECT 1 FROM member_group_entry mge
+                        JOIN member_group_permission mgp ON mgp.group_id = mge.group_id
+                        JOIN station_permission sp ON sp.id = mgp.permission_id
+                        WHERE mge.member_id = sm.id AND sp.name = :permission_name
+                    )
+                  );""")
                 .single(call().bind("station_id", stationId).bind("permission_name", permission))
                 .map(StationMember.map())
                 .all();
     }
-
-    // -- User Type --
 
     public boolean setUserType(int memberId, StationUserType userType) {
         return query("UPDATE station_member SET user_type = :user_type WHERE id = :id;")
@@ -541,8 +526,6 @@ public class StationMemberRepository {
                 .changed();
     }
 
-    // -- Join Date --
-
     public boolean setJoinDate(int memberId, LocalDate joinDate) {
         return query("UPDATE station_member SET join_date = :join_date WHERE id = :id;")
                 .single(call().bind("join_date", joinDate).bind("id", memberId))
@@ -550,7 +533,7 @@ public class StationMemberRepository {
                 .changed();
     }
 
-    // -- Station User Type Permissions --
+    // -- User Type --
 
     public List<Permission> findUserTypePermissions(int stationId, StationUserType userType) {
         return query("""
@@ -562,6 +545,8 @@ public class StationMemberRepository {
                 .map(Permission.map())
                 .all();
     }
+
+    // -- Join Date --
 
     public void setUserTypePermissions(int stationId, StationUserType userType, List<Integer> permissionIds) {
         query("DELETE FROM station_user_type_permission WHERE station_id = :station_id AND user_type = :user_type;")
@@ -577,13 +562,13 @@ public class StationMemberRepository {
         }
     }
 
-    // -- Manager Relations --
+    // -- Station User Type Permissions --
 
     public List<StationMember> findManaged(int managerId) {
         return query("""
-                            SELECT sm.* FROM station_member sm
-                            JOIN member_manager mm ON sm.id = mm.managed_id
-                            WHERE mm.manager_id = :manager_id AND sm.former = FALSE;""")
+                SELECT sm.* FROM station_member sm
+                JOIN member_manager mm ON sm.id = mm.managed_id
+                WHERE mm.manager_id = :manager_id AND sm.former = FALSE;""")
                 .single(call().bind("manager_id", managerId))
                 .map(StationMember.map())
                 .all();
@@ -591,13 +576,15 @@ public class StationMemberRepository {
 
     public List<StationMember> findManagers(int managedId) {
         return query("""
-                            SELECT sm.* FROM station_member sm
-                            JOIN member_manager mm ON sm.id = mm.manager_id
-                            WHERE mm.managed_id = :managed_id;""")
+                SELECT sm.* FROM station_member sm
+                JOIN member_manager mm ON sm.id = mm.manager_id
+                WHERE mm.managed_id = :managed_id;""")
                 .single(call().bind("managed_id", managedId))
                 .map(StationMember.map())
                 .all();
     }
+
+    // -- Manager Relations --
 
     public InsertionResult addManager(int managerId, int managedId) {
         return query("INSERT INTO member_manager(manager_id, managed_id) VALUES(:manager_id, :managed_id);")
@@ -622,5 +609,33 @@ public class StationMemberRepository {
         query("DELETE FROM member_manager WHERE manager_id = :manager_id;")
                 .single(call().bind("manager_id", managerId))
                 .delete();
+    }
+
+    private record MemberKey(int stationId, UUID memberUid) {}
+
+    /**
+     * Lightweight result row for the editor's member-search picker. Exposes the member UUID —
+     * never the internal id — so cell configs survive station transfer. {@code displayTag}
+     * carries the member's highest-priority visible tag name (and color), or {@code null} when
+     * the member has no visible tag.
+     */
+    public record PickerMember(
+            UUID memberUid,
+            UUID accountUid,
+            String displayName,
+            StationUserType userType,
+            String displayTag,
+            String displayTagColor,
+            LocalDate joinDate) {
+        public static RowMapping<PickerMember> map() {
+            return row -> new PickerMember(
+                    row.get("member_uid", StandardValueConverter.UUID_STRING),
+                    row.get("account_uid", StandardValueConverter.UUID_STRING),
+                    row.getString("display_name"),
+                    row.getEnum("user_type", StationUserType.class),
+                    row.getString("display_tag"),
+                    row.getString("display_tag_color"),
+                    row.getObject("join_date", LocalDate.class));
+        }
     }
 }

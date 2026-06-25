@@ -14,10 +14,6 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public record TestProtocolRunMember(
         int id, int runId, int memberId, Integer lockedBy, Instant lockedAt, boolean completed, double totalScore) {
 
-    public boolean isLocked() {
-        return lockedBy != null;
-    }
-
     public static RowMapping<TestProtocolRunMember> map() {
         return row -> new TestProtocolRunMember(
                 row.getInt("id"),
@@ -27,5 +23,9 @@ public record TestProtocolRunMember(
                 row.get("locked_at", INSTANT_TIMESTAMP),
                 row.getBoolean("completed"),
                 row.getDouble("total_score"));
+    }
+
+    public boolean isLocked() {
+        return lockedBy != null;
     }
 }

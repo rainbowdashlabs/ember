@@ -50,6 +50,30 @@ public class AiService {
 
     // -- Provider Management --
 
+    private static boolean isChatModel(String id) {
+        if (id.contains("embedding")
+                || id.contains("whisper")
+                || id.contains("tts")
+                || id.contains("dall-e")
+                || id.contains("davinci")
+                || id.contains("babbage")
+                || id.contains("moderation")
+                || id.contains("search")
+                || id.contains("similarity")
+                || id.contains("code-")
+                || id.contains("text-")
+                || id.contains("instruct")
+                || id.contains(":ft-")) {
+            return false;
+        }
+        return id.startsWith("gpt-4")
+                || id.startsWith("gpt-3.5")
+                || id.startsWith("o1")
+                || id.startsWith("o3")
+                || id.startsWith("o4")
+                || id.startsWith("chatgpt");
+    }
+
     public List<StationAiProvider> getProviders(int stationId) {
         return providerRepository.findByStation(stationId);
     }
@@ -70,163 +94,13 @@ public class AiService {
         providerRepository.setPrompt(stationId, prompt);
     }
 
+    // -- Prompt Loading --
+
     public String getDefaultPrompt() {
         return loadPromptFile("default_user_prompt", "de");
     }
 
-    // -- Prompt Loading --
-
-    private String loadPromptFile(String name, String locale) {
-        return PROMPT_CACHE.computeIfAbsent(locale + "/" + name, _ -> {
-            Path path = PROMPTS_DIR.resolve(locale).resolve(name + ".txt");
-            try {
-                if (Files.exists(path)) return Files.readString(path);
-            } catch (IOException ignored) {
-            }
-            Path fallback = PROMPTS_DIR.resolve("de").resolve(name + ".txt");
-            try {
-                if (Files.exists(fallback)) return Files.readString(fallback);
-            } catch (IOException ignored) {
-            }
-            log.warn("Prompt template not found: {}", path);
-            return "";
-        });
-    }
-
     // -- Key/Model Resolution --
-
-    private String resolveApiKey(int stationId, String provider, String transientKey) {
-        if (transientKey != null && !transientKey.isBlank()) return transientKey;
-        return providerRepository
-                .findByProvider(stationId, provider)
-                .map(StationAiProvider::apiKey)
-                .orElse(null);
-    }
-
-    private String resolveModel(int stationId, String provider, String requestModel) {
-        if (requestModel != null && !requestModel.isBlank()) return requestModel;
-        return providerRepository
-                .findByProvider(stationId, provider)
-                .map(StationAiProvider::model)
-                .filter(m -> !m.isBlank())
-                .orElseGet(() -> switch (provider) {
-                    case "openai" -> "gpt-4o-mini";
-                    case "gemini" -> "gemini-2.0-flash";
-                    case "claude" -> "claude-sonnet-4-20250514";
-                    default -> "gpt-4o-mini";
-                });
-    }
-
-    // -- Chat Completion (unified) --
-
-    private String chat(String provider, String apiKey, String model, String systemPrompt, String userMessage) {
-        return switch (provider) {
-            case "openai" -> chatOpenAi(apiKey, model, systemPrompt, userMessage);
-            case "gemini" -> chatGemini(apiKey, model, systemPrompt, userMessage);
-            case "claude" -> chatClaude(apiKey, model, systemPrompt, userMessage);
-            default -> throw new IllegalArgumentException("Unknown provider: " + provider);
-        };
-    }
-
-    public record ChatMessage(String role, String content) {}
-
-    public static class ChatSession {
-        private final String provider;
-        private final String apiKey;
-        private final String model;
-        private final String systemPrompt;
-        private final List<ChatMessage> messages = new ArrayList<>();
-
-        ChatSession(String provider, String apiKey, String model, String systemPrompt) {
-            this.provider = provider;
-            this.apiKey = apiKey;
-            this.model = model;
-            this.systemPrompt = systemPrompt;
-        }
-
-        void addUserMessage(String content) {
-            messages.add(new ChatMessage("user", content));
-        }
-
-        void addAssistantMessage(String content) {
-            messages.add(new ChatMessage("assistant", content));
-        }
-
-        public List<ChatMessage> messages() {
-            return messages;
-        }
-
-        public String provider() {
-            return provider;
-        }
-
-        public String apiKey() {
-            return apiKey;
-        }
-
-        public String model() {
-            return model;
-        }
-
-        public String systemPrompt() {
-            return systemPrompt;
-        }
-    }
-
-    private String chatWithSession(ChatSession session) {
-        return switch (session.provider()) {
-            case "openai" -> chatOpenAiSession(session);
-            case "gemini" -> chatGeminiSession(session);
-            case "claude" -> chatClaudeSession(session);
-            default -> throw new IllegalArgumentException("Unknown provider: " + session.provider());
-        };
-    }
-
-    private String chatOpenAiSession(ChatSession session) {
-        OpenAIClient client =
-                OpenAIOkHttpClient.builder().apiKey(session.apiKey()).build();
-        var builder = ChatCompletionCreateParams.builder()
-                .model(session.model())
-                .addSystemMessage(session.systemPrompt())
-                .temperature(0.8);
-        for (var msg : session.messages()) {
-            if ("user".equals(msg.role())) builder.addUserMessage(msg.content());
-            else if ("assistant".equals(msg.role())) builder.addAssistantMessage(msg.content());
-        }
-        var completion = client.chat().completions().create(builder.build());
-        return completion.choices().getFirst().message().content().orElse("");
-    }
-
-    private String chatGeminiSession(ChatSession session) {
-        // Gemini doesn't have native multi-turn via this SDK — concatenate context
-        var fullMessage = new StringBuilder();
-        for (var msg : session.messages()) {
-            fullMessage
-                    .append(msg.role().equals("user") ? "User: " : "Assistant: ")
-                    .append(msg.content())
-                    .append("\n\n");
-        }
-        return chatGemini(session.apiKey(), session.model(), session.systemPrompt(), fullMessage.toString());
-    }
-
-    private String chatClaudeSession(ChatSession session) {
-        AnthropicClient client =
-                AnthropicOkHttpClient.builder().apiKey(session.apiKey()).build();
-        var builder = MessageCreateParams.builder()
-                .model(session.model())
-                .maxTokens(2048L)
-                .system(session.systemPrompt());
-        for (var msg : session.messages()) {
-            if ("user".equals(msg.role())) builder.addUserMessage(msg.content());
-            else if ("assistant".equals(msg.role())) builder.addAssistantMessage(msg.content());
-        }
-        var message = client.messages().create(builder.build());
-        return message.content().stream()
-                .filter(ContentBlock::isText)
-                .map(b -> b.asText().text())
-                .findFirst()
-                .orElse("");
-    }
 
     public ChatSession createQuestionSession(
             int stationId,
@@ -289,7 +163,7 @@ public class AiService {
         }
     }
 
-    // -- Wrong Answer Generation --
+    // -- Chat Completion (unified) --
 
     public List<String> generate(
             int stationId,
@@ -321,9 +195,128 @@ public class AiService {
         }
     }
 
-    // -- Question Generation --
+    public List<ModelInfo> fetchModels(int stationId, String provider, String transientKey) {
+        String apiKey = resolveApiKey(stationId, provider, transientKey);
+        if (apiKey == null || apiKey.isBlank()) throw new IllegalArgumentException("No API key available");
+        try {
+            return switch (provider) {
+                case "openai" -> fetchOpenAiModels(apiKey);
+                case "gemini" -> fetchGeminiModels(apiKey);
+                case "claude" -> fetchClaudeModels(apiKey);
+                default -> List.of();
+            };
+        } catch (Exception e) {
+            log.error("Failed to fetch models for provider {}", provider, e);
+            throw new RuntimeException("Failed to fetch models: " + e.getMessage());
+        }
+    }
 
-    public record GeneratedQuestion(String title, String config) {}
+    private String loadPromptFile(String name, String locale) {
+        return PROMPT_CACHE.computeIfAbsent(locale + "/" + name, _ -> {
+            Path path = PROMPTS_DIR.resolve(locale).resolve(name + ".txt");
+            try {
+                if (Files.exists(path)) return Files.readString(path);
+            } catch (IOException ignored) {
+            }
+            Path fallback = PROMPTS_DIR.resolve("de").resolve(name + ".txt");
+            try {
+                if (Files.exists(fallback)) return Files.readString(fallback);
+            } catch (IOException ignored) {
+            }
+            log.warn("Prompt template not found: {}", path);
+            return "";
+        });
+    }
+
+    private String resolveApiKey(int stationId, String provider, String transientKey) {
+        if (transientKey != null && !transientKey.isBlank()) return transientKey;
+        return providerRepository
+                .findByProvider(stationId, provider)
+                .map(StationAiProvider::apiKey)
+                .orElse(null);
+    }
+
+    private String resolveModel(int stationId, String provider, String requestModel) {
+        if (requestModel != null && !requestModel.isBlank()) return requestModel;
+        return providerRepository
+                .findByProvider(stationId, provider)
+                .map(StationAiProvider::model)
+                .filter(m -> !m.isBlank())
+                .orElseGet(() -> switch (provider) {
+                    case "openai" -> "gpt-4o-mini";
+                    case "gemini" -> "gemini-2.0-flash";
+                    case "claude" -> "claude-sonnet-4-20250514";
+                    default -> "gpt-4o-mini";
+                });
+    }
+
+    private String chat(String provider, String apiKey, String model, String systemPrompt, String userMessage) {
+        return switch (provider) {
+            case "openai" -> chatOpenAi(apiKey, model, systemPrompt, userMessage);
+            case "gemini" -> chatGemini(apiKey, model, systemPrompt, userMessage);
+            case "claude" -> chatClaude(apiKey, model, systemPrompt, userMessage);
+            default -> throw new IllegalArgumentException("Unknown provider: " + provider);
+        };
+    }
+
+    private String chatWithSession(ChatSession session) {
+        return switch (session.provider()) {
+            case "openai" -> chatOpenAiSession(session);
+            case "gemini" -> chatGeminiSession(session);
+            case "claude" -> chatClaudeSession(session);
+            default -> throw new IllegalArgumentException("Unknown provider: " + session.provider());
+        };
+    }
+
+    private String chatOpenAiSession(ChatSession session) {
+        OpenAIClient client =
+                OpenAIOkHttpClient.builder().apiKey(session.apiKey()).build();
+        var builder = ChatCompletionCreateParams.builder()
+                .model(session.model())
+                .addSystemMessage(session.systemPrompt())
+                .temperature(0.8);
+        for (var msg : session.messages()) {
+            if ("user".equals(msg.role())) builder.addUserMessage(msg.content());
+            else if ("assistant".equals(msg.role())) builder.addAssistantMessage(msg.content());
+        }
+        var completion = client.chat().completions().create(builder.build());
+        return completion.choices().getFirst().message().content().orElse("");
+    }
+
+    private String chatGeminiSession(ChatSession session) {
+        // Gemini doesn't have native multi-turn via this SDK — concatenate context
+        var fullMessage = new StringBuilder();
+        for (var msg : session.messages()) {
+            fullMessage
+                    .append(msg.role().equals("user") ? "User: " : "Assistant: ")
+                    .append(msg.content())
+                    .append("\n\n");
+        }
+        return chatGemini(session.apiKey(), session.model(), session.systemPrompt(), fullMessage.toString());
+    }
+
+    // -- Wrong Answer Generation --
+
+    private String chatClaudeSession(ChatSession session) {
+        AnthropicClient client =
+                AnthropicOkHttpClient.builder().apiKey(session.apiKey()).build();
+        var builder = MessageCreateParams.builder()
+                .model(session.model())
+                .maxTokens(2048L)
+                .system(session.systemPrompt());
+        for (var msg : session.messages()) {
+            if ("user".equals(msg.role())) builder.addUserMessage(msg.content());
+            else if ("assistant".equals(msg.role())) builder.addAssistantMessage(msg.content());
+        }
+        var message = client.messages().create(builder.build());
+        return message.content().stream()
+                .filter(ContentBlock::isText)
+                .map(b -> b.asText().text())
+                .findFirst()
+                .orElse("");
+    }
+
+    // -- Question Generation --
 
     private List<GeneratedQuestion> parseAndValidate(String text, QuizQuestionType quizQuestionType) throws Exception {
         // Strip markdown fences
@@ -412,30 +405,6 @@ public class AiService {
         }
     }
 
-    // -- Model Listing --
-
-    public record ModelInfo(String id, String name) {}
-
-    public List<ModelInfo> fetchModels(int stationId, String provider, String transientKey) {
-        String apiKey = resolveApiKey(stationId, provider, transientKey);
-        if (apiKey == null || apiKey.isBlank()) throw new IllegalArgumentException("No API key available");
-        try {
-            return switch (provider) {
-                case "openai" -> fetchOpenAiModels(apiKey);
-                case "gemini" -> fetchGeminiModels(apiKey);
-                case "claude" -> fetchClaudeModels(apiKey);
-                default -> List.of();
-            };
-        } catch (Exception e) {
-            log.error("Failed to fetch models for provider {}", provider, e);
-            throw new RuntimeException("Failed to fetch models: " + e.getMessage());
-        }
-    }
-
-    // ============================================================
-    //  OpenAI SDK
-    // ============================================================
-
     private String chatOpenAi(String apiKey, String model, String systemPrompt, String userMessage) {
         OpenAIClient client = OpenAIOkHttpClient.builder().apiKey(apiKey).build();
         var params = ChatCompletionCreateParams.builder()
@@ -447,6 +416,8 @@ public class AiService {
         var completion = client.chat().completions().create(params);
         return completion.choices().getFirst().message().content().orElse("");
     }
+
+    // -- Model Listing --
 
     private List<ModelInfo> fetchOpenAiModels(String apiKey) {
         OpenAIClient client = OpenAIOkHttpClient.builder().apiKey(apiKey).build();
@@ -461,10 +432,6 @@ public class AiService {
         return result;
     }
 
-    // ============================================================
-    //  Gemini SDK (Google GenAI)
-    // ============================================================
-
     private String chatGemini(String apiKey, String model, String systemPrompt, String userMessage) {
         try (Client client = Client.builder().apiKey(apiKey).build()) {
             var config = GenerateContentConfig.builder()
@@ -474,6 +441,10 @@ public class AiService {
             return response.text();
         }
     }
+
+    // ============================================================
+    //  OpenAI SDK
+    // ============================================================
 
     private List<ModelInfo> fetchGeminiModels(String apiKey) {
         try (Client client = Client.builder().apiKey(apiKey).build()) {
@@ -491,10 +462,6 @@ public class AiService {
         }
     }
 
-    // ============================================================
-    //  Claude SDK (Anthropic)
-    // ============================================================
-
     private String chatClaude(String apiKey, String model, String systemPrompt, String userMessage) {
         AnthropicClient client = AnthropicOkHttpClient.builder().apiKey(apiKey).build();
         var params = MessageCreateParams.builder()
@@ -511,6 +478,10 @@ public class AiService {
                 .orElse("");
     }
 
+    // ============================================================
+    //  Gemini SDK (Google GenAI)
+    // ============================================================
+
     private List<ModelInfo> fetchClaudeModels(String apiKey) {
         AnthropicClient client = AnthropicOkHttpClient.builder().apiKey(apiKey).build();
         var page = client.models().list();
@@ -523,31 +494,60 @@ public class AiService {
         return result;
     }
 
+    public record ChatMessage(String role, String content) {}
+
+    // ============================================================
+    //  Claude SDK (Anthropic)
+    // ============================================================
+
+    public static class ChatSession {
+        private final String provider;
+        private final String apiKey;
+        private final String model;
+        private final String systemPrompt;
+        private final List<ChatMessage> messages = new ArrayList<>();
+
+        ChatSession(String provider, String apiKey, String model, String systemPrompt) {
+            this.provider = provider;
+            this.apiKey = apiKey;
+            this.model = model;
+            this.systemPrompt = systemPrompt;
+        }
+
+        public List<ChatMessage> messages() {
+            return messages;
+        }
+
+        public String provider() {
+            return provider;
+        }
+
+        public String apiKey() {
+            return apiKey;
+        }
+
+        public String model() {
+            return model;
+        }
+
+        public String systemPrompt() {
+            return systemPrompt;
+        }
+
+        void addUserMessage(String content) {
+            messages.add(new ChatMessage("user", content));
+        }
+
+        void addAssistantMessage(String content) {
+            messages.add(new ChatMessage("assistant", content));
+        }
+    }
+
+    public record GeneratedQuestion(String title, String config) {}
+
     // ============================================================
     //  Utilities
     // ============================================================
 
-    private static boolean isChatModel(String id) {
-        if (id.contains("embedding")
-                || id.contains("whisper")
-                || id.contains("tts")
-                || id.contains("dall-e")
-                || id.contains("davinci")
-                || id.contains("babbage")
-                || id.contains("moderation")
-                || id.contains("search")
-                || id.contains("similarity")
-                || id.contains("code-")
-                || id.contains("text-")
-                || id.contains("instruct")
-                || id.contains(":ft-")) {
-            return false;
-        }
-        return id.startsWith("gpt-4")
-                || id.startsWith("gpt-3.5")
-                || id.startsWith("o1")
-                || id.startsWith("o3")
-                || id.startsWith("o4")
-                || id.startsWith("chatgpt");
-    }
+    public record ModelInfo(String id, String name) {}
 }

@@ -39,8 +39,12 @@ const sortedStations = computed(() => {
 const categoryColorMap: Record<string, string> = {
   KB_FILES: '#3694FF',
   BOARD_ATTACHMENTS: '#FF6421',
-  PAGE_IMAGES: '#00C507',
-  IMAGES: '#73CEFF',
+  PAGE_FILES: '#00C507',
+  IMAGE_LOST_AND_FOUND: '#73CEFF',
+  IMAGE_QUIZ_QUESTION: '#FFDD1B',
+  IMAGE_KB_ICON: '#C71100',
+  IMAGE_KB_IMAGE: '#3694FF',
+  IMAGE_LOGO_FRAGMENT: '#9333EA',
 }
 
 function statusBadge(percent: number) {
@@ -53,9 +57,18 @@ function categoryLabel(cat: string): string {
   const labels: Record<string, string> = {
     KB_FILES: t('storageMonitoring.categories.kbFiles'),
     BOARD_ATTACHMENTS: t('storageMonitoring.categories.boardAttachments'),
-    PAGE_IMAGES: t('storageMonitoring.categories.pageImages'),
-    AVATARS: t('storageMonitoring.categories.avatars'),
-    IMAGES: t('storageMonitoring.categories.images'),
+    PAGE_FILES: t('storageMonitoring.categories.pageFiles'),
+    PAGE_IMAGES: t('storageMonitoring.categories.pageFiles'),
+    IMAGE_AVATAR: t('storageMonitoring.categories.avatars'),
+    IMAGE_LOST_AND_FOUND: t('storageMonitoring.categories.lostAndFound'),
+    IMAGE_LOGO_FRAGMENT: t('storageMonitoring.categories.logoFragment'),
+    IMAGE_QUIZ_QUESTION: t('storageMonitoring.categories.quizQuestion'),
+    IMAGE_KB_ICON: t('storageMonitoring.categories.kbIcon'),
+    IMAGE_KB_IMAGE: t('storageMonitoring.categories.kbImage'),
+    DOCUMENT: t('storageMonitoring.categories.document'),
+    DISCOVERY_KEY: t('storageMonitoring.categories.discoveryKey'),
+    MAP_TILE_CACHE: t('storageMonitoring.categories.mapTileCache'),
+    DEMO_AVATAR: t('storageMonitoring.categories.demoAvatar'),
   }
   return labels[cat] || cat
 }
@@ -102,26 +115,35 @@ async function handleReset(uid: string) {
         </thead>
         <tbody>
         <tr v-for="station in sortedStations" :key="station.stationId" class="border-b border-(--border) hover:bg-(--bg-hover)">
-          <td class="p-2 font-medium">{{ station.stationName }}</td>
+          <td class="p-2 font-medium">
+            {{ station.stationName }}
+            <InfoBadge v-if="station.usesOwnBackend" class="ml-2 text-[10px]">{{ t('storageMonitoring.ownBackendBadge') }}</InfoBadge>
+          </td>
           <td class="p-2">
-            <div class="flex items-center gap-2">
+            <div v-if="!station.usesOwnBackend" class="flex items-center gap-2">
               <div class="flex-1 bg-(--bg-muted) rounded-full h-3 overflow-hidden flex">
-                <div v-for="cat in station.categories.filter(c => c.category !== 'AVATARS' && c.totalBytes > 0)" :key="cat.category"
+                <div v-for="cat in station.categories.filter(c => c.category !== 'IMAGE_AVATAR' && c.totalBytes > 0)" :key="cat.category"
                      :style="{width: (station.quotaBytes > 0 ? cat.totalBytes / station.quotaBytes * 100 : 0) + '%', backgroundColor: categoryColorMap[cat.category] || '#9ca3af'}"
                      :title="categoryLabel(cat.category) + ': ' + formatBytes(cat.totalBytes)"
                      class="h-full first:rounded-l-full last:rounded-r-full"/>
               </div>
               <span class="text-xs whitespace-nowrap text-(--text-muted)">{{ formatBytes(station.totalBytes) }}</span>
             </div>
+            <span v-else class="text-xs text-(--text-muted)">{{ formatBytes(station.totalBytes) }}</span>
           </td>
-          <td class="text-right p-2 whitespace-nowrap">{{ station.quotaUsedPercent }}% / {{ formatBytes(station.quotaBytes) }}</td>
+          <td class="text-right p-2 whitespace-nowrap">
+            <span v-if="!station.usesOwnBackend">{{ station.quotaUsedPercent }}% / {{ formatBytes(station.quotaBytes) }}</span>
+            <span v-else class="text-(--text-muted)">—</span>
+          </td>
           <td class="text-center p-2">
-            <SuccessBadge v-if="statusBadge(station.quotaUsedPercent) === 'ok'">OK</SuccessBadge>
+            <span v-if="station.usesOwnBackend" class="text-xs text-(--text-muted)">—</span>
+            <SuccessBadge v-else-if="statusBadge(station.quotaUsedPercent) === 'ok'">OK</SuccessBadge>
             <InfoBadge v-else-if="statusBadge(station.quotaUsedPercent) === 'warning'">{{ t('storageMonitoring.warning') }}</InfoBadge>
             <ErrorBadge v-else>{{ t('storageMonitoring.full') }}</ErrorBadge>
           </td>
           <td class="p-2 text-sm">
-            <span v-if="station.presetName">{{ station.presetName }}</span>
+            <span v-if="station.usesOwnBackend" class="text-(--text-muted)">—</span>
+            <span v-else-if="station.presetName">{{ station.presetName }}</span>
             <span v-else class="text-(--text-muted)">{{ t('storageMonitoring.defaultQuota') }}</span>
           </td>
           <td class="text-right p-2">

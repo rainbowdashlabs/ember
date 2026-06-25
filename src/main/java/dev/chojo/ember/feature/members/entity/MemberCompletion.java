@@ -14,13 +14,13 @@ import java.util.UUID;
  * Includes display metadata (nameColor, displayTag) so the frontend can
  * render member names with proper styling without extra lookups.
  *
- * @param id         the internal member ID (still used for legacy operations)
- * @param name       the display name
- * @param stationUid the station UUID
- * @param memberUid  the member UUID
+ * @param id          the internal member ID (still used for legacy operations)
+ * @param name        the display name
+ * @param stationUid  the station UUID
+ * @param memberUid   the member UUID
  * @param stationName the station name (for external badge display)
- * @param nameColor  hex color from highest-priority group
- * @param displayTag visible tag badge
+ * @param nameColor   hex color from highest-priority group
+ * @param displayTag  visible tag badge
  */
 public record MemberCompletion(
         int id,

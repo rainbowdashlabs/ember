@@ -139,11 +139,11 @@ public class FormRepository {
                 SELECT %s
                 FROM form f
                 WHERE f.station_id = :station_id
-                  AND f.forced = true
+                  AND f.forced = TRUE
                   AND f.status = 'OPEN'
                   AND (f.start_at IS NULL OR f.start_at <= now())
                   AND (f.end_at IS NULL OR f.end_at >= now())
-                  AND NOT EXISTS (
+                  AND NOT exists (
                       SELECT 1 FROM form_response fr
                       WHERE fr.form_id = f.id AND fr.member_id = :member_id)
                 ORDER BY f.title;""", FORM_COLUMNS)
@@ -214,11 +214,11 @@ public class FormRepository {
             Instant startAt,
             Instant endAt) {
         return query("""
-                            UPDATE form
-                            SET title = :title, description = :description,
-                                shuffle_questions = :shuffle_questions, allow_edit = :allow_edit,
-                                start_at = :start_at, end_at = :end_at, updated_at = now()
-                            WHERE id = :id;""")
+                UPDATE form
+                SET title = :title, description = :description,
+                    shuffle_questions = :shuffle_questions, allow_edit = :allow_edit,
+                    start_at = :start_at, end_at = :end_at, updated_at = now()
+                WHERE id = :id;""")
                 .single(call().bind("id", id)
                         .bind("title", title)
                         .bind("description", description)
@@ -252,12 +252,12 @@ public class FormRepository {
      */
     public boolean updateStatus(int id, Form.FormStatus status) {
         return query("""
-                            UPDATE form
-                            SET
-                                status     = :status,
-                                closed_at  = CASE WHEN :status = 'CLOSED' THEN now() ELSE closed_at END,
-                                updated_at = now()
-                            WHERE id = :id;""")
+                UPDATE form
+                SET
+                    status     = :status,
+                    closed_at  = CASE WHEN :status = 'CLOSED' THEN now() ELSE closed_at END,
+                    updated_at = now()
+                WHERE id = :id;""")
                 .single(call().bind("id", id).bind("status", status))
                 .update()
                 .changed();
@@ -281,14 +281,14 @@ public class FormRepository {
     /**
      * Creates a new question for a form.
      *
-     * @param formId       the form to add the question to
-     * @param position     display order position
+     * @param formId           the form to add the question to
+     * @param position         display order position
      * @param formQuestionType the type of question
-     * @param title        the question text
-     * @param description  optional description
-     * @param required     whether an answer is mandatory
-     * @param shuffle      whether answer options should be randomized
-     * @param config       type-specific configuration as JSON
+     * @param title            the question text
+     * @param description      optional description
+     * @param required         whether an answer is mandatory
+     * @param shuffle          whether answer options should be randomized
+     * @param config           type-specific configuration as JSON
      * @return the newly created question
      */
     public FormQuestion createQuestion(
@@ -301,9 +301,9 @@ public class FormRepository {
             boolean shuffle,
             FormQuestionConfig config) {
         return query("""
-                            INSERT INTO form_question(form_id, position, question_type, title, description, required, shuffle, config)
-                            VALUES (:form_id, :position, :question_type, :title, :description, :required, :shuffle, :config::JSONB)
-                            RETURNING *;""")
+                INSERT INTO form_question(form_id, position, question_type, title, description, required, shuffle, config)
+                VALUES (:form_id, :position, :question_type, :title, :description, :required, :shuffle, :config::JSONB)
+                RETURNING *;""")
                 .single(call().bind("form_id", formId)
                         .bind("position", position)
                         .bind("question_type", formQuestionType.name())
@@ -338,10 +338,10 @@ public class FormRepository {
             FormQuestionConfig config,
             int position) {
         return query("""
-                            UPDATE form_question
-                            SET title = :title, description = :description, required = :required,
-                                shuffle = :shuffle, config = :config::JSONB, position = :position
-                            WHERE id = :id;""")
+                UPDATE form_question
+                SET title = :title, description = :description, required = :required,
+                    shuffle = :shuffle, config = :config::JSONB, position = :position
+                WHERE id = :id;""")
                 .single(call().bind("id", id)
                         .bind("title", title)
                         .bind("description", description)
@@ -424,11 +424,11 @@ public class FormRepository {
      */
     public void acknowledgeResponse(int responseId, int acknowledgerMemberId) {
         query("""
-                        UPDATE form_response
-                        SET acknowledged_at = now(),
-                            acknowledged_by = :member_id
-                        WHERE id = :id
-                          AND acknowledged_at IS NULL;""")
+                UPDATE form_response
+                SET acknowledged_at = now(),
+                    acknowledged_by = :member_id
+                WHERE id = :id
+                  AND acknowledged_at IS NULL;""")
                 .single(call().bind("id", responseId).bind("member_id", acknowledgerMemberId))
                 .update();
     }
@@ -443,17 +443,17 @@ public class FormRepository {
      */
     public FormResponse createResponse(int formId, int memberId, int submittedBy) {
         return query("""
-                            INSERT
-                            INTO
-                                form_response(form_id, member_id, submitted_by)
-                            VALUES
-                                (:form_id, :member_id, :submitted_by)
-                            ON CONFLICT (form_id, member_id)
-                                DO UPDATE
-                                SET
-                                    submitted_by = :submitted_by,
-                                    updated_at   = now()
-                            RETURNING *;""")
+                INSERT
+                INTO
+                    form_response(form_id, member_id, submitted_by)
+                VALUES
+                    (:form_id, :member_id, :submitted_by)
+                ON CONFLICT (form_id, member_id)
+                    DO UPDATE
+                    SET
+                        submitted_by = :submitted_by,
+                        updated_at   = now()
+                RETURNING *;""")
                 .single(call().bind("form_id", formId)
                         .bind("member_id", memberId)
                         .bind("submitted_by", submittedBy))
@@ -583,9 +583,9 @@ public class FormRepository {
      */
     public void upsertAnswer(int responseId, int questionId, FormAnswerValue value) {
         query("""
-                     INSERT INTO form_answer(response_id, question_id, value)
-                     VALUES (:response_id, :question_id, :value::JSONB)
-                     ON CONFLICT (response_id, question_id) DO UPDATE SET value = :value::JSONB;""")
+                INSERT INTO form_answer(response_id, question_id, value)
+                VALUES (:response_id, :question_id, :value::JSONB)
+                ON CONFLICT (response_id, question_id) DO UPDATE SET value = :value::JSONB;""")
                 .single(call().bind("response_id", responseId)
                         .bind("question_id", questionId)
                         .bind("value", value.toJson()))

@@ -286,37 +286,6 @@ public class TestProtocolService {
         return collectResults(futures);
     }
 
-    private void browseSharedProtocolsDirect(
-            int remoteStationId, FederationPartner partner, List<SharedProtocolItem> result) {
-        var shares = federationRepository.findProtocolShares(remoteStationId);
-        for (var share : shares) {
-            if (share.protocolId() != null) {
-                findProtocol(share.protocolId()).ifPresent(proto -> {
-                    result.add(new SharedProtocolItem(
-                            proto.id(), proto.name(), proto.description(), remoteStationId, partner.id()));
-                    federationRepository.upsertMetadataCache(
-                            partner.id(), ContentType.PROTOCOL, proto.id(), proto.name(), proto.description());
-                });
-            }
-        }
-    }
-
-    private void browseSharedProtocolsViaHttp(
-            int localStationId, FederationPartner partner, int remoteStationId, List<SharedProtocolItem> result) {
-        var protocols = fetchSharedProtocols(
-                partner.remoteHost(), partner.partnerStationId(), localStationId, getPrivateKey(localStationId));
-        for (var remoteProto : protocols) {
-            result.add(new SharedProtocolItem(
-                    remoteProto.id(), remoteProto.name(), remoteProto.description(), remoteStationId, partner.id()));
-            federationRepository.upsertMetadataCache(
-                    partner.id(),
-                    ContentType.PROTOCOL,
-                    remoteProto.id(),
-                    remoteProto.name(),
-                    remoteProto.description());
-        }
-    }
-
     @SuppressWarnings("unchecked")
     public FederatedProtocolDetail getFederatedProtocol(int localStationId, UUID partnerStationUid, int protocolId) {
         var partner = resolveActivePartner(localStationId, partnerStationUid);
@@ -340,9 +309,6 @@ public class TestProtocolService {
         var items = findAllItemsByProtocol(protocolId);
         return new FederatedProtocolDetail(protocol, sections, items);
     }
-
-    public record FederatedProtocolDetail(
-            TestProtocol protocol, List<TestProtocolSection> sections, List<TestProtocolItem> items) {}
 
     public TestProtocol copyProtocol(int protocolId, int targetStationId) {
         var source = findProtocol(protocolId).orElseThrow();
@@ -389,6 +355,48 @@ public class TestProtocolService {
         return newProto;
     }
 
+    public List<RemoteProtocol> fetchSharedProtocols(
+            String remoteHost, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64) {
+        return federationHttpClient.getList(
+                remoteHost,
+                "/remote/protocols",
+                partnerStationUid,
+                localStationId,
+                localPrivateKeyBase64,
+                RemoteProtocol.class);
+    }
+
+    private void browseSharedProtocolsDirect(
+            int remoteStationId, FederationPartner partner, List<SharedProtocolItem> result) {
+        var shares = federationRepository.findProtocolShares(remoteStationId);
+        for (var share : shares) {
+            if (share.protocolId() != null) {
+                findProtocol(share.protocolId()).ifPresent(proto -> {
+                    result.add(new SharedProtocolItem(
+                            proto.id(), proto.name(), proto.description(), remoteStationId, partner.id()));
+                    federationRepository.upsertMetadataCache(
+                            partner.id(), ContentType.PROTOCOL, proto.id(), proto.name(), proto.description());
+                });
+            }
+        }
+    }
+
+    private void browseSharedProtocolsViaHttp(
+            int localStationId, FederationPartner partner, int remoteStationId, List<SharedProtocolItem> result) {
+        var protocols = fetchSharedProtocols(
+                partner.remoteHost(), partner.partnerStationId(), localStationId, getPrivateKey(localStationId));
+        for (var remoteProto : protocols) {
+            result.add(new SharedProtocolItem(
+                    remoteProto.id(), remoteProto.name(), remoteProto.description(), remoteStationId, partner.id()));
+            federationRepository.upsertMetadataCache(
+                    partner.id(),
+                    ContentType.PROTOCOL,
+                    remoteProto.id(),
+                    remoteProto.name(),
+                    remoteProto.description());
+        }
+    }
+
     // -- Federation helpers --
 
     private <T> List<T> collectResults(List<CompletableFuture<List<T>>> futures) {
@@ -433,20 +441,12 @@ public class TestProtocolService {
                 .orElse(null);
     }
 
-    public record SharedProtocolItem(int id, String name, String description, int sourceStationId, int partnerId) {}
+    public record FederatedProtocolDetail(
+            TestProtocol protocol, List<TestProtocolSection> sections, List<TestProtocolItem> items) {}
 
     // -- Federation HTTP convenience methods --
 
-    public List<RemoteProtocol> fetchSharedProtocols(
-            String remoteHost, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64) {
-        return federationHttpClient.getList(
-                remoteHost,
-                "/remote/protocols",
-                partnerStationUid,
-                localStationId,
-                localPrivateKeyBase64,
-                RemoteProtocol.class);
-    }
+    public record SharedProtocolItem(int id, String name, String description, int sourceStationId, int partnerId) {}
 
     public record RemoteProtocol(int id, String name, String description) {}
 }

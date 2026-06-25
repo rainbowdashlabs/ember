@@ -125,8 +125,10 @@ import dev.chojo.ember.feature.station.route.StationApplicationRoutes;
 import dev.chojo.ember.feature.station.route.StationManageRoutes;
 import dev.chojo.ember.feature.station.route.StationRoutes;
 import dev.chojo.ember.feature.statistics.route.StatisticsRoutes;
+import dev.chojo.ember.feature.storage.route.StationStorageBackendRoutes;
 import dev.chojo.ember.feature.storage.route.StorageRoutes;
 import dev.chojo.ember.feature.storage.service.StorageReconciliationService;
+import dev.chojo.ember.feature.storage.transfer.StationTransferAssetRoutes;
 import dev.chojo.ember.feature.system.route.AdminSettingsRoutes;
 import dev.chojo.ember.feature.system.route.ApiStatusRoutes;
 import dev.chojo.ember.feature.system.route.DataRoutes;
@@ -204,6 +206,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(PublicFormRoutes.class);
         routesBinder.addBinding().to(ConsentRoutes.class);
         routesBinder.addBinding().to(LostAndFoundRoutes.class);
+        routesBinder.addBinding().to(StationTransferAssetRoutes.class);
         routesBinder.addBinding().to(TransferRoutes.class);
         routesBinder.addBinding().to(AdminSettingsRoutes.class);
         routesBinder.addBinding().to(DataTrackingRoutes.class);
@@ -241,6 +244,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(SitemapRoutes.class);
         routesBinder.addBinding().to(ProcedureRoutes.class);
         routesBinder.addBinding().to(StorageRoutes.class);
+        routesBinder.addBinding().to(StationStorageBackendRoutes.class);
         routesBinder.addBinding().to(AdminTrafficRoutes.class);
         routesBinder.addBinding().to(StationTrafficRoutes.class);
         routesBinder.addBinding().to(StationInsightsRoutes.class);
@@ -285,7 +289,7 @@ public class EmberModule extends AbstractModule {
         bind(StorageReconciliationService.class).asEagerSingleton();
         bind(FederationVersionBroadcaster.class).asEagerSingleton();
         bind(FeedMetricsService.class).asEagerSingleton();
-        // Discovery chain — see .concept/discovery.md
+        // Discovery chain
         bind(FederationPartnerSeeder.class).asEagerSingleton();
         bind(DiscoveryPingScheduler.class).asEagerSingleton();
         bind(DiscoveryStationRefreshScheduler.class).asEagerSingleton();

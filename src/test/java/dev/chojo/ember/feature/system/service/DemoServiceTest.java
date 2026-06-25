@@ -13,6 +13,7 @@ import dev.chojo.ember.conf.file.elements.Federation;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.board.service.FederatedBoardService;
@@ -37,7 +38,7 @@ import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
-import dev.chojo.ember.feature.media.service.ImageService;
+import dev.chojo.ember.feature.media.service.ImageVariantService;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -52,8 +53,10 @@ import dev.chojo.ember.feature.page.service.PageImageVariantService;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
+import dev.chojo.ember.feature.quiz.service.QuizQuestionImageService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
 import dev.chojo.ember.feature.station.service.StationService;
+import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.service.PdfCompressor;
 import dev.chojo.ember.feature.storage.service.PresentationCompressor;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
@@ -109,7 +112,11 @@ class DemoServiceTest extends RepositoryTestBase {
         var memberSvc = new StationMemberService(stationMemberRepo, stationRepo, accountRepo, mock(AuthService.class));
         var commentService = new CommentService(eventCommentRepo, noOpBus, memberSvc, stationRepo);
         var kbStorageConfig = new Storage();
-        var kbFileStorage = new KbFileStorageService(kbStorageConfig);
+        var kbBackend = new dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend();
+        var kbResolver = new dev.chojo.ember.feature.storage.backend.StorageBackendResolver(kbBackend);
+        var kbStorageSvc = new dev.chojo.ember.feature.storage.service.StorageService(kbResolver, kbBackend);
+        var kbCompression = new dev.chojo.ember.feature.knowledgebase.service.TextCompressionPolicy(kbStorageConfig);
+        var kbFileStorage = new KbFileStorageService(kbStorageSvc, stationRepo, kbBackend, kbCompression);
         var kbService = new KnowledgeBaseService(
                 knowledgeBaseRepo,
                 stationRepo,
@@ -134,7 +141,11 @@ class DemoServiceTest extends RepositoryTestBase {
                 stationRepo);
         var protocolService = new TestProtocolService(
                 testProtocolRepo, federationService, federationRepo, federationHttpClient, stationRepo);
-        var imageService = new ImageService();
+        var imageVariantStorage = new dev.chojo.ember.feature.storage.service.StorageService(
+                new dev.chojo.ember.feature.storage.backend.StorageBackendResolver(kbBackend), kbBackend);
+        var imageVariantWriter = new ImageVariantService(imageVariantStorage);
+        var avatarService = new AvatarService(imageVariantWriter);
+        var quizImageService = new QuizQuestionImageService(imageVariantWriter, stationRepo);
         var authService = mock(AuthService.class);
         var stationService =
                 new StationService(stationRepo, stationMemberRepo, accountRepo, authService, federationService);
@@ -182,8 +193,16 @@ class DemoServiceTest extends RepositoryTestBase {
         var notificationServiceMock = mock(NotificationService.class);
         var lostAndFoundService = new LostAndFoundService(lostAndFoundRepo, notificationServiceMock);
         var boardService = new BoardService(boardRepo, memberSvc, groupService, tagService);
+        var boardAttachmentSvc =
+                new dev.chojo.ember.feature.board.service.BoardAttachmentService(kbStorageSvc, stationRepo, kbBackend);
         var boardTicketService = new BoardTicketService(
-                boardTicketRepo, boardRepo, noOpBus, memberSvc, memberIdentityFactory, memberNameResolver);
+                boardTicketRepo,
+                boardRepo,
+                noOpBus,
+                memberSvc,
+                memberIdentityFactory,
+                memberNameResolver,
+                boardAttachmentSvc);
         var procedureService = new ProcedureService(procedureRepo, noOpBus);
 
         // -- Seeders --
@@ -197,10 +216,10 @@ class DemoServiceTest extends RepositoryTestBase {
         var notificationSeeder = new DemoNotificationSeeder(notificationRepo);
         var waitingListSeeder = new DemoWaitingListSeeder(
                 waitingListRepo, memberGroupRepo, stationMemberRepo, attendanceRepo, accountRepo);
-        var quizSeeder = new DemoQuizSeeder(quizCatalogRepo, quizTestRepo, quizService, imageService);
+        var quizSeeder = new DemoQuizSeeder(quizCatalogRepo, quizTestRepo, quizService, quizImageService);
         var kbSeeder = new DemoKnowledgeBaseSeeder(kbService, knowledgeBaseRepo);
         var protocolSeeder = new DemoProtocolSeeder(testProtocolRepo);
-        var mediaSeeder = new DemoMediaSeeder(imageService, stationService, accountRepo);
+        var mediaSeeder = new DemoMediaSeeder(avatarService, stationService, accountRepo);
         var federationSeeder = new DemoFederationSeeder(
                 stationRepo,
                 federationService,
@@ -224,16 +243,20 @@ class DemoServiceTest extends RepositoryTestBase {
                 boardRepo, boardTicketRepo, federatedBoardService, federationService, memberIdentityFactory);
         var procedureSeeder = new DemoProcedureSeeder(procedureRepo);
         var demoStorageConfig = new Storage();
-        var demoStorage = new PageFileStorageService(stationRepo);
+        var demoBackend = new dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend();
+        var demoResolver = new dev.chojo.ember.feature.storage.backend.StorageBackendResolver(demoBackend);
+        var demoStorageSvc = new dev.chojo.ember.feature.storage.service.StorageService(demoResolver, demoBackend);
+        var demoStorage = new PageFileStorageService(demoStorageSvc, stationRepo, demoBackend);
         var pageSeeder = new DemoPageSeeder(
                 new PageService(
                         pageRepo,
                         new PageFileMetaRepository(),
                         demoStorage,
                         new PageImageVariantService(demoStorage, demoStorageConfig),
-                        new StorageQuotaService(storageUsageRepo, demoStorageConfig, noOpBus),
+                        new StorageQuotaService(
+                                storageUsageRepo, new StationStorageConfigRepository(), demoStorageConfig, noOpBus),
                         stationMemberRepo,
-                        new ImageService()),
+                        avatarService),
                 formRepo,
                 quizCatalogRepo);
         var newsSeeder = new DemoNewsSeeder(newsService, stationMemberRepo);

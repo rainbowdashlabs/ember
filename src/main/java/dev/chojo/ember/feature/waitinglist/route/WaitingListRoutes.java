@@ -66,12 +66,34 @@ public class WaitingListRoutes implements Routes {
         this.consentService = consentService;
     }
 
-    private void verifyListOwnership(int listId, UserSession session) {
-        var list = service.findById(listId).orElseThrow(NotFoundResponse::new);
-        if (list.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
+    private static String toJson(List<Integer> fieldIds) {
+        if (fieldIds == null || fieldIds.isEmpty()) return "[]";
+        var sb = new StringBuilder("[");
+        for (int i = 0; i < fieldIds.size(); i++) {
+            if (i > 0) sb.append(",");
+            sb.append(fieldIds.get(i));
         }
+        return sb.append("]").toString();
     }
+
+    private static List<GuardianInput> resolveGuardians(
+            List<GuardianRequest> guardians, String parentName, String email) {
+        if (guardians != null && !guardians.isEmpty()) {
+            return guardians.stream()
+                    .map(g -> new GuardianInput(
+                            g.firstname() != null ? g.firstname() : "",
+                            g.lastname() != null ? g.lastname() : "",
+                            g.email() != null ? g.email() : "",
+                            g.phone() != null ? g.phone() : ""))
+                    .toList();
+        }
+        if ((parentName != null && !parentName.isBlank()) || (email != null && !email.isBlank())) {
+            return List.of(new GuardianInput(parentName != null ? parentName : "", "", email != null ? email : "", ""));
+        }
+        return List.of();
+    }
+
+    // --- Public ---
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
@@ -151,7 +173,12 @@ public class WaitingListRoutes implements Routes {
                 StationPermission.WAITLIST_EDIT);
     }
 
-    // --- Public ---
+    private void verifyListOwnership(int listId, UserSession session) {
+        var list = service.findById(listId).orElseThrow(NotFoundResponse::new);
+        if (list.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
+    }
 
     @OpenApi(
             path = "/api/v1/public/waiting-list/invite/{code}",
@@ -234,6 +261,8 @@ public class WaitingListRoutes implements Routes {
                 guardians));
     }
 
+    // --- Management ---
+
     @OpenApi(
             path = "/api/v1/public/waiting-list/entry/{token}/remove",
             methods = HttpMethod.POST,
@@ -257,8 +286,6 @@ public class WaitingListRoutes implements Routes {
         service.confirmInterest(token);
         ctx.status(HttpStatus.NO_CONTENT);
     }
-
-    // --- Management ---
 
     @OpenApi(
             path = "/api/v1/waiting-lists",
@@ -358,6 +385,8 @@ public class WaitingListRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    // --- Fields ---
+
     private void updateVisibleFields(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         verifyListOwnership(id, UserSession.from(ctx));
@@ -365,18 +394,6 @@ public class WaitingListRoutes implements Routes {
         var list = service.updateVisibleFields(id, toJson(request.fieldIds())).orElseThrow(NotFoundResponse::new);
         ctx.json(list);
     }
-
-    private static String toJson(List<Integer> fieldIds) {
-        if (fieldIds == null || fieldIds.isEmpty()) return "[]";
-        var sb = new StringBuilder("[");
-        for (int i = 0; i < fieldIds.size(); i++) {
-            if (i > 0) sb.append(",");
-            sb.append(fieldIds.get(i));
-        }
-        return sb.append("]").toString();
-    }
-
-    // --- Fields ---
 
     private void listFields(Context ctx) {
         int listId = ctx.pathParamAsClass("id", Integer.class).get();
@@ -415,6 +432,8 @@ public class WaitingListRoutes implements Routes {
         ctx.json(field);
     }
 
+    // --- Invites ---
+
     private void deleteField(Context ctx) {
         int listId = ctx.pathParamAsClass("id", Integer.class).get();
         verifyListOwnership(listId, UserSession.from(ctx));
@@ -422,8 +441,6 @@ public class WaitingListRoutes implements Routes {
         service.deleteField(fieldId);
         ctx.status(HttpStatus.NO_CONTENT);
     }
-
-    // --- Invites ---
 
     private void listInvites(Context ctx) {
         int listId = ctx.pathParamAsClass("id", Integer.class).get();
@@ -450,6 +467,8 @@ public class WaitingListRoutes implements Routes {
         ctx.status(HttpStatus.CREATED).json(invite);
     }
 
+    // --- Entries ---
+
     private void deleteInvite(Context ctx) {
         int listId = ctx.pathParamAsClass("id", Integer.class).get();
         verifyListOwnership(listId, UserSession.from(ctx));
@@ -457,8 +476,6 @@ public class WaitingListRoutes implements Routes {
         service.deleteInvite(inviteId);
         ctx.status(HttpStatus.NO_CONTENT);
     }
-
-    // --- Entries ---
 
     private void listEntries(Context ctx) {
         int listId = ctx.pathParamAsClass("id", Integer.class).get();
@@ -523,6 +540,8 @@ public class WaitingListRoutes implements Routes {
         ctx.json(updated);
     }
 
+    // --- State transitions ---
+
     private void deleteEntry(Context ctx) {
         int listId = ctx.pathParamAsClass("id", Integer.class).get();
         verifyListOwnership(listId, UserSession.from(ctx));
@@ -530,8 +549,6 @@ public class WaitingListRoutes implements Routes {
         service.deleteEntry(entryId);
         ctx.status(HttpStatus.NO_CONTENT);
     }
-
-    // --- State transitions ---
 
     private void inviteEntry(Context ctx) {
         int listId = ctx.pathParamAsClass("id", Integer.class).get();
@@ -597,6 +614,8 @@ public class WaitingListRoutes implements Routes {
         }
     }
 
+    // --- Records ---
+
     private void validateFormula(String formula, List<String> fieldNames) {
         if (formula == null || formula.isBlank()) return;
         try {
@@ -606,106 +625,6 @@ public class WaitingListRoutes implements Routes {
             throw new BadRequestResponse("Invalid formula: " + e.getMessage());
         }
     }
-
-    // --- Records ---
-
-    @OpenApiName("WaitingListRegisterRequest")
-    public record RegisterRequest(
-            String inviteCode,
-            String firstname,
-            String lastname,
-            String parentName,
-            String email,
-            List<GuardianRequest> guardians,
-            Map<Integer, JsonNode> values,
-            String notes,
-            String consentVersion,
-            String privacyVersion,
-            String tosVersion) {}
-
-    public record PublicEntryResponse(String accessToken) {}
-
-    @OpenApiName("WaitingListPublicStatusResponse")
-    public record PublicStatusResponse(
-            String firstname,
-            String lastname,
-            String parentName,
-            String email,
-            WaitingListEntryStatus status,
-            String confirmedAt,
-            String createdAt,
-            int confirmIntervalDays,
-            int position,
-            String listName,
-            List<WaitingListField> fields,
-            List<WaitingListEntryValue> values,
-            List<WaitingListEntryGuardian> guardians) {}
-
-    public record ListRequest(
-            String name,
-            String description,
-            String scoringFormula,
-            Integer confirmIntervalDays,
-            Integer testingGroupId,
-            Integer joinGroupId,
-            Integer attendanceThreshold,
-            Boolean isPublic) {}
-
-    @OpenApiName("WaitingListListWithCount")
-    public record ListWithCount(WaitingList list, int entryCount) {}
-
-    public record FieldRequest(
-            String name,
-            WaitingListFieldType fieldType,
-            String config,
-            int position,
-            boolean required,
-            Boolean isPublic) {}
-
-    public record VisibleFieldsRequest(List<Integer> fieldIds) {}
-
-    public record InviteRequest(Integer maxUses, String expiresAt) {}
-
-    public record EntryRequest(
-            String firstname,
-            String lastname,
-            String parentName,
-            String email,
-            List<GuardianRequest> guardians,
-            Map<Integer, JsonNode> values,
-            String notes) {}
-
-    public record CreatedAtRequest(Instant createdAt) {}
-
-    public record InviteInfoResponse(String listName, String listDescription, List<WaitingListField> fields) {}
-
-    @OpenApiName("WaitingListEntryWithScore")
-    public record EntryWithScore(
-            WaitingListEntry entry,
-            List<WaitingListEntryValue> values,
-            double score,
-            List<WaitingListEntryGuardian> guardians) {}
-
-    public record GuardianRequest(String firstname, String lastname, String email, String phone) {}
-
-    private static List<GuardianInput> resolveGuardians(
-            List<GuardianRequest> guardians, String parentName, String email) {
-        if (guardians != null && !guardians.isEmpty()) {
-            return guardians.stream()
-                    .map(g -> new GuardianInput(
-                            g.firstname() != null ? g.firstname() : "",
-                            g.lastname() != null ? g.lastname() : "",
-                            g.email() != null ? g.email() : "",
-                            g.phone() != null ? g.phone() : ""))
-                    .toList();
-        }
-        if ((parentName != null && !parentName.isBlank()) || (email != null && !email.isBlank())) {
-            return List.of(new GuardianInput(parentName != null ? parentName : "", "", email != null ? email : "", ""));
-        }
-        return List.of();
-    }
-
-    // --- Public waitlist routes ---
 
     private int resolveStation(Context ctx) {
         String stationUid = ctx.pathParam("stationUid");
@@ -799,6 +718,87 @@ public class WaitingListRoutes implements Routes {
         service.rejectPendingEntry(entryId);
         ctx.status(HttpStatus.NO_CONTENT);
     }
+
+    @OpenApiName("WaitingListRegisterRequest")
+    public record RegisterRequest(
+            String inviteCode,
+            String firstname,
+            String lastname,
+            String parentName,
+            String email,
+            List<GuardianRequest> guardians,
+            Map<Integer, JsonNode> values,
+            String notes,
+            String consentVersion,
+            String privacyVersion,
+            String tosVersion) {}
+
+    public record PublicEntryResponse(String accessToken) {}
+
+    @OpenApiName("WaitingListPublicStatusResponse")
+    public record PublicStatusResponse(
+            String firstname,
+            String lastname,
+            String parentName,
+            String email,
+            WaitingListEntryStatus status,
+            String confirmedAt,
+            String createdAt,
+            int confirmIntervalDays,
+            int position,
+            String listName,
+            List<WaitingListField> fields,
+            List<WaitingListEntryValue> values,
+            List<WaitingListEntryGuardian> guardians) {}
+
+    public record ListRequest(
+            String name,
+            String description,
+            String scoringFormula,
+            Integer confirmIntervalDays,
+            Integer testingGroupId,
+            Integer joinGroupId,
+            Integer attendanceThreshold,
+            Boolean isPublic) {}
+
+    @OpenApiName("WaitingListListWithCount")
+    public record ListWithCount(WaitingList list, int entryCount) {}
+
+    public record FieldRequest(
+            String name,
+            WaitingListFieldType fieldType,
+            String config,
+            int position,
+            boolean required,
+            Boolean isPublic) {}
+
+    // --- Public waitlist routes ---
+
+    public record VisibleFieldsRequest(List<Integer> fieldIds) {}
+
+    public record InviteRequest(Integer maxUses, String expiresAt) {}
+
+    public record EntryRequest(
+            String firstname,
+            String lastname,
+            String parentName,
+            String email,
+            List<GuardianRequest> guardians,
+            Map<Integer, JsonNode> values,
+            String notes) {}
+
+    public record CreatedAtRequest(Instant createdAt) {}
+
+    public record InviteInfoResponse(String listName, String listDescription, List<WaitingListField> fields) {}
+
+    @OpenApiName("WaitingListEntryWithScore")
+    public record EntryWithScore(
+            WaitingListEntry entry,
+            List<WaitingListEntryValue> values,
+            double score,
+            List<WaitingListEntryGuardian> guardians) {}
+
+    public record GuardianRequest(String firstname, String lastname, String email, String phone) {}
 
     private record StatusResponse(String status) {}
 

@@ -63,7 +63,7 @@ public record News(
                     author,
                     row.get("published_at", INSTANT_TIMESTAMP),
                     row.get("created_at", INSTANT_TIMESTAMP),
-                    RestrictionMode.valueOf(row.getString("restriction_mode")),
+                    row.getEnum("restriction_mode", RestrictionMode.class),
                     row.getBoolean("restricted"),
                     row.getBoolean("public_blog"));
         };

@@ -7,12 +7,16 @@ package dev.chojo.ember.feature.legal.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.media.service.ImageService;
+import dev.chojo.ember.feature.account.service.AvatarService;
+import dev.chojo.ember.feature.media.service.ImageVariantService;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
+import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -31,7 +35,10 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new GdprDeletionService(accountRepo, stationMemberRepo, new ImageService());
+        var backend = new LocalStorageBackend();
+        var storage = new StorageService(new StorageBackendResolver(backend), backend);
+        var avatars = new AvatarService(new ImageVariantService(storage));
+        service = new GdprDeletionService(accountRepo, stationMemberRepo, avatars);
         station = stationRepo.create("GdprStation");
         account = accountRepo.create("gdpr-del@test.com", "Delete", "Me");
         accountRepo.createCredential(account.id(), "hash");

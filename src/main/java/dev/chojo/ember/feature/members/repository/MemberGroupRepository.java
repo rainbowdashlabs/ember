@@ -48,9 +48,9 @@ public class MemberGroupRepository {
      */
     public MemberGroup create(int stationId, String name) {
         return query("""
-                        INSERT INTO member_group(station_id, name, position)
-                        VALUES(:station_id, :name, COALESCE((SELECT MAX(position) + 1 FROM member_group WHERE station_id = :station_id), 0))
-                        RETURNING *;""")
+                INSERT INTO member_group(station_id, name, position)
+                VALUES(:station_id, :name, coalesce((SELECT max(position) + 1 FROM member_group WHERE station_id = :station_id), 0))
+                RETURNING *;""")
                 .single(call().bind("station_id", stationId).bind("name", name))
                 .map(MemberGroup.map())
                 .first()

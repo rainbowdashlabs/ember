@@ -36,7 +36,7 @@ import java.util.stream.Stream;
  *
  * <p>The cache is <em>opportunistic</em> — it only stores tiles a real user requested,
  * never pre-fetched grid regions. That matches the OSM Tile Usage Policy carve-out for
- * "long-lived browser caches". See {@code .concept/geolocation.md} §4.5.
+ * "long-lived browser caches".
  *
  * <p>LRU bookkeeping rides the filesystem's mtime: every read touches the file's mtime,
  * eviction picks the oldest mtimes first. No separate index file, survives restart.
@@ -67,6 +67,36 @@ public class MapTileCacheService {
         }
     }
 
+    private static String buildUrl(MapsTilesConfig tiles, int z, int x, int y) {
+        String template = tiles.resolvedUrlTemplate();
+        if (template == null || template.isBlank()) return null;
+        // Sub-domain handling: OSM canonical {s} → rotate a/b/c by tile coordinates so the
+        // request is sticky per tile (helps any upstream cache stay warm).
+        String sub =
+                switch (Math.floorMod(x + y, 3)) {
+                    case 0 -> "a";
+                    case 1 -> "b";
+                    default -> "c";
+                };
+        return template.replace("{s}", sub)
+                .replace("{z}", Integer.toString(z))
+                .replace("{x}", Integer.toString(x))
+                .replace("{y}", Integer.toString(y))
+                .replace("{k}", tiles.apiKey() == null ? "" : tiles.apiKey())
+                .replace("{apiKey}", tiles.apiKey() == null ? "" : tiles.apiKey());
+    }
+
+    private static Path tilePath(MapTileProvider provider, int z, int x, int y) {
+        return ROOT.resolve(provider.name())
+                .resolve(Integer.toString(z))
+                .resolve(Integer.toString(x))
+                .resolve(y + ".png");
+    }
+
+    private static String userAgent() {
+        return "Ember/" + FederationService.FEDERATION_VERSION + " (https://github.com/RainbowDashLabs/ember)";
+    }
+
     /**
      * Returns a cached tile if present, otherwise fetches from upstream and stores it.
      * Returns {@code null} on upstream failure with no stale tile available.
@@ -94,6 +124,8 @@ public class MapTileCacheService {
         var tiles = configService.tilesConfig();
         return buildUrl(tiles, z, x, y);
     }
+
+    // ---------------------------------------------------------------------
 
     /**
      * Performs the upstream fetch but does not write to disk. Returns the HTTP status code,
@@ -142,8 +174,6 @@ public class MapTileCacheService {
         cachedTiles.set(0);
     }
 
-    // ---------------------------------------------------------------------
-
     private TileResponse fetchUpstreamAndStore(MapsTilesConfig tiles, Path tilePath, int z, int x, int y) {
         String url = buildUrl(tiles, z, x, y);
         if (url == null) return null;
@@ -175,36 +205,6 @@ public class MapTileCacheService {
             log.debug("Upstream tile fetch failed for {}/{}/{}: {}", z, x, y, e.getMessage());
             return null;
         }
-    }
-
-    private static String buildUrl(MapsTilesConfig tiles, int z, int x, int y) {
-        String template = tiles.resolvedUrlTemplate();
-        if (template == null || template.isBlank()) return null;
-        // Sub-domain handling: OSM canonical {s} → rotate a/b/c by tile coordinates so the
-        // request is sticky per tile (helps any upstream cache stay warm).
-        String sub =
-                switch (Math.floorMod(x + y, 3)) {
-                    case 0 -> "a";
-                    case 1 -> "b";
-                    default -> "c";
-                };
-        return template.replace("{s}", sub)
-                .replace("{z}", Integer.toString(z))
-                .replace("{x}", Integer.toString(x))
-                .replace("{y}", Integer.toString(y))
-                .replace("{k}", tiles.apiKey() == null ? "" : tiles.apiKey())
-                .replace("{apiKey}", tiles.apiKey() == null ? "" : tiles.apiKey());
-    }
-
-    private static Path tilePath(MapTileProvider provider, int z, int x, int y) {
-        return ROOT.resolve(provider.name())
-                .resolve(Integer.toString(z))
-                .resolve(Integer.toString(x))
-                .resolve(y + ".png");
-    }
-
-    private static String userAgent() {
-        return "Ember/" + FederationService.FEDERATION_VERSION + " (https://github.com/RainbowDashLabs/ember)";
     }
 
     /**

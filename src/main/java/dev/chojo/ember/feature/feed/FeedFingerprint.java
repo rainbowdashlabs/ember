@@ -94,6 +94,8 @@ public final class FeedFingerprint {
         }
     }
 
-    /** Computed fingerprint pair: an {@code ETag} value plus its {@code Last-Modified} instant. */
+    /**
+     * Computed fingerprint pair: an {@code ETag} value plus its {@code Last-Modified} instant.
+     */
     public record Result(String etag, Instant lastModified) {}
 }

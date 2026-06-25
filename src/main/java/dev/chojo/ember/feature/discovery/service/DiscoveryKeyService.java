@@ -38,7 +38,7 @@ import java.util.Set;
  * Ed25519 point). The matching {@code instance_id} fingerprint is derived deterministically
  * from the public key.
  *
- * <p>Per the concept doc, keys are <em>never rotated</em> in v1 — if compromised, the
+ * <p>Keys are <em>never rotated</em> in v1 — if compromised, the
  * instance identity is treated as ephemeral and the admin re-creates it manually by deleting
  * the files.
  */
@@ -64,6 +64,89 @@ public class DiscoveryKeyService {
         } catch (Exception e) {
             throw new RuntimeException("Failed to initialize discovery keypair", e);
         }
+    }
+
+    /**
+     * Decodes a peer's base64-encoded raw 32-byte Ed25519 public key.
+     */
+    public static PublicKey decodePeerPublicKey(String base64) throws IOException {
+        try {
+            byte[] raw = Base64.getDecoder().decode(base64);
+            var kf = KeyFactory.getInstance(ALGO);
+            return kf.generatePublic(decodeRawPublic(raw));
+        } catch (Exception e) {
+            throw new IOException("Failed to decode Ed25519 public key", e);
+        }
+    }
+
+    /**
+     * Computes the 16-character hex fingerprint of {@code sha256(publicKey)}.
+     */
+    public static String computeInstanceId(byte[] rawPublicKey) {
+        try {
+            var digest = MessageDigest.getInstance("SHA-256").digest(rawPublicKey);
+            return HexFormat.of().formatHex(digest).substring(0, 16);
+        } catch (NoSuchAlgorithmException e) {
+            throw new AssertionError("SHA-256 not available", e);
+        }
+    }
+
+    /**
+     * Convenience: instance id for a peer's base64-encoded public key.
+     */
+    public static String fingerprintOf(String base64PublicKey) {
+        try {
+            byte[] raw = Base64.getDecoder().decode(base64PublicKey);
+            return computeInstanceId(raw);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("publicKey must be base64-encoded", e);
+        }
+    }
+
+    private static void tightenPermissions(Path path) {
+        try {
+            Files.setPosixFilePermissions(
+                    path, Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
+        } catch (Exception ignored) {
+            // Non-POSIX filesystems (Windows in CI). Skip silently — the file is still inside
+            // data/discovery/ which is expected to be owner-owned by deployment.
+        }
+    }
+
+    private static byte[] rawPublicKey(PublicKey key) {
+        if (!(key instanceof EdECPublicKey edec)) {
+            throw new IllegalStateException("Expected Ed25519 public key, got " + key.getClass());
+        }
+        // Encode point per RFC 8032: little-endian Y with the high bit of the last byte set
+        // to the sign of X.
+        var point = edec.getPoint();
+        byte[] yBytes = point.getY().toByteArray();
+        // toByteArray is big-endian; reverse to little-endian and pad to 32 bytes.
+        byte[] le = new byte[32];
+        for (int i = 0; i < yBytes.length && i < 32; i++) {
+            le[i] = yBytes[yBytes.length - 1 - i];
+        }
+        if (point.isXOdd()) {
+            le[31] |= (byte) 0x80;
+        } else {
+            le[31] &= (byte) 0x7f;
+        }
+        return le;
+    }
+
+    private static EdECPublicKeySpec decodeRawPublic(byte[] raw) {
+        if (raw.length != 32) {
+            throw new IllegalArgumentException("Ed25519 public key must be 32 bytes, got " + raw.length);
+        }
+        // Reverse to big-endian and strip sign bit
+        boolean xOdd = (raw[31] & 0x80) != 0;
+        byte[] yBytes = new byte[32];
+        for (int i = 0; i < 32; i++) {
+            yBytes[i] = raw[31 - i];
+        }
+        yBytes[0] = (byte) (yBytes[0] & 0x7f);
+        var y = new BigInteger(1, yBytes);
+        return new EdECPublicKeySpec(NamedParameterSpec.ED25519, new EdECPoint(xOdd, y));
     }
 
     public PublicKey publicKey() {
@@ -113,88 +196,5 @@ public class DiscoveryKeyService {
         Files.write(PUBLIC_PATH, rawPublicKey(pair.getPublic()));
         tightenPermissions(PRIVATE_PATH);
         return pair;
-    }
-
-    private static void tightenPermissions(Path path) {
-        try {
-            Files.setPosixFilePermissions(
-                    path, Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
-        } catch (Exception ignored) {
-            // Non-POSIX filesystems (Windows in CI). Skip silently — the file is still inside
-            // data/discovery/ which is expected to be owner-owned by deployment.
-        }
-    }
-
-    private static byte[] rawPublicKey(PublicKey key) {
-        if (!(key instanceof EdECPublicKey edec)) {
-            throw new IllegalStateException("Expected Ed25519 public key, got " + key.getClass());
-        }
-        // Encode point per RFC 8032: little-endian Y with the high bit of the last byte set
-        // to the sign of X.
-        var point = edec.getPoint();
-        byte[] yBytes = point.getY().toByteArray();
-        // toByteArray is big-endian; reverse to little-endian and pad to 32 bytes.
-        byte[] le = new byte[32];
-        for (int i = 0; i < yBytes.length && i < 32; i++) {
-            le[i] = yBytes[yBytes.length - 1 - i];
-        }
-        if (point.isXOdd()) {
-            le[31] |= (byte) 0x80;
-        } else {
-            le[31] &= (byte) 0x7f;
-        }
-        return le;
-    }
-
-    private static EdECPublicKeySpec decodeRawPublic(byte[] raw) {
-        if (raw.length != 32) {
-            throw new IllegalArgumentException("Ed25519 public key must be 32 bytes, got " + raw.length);
-        }
-        // Reverse to big-endian and strip sign bit
-        boolean xOdd = (raw[31] & 0x80) != 0;
-        byte[] yBytes = new byte[32];
-        for (int i = 0; i < 32; i++) {
-            yBytes[i] = raw[31 - i];
-        }
-        yBytes[0] = (byte) (yBytes[0] & 0x7f);
-        var y = new BigInteger(1, yBytes);
-        return new EdECPublicKeySpec(NamedParameterSpec.ED25519, new EdECPoint(xOdd, y));
-    }
-
-    /**
-     * Decodes a peer's base64-encoded raw 32-byte Ed25519 public key.
-     */
-    public static PublicKey decodePeerPublicKey(String base64) throws IOException {
-        try {
-            byte[] raw = Base64.getDecoder().decode(base64);
-            var kf = KeyFactory.getInstance(ALGO);
-            return kf.generatePublic(decodeRawPublic(raw));
-        } catch (Exception e) {
-            throw new IOException("Failed to decode Ed25519 public key", e);
-        }
-    }
-
-    /**
-     * Computes the 16-character hex fingerprint of {@code sha256(publicKey)}.
-     */
-    public static String computeInstanceId(byte[] rawPublicKey) {
-        try {
-            var digest = MessageDigest.getInstance("SHA-256").digest(rawPublicKey);
-            return HexFormat.of().formatHex(digest).substring(0, 16);
-        } catch (NoSuchAlgorithmException e) {
-            throw new AssertionError("SHA-256 not available", e);
-        }
-    }
-
-    /**
-     * Convenience: instance id for a peer's base64-encoded public key.
-     */
-    public static String fingerprintOf(String base64PublicKey) {
-        try {
-            byte[] raw = Base64.getDecoder().decode(base64PublicKey);
-            return computeInstanceId(raw);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("publicKey must be base64-encoded", e);
-        }
     }
 }

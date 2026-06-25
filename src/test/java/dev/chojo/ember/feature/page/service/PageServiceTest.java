@@ -8,13 +8,18 @@ package dev.chojo.ember.feature.page.service;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.media.service.ImageService;
+import dev.chojo.ember.feature.account.service.AvatarService;
+import dev.chojo.ember.feature.media.service.ImageVariantService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.page.entity.CellConfig;
 import dev.chojo.ember.feature.page.entity.CellContentType;
 import dev.chojo.ember.feature.page.repository.PageFileMetaRepository;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
+import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
+import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -43,16 +48,23 @@ class PageServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        var storage = new PageFileStorageService(stationRepo);
+        var backend = new LocalStorageBackend();
+        var resolver = new StorageBackendResolver(backend);
+        var storageService = new StorageService(resolver, backend);
+        var storage = new PageFileStorageService(storageService, stationRepo, backend);
         var storageConfig = new Storage();
         service = new PageService(
                 pageRepo,
                 new PageFileMetaRepository(),
                 storage,
                 new PageImageVariantService(storage, storageConfig),
-                new StorageQuotaService(storageUsageRepo, storageConfig, new DomainEventBus(Set.of())),
+                new StorageQuotaService(
+                        storageUsageRepo,
+                        new StationStorageConfigRepository(),
+                        storageConfig,
+                        new DomainEventBus(Set.of())),
                 stationMemberRepo,
-                new ImageService());
+                new AvatarService(new ImageVariantService(storageService)));
         station = stationRepo.create("PageServiceStation");
         account = accountRepo.create("page-svc@test.com", "Page", "Author");
         member = stationMemberRepo.create(station.id(), account.id());

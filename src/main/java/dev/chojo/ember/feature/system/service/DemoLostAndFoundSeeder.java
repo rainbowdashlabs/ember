@@ -35,7 +35,7 @@ public class DemoLostAndFoundSeeder {
 
     /**
      * @return one of the seeded items so callers (e.g. the notification showcase) can
-     *         construct a deep link with a real id.
+     * construct a deep link with a real id.
      */
     public LostAndFoundItem seed(
             int stationId, List<StationMember> betreuer, List<StationMember> anfaenger, List<StationMember> eltern) {

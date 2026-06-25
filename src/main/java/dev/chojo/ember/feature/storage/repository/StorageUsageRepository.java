@@ -51,10 +51,10 @@ public class StorageUsageRepository {
     public void applyDelta(int stationId, StorageCategory category, long bytesDelta, int fileCountDelta) {
         query("""
                 INSERT INTO station_storage_usage (station_id, category, total_bytes, file_count, updated_at)
-                VALUES (:station_id, :category, GREATEST(0, :bytes), GREATEST(0, :files), now())
+                VALUES (:station_id, :category, greatest(0, :bytes), greatest(0, :files), now())
                 ON CONFLICT (station_id, category)
-                DO UPDATE SET total_bytes = GREATEST(0, station_storage_usage.total_bytes + :bytes),
-                              file_count  = GREATEST(0, station_storage_usage.file_count + :files),
+                DO UPDATE SET total_bytes = greatest(0, station_storage_usage.total_bytes + :bytes),
+                              file_count  = greatest(0, station_storage_usage.file_count + :files),
                               updated_at  = now();
                 """)
                 .single(call().bind("station_id", stationId)
@@ -84,11 +84,17 @@ public class StorageUsageRepository {
     }
 
     /**
-     * Returns the total bytes used across all categories for a station (excluding AVATARS).
+     * Returns the total bytes used across enforced-quota categories for a station. Categories
+     * that are merely tracked or untracked (avatars, documents, discovery keys, map tile cache,
+     * demo avatars) are excluded from the rollup.
      */
     public long totalEnforcedBytes(int stationId) {
-        return query(
-                        "SELECT COALESCE(SUM(total_bytes), 0) AS total FROM station_storage_usage WHERE station_id = :station_id AND category != 'AVATARS';")
+        return query("""
+                        SELECT coalesce(sum(total_bytes), 0) AS total
+                        FROM station_storage_usage
+                        WHERE station_id = :station_id
+                          AND category NOT IN ('IMAGE_AVATAR', 'DOCUMENT', 'DISCOVERY_KEY', 'MAP_TILE_CACHE', 'DEMO_AVATAR');
+                        """)
                 .single(call().bind("station_id", stationId))
                 .map(row -> row.getLong("total"))
                 .first()
@@ -100,7 +106,7 @@ public class StorageUsageRepository {
      */
     public long categoryBytes(int stationId, StorageCategory category) {
         return query(
-                        "SELECT COALESCE(total_bytes, 0) AS total FROM station_storage_usage WHERE station_id = :station_id AND category = :category;")
+                        "SELECT coalesce(total_bytes, 0) AS total FROM station_storage_usage WHERE station_id = :station_id AND category = :category;")
                 .single(call().bind("station_id", stationId).bind("category", category.name()))
                 .map(row -> row.getLong("total"))
                 .first()

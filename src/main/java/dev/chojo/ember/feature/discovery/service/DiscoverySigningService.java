@@ -26,10 +26,9 @@ import java.util.Base64;
  */
 @Singleton
 public class DiscoverySigningService {
+    public static final String SIGNATURE_HEADER = "X-Ember-Discovery-Signature";
     private static final Logger log = LoggerFactory.getLogger(DiscoverySigningService.class);
     private static final String ALGO = "Ed25519";
-    public static final String SIGNATURE_HEADER = "X-Ember-Discovery-Signature";
-
     private final DiscoveryKeyService keyService;
 
     @Inject

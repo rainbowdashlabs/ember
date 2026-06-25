@@ -12,8 +12,7 @@ import tools.jackson.databind.json.JsonMapper;
  * under the key {@code maps_tiles}.
  *
  * <p>Unset URL template / attribution fall back to the provider's defaults at read time;
- * the persisted record stores whatever the operator typed. See
- * {@code .concept/geolocation.md} §4.4.
+ * the persisted record stores whatever the operator typed.
  */
 public record MapsTilesConfig(
         MapTileProvider provider, String apiKey, String urlTemplate, String attribution, int minZoom, int maxZoom) {
@@ -22,19 +21,19 @@ public record MapsTilesConfig(
 
     private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
-    public String toJson() {
-        try {
-            return MAPPER.writeValueAsString(this);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to serialize MapsTilesConfig", e);
-        }
-    }
-
     public static MapsTilesConfig parse(String json) {
         try {
             return MAPPER.readValue(json, MapsTilesConfig.class);
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse MapsTilesConfig", e);
+        }
+    }
+
+    public String toJson() {
+        try {
+            return MAPPER.writeValueAsString(this);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to serialize MapsTilesConfig", e);
         }
     }
 

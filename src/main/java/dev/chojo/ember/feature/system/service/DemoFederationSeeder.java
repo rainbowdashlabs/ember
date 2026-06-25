@@ -10,6 +10,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
+import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -110,7 +111,23 @@ public class DemoFederationSeeder {
         this.apiConfig = apiConfig;
     }
 
-    public record SeedResult(int partnerStationId, int partnerMemberId) {}
+    /**
+     * Returns the next upcoming occurrence date of a recurring event. For weekly events we
+     * walk forward to the next matching {@code day_of_week}; for non-weekly recurrences we
+     * fall back to the event's anchor start time so the demo data still gets a sensible
+     * date attached to the comment.
+     */
+    private static LocalDate nextOccurrenceOf(StationEvent event) {
+        var today = LocalDate.now();
+        if (event.eventType() == StationEvent.EventType.RECURRING && event.dayOfWeek() != null) {
+            DayOfWeek target = DayOfWeek.of(event.dayOfWeek());
+            int delta = (target.getValue() - today.getDayOfWeek().getValue() + 7) % 7;
+            return today.plusDays(delta == 0 ? 7 : delta);
+        }
+        return event.startTime() != null
+                ? event.startTime().atZone(ZoneId.systemDefault()).toLocalDate()
+                : today;
+    }
 
     /**
      * Seeds a partner station, federates it with the primary station, and shares content.
@@ -128,7 +145,7 @@ public class DemoFederationSeeder {
                 true);
 
         // Create a second station
-        var partnerStation = stationRepository.create("JF Partnerwache");
+        var partnerStation = stationRepository.create("JF Partnerwache", DemoUids.station("jf-partnerwache"));
         stationRepository.updatePublicSlug(partnerStation.id(), "jf-partnerwache");
         log.info("Demo: Created partner station '{}' (id={})", partnerStation.name(), partnerStation.id());
         stationRepository.updateDiscoverySettings(
@@ -139,8 +156,10 @@ public class DemoFederationSeeder {
 
         // Create a manager account on the partner station
         var partnerAccount = accountRepository.create("partner@demo.ember", "Partner", "Manager", true);
+        accountRepository.setUid(partnerAccount.id(), DemoUids.account("partner@demo.ember"));
         accountRepository.createCredential(partnerAccount.id(), passwordHasher.hash("demo"));
         var partnerMember = stationMemberRepository.create(partnerStation.id(), partnerAccount.id());
+        stationMemberRepository.setUid(partnerMember.id(), DemoUids.member("partner@demo.ember", partnerStation.id()));
         var managerRole = stationMemberRepository
                 .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
                 .orElseThrow();
@@ -161,34 +180,44 @@ public class DemoFederationSeeder {
                 .orElseThrow();
 
         var team1Account = accountRepository.create("team1@partner.ember", "Lisa", "Brandmeister", true);
+        accountRepository.setUid(team1Account.id(), DemoUids.account("team1@partner.ember"));
         accountRepository.createCredential(team1Account.id(), passwordHasher.hash("demo"));
         var team1 = stationMemberRepository.create(partnerStation.id(), team1Account.id());
+        stationMemberRepository.setUid(team1.id(), DemoUids.member("team1@partner.ember", partnerStation.id()));
         stationMemberRepository.setUserType(team1.id(), StationUserType.TEAM);
         stationMemberRepository.grantPermission(team1.id(), loginRole.id());
 
         var team2Account = accountRepository.create("team2@partner.ember", "Jonas", "Löschzug", true);
+        accountRepository.setUid(team2Account.id(), DemoUids.account("team2@partner.ember"));
         accountRepository.createCredential(team2Account.id(), passwordHasher.hash("demo"));
         var team2 = stationMemberRepository.create(partnerStation.id(), team2Account.id());
+        stationMemberRepository.setUid(team2.id(), DemoUids.member("team2@partner.ember", partnerStation.id()));
         stationMemberRepository.setUserType(team2.id(), StationUserType.TEAM);
         stationMemberRepository.grantPermission(team2.id(), loginRole.id());
 
         var member1Account = accountRepository.create("member1@partner.ember", "Emma", "Schlauch", true);
+        accountRepository.setUid(member1Account.id(), DemoUids.account("member1@partner.ember"));
         accountRepository.createCredential(member1Account.id(), passwordHasher.hash("demo"));
         var member1 = stationMemberRepository.create(partnerStation.id(), member1Account.id());
+        stationMemberRepository.setUid(member1.id(), DemoUids.member("member1@partner.ember", partnerStation.id()));
         stationMemberRepository.setUserType(member1.id(), StationUserType.MEMBER);
         stationMemberRepository.grantPermission(member1.id(), loginRole.id());
         stationMemberRepository.grantPermission(member1.id(), memberRole.id());
 
         var member2Account = accountRepository.create("member2@partner.ember", "Felix", "Strahlrohr", true);
+        accountRepository.setUid(member2Account.id(), DemoUids.account("member2@partner.ember"));
         accountRepository.createCredential(member2Account.id(), passwordHasher.hash("demo"));
         var member2 = stationMemberRepository.create(partnerStation.id(), member2Account.id());
+        stationMemberRepository.setUid(member2.id(), DemoUids.member("member2@partner.ember", partnerStation.id()));
         stationMemberRepository.setUserType(member2.id(), StationUserType.MEMBER);
         stationMemberRepository.grantPermission(member2.id(), loginRole.id());
         stationMemberRepository.grantPermission(member2.id(), memberRole.id());
 
         var guardianAccount = accountRepository.create("guardian@partner.ember", "Petra", "Elternbeirat", true);
+        accountRepository.setUid(guardianAccount.id(), DemoUids.account("guardian@partner.ember"));
         accountRepository.createCredential(guardianAccount.id(), passwordHasher.hash("demo"));
         var guardian = stationMemberRepository.create(partnerStation.id(), guardianAccount.id());
+        stationMemberRepository.setUid(guardian.id(), DemoUids.member("guardian@partner.ember", partnerStation.id()));
         stationMemberRepository.setUserType(guardian.id(), StationUserType.GUARDIAN);
         stationMemberRepository.grantPermission(guardian.id(), loginRole.id());
         stationMemberRepository.grantPermission(guardian.id(), guardianRole.id());
@@ -445,14 +474,14 @@ public class DemoFederationSeeder {
                 partnerStation.id(),
                 "Neue Drehleiter für die Partnerwache",
                 """
-                Wir haben eine neue **Drehleiter DLA(K) 23/12** erhalten! Das Fahrzeug wird in den nächsten Wochen in den Dienst gestellt.
+                        Wir haben eine neue **Drehleiter DLA(K) 23/12** erhalten! Das Fahrzeug wird in den nächsten Wochen in den Dienst gestellt.
 
-                ## Besichtigung
+                        ## Besichtigung
 
-                Alle Partnereinheiten sind herzlich eingeladen, sich das Fahrzeug bei der nächsten gemeinsamen Übung anzuschauen.
+                        Alle Partnereinheiten sind herzlich eingeladen, sich das Fahrzeug bei der nächsten gemeinsamen Übung anzuschauen.
 
-                Wir freuen uns auf euren Besuch! 🚒
-                """,
+                        Wir freuen uns auf euren Besuch! 🚒
+                        """,
                 "<p>Wir haben eine neue <strong>Drehleiter DLA(K) 23/12</strong> erhalten! Das Fahrzeug wird in den nächsten Wochen in den Dienst gestellt.</p><h2>Besichtigung</h2><p>Alle Partnereinheiten sind herzlich eingeladen, sich das Fahrzeug bei der nächsten gemeinsamen Übung anzuschauen.</p><p>Wir freuen uns auf euren Besuch! 🚒</p>",
                 stationMemberRepository.resolveIdentity(partnerMember.id()),
                 List.of(),
@@ -588,15 +617,17 @@ public class DemoFederationSeeder {
         log.info("Demo: Federated station {} with partner station {}", primaryStationId, partnerStation.id());
 
         // === Third station (not federated) ===
-        var thirdStation = stationRepository.create("JF Nachbarstadt");
+        var thirdStation = stationRepository.create("JF Nachbarstadt", DemoUids.station("jf-nachbarstadt"));
         stationRepository.updatePublicSlug(thirdStation.id(), "jf-nachbarstadt");
         log.info("Demo: Created third station '{}' (id={})", thirdStation.name(), thirdStation.id());
         stationRepository.updateDiscoverySettings(
                 thirdStation.id(), DiscoveryVisibility.PUBLIC, "Nachbarstadt sucht Partner für Übungsaustausch", true);
 
         var thirdAccount = accountRepository.create("nachbar@demo.ember", "Nachbar", "Manager", true);
+        accountRepository.setUid(thirdAccount.id(), DemoUids.account("nachbar@demo.ember"));
         accountRepository.createCredential(thirdAccount.id(), passwordHasher.hash("demo"));
         var thirdMember = stationMemberRepository.create(thirdStation.id(), thirdAccount.id());
+        stationMemberRepository.setUid(thirdMember.id(), DemoUids.member("nachbar@demo.ember", thirdStation.id()));
         stationMemberRepository.setUserType(thirdMember.id(), StationUserType.MANAGER);
         stationMemberRepository.grantPermission(thirdMember.id(), managerRole.id());
         stationMemberRepository.grantPermission(thirdMember.id(), loginRole.id());
@@ -637,7 +668,7 @@ public class DemoFederationSeeder {
      * bidirectionally with all default capabilities enabled.
      */
     public void seedFfMusterstadt(int jfStationId) {
-        var ffStation = stationRepository.create("FF Musterstadt");
+        var ffStation = stationRepository.create("FF Musterstadt", DemoUids.station("ff-musterstadt"));
         stationRepository.updatePublicSlug(ffStation.id(), "ff-musterstadt");
 
         var managerRole = stationMemberRepository
@@ -651,7 +682,12 @@ public class DemoFederationSeeder {
         for (var userType : List.of(StationUserType.MANAGER, StationUserType.TEAM)) {
             for (StationMember jfMember : stationMemberRepository.findByStationAndUserType(jfStationId, userType)) {
                 if (jfMember.accountId() == null) continue;
+                String email = accountRepository
+                        .findById(jfMember.accountId())
+                        .map(Account::email)
+                        .orElseThrow();
                 var ffMember = stationMemberRepository.create(ffStation.id(), jfMember.accountId());
+                stationMemberRepository.setUid(ffMember.id(), DemoUids.member(email, ffStation.id()));
                 stationMemberRepository.setUserType(ffMember.id(), userType);
                 stationMemberRepository.grantPermission(ffMember.id(), loginRole.id());
                 if (userType == StationUserType.MANAGER) {
@@ -674,21 +710,5 @@ public class DemoFederationSeeder {
                 mirrored);
     }
 
-    /**
-     * Returns the next upcoming occurrence date of a recurring event. For weekly events we
-     * walk forward to the next matching {@code day_of_week}; for non-weekly recurrences we
-     * fall back to the event's anchor start time so the demo data still gets a sensible
-     * date attached to the comment.
-     */
-    private static LocalDate nextOccurrenceOf(StationEvent event) {
-        var today = LocalDate.now();
-        if (event.eventType() == StationEvent.EventType.RECURRING && event.dayOfWeek() != null) {
-            DayOfWeek target = DayOfWeek.of(event.dayOfWeek());
-            int delta = (target.getValue() - today.getDayOfWeek().getValue() + 7) % 7;
-            return today.plusDays(delta == 0 ? 7 : delta);
-        }
-        return event.startTime() != null
-                ? event.startTime().atZone(ZoneId.systemDefault()).toLocalDate()
-                : today;
-    }
+    public record SeedResult(int partnerStationId, int partnerMemberId) {}
 }

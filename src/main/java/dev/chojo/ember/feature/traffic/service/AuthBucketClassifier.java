@@ -13,7 +13,7 @@ import io.javalin.http.Context;
 import jakarta.inject.Singleton;
 
 /**
- * Maps a request context to the appropriate {@link AuthBucket} per concept §3:
+ * Maps a request context to the appropriate {@link AuthBucket}:
  * federation if a federation session or {@code /remote/} path is present; authenticated
  * if a real user session is attached; unauthenticated otherwise.
  */

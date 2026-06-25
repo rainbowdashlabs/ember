@@ -39,10 +39,6 @@ public record WaitlistVerificationToken(
     private static final TypeReference<List<GuardianInput>> GUARDIAN_LIST = new TypeReference<>() {};
     private static final TypeReference<Map<Integer, JsonNode>> VALUE_MAP = new TypeReference<>() {};
 
-    public boolean isExpired() {
-        return Instant.now().isAfter(expiresAt);
-    }
-
     public static RowMapping<WaitlistVerificationToken> map() {
         return row -> new WaitlistVerificationToken(
                 row.getInt("id"),
@@ -77,5 +73,9 @@ public record WaitlistVerificationToken(
             log.warn("Failed to parse field_values JSON: {}", json, e);
             return Map.of();
         }
+    }
+
+    public boolean isExpired() {
+        return Instant.now().isAfter(expiresAt);
     }
 }

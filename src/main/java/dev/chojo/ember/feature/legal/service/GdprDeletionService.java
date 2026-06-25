@@ -6,8 +6,7 @@
 package dev.chojo.ember.feature.legal.service;
 
 import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.media.service.ImageCategory;
-import dev.chojo.ember.feature.media.service.ImageService;
+import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
@@ -38,17 +37,17 @@ public class GdprDeletionService {
 
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
-    private final ImageService imageService;
+    private final AvatarService avatarService;
     private final GenericGdprDeleter engine;
 
     @Inject
     public GdprDeletionService(
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
-            ImageService imageService) {
+            AvatarService avatarService) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
-        this.imageService = imageService;
+        this.avatarService = avatarService;
         DataTracking t;
         try {
             t = DataTrackingLoader.loadFromClasspath();
@@ -90,8 +89,6 @@ public class GdprDeletionService {
         if (memberUid != null) {
             var uidReport = engine.deleteByIdentity(IdentityType.MEMBER_UID, memberUid);
             uidReport.log(log);
-            // Avatar files are stored on disk keyed by member UUID — outside the engine's scope.
-            imageService.delete(ImageCategory.AVATARS, memberUid.toString());
         }
 
         // The account is cleaned up at the end if the deleted member was the only membership.
@@ -105,8 +102,12 @@ public class GdprDeletionService {
     }
 
     private void deleteAccountData(int accountId) {
+        UUID accountUid = accountRepository.resolveUid(accountId);
         var report = engine.deleteByIdentity(IdentityType.ACCOUNT_ID, accountId);
         report.log(log);
+        if (accountUid != null) {
+            avatarService.delete(accountUid);
+        }
         // account.id has DELETE_EXPLICIT on the strategy list and the engine handles it in phase 2.
         // The repository delete is now redundant in the happy path, but kept as a final safeguard so
         // a missing strategy entry doesn't leave a dangling account row.

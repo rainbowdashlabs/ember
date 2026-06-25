@@ -26,9 +26,9 @@ export default defineNuxtConfig({
     '/station/**': {ssr: false},
     '/admin/**': {ssr: false},
     '/style': {ssr: false},
-    '/sitemap.xml': {proxy: 'http://localhost:8080/sitemap.xml'},
-    '/sitemap-station-**': {proxy: 'http://localhost:8080/sitemap-station-**'},
-    '/api/**': {proxy: 'http://localhost:8080/api/**'},
+    '/sitemap.xml': {proxy: `${process.env.NUXT_BACKEND_URL || 'http://localhost:8080'}/sitemap.xml`},
+    '/sitemap-station-**': {proxy: `${process.env.NUXT_BACKEND_URL || 'http://localhost:8080'}/sitemap-station-**`},
+    '/api/**': {proxy: `${process.env.NUXT_BACKEND_URL || 'http://localhost:8080'}/api/**`},
   },
 
   nitro: {
@@ -37,11 +37,11 @@ export default defineNuxtConfig({
     ],
     plugins: ['../server/plugins/theme-script.ts'],
     devProxy: {
-      '/sitemap.xml': {target: 'http://localhost:8080', changeOrigin: true},
-      '/sitemap-station-': {target: 'http://localhost:8080', changeOrigin: true},
-      '/api': {target: 'http://localhost:8080', changeOrigin: true},
-      '/docs': {target: 'http://localhost:8080', changeOrigin: true},
-      '/swagger-ui': {target: 'http://localhost:8080', changeOrigin: true},
+      '/sitemap.xml': {target: process.env.NUXT_BACKEND_URL || 'http://localhost:8080', changeOrigin: true},
+      '/sitemap-station-': {target: process.env.NUXT_BACKEND_URL || 'http://localhost:8080', changeOrigin: true},
+      '/api': {target: process.env.NUXT_BACKEND_URL || 'http://localhost:8080', changeOrigin: true},
+      '/docs': {target: process.env.NUXT_BACKEND_URL || 'http://localhost:8080', changeOrigin: true},
+      '/swagger-ui': {target: process.env.NUXT_BACKEND_URL || 'http://localhost:8080', changeOrigin: true},
     },
   },
 
@@ -65,11 +65,11 @@ export default defineNuxtConfig({
     },
     server: {
       proxy: {
-        '/sitemap.xml': 'http://localhost:8080',
-        '/sitemap-station-': 'http://localhost:8080',
-        '/api': 'http://localhost:8080',
-        '/docs': 'http://localhost:8080',
-        '/swagger-ui': 'http://localhost:8080',
+        '/sitemap.xml': process.env.NUXT_BACKEND_URL || 'http://localhost:8080',
+        '/sitemap-station-': process.env.NUXT_BACKEND_URL || 'http://localhost:8080',
+        '/api': process.env.NUXT_BACKEND_URL || 'http://localhost:8080',
+        '/docs': process.env.NUXT_BACKEND_URL || 'http://localhost:8080',
+        '/swagger-ui': process.env.NUXT_BACKEND_URL || 'http://localhost:8080',
       },
     },
   },

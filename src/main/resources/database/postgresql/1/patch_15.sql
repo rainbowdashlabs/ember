@@ -1,4 +1,4 @@
--- Per-station traffic monitoring (phase 1 of station-traffic-monitoring concept)
+-- Per-station traffic monitoring (phase 1)
 -- Hourly aggregated ingress/egress byte counters and request counts, split by
 -- auth bucket (AUTHENTICATED / UNAUTHENTICATED / FEDERATION). station_id is
 -- nullable because admin and instance-global routes do not have a station; the
@@ -38,7 +38,7 @@ COMMENT ON COLUMN ember_schema.station_traffic_hourly.ingress_bytes IS 'Sum of e
 COMMENT ON COLUMN ember_schema.station_traffic_hourly.egress_bytes IS 'Sum of estimated response bytes (headers + body) in this bucket.';
 COMMENT ON COLUMN ember_schema.station_traffic_hourly.requests IS 'Number of requests that contributed to this bucket.';
 
--- Per-public-page hit counters (phase 4 of station-traffic-monitoring concept).
+-- Per-public-page hit counters (phase 4).
 -- Aggregate-only: no IPs, no cookies, no per-visitor identifier. Each row holds a
 -- bucketed count of hits for one (hour, page, country, referer_domain, is_bot)
 -- combination. Country is derived from CF-IPCountry (or "XX" if missing); referer

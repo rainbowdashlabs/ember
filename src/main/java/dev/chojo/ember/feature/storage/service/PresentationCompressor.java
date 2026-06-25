@@ -28,7 +28,7 @@ import java.util.zip.ZipOutputStream;
  * <p>Toggles live in {@link Storage}: {@link Storage#compressPresentations()} gates the
  * presentation family ({@code pptx}, {@code odp}, {@code ppt}); {@link
  * Storage#compressOfficeDocs()} gates the office-doc family ({@code docx}, {@code xlsx},
- * {@code odt}, {@code ods}). Both are on by default per concept §11.3.
+ * {@code odt}, {@code ods}). Both are on by default.
  */
 @Singleton
 public class PresentationCompressor {

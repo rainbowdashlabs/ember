@@ -112,7 +112,7 @@ class PageHitRecorderTest extends RepositoryTestBase {
     @Test
     void flushPersistsAgedBucketsAndCollapsesLongTail() throws Exception {
         var rec = newRecorder();
-        Instant pastHour = Instant.parse("2026-06-17T05:00:00Z");
+        Instant pastHour = Instant.now().truncatedTo(ChronoUnit.HOURS).minus(5, ChronoUnit.HOURS);
         seedAgedBucket(rec, pastHour, page.id(), "DE", "obscure.example.tld", false, 1);
 
         rec.flush();

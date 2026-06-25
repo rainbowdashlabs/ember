@@ -42,6 +42,7 @@ import java.util.stream.Collectors;
  */
 @Singleton
 public class AttendanceService {
+    private static final ObjectMapper JSON = JsonMapper.builder().build();
     private final AttendanceRepository attendanceRepository;
     private final EventRepository eventRepository;
     private final EventFieldRepository eventFieldRepository;
@@ -61,8 +62,6 @@ public class AttendanceService {
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
     }
-
-    private static final ObjectMapper JSON = JsonMapper.builder().build();
 
     private static String toJsonValue(Object value) {
         if (value == null) return null;

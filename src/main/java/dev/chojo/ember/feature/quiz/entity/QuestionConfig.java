@@ -27,8 +27,6 @@ public sealed interface QuestionConfig {
     }
 
     record MultipleChoice(List<Option> options, double pointsPerCorrect) implements QuestionConfig {
-        public record Option(String text, boolean correct) {}
-
         @Override
         public double pointsPerCorrect() {
             return pointsPerCorrect > 0 ? pointsPerCorrect : 1;
@@ -40,11 +38,11 @@ public sealed interface QuestionConfig {
                     ? 0
                     : (int) options.stream().filter(Option::correct).count();
         }
+
+        public record Option(String text, boolean correct) {}
     }
 
     record Connect(List<Pair> pairs, double pointsPerCorrect) implements QuestionConfig {
-        public record Pair(String left, String right) {}
-
         @Override
         public double pointsPerCorrect() {
             return pointsPerCorrect > 0 ? pointsPerCorrect : 1;
@@ -54,6 +52,8 @@ public sealed interface QuestionConfig {
         public int gradableItemCount() {
             return pairs == null ? 0 : pairs.size();
         }
+
+        public record Pair(String left, String right) {}
     }
 
     record Ordering(List<String> items, double pointsPerCorrect) implements QuestionConfig {

@@ -10,10 +10,6 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
 public record WaitingListEntryGuardian(
         int id, int entryId, String firstname, String lastname, String email, String phone, int position) {
 
-    public String fullName() {
-        return lastname != null && !lastname.isBlank() ? firstname + " " + lastname : firstname;
-    }
-
     public static RowMapping<WaitingListEntryGuardian> map() {
         return row -> new WaitingListEntryGuardian(
                 row.getInt("id"),
@@ -23,5 +19,9 @@ public record WaitingListEntryGuardian(
                 row.getString("email"),
                 row.getString("phone"),
                 row.getInt("position"));
+    }
+
+    public String fullName() {
+        return lastname != null && !lastname.isBlank() ? firstname + " " + lastname : firstname;
     }
 }

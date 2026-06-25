@@ -6,13 +6,15 @@
 package dev.chojo.ember.feature.page.service;
 
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
+import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.service.StorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
@@ -28,15 +30,14 @@ class PageFileStorageServiceTest {
     Path tempDir;
 
     @BeforeEach
-    void setup() throws Exception {
+    void setup() {
         var stationRepo = Mockito.mock(StationRepository.class);
         Mockito.when(stationRepo.resolveUid(1)).thenReturn(stationOneUid);
         Mockito.when(stationRepo.resolveUid(2)).thenReturn(stationTwoUid);
-        storage = new PageFileStorageService(stationRepo);
-        // Override baseDir to use temp directory
-        Field baseDirField = PageFileStorageService.class.getDeclaredField("baseDir");
-        baseDirField.setAccessible(true);
-        baseDirField.set(storage, tempDir.resolve("page-files"));
+        var backend = new LocalStorageBackend(tempDir);
+        var resolver = new StorageBackendResolver(backend);
+        var storageService = new StorageService(resolver, backend);
+        storage = new PageFileStorageService(storageService, stationRepo, backend);
     }
 
     @Test
@@ -85,7 +86,6 @@ class PageFileStorageServiceTest {
 
     @Test
     void deleteNonExistent() {
-        // Should not throw
         storage.delete(1, "0000");
     }
 
@@ -116,40 +116,6 @@ class PageFileStorageServiceTest {
         storage.delete(1, hash);
         assertTrue(storage.read(1, hash).isEmpty());
         assertTrue(storage.read(2, hash).isPresent());
-    }
-
-    @Test
-    void legacyFlatFileMigratesOnRead() throws IOException {
-        byte[] data = "legacy-bytes".getBytes();
-        String hash = PageFileStorageService.hash(data);
-        Path stationDir = tempDir.resolve("page-files").resolve(stationOneUid.toString());
-        Files.createDirectories(stationDir);
-        Path legacyFile = stationDir.resolve(hash);
-        Path legacyType = stationDir.resolve(hash + ".content-type");
-        Files.write(legacyFile, data);
-        Files.writeString(legacyType, "image/png");
-
-        var result = storage.read(1, hash);
-        assertTrue(result.isPresent());
-        assertArrayEquals(data, result.orElseThrow().data());
-        assertEquals("image/png", result.orElseThrow().contentType());
-
-        assertFalse(Files.isRegularFile(legacyFile), "Legacy flat file should have been promoted to a directory");
-        assertFalse(Files.exists(legacyType), "Legacy content-type sidecar should have been deleted");
-        assertTrue(Files.isDirectory(stationDir.resolve(hash)), "Hash directory should exist after migration");
-    }
-
-    @Test
-    void legacyFileWithoutContentTypeFallsBackToOctetStream() throws IOException {
-        byte[] data = "no-ct".getBytes();
-        String hash = PageFileStorageService.hash(data);
-        Path stationDir = tempDir.resolve("page-files").resolve(stationOneUid.toString());
-        Files.createDirectories(stationDir);
-        Files.write(stationDir.resolve(hash), data);
-
-        var result = storage.read(1, hash);
-        assertTrue(result.isPresent());
-        assertEquals("application/octet-stream", result.orElseThrow().contentType());
     }
 
     @Test
@@ -204,5 +170,27 @@ class PageFileStorageServiceTest {
         Path dir = storage.hashDir(1, hash);
         assertFalse(Files.exists(dir.resolve("orig.png")), "Stale orig.png should be removed");
         assertTrue(Files.exists(dir.resolve("orig.jpg")));
+    }
+
+    @Test
+    void legacyPageFilesDirectoryIsRelocated() throws IOException {
+        byte[] data = "legacy-tree".getBytes();
+        String hash = PageFileStorageService.hash(data);
+        Path legacyDir =
+                tempDir.resolve("page-files").resolve(stationOneUid.toString()).resolve(hash);
+        Files.createDirectories(legacyDir);
+        Files.write(legacyDir.resolve("orig.png"), data);
+
+        var stationRepo = Mockito.mock(StationRepository.class);
+        Mockito.when(stationRepo.resolveUid(1)).thenReturn(stationOneUid);
+        var backend = new LocalStorageBackend(tempDir);
+        var resolver = new StorageBackendResolver(backend);
+        var storageService = new StorageService(resolver, backend);
+        var migrated = new PageFileStorageService(storageService, stationRepo, backend);
+
+        var result = migrated.read(1, hash);
+        assertTrue(result.isPresent());
+        assertArrayEquals(data, result.orElseThrow().data());
+        assertFalse(Files.exists(tempDir.resolve("page-files").resolve(stationOneUid.toString())));
     }
 }

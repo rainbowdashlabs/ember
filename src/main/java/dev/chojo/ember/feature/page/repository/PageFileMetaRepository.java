@@ -138,7 +138,9 @@ public class PageFileMetaRepository {
                 .changed();
     }
 
-    /** Returns the set of tag ids for each file id in the provided collection. */
+    /**
+     * Returns the set of tag ids for each file id in the provided collection.
+     */
     public Map<Integer, Set<Integer>> findTagAssignments(List<Integer> fileIds) {
         Map<Integer, Set<Integer>> out = new HashMap<>();
         if (fileIds == null || fileIds.isEmpty()) return out;

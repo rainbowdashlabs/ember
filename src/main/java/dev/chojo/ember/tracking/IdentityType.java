@@ -9,12 +9,18 @@ package dev.chojo.ember.tracking;
  * Identifies which kind of person identifier a column holds.
  */
 public enum IdentityType {
-    /** Integer FK to {@code account.id}. */
+    /**
+     * Integer FK to {@code account.id}.
+     */
     ACCOUNT_ID,
 
-    /** Integer FK to {@code station_member.id}. */
+    /**
+     * Integer FK to {@code station_member.id}.
+     */
     MEMBER_ID,
 
-    /** UUID matching {@code station_member.uid}, used in federation contexts. */
+    /**
+     * UUID matching {@code station_member.uid}, used in federation contexts.
+     */
     MEMBER_UID
 }

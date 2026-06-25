@@ -91,36 +91,6 @@ public class InventoryCheckRoutes implements Routes {
         ctx.json(enriched);
     }
 
-    public record EnrichedCheckSummary(
-            int memberId,
-            String firstName,
-            String lastName,
-            Instant lastCheckedAt,
-            String checkerFirstName,
-            String checkerLastName,
-            boolean locked,
-            Integer lockedBy,
-            String lockerFirstName,
-            String lockerLastName,
-            StationUserType userType,
-            MemberIdentity identity) {
-        EnrichedCheckSummary(MemberCheckSummary s, MemberIdentity identity) {
-            this(
-                    s.memberId(),
-                    s.firstName(),
-                    s.lastName(),
-                    s.lastCheckedAt(),
-                    s.checkerFirstName(),
-                    s.checkerLastName(),
-                    s.locked(),
-                    s.lockedBy(),
-                    s.lockerFirstName(),
-                    s.lockerLastName(),
-                    s.userType(),
-                    identity);
-        }
-    }
-
     @OpenApi(
             path = "/api/v1/inventory-checks/{memberId}/start",
             methods = HttpMethod.POST,
@@ -278,6 +248,36 @@ public class InventoryCheckRoutes implements Routes {
         boolean teamOnly = ctx.queryParamAsClass("teamOnly", Boolean.class).getOrDefault(false);
         var next = checkService.nextMember(session.stationId(), currentMemberId, teamOnly);
         ctx.json(new NextMemberResponse(next.orElse(null)));
+    }
+
+    public record EnrichedCheckSummary(
+            int memberId,
+            String firstName,
+            String lastName,
+            Instant lastCheckedAt,
+            String checkerFirstName,
+            String checkerLastName,
+            boolean locked,
+            Integer lockedBy,
+            String lockerFirstName,
+            String lockerLastName,
+            StationUserType userType,
+            MemberIdentity identity) {
+        EnrichedCheckSummary(MemberCheckSummary s, MemberIdentity identity) {
+            this(
+                    s.memberId(),
+                    s.firstName(),
+                    s.lastName(),
+                    s.lastCheckedAt(),
+                    s.checkerFirstName(),
+                    s.checkerLastName(),
+                    s.locked(),
+                    s.lockedBy(),
+                    s.lockerFirstName(),
+                    s.lockerLastName(),
+                    s.userType(),
+                    identity);
+        }
     }
 
     public record CompleteCheckRequest(List<CheckItemResult> items) {}

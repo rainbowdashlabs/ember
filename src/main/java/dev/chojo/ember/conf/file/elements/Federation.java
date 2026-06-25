@@ -21,8 +21,8 @@ public class Federation {
 
     /**
      * @return {@code true} when {@code RemoteUrlValidator} should permit non-HTTPS
-     *         schemes and private / loopback / link-local IP addresses. Intended
-     *         for local development only.
+     * schemes and private / loopback / link-local IP addresses. Intended
+     * for local development only.
      */
     public boolean allowPrivateHosts() {
         return allowPrivateHosts;

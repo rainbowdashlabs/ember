@@ -27,7 +27,7 @@ public record InventoryRequirement(
         return row -> new InventoryRequirement(
                 row.getInt("id"),
                 row.getInt("inventory_id"),
-                row.getString("user_type") != null ? StationUserType.valueOf(row.getString("user_type")) : null,
+                row.getEnum("user_type", StationUserType.class),
                 row.getInt("group_id"),
                 row.getInt("quantity"),
                 row.getInt("position"));

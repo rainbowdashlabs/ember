@@ -46,12 +46,16 @@ public class DataTrackingAdminService {
         this(DEFAULT_TRACKING_PATH);
     }
 
-    /** Test-friendly constructor that lets the caller route reads/writes to a temp file. */
+    /**
+     * Test-friendly constructor that lets the caller route reads/writes to a temp file.
+     */
     public DataTrackingAdminService(Path trackingPath) {
         this.trackingPath = trackingPath;
     }
 
-    /** Loads the tracking file from disk every call so concurrent edits remain visible. */
+    /**
+     * Loads the tracking file from disk every call so concurrent edits remain visible.
+     */
     public DataTracking load() throws IOException {
         if (Files.exists(trackingPath)) return DataTrackingLoader.load(trackingPath);
         // Fall back to the classpath copy when the source tree isn't available (rare in dev).
@@ -184,7 +188,9 @@ public class DataTrackingAdminService {
         return updated;
     }
 
-    /** Convenience: marks every column of a table as verified. */
+    /**
+     * Convenience: marks every column of a table as verified.
+     */
     public TableEntry verifyAllColumns(String tableName) throws IOException {
         var tracking = load();
         var existing = tracking.tables() == null ? null : tracking.tables().get(tableName);
@@ -203,7 +209,9 @@ public class DataTrackingAdminService {
      */
     public record StatusCounts(int tracked, int ignored, int unverified) {}
 
-    /** Aggregated counts for the admin dashboard overview. */
+    /**
+     * Aggregated counts for the admin dashboard overview.
+     */
     public record Summary(
             int totalTables,
             int totalColumns,

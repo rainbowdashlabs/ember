@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -29,6 +30,7 @@ class EventReminderCheckerTest {
     private EventRepository eventRepository;
     private StationMemberRepository stationMemberRepository;
     private NotificationService notificationService;
+    private StationReadOnlyGuard readOnlyGuard;
 
     private static final int STATION_ID = 1;
 
@@ -37,6 +39,8 @@ class EventReminderCheckerTest {
         eventRepository = mock(EventRepository.class);
         stationMemberRepository = mock(StationMemberRepository.class);
         notificationService = mock(NotificationService.class);
+        readOnlyGuard = mock(StationReadOnlyGuard.class);
+        when(readOnlyGuard.isWritable(anyInt())).thenReturn(true);
     }
 
     private StationEvent oneTimeEvent(int id, Instant startTime, boolean requiresRegistration) {
@@ -141,7 +145,7 @@ class EventReminderCheckerTest {
         when(stationMemberRepository.findByStation(STATION_ID)).thenReturn(List.of(member(10), member(11)));
         when(eventRepository.findDeclinedMemberIds(42, eventDate)).thenReturn(List.of());
 
-        new EventReminderChecker(eventRepository, stationMemberRepository, notificationService);
+        new EventReminderChecker(eventRepository, stationMemberRepository, notificationService, readOnlyGuard);
 
         // The check runs after 5 minutes delay via scheduler, so we invoke it indirectly via constructor.
         // Instead, we test the logic by calling the method reflectively.
@@ -374,7 +378,7 @@ class EventReminderCheckerTest {
             var ctor = EventReminderChecker.class.getDeclaredConstructors()[0];
             ctor.setAccessible(true);
             return (EventReminderChecker)
-                    ctor.newInstance(eventRepository, stationMemberRepository, notificationService);
+                    ctor.newInstance(eventRepository, stationMemberRepository, notificationService, readOnlyGuard);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

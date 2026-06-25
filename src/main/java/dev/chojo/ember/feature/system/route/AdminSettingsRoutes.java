@@ -17,8 +17,7 @@ import dev.chojo.ember.conf.file.elements.Theming;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.feature.legal.entity.LegalDocumentType;
 import dev.chojo.ember.feature.legal.service.LegalDocumentService;
-import dev.chojo.ember.feature.media.service.ImageCategory;
-import dev.chojo.ember.feature.media.service.ImageService;
+import dev.chojo.ember.feature.media.service.LogoFragmentService;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
@@ -43,13 +42,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -62,27 +58,91 @@ public class AdminSettingsRoutes implements Routes {
     private static final String FORCE_PRIDE_FLAG = "force_pride_flag";
 
     private static final Logger log = LoggerFactory.getLogger(AdminSettingsRoutes.class);
+    /**
+     * Pattern allowed for the {@code {name}} path segment on the public logo routes.
+     * Restricting to {@code [A-Za-z0-9_-]+} forbids slashes, dots, and {@code ..} so
+     * the value can never escape the configured image directory regardless of how
+     * the underlying filesystem resolver normalises the path.
+     */
+    private static final Pattern SAFE_LOGO_NAME = Pattern.compile("^[A-Za-z0-9_-]+$");
+    /**
+     * Pattern allowed for the {@code {locale}} path segment on the admin legal
+     * routes. Restricting to two lowercase letters with an optional uppercase
+     * region tag rejects {@code ..} segments, slashes, and any value that would
+     * otherwise let an admin write or list files outside the configured legal
+     * directory.
+     */
+    private static final Pattern SAFE_LOCALE = Pattern.compile("^[a-z]{2}(-[A-Z]{2})?$");
 
+    private static final Set<String> TOTP_ALGORITHMS = Set.of("SHA1", "SHA256", "SHA512");
+    private static final Set<String> WEBAUTHN_ATTESTATIONS = Set.of("none", "indirect", "direct");
     private final ApplicationSettingRepository settingRepository;
-    private final ImageService imageService;
+    private final LogoFragmentService logoFragmentService;
     private final Conf conf;
     private final LegalDocumentService documentService;
 
     @Inject
-    public AdminSettingsRoutes(ApplicationSettingRepository settingRepository, ImageService imageService, Conf conf) {
+    public AdminSettingsRoutes(
+            ApplicationSettingRepository settingRepository, LogoFragmentService logoFragmentService, Conf conf) {
         this.settingRepository = settingRepository;
-        this.imageService = imageService;
+        this.logoFragmentService = logoFragmentService;
         this.conf = conf;
         this.documentService = new LegalDocumentService();
-        initializeAppLogos();
         initializeLogoFragments();
+    }
+
+    /**
+     * Parses the {@code locale} path parameter, validates it against
+     * {@link #SAFE_LOCALE}, and checks that the resolved directory stays inside
+     * {@code base}. Throws {@link io.javalin.http.BadRequestResponse} on any
+     * mismatch so the route returns 400 with a static, user-safe message.
+     */
+    private static String safeLocale(Context ctx, Path base) {
+        String locale = ctx.pathParam("locale");
+        if (locale == null || !SAFE_LOCALE.matcher(locale).matches()) {
+            throw new io.javalin.http.BadRequestResponse("Invalid locale");
+        }
+        Path resolved = base.resolve(locale).normalize();
+        if (!resolved.startsWith(base.normalize())) {
+            throw new io.javalin.http.BadRequestResponse("Invalid locale");
+        }
+        return locale;
+    }
+
+    private static Path resolveLocaleDir(Path base, String locale) {
+        // safeLocale has already validated the value, but re-check the resolved
+        // path so a future caller that forgets the validation gate is still
+        // caught here rather than escaping the legal directory.
+        Path resolved = base.resolve(locale).normalize();
+        if (!resolved.startsWith(base.normalize())) {
+            throw new io.javalin.http.BadRequestResponse("Invalid locale");
+        }
+        return resolved;
+    }
+
+    private static String safeLogoName(Context ctx) {
+        String name = ctx.pathParam("name");
+        if (name == null) return null;
+        if (name.endsWith(".png")) name = name.substring(0, name.length() - 4);
+        return SAFE_LOGO_NAME.matcher(name).matches() ? name : null;
+    }
+
+    private static void requireRange(int value, int min, int max, String field) {
+        if (value < min || value > max) {
+            throw new BadRequestResponse(field + " must be between " + min + " and " + max);
+        }
+    }
+
+    private static void setField(Class<?> clazz, Object target, String fieldName, Object value) throws Exception {
+        Field field = clazz.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        field.set(target, value);
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/public/settings/station-registration", this::isRegistrationEnabled);
         routes.get(prefix + "/public/settings/theme", this::getPublicTheme);
-        routes.get(prefix + "/public/logo/{name}", this::serveAppLogo);
         routes.get(prefix + "/public/logo-fragment/{name}", this::serveLogoFragment);
         routes.get(prefix + "/admin/settings", this::getSettings, InstancePermission.ADMINISTRATOR);
         routes.put(
@@ -177,28 +237,6 @@ public class AdminSettingsRoutes implements Routes {
                 StepUpCategory.INSTANCE_CONFIG);
     }
 
-    private void initializeAppLogos() {
-        String[] logos = {
-            "IconBG",
-            "IconBG_Blink",
-            "IconBG_FAQ",
-            "IconBG_FAQ_Blink",
-            "IconBG_NoBlush",
-            "IconBG_NoBlush_Blink",
-            "NoBG_OrangeGlow",
-            "NoBG_OrangeGlow_Blink",
-            "NoBG_OrangeGlow_FAQ",
-            "NoBG_OrangeGlow_FAQ_Blink",
-            "NoBG_NoGlow",
-            "NoBG_NoGlow_Blink",
-            "NoBG_NoGlow_FAQ",
-            "NoBG_NoGlow_FAQ_Blink"
-        };
-        for (String logo : logos) {
-            storeIfChanged(ImageCategory.APP_LOGOS, logo, "logo/" + logo + ".png");
-        }
-    }
-
     private void initializeLogoFragments() {
         // Map from API name (used by frontend) to resource filename
         Map.Entry<String, String>[] fragments = new Map.Entry[] {
@@ -219,31 +257,27 @@ public class AdminSettingsRoutes implements Routes {
             Map.entry("fire_woah_two", "fire_woah_two"),
         };
         for (var fragment : fragments) {
-            storeIfChanged(
-                    ImageCategory.LOGO_FRAGMENTS, fragment.getKey(), "logo_fragments/" + fragment.getValue() + ".png");
+            storeLogoFragmentIfChanged(fragment.getKey(), "logo_fragments/" + fragment.getValue() + ".png");
         }
     }
 
-    private void storeIfChanged(ImageCategory category, String id, String resourcePath) {
-        try (var is = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
-            if (is == null) return;
-            byte[] data = is.readAllBytes();
-            String hash = sha256(data);
-            Path hashFile = Path.of("data", "images", category.directory(), id, ".hash");
-            if (Files.exists(hashFile) && Files.readString(hashFile).trim().equals(hash)) return;
-            imageService.store(category, id, data, "image/png");
-            Files.createDirectories(hashFile.getParent());
-            Files.writeString(hashFile, hash);
-        } catch (Exception e) {
-            log.warn("Failed to initialize image {}/{}: {}", category, id, e.getMessage());
-        }
-    }
-
-    private static String sha256(byte[] data) {
+    private void storeLogoFragmentIfChanged(String id, String resourcePath) {
+        byte[] data = readResource(resourcePath);
+        if (data == null) return;
         try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(data));
-        } catch (NoSuchAlgorithmException e) {
-            throw new AssertionError("SHA-256 not available", e);
+            logoFragmentService.storeIfChanged(id, data, "image/png");
+        } catch (Exception e) {
+            log.warn("Failed to initialize logo fragment {}: {}", id, e.getMessage());
+        }
+    }
+
+    private byte[] readResource(String resourcePath) {
+        try (var is = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
+            if (is == null) return null;
+            return is.readAllBytes();
+        } catch (Exception e) {
+            log.warn("Failed to read resource {}: {}", resourcePath, e.getMessage());
+            return null;
         }
     }
 
@@ -254,8 +288,8 @@ public class AdminSettingsRoutes implements Routes {
             return;
         }
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
-        imageService
-                .read(ImageCategory.LOGO_FRAGMENTS, name, size)
+        logoFragmentService
+                .read(name, size)
                 .ifPresentOrElse(
                         img -> {
                             ctx.contentType(img.contentType());
@@ -265,76 +299,7 @@ public class AdminSettingsRoutes implements Routes {
                         () -> ctx.status(HttpStatus.NOT_FOUND));
     }
 
-    private void serveAppLogo(Context ctx) {
-        String name = safeLogoName(ctx);
-        if (name == null) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            return;
-        }
-        int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
-        imageService
-                .read(ImageCategory.APP_LOGOS, name, size)
-                .ifPresentOrElse(
-                        img -> {
-                            ctx.contentType(img.contentType());
-                            ctx.header("Cache-Control", "public, max-age=86400");
-                            ctx.result(img.data());
-                        },
-                        () -> ctx.status(HttpStatus.NO_CONTENT));
-    }
-
-    /**
-     * Pattern allowed for the {@code {name}} path segment on the public logo routes.
-     * Restricting to {@code [A-Za-z0-9_-]+} forbids slashes, dots, and {@code ..} so
-     * the value can never escape the configured image directory regardless of how
-     * the underlying filesystem resolver normalises the path.
-     */
-    private static final Pattern SAFE_LOGO_NAME = Pattern.compile("^[A-Za-z0-9_-]+$");
-
-    /**
-     * Pattern allowed for the {@code {locale}} path segment on the admin legal
-     * routes. Restricting to two lowercase letters with an optional uppercase
-     * region tag rejects {@code ..} segments, slashes, and any value that would
-     * otherwise let an admin write or list files outside the configured legal
-     * directory.
-     */
-    private static final Pattern SAFE_LOCALE = Pattern.compile("^[a-z]{2}(-[A-Z]{2})?$");
-
-    /**
-     * Parses the {@code locale} path parameter, validates it against
-     * {@link #SAFE_LOCALE}, and checks that the resolved directory stays inside
-     * {@code base}. Throws {@link io.javalin.http.BadRequestResponse} on any
-     * mismatch so the route returns 400 with a static, user-safe message.
-     */
-    private static String safeLocale(Context ctx, Path base) {
-        String locale = ctx.pathParam("locale");
-        if (locale == null || !SAFE_LOCALE.matcher(locale).matches()) {
-            throw new io.javalin.http.BadRequestResponse("Invalid locale");
-        }
-        Path resolved = base.resolve(locale).normalize();
-        if (!resolved.startsWith(base.normalize())) {
-            throw new io.javalin.http.BadRequestResponse("Invalid locale");
-        }
-        return locale;
-    }
-
-    private static Path resolveLocaleDir(Path base, String locale) {
-        // safeLocale has already validated the value, but re-check the resolved
-        // path so a future caller that forgets the validation gate is still
-        // caught here rather than escaping the legal directory.
-        Path resolved = base.resolve(locale).normalize();
-        if (!resolved.startsWith(base.normalize())) {
-            throw new io.javalin.http.BadRequestResponse("Invalid locale");
-        }
-        return resolved;
-    }
-
-    private static String safeLogoName(Context ctx) {
-        String name = ctx.pathParam("name");
-        if (name == null) return null;
-        if (name.endsWith(".png")) name = name.substring(0, name.length() - 4);
-        return SAFE_LOGO_NAME.matcher(name).matches() ? name : null;
-    }
+    // -- Security config: tokens & sessions --
 
     @OpenApi(
             path = "/api/v1/public/settings/station-registration",
@@ -405,7 +370,7 @@ public class AdminSettingsRoutes implements Routes {
                 request.forcePrideFlag()));
     }
 
-    // -- Security config: tokens & sessions --
+    // -- Security config: HIBP --
 
     private void getTokensConfig(Context ctx) {
         var auth = conf.main().auth();
@@ -450,6 +415,8 @@ public class AdminSettingsRoutes implements Routes {
         }
     }
 
+    // -- Security config: 2FA core --
+
     private TokensConfigResponse buildTokensResponse(Auth auth) {
         return new TokensConfigResponse(
                 auth.tokenBytes(),
@@ -458,8 +425,6 @@ public class AdminSettingsRoutes implements Routes {
                 auth.sessionMinutes(),
                 auth.tokenPepper() != null && !auth.tokenPepper().isBlank());
     }
-
-    // -- Security config: HIBP --
 
     private void getHibpConfig(Context ctx) {
         var hibp = conf.main().auth().hibp();
@@ -491,7 +456,7 @@ public class AdminSettingsRoutes implements Routes {
         return new HibpConfigResponse(hibp.enabled(), hibp.endpoint(), hibp.staleAfterDays(), hibp.timeoutSeconds());
     }
 
-    // -- Security config: 2FA core --
+    // -- Security config: TOTP --
 
     private void getTwoFactorCoreConfig(Context ctx) {
         var twoFactor = conf.main().auth().twoFactor();
@@ -535,6 +500,8 @@ public class AdminSettingsRoutes implements Routes {
         }
     }
 
+    // -- Security config: backup codes --
+
     private TwoFactorCoreConfigResponse buildTwoFactorCoreResponse(TwoFactorSettings twoFactor) {
         return new TwoFactorCoreConfigResponse(
                 twoFactor.enabled(),
@@ -544,12 +511,12 @@ public class AdminSettingsRoutes implements Routes {
                 twoFactor.secretKey() != null && !twoFactor.secretKey().isBlank());
     }
 
-    // -- Security config: TOTP --
-
     private void getTotpConfig(Context ctx) {
         var totp = conf.main().auth().twoFactor().totp();
         ctx.json(buildTotpResponse(totp));
     }
+
+    // -- Security config: WebAuthn --
 
     private void updateTotpConfig(Context ctx) {
         var request = ctx.bodyAsClass(TotpConfigRequest.class);
@@ -584,8 +551,6 @@ public class AdminSettingsRoutes implements Routes {
                 totp.digits(), totp.periodSeconds(), totp.algorithm(), totp.driftWindow(), totp.issuer());
     }
 
-    // -- Security config: backup codes --
-
     private void getBackupCodesConfig(Context ctx) {
         var backup = conf.main().auth().twoFactor().backupCodes();
         ctx.json(new BackupCodesConfigResponse(backup.count()));
@@ -604,8 +569,6 @@ public class AdminSettingsRoutes implements Routes {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
-    // -- Security config: WebAuthn --
 
     private void getWebAuthnConfig(Context ctx) {
         var webauthn = conf.main().auth().twoFactor().webauthn();
@@ -647,6 +610,8 @@ public class AdminSettingsRoutes implements Routes {
         }
     }
 
+    // -- Mailing config --
+
     private WebAuthnConfigResponse buildWebAuthnResponse(TwoFactorSettings.WebAuthnConfig webauthn) {
         return new WebAuthnConfigResponse(
                 webauthn.rpId(),
@@ -655,17 +620,6 @@ public class AdminSettingsRoutes implements Routes {
                 webauthn.timeoutSeconds(),
                 webauthn.requireResidentKey());
     }
-
-    private static final Set<String> TOTP_ALGORITHMS = Set.of("SHA1", "SHA256", "SHA512");
-    private static final Set<String> WEBAUTHN_ATTESTATIONS = Set.of("none", "indirect", "direct");
-
-    private static void requireRange(int value, int min, int max, String field) {
-        if (value < min || value > max) {
-            throw new BadRequestResponse(field + " must be between " + min + " and " + max);
-        }
-    }
-
-    // -- Mailing config --
 
     private void getMailingConfig(Context ctx) {
         var mailing = conf.main().mailing();
@@ -683,6 +637,8 @@ public class AdminSettingsRoutes implements Routes {
                 mailing.dailySendLimit(),
                 mailing.notificationDigestIntervalMinutes()));
     }
+
+    // -- Legal documents --
 
     private void updateMailingConfig(Context ctx) {
         var request = ctx.bodyAsClass(MailingConfigRequest.class);
@@ -727,8 +683,6 @@ public class AdminSettingsRoutes implements Routes {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
-    // -- Legal documents --
 
     private void getLegalDocument(Context ctx) {
         LegalDocumentType type = parseLegalType(ctx);
@@ -867,12 +821,6 @@ public class AdminSettingsRoutes implements Routes {
         } catch (IllegalArgumentException e) {
             throw new BadRequestResponse("Invalid legal document type: " + ctx.pathParam("type"));
         }
-    }
-
-    private static void setField(Class<?> clazz, Object target, String fieldName, Object value) throws Exception {
-        Field field = clazz.getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(target, value);
     }
 
     @OpenApiName("StationRegistrationStatus")

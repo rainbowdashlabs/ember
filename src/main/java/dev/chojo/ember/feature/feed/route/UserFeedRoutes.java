@@ -21,10 +21,9 @@ import dev.chojo.ember.feature.feed.render.IcalEventRenderer;
 import dev.chojo.ember.feature.feed.render.NotificationFeedRenderer;
 import dev.chojo.ember.feature.feed.service.FeedMetricsService;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
+import dev.chojo.ember.feature.lostandfound.service.LostAndFoundImageService;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
 import dev.chojo.ember.feature.mail.service.EmailService;
-import dev.chojo.ember.feature.media.service.ImageCategory;
-import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.entity.Notification;
@@ -67,10 +66,14 @@ import java.util.stream.Collectors;
 public class UserFeedRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(UserFeedRoutes.class);
 
-    /** Past iCal window: keep the last week of cancelled or recently-finished events visible. */
+    /**
+     * Past iCal window: keep the last week of cancelled or recently-finished events visible.
+     */
     private static final Duration ICAL_WINDOW_PAST = Duration.ofDays(7);
 
-    /** Forward iCal window: cover annual events without unbounded growth on long-running stations. */
+    /**
+     * Forward iCal window: cover annual events without unbounded growth on long-running stations.
+     */
     private static final Duration ICAL_WINDOW_FUTURE = Duration.ofDays(365);
 
     /**
@@ -88,7 +91,7 @@ public class UserFeedRoutes implements Routes {
     private final AccountRepository accountRepository;
     private final IcalEventRenderer icalRenderer;
     private final LostAndFoundService lostAndFoundService;
-    private final ImageService imageService;
+    private final LostAndFoundImageService imageService;
     private final NotificationFeedRenderer notificationRenderer;
     private final FeedRateLimiter rateLimiter;
     private final FeedMetricsService metricsService;
@@ -104,7 +107,7 @@ public class UserFeedRoutes implements Routes {
             AccountRepository accountRepository,
             IcalEventRenderer icalRenderer,
             LostAndFoundService lostAndFoundService,
-            ImageService imageService,
+            LostAndFoundImageService imageService,
             NotificationFeedRenderer notificationRenderer,
             FeedRateLimiter rateLimiter,
             FeedMetricsService metricsService) {
@@ -124,15 +127,6 @@ public class UserFeedRoutes implements Routes {
     }
 
     /**
-     * Records a finished feed render to the metrics service. Should be called from a
-     * {@code finally} so 429 / 304 / 500 paths all get accounted for.
-     */
-    private void recordMetric(Context ctx, String type, long startNanos, int entries) {
-        long durationMs = (System.nanoTime() - startNanos) / 1_000_000L;
-        metricsService.recordRender(type, ctx.status().getCode(), durationMs, entries, ctx.header("User-Agent"));
-    }
-
-    /**
      * Applies the cross-cutting privacy headers used by every public feed endpoint:
      * {@code Referrer-Policy: no-referrer} so the feed token never leaks via {@code Referer}
      * to embedded image hosts or reader proxies, and {@code X-Robots-Tag: noindex} so leaked
@@ -142,6 +136,23 @@ public class UserFeedRoutes implements Routes {
     private static void applyPrivacyHeaders(Context ctx) {
         ctx.header("Referrer-Policy", "no-referrer");
         ctx.header("X-Robots-Tag", "noindex");
+    }
+
+    @Override
+    public void register(JavalinDefaultRoutingApi routes, String prefix) {
+        routes.get(prefix + "/public/feed/{token}/events.ics", this::icalFeed);
+        routes.get(prefix + "/public/feed/{token}/notifications.rss", this::rssFeed);
+        routes.get(prefix + "/public/feed/{token}/notifications.atom", this::atomFeed);
+        routes.get(prefix + "/public/feed/{token}/lost-and-found/{id}/image", this::lostAndFoundImage);
+    }
+
+    /**
+     * Records a finished feed render to the metrics service. Should be called from a
+     * {@code finally} so 429 / 304 / 500 paths all get accounted for.
+     */
+    private void recordMetric(Context ctx, String type, long startNanos, int entries) {
+        long durationMs = (System.nanoTime() - startNanos) / 1_000_000L;
+        metricsService.recordRender(type, ctx.status().getCode(), durationMs, entries, ctx.header("User-Agent"));
     }
 
     /**
@@ -159,14 +170,6 @@ public class UserFeedRoutes implements Routes {
                     return true;
                 })
                 .orElse(false);
-    }
-
-    @Override
-    public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/public/feed/{token}/events.ics", this::icalFeed);
-        routes.get(prefix + "/public/feed/{token}/notifications.rss", this::rssFeed);
-        routes.get(prefix + "/public/feed/{token}/notifications.atom", this::atomFeed);
-        routes.get(prefix + "/public/feed/{token}/lost-and-found/{id}/image", this::lostAndFoundImage);
     }
 
     private StationMember resolveToken(Context ctx) {
@@ -336,9 +339,7 @@ public class UserFeedRoutes implements Routes {
         }
 
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
-        var image = imageService
-                .read(ImageCategory.LOST_AND_FOUND, String.valueOf(itemId), size)
-                .orElseThrow(NotFoundResponse::new);
+        var image = imageService.read(member.stationId(), itemId, size).orElseThrow(NotFoundResponse::new);
 
         ctx.contentType(image.contentType());
         ctx.header("Cache-Control", "public, max-age=86400");

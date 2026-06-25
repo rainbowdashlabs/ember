@@ -21,14 +21,14 @@ import java.util.UUID;
 /**
  * Represents an authenticated user's session context, including account info, station scope, and resolved permissions.
  *
- * @param account              the authenticated account
- * @param sessionId            the underlying account_session row id
- * @param stationId            the internal station ID, or {@code null} if no station is selected
- * @param stationUid           the external station UUID, or {@code null} if no station is selected
- * @param member               the station member record if the user belongs to the station, or {@code null}
- * @param permissions          the fully expanded set of station permissions for this session
- * @param instancePermissions  the instance-level permissions
- * @param twoFactorVerifiedAt  when the session last completed a 2FA challenge (login or step-up); {@code null} if never
+ * @param account             the authenticated account
+ * @param sessionId           the underlying account_session row id
+ * @param stationId           the internal station ID, or {@code null} if no station is selected
+ * @param stationUid          the external station UUID, or {@code null} if no station is selected
+ * @param member              the station member record if the user belongs to the station, or {@code null}
+ * @param permissions         the fully expanded set of station permissions for this session
+ * @param instancePermissions the instance-level permissions
+ * @param twoFactorVerifiedAt when the session last completed a 2FA challenge (login or step-up); {@code null} if never
  */
 public record UserSession(
         Account account,

@@ -7,6 +7,9 @@ package dev.chojo.ember.feature.page.service;
 
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
+import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.util.WebpEncoder;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,7 +22,6 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -42,13 +44,13 @@ class PageImageVariantServiceTest {
     private PageImageVariantService variants;
 
     @BeforeEach
-    void setup() throws Exception {
+    void setup() {
         var stationRepo = Mockito.mock(StationRepository.class);
         Mockito.when(stationRepo.resolveUid(STATION_ID)).thenReturn(STATION_UID);
-        storage = new PageFileStorageService(stationRepo);
-        Field baseDir = PageFileStorageService.class.getDeclaredField("baseDir");
-        baseDir.setAccessible(true);
-        baseDir.set(storage, tempDir.resolve("page-files"));
+        var backend = new LocalStorageBackend(tempDir);
+        var resolver = new StorageBackendResolver(backend);
+        var storageService = new StorageService(resolver, backend);
+        storage = new PageFileStorageService(storageService, stationRepo, backend);
 
         config = Mockito.mock(Storage.class);
         Mockito.when(config.imageVariantsEnabled()).thenReturn(true);

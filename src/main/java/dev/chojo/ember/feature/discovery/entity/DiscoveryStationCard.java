@@ -37,10 +37,6 @@ public record DiscoveryStationCard(
 
     private static final ObjectMapper MAPPER = JsonMapper.builder().build();
 
-    public JsonNode toJson() {
-        return MAPPER.valueToTree(this);
-    }
-
     public static DiscoveryStationCard parse(JsonNode node) {
         return MAPPER.convertValue(node, DiscoveryStationCard.class);
     }
@@ -53,14 +49,6 @@ public record DiscoveryStationCard(
         }
     }
 
-    public String toJsonString() {
-        try {
-            return MAPPER.writeValueAsString(this);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to serialize DiscoveryStationCard", e);
-        }
-    }
-
     /**
      * Bucketing function used by the public station endpoint when projecting a real member
      * count down to one of {@code <10 | 10-50 | 50-200 | 200+}.
@@ -70,5 +58,17 @@ public record DiscoveryStationCard(
         if (actual < 50) return "10-50";
         if (actual < 200) return "50-200";
         return "200+";
+    }
+
+    public JsonNode toJson() {
+        return MAPPER.valueToTree(this);
+    }
+
+    public String toJsonString() {
+        try {
+            return MAPPER.writeValueAsString(this);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to serialize DiscoveryStationCard", e);
+        }
     }
 }

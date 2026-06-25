@@ -15,8 +15,8 @@ package dev.chojo.ember.tracking;
  * {@code account} on {@code station_member.account_id = account.id} and reading
  * {@code account.email}.
  *
- * @param via     local FK column to follow (must match a {@link ForeignKey#column()} entry on the table)
- * @param pick    column on the referenced table to read
- * @param emitAs  field name to emit in the exported row
+ * @param via    local FK column to follow (must match a {@link ForeignKey#column()} entry on the table)
+ * @param pick   column on the referenced table to read
+ * @param emitAs field name to emit in the exported row
  */
 public record Lookup(String via, String pick, String emitAs) {}

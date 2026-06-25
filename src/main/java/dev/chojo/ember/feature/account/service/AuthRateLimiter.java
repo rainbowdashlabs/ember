@@ -53,7 +53,9 @@ public class AuthRateLimiter {
         this(Clock.systemUTC());
     }
 
-    /** Visible-for-testing constructor that lets tests drive time deterministically. */
+    /**
+     * Visible-for-testing constructor that lets tests drive time deterministically.
+     */
     public AuthRateLimiter(Clock clock) {
         this.loginIp = new LeakyBucket(10, 10, PRUNE_AFTER, clock);
         this.loginIdentity = new LeakyBucket(20, FIFTEEN_MIN.dividedBy(5), PRUNE_AFTER, clock);
@@ -67,6 +69,27 @@ public class AuthRateLimiter {
         this.confirmEmailIp = new LeakyBucket(30, 30, PRUNE_AFTER, clock);
         this.refreshIp = new LeakyBucket(60, 60, PRUNE_AFTER, clock);
         this.changePasswordIdentity = new LeakyBucket(10, HOUR.dividedBy(5), PRUNE_AFTER, clock);
+    }
+
+    /**
+     * Returns the larger of the two retry-after values, or empty when both buckets
+     * admitted the request. Either bucket being exhausted means the request is denied;
+     * we surface the longer wait so the caller knows when they can usefully retry.
+     */
+    private static Optional<Long> takeMax(Optional<Long> a, Optional<Long> b) {
+        if (a.isEmpty() && b.isEmpty()) return Optional.empty();
+        return Optional.of(Math.max(a.orElse(0L), b.orElse(0L)));
+    }
+
+    private static String hashEmail(String email) {
+        String normalized = email == null ? "" : email.trim().toLowerCase();
+        try {
+            var digest = MessageDigest.getInstance("SHA-256");
+            byte[] bytes = digest.digest(normalized.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(bytes);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 not available", e);
+        }
     }
 
     public Optional<Long> tryLogin(String ip, String email) {
@@ -103,26 +126,5 @@ public class AuthRateLimiter {
 
     public Optional<Long> tryChangePassword(int accountId) {
         return changePasswordIdentity.tryAcquire(Integer.toString(accountId));
-    }
-
-    /**
-     * Returns the larger of the two retry-after values, or empty when both buckets
-     * admitted the request. Either bucket being exhausted means the request is denied;
-     * we surface the longer wait so the caller knows when they can usefully retry.
-     */
-    private static Optional<Long> takeMax(Optional<Long> a, Optional<Long> b) {
-        if (a.isEmpty() && b.isEmpty()) return Optional.empty();
-        return Optional.of(Math.max(a.orElse(0L), b.orElse(0L)));
-    }
-
-    private static String hashEmail(String email) {
-        String normalized = email == null ? "" : email.trim().toLowerCase();
-        try {
-            var digest = MessageDigest.getInstance("SHA-256");
-            byte[] bytes = digest.digest(normalized.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(bytes);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
-        }
     }
 }

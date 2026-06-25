@@ -69,7 +69,7 @@ class TwoFactorPolicyServiceTest extends RepositoryTestBase {
 
         var status = service.listStationMemberStatus(station.id());
         assertEquals(1, status.size());
-        assertTrue(status.get(0).mandated(), "instance administrators are always mandated");
+        assertTrue(status.getFirst().mandated(), "instance administrators are always mandated");
     }
 
     @Test
@@ -86,7 +86,7 @@ class TwoFactorPolicyServiceTest extends RepositoryTestBase {
                 null);
 
         var status = service.listStationMemberStatus(station.id());
-        assertTrue(status.get(0).mandated(), "wildcard policy applies to every user type");
+        assertTrue(status.getFirst().mandated(), "wildcard policy applies to every user type");
         service.deletePolicy(wildcard.id());
     }
 

@@ -40,6 +40,14 @@ public class DiscoverySettingsService {
         this.settings = settings;
     }
 
+    /**
+     * Clamps a depth value into {@code [0, MAX_DEPTH]}.
+     */
+    public static int clampDepth(int depth) {
+        if (depth < 0) return 0;
+        return Math.min(depth, MAX_DEPTH);
+    }
+
     public boolean isEnabled() {
         return settings.getBoolean(KEY_ENABLED, true);
     }
@@ -64,13 +72,5 @@ public class DiscoverySettingsService {
 
     public void setPingIntervalMinutes(int minutes) {
         settings.set(KEY_PING_INTERVAL, Integer.toString(Math.max(MIN_PING_INTERVAL_MINUTES, minutes)));
-    }
-
-    /**
-     * Clamps a depth value into {@code [0, MAX_DEPTH]}.
-     */
-    public static int clampDepth(int depth) {
-        if (depth < 0) return 0;
-        return Math.min(depth, MAX_DEPTH);
     }
 }

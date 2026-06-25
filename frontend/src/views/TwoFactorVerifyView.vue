@@ -38,8 +38,8 @@ const rememberDevice = ref(false)
 const trustedDeviceMaxDays = ref(0)
 
 // The pre-auth token doesn't grant access to /account/2fa/status, but the value only
-// affects an unauthenticated view of the trusted-device window. Fall back to the
-// concept default (30) when the call fails so the checkbox still shows a sensible cap.
+// affects an unauthenticated view of the trusted-device window. Fall back to a
+// default of 30 when the call fails so the checkbox still shows a sensible cap.
 onMounted(async () => {
   try {
     const status = await getTwoFactorStatus()

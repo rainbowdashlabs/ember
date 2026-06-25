@@ -33,6 +33,27 @@ public sealed interface CellConfig {
 
     CellConfig EMPTY = new MarkdownConfig();
 
+    static CellConfig parse(CellContentType type, String json) {
+        if (json == null || json.isBlank() || "{}".equals(json)) {
+            return type.emptyConfig();
+        }
+        try {
+            return MAPPER.readValue(json, type.configClass());
+        } catch (Exception e) {
+            log.error("Failed to parse CellConfig for type {}: {}", type, json, e);
+            return type.emptyConfig();
+        }
+    }
+
+    default String toJson() {
+        try {
+            return MAPPER.writeValueAsString(this);
+        } catch (Exception e) {
+            log.error("Failed to serialize CellConfig", e);
+            return "{}";
+        }
+    }
+
     enum ImageFit {
         COVER,
         CONTAIN,
@@ -350,14 +371,14 @@ public sealed interface CellConfig {
     /**
      * Embedded poll. The cell references a public form (purpose = POLL) by its public UUID and
      * the render component fetches the form definition and submits anonymously via the public
-     * form endpoints (concept §3.14, §4.4).
+     * form endpoints.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record PollEmbedConfig(String formPublicUid, Boolean showResultsAfterVote) implements CellConfig {}
 
     /**
      * Quiz teaser. References one or more public quiz catalogs by id; the renderer pulls a
-     * random question from them and reveals the answer on click (concept §3.15).
+     * random question from them and reveals the answer on click.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record QuizTeaserConfig(String title, String description, List<Integer> catalogIds) implements CellConfig {}
@@ -365,7 +386,7 @@ public sealed interface CellConfig {
     /**
      * Contact form call-to-action. References a public form (purpose = CONTACT) by its public
      * UUID; the cell renders that form for in-page anonymous submission. Headline and body are
-     * editor-supplied overrides shown above the form fields (concept §3.16).
+     * editor-supplied overrides shown above the form fields.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record FormsCtaConfig(String formPublicUid, String headlineOverride, String bodyOverride) implements CellConfig {}
@@ -383,25 +404,4 @@ public sealed interface CellConfig {
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record NestedRowsConfig(JsonNode rows) implements CellConfig {}
-
-    static CellConfig parse(CellContentType type, String json) {
-        if (json == null || json.isBlank() || "{}".equals(json)) {
-            return type.emptyConfig();
-        }
-        try {
-            return MAPPER.readValue(json, type.configClass());
-        } catch (Exception e) {
-            log.error("Failed to parse CellConfig for type {}: {}", type, json, e);
-            return type.emptyConfig();
-        }
-    }
-
-    default String toJson() {
-        try {
-            return MAPPER.writeValueAsString(this);
-        } catch (Exception e) {
-            log.error("Failed to serialize CellConfig", e);
-            return "{}";
-        }
-    }
 }

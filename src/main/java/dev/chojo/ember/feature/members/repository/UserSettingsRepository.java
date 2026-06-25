@@ -27,9 +27,9 @@ public class UserSettingsRepository {
      */
     public UserSettings findOrCreate(int memberId) {
         return query("""
-                            INSERT INTO user_settings(member_id) VALUES(:member_id)
-                            ON CONFLICT (member_id) DO NOTHING
-                            RETURNING *;""")
+                INSERT INTO user_settings(member_id) VALUES(:member_id)
+                ON CONFLICT (member_id) DO NOTHING
+                RETURNING *;""")
                 .single(call().bind("member_id", memberId))
                 .map(UserSettings.map())
                 .first()
@@ -55,9 +55,9 @@ public class UserSettingsRepository {
      */
     public UserSettings updateEmailEnabled(int memberId, boolean emailEnabled) {
         return query("""
-                            INSERT INTO user_settings(member_id, email_enabled) VALUES(:member_id, :email_enabled)
-                            ON CONFLICT (member_id) DO UPDATE SET email_enabled = :email_enabled
-                            RETURNING *;""")
+                INSERT INTO user_settings(member_id, email_enabled) VALUES(:member_id, :email_enabled)
+                ON CONFLICT (member_id) DO UPDATE SET email_enabled = :email_enabled
+                RETURNING *;""")
                 .single(call().bind("member_id", memberId).bind("email_enabled", emailEnabled))
                 .map(UserSettings.map())
                 .first()
@@ -66,9 +66,9 @@ public class UserSettingsRepository {
 
     public UserSettings updateTheme(int memberId, String theme, String darkMode, String feel) {
         return query("""
-                            INSERT INTO user_settings(member_id, theme, dark_mode, feel) VALUES(:member_id, :theme, :dark_mode, :feel)
-                            ON CONFLICT (member_id) DO UPDATE SET theme = :theme, dark_mode = :dark_mode, feel = :feel
-                            RETURNING *;""")
+                INSERT INTO user_settings(member_id, theme, dark_mode, feel) VALUES(:member_id, :theme, :dark_mode, :feel)
+                ON CONFLICT (member_id) DO UPDATE SET theme = :theme, dark_mode = :dark_mode, feel = :feel
+                RETURNING *;""")
                 .single(call().bind("member_id", memberId)
                         .bind("theme", theme)
                         .bind("dark_mode", darkMode)

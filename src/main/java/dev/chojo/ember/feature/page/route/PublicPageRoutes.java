@@ -47,6 +47,16 @@ public class PublicPageRoutes implements Routes {
         this.discoveryCacheRepository = discoveryCacheRepository;
     }
 
+    private static Integer parseOptionalWidth(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            int value = Integer.parseInt(raw);
+            return value > 0 ? value : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/public/pages/{stationUid}", this::listPages);
@@ -148,16 +158,6 @@ public class PublicPageRoutes implements Routes {
         ctx.header("Cache-Control", "public, max-age=31536000, immutable");
         ctx.header("Vary", "Accept");
         ctx.result(fileData.data());
-    }
-
-    private static Integer parseOptionalWidth(String raw) {
-        if (raw == null || raw.isBlank()) return null;
-        try {
-            int value = Integer.parseInt(raw);
-            return value > 0 ? value : null;
-        } catch (NumberFormatException e) {
-            return null;
-        }
     }
 
     private int resolveStation(Context ctx) {

@@ -16,8 +16,6 @@ import java.util.List;
 public final class CsvParser {
     private CsvParser() {}
 
-    public record ParsedCsv(List<String> headers, List<List<String>> rows) {}
-
     public static ParsedCsv parse(String content, char delimiter) throws IOException {
         var format = CSVFormat.Builder.create()
                 .setDelimiter(delimiter)
@@ -42,4 +40,6 @@ public final class CsvParser {
             return new ParsedCsv(headers, rows);
         }
     }
+
+    public record ParsedCsv(List<String> headers, List<List<String>> rows) {}
 }

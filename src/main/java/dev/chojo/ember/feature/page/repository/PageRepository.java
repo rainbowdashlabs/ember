@@ -104,7 +104,7 @@ public class PageRepository {
     }
 
     /**
-     * Editor's PAGE_LINK picker (concept §4.5). Returns a compact shape — {@code publicUid},
+     * Editor's PAGE_LINK picker. Returns a compact shape — {@code publicUid},
      * {@code title}, {@code slug}, {@code updatedAt} — for the published pages of the supplied
      * station, optionally filtered by case-insensitive title substring. Empty {@code search}
      * returns the most recently updated pages so the picker has something on first focus.
@@ -120,7 +120,7 @@ public class PageRepository {
                 SELECT public_uid, title, slug, updated_at
                 FROM station_page
                 WHERE station_id = :station_id
-                  AND published
+                  AND PUBLISHED
                   %s
                 ORDER BY updated_at DESC
                 LIMIT :limit;""", predicate)
@@ -132,12 +132,6 @@ public class PageRepository {
                         row.get("updated_at", INSTANT_TIMESTAMP)))
                 .all();
     }
-
-    /**
-     * Lightweight picker result row for the page picker. Exposes only the public UUID — never the
-     * internal integer id (concept §2.3).
-     */
-    public record PickerPage(UUID pageUid, String title, String slug, Instant updatedAt) {}
 
     public boolean updateMeta(
             int id, String title, String slug, Integer parentId, String metaDescription, Integer ogImageId) {
@@ -205,14 +199,14 @@ public class PageRepository {
         return d;
     }
 
-    // --- Row/Cell operations (full tree save) ---
-
     public List<PageRow> findRowsByPage(int pageId) {
         return query("SELECT id, page_id, sort_order FROM page_row WHERE page_id = :page_id ORDER BY sort_order;")
                 .single(call().bind("page_id", pageId))
                 .map(PageRow.mapFlat())
                 .all();
     }
+
+    // --- Row/Cell operations (full tree save) ---
 
     public List<PageCell> findCellsByRow(int rowId) {
         return query("""
@@ -276,8 +270,6 @@ public class PageRepository {
         return page.withRows(rows);
     }
 
-    // --- Image operations ---
-
     public PageFile createFile(
             Integer pageId, int stationId, String contentHash, String fileName, String mimeType, long fileSize) {
         return query("""
@@ -299,6 +291,8 @@ public class PageRepository {
                 .first()
                 .orElseThrow();
     }
+
+    // --- Image operations ---
 
     public Optional<PageFile> findFile(int fileId) {
         return query("SELECT * FROM page_file WHERE id = :id;")
@@ -361,13 +355,13 @@ public class PageRepository {
                 .toList();
     }
 
-    // --- Landing page ---
-
     public void setLandingPage(int stationId, Integer pageId) {
         query("UPDATE station SET landing_page_id = :page_id WHERE id = :station_id;")
                 .single(call().bind("page_id", pageId).bind("station_id", stationId))
                 .update();
     }
+
+    // --- Landing page ---
 
     public Optional<Integer> getLandingPageId(int stationId) {
         return query("SELECT landing_page_id FROM station WHERE id = :id;")
@@ -375,4 +369,10 @@ public class PageRepository {
                 .map(row -> row.getObject("landing_page_id") != null ? row.getInt("landing_page_id") : null)
                 .first();
     }
+
+    /**
+     * Lightweight picker result row for the page picker. Exposes only the public UUID — never the
+     * internal integer id.
+     */
+    public record PickerPage(UUID pageUid, String title, String slug, Instant updatedAt) {}
 }

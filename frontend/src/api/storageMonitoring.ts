@@ -17,6 +17,7 @@ export interface StationUsageResponse {
     quotaBytes: number
     quotaUsedPercent: number
     categoryQuotas: Record<string, number>
+    usesOwnBackend: boolean
 }
 
 export interface AdminStationUsage {
@@ -28,6 +29,7 @@ export interface AdminStationUsage {
     categories: CategoryUsage[]
     presetId: number | null
     presetName: string | null
+    usesOwnBackend: boolean
 }
 
 export interface StorageQuotaPreset {
@@ -128,11 +130,20 @@ export function formatBytes(bytes: number): string {
 
 // Category display names
 export const StorageCategory = {
+    PAGE_FILES: 'PAGE_FILES',
+    PAGE_IMAGES: 'PAGE_IMAGES',
     KB_FILES: 'KB_FILES',
     BOARD_ATTACHMENTS: 'BOARD_ATTACHMENTS',
-    PAGE_IMAGES: 'PAGE_IMAGES',
-    AVATARS: 'AVATARS',
-    IMAGES: 'IMAGES',
+    IMAGE_AVATAR: 'IMAGE_AVATAR',
+    IMAGE_LOST_AND_FOUND: 'IMAGE_LOST_AND_FOUND',
+    IMAGE_LOGO_FRAGMENT: 'IMAGE_LOGO_FRAGMENT',
+    IMAGE_QUIZ_QUESTION: 'IMAGE_QUIZ_QUESTION',
+    IMAGE_KB_ICON: 'IMAGE_KB_ICON',
+    IMAGE_KB_IMAGE: 'IMAGE_KB_IMAGE',
+    DOCUMENT: 'DOCUMENT',
+    DISCOVERY_KEY: 'DISCOVERY_KEY',
+    MAP_TILE_CACHE: 'MAP_TILE_CACHE',
+    DEMO_AVATAR: 'DEMO_AVATAR',
 } as const
 
 export type StorageCategoryName = (typeof StorageCategory)[keyof typeof StorageCategory]

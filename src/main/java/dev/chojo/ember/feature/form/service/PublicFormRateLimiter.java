@@ -14,13 +14,13 @@ import java.util.HexFormat;
 import java.util.Optional;
 
 /**
- * Per-(form, submitter_hash) rate limiter for anonymous public form submissions
- * (concept §4.4). Keyed off the hash, never the raw IP, so the limit survives
- * across requests without ever persisting an IP.
+ * Per-(form, submitter_hash) rate limiter for anonymous public form submissions.
+ * Keyed off the hash, never the raw IP, so the limit survives across requests
+ * without ever persisting an IP.
  *
  * <p>Defaults: {@value #BURST_CAPACITY} submissions admitted from an idle bucket
- * with sustained refill of {@value #REFILL_PER_HOUR} per hour. The cap matches
- * the §4.4 ceiling of "5 submissions per hour per (form, hash)". A misbehaving
+ * with sustained refill of {@value #REFILL_PER_HOUR} per hour. The cap of
+ * "5 submissions per hour per (form, hash)" matches the spec. A misbehaving
  * scraper that wins one burst gets at most {@code BURST_CAPACITY +
  * REFILL_PER_HOUR} submissions in a sliding hour.
  */
@@ -44,7 +44,7 @@ public class PublicFormRateLimiter {
 
     /**
      * @return empty when the request is allowed, or the seconds until the next refill
-     *         when the caller should be served {@code 429} with {@code Retry-After}
+     * when the caller should be served {@code 429} with {@code Retry-After}
      */
     public Optional<Long> tryAcquire(int formId, byte[] submitterHash) {
         return bucket.tryAcquire(formId + ":" + HexFormat.of().formatHex(submitterHash));

@@ -28,7 +28,7 @@ public record InventoryCheckItem(
                 row.getInt("check_id"),
                 row.getObject("item_id", Integer.class),
                 row.getObject("inventory_id", Integer.class),
-                CheckResult.valueOf(row.getString("result")),
+                row.getEnum("result", CheckResult.class),
                 row.getString("note"));
     }
 }

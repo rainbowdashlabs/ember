@@ -91,7 +91,7 @@ public class FederatedBoardRepository {
                 JOIN federation_board_share s ON s.id = t.share_id
                 WHERE s.board_id = :board_id AND t.partner_id = :partner_id;""")
                 .single(call().bind("board_id", boardId).bind("partner_id", partnerId))
-                .map(row -> BoardShareMode.valueOf(row.getString("share_mode")))
+                .map(row -> row.getEnum("share_mode", BoardShareMode.class))
                 .first();
     }
 

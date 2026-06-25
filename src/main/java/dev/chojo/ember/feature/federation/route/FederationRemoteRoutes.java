@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.FederationSigningService;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
+import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -41,6 +42,7 @@ public class FederationRemoteRoutes implements Routes {
     private final FederationRepository repository;
     private final EventFederationService eventFederationService;
     private final RemoteUrlValidator urlValidator;
+    private final StationReadOnlyGuard readOnlyGuard;
 
     @Inject
     public FederationRemoteRoutes(
@@ -48,12 +50,14 @@ public class FederationRemoteRoutes implements Routes {
             FederationSigningService signingService,
             FederationRepository repository,
             EventFederationService eventFederationService,
-            RemoteUrlValidator urlValidator) {
+            RemoteUrlValidator urlValidator,
+            StationReadOnlyGuard readOnlyGuard) {
         this.federationService = federationService;
         this.signingService = signingService;
         this.repository = repository;
         this.eventFederationService = eventFederationService;
         this.urlValidator = urlValidator;
+        this.readOnlyGuard = readOnlyGuard;
     }
 
     @Override
@@ -122,6 +126,7 @@ public class FederationRemoteRoutes implements Routes {
 
     private void registerWebhook(Context ctx) {
         var partner = requireFederationPartner(ctx);
+        readOnlyGuard.requireWritable(partner.stationId());
         var req = ctx.bodyAsClass(WebhookRegisterRequest.class);
         if (req.webhookUrl() == null || req.webhookUrl().isBlank()) {
             throw new BadRequestResponse("webhookUrl is required");
@@ -138,6 +143,7 @@ public class FederationRemoteRoutes implements Routes {
 
     private void syncMetadata(Context ctx) {
         var partner = requireFederationPartner(ctx);
+        readOnlyGuard.requireWritable(partner.stationId());
         String sinceParam = ctx.queryParam("since");
         if (sinceParam == null || sinceParam.isBlank()) {
             throw new BadRequestResponse("since parameter is required");
@@ -165,6 +171,7 @@ public class FederationRemoteRoutes implements Routes {
      */
     private void announceHostChange(Context ctx) {
         var partner = requireFederationPartner(ctx);
+        readOnlyGuard.requireWritable(partner.stationId());
         var req = ctx.bodyAsClass(AnnounceRequest.class);
         if (req.newHost() == null || req.newHost().isBlank()) {
             throw new BadRequestResponse("newHost is required");
@@ -184,6 +191,7 @@ public class FederationRemoteRoutes implements Routes {
 
     private void onMemberNameChanged(Context ctx) {
         var partner = requireFederationPartner(ctx);
+        readOnlyGuard.requireWritable(partner.stationId());
         var req = ctx.bodyAsClass(MemberNameChangedWebhook.class);
         eventFederationService.invalidateName(partner.id(), req.remoteMemberId());
         ctx.json(new StatusResponse("ok"));

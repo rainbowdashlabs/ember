@@ -25,9 +25,9 @@ public class DiscoveryPingRepository {
      */
     public boolean record(String nonce, PingDirection direction, String peerKey, Instant issuedAt, Instant expiresAt) {
         int rows = query("""
-                                INSERT INTO discovery_ping (nonce, direction, peer_key, issued_at, expires_at)
-                                VALUES (:nonce, :direction, :peer_key, :issued_at, :expires_at)
-                                ON CONFLICT (nonce) DO NOTHING;""")
+                INSERT INTO discovery_ping (nonce, direction, peer_key, issued_at, expires_at)
+                VALUES (:nonce, :direction, :peer_key, :issued_at, :expires_at)
+                ON CONFLICT (nonce) DO NOTHING;""")
                 .single(call().bind("nonce", nonce)
                         .bind("direction", direction.name())
                         .bind("peer_key", peerKey)

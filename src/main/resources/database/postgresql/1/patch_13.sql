@@ -1,5 +1,4 @@
 -- Discovery chain (cross-instance gossip + station listing)
--- See .concept/discovery.md for the full design.
 
 -- Peers we have heard of via gossip, bootstrap, or manual admin add.
 CREATE TABLE ember_schema.discovery_peer (

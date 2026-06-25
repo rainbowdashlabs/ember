@@ -41,6 +41,12 @@ public class TrustedDeviceService {
         this.settings = settings;
     }
 
+    private static String newToken() {
+        byte[] bytes = new byte[TOKEN_BYTES];
+        RANDOM.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
     /**
      * Returns the operator-configured maximum window for trusted-device cookies, capped at 30 days.
      */
@@ -48,14 +54,12 @@ public class TrustedDeviceService {
         return settings.trustedDeviceMaxDays();
     }
 
-    public record Issued(String token, TrustedDevice device) {}
-
     /**
      * Creates a trusted-device row for {@code accountId}. {@code requestedDays} is clamped to
      * {@code [1, maxDays]}; values ≤ 0 are rejected by the caller.
      */
     public Issued issue(int accountId, int requestedDays, String userAgent) {
-        int days = Math.min(Math.max(requestedDays, 1), settings.trustedDeviceMaxDays());
+        int days = Math.clamp(requestedDays, 1, settings.trustedDeviceMaxDays());
         String token = newToken();
         Instant trustedUntil = Instant.now().plus(Duration.ofDays(days));
         var device = repository.createTrustedDevice(accountId, tokenHasher.hash(token), userAgent, trustedUntil);
@@ -86,9 +90,5 @@ public class TrustedDeviceService {
         repository.revokeAllTrustedDevices(accountId);
     }
 
-    private static String newToken() {
-        byte[] bytes = new byte[TOKEN_BYTES];
-        RANDOM.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
+    public record Issued(String token, TrustedDevice device) {}
 }

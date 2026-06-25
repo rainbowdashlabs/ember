@@ -42,22 +42,22 @@ public class Api {
     private int maxImageSizeBytes = 5 * 1024 * 1024;
 
     @Overwrite(env = @Env)
-    private String privacyPolicyDir = "data/privacy";
+    private String privacyPolicyDir = "data/documents/privacy";
 
     @Overwrite(env = @Env)
-    private String consentDir = "data/consent";
+    private String consentDir = "data/documents/consent";
 
     @Overwrite(env = @Env)
-    private String tosDir = "data/tos";
+    private String tosDir = "data/documents/tos";
 
     @Overwrite(env = @Env)
-    private String imprintDir = "data/imprint";
+    private String imprintDir = "data/documents/imprint";
 
     /**
      * Whether to gzip text-shaped responses (JSON, HTML, CSS, XML/RSS/Atom, SVG, plain text,
-     * ICS feeds, …) before sending them to the client. Concept §11.3: the largest single
-     * egress win after image variants, universally supported, ~70% reduction on JSON. Switch
-     * off only for deployments behind a reverse proxy that already handles compression.
+     * ICS feeds, …) before sending them to the client. The largest single egress win after
+     * image variants, universally supported, ~70% reduction on JSON. Switch off only for
+     * deployments behind a reverse proxy that already handles compression.
      */
     @Overwrite(env = @Env)
     private boolean httpGzipEnabled = true;
@@ -73,8 +73,8 @@ public class Api {
 
     /**
      * Minimum response body size, in bytes, before compression kicks in. Smaller responses
-     * cost more CPU than they save in bytes — concept §11.3 settles on ~1 KB, slightly above
-     * the typical MTU. Set to a higher value if many responses fall just over the threshold
+     * cost more CPU than they save in bytes — the default of ~1 KB sits slightly above the
+     * typical MTU. Set to a higher value if many responses fall just over the threshold
      * and the overhead shows up; never set below ~256 B.
      */
     @Overwrite(env = @Env)

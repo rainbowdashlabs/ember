@@ -51,8 +51,15 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        exportService = new StationExportService();
-        importService = new StationImportService(stationRepo, accountRepo, exportService);
+        exportService = new StationExportService(stationRepo);
+        importService = new StationImportService(
+                stationRepo,
+                accountRepo,
+                exportService,
+                new dev.chojo.ember.conf.file.elements.Api(),
+                null,
+                null,
+                null);
     }
 
     @Test

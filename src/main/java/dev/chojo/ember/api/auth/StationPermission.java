@@ -449,10 +449,6 @@ public enum StationPermission implements RouteRole {
     private final StationPermission[] children;
     private Set<StationPermission> allChildren;
 
-    public StationPermission[] getChildren() {
-        return children;
-    }
-
     StationPermission(StationPermission... children) {
         this.children = children;
     }
@@ -466,6 +462,10 @@ public enum StationPermission implements RouteRole {
             expanded.addAll(permission.allChildren());
         }
         return expanded;
+    }
+
+    public StationPermission[] getChildren() {
+        return children;
     }
 
     /**

@@ -8,11 +8,11 @@ package dev.chojo.ember.feature.page.route;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler;
 import dev.chojo.ember.feature.form.service.FormService;
-import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.page.entity.CellConfig;
 import dev.chojo.ember.feature.page.entity.CellContentType;
@@ -43,7 +43,7 @@ public class PageRoutes implements Routes {
     private final FormService formService;
     private final FormAnalyticsAssembler formAnalyticsAssembler;
     private final StationMemberRepository stationMemberRepository;
-    private final ImageService imageService;
+    private final AvatarService avatarService;
 
     @Inject
     public PageRoutes(
@@ -51,12 +51,12 @@ public class PageRoutes implements Routes {
             FormService formService,
             FormAnalyticsAssembler formAnalyticsAssembler,
             StationMemberRepository stationMemberRepository,
-            ImageService imageService) {
+            AvatarService avatarService) {
         this.pageService = pageService;
         this.formService = formService;
         this.formAnalyticsAssembler = formAnalyticsAssembler;
         this.stationMemberRepository = stationMemberRepository;
-        this.imageService = imageService;
+        this.avatarService = avatarService;
     }
 
     @Override
@@ -70,6 +70,7 @@ public class PageRoutes implements Routes {
         routes.post(prefix + "/pages/files", this::uploadStationFile, StationPermission.PAGE_EDIT);
         routes.post(prefix + "/pages/files/prune", this::pruneFiles, StationPermission.PAGE_MANAGER);
         routes.put(prefix + "/pages/files/{fileId}", this::updateFileMeta, StationPermission.PAGE_EDIT);
+        routes.delete(prefix + "/pages/files/{fileId}", this::deleteFile, StationPermission.PAGE_MANAGER);
         routes.put(prefix + "/pages/files/{fileId}/folder", this::moveFileFolder, StationPermission.PAGE_EDIT);
         routes.post(prefix + "/pages/files/{fileId}/tags/{tagId}", this::assignTag, StationPermission.PAGE_EDIT);
         routes.delete(prefix + "/pages/files/{fileId}/tags/{tagId}", this::unassignTag, StationPermission.PAGE_EDIT);
@@ -218,7 +219,13 @@ public class PageRoutes implements Routes {
             }
         }
         ctx.json(MemberListResolver.resolve(
-                stationMemberRepository, imageService, session.stationId(), source, sortBy, descriptions, memberOrder));
+                stationMemberRepository,
+                avatarService,
+                session.stationId(),
+                source,
+                sortBy,
+                descriptions,
+                memberOrder));
     }
 
     private void create(Context ctx) {
@@ -374,16 +381,6 @@ public class PageRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    record PruneResult(int removed) {}
-
-    record FileMetaRequest(String altText, String description) {}
-
-    record FolderRequest(Integer parentId, String name, Integer sortOrder) {}
-
-    record TagRequest(String name, String color) {}
-
-    record MoveFileRequest(Integer folderId) {}
-
     private void moveFileFolder(Context ctx) {
         var session = UserSession.from(ctx);
         int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
@@ -490,6 +487,16 @@ public class PageRoutes implements Routes {
             throw new BadRequestResponse("Failed to upload file");
         }
     }
+
+    record PruneResult(int removed) {}
+
+    record FileMetaRequest(String altText, String description) {}
+
+    record FolderRequest(Integer parentId, String name, Integer sortOrder) {}
+
+    record TagRequest(String name, String color) {}
+
+    record MoveFileRequest(Integer folderId) {}
 
     // Response records
     record PagesListResponse(List<StationPage> pages, Integer landingPageId) {}

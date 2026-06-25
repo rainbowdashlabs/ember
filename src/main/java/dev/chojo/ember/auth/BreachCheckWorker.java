@@ -49,7 +49,9 @@ public class BreachCheckWorker {
         this(hibpClient, accountRepository, authConfig.hibp(), Executors.newVirtualThreadPerTaskExecutor());
     }
 
-    /** Visible-for-testing constructor that lets tests substitute a synchronous executor. */
+    /**
+     * Visible-for-testing constructor that lets tests substitute a synchronous executor.
+     */
     public BreachCheckWorker(
             HibpClient hibpClient, AccountRepository accountRepository, HibpSettings config, ExecutorService executor) {
         this.hibpClient = hibpClient;

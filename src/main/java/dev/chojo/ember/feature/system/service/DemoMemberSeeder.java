@@ -60,24 +60,6 @@ public class DemoMemberSeeder {
         this.userTagRepository = userTagRepository;
     }
 
-    /**
-     * Result of member seeding, containing all created member groups and lists needed by other seeders.
-     * The {@code head} is the station's primary manager — used by downstream seeders as the
-     * creator / owner of station-scoped content (news, events, KB, pages, …).
-     */
-    public record SeedResult(
-            StationMember head,
-            List<StationMember> betreuer,
-            List<StationMember> anfaenger,
-            List<StationMember> fortgeschritten,
-            List<StationMember> eltern,
-            MemberGroup groupBetreuer,
-            MemberGroup groupEltern,
-            MemberGroup groupAnfaenger,
-            MemberGroup groupFortgeschritten,
-            UserTag tagWettkampf,
-            UserTag tagErsthelfer) {}
-
     public SeedResult seed(int stationId, String passwordHash, Random rng) {
         var loginRole = stationMemberRepository
                 .findPermissionByName(StationPermission.LOGIN)
@@ -605,8 +587,10 @@ public class DemoMemberSeeder {
             String firstName, String lastName, String hash, int stationId, int loginRoleId, int memberRoleId) {
         String email = firstName.toLowerCase() + "@" + lastName.toLowerCase() + ".local";
         var account = accountRepository.create(email, firstName, lastName, true);
+        accountRepository.setUid(account.id(), DemoUids.account(email));
         accountRepository.createCredential(account.id(), hash);
         var member = stationMemberRepository.create(stationId, account.id());
+        stationMemberRepository.setUid(member.id(), DemoUids.member(email, stationId));
         stationMemberRepository.setUserType(member.id(), StationUserType.MEMBER);
         stationMemberRepository.grantPermission(member.id(), loginRoleId);
         stationMemberRepository.grantPermission(member.id(), memberRoleId);
@@ -617,8 +601,10 @@ public class DemoMemberSeeder {
             String firstName, String lastName, String hash, int stationId, int loginRoleId) {
         String email = firstName.toLowerCase() + "@" + lastName.toLowerCase() + ".local";
         var account = accountRepository.create(email, firstName, lastName, true);
+        accountRepository.setUid(account.id(), DemoUids.account(email));
         accountRepository.createCredential(account.id(), hash);
         var member = stationMemberRepository.create(stationId, account.id());
+        stationMemberRepository.setUid(member.id(), DemoUids.member(email, stationId));
         stationMemberRepository.setUserType(member.id(), StationUserType.TEAM);
         stationMemberRepository.grantPermission(member.id(), loginRoleId);
         return member;
@@ -628,8 +614,10 @@ public class DemoMemberSeeder {
             String firstName, String lastName, String hash, int stationId, int loginRoleId, int guardianRoleId) {
         String email = firstName.toLowerCase() + "@" + lastName.toLowerCase() + ".local";
         var account = accountRepository.create(email, firstName, lastName, true);
+        accountRepository.setUid(account.id(), DemoUids.account(email));
         accountRepository.createCredential(account.id(), hash);
         var member = stationMemberRepository.create(stationId, account.id());
+        stationMemberRepository.setUid(member.id(), DemoUids.member(email, stationId));
         stationMemberRepository.setUserType(member.id(), StationUserType.GUARDIAN);
         stationMemberRepository.grantPermission(member.id(), loginRoleId);
         stationMemberRepository.grantPermission(member.id(), guardianRoleId);
@@ -650,4 +638,22 @@ public class DemoMemberSeeder {
                 "Keine");
         return allergies.get(rng.nextInt(allergies.size()));
     }
+
+    /**
+     * Result of member seeding, containing all created member groups and lists needed by other seeders.
+     * The {@code head} is the station's primary manager — used by downstream seeders as the
+     * creator / owner of station-scoped content (news, events, KB, pages, …).
+     */
+    public record SeedResult(
+            StationMember head,
+            List<StationMember> betreuer,
+            List<StationMember> anfaenger,
+            List<StationMember> fortgeschritten,
+            List<StationMember> eltern,
+            MemberGroup groupBetreuer,
+            MemberGroup groupEltern,
+            MemberGroup groupAnfaenger,
+            MemberGroup groupFortgeschritten,
+            UserTag tagWettkampf,
+            UserTag tagErsthelfer) {}
 }

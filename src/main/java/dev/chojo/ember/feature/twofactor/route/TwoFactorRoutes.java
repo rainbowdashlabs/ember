@@ -74,6 +74,17 @@ public class TwoFactorRoutes implements Routes {
         this.trustedDeviceService = trustedDeviceService;
     }
 
+    /**
+     * Best-effort "is this the device the caller is currently signed in on?" check. We don't
+     * have direct access to {@code account_session.device_trust_id} from {@link UserSession}
+     * yet — the next session refresh will surface it. For now we always return false; the UI
+     * still shows the list and lets the user revoke each one.
+     */
+    @SuppressWarnings("unused")
+    private static boolean deviceMatchesSession(UserSession session, int deviceId) {
+        return false;
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/account/2fa/status", this::getStatus, StationPermission.LOGIN);
@@ -271,17 +282,6 @@ public class TwoFactorRoutes implements Routes {
                         session.sessionId() != 0 && deviceMatchesSession(session, d.id())))
                 .toList();
         ctx.json(new TrustedDevicesResponse(devices));
-    }
-
-    /**
-     * Best-effort "is this the device the caller is currently signed in on?" check. We don't
-     * have direct access to {@code account_session.device_trust_id} from {@link UserSession}
-     * yet — the next session refresh will surface it. For now we always return false; the UI
-     * still shows the list and lets the user revoke each one.
-     */
-    @SuppressWarnings("unused")
-    private static boolean deviceMatchesSession(UserSession session, int deviceId) {
-        return false;
     }
 
     private void revokeTrustedDevice(Context ctx) {

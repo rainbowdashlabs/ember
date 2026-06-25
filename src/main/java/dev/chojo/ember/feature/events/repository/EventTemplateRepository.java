@@ -30,10 +30,10 @@ public class EventTemplateRepository {
 
     public List<EventTemplate> findByStation(int stationId) {
         return query("""
-                        SELECT %s
-                        FROM event_template
-                        WHERE station_id = :station_id
-                        ORDER BY name;""", TEMPLATE_COLUMNS)
+                SELECT %s
+                FROM event_template
+                WHERE station_id = :station_id
+                ORDER BY name;""", TEMPLATE_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(EventTemplate.map())
                 .all();
@@ -41,9 +41,9 @@ public class EventTemplateRepository {
 
     public Optional<EventTemplate> findById(int id) {
         return query("""
-                        SELECT %s
-                        FROM event_template
-                        WHERE id = :id;""", TEMPLATE_COLUMNS)
+                SELECT %s
+                FROM event_template
+                WHERE id = :id;""", TEMPLATE_COLUMNS)
                 .single(call().bind("id", id))
                 .map(EventTemplate.map())
                 .first();
@@ -51,9 +51,9 @@ public class EventTemplateRepository {
 
     public EventTemplate create(int stationId, String name) {
         return query("""
-                        INSERT INTO event_template(station_id, name)
-                        VALUES (:station_id, :name)
-                        RETURNING %s;""", TEMPLATE_COLUMNS)
+                INSERT INTO event_template(station_id, name)
+                VALUES (:station_id, :name)
+                RETURNING %s;""", TEMPLATE_COLUMNS)
                 .single(call().bind("station_id", stationId).bind("name", name))
                 .map(EventTemplate.map())
                 .first()
@@ -74,19 +74,19 @@ public class EventTemplateRepository {
             Integer attendanceTemplateId,
             Integer registrationLimit) {
         return query("""
-                        UPDATE event_template SET
-                            name = :name,
-                            title = :title,
-                            description = :description,
-                            category_id = :category_id,
-                            event_type = :event_type,
-                            requires_registration = :requires_registration,
-                            registration_deadline_offset = :registration_deadline_offset::interval,
-                            requires_confirmation = :requires_confirmation,
-                            restriction_mode = :restriction_mode,
-                            attendance_template_id = :attendance_template_id,
-                            registration_limit = :registration_limit
-                        WHERE id = :id;""")
+                UPDATE event_template SET
+                    name = :name,
+                    title = :title,
+                    description = :description,
+                    category_id = :category_id,
+                    event_type = :event_type,
+                    requires_registration = :requires_registration,
+                    registration_deadline_offset = :registration_deadline_offset::INTERVAL,
+                    requires_confirmation = :requires_confirmation,
+                    restriction_mode = :restriction_mode,
+                    attendance_template_id = :attendance_template_id,
+                    registration_limit = :registration_limit
+                WHERE id = :id;""")
                 .single(call().bind("id", id)
                         .bind("name", name)
                         .bind("title", title)
@@ -112,10 +112,10 @@ public class EventTemplateRepository {
 
     public List<EventTemplateField> findFields(int templateId) {
         return query("""
-                        SELECT id, template_id, name, field_type, config, position, overview, public, attendance_field_id
-                        FROM event_template_field
-                        WHERE template_id = :template_id
-                        ORDER BY position;""")
+                SELECT id, template_id, name, field_type, config, position, overview, public, attendance_field_id
+                FROM event_template_field
+                WHERE template_id = :template_id
+                ORDER BY position;""")
                 .single(call().bind("template_id", templateId))
                 .map(EventTemplateField.map())
                 .all();
@@ -127,8 +127,8 @@ public class EventTemplateRepository {
                 .delete();
         for (EventTemplateFieldData f : fields) {
             query("""
-                            INSERT INTO event_template_field(template_id, name, field_type, config, position, overview, public, attendance_field_id)
-                            VALUES (:template_id, :name, :field_type, :config::jsonb, :position, :overview, :public, :attendance_field_id);""")
+                    INSERT INTO event_template_field(template_id, name, field_type, config, position, overview, public, attendance_field_id)
+                    VALUES (:template_id, :name, :field_type, :config::JSONB, :position, :overview, :public, :attendance_field_id);""")
                     .single(call().bind("template_id", templateId)
                             .bind("name", f.name())
                             .bind("field_type", f.fieldType() != null ? f.fieldType() : EventFieldType.STRING)
@@ -163,10 +163,10 @@ public class EventTemplateRepository {
 
     public List<Integer> findReminderDays(int templateId) {
         return query("""
-                        SELECT days_before
-                        FROM event_template_reminder
-                        WHERE template_id = :template_id
-                        ORDER BY days_before;""")
+                SELECT days_before
+                FROM event_template_reminder
+                WHERE template_id = :template_id
+                ORDER BY days_before;""")
                 .single(call().bind("template_id", templateId))
                 .map(row -> row.getInt("days_before"))
                 .all();
@@ -178,9 +178,9 @@ public class EventTemplateRepository {
                 .delete();
         for (int days : daysBefore) {
             query("""
-                            INSERT INTO event_template_reminder(template_id, days_before)
-                            VALUES (:template_id, :days_before)
-                            ON CONFLICT DO NOTHING;""")
+                    INSERT INTO event_template_reminder(template_id, days_before)
+                    VALUES (:template_id, :days_before)
+                    ON CONFLICT DO NOTHING;""")
                     .single(call().bind("template_id", templateId).bind("days_before", days))
                     .insert();
         }

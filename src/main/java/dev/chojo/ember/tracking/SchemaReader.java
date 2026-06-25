@@ -125,7 +125,9 @@ public final class SchemaReader {
         return result;
     }
 
-    /** Raw table view assembled from information_schema. */
+    /**
+     * Raw table view assembled from information_schema.
+     */
     public static final class RawTable {
         public final String name;
         public final String description;
@@ -139,7 +141,9 @@ public final class SchemaReader {
             this.foreignKeys = foreignKeys;
         }
 
-        /** Map of column name to RawColumn for quick lookup. */
+        /**
+         * Map of column name to RawColumn for quick lookup.
+         */
         public Map<String, RawColumn> columnsByName() {
             var map = new LinkedHashMap<String, RawColumn>();
             for (var c : columns) map.put(c.name(), c);
@@ -153,6 +157,8 @@ public final class SchemaReader {
      */
     public record RawColumn(String name, String type, boolean nullable, String description) {}
 
-    /** A foreign key, including its ON DELETE rule for cascade verification. */
+    /**
+     * A foreign key, including its ON DELETE rule for cascade verification.
+     */
     public record RawForeignKey(String column, String refTable, String refColumn, String deleteRule) {}
 }

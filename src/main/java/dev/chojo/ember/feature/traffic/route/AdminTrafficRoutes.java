@@ -24,8 +24,8 @@ import java.util.List;
  * {@code station_traffic_hourly}. Permission: {@link InstancePermission#ADMINISTRATOR}.
  *
  * <p>The endpoint deliberately exposes the underlying bucket shape directly — the frontend
- * does its own grouping / stacking depending on the chart it wants to render. Phase 2 of
- * the concept will add a station-scoped sibling.
+ * does its own grouping / stacking depending on the chart it wants to render. Phase 2 will
+ * add a station-scoped sibling.
  */
 @Singleton
 public class AdminTrafficRoutes implements Routes {
@@ -35,42 +35,6 @@ public class AdminTrafficRoutes implements Routes {
     @Inject
     public AdminTrafficRoutes(StationTrafficRepository repository) {
         this.repository = repository;
-    }
-
-    @Override
-    public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/admin/traffic/hourly", this::hourly, InstancePermission.ADMINISTRATOR);
-    }
-
-    /**
-     * Wire-shape response payload for the hourly endpoint.
-     */
-    public record HourlyTrafficRow(
-            Instant hour, Integer stationId, AuthBucket auth, long ingressBytes, long egressBytes, long requests) {
-        static HourlyTrafficRow from(TrafficBucket b) {
-            return new HourlyTrafficRow(
-                    b.hour(), b.stationId(), b.auth(), b.ingressBytes(), b.egressBytes(), b.requests());
-        }
-    }
-
-    /**
-     * Container response so additional aggregations can be added without bumping the API
-     * version (e.g. summary totals once phase 14 introduces the egress cap).
-     */
-    public record HourlyTrafficResponse(List<HourlyTrafficRow> rows) {}
-
-    private void hourly(Context ctx) {
-        Instant from = parseInstant(ctx, "from");
-        Instant to = parseInstant(ctx, "to");
-        if (to.isBefore(from)) {
-            throw new BadRequestResponse("`to` must be on or after `from`");
-        }
-        Integer stationId = parseOptionalInt(ctx, "stationId");
-        AuthBucket auth = parseOptionalAuth(ctx);
-
-        List<TrafficBucket> buckets = repository.findHourly(from, to, stationId, auth);
-        ctx.json(new HourlyTrafficResponse(
-                buckets.stream().map(HourlyTrafficRow::from).toList()));
     }
 
     private static Instant parseInstant(Context ctx, String paramName) {
@@ -104,4 +68,40 @@ public class AdminTrafficRoutes implements Routes {
             throw new BadRequestResponse("auth must be one of: AUTHENTICATED, UNAUTHENTICATED, FEDERATION");
         }
     }
+
+    @Override
+    public void register(JavalinDefaultRoutingApi routes, String prefix) {
+        routes.get(prefix + "/admin/traffic/hourly", this::hourly, InstancePermission.ADMINISTRATOR);
+    }
+
+    private void hourly(Context ctx) {
+        Instant from = parseInstant(ctx, "from");
+        Instant to = parseInstant(ctx, "to");
+        if (to.isBefore(from)) {
+            throw new BadRequestResponse("`to` must be on or after `from`");
+        }
+        Integer stationId = parseOptionalInt(ctx, "stationId");
+        AuthBucket auth = parseOptionalAuth(ctx);
+
+        List<TrafficBucket> buckets = repository.findHourly(from, to, stationId, auth);
+        ctx.json(new HourlyTrafficResponse(
+                buckets.stream().map(HourlyTrafficRow::from).toList()));
+    }
+
+    /**
+     * Wire-shape response payload for the hourly endpoint.
+     */
+    public record HourlyTrafficRow(
+            Instant hour, Integer stationId, AuthBucket auth, long ingressBytes, long egressBytes, long requests) {
+        static HourlyTrafficRow from(TrafficBucket b) {
+            return new HourlyTrafficRow(
+                    b.hour(), b.stationId(), b.auth(), b.ingressBytes(), b.egressBytes(), b.requests());
+        }
+    }
+
+    /**
+     * Container response so additional aggregations can be added without bumping the API
+     * version (e.g. summary totals once phase 14 introduces the egress cap).
+     */
+    public record HourlyTrafficResponse(List<HourlyTrafficRow> rows) {}
 }

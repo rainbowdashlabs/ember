@@ -236,6 +236,11 @@ const router = createRouter({
                     component: () => import('@/views/stationview/manage/StationStorageView.vue'),
                 },
                 {
+                    path: 'manage/storage/backend',
+                    name: 'station-storage-backend',
+                    component: () => import('@/views/stationview/manage/StationStorageBackendView.vue'),
+                },
+                {
                     path: 'manage/security',
                     name: 'station-security',
                     component: () => import('@/views/stationview/manage/StationSecurityView.vue'),
@@ -962,6 +967,16 @@ const router = createRouter({
                     component: () => import('@/views/adminview/AdminStorageView.vue'),
                 },
                 {
+                    path: 'monitoring/storage/backend',
+                    name: 'admin-storage-backend',
+                    component: () => import('@/views/adminview/AdminStorageBackendView.vue'),
+                },
+                {
+                    path: 'monitoring/storage/audit',
+                    name: 'admin-storage-audit',
+                    component: () => import('@/views/adminview/AdminStorageAuditView.vue'),
+                },
+                {
                     path: 'monitoring/api-status',
                     name: 'admin-api-status',
                     component: () => import('@/views/adminview/AdminApiStatusView.vue'),
@@ -1211,6 +1226,11 @@ const router = createRouter({
                     path: 'manage/storage',
                     name: 'help-station-storage',
                     component: () => import('@/views/helpcenter/stationview/manage/StorageHelp.vue')
+                },
+                {
+                    path: 'manage/storage/backend',
+                    name: 'help-station-storage-backend',
+                    component: () => import('@/views/helpcenter/stationview/manage/StorageBackendHelp.vue')
                 },
                 {
                     path: 'federate',
@@ -1925,6 +1945,16 @@ const router = createRouter({
                     path: 'monitoring/storage',
                     name: 'help-admin-storage',
                     component: () => import('@/views/helpcenter/adminview/StorageHelp.vue')
+                },
+                {
+                    path: 'monitoring/storage/backend',
+                    name: 'help-admin-storage-backend',
+                    component: () => import('@/views/helpcenter/adminview/StorageBackendHelp.vue')
+                },
+                {
+                    path: 'monitoring/storage/audit',
+                    name: 'help-admin-storage-audit',
+                    component: () => import('@/views/helpcenter/adminview/StorageAuditHelp.vue')
                 },
                 {
                     path: 'dev/data-tracking',

@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * Station-scoped public-page analytics endpoints (concept §7.7). All routes are gated on
+ * Station-scoped public-page analytics endpoints. All routes are gated on
  * {@link StationPermission#STATION_ADMINISTRATOR}; managers see only their own station's
  * pages, never another station's.
  *
@@ -49,63 +49,6 @@ public class StationInsightsRoutes implements Routes {
     public StationInsightsRoutes(PageHitRepository pageHits, PageRepository pages) {
         this.pageHits = pageHits;
         this.pages = pages;
-    }
-
-    @Override
-    public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/station/insights/pages", this::leaderboard, StationPermission.STATION_ADMINISTRATOR);
-        routes.get(
-                prefix + "/station/insights/pages/{pageId}", this::pageDetail, StationPermission.STATION_ADMINISTRATOR);
-    }
-
-    /**
-     * Wire-shape response for the per-station page leaderboard.
-     */
-    public record LeaderboardResponse(List<PageLeaderboardEntry> rows) {}
-
-    /**
-     * Wire-shape response for the per-page drill-down. All three breakdowns are returned
-     * together so the frontend renders the detail view in a single request.
-     */
-    public record PageDetailResponse(
-            List<HourlyTotal> hourly,
-            List<HourlyTotal> hourlyWithBots,
-            List<DimensionTotal> countries,
-            List<DimensionTotal> referrers) {}
-
-    private void leaderboard(Context ctx) {
-        int stationId = requireStation(ctx);
-        Instant from = parseInstant(ctx, "from");
-        Instant to = parseInstant(ctx, "to");
-        if (to.isBefore(from)) {
-            throw new BadRequestResponse("`to` must be on or after `from`");
-        }
-        int limit = parseOptionalLimit(ctx);
-
-        var rows = pageHits.leaderboard(stationId, from, to, limit);
-        ctx.json(new LeaderboardResponse(rows));
-    }
-
-    private void pageDetail(Context ctx) {
-        int stationId = requireStation(ctx);
-        int pageId = parsePageId(ctx);
-        var page = pages.findById(pageId).orElseThrow(NotFoundResponse::new);
-        if (page.stationId() != stationId) {
-            throw new ForbiddenResponse("Page does not belong to your station");
-        }
-        Instant from = parseInstant(ctx, "from");
-        Instant to = parseInstant(ctx, "to");
-        if (to.isBefore(from)) {
-            throw new BadRequestResponse("`to` must be on or after `from`");
-        }
-
-        var raw = pageHits.findForPage(pageId, from, to);
-        var hourlyNoBots = sumByHour(raw, false);
-        var hourlyWithBots = sumByHour(raw, true);
-        var countries = pageHits.countryTotalsForPage(pageId, from, to);
-        var referrers = pageHits.refererTotalsForPage(pageId, from, to);
-
-        ctx.json(new PageDetailResponse(hourlyNoBots, hourlyWithBots, countries, referrers));
     }
 
     private static List<HourlyTotal> sumByHour(List<PageHitBucket> buckets, boolean includeBots) {
@@ -162,4 +105,61 @@ public class StationInsightsRoutes implements Routes {
             throw new BadRequestResponse("limit must be an integer");
         }
     }
+
+    @Override
+    public void register(JavalinDefaultRoutingApi routes, String prefix) {
+        routes.get(prefix + "/station/insights/pages", this::leaderboard, StationPermission.STATION_ADMINISTRATOR);
+        routes.get(
+                prefix + "/station/insights/pages/{pageId}", this::pageDetail, StationPermission.STATION_ADMINISTRATOR);
+    }
+
+    private void leaderboard(Context ctx) {
+        int stationId = requireStation(ctx);
+        Instant from = parseInstant(ctx, "from");
+        Instant to = parseInstant(ctx, "to");
+        if (to.isBefore(from)) {
+            throw new BadRequestResponse("`to` must be on or after `from`");
+        }
+        int limit = parseOptionalLimit(ctx);
+
+        var rows = pageHits.leaderboard(stationId, from, to, limit);
+        ctx.json(new LeaderboardResponse(rows));
+    }
+
+    private void pageDetail(Context ctx) {
+        int stationId = requireStation(ctx);
+        int pageId = parsePageId(ctx);
+        var page = pages.findById(pageId).orElseThrow(NotFoundResponse::new);
+        if (page.stationId() != stationId) {
+            throw new ForbiddenResponse("Page does not belong to your station");
+        }
+        Instant from = parseInstant(ctx, "from");
+        Instant to = parseInstant(ctx, "to");
+        if (to.isBefore(from)) {
+            throw new BadRequestResponse("`to` must be on or after `from`");
+        }
+
+        var raw = pageHits.findForPage(pageId, from, to);
+        var hourlyNoBots = sumByHour(raw, false);
+        var hourlyWithBots = sumByHour(raw, true);
+        var countries = pageHits.countryTotalsForPage(pageId, from, to);
+        var referrers = pageHits.refererTotalsForPage(pageId, from, to);
+
+        ctx.json(new PageDetailResponse(hourlyNoBots, hourlyWithBots, countries, referrers));
+    }
+
+    /**
+     * Wire-shape response for the per-station page leaderboard.
+     */
+    public record LeaderboardResponse(List<PageLeaderboardEntry> rows) {}
+
+    /**
+     * Wire-shape response for the per-page drill-down. All three breakdowns are returned
+     * together so the frontend renders the detail view in a single request.
+     */
+    public record PageDetailResponse(
+            List<HourlyTotal> hourly,
+            List<HourlyTotal> hourlyWithBots,
+            List<DimensionTotal> countries,
+            List<DimensionTotal> referrers) {}
 }

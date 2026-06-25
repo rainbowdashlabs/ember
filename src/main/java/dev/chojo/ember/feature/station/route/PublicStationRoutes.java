@@ -101,6 +101,17 @@ public class PublicStationRoutes implements Routes {
                 station.customThemeColors()));
     }
 
+    private Station resolveStation(Context ctx) {
+        String param = ctx.pathParam("stationUid");
+        try {
+            UUID uid = UUID.fromString(param);
+            return stationRepository.findByUid(uid).orElseThrow(NotFoundResponse::new);
+        } catch (IllegalArgumentException e) {
+            // Not a UUID — try as public slug
+            return stationRepository.findBySlug(param).orElseThrow(NotFoundResponse::new);
+        }
+    }
+
     public record PublicStationInfo(
             String stationUid,
             String name,
@@ -116,15 +127,4 @@ public class PublicStationRoutes implements Routes {
             String defaultTheme,
             String defaultFeel,
             String customThemeColors) {}
-
-    private Station resolveStation(Context ctx) {
-        String param = ctx.pathParam("stationUid");
-        try {
-            UUID uid = UUID.fromString(param);
-            return stationRepository.findByUid(uid).orElseThrow(NotFoundResponse::new);
-        } catch (IllegalArgumentException e) {
-            // Not a UUID — try as public slug
-            return stationRepository.findBySlug(param).orElseThrow(NotFoundResponse::new);
-        }
-    }
 }

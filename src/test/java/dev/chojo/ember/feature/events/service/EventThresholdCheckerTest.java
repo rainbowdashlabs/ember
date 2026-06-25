@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -38,7 +39,7 @@ class EventThresholdCheckerTest extends RepositoryTestBase {
     static void setup() {
         var eventBus = new DomainEventBus(Set.of());
         eventService = new EventService(eventRepo, restrictionRepo, eventBus);
-        checker = new EventThresholdChecker(eventRepo, eventService);
+        checker = new EventThresholdChecker(eventRepo, eventService, new StationReadOnlyGuard(stationRepo));
         station = stationRepo.create("ThresholdChecker Station");
         account = accountRepo.create("threshold@test.com", "Threshold", "Checker");
         member = stationMemberRepo.create(station.id(), account.id());

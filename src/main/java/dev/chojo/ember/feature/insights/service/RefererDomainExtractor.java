@@ -26,7 +26,7 @@ import java.util.Locale;
  * </ul>
  *
  * <p>Long-tail collapse to {@code other} is done at flush time by the recorder, which checks
- * the historical row count for the domain — see concept §7.5.
+ * the historical row count for the domain.
  */
 @Singleton
 public class RefererDomainExtractor {
@@ -39,6 +39,19 @@ public class RefererDomainExtractor {
     @Inject
     public RefererDomainExtractor(Api api) {
         this.ownHost = parseHost(api.baseUrl());
+    }
+
+    private static String parseHost(String baseUrl) {
+        if (baseUrl == null || baseUrl.isBlank()) return null;
+        try {
+            String host = URI.create(baseUrl).getHost();
+            if (host == null) return null;
+            String normalized = host.toLowerCase(Locale.ROOT);
+            return normalized.startsWith("www.") ? normalized.substring(4) : normalized;
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid api.baseUrl, referer extractor cannot detect internal links: {}", baseUrl);
+            return null;
+        }
     }
 
     /**
@@ -63,18 +76,5 @@ public class RefererDomainExtractor {
             return INTERNAL;
         }
         return normalized;
-    }
-
-    private static String parseHost(String baseUrl) {
-        if (baseUrl == null || baseUrl.isBlank()) return null;
-        try {
-            String host = URI.create(baseUrl).getHost();
-            if (host == null) return null;
-            String normalized = host.toLowerCase(Locale.ROOT);
-            return normalized.startsWith("www.") ? normalized.substring(4) : normalized;
-        } catch (IllegalArgumentException e) {
-            log.warn("Invalid api.baseUrl, referer extractor cannot detect internal links: {}", baseUrl);
-            return null;
-        }
     }
 }

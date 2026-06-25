@@ -35,6 +35,19 @@ public sealed interface FormQuestionConfig {
             .build();
 
     /**
+     * Parses a JSON string into the appropriate config for the given question type.
+     */
+    static FormQuestionConfig parse(FormQuestionType formQuestionType, String json) {
+        if (json == null || json.isBlank() || "{}".equals(json)) return new Unknown();
+        try {
+            return MAPPER.readValue(json, formQuestionType.questionClass());
+        } catch (Exception e) {
+            log.error("Failed to parse form question config for type {}: {}", formQuestionType, json, e);
+            return new Unknown();
+        }
+    }
+
+    /**
      * Validates the given answer value against this config.
      *
      * @param value the answer value to validate
@@ -42,6 +55,17 @@ public sealed interface FormQuestionConfig {
      */
     default List<String> validate(FormAnswerValue value) {
         return List.of();
+    }
+
+    /**
+     * Serializes this config to a JSON string.
+     */
+    default String toJson() {
+        try {
+            return MAPPER.writeValueAsString(this);
+        } catch (Exception e) {
+            return "{}";
+        }
     }
 
     enum MultiLimitType {
@@ -181,28 +205,4 @@ public sealed interface FormQuestionConfig {
      * Fallback for unknown or empty configs.
      */
     record Unknown() implements FormQuestionConfig {}
-
-    /**
-     * Parses a JSON string into the appropriate config for the given question type.
-     */
-    static FormQuestionConfig parse(FormQuestionType formQuestionType, String json) {
-        if (json == null || json.isBlank() || "{}".equals(json)) return new Unknown();
-        try {
-            return MAPPER.readValue(json, formQuestionType.questionClass());
-        } catch (Exception e) {
-            log.error("Failed to parse form question config for type {}: {}", formQuestionType, json, e);
-            return new Unknown();
-        }
-    }
-
-    /**
-     * Serializes this config to a JSON string.
-     */
-    default String toJson() {
-        try {
-            return MAPPER.writeValueAsString(this);
-        } catch (Exception e) {
-            return "{}";
-        }
-    }
 }

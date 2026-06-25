@@ -10,15 +10,15 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
 /**
  * Represents a question within a form.
  *
- * @param id           unique question identifier
- * @param formId       the form this question belongs to
- * @param position     display order position (0-based)
+ * @param id               unique question identifier
+ * @param formId           the form this question belongs to
+ * @param position         display order position (0-based)
  * @param formQuestionType the type of question (CHOICE, TEXT, RATING, DATE, RANKING, LIKERT)
- * @param title        the question text shown to respondents
- * @param description  optional additional description or instructions
- * @param required     whether an answer is mandatory
- * @param shuffle      whether answer options should be randomized
- * @param config       type-specific configuration
+ * @param title            the question text shown to respondents
+ * @param description      optional additional description or instructions
+ * @param required         whether an answer is mandatory
+ * @param shuffle          whether answer options should be randomized
+ * @param config           type-specific configuration
  */
 public record FormQuestion(
         int id,

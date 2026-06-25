@@ -24,7 +24,7 @@ public record TwoFactorFactor(
         return row -> new TwoFactorFactor(
                 row.getInt("id"),
                 row.getInt("account_id"),
-                TwoFactorKind.valueOf(row.getString("kind")),
+                row.getEnum("kind", TwoFactorKind.class),
                 row.getString("label"),
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.get("last_used_at", INSTANT_TIMESTAMP),

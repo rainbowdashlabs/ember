@@ -75,7 +75,7 @@ class StorageUsageRepositoryTest extends RepositoryTestBase {
     @Order(5)
     void findByStationReturnsAllCategories() {
         storageUsageRepo.setUsage(station.id(), StorageCategory.BOARD_ATTACHMENTS, 2000, 5);
-        storageUsageRepo.setUsage(station.id(), StorageCategory.AVATARS, 500, 2);
+        storageUsageRepo.setUsage(station.id(), StorageCategory.IMAGE_AVATAR, 500, 2);
         var usages = storageUsageRepo.findByStation(station.id());
         assertEquals(3, usages.size());
     }
@@ -84,7 +84,7 @@ class StorageUsageRepositoryTest extends RepositoryTestBase {
     @Order(6)
     void totalEnforcedBytesExcludesAvatars() {
         long total = storageUsageRepo.totalEnforcedBytes(station.id());
-        assertEquals(7000, total); // 5000 KB_FILES + 2000 BOARD_ATTACHMENTS, AVATARS excluded
+        assertEquals(7000, total);
     }
 
     @Test
@@ -106,7 +106,7 @@ class StorageUsageRepositoryTest extends RepositoryTestBase {
     @Order(9)
     void findByStationAndCategoryReturnsEmptyForMissing() {
         assertTrue(storageUsageRepo
-                .findByStationAndCategory(station.id(), StorageCategory.IMAGES)
+                .findByStationAndCategory(station.id(), StorageCategory.IMAGE_QUIZ_QUESTION)
                 .isEmpty());
         assertTrue(storageUsageRepo
                 .findByStationAndCategory(99999, StorageCategory.KB_FILES)

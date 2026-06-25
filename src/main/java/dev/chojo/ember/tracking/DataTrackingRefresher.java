@@ -34,6 +34,12 @@ public final class DataTrackingRefresher {
         this.schemaReader = schemaReader;
     }
 
+    private static List<ForeignKey> toForeignKeys(SchemaReader.RawTable rawTable) {
+        return rawTable.foreignKeys.stream()
+                .map(fk -> new ForeignKey(fk.column(), fk.refTable(), fk.refColumn(), fk.deleteRule()))
+                .toList();
+    }
+
     /**
      * Refreshes the tracking file at {@code path} against the live schema.
      * Returns a summary of changes.
@@ -161,13 +167,9 @@ public final class DataTrackingRefresher {
         return summary;
     }
 
-    private static List<ForeignKey> toForeignKeys(SchemaReader.RawTable rawTable) {
-        return rawTable.foreignKeys.stream()
-                .map(fk -> new ForeignKey(fk.column(), fk.refTable(), fk.refColumn(), fk.deleteRule()))
-                .toList();
-    }
-
-    /** Summary of changes detected during a refresh. */
+    /**
+     * Summary of changes detected during a refresh.
+     */
     public static final class RefreshSummary {
         public final List<String> tablesAdded = new ArrayList<>();
         public final List<String> tablesRemoved = new ArrayList<>();

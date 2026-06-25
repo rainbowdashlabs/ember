@@ -7,22 +7,23 @@
 import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import FileUploadButton from '@/components/button/FileUploadButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import BaseButton from '@/components/button/BaseButton.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import ColorInput from '@/components/input/ColorInput.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import Modal from '@/components/feedback/Modal.vue'
 import PageFilesSidebar from './pagefilesview/PageFilesSidebar.vue'
 import PageFilesGrid from './pagefilesview/PageFilesGrid.vue'
+import PageFilesPagination from './pagefilesview/PageFilesPagination.vue'
+import PageFilePreviewModal from './pagefilesview/PageFilePreviewModal.vue'
+import PageFilesBulkModals from './pagefilesview/PageFilesBulkModals.vue'
+import PageFileEditModal from './pagefilesview/PageFileEditModal.vue'
+import PageFilesFolderTagModals from './pagefilesview/PageFilesFolderTagModals.vue'
 import {useSession} from '@/composables/useSession'
 import {
     assignPageTag,
@@ -30,11 +31,11 @@ import {
     createPageTag,
     deletePageFolder,
     deletePageTag,
+    deleteStationPageFile,
     listPageFolders,
     listPageTags,
     listStationPageFiles,
     moveFileToFolder,
-    pageImageUrl,
     prunePageFiles,
     unassignPageTag,
     updatePageFileMeta,
@@ -63,8 +64,6 @@ const activeTagFilter = ref<number | null>(null)
 const selectedIds = ref<number[]>([])
 
 const editing = ref<PageFile | null>(null)
-const editAlt = ref('')
-const editDesc = ref('')
 
 const folderModalOpen = ref(false)
 const folderName = ref('')
@@ -78,33 +77,31 @@ const editingTag = ref<PageFileTag | null>(null)
 
 const bulkMoveOpen = ref(false)
 const bulkMoveTarget = ref<number | null>(null)
+const bulkDeleteOpen = ref(false)
+
+const multiSelect = ref(false)
+const lastCheckedIndex = ref<number | null>(null)
+
+const PAGE_SIZE_KEY = 'stationPages.filesPerPage'
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const
+function loadStoredPageSize(): number {
+    const raw = typeof window !== 'undefined' ? window.localStorage?.getItem(PAGE_SIZE_KEY) : null
+    const parsed = raw ? parseInt(raw, 10) : NaN
+    return (PAGE_SIZE_OPTIONS as readonly number[]).includes(parsed) ? parsed : 20
+}
+const pageSize = ref<number>(loadStoredPageSize())
+const currentPage = ref(1)
+watch(pageSize, (v) => {
+    if (typeof window !== 'undefined') window.localStorage?.setItem(PAGE_SIZE_KEY, String(v))
+    currentPage.value = 1
+})
 
 const previewFile = ref<PageFile | null>(null)
 
 const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
 
-const previewUrl = computed(() => {
-    const f = previewFile.value
-    return f?.contentHash && stationUid.value ? pageImageUrl(stationUid.value, f.contentHash) : ''
-})
-
-const previewKind = computed<'image' | 'video' | 'audio' | 'pdf' | 'other'>(() => {
-    const m = previewFile.value?.mimeType ?? ''
-    if (m.startsWith('image/')) return 'image'
-    if (m.startsWith('video/')) return 'video'
-    if (m.startsWith('audio/')) return 'audio'
-    if (m === 'application/pdf') return 'pdf'
-    return 'other'
-})
-
 function openPreview(f: PageFile) {
     previewFile.value = f
-}
-
-function formatSize(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-    return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
 async function load() {
@@ -125,7 +122,9 @@ async function load() {
 
 onMounted(load)
 
-watch(activeFolder, () => { selectedIds.value = [] })
+watch(activeFolder, () => { selectedIds.value = []; lastCheckedIndex.value = null; currentPage.value = 1 })
+watch(activeTagFilter, () => { currentPage.value = 1 })
+watch(search, () => { currentPage.value = 1 })
 
 const folderTree = computed(() => {
     const byId = new Map<number, PageFileFolder & {children: PageFileFolder[]}>()
@@ -176,16 +175,43 @@ const filtered = computed(() => {
 
 const unusedCount = computed(() => entries.value.filter(e => !e.inUse).length)
 
-function toggleSelected(id: number, value: boolean) {
-    if (value) {
+const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / pageSize.value)))
+const pagedFiles = computed(() => {
+    const start = (currentPage.value - 1) * pageSize.value
+    return filtered.value.slice(start, start + pageSize.value)
+})
+watch(totalPages, (max) => {
+    if (currentPage.value > max) currentPage.value = max
+})
+
+function toggleSelected(id: number, value: boolean, shift: boolean, index: number) {
+    if (shift && lastCheckedIndex.value !== null && lastCheckedIndex.value !== index) {
+        const lo = Math.min(lastCheckedIndex.value, index)
+        const hi = Math.max(lastCheckedIndex.value, index)
+        const rangeIds = pagedFiles.value.slice(lo, hi + 1).map(e => e.file.id)
+        if (value) {
+            const merged = new Set(selectedIds.value)
+            rangeIds.forEach(rid => merged.add(rid))
+            selectedIds.value = Array.from(merged)
+        } else {
+            selectedIds.value = selectedIds.value.filter(x => !rangeIds.includes(x))
+        }
+    } else if (value) {
         if (!selectedIds.value.includes(id)) selectedIds.value = [...selectedIds.value, id]
     } else {
         selectedIds.value = selectedIds.value.filter(x => x !== id)
     }
+    lastCheckedIndex.value = index
 }
 
 function clearSelection() {
     selectedIds.value = []
+    lastCheckedIndex.value = null
+}
+
+function toggleMultiSelect() {
+    multiSelect.value = !multiSelect.value
+    if (!multiSelect.value) clearSelection()
 }
 
 async function uploadMany(files: File[]) {
@@ -223,18 +249,13 @@ async function runPrune() {
 
 function startEdit(f: PageFile) {
     editing.value = f
-    editAlt.value = f.defaultAltText ?? ''
-    editDesc.value = f.defaultDescription ?? ''
 }
 
-async function saveEdit() {
-    if (!editing.value) return
-    const id = editing.value.id
-    await updatePageFileMeta(id, editAlt.value || null, editDesc.value || null)
+async function saveEdit(id: number, altText: string, description: string) {
+    await updatePageFileMeta(id, altText || null, description || null)
     entries.value = entries.value.map(e => e.file.id === id
-        ? {...e, file: {...e.file, defaultAltText: editAlt.value, defaultDescription: editDesc.value}}
+        ? {...e, file: {...e.file, defaultAltText: altText, defaultDescription: description}}
         : e)
-    editing.value = null
 }
 
 async function toggleFileTag(fileId: number, tagId: number, currentlyAssigned: boolean) {
@@ -327,6 +348,28 @@ async function runBulkMove() {
     selectedIds.value = []
 }
 
+async function deleteOne(file: PageFile) {
+    if (!confirm(t('stationPages.editor.deleteFilePrompt', {name: file.fileName}))) return
+    await deleteStationPageFile(file.id)
+    entries.value = entries.value.filter(e => e.file.id !== file.id)
+    selectedIds.value = selectedIds.value.filter(x => x !== file.id)
+}
+
+async function runBulkDelete() {
+    const ids = [...selectedIds.value]
+    bulkDeleteOpen.value = false
+    for (const id of ids) {
+        try {
+            await deleteStationPageFile(id)
+        } catch {
+            /* keep going — the load() at the end re-syncs */
+        }
+    }
+    selectedIds.value = []
+    lastCheckedIndex.value = null
+    await load()
+}
+
 </script>
 
 <template>
@@ -345,17 +388,24 @@ async function runBulkMove() {
                               @edit-tag="openTagEdit" @remove-tag="removeTag"/>
 
             <div class="space-y-4">
-                <NeutralContainer class="flex flex-col sm:flex-row gap-2 items-center">
-                    <TextInput v-model="search" :placeholder="t('stationPages.editor.browseFilesSearch')" class="flex-1"/>
-                    <FileUploadButton :disabled="uploading" multiple
-                                      @select="(f: File) => uploadMany([f])"
-                                      @select-many="(fs: File[]) => uploadMany(fs)">
-                        {{ uploading ? t('common.loading') : t('stationPages.editor.uploadNewFile') }}
-                    </FileUploadButton>
-                    <ErrorButton :disabled="pruning || unusedCount === 0" @click="runPrune">
-                        <font-awesome-icon :icon="['fas', 'broom']" class="mr-1"/>
-                        {{ pruning ? t('common.loading') : t('stationPages.editor.pruneUnused', {count: unusedCount}) }}
-                    </ErrorButton>
+                <NeutralContainer class="flex flex-wrap items-center gap-2">
+                    <TextInput v-model="search" :placeholder="t('stationPages.editor.browseFilesSearch')"
+                               class="flex-1 min-w-[200px]"/>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <IconButton :icon="['fas', multiSelect ? 'square-check' : 'square']"
+                                    :label="multiSelect ? t('stationPages.editor.multiSelectDisable') : t('stationPages.editor.multiSelectEnable')"
+                                    :class="multiSelect ? '!text-primary' : ''"
+                                    @click="toggleMultiSelect"/>
+                        <FileUploadButton :disabled="uploading" multiple
+                                          @select="(f: File) => uploadMany([f])"
+                                          @select-many="(fs: File[]) => uploadMany(fs)">
+                            {{ uploading ? t('common.loading') : t('stationPages.editor.uploadNewFile') }}
+                        </FileUploadButton>
+                        <ErrorButton :disabled="pruning || unusedCount === 0" @click="runPrune">
+                            <font-awesome-icon :icon="['fas', 'broom']" class="mr-1"/>
+                            {{ pruning ? t('common.loading') : t('stationPages.editor.pruneUnused', {count: unusedCount}) }}
+                        </ErrorButton>
+                    </div>
                 </NeutralContainer>
 
                 <nav class="flex items-center gap-1 text-sm flex-wrap">
@@ -373,12 +423,16 @@ async function runBulkMove() {
                     </template>
                 </nav>
 
-                <NeutralContainer v-if="selectedIds.length > 0" class="flex items-center gap-2 !py-2">
+                <NeutralContainer v-if="selectedIds.length > 0" class="flex flex-wrap items-center gap-2 !py-2">
                     <span class="text-sm">{{ t('stationPages.editor.selectedCount', {count: selectedIds.length}) }}</span>
                     <SecondaryButton @click="openBulkMove">
                         <font-awesome-icon :icon="['fas', 'arrow-right-arrow-left']" class="mr-1"/>
                         {{ t('stationPages.editor.moveSelected') }}
                     </SecondaryButton>
+                    <ErrorButton @click="bulkDeleteOpen = true">
+                        <font-awesome-icon :icon="['fas', 'trash']" class="mr-1"/>
+                        {{ t('stationPages.editor.deleteSelected') }}
+                    </ErrorButton>
                     <SecondaryButton @click="clearSelection">{{ t('stationPages.editor.clearSelection') }}</SecondaryButton>
                 </NeutralContainer>
 
@@ -388,109 +442,39 @@ async function runBulkMove() {
                 <p v-else-if="visibleFolders.length === 0 && filtered.length === 0" class="text-sm text-(--text-muted) text-center py-8">
                     {{ t('stationPages.editor.browseFilesEmpty') }}
                 </p>
-                <PageFilesGrid v-else :folders="visibleFolders" :files="filtered" :tags="tags"
-                               :selected-ids="selectedIds" :station-uid="stationUid"
-                               @open-folder="(id: number) => activeFolder = id"
-                               @preview-file="openPreview"
-                               @edit-file="startEdit"
-                               @toggle-select="toggleSelected"
-                               @toggle-tag="toggleFileTag"/>
+                <template v-else>
+                    <PageFilesGrid :folders="visibleFolders" :files="pagedFiles" :tags="tags"
+                                   :selected-ids="selectedIds" :station-uid="stationUid"
+                                   :multi-select="multiSelect"
+                                   @open-folder="(id: number) => activeFolder = id"
+                                   @preview-file="openPreview"
+                                   @edit-file="startEdit"
+                                   @delete-file="deleteOne"
+                                   @toggle-select="toggleSelected"
+                                   @toggle-tag="toggleFileTag"/>
+
+                    <PageFilesPagination :current-page="currentPage" :total-pages="totalPages"
+                                        :page-size="pageSize" :page-size-options="PAGE_SIZE_OPTIONS"
+                                        @update:current-page="(v: number) => currentPage = v"
+                                        @update:page-size="(v: number) => pageSize = v"/>
+                </template>
             </div>
         </div>
 
-        <Modal v-if="editing" :model-value="!!editing" size="md"
-               @update:model-value="(v: boolean) => { if (!v) editing = null }">
-            <div class="space-y-3">
-                <SectionHeader>{{ t('stationPages.editor.editFileMeta') }}</SectionHeader>
-                <TextInput v-model="editAlt" :placeholder="t('stationPages.editor.altText')"/>
-                <TextInput v-model="editDesc" :placeholder="t('stationPages.editor.imageDescription')"/>
-                <div class="flex justify-end gap-2">
-                    <SecondaryButton @click="editing = null">{{ t('common.cancel') }}</SecondaryButton>
-                    <PrimaryButton @click="saveEdit">{{ t('common.save') }}</PrimaryButton>
-                </div>
-            </div>
-        </Modal>
+        <PageFileEditModal v-model="editing" @save="saveEdit"/>
 
-        <Modal v-model="folderModalOpen" size="md">
-            <div class="space-y-3">
-                <SectionHeader>{{ editingFolder ? t('stationPages.editor.editFolder') : t('stationPages.editor.newFolder') }}</SectionHeader>
-                <TextInput v-model="folderName" :placeholder="t('stationPages.editor.folderName')"/>
-                <SelectInput :model-value="folderParent === null ? '' : String(folderParent)"
-                             class="w-full"
-                             @update:model-value="(v: string) => folderParent = v ? +v : null">
-                    <option value="">{{ t('stationPages.editor.rootFolder') }}</option>
-                    <option v-for="f in folders" :key="f.id"
-                            :value="f.id" :disabled="editingFolder?.id === f.id">
-                        {{ f.name }}
-                    </option>
-                </SelectInput>
-                <div class="flex justify-end gap-2">
-                    <SecondaryButton @click="folderModalOpen = false">{{ t('common.cancel') }}</SecondaryButton>
-                    <PrimaryButton @click="saveFolder">{{ t('common.save') }}</PrimaryButton>
-                </div>
-            </div>
-        </Modal>
+        <PageFilesFolderTagModals v-model:folder-open="folderModalOpen" v-model:folder-name="folderName"
+                                  v-model:folder-parent="folderParent" v-model:tag-open="tagModalOpen"
+                                  v-model:tag-name="tagName" v-model:tag-color="tagColor"
+                                  :folders="folders" :editing-folder="editingFolder" :editing-tag="editingTag"
+                                  @save-folder="saveFolder" @save-tag="saveTag"/>
 
-        <Modal v-model="tagModalOpen" size="md">
-            <div class="space-y-3">
-                <SectionHeader>{{ editingTag ? t('stationPages.editor.editTag') : t('stationPages.editor.newTag') }}</SectionHeader>
-                <TextInput v-model="tagName" :placeholder="t('stationPages.editor.tagName')"/>
-                <div class="flex items-center gap-2">
-                    <ColorInput v-model="tagColor"/>
-                    <span class="text-xs text-(--text-muted)">{{ tagColor }}</span>
-                </div>
-                <div class="flex justify-end gap-2">
-                    <SecondaryButton @click="tagModalOpen = false">{{ t('common.cancel') }}</SecondaryButton>
-                    <PrimaryButton @click="saveTag">{{ t('common.save') }}</PrimaryButton>
-                </div>
-            </div>
-        </Modal>
+        <PageFilePreviewModal :file="previewFile" :station-uid="stationUid" @close="previewFile = null"/>
 
-        <Modal v-if="previewFile" :model-value="!!previewFile" size="xl"
-               @update:model-value="(v: boolean) => { if (!v) previewFile = null }">
-            <div class="space-y-3">
-                <SectionHeader>{{ previewFile.fileName }}</SectionHeader>
-                <div class="flex items-center justify-center bg-(--bg-accent) rounded-theme overflow-hidden max-h-[70vh]">
-                    <img v-if="previewKind === 'image'" :src="previewUrl"
-                         :alt="previewFile.defaultAltText ?? previewFile.fileName"
-                         class="max-w-full max-h-[70vh] object-contain"/>
-                    <video v-else-if="previewKind === 'video'" :src="previewUrl"
-                           controls class="max-w-full max-h-[70vh]"/>
-                    <audio v-else-if="previewKind === 'audio'" :src="previewUrl"
-                           controls class="w-full"/>
-                    <iframe v-else-if="previewKind === 'pdf'" :src="previewUrl"
-                            class="w-full h-[70vh]"/>
-                    <div v-else class="flex flex-col items-center gap-2 p-8 text-(--text-muted)">
-                        <font-awesome-icon :icon="['fas', 'file']" class="text-5xl"/>
-                        <p class="text-sm">{{ previewFile.mimeType ?? '—' }}</p>
-                    </div>
-                </div>
-                <div class="flex items-center justify-between text-xs text-(--text-muted)">
-                    <span>{{ formatSize(previewFile.fileSize) }}</span>
-                    <a :href="previewUrl" target="_blank" rel="noopener noreferrer" class="hover:text-primary">
-                        <font-awesome-icon :icon="['fas', 'expand']" class="mr-1"/>
-                        {{ t('common.open') }}
-                    </a>
-                </div>
-            </div>
-        </Modal>
-
-        <Modal v-model="bulkMoveOpen" size="md">
-            <div class="space-y-3">
-                <SectionHeader>{{ t('stationPages.editor.moveToFolder') }}</SectionHeader>
-                <p class="text-sm text-(--text-muted)">{{ t('stationPages.editor.selectedCount', {count: selectedIds.length}) }}</p>
-                <SelectInput :model-value="bulkMoveTarget === null ? '' : String(bulkMoveTarget)"
-                             class="w-full"
-                             @update:model-value="(v: string) => bulkMoveTarget = v ? +v : null">
-                    <option value="">{{ t('stationPages.editor.rootFolder') }}</option>
-                    <option v-for="f in folders" :key="f.id" :value="f.id">{{ f.name }}</option>
-                </SelectInput>
-                <div class="flex justify-end gap-2">
-                    <SecondaryButton @click="bulkMoveOpen = false">{{ t('common.cancel') }}</SecondaryButton>
-                    <PrimaryButton @click="runBulkMove">{{ t('stationPages.editor.moveSelected') }}</PrimaryButton>
-                </div>
-            </div>
-        </Modal>
+        <PageFilesBulkModals v-model:move-open="bulkMoveOpen" v-model:delete-open="bulkDeleteOpen"
+                            v-model:move-target="bulkMoveTarget"
+                            :selected-count="selectedIds.length" :folders="folders"
+                            @move="runBulkMove" @delete="runBulkDelete"/>
         </div>
     </ViewContent>
 </template>

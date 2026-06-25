@@ -21,7 +21,7 @@ public record DiscoveryPing(
     public static RowMapping<DiscoveryPing> map() {
         return row -> new DiscoveryPing(
                 row.getString("nonce"),
-                PingDirection.valueOf(row.getString("direction")),
+                row.getEnum("direction", PingDirection.class),
                 row.getString("peer_key"),
                 row.get("issued_at", INSTANT_TIMESTAMP),
                 row.get("expires_at", INSTANT_TIMESTAMP));

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.station.service;
 
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.engine.GenericTableExporter;
@@ -54,9 +55,11 @@ public class StationExportService {
     private final List<String> tableOrder;
     private final String appVersion;
     private final String schemaHash;
+    private final StationRepository stationRepository;
 
     @Inject
-    public StationExportService() {
+    public StationExportService(StationRepository stationRepository) {
+        this.stationRepository = stationRepository;
         DataTracking tracking;
         try {
             tracking = DataTrackingLoader.loadFromClasspath();
@@ -70,7 +73,9 @@ public class StationExportService {
         this.schemaHash = tracking.schemaHash() != null ? tracking.schemaHash() : "unknown";
     }
 
-    /** Returns the topologically-sorted list of TRACKED tables. */
+    /**
+     * Returns the topologically-sorted list of TRACKED tables.
+     */
     public List<String> getTableOrder() {
         return tableOrder;
     }
@@ -97,12 +102,84 @@ public class StationExportService {
                         .bind("expires_at", expiresAt, StandardValueConverter.INSTANT_TIMESTAMP))
                 .insert();
 
+        // Flip the station into read-only mode for the duration of the transfer; cleared on
+        // station deletion (existing flow) or by POST /station/transfer/abort.
+        stationRepository.markReadOnlyForTransfer(stationId);
+
         return token;
+    }
+
+    /**
+     * Clears the station's read-only-for-transfer flag and invalidates every outstanding
+     * transfer token for the station. Used when the source operator backs out of a transfer.
+     */
+    public void abortTransfer(int stationId) {
+        query("UPDATE transfer_token SET used = TRUE WHERE station_id = :station_id AND used = FALSE;")
+                .single(call().bind("station_id", stationId))
+                .update();
+        stationRepository.clearReadOnlyForTransfer(stationId);
     }
 
     public Optional<Integer> validateToken(String token) {
         return query(
                         "SELECT station_id FROM transfer_token WHERE token = :token AND used = FALSE AND expires_at > now();")
+                .single(call().bind("token", token))
+                .map(row -> row.getInt("station_id"))
+                .first();
+    }
+
+    /**
+     * Records the destination instance URL against the token if it hasn't already been pinned.
+     * Called from {@code /public/transfer/{token}/tables} on first pull when the destination
+     * sends {@code X-Ember-Importing-From}. Subsequent calls with a different value are
+     * ignored — the first pull wins so the banner stays stable.
+     */
+    public void recordTransferTarget(String token, String targetInstanceUrl) {
+        if (targetInstanceUrl == null || targetInstanceUrl.isBlank()) return;
+        query("""
+                UPDATE transfer_token
+                SET target_instance_url = :url
+                WHERE token = :token AND target_instance_url IS NULL;
+                """)
+                .single(call().bind("token", token).bind("url", targetInstanceUrl.trim()))
+                .update();
+    }
+
+    /**
+     * Returns the destination instance URL recorded for any active (or recently-completed)
+     * transfer token belonging to {@code stationId}. Surfaced via the station banner so users
+     * see where the station is being transferred to.
+     */
+    public Optional<String> findTransferTarget(int stationId) {
+        return query("""
+                SELECT target_instance_url
+                FROM transfer_token
+                WHERE station_id = :station_id
+                  AND target_instance_url IS NOT NULL
+                ORDER BY expires_at DESC
+                LIMIT 1;
+                """)
+                .single(call().bind("station_id", stationId))
+                .map(row -> row.getString("target_instance_url"))
+                .first();
+    }
+
+    /**
+     * Atomically claims the one-shot backend descriptor slot for the given transfer token.
+     * Returns the station id when this is the first successful claim; returns empty when the
+     * descriptor has already been served for this token (the destination must reuse the value
+     * it received on its first call). Callers map empty to {@code 429 Too Many Requests}.
+     */
+    public Optional<Integer> claimBackendDescriptor(String token) {
+        return query("""
+                UPDATE transfer_token
+                SET backend_fetched_at = now()
+                WHERE token = :token
+                  AND used = FALSE
+                  AND expires_at > now()
+                  AND backend_fetched_at IS NULL
+                RETURNING station_id;
+                """)
                 .single(call().bind("token", token))
                 .map(row -> row.getInt("station_id"))
                 .first();

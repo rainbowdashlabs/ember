@@ -65,21 +65,21 @@ public class StationApplicationRepository {
      */
     public Optional<StationApplication> findById(int id) {
         return query("""
-                        SELECT
-                            id,
-                            first_name,
-                            last_name,
-                            email,
-                            station_name,
-                            introduction,
-                            verification_token,
-                            status,
-                            deny_reason,
-                            created_at,
-                            resolved_at
-                        FROM
-                            station_application
-                        WHERE id = :id;""")
+                SELECT
+                    id,
+                    first_name,
+                    last_name,
+                    email,
+                    station_name,
+                    introduction,
+                    verification_token,
+                    status,
+                    deny_reason,
+                    created_at,
+                    resolved_at
+                FROM
+                    station_application
+                WHERE id = :id;""")
                 .single(call().bind("id", id))
                 .map(StationApplication.map())
                 .first();
@@ -93,23 +93,23 @@ public class StationApplicationRepository {
      */
     public List<StationApplication> findByStatus(ApplicationStatus status) {
         return query("""
-                        SELECT
-                            id,
-                            first_name,
-                            last_name,
-                            email,
-                            station_name,
-                            introduction,
-                            verification_token,
-                            status,
-                            deny_reason,
-                            created_at,
-                            resolved_at
-                        FROM
-                            station_application
-                        WHERE status = :status
-                        ORDER BY created_at;
-                        """)
+                SELECT
+                    id,
+                    first_name,
+                    last_name,
+                    email,
+                    station_name,
+                    introduction,
+                    verification_token,
+                    status,
+                    deny_reason,
+                    created_at,
+                    resolved_at
+                FROM
+                    station_application
+                WHERE status = :status
+                ORDER BY created_at;
+                """)
                 .single(call().bind("status", status))
                 .map(StationApplication.map())
                 .all();
@@ -122,21 +122,21 @@ public class StationApplicationRepository {
      */
     public List<StationApplication> findAll() {
         return query("""
-                        SELECT
-                            id,
-                            first_name,
-                            last_name,
-                            email,
-                            station_name,
-                            introduction,
-                            verification_token,
-                            status,
-                            deny_reason,
-                            created_at,
-                            resolved_at
-                        FROM
-                            station_application
-                        ORDER BY created_at DESC;""").single().map(StationApplication.map()).all();
+                SELECT
+                    id,
+                    first_name,
+                    last_name,
+                    email,
+                    station_name,
+                    introduction,
+                    verification_token,
+                    status,
+                    deny_reason,
+                    created_at,
+                    resolved_at
+                FROM
+                    station_application
+                ORDER BY created_at DESC;""").single().map(StationApplication.map()).all();
     }
 
     /**
@@ -147,21 +147,21 @@ public class StationApplicationRepository {
      */
     public Optional<StationApplication> findByToken(String token) {
         return query("""
-                        SELECT
-                            id,
-                            first_name,
-                            last_name,
-                            email,
-                            station_name,
-                            introduction,
-                            verification_token,
-                            status,
-                            deny_reason,
-                            created_at,
-                            resolved_at
-                        FROM
-                            station_application
-                        WHERE verification_token = :token;""")
+                SELECT
+                    id,
+                    first_name,
+                    last_name,
+                    email,
+                    station_name,
+                    introduction,
+                    verification_token,
+                    status,
+                    deny_reason,
+                    created_at,
+                    resolved_at
+                FROM
+                    station_application
+                WHERE verification_token = :token;""")
                 .single(call().bind("token", token))
                 .map(StationApplication.map())
                 .first();
@@ -175,12 +175,12 @@ public class StationApplicationRepository {
      */
     public boolean verify(int id) {
         return query("""
-                        UPDATE station_application
-                        SET
-                            status             = 'PENDING',
-                            verification_token = NULL
-                        WHERE id = :id
-                          AND status = 'UNVERIFIED';""").single(call().bind("id", id)).update().changed();
+                UPDATE station_application
+                SET
+                    status             = 'PENDING',
+                    verification_token = NULL
+                WHERE id = :id
+                  AND status = 'UNVERIFIED';""").single(call().bind("id", id)).update().changed();
     }
 
     /**
@@ -191,12 +191,12 @@ public class StationApplicationRepository {
      */
     public boolean accept(int id) {
         return query("""
-                        UPDATE station_application
-                        SET
-                            status      = 'ACCEPTED',
-                            resolved_at = now()
-                        WHERE id = :id
-                          AND status = 'PENDING';""").single(call().bind("id", id)).update().changed();
+                UPDATE station_application
+                SET
+                    status      = 'ACCEPTED',
+                    resolved_at = now()
+                WHERE id = :id
+                  AND status = 'PENDING';""").single(call().bind("id", id)).update().changed();
     }
 
     /**
@@ -208,13 +208,13 @@ public class StationApplicationRepository {
      */
     public boolean deny(int id, String reason) {
         return query("""
-                        UPDATE station_application
-                        SET
-                            status      = 'DENIED',
-                            deny_reason = :reason,
-                            resolved_at = now()
-                        WHERE id = :id
-                          AND status = 'PENDING';""")
+                UPDATE station_application
+                SET
+                    status      = 'DENIED',
+                    deny_reason = :reason,
+                    resolved_at = now()
+                WHERE id = :id
+                  AND status = 'PENDING';""")
                 .single(call().bind("id", id).bind("reason", reason))
                 .update()
                 .changed();

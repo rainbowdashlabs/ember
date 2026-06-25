@@ -44,8 +44,8 @@ public class Storage {
     private boolean compressPresentations = true;
 
     /**
-     * Extends presentation recompression (concept §11.3) to the full ZIP-based Office
-     * family: {@code .docx} / {@code .xlsx} / {@code .odt} / {@code .ods}. Same maximum-
+     * Extends presentation recompression to the full ZIP-based Office family:
+     * {@code .docx} / {@code .xlsx} / {@code .odt} / {@code .ods}. Same maximum-
      * deflate rewrite — typically 10–25% smaller, fully lossless, completely transparent to
      * downstream readers.
      */
@@ -74,7 +74,7 @@ public class Storage {
     private int reconciliationIntervalHours = 24;
 
     /**
-     * Whether to pre-generate width-keyed image variants on upload (concept §11.1). Variants
+     * Whether to pre-generate width-keyed image variants on upload. Variants
      * cut public-page egress by an order of magnitude on image-heavy pages because the client
      * downloads a 1024 px WebP instead of a 4 MB original. Disable only on very constrained
      * deployments where the ~1 s upload-time CPU cost is unwelcome — variants remain absent
@@ -86,7 +86,7 @@ public class Storage {
     /**
      * Comma-separated list of widths (in pixels) to pre-generate at upload time. Each width
      * produces a resized copy in the original format plus a WebP copy when
-     * {@link #imageVariantsWebp()} is on. Defaults to the concept's recommended ladder.
+     * {@link #imageVariantsWebp()} is on.
      */
     @Overwrite(env = @Env)
     private String imageVariantsWidths = "128,256,512,1024,2048";
@@ -98,6 +98,21 @@ public class Storage {
      */
     @Overwrite(env = @Env)
     private boolean imageVariantsWebp = true;
+
+    /**
+     * Selects which backend the resolver picks for movable categories and carries the per-
+     * backend connection settings. Local-pinned categories ignore this and stay on the local
+     * disk regardless.
+     */
+    private StorageBackendSettings backend = new StorageBackendSettings();
+
+    /**
+     * AES-256 key used to encrypt station-supplied remote-backend credentials at rest. Read
+     * from {@code STORAGE_CREDENTIAL_ENCRYPTION_KEY}; required once any station opts into
+     * self-service remote storage.
+     */
+    @Overwrite(env = @Env)
+    private String credentialEncryptionKey = "";
 
     public long defaultTotalBytes() {
         return SizeParser.parseBytes(defaultTotal);
@@ -165,6 +180,14 @@ public class Storage {
 
     public boolean imageVariantsWebp() {
         return imageVariantsWebp;
+    }
+
+    public StorageBackendSettings backend() {
+        return backend;
+    }
+
+    public String credentialEncryptionKey() {
+        return credentialEncryptionKey;
     }
 
     /**

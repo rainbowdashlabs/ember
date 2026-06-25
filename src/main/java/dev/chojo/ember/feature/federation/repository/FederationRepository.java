@@ -47,22 +47,22 @@ public class FederationRepository {
      */
     public List<PublicPartnerSummary> findActivePartnerSummaries(int stationId) {
         return query("""
-                        SELECT s.uid AS partner_uid,
-                               s.name AS partner_name,
-                               s.public_slug AS partner_slug,
-                               CASE
-                                   WHEN home.latitude IS NOT NULL AND home.longitude IS NOT NULL
-                                    AND s.latitude IS NOT NULL AND s.longitude IS NOT NULL
-                                   THEN haversine_km(
-                                            home.latitude, home.longitude,
-                                            s.latitude, s.longitude)
-                                   ELSE NULL
-                               END AS distance_km
-                        FROM federation_partner fp
-                        JOIN station s ON s.uid = fp.partner_station_id
-                        JOIN station home ON home.id = fp.station_id
-                        WHERE fp.station_id = :station_id AND fp.status = 'ACTIVE'
-                        ORDER BY distance_km NULLS LAST, partner_name;""")
+                SELECT s.uid AS partner_uid,
+                       s.name AS partner_name,
+                       s.public_slug AS partner_slug,
+                       CASE
+                           WHEN home.latitude IS NOT NULL AND home.longitude IS NOT NULL
+                            AND s.latitude IS NOT NULL AND s.longitude IS NOT NULL
+                           THEN haversine_km(
+                                    home.latitude, home.longitude,
+                                    s.latitude, s.longitude)
+                           ELSE NULL
+                       END AS distance_km
+                FROM federation_partner fp
+                JOIN station s ON s.uid = fp.partner_station_id
+                JOIN station home ON home.id = fp.station_id
+                WHERE fp.station_id = :station_id AND fp.status = 'ACTIVE'
+                ORDER BY distance_km NULLS LAST, partner_name;""")
                 .single(call().bind("station_id", stationId))
                 .map(row -> new PublicPartnerSummary(
                         row.get("partner_uid", StandardValueConverter.UUID_STRING),
@@ -71,8 +71,6 @@ public class FederationRepository {
                         row.getObject("distance_km", Double.class)))
                 .all();
     }
-
-    public record PublicPartnerSummary(UUID uid, String name, String slug, Double distanceKm) {}
 
     public Optional<FederationPartner> findPartnerById(int id) {
         return query("SELECT * FROM federation_partner WHERE id = :id;")
@@ -103,7 +101,7 @@ public class FederationRepository {
 
     public List<FederationPartner> findPendingRequestsForStation(UUID targetStationUid) {
         return query(
-                        "SELECT * FROM federation_partner WHERE partner_station_id = :target_id::uuid AND status = 'PENDING';")
+                        "SELECT * FROM federation_partner WHERE partner_station_id = :target_id::UUID AND status = 'PENDING';")
                 .single(call().bind("target_id", targetStationUid, UUID_STRING))
                 .map(FederationPartner.map())
                 .all();
@@ -112,9 +110,9 @@ public class FederationRepository {
     public FederationPartner createPartner(
             int stationId, UUID partnerStationUid, String inviteCode, String publicKey, String remoteHost) {
         return query("""
-                        INSERT INTO federation_partner(station_id, partner_station_id, invite_code, public_key, status, remote_host, federation_version)
-                        VALUES (:station_id, :partner_station_id::uuid, :invite_code, :public_key, 'PENDING', :remote_host, :federation_version)
-                        RETURNING *;""")
+                INSERT INTO federation_partner(station_id, partner_station_id, invite_code, public_key, status, remote_host, federation_version)
+                VALUES (:station_id, :partner_station_id::UUID, :invite_code, :public_key, 'PENDING', :remote_host, :federation_version)
+                RETURNING *;""")
                 .single(call().bind("station_id", stationId)
                         .bind("partner_station_id", partnerStationUid, UUID_STRING)
                         .bind("invite_code", inviteCode)
@@ -163,9 +161,9 @@ public class FederationRepository {
      */
     public int backfillPartnerVersions(String currentVersion) {
         return query("""
-                        UPDATE federation_partner
-                        SET federation_version = :version, updated_at = now()
-                        WHERE federation_version = '0';""")
+                UPDATE federation_partner
+                SET federation_version = :version, updated_at = now()
+                WHERE federation_version = '0';""")
                 .single(call().bind("version", currentVersion))
                 .update()
                 .rows();
@@ -196,8 +194,6 @@ public class FederationRepository {
                 .update();
     }
 
-    // -- Capabilities --
-
     public List<FederationCapability> findCapabilities(int partnerId) {
         return query("SELECT * FROM federation_capability WHERE partner_id = :partner_id;")
                 .single(call().bind("partner_id", partnerId))
@@ -205,19 +201,19 @@ public class FederationRepository {
                 .all();
     }
 
+    // -- Capabilities --
+
     public void upsertCapability(int partnerId, CapabilityType capability, Direction direction, boolean enabled) {
         query("""
-                        INSERT INTO federation_capability(partner_id, capability, direction, enabled)
-                        VALUES (:partner_id, :capability, :direction, :enabled)
-                        ON CONFLICT (partner_id, capability, direction) DO UPDATE SET enabled = :enabled;""")
+                INSERT INTO federation_capability(partner_id, capability, direction, enabled)
+                VALUES (:partner_id, :capability, :direction, :enabled)
+                ON CONFLICT (partner_id, capability, direction) DO UPDATE SET enabled = :enabled;""")
                 .single(call().bind("partner_id", partnerId)
                         .bind("capability", capability)
                         .bind("direction", direction)
                         .bind("enabled", enabled))
                 .insert();
     }
-
-    // -- KB Shares --
 
     public List<FederationShare> findKbShares(int stationId) {
         return query("SELECT * FROM federation_kb_share WHERE station_id = :station_id;")
@@ -226,10 +222,12 @@ public class FederationRepository {
                 .all();
     }
 
+    // -- KB Shares --
+
     public FederationShare createKbShare(int stationId, Integer fileId, Integer folderId, ShareScope shareScope) {
         return query("""
-                        INSERT INTO federation_kb_share(station_id, file_id, folder_id, share_scope)
-                        VALUES (:station_id, :file_id, :folder_id, :share_scope) RETURNING *;""")
+                INSERT INTO federation_kb_share(station_id, file_id, folder_id, share_scope)
+                VALUES (:station_id, :file_id, :folder_id, :share_scope) RETURNING *;""")
                 .single(call().bind("station_id", stationId)
                         .bind("file_id", fileId)
                         .bind("folder_id", folderId)
@@ -246,8 +244,6 @@ public class FederationRepository {
                 .changed();
     }
 
-    // -- Quiz Shares --
-
     public List<FederationShare> findQuizShares(int stationId) {
         return query("SELECT * FROM federation_quiz_share WHERE station_id = :station_id;")
                 .single(call().bind("station_id", stationId))
@@ -255,10 +251,12 @@ public class FederationRepository {
                 .all();
     }
 
+    // -- Quiz Shares --
+
     public FederationShare createQuizShare(int stationId, int catalogId, ShareScope shareScope) {
         return query("""
-                        INSERT INTO federation_quiz_share(station_id, catalog_id, share_scope)
-                        VALUES (:station_id, :catalog_id, :share_scope) RETURNING *;""")
+                INSERT INTO federation_quiz_share(station_id, catalog_id, share_scope)
+                VALUES (:station_id, :catalog_id, :share_scope) RETURNING *;""")
                 .single(call().bind("station_id", stationId)
                         .bind("catalog_id", catalogId)
                         .bind("share_scope", shareScope))
@@ -274,8 +272,6 @@ public class FederationRepository {
                 .changed();
     }
 
-    // -- Protocol Shares --
-
     public List<FederationShare> findProtocolShares(int stationId) {
         return query("SELECT * FROM federation_protocol_share WHERE station_id = :station_id;")
                 .single(call().bind("station_id", stationId))
@@ -283,10 +279,12 @@ public class FederationRepository {
                 .all();
     }
 
+    // -- Protocol Shares --
+
     public FederationShare createProtocolShare(int stationId, int protocolId, ShareScope shareScope) {
         return query("""
-                        INSERT INTO federation_protocol_share(station_id, protocol_id, share_scope)
-                        VALUES (:station_id, :protocol_id, :share_scope) RETURNING *;""")
+                INSERT INTO federation_protocol_share(station_id, protocol_id, share_scope)
+                VALUES (:station_id, :protocol_id, :share_scope) RETURNING *;""")
                 .single(call().bind("station_id", stationId)
                         .bind("protocol_id", protocolId)
                         .bind("share_scope", shareScope))
@@ -302,8 +300,6 @@ public class FederationRepository {
                 .changed();
     }
 
-    // -- Metadata Cache --
-
     public List<FederationMetadataCache> findCachedMetadata(int partnerId, ContentType contentType) {
         return query(
                         "SELECT * FROM federation_metadata_cache WHERE partner_id = :partner_id AND content_type = :content_type ORDER BY title;")
@@ -312,13 +308,15 @@ public class FederationRepository {
                 .all();
     }
 
+    // -- Metadata Cache --
+
     public void upsertMetadataCache(
             int partnerId, ContentType contentType, int remoteId, String title, String description) {
         query("""
-                        INSERT INTO federation_metadata_cache(partner_id, content_type, remote_id, title, description, cached_at)
-                        VALUES (:partner_id, :content_type, :remote_id, :title, :description, now())
-                        ON CONFLICT (partner_id, content_type, remote_id)
-                        DO UPDATE SET title = :title, description = :description, cached_at = now();""")
+                INSERT INTO federation_metadata_cache(partner_id, content_type, remote_id, title, description, cached_at)
+                VALUES (:partner_id, :content_type, :remote_id, :title, :description, now())
+                ON CONFLICT (partner_id, content_type, remote_id)
+                DO UPDATE SET title = :title, description = :description, cached_at = now();""")
                 .single(call().bind("partner_id", partnerId)
                         .bind("content_type", contentType)
                         .bind("remote_id", remoteId)
@@ -333,15 +331,15 @@ public class FederationRepository {
                 .delete();
     }
 
-    // -- Partner by remote station ID (for signature verification) --
-
     public Optional<FederationPartner> findPartnerByRemoteStationUid(UUID remoteStationUid) {
         return query(
-                        "SELECT * FROM federation_partner WHERE partner_station_id = :partner_station_id::uuid AND status = 'ACTIVE' LIMIT 1;")
+                        "SELECT * FROM federation_partner WHERE partner_station_id = :partner_station_id::UUID AND status = 'ACTIVE' LIMIT 1;")
                 .single(call().bind("partner_station_id", remoteStationUid, UUID_STRING))
                 .map(FederationPartner.map())
                 .first();
     }
+
+    // -- Partner by remote station ID (for signature verification) --
 
     public Optional<FederationPartner> findPartnerByStationAndRemoteUid(int stationId, UUID remoteStationUid) {
         return query(
@@ -351,8 +349,6 @@ public class FederationRepository {
                 .first();
     }
 
-    // -- Webhook URL --
-
     public String getWebhookUrl(int partnerId) {
         return query("SELECT webhook_url FROM federation_partner WHERE id = :id;")
                 .single(call().bind("id", partnerId))
@@ -361,13 +357,13 @@ public class FederationRepository {
                 .orElse(null);
     }
 
+    // -- Webhook URL --
+
     public void setWebhookUrl(int partnerId, String webhookUrl) {
         query("UPDATE federation_partner SET webhook_url = :webhook_url, updated_at = now() WHERE id = :id;")
                 .single(call().bind("id", partnerId).bind("webhook_url", webhookUrl))
                 .update();
     }
-
-    // -- Last Sync --
 
     public void updateLastSyncAt(int partnerId) {
         query("UPDATE federation_partner SET last_sync_at = now(), updated_at = now() WHERE id = :id;")
@@ -375,18 +371,20 @@ public class FederationRepository {
                 .update();
     }
 
-    // -- Change Log --
+    // -- Last Sync --
 
     public void logChange(int stationId, ContentType contentType, int contentId, ChangeType changeType) {
         query("""
-                        INSERT INTO federation_change_log(station_id, content_type, content_id, change_type)
-                        VALUES (:station_id, :content_type, :content_id, :change_type);""")
+                INSERT INTO federation_change_log(station_id, content_type, content_id, change_type)
+                VALUES (:station_id, :content_type, :content_id, :change_type);""")
                 .single(call().bind("station_id", stationId)
                         .bind("content_type", contentType)
                         .bind("content_id", contentId)
                         .bind("change_type", changeType))
                 .insert();
     }
+
+    // -- Change Log --
 
     public List<FederationChangeLog> findChangesSince(int stationId, Instant since) {
         return query(
@@ -398,10 +396,12 @@ public class FederationRepository {
 
     public int countPendingRequests(UUID stationUid) {
         return query(
-                        "SELECT count(*) AS cnt FROM federation_partner WHERE partner_station_id = :uid::uuid AND status = 'PENDING';")
+                        "SELECT count(*) AS cnt FROM federation_partner WHERE partner_station_id = :uid::UUID AND status = 'PENDING';")
                 .single(call().bind("uid", stationUid, UUID_STRING))
                 .map(row -> row.getInt("cnt"))
                 .first()
                 .orElse(0);
     }
+
+    public record PublicPartnerSummary(UUID uid, String name, String slug, Double distanceKm) {}
 }

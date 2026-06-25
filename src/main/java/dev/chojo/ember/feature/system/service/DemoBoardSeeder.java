@@ -428,154 +428,6 @@ public class DemoBoardSeeder {
         log.info("Demo: Created 2 boards with {} tickets total", 15 + 40);
     }
 
-    private void seedExtraTicketsBoard1(
-            int boardId,
-            int openLane,
-            int workLane,
-            int doneLane,
-            StationMember admin,
-            List<StationMember> team,
-            Random rng) {
-        String[][] tickets = {
-            {"Einsatzberichte digitalisieren", "Alte Papierberichte einscannen und archivieren."},
-            {"Atemschutz-Wartung planen", "Alle Geräte bis Monatsende prüfen lassen."},
-            {"Hydranten-Kontrolle Süd", "Hydranten im Südviertel auf Funktion prüfen."},
-            {"Spind-Zuweisung aktualisieren", "Neue Mitglieder brauchen Spinde."},
-            {"Fahrzeug TÜV-Termin vereinbaren", null},
-            {"Ausbildungsnachweis-Hefte verteilen", "Neue Hefte sind bestellt, verteilen sobald da."},
-            {"Gerätehaus: Tür reparieren", "Seitentür klemmt seit letzter Woche."},
-            {"Einsatzkleidung nachbestellen", "Drei Hosen und zwei Jacken fehlen."},
-            {"Schlauchturm aufräumen", null},
-            {"Jugendfeuerwehr-Betreuer suchen", "Wir brauchen mindestens zwei weitere Betreuer."},
-            {"Nächster Elternabend planen", "Termin mit Elternvertretung abstimmen."},
-            {"Dienstplan Juli erstellen", "Schichten für Juli planen."},
-            {"Feuerlöscher-Prüfung organisieren", "Alle Feuerlöscher müssen geprüft werden."},
-            {"Notstromaggregat testen", "Monatlicher Test steht an."},
-            {"Erste-Hilfe-Kurs für Neulinge", "Kurs beim DRK anfragen."},
-            {"Funkrufnamen aktualisieren", "Liste an die Leitstelle senden."},
-            {"Beschaffungsantrag Wärmebildkamera", "Antrag beim Förderverein einreichen."},
-            {"Schlüsselplan überarbeiten", "Wer hat welche Schlüssel?"},
-            {"Dienstvorschrift aktualisieren", null},
-            {"Winterdienst-Material prüfen", "Salz und Streugut kontrollieren."},
-        };
-        TicketPriority[] prios = TicketPriority.values();
-        int[] lanes = {
-            openLane, openLane, openLane, workLane, workLane, workLane, workLane, doneLane, doneLane, doneLane,
-            openLane, openLane, workLane, doneLane, openLane, workLane, openLane, doneLane, workLane, openLane
-        };
-        for (int i = 0; i < tickets.length; i++) {
-            int tid = createTicket(
-                    boardId,
-                    lanes[i],
-                    i + 8,
-                    tickets[i][0],
-                    tickets[i][1],
-                    rng.nextInt(3) == 0 ? null : teamMember(team, rng),
-                    prios[rng.nextInt(prios.length)],
-                    rng.nextInt(3) == 0 ? LocalDate.now().plusDays(rng.nextInt(30)) : null,
-                    admin.id());
-            if (lanes[i] == workLane) {
-                ticketRepo.logTransition(tid, openLane, workLane, localIdentity(admin.id()));
-            } else if (lanes[i] == doneLane) {
-                ticketRepo.logTransition(tid, openLane, workLane, localIdentity(teamMember(team, rng)));
-                ticketRepo.logTransition(tid, workLane, doneLane, localIdentity(admin.id()));
-            }
-            if (rng.nextInt(3) == 0) {
-                ticketRepo.createComment(tid, null, localIdentity(admin.id()), "Bitte zeitnah erledigen.");
-            }
-            if (rng.nextInt(4) == 0 && !team.isEmpty()) {
-                ticketRepo.createComment(
-                        tid,
-                        null,
-                        localIdentity(team.get(rng.nextInt(team.size())).id()),
-                        "Wird gemacht!");
-            }
-        }
-        // Add some cross-links
-        var allTickets = ticketRepo.findByBoard(boardId);
-        if (allTickets.size() > 5) {
-            ticketRepo.createLink(allTickets.get(2).id(), allTickets.get(4).id(), LinkType.RELATES_TO);
-            ticketRepo.createLink(allTickets.get(5).id(), allTickets.get(8).id(), LinkType.BLOCKS);
-            ticketRepo.createLink(allTickets.get(10).id(), allTickets.get(12).id(), LinkType.CAUSED_BY);
-        }
-    }
-
-    private void seedExtraTicketsBoard2(
-            int boardId,
-            int openLane,
-            int workLane,
-            int feedLane,
-            int doneLane,
-            StationMember admin,
-            List<StationMember> team,
-            Random rng) {
-        String[][] tickets = {
-            {"Wandertag organisieren", "Route planen, Genehmigung einholen."},
-            {"Knotenkunde-Arbeitsblätter erstellen", null},
-            {"Wimpel für Stadtteilfest basteln", "Material besorgen und Basteltermin planen."},
-            {"Schwimmbad-Ausflug planen", "Bus reservieren, Eltern informieren."},
-            {"Nachtwanderung vorbereiten", "Strecke abgehen, Sicherheitskonzept."},
-            {"Feuerwehrquiz für Tag der offenen Tür", "Fragen erstellen und Preise besorgen."},
-            {"Löschübung am Bach planen", "Genehmigung bei der Gemeinde einholen."},
-            {"Gruppenstunden-Themen Q4", "Themen für Oktober bis Dezember festlegen."},
-            {"Weihnachtsfeier planen", "Raum buchen, Programm überlegen."},
-            {"Fotowand für Gerätehaus", "Fotos von allen Veranstaltungen sammeln."},
-            {"Jugendleitercard beantragen", "Für drei Betreuer die JuLeiCa beantragen."},
-            {"Erste-Hilfe-Parcours aufbauen", "Stationen vorbereiten und Material checken."},
-            {"Lagerfeuerabend planen", "Stockbrot-Teig, Gitarre, Lieder."},
-            {"Besuch bei Berufsfeuerwehr", "Termin anfragen für Besichtigung."},
-            {"Spieleabend organisieren", "Spiele zusammenstellen, Getränke besorgen."},
-            {"Trikots waschen und sortieren", null},
-            {"Aufnahmeantrag aktualisieren", "Neues Formular mit aktuellem Datenschutz."},
-            {"Video für Social Media", "Kurzfilm über die Jugendfeuerwehr drehen."},
-            {"Geburtstagskarten schreiben", "Für alle Geburtstagskinder im Quartal."},
-            {"Jahresplanung 2027 beginnen", "Erste Ideen sammeln und Termine blockieren."},
-        };
-        TicketPriority[] prios = TicketPriority.values();
-        int[] lanes = {
-            openLane, openLane, workLane, openLane, workLane, feedLane, openLane, workLane, openLane, doneLane,
-            openLane, workLane, doneLane, openLane, feedLane, doneLane, workLane, openLane, doneLane, openLane
-        };
-        for (int i = 0; i < tickets.length; i++) {
-            int tid = createTicket(
-                    boardId,
-                    lanes[i],
-                    i + 9,
-                    tickets[i][0],
-                    tickets[i][1],
-                    rng.nextInt(3) == 0 ? null : teamMember(team, rng),
-                    prios[rng.nextInt(prios.length)],
-                    rng.nextInt(3) == 0 ? LocalDate.now().plusDays(rng.nextInt(45)) : null,
-                    admin.id());
-            if (lanes[i] != openLane) {
-                ticketRepo.logTransition(
-                        tid, openLane, lanes[i] == doneLane ? workLane : lanes[i], localIdentity(admin.id()));
-                if (lanes[i] == doneLane) {
-                    ticketRepo.logTransition(tid, workLane, doneLane, localIdentity(teamMember(team, rng)));
-                } else if (lanes[i] == feedLane) {
-                    ticketRepo.logTransition(tid, workLane, feedLane, localIdentity(admin.id()));
-                }
-            }
-            if (rng.nextInt(3) == 0) {
-                ticketRepo.createComment(tid, null, localIdentity(admin.id()), "Wer kann das übernehmen?");
-            }
-            if (rng.nextInt(3) == 0 && !team.isEmpty()) {
-                ticketRepo.createComment(
-                        tid,
-                        null,
-                        localIdentity(team.get(rng.nextInt(team.size())).id()),
-                        "Ich mach das gerne!");
-            }
-        }
-        var allTickets = ticketRepo.findByBoard(boardId);
-        if (allTickets.size() > 10) {
-            ticketRepo.createLink(allTickets.get(3).id(), allTickets.get(7).id(), LinkType.RELATES_TO);
-            ticketRepo.createLink(allTickets.get(9).id(), allTickets.get(15).id(), LinkType.BLOCKS);
-            ticketRepo.createLink(allTickets.get(11).id(), allTickets.get(18).id(), LinkType.CAUSES);
-            ticketRepo.createLink(allTickets.get(14).id(), allTickets.get(20).id(), LinkType.RELATES_TO);
-        }
-    }
-
     /**
      * Seeds a shared board between primary and partner stations.
      * The board is owned by the primary station, shared with FULL mode to the partner.
@@ -781,6 +633,154 @@ public class DemoBoardSeeder {
         ticketRepo.setLaneEnteredAt(t7, now.minus(Duration.ofDays(2)));
 
         log.info("Demo: Created shared board 'Gemeinsame Planung' with 7 tickets");
+    }
+
+    private void seedExtraTicketsBoard1(
+            int boardId,
+            int openLane,
+            int workLane,
+            int doneLane,
+            StationMember admin,
+            List<StationMember> team,
+            Random rng) {
+        String[][] tickets = {
+            {"Einsatzberichte digitalisieren", "Alte Papierberichte einscannen und archivieren."},
+            {"Atemschutz-Wartung planen", "Alle Geräte bis Monatsende prüfen lassen."},
+            {"Hydranten-Kontrolle Süd", "Hydranten im Südviertel auf Funktion prüfen."},
+            {"Spind-Zuweisung aktualisieren", "Neue Mitglieder brauchen Spinde."},
+            {"Fahrzeug TÜV-Termin vereinbaren", null},
+            {"Ausbildungsnachweis-Hefte verteilen", "Neue Hefte sind bestellt, verteilen sobald da."},
+            {"Gerätehaus: Tür reparieren", "Seitentür klemmt seit letzter Woche."},
+            {"Einsatzkleidung nachbestellen", "Drei Hosen und zwei Jacken fehlen."},
+            {"Schlauchturm aufräumen", null},
+            {"Jugendfeuerwehr-Betreuer suchen", "Wir brauchen mindestens zwei weitere Betreuer."},
+            {"Nächster Elternabend planen", "Termin mit Elternvertretung abstimmen."},
+            {"Dienstplan Juli erstellen", "Schichten für Juli planen."},
+            {"Feuerlöscher-Prüfung organisieren", "Alle Feuerlöscher müssen geprüft werden."},
+            {"Notstromaggregat testen", "Monatlicher Test steht an."},
+            {"Erste-Hilfe-Kurs für Neulinge", "Kurs beim DRK anfragen."},
+            {"Funkrufnamen aktualisieren", "Liste an die Leitstelle senden."},
+            {"Beschaffungsantrag Wärmebildkamera", "Antrag beim Förderverein einreichen."},
+            {"Schlüsselplan überarbeiten", "Wer hat welche Schlüssel?"},
+            {"Dienstvorschrift aktualisieren", null},
+            {"Winterdienst-Material prüfen", "Salz und Streugut kontrollieren."},
+        };
+        TicketPriority[] prios = TicketPriority.values();
+        int[] lanes = {
+            openLane, openLane, openLane, workLane, workLane, workLane, workLane, doneLane, doneLane, doneLane,
+            openLane, openLane, workLane, doneLane, openLane, workLane, openLane, doneLane, workLane, openLane
+        };
+        for (int i = 0; i < tickets.length; i++) {
+            int tid = createTicket(
+                    boardId,
+                    lanes[i],
+                    i + 8,
+                    tickets[i][0],
+                    tickets[i][1],
+                    rng.nextInt(3) == 0 ? null : teamMember(team, rng),
+                    prios[rng.nextInt(prios.length)],
+                    rng.nextInt(3) == 0 ? LocalDate.now().plusDays(rng.nextInt(30)) : null,
+                    admin.id());
+            if (lanes[i] == workLane) {
+                ticketRepo.logTransition(tid, openLane, workLane, localIdentity(admin.id()));
+            } else if (lanes[i] == doneLane) {
+                ticketRepo.logTransition(tid, openLane, workLane, localIdentity(teamMember(team, rng)));
+                ticketRepo.logTransition(tid, workLane, doneLane, localIdentity(admin.id()));
+            }
+            if (rng.nextInt(3) == 0) {
+                ticketRepo.createComment(tid, null, localIdentity(admin.id()), "Bitte zeitnah erledigen.");
+            }
+            if (rng.nextInt(4) == 0 && !team.isEmpty()) {
+                ticketRepo.createComment(
+                        tid,
+                        null,
+                        localIdentity(team.get(rng.nextInt(team.size())).id()),
+                        "Wird gemacht!");
+            }
+        }
+        // Add some cross-links
+        var allTickets = ticketRepo.findByBoard(boardId);
+        if (allTickets.size() > 5) {
+            ticketRepo.createLink(allTickets.get(2).id(), allTickets.get(4).id(), LinkType.RELATES_TO);
+            ticketRepo.createLink(allTickets.get(5).id(), allTickets.get(8).id(), LinkType.BLOCKS);
+            ticketRepo.createLink(allTickets.get(10).id(), allTickets.get(12).id(), LinkType.CAUSED_BY);
+        }
+    }
+
+    private void seedExtraTicketsBoard2(
+            int boardId,
+            int openLane,
+            int workLane,
+            int feedLane,
+            int doneLane,
+            StationMember admin,
+            List<StationMember> team,
+            Random rng) {
+        String[][] tickets = {
+            {"Wandertag organisieren", "Route planen, Genehmigung einholen."},
+            {"Knotenkunde-Arbeitsblätter erstellen", null},
+            {"Wimpel für Stadtteilfest basteln", "Material besorgen und Basteltermin planen."},
+            {"Schwimmbad-Ausflug planen", "Bus reservieren, Eltern informieren."},
+            {"Nachtwanderung vorbereiten", "Strecke abgehen, Sicherheitskonzept."},
+            {"Feuerwehrquiz für Tag der offenen Tür", "Fragen erstellen und Preise besorgen."},
+            {"Löschübung am Bach planen", "Genehmigung bei der Gemeinde einholen."},
+            {"Gruppenstunden-Themen Q4", "Themen für Oktober bis Dezember festlegen."},
+            {"Weihnachtsfeier planen", "Raum buchen, Programm überlegen."},
+            {"Fotowand für Gerätehaus", "Fotos von allen Veranstaltungen sammeln."},
+            {"Jugendleitercard beantragen", "Für drei Betreuer die JuLeiCa beantragen."},
+            {"Erste-Hilfe-Parcours aufbauen", "Stationen vorbereiten und Material checken."},
+            {"Lagerfeuerabend planen", "Stockbrot-Teig, Gitarre, Lieder."},
+            {"Besuch bei Berufsfeuerwehr", "Termin anfragen für Besichtigung."},
+            {"Spieleabend organisieren", "Spiele zusammenstellen, Getränke besorgen."},
+            {"Trikots waschen und sortieren", null},
+            {"Aufnahmeantrag aktualisieren", "Neues Formular mit aktuellem Datenschutz."},
+            {"Video für Social Media", "Kurzfilm über die Jugendfeuerwehr drehen."},
+            {"Geburtstagskarten schreiben", "Für alle Geburtstagskinder im Quartal."},
+            {"Jahresplanung 2027 beginnen", "Erste Ideen sammeln und Termine blockieren."},
+        };
+        TicketPriority[] prios = TicketPriority.values();
+        int[] lanes = {
+            openLane, openLane, workLane, openLane, workLane, feedLane, openLane, workLane, openLane, doneLane,
+            openLane, workLane, doneLane, openLane, feedLane, doneLane, workLane, openLane, doneLane, openLane
+        };
+        for (int i = 0; i < tickets.length; i++) {
+            int tid = createTicket(
+                    boardId,
+                    lanes[i],
+                    i + 9,
+                    tickets[i][0],
+                    tickets[i][1],
+                    rng.nextInt(3) == 0 ? null : teamMember(team, rng),
+                    prios[rng.nextInt(prios.length)],
+                    rng.nextInt(3) == 0 ? LocalDate.now().plusDays(rng.nextInt(45)) : null,
+                    admin.id());
+            if (lanes[i] != openLane) {
+                ticketRepo.logTransition(
+                        tid, openLane, lanes[i] == doneLane ? workLane : lanes[i], localIdentity(admin.id()));
+                if (lanes[i] == doneLane) {
+                    ticketRepo.logTransition(tid, workLane, doneLane, localIdentity(teamMember(team, rng)));
+                } else if (lanes[i] == feedLane) {
+                    ticketRepo.logTransition(tid, workLane, feedLane, localIdentity(admin.id()));
+                }
+            }
+            if (rng.nextInt(3) == 0) {
+                ticketRepo.createComment(tid, null, localIdentity(admin.id()), "Wer kann das übernehmen?");
+            }
+            if (rng.nextInt(3) == 0 && !team.isEmpty()) {
+                ticketRepo.createComment(
+                        tid,
+                        null,
+                        localIdentity(team.get(rng.nextInt(team.size())).id()),
+                        "Ich mach das gerne!");
+            }
+        }
+        var allTickets = ticketRepo.findByBoard(boardId);
+        if (allTickets.size() > 10) {
+            ticketRepo.createLink(allTickets.get(3).id(), allTickets.get(7).id(), LinkType.RELATES_TO);
+            ticketRepo.createLink(allTickets.get(9).id(), allTickets.get(15).id(), LinkType.BLOCKS);
+            ticketRepo.createLink(allTickets.get(11).id(), allTickets.get(18).id(), LinkType.CAUSES);
+            ticketRepo.createLink(allTickets.get(14).id(), allTickets.get(20).id(), LinkType.RELATES_TO);
+        }
     }
 
     private int createTicket(

@@ -31,7 +31,7 @@ public record LendingRequest(
                 row.getInt("id"),
                 row.getInt("requesting_station_id"),
                 row.getInt("owning_station_id"),
-                LendingStatus.valueOf(row.getString("status")),
+                row.getEnum("status", LendingStatus.class),
                 row.getObject("requested_date_from", LocalDate.class),
                 row.getObject("requested_date_to", LocalDate.class),
                 row.getInt("created_by"),

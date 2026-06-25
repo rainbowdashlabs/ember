@@ -548,7 +548,7 @@ export async function removeFederationShare(eventId: number): Promise<void> {
     await client.delete(`/events/${eventId}/federation`)
 }
 
-// -- Page-editor picker (concept §4.5). PAGE_EDIT-gated. --
+// -- Page-editor picker. PAGE_EDIT-gated. --
 
 export type EventPickerMode = 'FUTURE' | 'PAST' | 'ALL'
 

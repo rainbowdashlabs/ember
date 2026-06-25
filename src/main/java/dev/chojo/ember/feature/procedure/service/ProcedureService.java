@@ -133,27 +133,6 @@ public class ProcedureService {
         return procedure;
     }
 
-    private void snapshotTemplate(int procedureId, int templateId) {
-        var templateItems = repository.findTemplateItems(templateId);
-        var templateDeps = repository.findTemplateItemDependencies(templateId);
-
-        // Map old template item IDs to new procedure item IDs
-        Map<Integer, Integer> idMapping = new HashMap<>();
-        for (ProcedureTemplateItem item : templateItems) {
-            ProcedureItem created = repository.snapshotTemplateItem(procedureId, item);
-            idMapping.put(item.id(), created.id());
-        }
-
-        // Recreate dependencies with new IDs
-        for (int[] dep : templateDeps) {
-            Integer newItemId = idMapping.get(dep[0]);
-            Integer newDependsOnId = idMapping.get(dep[1]);
-            if (newItemId != null && newDependsOnId != null) {
-                repository.addItemDependency(newItemId, newDependsOnId);
-            }
-        }
-    }
-
     public boolean updateProcedure(int id, String name, String description, boolean isPublic, Instant dueAt) {
         return repository.updateProcedure(id, name, description, isPublic, dueAt);
     }
@@ -184,11 +163,11 @@ public class ProcedureService {
         return repository.deleteProcedure(id);
     }
 
-    // ── Assignees ──
-
     public List<Integer> findAssigneeIds(int procedureId) {
         return repository.findAssigneeIds(procedureId);
     }
+
+    // ── Assignees ──
 
     public void addAssignees(int procedureId, List<Integer> memberIds, int assignedByMemberId) {
         var procedure = repository.findProcedureById(procedureId);
@@ -210,11 +189,11 @@ public class ProcedureService {
         return repository.removeAssignee(procedureId, memberId);
     }
 
-    // ── Items ──
-
     public Optional<ProcedureItem> findItemById(int itemId) {
         return repository.findItemById(itemId);
     }
+
+    // ── Items ──
 
     public List<ProcedureItem> findItems(int procedureId) {
         return repository.findItems(procedureId);
@@ -285,13 +264,34 @@ public class ProcedureService {
         repository.setItemDependencies(procedureId, dependencies);
     }
 
-    // ── Sidebar Counts ──
-
     public int countOpenByAssigneeWithAvailableItems(int stationId, int memberId) {
         return repository.countOpenByAssigneeWithAvailableItems(stationId, memberId);
     }
 
+    // ── Sidebar Counts ──
+
     public int countOpenByStation(int stationId) {
         return repository.countOpenByStation(stationId);
+    }
+
+    private void snapshotTemplate(int procedureId, int templateId) {
+        var templateItems = repository.findTemplateItems(templateId);
+        var templateDeps = repository.findTemplateItemDependencies(templateId);
+
+        // Map old template item IDs to new procedure item IDs
+        Map<Integer, Integer> idMapping = new HashMap<>();
+        for (ProcedureTemplateItem item : templateItems) {
+            ProcedureItem created = repository.snapshotTemplateItem(procedureId, item);
+            idMapping.put(item.id(), created.id());
+        }
+
+        // Recreate dependencies with new IDs
+        for (int[] dep : templateDeps) {
+            Integer newItemId = idMapping.get(dep[0]);
+            Integer newDependsOnId = idMapping.get(dep[1]);
+            if (newItemId != null && newDependsOnId != null) {
+                repository.addItemDependency(newItemId, newDependsOnId);
+            }
+        }
     }
 }

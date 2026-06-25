@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.maps.entity;
 /**
  * The tile provider the instance is currently configured against. Each variant carries the
  * canonical URL template and attribution that the backend falls back to when the operator
- * hasn't overridden them. See {@code .concept/geolocation.md} §4.4.
+ * hasn't overridden them.
  *
  * <p>The {@code {z}}, {@code {x}}, {@code {y}} placeholders are interpolated by the cache
  * layer when it forwards the request upstream. The {@code {k}} placeholder is replaced with

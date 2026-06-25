@@ -27,9 +27,9 @@ public class ProblemReportRepository {
             String browserInfo,
             String screenSize) {
         return query("""
-                        INSERT INTO problem_report(station_id, member_id, reporter_name, message, page_url, user_roles, recent_requests, browser_info, screen_size)
-                        VALUES(:station_id, :member_id, :reporter_name, :message, :page_url, :user_roles, :recent_requests::jsonb, :browser_info, :screen_size)
-                        RETURNING *;""")
+                INSERT INTO problem_report(station_id, member_id, reporter_name, message, page_url, user_roles, recent_requests, browser_info, screen_size)
+                VALUES(:station_id, :member_id, :reporter_name, :message, :page_url, :user_roles, :recent_requests::JSONB, :browser_info, :screen_size)
+                RETURNING *;""")
                 .single(call().bind("station_id", stationId)
                         .bind("member_id", memberId)
                         .bind("reporter_name", reporterName)

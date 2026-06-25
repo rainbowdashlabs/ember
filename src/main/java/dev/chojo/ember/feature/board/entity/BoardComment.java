@@ -24,10 +24,6 @@ public record BoardComment(
         Instant createdAt,
         Instant updatedAt) {
 
-    public BoardComment withAuthor(MemberIdentity author) {
-        return new BoardComment(id, ticketId, parentId, author, content, deleted, createdAt, updatedAt);
-    }
-
     public static RowMapping<BoardComment> map() {
         return row -> {
             UUID authorStationUid = row.get("author_station_uid", StandardValueConverter.UUID_STRING);
@@ -46,5 +42,9 @@ public record BoardComment(
                     row.get("created_at", INSTANT_TIMESTAMP),
                     row.get("updated_at", INSTANT_TIMESTAMP));
         };
+    }
+
+    public BoardComment withAuthor(MemberIdentity author) {
+        return new BoardComment(id, ticketId, parentId, author, content, deleted, createdAt, updatedAt);
     }
 }

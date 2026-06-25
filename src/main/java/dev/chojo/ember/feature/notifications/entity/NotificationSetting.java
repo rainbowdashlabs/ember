@@ -28,7 +28,7 @@ public record NotificationSetting(
     public static RowMapping<NotificationSetting> map() {
         return row -> new NotificationSetting(
                 row.getInt("member_id"),
-                NotificationType.valueOf(row.getString("notification_type")),
+                row.getEnum("notification_type", NotificationType.class),
                 row.getBoolean("app_enabled"),
                 row.getBoolean("email_enabled"),
                 row.getBoolean("feed_enabled"));

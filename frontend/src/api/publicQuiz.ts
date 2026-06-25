@@ -7,7 +7,7 @@ import client from './client'
 
 /**
  * Picker shape for catalogs marked {@code public_render = true}. Backs the QUIZ_TEASER cell
- * editor and the renderer alike (concept §3.15).
+ * editor and the renderer alike.
  */
 export interface PublicQuizCatalog {
     id: number

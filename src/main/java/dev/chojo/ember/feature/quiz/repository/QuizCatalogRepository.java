@@ -39,9 +39,9 @@ public class QuizCatalogRepository {
 
     public QuizCatalog create(int stationId, String name, String description, boolean trainingEnabled) {
         return query("""
-                        INSERT INTO quiz_catalog(station_id, name, description, training_enabled)
-                        VALUES (:station_id, :name, :description, :training_enabled)
-                        RETURNING *;""")
+                INSERT INTO quiz_catalog(station_id, name, description, training_enabled)
+                VALUES (:station_id, :name, :description, :training_enabled)
+                RETURNING *;""")
                 .single(call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("description", description)
@@ -53,9 +53,9 @@ public class QuizCatalogRepository {
 
     public boolean update(int id, String name, String description, boolean trainingEnabled) {
         return query("""
-                        UPDATE quiz_catalog
-                        SET name = :name, description = :description, training_enabled = :training_enabled, updated_at = now()
-                        WHERE id = :id;""")
+                UPDATE quiz_catalog
+                SET name = :name, description = :description, training_enabled = :training_enabled, updated_at = now()
+                WHERE id = :id;""")
                 .single(call().bind("id", id)
                         .bind("name", name)
                         .bind("description", description)
@@ -73,13 +73,13 @@ public class QuizCatalogRepository {
 
     /**
      * Flips the {@code public_render} flag — opts the catalog into (or out of) being eligible
-     * for the public QUIZ_TEASER random endpoint (concept §3.15 / §4.7).
+     * for the public QUIZ_TEASER random endpoint.
      */
     public boolean setPublicRender(int id, boolean publicRender) {
         return query("""
-                        UPDATE quiz_catalog
-                        SET public_render = :public_render, updated_at = now()
-                        WHERE id = :id;""")
+                UPDATE quiz_catalog
+                SET public_render = :public_render, updated_at = now()
+                WHERE id = :id;""")
                 .single(call().bind("id", id).bind("public_render", publicRender))
                 .update()
                 .changed();
@@ -87,13 +87,13 @@ public class QuizCatalogRepository {
 
     /**
      * Returns catalogs of the given station whose {@code public_render} flag is on. Backs the
-     * editor's catalog picker and the public quiz random endpoint (concept §3.15 / §4.7).
+     * editor's catalog picker and the public quiz random endpoint.
      */
     public List<QuizCatalog> findPublicByStation(int stationId) {
         return query("""
-                        SELECT * FROM quiz_catalog
-                        WHERE station_id = :station_id AND public_render = TRUE
-                        ORDER BY name;""")
+                SELECT * FROM quiz_catalog
+                WHERE station_id = :station_id AND public_render = TRUE
+                ORDER BY name;""")
                 .single(call().bind("station_id", stationId))
                 .map(QuizCatalog.map())
                 .all();
@@ -109,13 +109,13 @@ public class QuizCatalogRepository {
     public Optional<QuizQuestion> findRandomPublicQuestion(int stationId, List<Integer> catalogIds) {
         if (catalogIds == null || catalogIds.isEmpty()) return Optional.empty();
         return query("""
-                        SELECT q.* FROM quiz_question q
-                        JOIN quiz_catalog c ON c.id = q.catalog_id
-                        WHERE c.station_id = :station_id
-                          AND c.public_render = TRUE
-                          AND q.catalog_id = ANY(:catalog_ids)
-                        ORDER BY random()
-                        LIMIT 1;""")
+                SELECT q.* FROM quiz_question q
+                JOIN quiz_catalog c ON c.id = q.catalog_id
+                WHERE c.station_id = :station_id
+                  AND c.public_render = TRUE
+                  AND q.catalog_id = ANY(:catalog_ids)
+                ORDER BY random()
+                LIMIT 1;""")
                 .single(call().bind("station_id", stationId).bind("catalog_ids", catalogIds, PostgreSqlTypes.INTEGER))
                 .map(QuizQuestion.map())
                 .first();
@@ -139,9 +139,9 @@ public class QuizCatalogRepository {
 
     public QuizCategory createCategory(int stationId, String name, String description, int position) {
         return query("""
-                        INSERT INTO quiz_category(station_id, name, description, position)
-                        VALUES (:station_id, :name, :description, :position)
-                        RETURNING *;""")
+                INSERT INTO quiz_category(station_id, name, description, position)
+                VALUES (:station_id, :name, :description, :position)
+                RETURNING *;""")
                 .single(call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("description", description)
@@ -213,9 +213,9 @@ public class QuizCatalogRepository {
             String config,
             int position) {
         return query("""
-                        INSERT INTO quiz_question(catalog_id, category_id, question_type, title, description, image_url, points, auto_points, config, position)
-                        VALUES (:catalog_id, :category_id, :question_type, :title, :description, :image_url, :points, :auto_points, :config::jsonb, :position)
-                        RETURNING *;""")
+                INSERT INTO quiz_question(catalog_id, category_id, question_type, title, description, image_url, points, auto_points, config, position)
+                VALUES (:catalog_id, :category_id, :question_type, :title, :description, :image_url, :points, :auto_points, :config::JSONB, :position)
+                RETURNING *;""")
                 .single(call().bind("catalog_id", catalogId)
                         .bind("category_id", categoryId)
                         .bind("question_type", quizQuestionType.name())
@@ -242,11 +242,11 @@ public class QuizCatalogRepository {
             String config,
             int position) {
         return query("""
-                        UPDATE quiz_question
-                        SET category_id = :category_id, title = :title, description = :description,
-                            image_url = :image_url, points = :points, auto_points = :auto_points,
-                            config = :config::jsonb, position = :position, updated_at = now()
-                        WHERE id = :id;""")
+                UPDATE quiz_question
+                SET category_id = :category_id, title = :title, description = :description,
+                    image_url = :image_url, points = :points, auto_points = :auto_points,
+                    config = :config::JSONB, position = :position, updated_at = now()
+                WHERE id = :id;""")
                 .single(call().bind("id", id)
                         .bind("category_id", categoryId)
                         .bind("title", title)
@@ -277,7 +277,7 @@ public class QuizCatalogRepository {
 
     public List<QuizCatalog> findTrainingCatalogs(int stationId) {
         return query(
-                        "SELECT * FROM quiz_catalog WHERE station_id = :station_id AND training_enabled = true ORDER BY name;")
+                        "SELECT * FROM quiz_catalog WHERE station_id = :station_id AND training_enabled = TRUE ORDER BY name;")
                 .single(call().bind("station_id", stationId))
                 .map(QuizCatalog.map())
                 .all();

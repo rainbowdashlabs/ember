@@ -475,68 +475,6 @@ public class AuthService {
         return createSession(account.id(), userAgent, location);
     }
 
-    private boolean twoFactorEnrolled(int accountId) {
-        return twoFactorRepository != null && twoFactorRepository.isEnrolled(accountId);
-    }
-
-    /**
-     * Combined length + HIBP validation applied before persisting any new password.
-     * Returns {@link PasswordPolicy.Result#OK} when the password meets the length
-     * requirement and is not known to HIBP; otherwise returns the specific reason.
-     * HIBP failures are fail-open inside {@link HibpClient}, so a third-party outage
-     * does not block legitimate password changes.
-     */
-    private PasswordPolicy.Result validateNewPassword(String plaintext) {
-        var policy = PasswordPolicy.validate(plaintext);
-        if (policy != PasswordPolicy.Result.OK) return policy;
-        if (hibpClient.isPwned(plaintext)) return PasswordPolicy.Result.BREACHED;
-        return PasswordPolicy.Result.OK;
-    }
-
-    /**
-     * Kills every other live session and clears every outstanding recovery /
-     * verification token for the account. Used after any password rotation so an
-     * attacker who already obtained credentials cannot continue with previously
-     * minted sessions or alternate recovery tokens.
-     *
-     * @param accountId          the rotating account
-     * @param keepSessionToken   the raw bearer of the session that triggered the
-     *                           rotation, retained so a self-service password change
-     *                           does not log the user out of their own browser;
-     *                           {@code null} to kill every session
-     */
-    private void invalidateAfterPasswordRotation(int accountId, String keepSessionToken) {
-        if (keepSessionToken == null || keepSessionToken.isBlank()) {
-            accountRepository.deleteSessionsByAccount(accountId);
-        } else {
-            accountRepository.deleteSessionsExceptToken(accountId, keepSessionToken);
-        }
-        accountRepository.deleteAllTokens(accountId);
-    }
-
-    private void notifyPasswordChanged(Account account) {
-        try {
-            emailService.sendPasswordChangedNotice(account.email(), account.firstName());
-        } catch (Exception e) {
-            log.warn("Failed to enqueue password-changed notice for account {}", account.id(), e);
-        }
-    }
-
-    private String dummyPasswordHash() {
-        String local = dummyPasswordHash;
-        if (local != null) return local;
-        synchronized (this) {
-            if (dummyPasswordHash == null) {
-                byte[] random = new byte[32];
-                RANDOM.nextBytes(random);
-                dummyPasswordHash = passwordHasher.hash(Base64.getEncoder().encodeToString(random));
-            }
-            return dummyPasswordHash;
-        }
-    }
-
-    // -- Login / Session --
-
     /**
      * Refreshes a session by invalidating the old token and creating a new session.
      *
@@ -621,6 +559,8 @@ public class AuthService {
         return true;
     }
 
+    // -- Login / Session --
+
     /**
      * Initiates an email change by sending a confirmation email to the new address.
      * The new email is stored as token metadata and applied upon confirmation.
@@ -648,24 +588,6 @@ public class AuthService {
         emailService.sendEmailChangeReleaseRequest(account.email(), account.firstName(), newEmail, releaseToken);
         emailService.sendEmailChangeClaimRequest(newEmail, account.firstName(), account.email(), claimToken);
         log.info("Email change requested for account {}: {} -> {}", accountId, account.email(), newEmail);
-    }
-
-    // -- Email change --
-
-    /**
-     * Outcome of a {@link #confirmEmailChange(String)} click. {@link #WAITING} means
-     * this side has been confirmed but the partner side still has to click;
-     * {@link #COMMITTED} means both halves are in and the email was updated.
-     */
-    public enum EmailChangeResult {
-        /** Token unknown, of the wrong type, or expired. */
-        INVALID,
-        /** This side accepted; the other half still has to confirm. */
-        WAITING,
-        /** Both halves confirmed; the account email has been updated. */
-        COMMITTED,
-        /** Both halves confirmed but the requested email is now taken by another account. */
-        DUPLICATE
     }
 
     /**
@@ -749,8 +671,6 @@ public class AuthService {
         log.info("Station deletion requested by account {} for station {}", accountId, stationId);
     }
 
-    // -- Station deletion --
-
     /**
      * Confirms a station deletion using the provided token. Returns the station ID to be deleted.
      *
@@ -777,6 +697,88 @@ public class AuthService {
         accountRepository.deleteToken(token);
         log.info("Station deletion confirmed by account {} for station {}", accountToken.accountId(), stationId);
         return Optional.of(stationId);
+    }
+
+    /**
+     * Creates a session for the given account, callable from the 2FA verification
+     * flow after the user has proven their second factor.
+     */
+    public LoginResult createSessionForAccount(int accountId, String userAgent, String location) {
+        return createSession(accountId, userAgent, location);
+    }
+
+    /**
+     * Creates a session that is already marked as 2FA-verified and (optionally) linked to a
+     * trusted-device row. Used by the {@code /auth/2fa} verify path so the freshly-minted
+     * session passes step-up freshness checks without a second prompt.
+     */
+    public LoginResult createVerifiedSessionForAccount(
+            int accountId, String userAgent, String location, Integer deviceTrustId) {
+        return createSession(accountId, userAgent, location, Instant.now(), deviceTrustId);
+    }
+
+    // -- Email change --
+
+    private boolean twoFactorEnrolled(int accountId) {
+        return twoFactorRepository != null && twoFactorRepository.isEnrolled(accountId);
+    }
+
+    /**
+     * Combined length + HIBP validation applied before persisting any new password.
+     * Returns {@link PasswordPolicy.Result#OK} when the password meets the length
+     * requirement and is not known to HIBP; otherwise returns the specific reason.
+     * HIBP failures are fail-open inside {@link HibpClient}, so a third-party outage
+     * does not block legitimate password changes.
+     */
+    private PasswordPolicy.Result validateNewPassword(String plaintext) {
+        var policy = PasswordPolicy.validate(plaintext);
+        if (policy != PasswordPolicy.Result.OK) return policy;
+        if (hibpClient.isPwned(plaintext)) return PasswordPolicy.Result.BREACHED;
+        return PasswordPolicy.Result.OK;
+    }
+
+    /**
+     * Kills every other live session and clears every outstanding recovery /
+     * verification token for the account. Used after any password rotation so an
+     * attacker who already obtained credentials cannot continue with previously
+     * minted sessions or alternate recovery tokens.
+     *
+     * @param accountId        the rotating account
+     * @param keepSessionToken the raw bearer of the session that triggered the
+     *                         rotation, retained so a self-service password change
+     *                         does not log the user out of their own browser;
+     *                         {@code null} to kill every session
+     */
+    private void invalidateAfterPasswordRotation(int accountId, String keepSessionToken) {
+        if (keepSessionToken == null || keepSessionToken.isBlank()) {
+            accountRepository.deleteSessionsByAccount(accountId);
+        } else {
+            accountRepository.deleteSessionsExceptToken(accountId, keepSessionToken);
+        }
+        accountRepository.deleteAllTokens(accountId);
+    }
+
+    // -- Station deletion --
+
+    private void notifyPasswordChanged(Account account) {
+        try {
+            emailService.sendPasswordChangedNotice(account.email(), account.firstName());
+        } catch (Exception e) {
+            log.warn("Failed to enqueue password-changed notice for account {}", account.id(), e);
+        }
+    }
+
+    private String dummyPasswordHash() {
+        String local = dummyPasswordHash;
+        if (local != null) return local;
+        synchronized (this) {
+            if (dummyPasswordHash == null) {
+                byte[] random = new byte[32];
+                RANDOM.nextBytes(random);
+                dummyPasswordHash = passwordHasher.hash(Base64.getEncoder().encodeToString(random));
+            }
+            return dummyPasswordHash;
+        }
     }
 
     /**
@@ -816,24 +818,6 @@ public class AuthService {
     }
 
     /**
-     * Creates a session for the given account, callable from the 2FA verification
-     * flow after the user has proven their second factor.
-     */
-    public LoginResult createSessionForAccount(int accountId, String userAgent, String location) {
-        return createSession(accountId, userAgent, location);
-    }
-
-    /**
-     * Creates a session that is already marked as 2FA-verified and (optionally) linked to a
-     * trusted-device row. Used by the {@code /auth/2fa} verify path so the freshly-minted
-     * session passes step-up freshness checks without a second prompt.
-     */
-    public LoginResult createVerifiedSessionForAccount(
-            int accountId, String userAgent, String location, Integer deviceTrustId) {
-        return createSession(accountId, userAgent, location, Instant.now(), deviceTrustId);
-    }
-
-    /**
      * Generates a cryptographically secure random token encoded as URL-safe Base64.
      *
      * @return the generated token string
@@ -842,5 +826,29 @@ public class AuthService {
         byte[] bytes = new byte[authConfig.tokenBytes()];
         RANDOM.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    /**
+     * Outcome of a {@link #confirmEmailChange(String)} click. {@link #WAITING} means
+     * this side has been confirmed but the partner side still has to click;
+     * {@link #COMMITTED} means both halves are in and the email was updated.
+     */
+    public enum EmailChangeResult {
+        /**
+         * Token unknown, of the wrong type, or expired.
+         */
+        INVALID,
+        /**
+         * This side accepted; the other half still has to confirm.
+         */
+        WAITING,
+        /**
+         * Both halves confirmed; the account email has been updated.
+         */
+        COMMITTED,
+        /**
+         * Both halves confirmed but the requested email is now taken by another account.
+         */
+        DUPLICATE
     }
 }

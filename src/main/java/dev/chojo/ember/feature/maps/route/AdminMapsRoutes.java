@@ -37,6 +37,16 @@ public class AdminMapsRoutes implements Routes {
         this.cacheService = cacheService;
     }
 
+    private static int parseIntParam(Context ctx, String name) {
+        String raw = ctx.queryParam(name);
+        if (raw == null) throw new BadRequestResponse(name + " required");
+        try {
+            return Integer.parseInt(raw);
+        } catch (NumberFormatException e) {
+            throw new BadRequestResponse(name + " must be an integer");
+        }
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/admin/settings/maps", this::getConfig, InstancePermission.ADMINISTRATOR);
@@ -81,26 +91,11 @@ public class AdminMapsRoutes implements Routes {
         ctx.json(cacheService.stats());
     }
 
-    private static int parseIntParam(Context ctx, String name) {
-        String raw = ctx.queryParam(name);
-        if (raw == null) throw new BadRequestResponse(name + " required");
-        try {
-            return Integer.parseInt(raw);
-        } catch (NumberFormatException e) {
-            throw new BadRequestResponse(name + " must be an integer");
-        }
-    }
-
     /**
      * Combined admin-facing config payload. Carries the API key so the admin can edit it;
      * never use this DTO for public-facing reads — see {@link PublicMapsRoutes.PublicMapsConfig}.
      */
     public record AdminMapsConfig(MapsTilesConfig tiles, MapsGeocodingConfig geocoding, int tileCacheMaxMb) {
-        public AdminMapsConfig {
-            if (tiles == null) tiles = MapsTilesConfig.DEFAULT;
-            if (geocoding == null) geocoding = new MapsGeocodingConfig(GeocodingProvider.NONE, "", "");
-        }
-
         /**
          * Convenience for the typed default; used so the route handler can synthesise a
          * record even when the operator only typed one section. {@link MapTileProvider}
@@ -109,6 +104,11 @@ public class AdminMapsRoutes implements Routes {
          */
         @SuppressWarnings("unused")
         private static final MapTileProvider DEFAULT_PROVIDER = MapTileProvider.OSM;
+
+        public AdminMapsConfig {
+            if (tiles == null) tiles = MapsTilesConfig.DEFAULT;
+            if (geocoding == null) geocoding = new MapsGeocodingConfig(GeocodingProvider.NONE, "", "");
+        }
     }
 
     /**

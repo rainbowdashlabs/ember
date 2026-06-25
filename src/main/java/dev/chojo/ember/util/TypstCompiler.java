@@ -40,8 +40,6 @@ public final class TypstCompiler {
         }
     }
 
-    public record StationLogo(byte[] data, String contentType) {}
-
     public static byte[] compileTemplate(
             Map<String, Object> data, String templateName, StationLogo logo, ObjectMapper mapper)
             throws IOException, InterruptedException {
@@ -69,6 +67,16 @@ public final class TypstCompiler {
         }
     }
 
+    public static String logoExtension(String contentType) {
+        return switch (contentType) {
+            case "image/jpeg" -> "jpg";
+            case "image/svg+xml" -> "svg";
+            case "image/webp" -> "webp";
+            case "image/gif" -> "gif";
+            default -> "png";
+        };
+    }
+
     private static byte[] runTypst(Path workDir, Path inputFile, Path outputFile)
             throws IOException, InterruptedException {
         var process = new ProcessBuilder(TYPST_BIN, "compile", inputFile.toString(), outputFile.toString())
@@ -83,16 +91,6 @@ public final class TypstCompiler {
         return Files.readAllBytes(outputFile);
     }
 
-    public static String logoExtension(String contentType) {
-        return switch (contentType) {
-            case "image/jpeg" -> "jpg";
-            case "image/svg+xml" -> "svg";
-            case "image/webp" -> "webp";
-            case "image/gif" -> "gif";
-            default -> "png";
-        };
-    }
-
     private static void cleanup(Path dir) {
         try (var walk = Files.walk(dir)) {
             walk.sorted(Comparator.reverseOrder()).forEach(p -> {
@@ -104,4 +102,6 @@ public final class TypstCompiler {
         } catch (IOException ignored) {
         }
     }
+
+    public record StationLogo(byte[] data, String contentType) {}
 }

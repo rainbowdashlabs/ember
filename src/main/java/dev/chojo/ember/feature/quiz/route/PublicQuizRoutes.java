@@ -25,7 +25,7 @@ import java.util.UUID;
 /**
  * Public anonymous-internet endpoints backing the QUIZ_TEASER cell. The cell picks one
  * random question from the requested catalogs and reveals the answer on click — same shape
- * as the internal training view (concept §3.15 / §4.7).
+ * as the internal training view.
  */
 @Singleton
 public class PublicQuizRoutes implements Routes {
@@ -37,6 +37,25 @@ public class PublicQuizRoutes implements Routes {
     public PublicQuizRoutes(QuizCatalogRepository catalogRepository, StationRepository stationRepository) {
         this.catalogRepository = catalogRepository;
         this.stationRepository = stationRepository;
+    }
+
+    private static List<Integer> parseCatalogIds(String raw) {
+        var out = new ArrayList<Integer>();
+        for (String token : raw.split(",")) {
+            String trimmed = token.trim();
+            if (trimmed.isEmpty()) continue;
+            try {
+                out.add(Integer.parseInt(trimmed));
+            } catch (NumberFormatException ignored) {
+                throw new BadRequestResponse("catalogs contains a non-numeric id: " + trimmed);
+            }
+        }
+        return out;
+    }
+
+    private static PublicQuestion toPublicQuestion(QuizQuestion q) {
+        return new PublicQuestion(
+                q.id(), q.quizQuestionType().name(), q.title(), q.description(), q.imageUrl(), q.configNode());
     }
 
     @Override
@@ -76,25 +95,6 @@ public class PublicQuizRoutes implements Routes {
                 catalogRepository.findRandomPublicQuestion(station.id(), ids).orElseThrow(NotFoundResponse::new);
         ctx.header("Cache-Control", "no-store, no-cache, must-revalidate");
         ctx.json(toPublicQuestion(picked));
-    }
-
-    private static List<Integer> parseCatalogIds(String raw) {
-        var out = new ArrayList<Integer>();
-        for (String token : raw.split(",")) {
-            String trimmed = token.trim();
-            if (trimmed.isEmpty()) continue;
-            try {
-                out.add(Integer.parseInt(trimmed));
-            } catch (NumberFormatException ignored) {
-                throw new BadRequestResponse("catalogs contains a non-numeric id: " + trimmed);
-            }
-        }
-        return out;
-    }
-
-    private static PublicQuestion toPublicQuestion(QuizQuestion q) {
-        return new PublicQuestion(
-                q.id(), q.quizQuestionType().name(), q.title(), q.description(), q.imageUrl(), q.configNode());
     }
 
     /**

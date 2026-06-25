@@ -22,7 +22,7 @@ application {
 
 group = "dev.chojo"
 // CalVer as YY.MINOR.MICRO -> https://calver.org/
-version = "26.9.1"
+version = "26.10.0"
 
 repositories {
     mavenCentral()
@@ -61,6 +61,10 @@ dependencies {
     implementation(libs.commons.csv)
     implementation(libs.thumbnailator)
     implementation(libs.imageio.webp)
+    implementation(libs.smbj)
+    implementation(libs.sshd.core)
+    implementation(libs.sshd.sftp)
+    implementation(libs.aws.s3)
     implementation(libs.pdfbox)
     implementation(libs.ical4j)
     implementation(libs.rome)
@@ -322,6 +326,22 @@ tasks {
                     "*.PageFileStorageService*",
                     "*.PageImageVariantService*",
                     "*.PdfCompressor*",
+                    "*.BoardAttachmentService*",
+                    "*.TextCompressionPolicy*",
+                    // Unified storage façade — heavy I/O against the backend layer,
+                    // public-surface paths covered by StorageServiceTest
+                    "*.StorageService*",
+                    "*.StorageBackendResolver*",
+                    "*.LocalStorageBackend*",
+                    // Image variant pipeline and the thin per-domain wrappers over it —
+                    // exercised end-to-end via route tests, not unit-covered.
+                    "*.ImageVariantService*",
+                    "*.AvatarService*",
+                    "*.LostAndFoundImageService*",
+                    "*.QuizQuestionImageService*",
+                    "*.KbIconService*",
+                    "*.KbImageService*",
+                    "*.LogoFragmentService*",
                     // External binary dependent services
                     "*.LegalDocumentService*",
                     // Daemon/scheduler threads

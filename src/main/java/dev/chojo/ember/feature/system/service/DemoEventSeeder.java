@@ -58,17 +58,6 @@ public class DemoEventSeeder {
         this.eventTemplateService = eventTemplateService;
     }
 
-    /**
-     * Result of event seeding, containing references needed by attendance seeder and notification seeder.
-     */
-    public record SeedResult(
-            AttendanceTemplate templateUebung,
-            AttendanceTemplate templateGesamt,
-            StationEvent evUebung,
-            StationEvent evGesamt,
-            int tagDerOffenenTuerId,
-            int stadtfestId) {}
-
     public SeedResult seed(
             int stationId,
             int groupAnfaengerId,
@@ -702,4 +691,15 @@ public class DemoEventSeeder {
                                 "Thema", EventFieldType.STRING, EventFieldConfig.parse("{}"), 1, true, false, null)));
         log.info("Demo: Created event templates");
     }
+
+    /**
+     * Result of event seeding, containing references needed by attendance seeder and notification seeder.
+     */
+    public record SeedResult(
+            AttendanceTemplate templateUebung,
+            AttendanceTemplate templateGesamt,
+            StationEvent evUebung,
+            StationEvent evGesamt,
+            int tagDerOffenenTuerId,
+            int stadtfestId) {}
 }

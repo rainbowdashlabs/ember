@@ -18,7 +18,7 @@ public record PageCell(
 
     public static RowMapping<PageCell> map() {
         return row -> {
-            var type = CellContentType.valueOf(row.getString("content_type"));
+            var type = row.getEnum("content_type", CellContentType.class);
             return new PageCell(
                     row.getInt("id"),
                     row.getInt("row_id"),

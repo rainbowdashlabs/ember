@@ -19,10 +19,6 @@ public enum InstancePermission implements RouteRole {
     private final InstancePermission[] children;
     private Set<InstancePermission> allChildren;
 
-    public InstancePermission[] getChildren() {
-        return children;
-    }
-
     InstancePermission(InstancePermission... children) {
         this.children = children;
     }
@@ -36,6 +32,10 @@ public enum InstancePermission implements RouteRole {
             expanded.addAll(permission.allChildren());
         }
         return expanded;
+    }
+
+    public InstancePermission[] getChildren() {
+        return children;
     }
 
     /**

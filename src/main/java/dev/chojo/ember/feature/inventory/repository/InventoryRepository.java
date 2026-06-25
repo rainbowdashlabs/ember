@@ -63,36 +63,36 @@ public class InventoryRepository {
 
     public List<InventorySummary> findSummariesByStation(int stationId) {
         return query("""
-                        SELECT i.id, i.station_id, i.name, i.inventory_type, i.has_sizes,
-                               COALESCE(counts.item_count, 0) AS item_count,
-                               COALESCE(counts.lost_count, 0) AS lost_count,
-                               COALESCE(proc.procurement_count, 0) AS procurement_count,
-                               COALESCE(lent.lent_out_count, 0) AS lent_out_count
-                        FROM inventory i
-                        LEFT JOIN (
-                            SELECT inventory_id,
-                                   COUNT(*) AS item_count,
-                                   COUNT(*) FILTER (WHERE lost_at IS NOT NULL) AS lost_count
-                            FROM inventory_item
-                            GROUP BY inventory_id
-                        ) counts ON counts.inventory_id = i.id
-                        LEFT JOIN (
-                            SELECT inventory_id,
-                                   COUNT(*) AS procurement_count
-                            FROM equipment_procurement
-                            WHERE fulfilled_at IS NULL
-                            GROUP BY inventory_id
-                        ) proc ON proc.inventory_id = i.id
-                        LEFT JOIN (
-                            SELECT li.inventory_id,
-                                   COUNT(*) FILTER (WHERE li.assigned_item_id IS NOT NULL) AS lent_out_count
-                            FROM federation_lending_request_item li
-                            JOIN federation_lending_request lr ON lr.id = li.request_id
-                            WHERE lr.status IN ('APPROVED', 'LENT')
-                            GROUP BY li.inventory_id
-                        ) lent ON lent.inventory_id = i.id
-                        WHERE i.station_id = :station_id
-                        ORDER BY i.name;""")
+                SELECT i.id, i.station_id, i.name, i.inventory_type, i.has_sizes,
+                       coalesce(counts.item_count, 0) AS item_count,
+                       coalesce(counts.lost_count, 0) AS lost_count,
+                       coalesce(proc.procurement_count, 0) AS procurement_count,
+                       coalesce(lent.lent_out_count, 0) AS lent_out_count
+                FROM inventory i
+                LEFT JOIN (
+                    SELECT inventory_id,
+                           count(*) AS item_count,
+                           count(*) FILTER (WHERE lost_at IS NOT NULL) AS lost_count
+                    FROM inventory_item
+                    GROUP BY inventory_id
+                ) counts ON counts.inventory_id = i.id
+                LEFT JOIN (
+                    SELECT inventory_id,
+                           count(*) AS procurement_count
+                    FROM equipment_procurement
+                    WHERE fulfilled_at IS NULL
+                    GROUP BY inventory_id
+                ) proc ON proc.inventory_id = i.id
+                LEFT JOIN (
+                    SELECT li.inventory_id,
+                           count(*) FILTER (WHERE li.assigned_item_id IS NOT NULL) AS lent_out_count
+                    FROM federation_lending_request_item li
+                    JOIN federation_lending_request lr ON lr.id = li.request_id
+                    WHERE lr.status IN ('APPROVED', 'LENT')
+                    GROUP BY li.inventory_id
+                ) lent ON lent.inventory_id = i.id
+                WHERE i.station_id = :station_id
+                ORDER BY i.name;""")
                 .single(call().bind("station_id", stationId))
                 .map(InventorySummary.map())
                 .all();
@@ -236,10 +236,10 @@ public class InventoryRepository {
 
     public Optional<InventoryItem> findByInternalId(int stationId, String internalId) {
         return query("""
-                        SELECT ii.* FROM inventory_item ii
-                        JOIN inventory i ON i.id = ii.inventory_id
-                        WHERE i.station_id = :station_id AND ii.internal_id = :internal_id
-                        LIMIT 1;""")
+                SELECT ii.* FROM inventory_item ii
+                JOIN inventory i ON i.id = ii.inventory_id
+                WHERE i.station_id = :station_id AND ii.internal_id = :internal_id
+                LIMIT 1;""")
                 .single(call().bind("station_id", stationId).bind("internal_id", internalId))
                 .map(InventoryItem.map())
                 .first();
@@ -247,19 +247,19 @@ public class InventoryRepository {
 
     public List<InventoryItem> findFreeItems(int inventoryId, LocalDate dateFrom, LocalDate dateTo) {
         return query("""
-                        SELECT * FROM inventory_item
-                        WHERE inventory_id = :inventory_id
-                          AND assigned_to IS NULL
-                          AND lost_at IS NULL
-                          AND id NOT IN (
-                              SELECT li.assigned_item_id FROM federation_lending_request_item li
-                              JOIN federation_lending_request lr ON lr.id = li.request_id
-                              WHERE li.assigned_item_id IS NOT NULL
-                                AND lr.status IN ('APPROVED', 'LENT')
-                                AND lr.requested_date_from <= :date_to
-                                AND (lr.requested_date_to IS NULL OR lr.requested_date_to >= :date_from)
-                          )
-                        ORDER BY id;""")
+                SELECT * FROM inventory_item
+                WHERE inventory_id = :inventory_id
+                  AND assigned_to IS NULL
+                  AND lost_at IS NULL
+                  AND id NOT IN (
+                      SELECT li.assigned_item_id FROM federation_lending_request_item li
+                      JOIN federation_lending_request lr ON lr.id = li.request_id
+                      WHERE li.assigned_item_id IS NOT NULL
+                        AND lr.status IN ('APPROVED', 'LENT')
+                        AND lr.requested_date_from <= :date_to
+                        AND (lr.requested_date_to IS NULL OR lr.requested_date_to >= :date_from)
+                  )
+                ORDER BY id;""")
                 .single(call().bind("inventory_id", inventoryId)
                         .bind("date_from", dateFrom)
                         .bind("date_to", dateTo))
@@ -282,9 +282,9 @@ public class InventoryRepository {
 
     public List<InventoryItem> findItemsByStation(int stationId) {
         return query("""
-                        SELECT ii.* FROM inventory_item ii
-                        JOIN inventory i ON i.id = ii.inventory_id
-                        WHERE i.station_id = :station_id;""")
+                SELECT ii.* FROM inventory_item ii
+                JOIN inventory i ON i.id = ii.inventory_id
+                WHERE i.station_id = :station_id;""")
                 .single(call().bind("station_id", stationId))
                 .map(InventoryItem.map())
                 .all();
@@ -292,9 +292,9 @@ public class InventoryRepository {
 
     public List<InventorySize> findSizesByStation(int stationId) {
         return query("""
-                        SELECT s.id, s.inventory_id, s.label, s.position, s.note FROM inventory_size s
-                        JOIN inventory i ON i.id = s.inventory_id
-                        WHERE i.station_id = :station_id ORDER BY s.position;""")
+                SELECT s.id, s.inventory_id, s.label, s.position, s.note FROM inventory_size s
+                JOIN inventory i ON i.id = s.inventory_id
+                WHERE i.station_id = :station_id ORDER BY s.position;""")
                 .single(call().bind("station_id", stationId))
                 .map(InventorySize.map())
                 .all();
@@ -363,9 +363,9 @@ public class InventoryRepository {
             InventoryItemMetadata metadata,
             InventoryItem.ItemSource itemSource) {
         return query("""
-                            INSERT INTO inventory_item(inventory_id, internal_id, name, size_id, metadata, item_source)
-                            VALUES (:inventory_id, :internal_id, :name, :size_id, :metadata::JSONB, :item_source)
-                            RETURNING *;""")
+                INSERT INTO inventory_item(inventory_id, internal_id, name, size_id, metadata, item_source)
+                VALUES (:inventory_id, :internal_id, :name, :size_id, :metadata::JSONB, :item_source)
+                RETURNING *;""")
                 .single(call().bind("inventory_id", inventoryId)
                         .bind("internal_id", internalId)
                         .bind("name", name)
@@ -389,13 +389,13 @@ public class InventoryRepository {
      */
     public boolean updateItem(int id, String internalId, String name, Integer sizeId, InventoryItemMetadata metadata) {
         return query("""
-                            UPDATE inventory_item
-                            SET
-                                internal_id = :internal_id,
-                                name        = :name,
-                                size_id     = :size_id,
-                                metadata    = :metadata::JSONB
-                            WHERE id = :id;""")
+                UPDATE inventory_item
+                SET
+                    internal_id = :internal_id,
+                    name        = :name,
+                    size_id     = :size_id,
+                    metadata    = :metadata::JSONB
+                WHERE id = :id;""")
                 .single(call().bind("internal_id", internalId)
                         .bind("name", name)
                         .bind("size_id", sizeId)
@@ -503,8 +503,8 @@ public class InventoryRepository {
     public void createHistoryWithDates(
             int itemId, int memberId, String memberName, Instant givenOut, Instant returned) {
         query("""
-                     INSERT INTO inventory_item_history(item_id, member_id, member_name, given_out, returned)
-                     VALUES(:itemId, :memberId, :memberName, :givenOut, :returned);""")
+                INSERT INTO inventory_item_history(item_id, member_id, member_name, given_out, returned)
+                VALUES(:itemId, :memberId, :memberName, :givenOut, :returned);""")
                 .single(call().bind("itemId", itemId)
                         .bind("memberId", memberId)
                         .bind("memberName", memberName)

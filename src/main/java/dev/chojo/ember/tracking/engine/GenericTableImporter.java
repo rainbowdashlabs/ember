@@ -51,6 +51,148 @@ public final class GenericTableImporter {
     }
 
     /**
+     * Looks up an id in {@code table} where {@code column = value}. Returns null when no row matches.
+     */
+    private static Integer resolveByColumn(String table, String column, Object value) {
+        return query("SELECT id FROM " + table + " WHERE " + column + " = :v LIMIT 1;")
+                .single(call().bind("v", value == null ? null : value.toString()))
+                .map(row -> row.getInt("id"))
+                .first()
+                .orElse(null);
+    }
+
+    private static ForeignKey findFk(TableEntry table, String column) {
+        if (table.foreignKeys() != null) {
+            for (var fk : table.foreignKeys()) if (column.equals(fk.column())) return fk;
+        }
+        return null;
+    }
+
+    private static ColumnEntry findColumn(TableEntry table, String column) {
+        if (table.columns() != null) {
+            for (var c : table.columns()) if (column.equals(c.name())) return c;
+        }
+        return null;
+    }
+
+    private static boolean hasIntegerIdPk(TableEntry table) {
+        var col = findColumn(table, "id");
+        return col != null && ("int4".equals(col.type()) || "int8".equals(col.type()));
+    }
+
+    /**
+     * Treat tsvector-style derived columns as DB-maintained and never INSERTed by us.
+     */
+    private static boolean isGeneratedColumn(ColumnEntry col) {
+        return "tsvector".equals(col.type());
+    }
+
+    private static Integer toInteger(Object val) {
+        if (val instanceof Number n) return n.intValue();
+        if (val instanceof String s) {
+            try {
+                return Integer.parseInt(s);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private static String buildInsertSql(String tableName, Map<String, BoundValue> bind, boolean hasIdPk) {
+        if (bind.isEmpty()) return "SELECT 1;"; // shouldn't happen for real tables
+        var cols = new StringBuilder();
+        var vals = new StringBuilder();
+        boolean first = true;
+        for (var e : bind.entrySet()) {
+            if (!first) {
+                cols.append(", ");
+                vals.append(", ");
+            }
+            first = false;
+            cols.append(e.getKey());
+            vals.append(':').append(e.getKey()).append(castFor(e.getValue().type()));
+        }
+        var sql = new StringBuilder("INSERT INTO ").append(tableName);
+        sql.append('(').append(cols).append(") VALUES(").append(vals).append(')');
+        if (!hasIdPk) sql.append(" ON CONFLICT DO NOTHING");
+        if (hasIdPk) sql.append(" RETURNING id");
+        sql.append(';');
+        return sql.toString();
+    }
+
+    private static String castFor(String type) {
+        if (type == null) return "";
+        return switch (type) {
+            case "jsonb", "json" -> "::jsonb";
+            case "uuid" -> "::uuid";
+            case "date" -> "::date";
+            default -> "";
+        };
+    }
+
+    private static Integer executeInsertReturningId(String sql, Map<String, BoundValue> bind) {
+        return query(sql)
+                .single(callFor(bind))
+                .map(row -> row.getInt("id"))
+                .first()
+                .orElse(null);
+    }
+
+    private static void executeInsert(String sql, Map<String, BoundValue> bind) {
+        query(sql).single(callFor(bind)).insert();
+    }
+
+    private static Call callFor(Map<String, BoundValue> bind) {
+        Call c = call();
+        for (var e : bind.entrySet()) {
+            c = bindOne(c, e.getKey(), e.getValue());
+        }
+        return c;
+    }
+
+    private static Call bindOne(Call c, String name, BoundValue bv) {
+        // Null values were filtered out before reaching this point — see tryBindRow comments.
+        Object val = bv.value();
+        String type = bv.type();
+        return switch (type == null ? "" : type) {
+            // uuid + jsonb take string bindings; the cast lives in the SQL (see castFor).
+            case "timestamptz", "timestamp" -> c.bind(name, asInstant(val), StandardValueConverter.INSTANT_TIMESTAMP);
+            case "bytea" -> c.bind(name, asBytes(val));
+            case "int4", "int8" -> {
+                Integer i = toInteger(val);
+                yield i == null ? c.bind(name, (Integer) null) : c.bind(name, i);
+            }
+            case "bool" -> c.bind(name, asBool(val));
+            default -> c.bind(name, val.toString());
+        };
+    }
+
+    private static Instant asInstant(Object val) {
+        if (val instanceof Instant i) return i;
+        if (val instanceof java.sql.Timestamp ts) return ts.toInstant();
+        if (val instanceof java.util.Date d) return d.toInstant();
+        if (val instanceof java.time.OffsetDateTime odt) return odt.toInstant();
+        if (val instanceof java.time.LocalDateTime ldt)
+            return ldt.atZone(java.time.ZoneOffset.UTC).toInstant();
+        if (val instanceof Number n) return Instant.ofEpochMilli(n.longValue());
+        if (val instanceof String s && !s.isBlank()) return Instant.parse(s);
+        return null;
+    }
+
+    private static byte[] asBytes(Object val) {
+        if (val instanceof byte[] b) return b;
+        if (val instanceof String s) return Base64.getDecoder().decode(s);
+        return null;
+    }
+
+    private static Boolean asBool(Object val) {
+        if (val instanceof Boolean b) return b;
+        if (val instanceof String s) return Boolean.parseBoolean(s);
+        return null;
+    }
+
+    /**
      * Imports the given rows for {@code tableName}.
      *
      * @return number of rows actually inserted (rows whose FK remap could not be resolved are skipped)
@@ -178,146 +320,8 @@ public final class GenericTableImporter {
     }
 
     /**
-     * Looks up an id in {@code table} where {@code column = value}. Returns null when no row matches.
+     * Holds a value with its declared PG type so the binder can pick the right converter/cast.
      */
-    private static Integer resolveByColumn(String table, String column, Object value) {
-        return query("SELECT id FROM " + table + " WHERE " + column + " = :v LIMIT 1;")
-                .single(call().bind("v", value == null ? null : value.toString()))
-                .map(row -> row.getInt("id"))
-                .first()
-                .orElse(null);
-    }
-
-    private static ForeignKey findFk(TableEntry table, String column) {
-        if (table.foreignKeys() != null) {
-            for (var fk : table.foreignKeys()) if (column.equals(fk.column())) return fk;
-        }
-        return null;
-    }
-
-    private static ColumnEntry findColumn(TableEntry table, String column) {
-        if (table.columns() != null) {
-            for (var c : table.columns()) if (column.equals(c.name())) return c;
-        }
-        return null;
-    }
-
-    private static boolean hasIntegerIdPk(TableEntry table) {
-        var col = findColumn(table, "id");
-        return col != null && ("int4".equals(col.type()) || "int8".equals(col.type()));
-    }
-
-    /** Treat tsvector-style derived columns as DB-maintained and never INSERTed by us. */
-    private static boolean isGeneratedColumn(ColumnEntry col) {
-        return "tsvector".equals(col.type());
-    }
-
-    private static Integer toInteger(Object val) {
-        if (val instanceof Number n) return n.intValue();
-        if (val instanceof String s) {
-            try {
-                return Integer.parseInt(s);
-            } catch (NumberFormatException e) {
-                return null;
-            }
-        }
-        return null;
-    }
-
-    private static String buildInsertSql(String tableName, Map<String, BoundValue> bind, boolean hasIdPk) {
-        if (bind.isEmpty()) return "SELECT 1;"; // shouldn't happen for real tables
-        var cols = new StringBuilder();
-        var vals = new StringBuilder();
-        boolean first = true;
-        for (var e : bind.entrySet()) {
-            if (!first) {
-                cols.append(", ");
-                vals.append(", ");
-            }
-            first = false;
-            cols.append(e.getKey());
-            vals.append(':').append(e.getKey()).append(castFor(e.getValue().type()));
-        }
-        var sql = new StringBuilder("INSERT INTO ").append(tableName);
-        sql.append('(').append(cols).append(") VALUES(").append(vals).append(')');
-        if (!hasIdPk) sql.append(" ON CONFLICT DO NOTHING");
-        if (hasIdPk) sql.append(" RETURNING id");
-        sql.append(';');
-        return sql.toString();
-    }
-
-    private static String castFor(String type) {
-        if (type == null) return "";
-        return switch (type) {
-            case "jsonb", "json" -> "::jsonb";
-            case "uuid" -> "::uuid";
-            case "date" -> "::date";
-            default -> "";
-        };
-    }
-
-    private static Integer executeInsertReturningId(String sql, Map<String, BoundValue> bind) {
-        return query(sql)
-                .single(callFor(bind))
-                .map(row -> row.getInt("id"))
-                .first()
-                .orElse(null);
-    }
-
-    private static void executeInsert(String sql, Map<String, BoundValue> bind) {
-        query(sql).single(callFor(bind)).insert();
-    }
-
-    private static Call callFor(Map<String, BoundValue> bind) {
-        Call c = call();
-        for (var e : bind.entrySet()) {
-            c = bindOne(c, e.getKey(), e.getValue());
-        }
-        return c;
-    }
-
-    private static Call bindOne(Call c, String name, BoundValue bv) {
-        // Null values were filtered out before reaching this point — see tryBindRow comments.
-        Object val = bv.value();
-        String type = bv.type();
-        return switch (type == null ? "" : type) {
-            // uuid + jsonb take string bindings; the cast lives in the SQL (see castFor).
-            case "timestamptz", "timestamp" -> c.bind(name, asInstant(val), StandardValueConverter.INSTANT_TIMESTAMP);
-            case "bytea" -> c.bind(name, asBytes(val));
-            case "int4", "int8" -> {
-                Integer i = toInteger(val);
-                yield i == null ? c.bind(name, (Integer) null) : c.bind(name, i);
-            }
-            case "bool" -> c.bind(name, asBool(val));
-            default -> c.bind(name, val.toString());
-        };
-    }
-
-    private static Instant asInstant(Object val) {
-        if (val instanceof Instant i) return i;
-        if (val instanceof java.sql.Timestamp ts) return ts.toInstant();
-        if (val instanceof java.util.Date d) return d.toInstant();
-        if (val instanceof java.time.OffsetDateTime odt) return odt.toInstant();
-        if (val instanceof java.time.LocalDateTime ldt)
-            return ldt.atZone(java.time.ZoneOffset.UTC).toInstant();
-        if (val instanceof Number n) return Instant.ofEpochMilli(n.longValue());
-        if (val instanceof String s && !s.isBlank()) return Instant.parse(s);
-        return null;
-    }
-
-    private static byte[] asBytes(Object val) {
-        if (val instanceof byte[] b) return b;
-        if (val instanceof String s) return Base64.getDecoder().decode(s);
-        return null;
-    }
-
-    private static Boolean asBool(Object val) {
-        if (val instanceof Boolean b) return b;
-        if (val instanceof String s) return Boolean.parseBoolean(s);
-        return null;
-    }
-
-    /** Holds a value with its declared PG type so the binder can pick the right converter/cast. */
     private record BoundValue(Object value, String type) {}
 
     /**

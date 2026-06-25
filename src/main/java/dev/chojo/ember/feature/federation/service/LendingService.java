@@ -64,40 +64,6 @@ public class LendingService {
         this.eventBus = eventBus;
     }
 
-    private String stationName(int stationId) {
-        return stationRepository.findById(stationId).map(Station::name).orElse("?");
-    }
-
-    private String buildItemSummary(int requestId) {
-        var items = repository.findItemsByRequest(requestId);
-        var parts = new ArrayList<String>();
-        for (var item : items) {
-            String name = item.inventoryId() != null
-                    ? inventoryRepository
-                            .findById(item.inventoryId())
-                            .map(Inventory::name)
-                            .orElse("?")
-                    : "?";
-            parts.add(item.quantity() + "x " + name);
-        }
-        return String.join(", ", parts);
-    }
-
-    private void publishStatusChange(LendingRequest request, int actingStationId, LendingStatus status) {
-        int targetStationId = request.requestingStationId() == actingStationId
-                ? request.owningStationId()
-                : request.requestingStationId();
-        eventBus.publish(new LendingStatusChanged(
-                actingStationId,
-                targetStationId,
-                request.id(),
-                NotificationType.LENDING_STATUS_CHANGE,
-                stationName(actingStationId),
-                status));
-    }
-
-    // -- Requests --
-
     public LendingRequest createRequest(
             int requestingStationId, int owningStationId, LocalDate dateFrom, LocalDate dateTo, int createdBy) {
         var request = repository.createRequest(requestingStationId, owningStationId, dateFrom, dateTo, createdBy);
@@ -118,6 +84,8 @@ public class LendingService {
         return repository.findRequestsByStation(stationId);
     }
 
+    // -- Requests --
+
     public LendingRequestItem addRequestItem(int requestId, Integer inventoryId, Integer itemId, int quantity) {
         return repository.addRequestItem(requestId, inventoryId, itemId, quantity);
     }
@@ -130,8 +98,6 @@ public class LendingService {
         return repository.assignItem(requestItemId, assignedItemId);
     }
 
-    // -- Status transitions --
-
     public boolean approveRequest(int requestId, int stationId) {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.APPROVED);
         if (updated) {
@@ -142,29 +108,6 @@ public class LendingService {
                     .ifPresent(r -> publishStatusChange(r, stationId, LendingStatus.APPROVED));
         }
         return updated;
-    }
-
-    private void autoAssignItems(int requestId) {
-        var request = repository.findRequestById(requestId).orElse(null);
-        if (request == null) return;
-        var requestItems = repository.findItemsByRequest(requestId);
-        for (var ri : requestItems) {
-            if (ri.assignedItemId() != null) continue;
-            // If a specific item was requested, assign that directly
-            if (ri.itemId() != null) {
-                repository.assignItem(ri.id(), ri.itemId());
-                continue;
-            }
-            // Otherwise assign first N free items from the inventory for the requested period
-            if (ri.inventoryId() == null) continue;
-            var dateTo = request.requestedDateTo() != null
-                    ? request.requestedDateTo()
-                    : request.requestedDateFrom().plusDays(1);
-            var freeItems = inventoryRepository.findFreeItems(ri.inventoryId(), request.requestedDateFrom(), dateTo);
-            for (int q = 0; q < ri.quantity() && q < freeItems.size(); q++) {
-                repository.assignItem(ri.id(), freeItems.get(q).id());
-            }
-        }
     }
 
     public boolean declineRequest(int requestId, int stationId, String reason) {
@@ -188,6 +131,8 @@ public class LendingService {
         return updated;
     }
 
+    // -- Status transitions --
+
     public boolean markReturned(int requestId, int stationId) {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.RETURNED);
         if (updated) {
@@ -209,8 +154,6 @@ public class LendingService {
         }
         return updated;
     }
-
-    // -- Messages --
 
     public LendingMessage sendMessage(
             int requestId, int senderStationId, int senderMemberId, String senderName, String message) {
@@ -257,41 +200,12 @@ public class LendingService {
         return all;
     }
 
-    private List<LendingMessage> fetchRemoteMessagesViaHttp(
-            FederationPartner partner, int requestId, int localStationId) {
-        var station = stationRepository.findById(localStationId).orElse(null);
-        if (station == null || station.federationPrivateKey() == null) {
-            log.warn("No private key found for station {}, cannot fetch remote messages", localStationId);
-            return List.of();
-        }
-        return httpClient.getList(
-                partner.remoteHost(),
-                "/remote/lending/messages/" + requestId,
-                partner.partnerStationId(),
-                localStationId,
-                station.federationPrivateKey(),
-                LendingMessage.class);
-    }
-
-    private FederationPartner findPartnerForStation(int localStationId, int partnerStationId) {
-        var partners = federationService.findPartners(localStationId);
-        for (var p : partners) {
-            var partnerStation =
-                    stationRepository.findByUid(p.partnerStationId()).orElse(null);
-            int remoteId = partnerStation != null ? partnerStation.id() : 0;
-            if (remoteId == partnerStationId && p.status() == FederationPartner.FederationStatus.ACTIVE) {
-                return p;
-            }
-        }
-        return null;
-    }
-
-    // -- Blocks --
-
     public InventoryBlock createBlock(
             int stationId, Integer inventoryId, Integer itemId, LocalDate from, LocalDate to, String reason) {
         return repository.createBlock(stationId, inventoryId, itemId, from, to, reason);
     }
+
+    // -- Messages --
 
     public boolean deleteBlock(int blockId) {
         return repository.deleteBlock(blockId);
@@ -304,8 +218,6 @@ public class LendingService {
     public boolean isBlocked(int stationId, Integer inventoryId, Integer itemId, LocalDate dateFrom, LocalDate dateTo) {
         return repository.isBlocked(stationId, inventoryId, itemId, dateFrom, dateTo);
     }
-
-    // -- Federated available inventory (parallel fetch from all partners) --
 
     /**
      * Finds available inventory across all active federation partners, with parallel fetching.
@@ -336,6 +248,94 @@ public class LendingService {
             }
         }
         return enrichWithDistance(stationId, results);
+    }
+
+    private String stationName(int stationId) {
+        return stationRepository.findById(stationId).map(Station::name).orElse("?");
+    }
+
+    // -- Blocks --
+
+    private String buildItemSummary(int requestId) {
+        var items = repository.findItemsByRequest(requestId);
+        var parts = new ArrayList<String>();
+        for (var item : items) {
+            String name = item.inventoryId() != null
+                    ? inventoryRepository
+                            .findById(item.inventoryId())
+                            .map(Inventory::name)
+                            .orElse("?")
+                    : "?";
+            parts.add(item.quantity() + "x " + name);
+        }
+        return String.join(", ", parts);
+    }
+
+    private void publishStatusChange(LendingRequest request, int actingStationId, LendingStatus status) {
+        int targetStationId = request.requestingStationId() == actingStationId
+                ? request.owningStationId()
+                : request.requestingStationId();
+        eventBus.publish(new LendingStatusChanged(
+                actingStationId,
+                targetStationId,
+                request.id(),
+                NotificationType.LENDING_STATUS_CHANGE,
+                stationName(actingStationId),
+                status));
+    }
+
+    private void autoAssignItems(int requestId) {
+        var request = repository.findRequestById(requestId).orElse(null);
+        if (request == null) return;
+        var requestItems = repository.findItemsByRequest(requestId);
+        for (var ri : requestItems) {
+            if (ri.assignedItemId() != null) continue;
+            // If a specific item was requested, assign that directly
+            if (ri.itemId() != null) {
+                repository.assignItem(ri.id(), ri.itemId());
+                continue;
+            }
+            // Otherwise assign first N free items from the inventory for the requested period
+            if (ri.inventoryId() == null) continue;
+            var dateTo = request.requestedDateTo() != null
+                    ? request.requestedDateTo()
+                    : request.requestedDateFrom().plusDays(1);
+            var freeItems = inventoryRepository.findFreeItems(ri.inventoryId(), request.requestedDateFrom(), dateTo);
+            for (int q = 0; q < ri.quantity() && q < freeItems.size(); q++) {
+                repository.assignItem(ri.id(), freeItems.get(q).id());
+            }
+        }
+    }
+
+    private List<LendingMessage> fetchRemoteMessagesViaHttp(
+            FederationPartner partner, int requestId, int localStationId) {
+        var station = stationRepository.findById(localStationId).orElse(null);
+        if (station == null || station.federationPrivateKey() == null) {
+            log.warn("No private key found for station {}, cannot fetch remote messages", localStationId);
+            return List.of();
+        }
+        return httpClient.getList(
+                partner.remoteHost(),
+                "/remote/lending/messages/" + requestId,
+                partner.partnerStationId(),
+                localStationId,
+                station.federationPrivateKey(),
+                LendingMessage.class);
+    }
+
+    // -- Federated available inventory (parallel fetch from all partners) --
+
+    private FederationPartner findPartnerForStation(int localStationId, int partnerStationId) {
+        var partners = federationService.findPartners(localStationId);
+        for (var p : partners) {
+            var partnerStation =
+                    stationRepository.findByUid(p.partnerStationId()).orElse(null);
+            int remoteId = partnerStation != null ? partnerStation.id() : 0;
+            if (remoteId == partnerStationId && p.status() == FederationPartner.FederationStatus.ACTIVE) {
+                return p;
+            }
+        }
+        return null;
     }
 
     /**

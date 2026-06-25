@@ -797,8 +797,8 @@ public class FormRoutes implements Routes {
      * Access restrictions for a form, specifying which roles, groups, and tags may access it.
      *
      * @param userTypes list of user type names that grant access
-     * @param groupIds list of group IDs that grant access
-     * @param tagIds   list of tag IDs that grant access
+     * @param groupIds  list of group IDs that grant access
+     * @param tagIds    list of tag IDs that grant access
      */
     public record FormRestrictions(
             List<StationUserType> userTypes,

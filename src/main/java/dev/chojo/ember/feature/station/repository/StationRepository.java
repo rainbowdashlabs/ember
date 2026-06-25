@@ -42,6 +42,10 @@ public class StationRepository {
             .expireAfterAccess(5, TimeUnit.MINUTES)
             .maximumSize(1_000)
             .build();
+    private final Cache<Integer, Boolean> readOnlyCache = Caffeine.newBuilder()
+            .expireAfterWrite(30, TimeUnit.SECONDS)
+            .maximumSize(1_000)
+            .build();
 
     /**
      * Resolves an internal station ID to its external UUID. Cached.
@@ -257,14 +261,14 @@ public class StationRepository {
             BigDecimal latitude,
             BigDecimal longitude) {
         return query("""
-                                UPDATE station
-                                SET address_line = :address_line,
-                                    postal_code  = :postal_code,
-                                    city         = :city,
-                                    country      = :country,
-                                    latitude     = :latitude,
-                                    longitude    = :longitude
-                                WHERE id = :id;""")
+                UPDATE station
+                SET address_line = :address_line,
+                    postal_code  = :postal_code,
+                    city         = :city,
+                    country      = :country,
+                    latitude     = :latitude,
+                    longitude    = :longitude
+                WHERE id = :id;""")
                 .single(call().bind("address_line", addressLine)
                         .bind("postal_code", postalCode)
                         .bind("city", city)
@@ -283,36 +287,30 @@ public class StationRepository {
      */
     public List<StationDistance> findStationsWithinRadius(BigDecimal originLat, BigDecimal originLon, double radiusKm) {
         return query("""
-                                WITH bbox AS (
-                                    SELECT :lat::NUMERIC AS lat0,
-                                           :lon::NUMERIC AS lon0,
-                                           :lat::NUMERIC - (:radius_km::NUMERIC / 111.0) AS min_lat,
-                                           :lat::NUMERIC + (:radius_km::NUMERIC / 111.0) AS max_lat,
-                                           :lon::NUMERIC - (:radius_km::NUMERIC / (111.0 * cos(radians(:lat::NUMERIC)))) AS min_lon,
-                                           :lon::NUMERIC + (:radius_km::NUMERIC / (111.0 * cos(radians(:lat::NUMERIC)))) AS max_lon
-                                ), candidates AS (
-                                    SELECT s.id,
-                                           haversine_km(bbox.lat0, bbox.lon0, s.latitude, s.longitude) AS distance_km
-                                    FROM station s, bbox
-                                    WHERE s.latitude  IS NOT NULL
-                                      AND s.longitude IS NOT NULL
-                                      AND s.latitude  BETWEEN bbox.min_lat AND bbox.max_lat
-                                      AND s.longitude BETWEEN bbox.min_lon AND bbox.max_lon
-                                )
-                                SELECT id, distance_km
-                                FROM candidates
-                                WHERE distance_km <= :radius_km::NUMERIC
-                                ORDER BY distance_km;""")
+                WITH bbox AS (
+                    SELECT :lat::NUMERIC AS lat0,
+                           :lon::NUMERIC AS lon0,
+                           :lat::NUMERIC - (:radius_km::NUMERIC / 111.0) AS min_lat,
+                           :lat::NUMERIC + (:radius_km::NUMERIC / 111.0) AS max_lat,
+                           :lon::NUMERIC - (:radius_km::NUMERIC / (111.0 * cos(radians(:lat::NUMERIC)))) AS min_lon,
+                           :lon::NUMERIC + (:radius_km::NUMERIC / (111.0 * cos(radians(:lat::NUMERIC)))) AS max_lon
+                ), candidates AS (
+                    SELECT s.id,
+                           haversine_km(bbox.lat0, bbox.lon0, s.latitude, s.longitude) AS distance_km
+                    FROM station s, bbox
+                    WHERE s.latitude  IS NOT NULL
+                      AND s.longitude IS NOT NULL
+                      AND s.latitude  BETWEEN bbox.min_lat AND bbox.max_lat
+                      AND s.longitude BETWEEN bbox.min_lon AND bbox.max_lon
+                )
+                SELECT id, distance_km
+                FROM candidates
+                WHERE distance_km <= :radius_km::NUMERIC
+                ORDER BY distance_km;""")
                 .single(call().bind("lat", originLat).bind("lon", originLon).bind("radius_km", radiusKm))
                 .map(row -> new StationDistance(row.getInt("id"), row.getDouble("distance_km")))
                 .all();
     }
-
-    /**
-     * @param stationId  internal station id
-     * @param distanceKm great-circle distance in km from the origin point
-     */
-    public record StationDistance(int stationId, double distanceKm) {}
 
     public void updateThemeSettings(
             int id,
@@ -422,8 +420,6 @@ public class StationRepository {
                 .all());
     }
 
-    // -- Module settings --
-
     /**
      * Replaces all disabled modules for a station with the given set.
      */
@@ -443,6 +439,8 @@ public class StationRepository {
                     .insert();
         }
     }
+
+    // -- Module settings --
 
     /**
      * Updates the UUID of a station (used during import to preserve the original UUID).
@@ -505,6 +503,53 @@ public class StationRepository {
                 .map(Station.map())
                 .all();
     }
+
+    /**
+     * Returns {@code true} when {@code station.read_only_for_transfer} is set, meaning the
+     * source operator has created a transfer token for this station and no fresh uploads must
+     * land while the destination instance is pulling the data over. Cached for 30 seconds so
+     * the per-upload check doesn't hit the database on every call; {@link #markReadOnlyForTransfer}
+     * and {@link #clearReadOnlyForTransfer} actively invalidate so the flip is immediate.
+     */
+    public boolean isReadOnlyForTransfer(int stationId) {
+        Boolean cached = readOnlyCache.getIfPresent(stationId);
+        if (cached != null) return cached;
+        boolean value = query("SELECT read_only_for_transfer FROM station WHERE id = :id;")
+                .single(call().bind("id", stationId))
+                .map(row -> row.getBoolean("read_only_for_transfer"))
+                .first()
+                .orElse(false);
+        readOnlyCache.put(stationId, value);
+        return value;
+    }
+
+    /**
+     * Flips the flag on; invalidates the cache so the next read sees the change immediately.
+     */
+    public void markReadOnlyForTransfer(int stationId) {
+        query("UPDATE station SET read_only_for_transfer = TRUE WHERE id = :id;")
+                .single(call().bind("id", stationId))
+                .update();
+        readOnlyCache.invalidate(stationId);
+    }
+
+    // -- Transfer read-only flag --
+
+    /**
+     * Clears the flag and invalidates the cache.
+     */
+    public void clearReadOnlyForTransfer(int stationId) {
+        query("UPDATE station SET read_only_for_transfer = FALSE WHERE id = :id;")
+                .single(call().bind("id", stationId))
+                .update();
+        readOnlyCache.invalidate(stationId);
+    }
+
+    /**
+     * @param stationId  internal station id
+     * @param distanceKm great-circle distance in km from the origin point
+     */
+    public record StationDistance(int stationId, double distanceKm) {}
 
     /**
      * Holds the binary data and content type of a station logo.

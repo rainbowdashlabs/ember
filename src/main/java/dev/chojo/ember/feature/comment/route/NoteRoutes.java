@@ -43,6 +43,17 @@ public class NoteRoutes implements Routes {
         this.noteService = noteService;
     }
 
+    private static StationPermission requiredPermission(NoteEntityType entityType) {
+        return entityType == NoteEntityType.EVENT ? StationPermission.EVENT_EDIT : StationPermission.MEMBER_NOTES;
+    }
+
+    private static void requireNoteAccess(UserSession session, NoteEntityType entityType) {
+        StationPermission required = requiredPermission(entityType);
+        if (!session.hasPermission(required)) {
+            throw new ForbiddenResponse("Missing required permission: " + required.name());
+        }
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Note routes are shared by multiple entity types with different permission requirements
@@ -64,17 +75,6 @@ public class NoteRoutes implements Routes {
                 this::listVersions,
                 StationPermission.MEMBER_NOTES,
                 StationPermission.EVENT_EDIT);
-    }
-
-    private static StationPermission requiredPermission(NoteEntityType entityType) {
-        return entityType == NoteEntityType.EVENT ? StationPermission.EVENT_EDIT : StationPermission.MEMBER_NOTES;
-    }
-
-    private static void requireNoteAccess(UserSession session, NoteEntityType entityType) {
-        StationPermission required = requiredPermission(entityType);
-        if (!session.hasPermission(required)) {
-            throw new ForbiddenResponse("Missing required permission: " + required.name());
-        }
     }
 
     @OpenApi(

@@ -59,10 +59,10 @@ const tabs = [
           <div class="flex items-center justify-between gap-4">
             <div class="flex-1 space-y-1">
               <div class="flex items-center gap-2 flex-wrap">
-                <span class="font-medium">Brandschutz-Pruefung</span>
+                <span class="font-medium">Brandschutz-Prüfung</span>
                 <SuccessBadge>{{ t('quiz.tests.statusActive') }}</SuccessBadge>
               </div>
-              <p class="text-xs text-(--text-muted) line-clamp-1">Pruefung zum Thema Brandschutz</p>
+              <p class="text-xs text-(--text-muted) line-clamp-1">Prüfung zum Thema Brandschutz</p>
             </div>
             <div class="flex items-center gap-4 text-xs text-(--text-muted) shrink-0">
               <span>12 {{ t('quiz.attemptCount') }}</span>
@@ -84,7 +84,7 @@ const tabs = [
                 <span class="font-medium">Erste-Hilfe-Test</span>
                 <SecondaryBadge>{{ t('quiz.tests.statusDraft') }}</SecondaryBadge>
               </div>
-              <p class="text-xs text-(--text-muted) line-clamp-1">Entwurf fuer den naechsten Uebungsabend</p>
+              <p class="text-xs text-(--text-muted) line-clamp-1">Entwurf für den nächsten Übungsabend</p>
             </div>
             <div class="flex items-center gap-4 text-xs text-(--text-muted) shrink-0">
               <span>0 {{ t('quiz.attemptCount') }}</span>

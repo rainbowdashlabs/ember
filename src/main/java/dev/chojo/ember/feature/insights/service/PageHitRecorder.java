@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -36,7 +35,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * path (only a {@link ConcurrentHashMap} lookup and an {@link AtomicLong} increment), with
  * the DB upsert on a single-threaded scheduler so request latency is never affected.
  *
- * <p>Long-tail referer collapse (concept §7.5): at flush time, before upserting, the
+ * <p>Long-tail referer collapse: at flush time, before upserting, the
  * recorder checks how often the bucket's referer domain has appeared for the page in the
  * last week; domains that haven't crossed the threshold collapse to {@code other} so the
  * referer dimension stays bounded.
@@ -72,6 +71,13 @@ public class PageHitRecorder {
     public PageHitRecorder(PageHitRepository repository, Metrics metrics) {
         this.repository = repository;
         this.metrics = metrics;
+    }
+
+    private static String normalizeCountry(String country) {
+        if (country == null || country.isBlank()) return "XX";
+        String trimmed = country.trim();
+        if (trimmed.length() != 2) return "XX";
+        return trimmed.toUpperCase(Locale.ROOT);
     }
 
     /**
@@ -131,32 +137,6 @@ public class PageHitRecorder {
         }
     }
 
-    private String collapseLongTail(int pageId, String refererDomain, Instant since) {
-        if (refererDomain.equals("direct") || refererDomain.equals("internal") || refererDomain.equals(OTHER)) {
-            return refererDomain;
-        }
-        try {
-            long historical = repository.recentRefererCount(pageId, refererDomain, since);
-            if (historical < LONG_TAIL_MIN_HITS) return OTHER;
-        } catch (Exception e) {
-            log.debug("Long-tail lookup failed for referer={} page={}; keeping raw value", refererDomain, pageId, e);
-        }
-        return refererDomain;
-    }
-
-    private void prune() {
-        try {
-            int days = Math.max(1, metrics.webStatsRetentionDays());
-            Instant cutoff = Instant.now().minus(Duration.ofDays(days));
-            int removed = repository.pruneBefore(cutoff);
-            if (removed > 0) {
-                log.info("Pruned {} expired page-hit buckets older than {} days", removed, days);
-            }
-        } catch (Exception e) {
-            log.warn("Failed to prune expired page-hit buckets", e);
-        }
-    }
-
     /**
      * Returns the number of in-memory accumulators currently buffered. Useful for tests
      * and operational metrics.
@@ -183,32 +163,35 @@ public class PageHitRecorder {
         return out;
     }
 
-    private static String normalizeCountry(String country) {
-        if (country == null || country.isBlank()) return "XX";
-        String trimmed = country.trim();
-        if (trimmed.length() != 2) return "XX";
-        return trimmed.toUpperCase(Locale.ROOT);
+    private String collapseLongTail(int pageId, String refererDomain, Instant since) {
+        if (refererDomain.equals("direct") || refererDomain.equals("internal") || refererDomain.equals(OTHER)) {
+            return refererDomain;
+        }
+        try {
+            long historical = repository.recentRefererCount(pageId, refererDomain, since);
+            if (historical < LONG_TAIL_MIN_HITS) return OTHER;
+        } catch (Exception e) {
+            log.debug("Long-tail lookup failed for referer={} page={}; keeping raw value", refererDomain, pageId, e);
+        }
+        return refererDomain;
+    }
+
+    private void prune() {
+        try {
+            int days = Math.max(1, metrics.webStatsRetentionDays());
+            Instant cutoff = Instant.now().minus(Duration.ofDays(days));
+            int removed = repository.pruneBefore(cutoff);
+            if (removed > 0) {
+                log.info("Pruned {} expired page-hit buckets older than {} days", removed, days);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to prune expired page-hit buckets", e);
+        }
     }
 
     private Instant currentHour() {
         return Instant.now().truncatedTo(ChronoUnit.HOURS);
     }
 
-    private record BucketKey(Instant hour, int pageId, String country, String refererDomain, boolean isBot) {
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof BucketKey b)) return false;
-            return pageId == b.pageId
-                    && isBot == b.isBot
-                    && hour.equals(b.hour)
-                    && country.equals(b.country)
-                    && refererDomain.equals(b.refererDomain);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(hour, pageId, country, refererDomain, isBot);
-        }
-    }
+    private record BucketKey(Instant hour, int pageId, String country, String refererDomain, boolean isBot) {}
 }

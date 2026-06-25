@@ -27,7 +27,7 @@ import javax.imageio.ImageWriter;
 import javax.imageio.stream.MemoryCacheImageOutputStream;
 
 /**
- * Generates and resolves width-keyed image variants (concept §11.1). At upload time the
+ * Generates and resolves width-keyed image variants. At upload time the
  * service is invoked once per stored original — it produces a resized copy of the original
  * for each configured width, plus a WebP copy when WebP variants are enabled. At read time
  * the service picks the smallest variant ≥ the requested width and, when the client's
@@ -53,6 +53,65 @@ public class PageImageVariantService {
     public PageImageVariantService(PageFileStorageService storage, Storage storageConfig) {
         this.storage = storage;
         this.storageConfig = storageConfig;
+    }
+
+    private static byte[] encodeWebp(BufferedImage image) throws IOException, InterruptedException {
+        return WebpEncoder.encode(image, Math.round(qualityFor(WEBP) * 100f));
+    }
+
+    private static byte[] encode(BufferedImage image, String format) throws IOException {
+        String resolved = format.equalsIgnoreCase("jpg") ? "jpeg" : format;
+        var writers = ImageIO.getImageWritersByFormatName(resolved);
+        if (!writers.hasNext()) {
+            throw new IOException("No ImageIO writer for format: " + resolved);
+        }
+        ImageWriter writer = writers.next();
+        var out = new ByteArrayOutputStream(image.getWidth() * image.getHeight() / 4);
+        try (var stream = new MemoryCacheImageOutputStream(out)) {
+            writer.setOutput(stream);
+            ImageWriteParam params = writer.getDefaultWriteParam();
+            if (params.canWriteCompressed()) {
+                params.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+                String[] types = params.getCompressionTypes();
+                if (types != null && types.length > 0) {
+                    params.setCompressionType(types[0]);
+                }
+                params.setCompressionQuality(qualityFor(format));
+            }
+            writer.write(null, new IIOImage(toCompatibleImage(image, format), null, null), params);
+        } finally {
+            writer.dispose();
+        }
+        return out.toByteArray();
+    }
+
+    private static BufferedImage toCompatibleImage(BufferedImage image, String format) {
+        boolean wantsOpaque = format.equals("jpg") || format.equals("jpeg");
+        if (!wantsOpaque) return image;
+        if (image.getType() == BufferedImage.TYPE_INT_RGB) return image;
+        BufferedImage copy = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
+        var g = copy.createGraphics();
+        try {
+            g.drawImage(image, 0, 0, null);
+        } finally {
+            g.dispose();
+        }
+        return copy;
+    }
+
+    private static float qualityFor(String format) {
+        return switch (format.toLowerCase(Locale.ROOT)) {
+            case "jpg", "jpeg" -> 0.82f;
+            case "webp" -> 0.78f;
+            default -> 0.9f;
+        };
+    }
+
+    private static String extensionFor(String mimeType) {
+        return switch (mimeType.toLowerCase(Locale.ROOT)) {
+            case "image/jpeg" -> "jpg";
+            default -> "png";
+        };
     }
 
     /**
@@ -118,19 +177,15 @@ public class PageImageVariantService {
         }
     }
 
-    private static byte[] encodeWebp(BufferedImage image) throws IOException, InterruptedException {
-        return WebpEncoder.encode(image, Math.round(qualityFor(WEBP) * 100f));
-    }
-
     /**
      * Resolves the best variant for the given (requested width, Accept header). Returns the
      * raw bytes + MIME type. Falls back to the original whenever no variant matches — callers
      * never need to handle a "no variant found" case.
      *
      * @param requestedWidth optional CSS-pixel width the client intends to display the image
-     *     at; {@code null} means "give me the original"
+     *                       at; {@code null} means "give me the original"
      * @param acceptHeader   the request's {@code Accept} header, used to decide whether the
-     *     client supports WebP
+     *                       client supports WebP
      */
     public Optional<PageFileStorageService.FileData> readBest(
             int stationId, String contentHash, Integer requestedWidth, String acceptHeader) {
@@ -163,60 +218,5 @@ public class PageImageVariantService {
             }
         }
         return best > 0 ? "w" + best : ORIG;
-    }
-
-    private static byte[] encode(BufferedImage image, String format) throws IOException {
-        String resolved = format.equalsIgnoreCase("jpg") ? "jpeg" : format;
-        var writers = ImageIO.getImageWritersByFormatName(resolved);
-        if (!writers.hasNext()) {
-            throw new IOException("No ImageIO writer for format: " + resolved);
-        }
-        ImageWriter writer = writers.next();
-        var out = new ByteArrayOutputStream(image.getWidth() * image.getHeight() / 4);
-        try (var stream = new MemoryCacheImageOutputStream(out)) {
-            writer.setOutput(stream);
-            ImageWriteParam params = writer.getDefaultWriteParam();
-            if (params.canWriteCompressed()) {
-                params.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-                String[] types = params.getCompressionTypes();
-                if (types != null && types.length > 0) {
-                    params.setCompressionType(types[0]);
-                }
-                params.setCompressionQuality(qualityFor(format));
-            }
-            writer.write(null, new IIOImage(toCompatibleImage(image, format), null, null), params);
-        } finally {
-            writer.dispose();
-        }
-        return out.toByteArray();
-    }
-
-    private static BufferedImage toCompatibleImage(BufferedImage image, String format) {
-        boolean wantsOpaque = format.equals("jpg") || format.equals("jpeg");
-        if (!wantsOpaque) return image;
-        if (image.getType() == BufferedImage.TYPE_INT_RGB) return image;
-        BufferedImage copy = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
-        var g = copy.createGraphics();
-        try {
-            g.drawImage(image, 0, 0, null);
-        } finally {
-            g.dispose();
-        }
-        return copy;
-    }
-
-    private static float qualityFor(String format) {
-        return switch (format.toLowerCase(Locale.ROOT)) {
-            case "jpg", "jpeg" -> 0.82f;
-            case "webp" -> 0.78f;
-            default -> 0.9f;
-        };
-    }
-
-    private static String extensionFor(String mimeType) {
-        return switch (mimeType.toLowerCase(Locale.ROOT)) {
-            case "image/jpeg" -> "jpg";
-            default -> "png";
-        };
     }
 }

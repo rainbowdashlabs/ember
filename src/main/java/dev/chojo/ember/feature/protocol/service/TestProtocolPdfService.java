@@ -255,8 +255,6 @@ public class TestProtocolPdfService {
 
     // ── Helpers ─────────────────────────────────────────────────
 
-    private record SectionResult(double score, double max) {}
-
     private SectionResult renderSection(
             StringBuilder sb,
             TestProtocolSection section,
@@ -415,8 +413,6 @@ public class TestProtocolPdfService {
                 .replace("]", "\\]");
     }
 
-    private record LogoResource(String filename, byte[] data) {}
-
     private LogoResource loadLogo(int stationId) {
         var stationLogo = stationRepository.findLogo(stationId);
         if (stationLogo.isPresent()) {
@@ -445,4 +441,8 @@ public class TestProtocolPdfService {
                 })
                 .orElse("Unbekannt");
     }
+
+    private record SectionResult(double score, double max) {}
+
+    private record LogoResource(String filename, byte[] data) {}
 }

@@ -6,12 +6,11 @@
 package dev.chojo.ember.feature.system.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.chojo.ember.feature.media.service.ImageCategory;
-import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
+import dev.chojo.ember.feature.quiz.service.QuizQuestionImageService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -36,14 +35,14 @@ public class DemoQuizSeeder {
     private final QuizCatalogRepository quizCatalogRepository;
     private final QuizTestRepository quizTestRepository;
     private final QuizService quizService;
-    private final ImageService imageService;
+    private final QuizQuestionImageService imageService;
 
     @Inject
     public DemoQuizSeeder(
             QuizCatalogRepository quizCatalogRepository,
             QuizTestRepository quizTestRepository,
             QuizService quizService,
-            ImageService imageService) {
+            QuizQuestionImageService imageService) {
         this.quizCatalogRepository = quizCatalogRepository;
         this.quizTestRepository = quizTestRepository;
         this.quizService = quizService;
@@ -643,11 +642,7 @@ public class DemoQuizSeeder {
                 5);
         try (var logoStream = getClass().getResourceAsStream("/logo/NoBG_NoGlow.png")) {
             if (logoStream != null) {
-                imageService.store(
-                        ImageCategory.QUIZ_QUESTIONS,
-                        String.valueOf(imageTextQuestion.id()),
-                        logoStream.readAllBytes(),
-                        "image/png");
+                imageService.store(stationId, imageTextQuestion.id(), logoStream.readAllBytes(), "image/png", 0);
             }
         } catch (IOException e) {
             log.warn("Failed to store demo quiz question image", e);

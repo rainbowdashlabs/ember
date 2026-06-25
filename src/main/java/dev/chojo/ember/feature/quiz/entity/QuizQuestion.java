@@ -31,17 +31,6 @@ public record QuizQuestion(
 
     private static final ObjectMapper MAPPER = JsonMapper.builder().build();
 
-    /**
-     * Returns the config as a JsonNode (for legacy code that still uses raw JSON).
-     */
-    public JsonNode configNode() {
-        try {
-            return MAPPER.valueToTree(config);
-        } catch (Exception e) {
-            return MAPPER.createObjectNode();
-        }
-    }
-
     public static RowMapping<QuizQuestion> map() {
         return row -> {
             var type = row.getEnum("question_type", QuizQuestionType.class);
@@ -62,5 +51,16 @@ public record QuizQuestion(
                     row.get("created_at", INSTANT_TIMESTAMP),
                     row.get("updated_at", INSTANT_TIMESTAMP));
         };
+    }
+
+    /**
+     * Returns the config as a JsonNode (for legacy code that still uses raw JSON).
+     */
+    public JsonNode configNode() {
+        try {
+            return MAPPER.valueToTree(config);
+        } catch (Exception e) {
+            return MAPPER.createObjectNode();
+        }
     }
 }

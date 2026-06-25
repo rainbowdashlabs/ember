@@ -75,6 +75,19 @@ public class FederationWebhookService {
     }
 
     /**
+     * Fires a webhook event to a specific partner.
+     */
+    public void fireEventToPartner(int partnerId, WebhookEvent event, Object payload) {
+        var partner = repository.findPartnerById(partnerId);
+        if (partner.isEmpty()) return;
+        var p = partner.get();
+        if (p.status() != FederationPartner.FederationStatus.ACTIVE) return;
+        String webhookUrl = repository.getWebhookUrl(p.id());
+        if (webhookUrl == null || webhookUrl.isBlank()) return;
+        executor.submit(() -> deliverWebhook(p, webhookUrl, event, payload));
+    }
+
+    /**
      * Delivers a webhook with retry logic.
      */
     private void deliverWebhook(FederationPartner partner, String webhookUrl, WebhookEvent event, Object payload) {
@@ -147,19 +160,6 @@ public class FederationWebhookService {
         } catch (Exception e) {
             log.error("Failed to prepare webhook payload for partner {}", partner.id(), e);
         }
-    }
-
-    /**
-     * Fires a webhook event to a specific partner.
-     */
-    public void fireEventToPartner(int partnerId, WebhookEvent event, Object payload) {
-        var partner = repository.findPartnerById(partnerId);
-        if (partner.isEmpty()) return;
-        var p = partner.get();
-        if (p.status() != FederationPartner.FederationStatus.ACTIVE) return;
-        String webhookUrl = repository.getWebhookUrl(p.id());
-        if (webhookUrl == null || webhookUrl.isBlank()) return;
-        executor.submit(() -> deliverWebhook(p, webhookUrl, event, payload));
     }
 
     public enum WebhookEvent {

@@ -16,7 +16,7 @@ public record DiscoveryBlocklistEntry(String value, BlocklistKind kind, String n
     public static RowMapping<DiscoveryBlocklistEntry> map() {
         return row -> new DiscoveryBlocklistEntry(
                 row.getString("value"),
-                BlocklistKind.valueOf(row.getString("kind")),
+                row.getEnum("kind", BlocklistKind.class),
                 row.getString("note"),
                 row.get("created_at", INSTANT_TIMESTAMP));
     }

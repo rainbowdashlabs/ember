@@ -70,7 +70,7 @@ const {t} = useI18n()
           <TRow>
             <Td>
               <div class="font-medium">Lisa Beispiel</div>
-              <div class="text-xs text-(--text-muted) mt-0.5">Wir moechten unsere Wache digital verwalten.</div>
+              <div class="text-xs text-(--text-muted) mt-0.5">Wir möchten unsere Wache digital verwalten.</div>
             </Td>
             <Td muted>lisa@beispiel.de</Td>
             <Td>DLRG Neustadt</Td>

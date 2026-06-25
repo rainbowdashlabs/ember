@@ -401,7 +401,7 @@ class NotificationFeedRendererTest {
         var now = Instant.now();
         when(storageQuotaService.getUsage(7))
                 .thenReturn(List.of(
-                        new StorageUsage(7, StorageCategory.AVATARS, 480L * 1024 * 1024, 10, now),
+                        new StorageUsage(7, StorageCategory.IMAGE_AVATAR, 480L * 1024 * 1024, 10, now),
                         new StorageUsage(7, StorageCategory.KB_FILES, 5L * 1024 * 1024 * 1024, 100, now),
                         new StorageUsage(7, StorageCategory.BOARD_ATTACHMENTS, 2L * 1024 * 1024 * 1024, 50, now)));
         var n = notification(

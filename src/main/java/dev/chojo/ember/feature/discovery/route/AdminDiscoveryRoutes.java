@@ -91,6 +91,30 @@ public class AdminDiscoveryRoutes implements Routes {
         this.keyService = keyService;
     }
 
+    private static boolean matchesQuery(String name, String query) {
+        if (query == null || query.isBlank()) return true;
+        if (name == null) return false;
+        return name.toLowerCase().contains(query.trim().toLowerCase());
+    }
+
+    // -- Identity & settings --
+
+    private static PeerResponse toResponse(DiscoveryPeer p) {
+        return new PeerResponse(
+                p.publicKey(),
+                p.baseUrl(),
+                p.instanceId(),
+                p.firstSeenAt(),
+                p.lastSeenAt(),
+                p.lastPingedAt(),
+                p.lastReachedAt(),
+                p.reachable(),
+                p.source(),
+                p.introducedBy(),
+                p.reputation(),
+                p.blocked());
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/admin/discovery/identity", this::getIdentity, InstancePermission.ADMINISTRATOR);
@@ -155,18 +179,18 @@ public class AdminDiscoveryRoutes implements Routes {
         // Authenticated user-facing endpoint for the /station/discovery page.
         routes.get(prefix + "/discovery/stations", this::listCachedStations);
 
-        // Editor-facing picker for the PARTNER_STATIONS cell (concept §4.5). Auth-gated by
+        // Editor-facing picker for the PARTNER_STATIONS cell. Auth-gated by
         // PAGE_EDIT so it never escapes the editor surface — public scrapers cannot use it to
         // enumerate the federation network.
         routes.get(prefix + "/federation/stations/search", this::searchStationPicker, StationPermission.PAGE_EDIT);
     }
 
-    // -- Identity & settings --
-
     private void getIdentity(Context ctx) {
         ctx.json(
                 new IdentityResponse(keyService.instanceId(), keyService.publicKeyBase64(), pingService.selfBaseUrl()));
     }
+
+    // -- Peer registry --
 
     private void getSettings(Context ctx) {
         ctx.json(new SettingsResponse(
@@ -183,8 +207,6 @@ public class AdminDiscoveryRoutes implements Routes {
         if (body.pingIntervalMinutes() != null) settingsService.setPingIntervalMinutes(body.pingIntervalMinutes());
         getSettings(ctx);
     }
-
-    // -- Peer registry --
 
     private void listPeers(Context ctx) {
         var peers = peerRepository.findAll();
@@ -277,6 +299,8 @@ public class AdminDiscoveryRoutes implements Routes {
         ctx.json(new MessageResponse("Ping dispatched"));
     }
 
+    // -- Blocklist --
+
     private void discoverNow(Context ctx) {
         int pinged = 0;
         for (var peer : peerRepository.findUsable()) {
@@ -292,8 +316,6 @@ public class AdminDiscoveryRoutes implements Routes {
         ctx.json(new ChangedCountResponse(added));
     }
 
-    // -- Blocklist --
-
     private void listBlocklist(Context ctx) {
         List<DiscoveryBlocklistEntry> entries = blocklistRepository.findAll();
         List<BlocklistResponse> responses = new ArrayList<>(entries.size());
@@ -302,6 +324,8 @@ public class AdminDiscoveryRoutes implements Routes {
         }
         ctx.json(responses);
     }
+
+    // -- Cached stations (authenticated) --
 
     private void addToBlocklist(Context ctx) {
         var body = ctx.bodyAsClass(BlocklistRequest.class);
@@ -317,8 +341,6 @@ public class AdminDiscoveryRoutes implements Routes {
         boolean removed = blocklistRepository.remove(value);
         ctx.json(new ChangedResponse(removed));
     }
-
-    // -- Cached stations (authenticated) --
 
     private void listCachedStations(Context ctx) {
         List<CachedDiscoveryStation> cached = cacheRepository.findAll();
@@ -377,12 +399,6 @@ public class AdminDiscoveryRoutes implements Routes {
         ctx.json(results);
     }
 
-    private static boolean matchesQuery(String name, String query) {
-        if (query == null || query.isBlank()) return true;
-        if (name == null) return false;
-        return name.toLowerCase().contains(query.trim().toLowerCase());
-    }
-
     /**
      * Lightweight picker result row. {@code selectable} mirrors whether the cell should let
      * the editor pick this station — the discovery cache only contains stations that already
@@ -392,22 +408,6 @@ public class AdminDiscoveryRoutes implements Routes {
      */
     public record StationPickerResult(
             String stationUid, String name, String city, String country, String logoUrl, boolean selectable) {}
-
-    private static PeerResponse toResponse(DiscoveryPeer p) {
-        return new PeerResponse(
-                p.publicKey(),
-                p.baseUrl(),
-                p.instanceId(),
-                p.firstSeenAt(),
-                p.lastSeenAt(),
-                p.lastPingedAt(),
-                p.lastReachedAt(),
-                p.reachable(),
-                p.source(),
-                p.introducedBy(),
-                p.reputation(),
-                p.blocked());
-    }
 
     // -- DTOs --
 

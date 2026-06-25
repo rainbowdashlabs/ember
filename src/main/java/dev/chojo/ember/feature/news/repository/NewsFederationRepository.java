@@ -47,10 +47,10 @@ public class NewsFederationRepository {
      */
     public NewsFederationShare setShare(int newsId, ShareScope scope, NewsVisibilityRole visibilityRole) {
         return query("""
-                        INSERT INTO news_federation_share(news_id, scope, visibility_role)
-                        VALUES (:news_id, :scope, :visibility_role)
-                        ON CONFLICT (news_id) DO UPDATE SET scope = :scope, visibility_role = :visibility_role
-                        RETURNING id, news_id, scope, visibility_role;""")
+                INSERT INTO news_federation_share(news_id, scope, visibility_role)
+                VALUES (:news_id, :scope, :visibility_role)
+                ON CONFLICT (news_id) DO UPDATE SET scope = :scope, visibility_role = :visibility_role
+                RETURNING id, news_id, scope, visibility_role;""")
                 .single(call().bind("news_id", newsId).bind("scope", scope).bind("visibility_role", visibilityRole))
                 .map(NewsFederationShare.map())
                 .first()
@@ -111,15 +111,15 @@ public class NewsFederationRepository {
      */
     public List<Integer> findSharedNewsIds(int partnerId, int stationId) {
         return query("""
-                        SELECT nfs.news_id
-                        FROM news_federation_share nfs
-                            JOIN news n ON n.id = nfs.news_id
-                        WHERE n.station_id = :station_id
-                          AND n.published_at IS NOT NULL
-                          AND (nfs.scope = 'ALL_PARTNERS'
-                               OR (nfs.scope = 'SPECIFIC'
-                                   AND EXISTS (SELECT 1 FROM news_federation_share_target nfst
-                                               WHERE nfst.share_id = nfs.id AND nfst.partner_id = :partner_id)));""")
+                SELECT nfs.news_id
+                FROM news_federation_share nfs
+                    JOIN news n ON n.id = nfs.news_id
+                WHERE n.station_id = :station_id
+                  AND n.published_at IS NOT NULL
+                  AND (nfs.scope = 'ALL_PARTNERS'
+                       OR (nfs.scope = 'SPECIFIC'
+                           AND exists (SELECT 1 FROM news_federation_share_target nfst
+                                       WHERE nfst.share_id = nfs.id AND nfst.partner_id = :partner_id)));""")
                 .single(call().bind("station_id", stationId).bind("partner_id", partnerId))
                 .map(row -> row.getInt("news_id"))
                 .all();

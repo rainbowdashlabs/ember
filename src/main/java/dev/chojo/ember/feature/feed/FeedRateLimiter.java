@@ -32,13 +32,19 @@ import java.util.Optional;
 @Singleton
 public class FeedRateLimiter {
 
-    /** Burst capacity — how many requests are admitted immediately from an idle bucket. */
+    /**
+     * Burst capacity — how many requests are admitted immediately from an idle bucket.
+     */
     public static final int BURST_CAPACITY = 10;
 
-    /** Sustained refill rate. */
+    /**
+     * Sustained refill rate.
+     */
     public static final int REFILL_PER_MINUTE = 5;
 
-    /** Buckets idle past this duration are pruned out of the in-memory map. */
+    /**
+     * Buckets idle past this duration are pruned out of the in-memory map.
+     */
     private static final Duration PRUNE_AFTER = Duration.ofHours(1);
 
     private final LeakyBucket bucket;
@@ -47,7 +53,9 @@ public class FeedRateLimiter {
         this(Clock.systemUTC());
     }
 
-    /** Visible-for-testing constructor that lets tests drive time deterministically. */
+    /**
+     * Visible-for-testing constructor that lets tests drive time deterministically.
+     */
     public FeedRateLimiter(Clock clock) {
         this.bucket = new LeakyBucket(BURST_CAPACITY, REFILL_PER_MINUTE, PRUNE_AFTER, clock);
     }
@@ -56,7 +64,7 @@ public class FeedRateLimiter {
      * Attempts to consume one slot for {@code token}.
      *
      * @return empty when the request is allowed, or the seconds until the next refill when
-     *         the caller should be served {@code 429} with {@code Retry-After}
+     * the caller should be served {@code 429} with {@code Retry-After}
      */
     public Optional<Long> tryAcquire(String token) {
         return bucket.tryAcquire(token);

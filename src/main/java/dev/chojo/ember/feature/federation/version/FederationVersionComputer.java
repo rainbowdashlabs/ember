@@ -96,6 +96,34 @@ public final class FederationVersionComputer {
     private FederationVersionComputer() {}
 
     /**
+     * Compute the SHA-256 hash of the federation API contract.
+     */
+    public static String computeHash() {
+        var lines = new ArrayList<String>();
+
+        // Collect entity class signatures
+        for (var clazz : ENTITY_CLASSES) {
+            lines.addAll(classSignature(clazz));
+        }
+
+        // Collect inner record/enum signatures from route and HTTP client classes
+        for (var container : DTO_CONTAINER_CLASSES) {
+            for (var inner : container.getDeclaredClasses()) {
+                if (inner.isRecord() || inner.isEnum()) {
+                    lines.addAll(classSignature(inner));
+                }
+            }
+        }
+
+        lines.add("signing-protocol:" + SIGNING_PROTOCOL_REVISION);
+
+        lines.sort(String::compareTo);
+
+        var content = String.join("\n", lines);
+        return sha256(content);
+    }
+
+    /**
      * Entry point for the Gradle generateFederationVersion task.
      * <p>
      * Args: {@code <current-hash-file> <history-json-file> <app-version> [frontend-history-copy]}
@@ -129,34 +157,6 @@ public final class FederationVersionComputer {
         }
 
         System.out.println("Federation version hash: " + hash + " (version: " + history.get(hash) + ")");
-    }
-
-    /**
-     * Compute the SHA-256 hash of the federation API contract.
-     */
-    public static String computeHash() {
-        var lines = new ArrayList<String>();
-
-        // Collect entity class signatures
-        for (var clazz : ENTITY_CLASSES) {
-            lines.addAll(classSignature(clazz));
-        }
-
-        // Collect inner record/enum signatures from route and HTTP client classes
-        for (var container : DTO_CONTAINER_CLASSES) {
-            for (var inner : container.getDeclaredClasses()) {
-                if (inner.isRecord() || inner.isEnum()) {
-                    lines.addAll(classSignature(inner));
-                }
-            }
-        }
-
-        lines.add("signing-protocol:" + SIGNING_PROTOCOL_REVISION);
-
-        lines.sort(String::compareTo);
-
-        var content = String.join("\n", lines);
-        return sha256(content);
     }
 
     private static List<String> classSignature(Class<?> clazz) {

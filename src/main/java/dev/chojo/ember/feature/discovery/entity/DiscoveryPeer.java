@@ -40,7 +40,7 @@ public record DiscoveryPeer(
                 row.get("last_pinged_at", INSTANT_TIMESTAMP),
                 row.get("last_reached_at", INSTANT_TIMESTAMP),
                 row.getBoolean("reachable"),
-                PeerSource.valueOf(row.getString("source")),
+                row.getEnum("source", PeerSource.class),
                 row.getString("introduced_by"),
                 row.getInt("reputation"),
                 row.getBoolean("blocked"));

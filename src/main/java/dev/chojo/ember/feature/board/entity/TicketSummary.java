@@ -34,23 +34,6 @@ public record TicketSummary(
         int checklistChecked,
         int attachmentCount) {
 
-    public TicketSummary withAssignee(MemberIdentity assignee) {
-        return new TicketSummary(
-                id,
-                boardId,
-                laneId,
-                ticketNumber,
-                title,
-                assignee,
-                priority,
-                dueDate,
-                position,
-                laneEnteredAt,
-                checklistTotal,
-                checklistChecked,
-                attachmentCount);
-    }
-
     public static TicketSummary of(BoardTicket ticket) {
         return new TicketSummary(
                 ticket.id(),
@@ -83,7 +66,7 @@ public record TicketSummary(
                     row.getInt("ticket_number"),
                     row.getString("title"),
                     assignee,
-                    TicketPriority.valueOf(row.getString("priority")),
+                    row.getEnum("priority", TicketPriority.class),
                     row.getObject("due_date", LocalDate.class),
                     row.getInt("position"),
                     row.get("lane_entered_at", INSTANT_TIMESTAMP),
@@ -91,5 +74,22 @@ public record TicketSummary(
                     row.getInt("checklist_checked"),
                     row.getInt("attachment_count"));
         };
+    }
+
+    public TicketSummary withAssignee(MemberIdentity assignee) {
+        return new TicketSummary(
+                id,
+                boardId,
+                laneId,
+                ticketNumber,
+                title,
+                assignee,
+                priority,
+                dueDate,
+                position,
+                laneEnteredAt,
+                checklistTotal,
+                checklistChecked,
+                attachmentCount);
     }
 }

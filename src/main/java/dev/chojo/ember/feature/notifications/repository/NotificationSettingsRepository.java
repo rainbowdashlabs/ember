@@ -62,13 +62,13 @@ public class NotificationSettingsRepository {
     public NotificationSetting upsert(
             int memberId, NotificationType type, boolean appEnabled, boolean emailEnabled, boolean feedEnabled) {
         return query("""
-                            INSERT INTO user_notification_settings(member_id, notification_type, app_enabled, email_enabled, feed_enabled)
-                            VALUES(:member_id, :type, :app_enabled, :email_enabled, :feed_enabled)
-                            ON CONFLICT (member_id, notification_type) DO UPDATE SET
-                                app_enabled = :app_enabled,
-                                email_enabled = :email_enabled,
-                                feed_enabled = :feed_enabled
-                            RETURNING *;""")
+                INSERT INTO user_notification_settings(member_id, notification_type, app_enabled, email_enabled, feed_enabled)
+                VALUES(:member_id, :type, :app_enabled, :email_enabled, :feed_enabled)
+                ON CONFLICT (member_id, notification_type) DO UPDATE SET
+                    app_enabled = :app_enabled,
+                    email_enabled = :email_enabled,
+                    feed_enabled = :feed_enabled
+                RETURNING *;""")
                 .single(call().bind("member_id", memberId)
                         .bind("type", type)
                         .bind("app_enabled", appEnabled)
@@ -102,8 +102,8 @@ public class NotificationSettingsRepository {
      */
     public boolean isAppEnabled(int memberId, NotificationType type) {
         return query("""
-                            SELECT app_enabled FROM user_notification_settings
-                            WHERE member_id = :member_id AND notification_type = :type;""")
+                SELECT app_enabled FROM user_notification_settings
+                WHERE member_id = :member_id AND notification_type = :type;""")
                 .single(call().bind("member_id", memberId).bind("type", type))
                 .map(row -> row.getBoolean("app_enabled"))
                 .first()
@@ -120,8 +120,8 @@ public class NotificationSettingsRepository {
      */
     public boolean isEmailEnabled(int memberId, NotificationType type) {
         return query("""
-                            SELECT email_enabled FROM user_notification_settings
-                            WHERE member_id = :member_id AND notification_type = :type;""")
+                SELECT email_enabled FROM user_notification_settings
+                WHERE member_id = :member_id AND notification_type = :type;""")
                 .single(call().bind("member_id", memberId).bind("type", type))
                 .map(row -> row.getBoolean("email_enabled"))
                 .first()

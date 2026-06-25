@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.board.service;
 
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.BoardTicketChanged;
+import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -28,10 +29,12 @@ public class DueDateReminderChecker {
     private static final Logger log = LoggerFactory.getLogger(DueDateReminderChecker.class);
 
     private final DomainEventBus eventBus;
+    private final StationReadOnlyGuard readOnlyGuard;
 
     @Inject
-    public DueDateReminderChecker(DomainEventBus eventBus) {
+    public DueDateReminderChecker(DomainEventBus eventBus, StationReadOnlyGuard readOnlyGuard) {
         this.eventBus = eventBus;
+        this.readOnlyGuard = readOnlyGuard;
 
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             var t = new Thread(r, "board-due-date-checker");
@@ -45,6 +48,7 @@ public class DueDateReminderChecker {
         try {
             var overdue = findOverdueTickets();
             for (var ticket : overdue) {
+                if (!readOnlyGuard.isWritable(ticket.stationId)) continue;
                 eventBus.publish(new BoardTicketChanged(
                         ticket.stationId,
                         ticket.boardId,
@@ -65,35 +69,24 @@ public class DueDateReminderChecker {
         }
     }
 
-    private record OverdueTicket(
-            int stationId,
-            int boardId,
-            int ticketId,
-            String boardKey,
-            int ticketNumber,
-            String boardName,
-            String ticketKey,
-            String dueDate,
-            int assignedMemberId) {}
-
     private List<OverdueTicket> findOverdueTickets() {
         return query("""
-                        SELECT b.station_id, b.id AS board_id, t.id AS ticket_id,
-                               b.short_key AS board_key, t.ticket_number AS ticket_number,
-                               b.name AS board_name, b.short_key || '-' || t.ticket_number AS ticket_key,
-                               t.due_date::text AS due_date, sm.id AS assigned_member_id
-                        FROM board_ticket t
-                        JOIN board b ON b.id = t.board_id
-                        JOIN station_member sm ON sm.station_id = b.station_id
-                             AND sm.uid = t.assignee_member_uid
-                        WHERE t.due_date IS NOT NULL
-                          AND t.due_date <= CURRENT_DATE
-                          AND t.assignee_member_uid IS NOT NULL
-                          AND t.lane_id != (
-                              SELECT bl.id FROM board_lane bl
-                              WHERE bl.board_id = t.board_id
-                              ORDER BY bl.position DESC LIMIT 1
-                          );""")
+                SELECT b.station_id, b.id AS board_id, t.id AS ticket_id,
+                       b.short_key AS board_key, t.ticket_number AS ticket_number,
+                       b.name AS board_name, b.short_key || '-' || t.ticket_number AS ticket_key,
+                       t.due_date::TEXT AS due_date, sm.id AS assigned_member_id
+                FROM board_ticket t
+                JOIN board b ON b.id = t.board_id
+                JOIN station_member sm ON sm.station_id = b.station_id
+                     AND sm.uid = t.assignee_member_uid
+                WHERE t.due_date IS NOT NULL
+                  AND t.due_date <= current_date
+                  AND t.assignee_member_uid IS NOT NULL
+                  AND t.lane_id != (
+                      SELECT bl.id FROM board_lane bl
+                      WHERE bl.board_id = t.board_id
+                      ORDER BY bl.position DESC LIMIT 1
+                  );""")
                 .single()
                 .map(row -> new OverdueTicket(
                         row.getInt("station_id"),
@@ -107,4 +100,15 @@ public class DueDateReminderChecker {
                         row.getInt("assigned_member_id")))
                 .all();
     }
+
+    private record OverdueTicket(
+            int stationId,
+            int boardId,
+            int ticketId,
+            String boardKey,
+            int ticketNumber,
+            String boardName,
+            String ticketKey,
+            String dueDate,
+            int assignedMemberId) {}
 }

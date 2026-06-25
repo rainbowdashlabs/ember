@@ -89,15 +89,6 @@ public class AttendanceRoutes implements Routes {
         return s == null || s.isBlank();
     }
 
-    private void verifySessionOwnership(int sessionId, UserSession userSession) {
-        var attSession = attendanceService.findSessionById(sessionId).orElseThrow(NotFoundResponse::new);
-        var template =
-                attendanceService.findTemplateById(attSession.templateId()).orElseThrow(NotFoundResponse::new);
-        if (template.stationId() != userSession.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
-    }
-
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(
@@ -221,6 +212,15 @@ public class AttendanceRoutes implements Routes {
         routes.get(prefix + "/profile/absences", this::listMyAbsences, StationPermission.USER);
         routes.post(prefix + "/profile/absences", this::createMyAbsence, StationPermission.USER);
         routes.delete(prefix + "/profile/absences/{id}", this::deleteMyAbsence, StationPermission.USER);
+    }
+
+    private void verifySessionOwnership(int sessionId, UserSession userSession) {
+        var attSession = attendanceService.findSessionById(sessionId).orElseThrow(NotFoundResponse::new);
+        var template =
+                attendanceService.findTemplateById(attSession.templateId()).orElseThrow(NotFoundResponse::new);
+        if (template.stationId() != userSession.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
     }
 
     /**

@@ -204,7 +204,7 @@ export async function getFederationInfo(): Promise<{ federationVersion: string; 
     return res.data
 }
 
-// -- Page-editor PARTNER_STATIONS picker (concept §4.5). PAGE_EDIT-gated. --
+// -- Page-editor PARTNER_STATIONS picker. PAGE_EDIT-gated. --
 
 export interface StationPickerResult {
     stationUid: string

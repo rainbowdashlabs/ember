@@ -143,14 +143,14 @@ COMMENT ON TABLE ember_schema.page_file_tag IS 'Free-form labels attached to pag
 COMMENT ON TABLE ember_schema.page_file_tag_assignment IS 'Many-to-many join between page files and tags.';
 COMMENT ON COLUMN ember_schema.page_file.folder_id IS 'Optional folder this file lives in. NULL means the file sits at the station-level root.';
 
--- News: public-facing UUID for enumeration-safe deep-links from public page cells (concept §2.3).
+-- News: public-facing UUID for enumeration-safe deep-links from public page cells.
 ALTER TABLE ember_schema.news
     ADD COLUMN public_uid UUID NOT NULL UNIQUE DEFAULT gen_random_uuid();
 
 COMMENT ON COLUMN ember_schema.news.public_uid IS 'Stable opaque public identifier. Used by public page cells (e.g. NEWS_TEASER) and any external link that should survive station transfer without renumbering. The integer id stays internal.';
 
 -- station_page + station_event + kb_file: same UUID treatment for the cells that link to them
--- (PAGE_LINK / FEATURED_EVENT / UPCOMING_EVENTS / PAST_EVENT_RECAP / KB_ARTICLE). concept §2.3.
+-- (PAGE_LINK / FEATURED_EVENT / UPCOMING_EVENTS / PAST_EVENT_RECAP / KB_ARTICLE).
 ALTER TABLE ember_schema.station_page
     ADD COLUMN public_uid UUID NOT NULL UNIQUE DEFAULT gen_random_uuid();
 ALTER TABLE ember_schema.station_event
@@ -162,7 +162,7 @@ COMMENT ON COLUMN ember_schema.station_page.public_uid IS 'Stable opaque public 
 COMMENT ON COLUMN ember_schema.station_event.public_uid IS 'Stable opaque public identifier referenced from public page cells (FEATURED_EVENT, UPCOMING_EVENTS, PAST_EVENT_RECAP) and the public event-detail route.';
 COMMENT ON COLUMN ember_schema.kb_file.public_uid IS 'Stable opaque public identifier referenced from public page cells (KB_ARTICLE) and external deep-links.';
 
--- Form purpose discriminates between three sidebar entry points (concept §4.1):
+-- Form purpose discriminates between three sidebar entry points:
 --   INTERNAL - the existing /station/forms admin (members-only forms)
 --   CONTACT  - publicly answerable "leave us a message" forms surfaced under /station/pages/forms
 --   POLL     - publicly answerable polls surfaced under /station/pages/polls
@@ -176,7 +176,7 @@ ALTER TABLE ember_schema.form
 COMMENT ON COLUMN ember_schema.form.purpose IS 'Form audience and sidebar entry point. INTERNAL = members-only (legacy /station/forms admin). CONTACT = publicly answerable contact form (/station/pages/forms). POLL = publicly answerable poll (/station/pages/polls). Constrains the allowed FormQuestionType set via FormQuestionType.allowedFor(purpose).';
 COMMENT ON COLUMN ember_schema.form.public_uid IS 'Stable opaque public identifier referenced from public page cells (FORMS_CTA, POLL_EMBED) and the public form-response endpoint. The integer id stays internal.';
 
--- Anonymous public form responses (concept §4.4).
+-- Anonymous public form responses.
 -- Member-id becomes nullable so the public submit endpoint can store responses with no
 -- member attached; submitter_hash is the pseudonymous identifier for those rows. Exactly
 -- one of (member_id, submitter_hash) is set per row. POLL dedup and CONTACT rate-limit

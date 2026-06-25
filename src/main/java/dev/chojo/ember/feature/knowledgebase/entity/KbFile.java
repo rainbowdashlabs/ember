@@ -41,7 +41,7 @@ public record KbFile(
                 row.getObject("folder_id", Integer.class),
                 row.getString("name"),
                 row.getString("description"),
-                KbFileType.valueOf(row.getString("file_type")),
+                row.getEnum("file_type", KbFileType.class),
                 row.getString("mime_type"),
                 row.getLong("file_size"),
                 row.getString("icon_url"),
@@ -53,7 +53,7 @@ public record KbFile(
                 row.get("updated_at", INSTANT_TIMESTAMP),
                 row.getObject("source_file_id", Integer.class),
                 row.getObject("source_station_id", Integer.class),
-                RestrictionMode.valueOf(row.getString("restriction_mode")),
+                row.getEnum("restriction_mode", RestrictionMode.class),
                 row.getBoolean("restricted"),
                 row.getEnum("conversion_status", ConversionStatus.class));
     }

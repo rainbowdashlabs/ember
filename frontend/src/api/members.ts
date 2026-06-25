@@ -25,7 +25,7 @@ export async function resetPassword(data: ResetPasswordRequest): Promise<Message
     return res.data
 }
 
-// -- Page-editor picker (concept §4.5). PAGE_EDIT-gated. --
+// -- Page-editor picker. PAGE_EDIT-gated. --
 
 export interface MemberSearchResult {
     memberUid: string

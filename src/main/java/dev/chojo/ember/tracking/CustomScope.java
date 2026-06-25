@@ -17,10 +17,10 @@ package dev.chojo.ember.tracking;
  * refColumn=id, distinct=true} expresses "an account is in scope when at least one
  * station_member row of the target station references it via {@code account_id}".
  *
- * @param viaTable   the intermediate table that supplies the station scope
- * @param viaColumn  the column on {@code viaTable} whose values are the relevant ids
- * @param refColumn  the column on this table that's compared to {@code viaColumn} values
- * @param distinct   when {@code true}, the resulting set is deduplicated; needed for accounts
- *                   that may be referenced by multiple members
+ * @param viaTable  the intermediate table that supplies the station scope
+ * @param viaColumn the column on {@code viaTable} whose values are the relevant ids
+ * @param refColumn the column on this table that's compared to {@code viaColumn} values
+ * @param distinct  when {@code true}, the resulting set is deduplicated; needed for accounts
+ *                  that may be referenced by multiple members
  */
 public record CustomScope(String viaTable, String viaColumn, String refColumn, boolean distinct) {}

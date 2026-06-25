@@ -41,7 +41,7 @@ public record EventRegistration(
                 row.getInt("event_id"),
                 row.getInt("member_id"),
                 row.getObject("event_date", LocalDate.class),
-                RegistrationStatus.valueOf(row.getString("status")),
+                row.getEnum("status", RegistrationStatus.class),
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.getObject("created_by", Integer.class));
     }

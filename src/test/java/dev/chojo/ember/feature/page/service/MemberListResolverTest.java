@@ -6,7 +6,8 @@
 package dev.chojo.ember.feature.page.service;
 
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.media.service.ImageService;
+import dev.chojo.ember.feature.account.service.AvatarService;
+import dev.chojo.ember.feature.media.service.ImageVariantService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.page.entity.CellConfig;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -40,7 +41,7 @@ class MemberListResolverTest extends RepositoryTestBase {
     private static int tagId;
     private static UUID uid1;
     private static UUID uid2;
-    private static ImageService imageService;
+    private static AvatarService imageService;
 
     @BeforeAll
     static void setupClass() {
@@ -61,8 +62,8 @@ class MemberListResolverTest extends RepositoryTestBase {
         userTagRepo.addMember(tag.id(), member1.id());
         tagId = tag.id();
 
-        imageService = mock(ImageService.class);
-        when(imageService.read(ArgumentMatchers.any(), ArgumentMatchers.anyString(), ArgumentMatchers.anyInt()))
+        imageService = mock(AvatarService.class);
+        when(imageService.read(ArgumentMatchers.any(UUID.class), ArgumentMatchers.anyInt()))
                 .thenReturn(Optional.empty());
     }
 
@@ -186,10 +187,10 @@ class MemberListResolverTest extends RepositoryTestBase {
     }
 
     @Test
-    void avatarDataUrlIsBuiltFromImageService() {
-        var imageSvc = mock(ImageService.class);
-        when(imageSvc.read(ArgumentMatchers.any(), ArgumentMatchers.anyString(), ArgumentMatchers.anyInt()))
-                .thenReturn(Optional.of(new ImageService.ImageData(new byte[] {1, 2}, "image/png")));
+    void avatarDataUrlIsBuiltFromAvatarService() {
+        var imageSvc = mock(AvatarService.class);
+        when(imageSvc.read(ArgumentMatchers.any(UUID.class), ArgumentMatchers.anyInt()))
+                .thenReturn(Optional.of(new ImageVariantService.ImageData(new byte[] {1, 2}, "image/png")));
 
         var src = json("{\"kind\":\"manual\",\"memberUids\":[\"" + uid1 + "\"]}");
         var result =

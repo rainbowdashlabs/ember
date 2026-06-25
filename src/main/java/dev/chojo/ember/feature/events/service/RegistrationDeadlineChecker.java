@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -31,13 +32,18 @@ public class RegistrationDeadlineChecker {
     private final EventRepository eventRepository;
     private final EventService eventService;
     private final DomainEventBus eventBus;
+    private final StationReadOnlyGuard readOnlyGuard;
 
     @Inject
     public RegistrationDeadlineChecker(
-            EventRepository eventRepository, EventService eventService, DomainEventBus eventBus) {
+            EventRepository eventRepository,
+            EventService eventService,
+            DomainEventBus eventBus,
+            StationReadOnlyGuard readOnlyGuard) {
         this.eventRepository = eventRepository;
         this.eventService = eventService;
         this.eventBus = eventBus;
+        this.readOnlyGuard = readOnlyGuard;
 
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             var t = new Thread(r, "registration-deadline-checker");
@@ -59,6 +65,7 @@ public class RegistrationDeadlineChecker {
     private void checkOneTimeEvents() {
         var expired = eventRepository.findOneTimeEventsWithExpiredDeadline();
         for (var entry : expired) {
+            if (!readOnlyGuard.isWritable(entry.stationId())) continue;
             eventRepository.markDeadlineNotified(entry.eventId());
             eventBus.publish(new RegistrationDeadlineExpired(
                     entry.stationId(), entry.eventId(), entry.name(), entry.pendingCount()));
@@ -76,6 +83,7 @@ public class RegistrationDeadlineChecker {
         var breaks = new HashMap<Integer, List<EventBreak>>();
 
         for (var event : events) {
+            if (!readOnlyGuard.isWritable(event.stationId())) continue;
             var stationBreaks = breaks.computeIfAbsent(event.stationId(), eventRepository::findBreaksByStation);
             var nextDate = findNextOccurrence(event, today, stationBreaks);
             if (nextDate == null) continue;

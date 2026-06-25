@@ -83,7 +83,34 @@ public class WebAuthnService {
 
     // -- Registration --
 
-    public record RegistrationStart(String challengeToken, String optionsJson) {}
+    private static String newChallengeToken() {
+        byte[] bytes = new byte[32];
+        RANDOM.nextBytes(bytes);
+        return HexFormat.of().formatHex(bytes);
+    }
+
+    private static byte[] newUserHandle() {
+        byte[] bytes = new byte[64];
+        RANDOM.nextBytes(bytes);
+        return bytes;
+    }
+
+    /**
+     * Converts a 16-byte AAGUID to {@link UUID}. Returns {@code null} when the
+     * authenticator omits the AAGUID (e.g. U2F-only fallback).
+     */
+    private static UUID aaguidToUuid(ByteArray aaguid) {
+        if (aaguid == null) return null;
+        byte[] bytes = aaguid.getBytes();
+        if (bytes.length != 16) return null;
+        var buf = java.nio.ByteBuffer.wrap(bytes);
+        long msb = buf.getLong();
+        long lsb = buf.getLong();
+        if (msb == 0L && lsb == 0L) return null;
+        return new UUID(msb, lsb);
+    }
+
+    // -- Assertion --
 
     public RegistrationStart startRegistration(int accountId, String email, String displayName) {
         byte[] userHandle = repository.findUserHandleForAccount(accountId).orElseGet(WebAuthnService::newUserHandle);
@@ -190,10 +217,6 @@ public class WebAuthnService {
         return Optional.of(factor);
     }
 
-    // -- Assertion --
-
-    public record AssertionStart(String challengeToken, String optionsJson) {}
-
     public AssertionStart startAssertion(int accountId) {
         AssertionRequest request = relyingParty.startAssertion(StartAssertionOptions.builder()
                 .username(String.valueOf(accountId))
@@ -216,6 +239,8 @@ public class WebAuthnService {
         String token = persistChallenge(accountId, TokenType.TWO_FACTOR_WEBAUTHN_ASSERT, persistJson);
         return new AssertionStart(token, browserJson);
     }
+
+    // -- Helpers --
 
     public boolean finishAssertion(int accountId, String challengeToken, String credentialJson) {
         Optional<AccountToken> tokenOpt =
@@ -262,8 +287,6 @@ public class WebAuthnService {
         return true;
     }
 
-    // -- Helpers --
-
     private String persistChallenge(int accountId, TokenType type, String metadata) {
         String token = newChallengeToken();
         accountRepository.createToken(
@@ -283,30 +306,7 @@ public class WebAuthnService {
         return tokenOpt;
     }
 
-    private static String newChallengeToken() {
-        byte[] bytes = new byte[32];
-        RANDOM.nextBytes(bytes);
-        return HexFormat.of().formatHex(bytes);
-    }
+    public record RegistrationStart(String challengeToken, String optionsJson) {}
 
-    private static byte[] newUserHandle() {
-        byte[] bytes = new byte[64];
-        RANDOM.nextBytes(bytes);
-        return bytes;
-    }
-
-    /**
-     * Converts a 16-byte AAGUID to {@link UUID}. Returns {@code null} when the
-     * authenticator omits the AAGUID (e.g. U2F-only fallback).
-     */
-    private static UUID aaguidToUuid(ByteArray aaguid) {
-        if (aaguid == null) return null;
-        byte[] bytes = aaguid.getBytes();
-        if (bytes.length != 16) return null;
-        var buf = java.nio.ByteBuffer.wrap(bytes);
-        long msb = buf.getLong();
-        long lsb = buf.getLong();
-        if (msb == 0L && lsb == 0L) return null;
-        return new UUID(msb, lsb);
-    }
+    public record AssertionStart(String challengeToken, String optionsJson) {}
 }

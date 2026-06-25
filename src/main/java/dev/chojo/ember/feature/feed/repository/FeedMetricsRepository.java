@@ -34,10 +34,24 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class FeedMetricsRepository {
 
-    /** Cap on the verbatim UA we store. Stops a misbehaving client from filling the column. */
+    /**
+     * Cap on the verbatim UA we store. Stops a misbehaving client from filling the column.
+     */
     private static final int UA_MAX_LENGTH = 512;
 
     // -- daily histogram --
+
+    private static String shortHash(String ua) {
+        try {
+            var md = MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest(ua.getBytes(StandardCharsets.UTF_8));
+            var sb = new StringBuilder(16);
+            for (int i = 0; i < 8; i++) sb.append(String.format("%02x", digest[i]));
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 unavailable", e);
+        }
+    }
 
     /**
      * Upserts a single feed render into the daily aggregate. {@code durationMs} is bucketed
@@ -48,17 +62,17 @@ public class FeedMetricsRepository {
         query("""
                 INSERT INTO feed_metric_daily(day, type, status, count, total_duration_ms, total_entries,
                                               bucket_lt_50, bucket_lt_200, bucket_lt_1000, bucket_lt_5000, bucket_gte_5000)
-                VALUES (CURRENT_DATE, :type, :status, 1, :duration_ms, :entries,
+                VALUES (current_date, :type, :status, 1, :duration_ms, :entries,
                         :bucket_a, :bucket_b, :bucket_c, :bucket_d, :bucket_e)
                 ON CONFLICT (day, type, status) DO UPDATE
                 SET count             = feed_metric_daily.count + 1,
-                    total_duration_ms = feed_metric_daily.total_duration_ms + EXCLUDED.total_duration_ms,
-                    total_entries     = feed_metric_daily.total_entries + EXCLUDED.total_entries,
-                    bucket_lt_50      = feed_metric_daily.bucket_lt_50 + EXCLUDED.bucket_lt_50,
-                    bucket_lt_200     = feed_metric_daily.bucket_lt_200 + EXCLUDED.bucket_lt_200,
-                    bucket_lt_1000    = feed_metric_daily.bucket_lt_1000 + EXCLUDED.bucket_lt_1000,
-                    bucket_lt_5000    = feed_metric_daily.bucket_lt_5000 + EXCLUDED.bucket_lt_5000,
-                    bucket_gte_5000   = feed_metric_daily.bucket_gte_5000 + EXCLUDED.bucket_gte_5000;
+                    total_duration_ms = feed_metric_daily.total_duration_ms + excluded.total_duration_ms,
+                    total_entries     = feed_metric_daily.total_entries + excluded.total_entries,
+                    bucket_lt_50      = feed_metric_daily.bucket_lt_50 + excluded.bucket_lt_50,
+                    bucket_lt_200     = feed_metric_daily.bucket_lt_200 + excluded.bucket_lt_200,
+                    bucket_lt_1000    = feed_metric_daily.bucket_lt_1000 + excluded.bucket_lt_1000,
+                    bucket_lt_5000    = feed_metric_daily.bucket_lt_5000 + excluded.bucket_lt_5000,
+                    bucket_gte_5000   = feed_metric_daily.bucket_gte_5000 + excluded.bucket_gte_5000;
                 """)
                 .single(call().bind("type", type)
                         .bind("status", status)
@@ -100,15 +114,17 @@ public class FeedMetricsRepository {
                 .all();
     }
 
-    /** Drops daily aggregates older than the configured retention. */
+    // -- user-agent aggregate --
+
+    /**
+     * Drops daily aggregates older than the configured retention.
+     */
     public int pruneDailyMetrics(int retentionDays) {
-        return query("DELETE FROM feed_metric_daily WHERE day < CURRENT_DATE - make_interval(days := :days);")
+        return query("DELETE FROM feed_metric_daily WHERE day < current_date - make_interval(days := :days);")
                 .single(call().bind("days", Math.max(1, retentionDays)))
                 .delete()
                 .rows();
     }
-
-    // -- user-agent aggregate --
 
     /**
      * Bumps the request count for the given {@code User-Agent}. Best-effort: callers should
@@ -125,7 +141,7 @@ public class FeedMetricsRepository {
                 ON CONFLICT (ua_hash) DO UPDATE
                 SET request_count = feed_user_agent_stat.request_count + 1,
                     last_seen = now(),
-                    ua_string = EXCLUDED.ua_string;
+                    ua_string = excluded.ua_string;
                 """)
                 .single(call().bind("ua_hash", hash).bind("ua_string", truncated))
                 .insert();
@@ -149,9 +165,11 @@ public class FeedMetricsRepository {
                 .all();
     }
 
-    /** Returns the total number of recorded feed requests across all user-agents. */
+    /**
+     * Returns the total number of recorded feed requests across all user-agents.
+     */
     public long countRequests() {
-        return query("SELECT COALESCE(sum(request_count), 0) AS total FROM feed_user_agent_stat;")
+        return query("SELECT coalesce(sum(request_count), 0) AS total FROM feed_user_agent_stat;")
                 .single(call())
                 .map(row -> row.getLong("total"))
                 .first()
@@ -170,23 +188,15 @@ public class FeedMetricsRepository {
                 .rows();
     }
 
-    private static String shortHash(String ua) {
-        try {
-            var md = MessageDigest.getInstance("SHA-256");
-            byte[] digest = md.digest(ua.getBytes(StandardCharsets.UTF_8));
-            var sb = new StringBuilder(16);
-            for (int i = 0; i < 8; i++) sb.append(String.format("%02x", digest[i]));
-            return sb.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 unavailable", e);
-        }
-    }
-
-    /** Aggregated per-user-agent statistics row. */
+    /**
+     * Aggregated per-user-agent statistics row.
+     */
     public record FeedUserAgentStat(
             String uaHash, String uaString, long requestCount, Instant firstSeen, Instant lastSeen) {}
 
-    /** Daily feed render histogram and totals per {@code (type, status)}. */
+    /**
+     * Daily feed render histogram and totals per {@code (type, status)}.
+     */
     public record FeedMetricDaily(
             LocalDate day,
             String type,

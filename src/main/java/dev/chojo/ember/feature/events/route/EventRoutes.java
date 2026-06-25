@@ -1387,48 +1387,6 @@ public class EventRoutes implements Routes {
         ctx.result(pdf.get());
     }
 
-    public record RegistrationResponse(
-            int id,
-            int eventId,
-            int memberId,
-            String memberName,
-            MemberIdentity memberIdentity,
-            LocalDate eventDate,
-            RegistrationStatus status,
-            Instant createdAt,
-            String createdByName) {}
-
-    public record EventRequest(
-            String name,
-            String description,
-            StationEvent.EventType eventType,
-            Integer dayOfWeek,
-            Instant startTime,
-            Instant endTime,
-            Integer templateId,
-            Boolean requiresRegistration,
-            Instant registrationDeadline,
-            Boolean requiresConfirmation,
-            Integer categoryId,
-            List<StationUserType> restrictedUserTypes,
-            List<Integer> restrictedGroupIds,
-            List<Integer> restrictedTagIds,
-            Boolean isPublic,
-            Integer registrationLimit,
-            Integer minRegistrations,
-            Instant thresholdDate,
-            Integer registrationCloseDays) {}
-
-    public record CancelEventRequest(String reason) {}
-
-    public record BreakRequest(String name, LocalDate startDate, LocalDate endDate) {}
-
-    public record CategoryRequest(String name, int position, Integer maxShownEvents, Boolean isPublic, String color) {}
-
-    public record ReorderCategoriesRequest(List<Integer> orderedIds) {}
-
-    // -- Event Fields (per-event) --
-
     private LocalDate resolveEventDate(RegisterRequest req, StationEvent event) {
         if (event.eventType() == StationEvent.EventType.ONE_TIME) {
             if (event.startTime() == null) throw new BadRequestResponse("Event has no start time");
@@ -1446,97 +1404,6 @@ public class EventRoutes implements Routes {
         }
         return date;
     }
-
-    @OpenApiName("EventRegisterRequest")
-    public record RegisterRequest(String eventDate, Integer memberId) {}
-
-    public record StatusUpdateRequest(RegistrationStatus status) {}
-
-    public record EventRestrictions(
-            List<StationUserType> userTypes,
-            List<Integer> groupIds,
-            List<Integer> tagIds,
-            List<Integer> memberIds,
-            RestrictionMode mode) {}
-
-    public record FieldDefaultEntry(int fieldId, String source, String value) {}
-
-    public record AbsentMemberResponse(
-            int memberId,
-            String memberName,
-            MemberIdentity memberIdentity,
-            LocalDate absentFrom,
-            LocalDate absentUntil,
-            String reason) {}
-
-    public record EventExportRequest(
-            List<Integer> categoryIds, List<ExportColumnRequest> columns, String from, String to) {}
-
-    public record ExportColumnRequest(String type, String key, String fieldName, String label) {}
-
-    @OpenApiName("SetEventFieldsRequest")
-    public record SetEventFieldsRequest(List<EventFieldEntry> fields) {}
-
-    @OpenApiName("EventFieldEntry")
-    public record EventFieldEntry(
-            String name,
-            EventFieldType fieldType,
-            EventFieldConfig config,
-            String value,
-            Boolean overview,
-            Integer attendanceFieldId,
-            Boolean isPublic) {}
-
-    public record LayoutRequest(String name) {}
-
-    public record LayoutFieldEntry(
-            String name,
-            EventFieldType fieldType,
-            EventFieldConfig config,
-            Boolean overview,
-            Integer attendanceFieldId) {}
-
-    public record SetLayoutFieldsRequest(List<LayoutFieldEntry> fields) {}
-
-    public record GenerateDatesRequest(
-            IntervalType intervalType,
-            Integer dayOfWeek,
-            String startDate,
-            String endDate,
-            String startTime,
-            String endTime,
-            Boolean ignoreBreaks) {}
-
-    public record BatchCreateRequest(
-            String name,
-            String description,
-            Integer templateId,
-            Integer categoryId,
-            Integer layoutId,
-            List<LayoutFieldEntry> inlineFields,
-            List<BatchRowEntry> rows,
-            Boolean requiresRegistration,
-            Boolean requiresConfirmation,
-            Instant registrationDeadline,
-            List<StationUserType> restrictedUserTypes,
-            List<Integer> restrictedGroupIds,
-            List<Integer> restrictedTagIds) {}
-
-    public record BatchRowEntry(String name, Instant startTime, Instant endTime, Map<String, String> fieldValues) {}
-
-    public record RegistrationStatsResponse(
-            int memberId,
-            String memberName,
-            int registered,
-            int accepted,
-            int denied,
-            int declined,
-            double acceptRate,
-            String lastDenied,
-            String priority,
-            double fairnessScore) {}
-
-    // -- Federation sharing --
 
     private void getFederationShare(Context ctx) {
         UserSession session = UserSession.from(ctx);
@@ -1621,17 +1488,12 @@ public class EventRoutes implements Routes {
         ctx.json(enriched);
     }
 
-    public record EnrichedFederationRegistration(
-            EventFederationRegistration registration, MemberIdentity memberIdentity) {}
-
-    public record SetFederationShareRequest(ShareScope scope, List<Integer> partnerIds) {}
-
-    // -- Federated endpoints (user-facing, aggregates from partners with parallel fetch) --
-
     private void federatedListEvents(Context ctx) {
         UserSession session = UserSession.from(ctx);
         ctx.json(eventFederationService.browseFederatedEvents(session.stationId()));
     }
+
+    // -- Event Fields (per-event) --
 
     private void federatedGetEvent(Context ctx) {
         UserSession session = UserSession.from(ctx);
@@ -1721,8 +1583,6 @@ public class EventRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    // -- Remote endpoints (server-to-server, RSA signature auth) --
-
     private void remoteListEvents(Context ctx) {
         var partner = requireFederationPartner(ctx);
         var eventIds = eventFederationService.findSharedEventIds(partner.id(), partner.stationId());
@@ -1801,8 +1661,6 @@ public class EventRoutes implements Routes {
         ctx.json(new StatusResponse("ok"));
     }
 
-    // -- Federation helpers --
-
     private FederationPartner resolvePartner(Context ctx, int stationId) {
         var partnerUid = UUID.fromString(ctx.pathParam("stationuid"));
         return federationRepository
@@ -1838,39 +1696,13 @@ public class EventRoutes implements Routes {
                 true);
     }
 
-    public record FederationShareResponse(boolean shared, ShareScope scope, List<Integer> partnerIds) {}
-
-    public record FederatedEventDetail(Object event, List<EventField> publicFields) {}
-
-    public record StatusResponse(String status) {}
-
-    public record RemoteMemberRegistration(
-            int eventId, String remoteMemberId, String eventDate, RegistrationStatus status, int partnerId) {}
-
-    public record RemoteEvent(
-            int id,
-            String name,
-            String description,
-            StationEvent.EventType eventType,
-            int dayOfWeek,
-            String startTime,
-            String endTime,
-            boolean requiresRegistration,
-            boolean requiresConfirmation) {}
-
-    public record RemoteEventDetail(RemoteEvent event, List<EventField> publicFields) {}
-
-    public record FederatedRegBody(String eventDate, UUID memberId) {}
-
-    public record RemoteRegistrationRequest(UUID remoteMemberId, LocalDate eventDate) {}
-
-    // -- Remote event comment endpoints (server-to-server) --
-
     private void remoteListComments(Context ctx) {
         requireFederationPartner(ctx);
         int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
         ctx.json(eventFederationService.listComments(eventId));
     }
+
+    // -- Federation sharing --
 
     private void remoteCreateComment(Context ctx) {
         var partner = requireFederationPartner(ctx);
@@ -1921,15 +1753,6 @@ public class EventRoutes implements Routes {
         }
     }
 
-    public record RemoteCommentRequest(
-            UUID remoteMemberUid, String displayName, Integer parentId, String content, String eventDate) {}
-
-    public record RemoteCommentUpdateRequest(UUID remoteMemberUid, String content) {}
-
-    public record RemoteCommentDeleteRequest(UUID remoteMemberUid) {}
-
-    public record SetRemindersRequest(List<Integer> daysBefore) {}
-
     private void getReminders(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         ctx.json(eventService.findReminderDays(id));
@@ -1942,8 +1765,6 @@ public class EventRoutes implements Routes {
         ctx.json(eventService.findReminderDays(id));
     }
 
-    // -- Federated event comment proxy endpoints (user-facing) --
-
     private void federatedListComments(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var partnerUid = UUID.fromString(ctx.pathParam("stationuid"));
@@ -1954,6 +1775,8 @@ public class EventRoutes implements Routes {
             case EventFederationService.FederatedCommentResult.SingleResult r -> ctx.json(r.comment());
         }
     }
+
+    // -- Federated endpoints (user-facing, aggregates from partners with parallel fetch) --
 
     private void federatedCreateComment(Context ctx) {
         UserSession session = UserSession.from(ctx);
@@ -2004,4 +1827,181 @@ public class EventRoutes implements Routes {
                 session.stationId(), partnerUid, commentId, session.member().uid());
         ctx.status(HttpStatus.NO_CONTENT);
     }
+
+    public record RegistrationResponse(
+            int id,
+            int eventId,
+            int memberId,
+            String memberName,
+            MemberIdentity memberIdentity,
+            LocalDate eventDate,
+            RegistrationStatus status,
+            Instant createdAt,
+            String createdByName) {}
+
+    public record EventRequest(
+            String name,
+            String description,
+            StationEvent.EventType eventType,
+            Integer dayOfWeek,
+            Instant startTime,
+            Instant endTime,
+            Integer templateId,
+            Boolean requiresRegistration,
+            Instant registrationDeadline,
+            Boolean requiresConfirmation,
+            Integer categoryId,
+            List<StationUserType> restrictedUserTypes,
+            List<Integer> restrictedGroupIds,
+            List<Integer> restrictedTagIds,
+            Boolean isPublic,
+            Integer registrationLimit,
+            Integer minRegistrations,
+            Instant thresholdDate,
+            Integer registrationCloseDays) {}
+
+    public record CancelEventRequest(String reason) {}
+
+    // -- Remote endpoints (server-to-server, RSA signature auth) --
+
+    public record BreakRequest(String name, LocalDate startDate, LocalDate endDate) {}
+
+    public record CategoryRequest(String name, int position, Integer maxShownEvents, Boolean isPublic, String color) {}
+
+    public record ReorderCategoriesRequest(List<Integer> orderedIds) {}
+
+    @OpenApiName("EventRegisterRequest")
+    public record RegisterRequest(String eventDate, Integer memberId) {}
+
+    public record StatusUpdateRequest(RegistrationStatus status) {}
+
+    public record EventRestrictions(
+            List<StationUserType> userTypes,
+            List<Integer> groupIds,
+            List<Integer> tagIds,
+            List<Integer> memberIds,
+            RestrictionMode mode) {}
+
+    public record FieldDefaultEntry(int fieldId, String source, String value) {}
+
+    // -- Federation helpers --
+
+    public record AbsentMemberResponse(
+            int memberId,
+            String memberName,
+            MemberIdentity memberIdentity,
+            LocalDate absentFrom,
+            LocalDate absentUntil,
+            String reason) {}
+
+    public record EventExportRequest(
+            List<Integer> categoryIds, List<ExportColumnRequest> columns, String from, String to) {}
+
+    public record ExportColumnRequest(String type, String key, String fieldName, String label) {}
+
+    @OpenApiName("SetEventFieldsRequest")
+    public record SetEventFieldsRequest(List<EventFieldEntry> fields) {}
+
+    @OpenApiName("EventFieldEntry")
+    public record EventFieldEntry(
+            String name,
+            EventFieldType fieldType,
+            EventFieldConfig config,
+            String value,
+            Boolean overview,
+            Integer attendanceFieldId,
+            Boolean isPublic) {}
+
+    public record LayoutRequest(String name) {}
+
+    public record LayoutFieldEntry(
+            String name,
+            EventFieldType fieldType,
+            EventFieldConfig config,
+            Boolean overview,
+            Integer attendanceFieldId) {}
+
+    public record SetLayoutFieldsRequest(List<LayoutFieldEntry> fields) {}
+
+    public record GenerateDatesRequest(
+            IntervalType intervalType,
+            Integer dayOfWeek,
+            String startDate,
+            String endDate,
+            String startTime,
+            String endTime,
+            Boolean ignoreBreaks) {}
+
+    public record BatchCreateRequest(
+            String name,
+            String description,
+            Integer templateId,
+            Integer categoryId,
+            Integer layoutId,
+            List<LayoutFieldEntry> inlineFields,
+            List<BatchRowEntry> rows,
+            Boolean requiresRegistration,
+            Boolean requiresConfirmation,
+            Instant registrationDeadline,
+            List<StationUserType> restrictedUserTypes,
+            List<Integer> restrictedGroupIds,
+            List<Integer> restrictedTagIds) {}
+
+    public record BatchRowEntry(String name, Instant startTime, Instant endTime, Map<String, String> fieldValues) {}
+
+    public record RegistrationStatsResponse(
+            int memberId,
+            String memberName,
+            int registered,
+            int accepted,
+            int denied,
+            int declined,
+            double acceptRate,
+            String lastDenied,
+            String priority,
+            double fairnessScore) {}
+
+    // -- Remote event comment endpoints (server-to-server) --
+
+    public record EnrichedFederationRegistration(
+            EventFederationRegistration registration, MemberIdentity memberIdentity) {}
+
+    public record SetFederationShareRequest(ShareScope scope, List<Integer> partnerIds) {}
+
+    public record FederationShareResponse(boolean shared, ShareScope scope, List<Integer> partnerIds) {}
+
+    public record FederatedEventDetail(Object event, List<EventField> publicFields) {}
+
+    public record StatusResponse(String status) {}
+
+    public record RemoteMemberRegistration(
+            int eventId, String remoteMemberId, String eventDate, RegistrationStatus status, int partnerId) {}
+
+    public record RemoteEvent(
+            int id,
+            String name,
+            String description,
+            StationEvent.EventType eventType,
+            int dayOfWeek,
+            String startTime,
+            String endTime,
+            boolean requiresRegistration,
+            boolean requiresConfirmation) {}
+
+    public record RemoteEventDetail(RemoteEvent event, List<EventField> publicFields) {}
+
+    public record FederatedRegBody(String eventDate, UUID memberId) {}
+
+    public record RemoteRegistrationRequest(UUID remoteMemberId, LocalDate eventDate) {}
+
+    // -- Federated event comment proxy endpoints (user-facing) --
+
+    public record RemoteCommentRequest(
+            UUID remoteMemberUid, String displayName, Integer parentId, String content, String eventDate) {}
+
+    public record RemoteCommentUpdateRequest(UUID remoteMemberUid, String content) {}
+
+    public record RemoteCommentDeleteRequest(UUID remoteMemberUid) {}
+
+    public record SetRemindersRequest(List<Integer> daysBefore) {}
 }

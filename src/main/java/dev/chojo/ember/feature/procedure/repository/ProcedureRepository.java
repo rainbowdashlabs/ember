@@ -283,12 +283,12 @@ public class ProcedureRepository {
 
     public boolean resolveProcedure(int id) {
         return query("""
-                        UPDATE procedure
-                        SET
-                            status      = 'RESOLVED',
-                            resolved_at = now()
-                        WHERE id = :id
-                          AND status = 'OPEN';""").single(call().bind("id", id)).update().changed();
+                UPDATE procedure
+                SET
+                    status      = 'RESOLVED',
+                    resolved_at = now()
+                WHERE id = :id
+                  AND status = 'OPEN';""").single(call().bind("id", id)).update().changed();
     }
 
     public boolean reopenProcedure(int id) {

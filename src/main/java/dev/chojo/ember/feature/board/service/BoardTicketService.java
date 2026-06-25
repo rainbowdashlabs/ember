@@ -33,8 +33,6 @@ import dev.chojo.ember.feature.members.service.StationMemberService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -56,6 +54,7 @@ public class BoardTicketService {
     private final StationMemberService stationMemberService;
     private final MemberIdentityFactory memberIdentityFactory;
     private final MemberNameResolver memberNameResolver;
+    private final BoardAttachmentService attachmentService;
 
     @Inject
     public BoardTicketService(
@@ -64,40 +63,22 @@ public class BoardTicketService {
             DomainEventBus eventBus,
             StationMemberService stationMemberService,
             MemberIdentityFactory memberIdentityFactory,
-            MemberNameResolver memberNameResolver) {
+            MemberNameResolver memberNameResolver,
+            BoardAttachmentService attachmentService) {
         this.ticketRepository = ticketRepository;
         this.boardRepository = boardRepository;
         this.eventBus = eventBus;
         this.stationMemberService = stationMemberService;
         this.memberIdentityFactory = memberIdentityFactory;
         this.memberNameResolver = memberNameResolver;
+        this.attachmentService = attachmentService;
     }
-
-    private void notifyWatchers(int ticketId, int boardId, String changeDescription, Integer actorMemberId) {
-        var watchers = ticketRepository.findWatchers(ticketId);
-        if (watchers.isEmpty()) return;
-        var board = boardRepository.findById(boardId).orElse(null);
-        var ticket = ticketRepository.findById(ticketId).orElse(null);
-        if (board == null || ticket == null) return;
-        var ticketKey = board.shortKey() + "-" + ticket.ticketNumber();
-        eventBus.publish(new BoardTicketChanged(
-                board.stationId(),
-                boardId,
-                ticketId,
-                board.shortKey(),
-                ticket.ticketNumber(),
-                board.name(),
-                ticketKey,
-                changeDescription,
-                actorMemberId,
-                watchers));
-    }
-
-    // -- Ticket CRUD --
 
     public List<BoardTicket> findByBoard(int boardId) {
         return ticketRepository.findByBoard(boardId);
     }
+
+    // -- Ticket CRUD --
 
     public List<BoardTicket> findByBoardAndLane(int boardId, int laneId) {
         return ticketRepository.findByBoardAndLane(boardId, laneId);
@@ -274,11 +255,11 @@ public class BoardTicketService {
         ticketRepository.reorderTickets(laneId, orderedIds);
     }
 
-    // -- Links --
-
     public List<BoardTicketLink> findLinks(int ticketId) {
         return ticketRepository.findLinks(ticketId);
     }
+
+    // -- Links --
 
     public void linkTickets(int ticketId, int linkedTicketId, LinkType linkType, MemberIdentity actor) {
         if (ticketId == linkedTicketId) return;
@@ -310,17 +291,17 @@ public class BoardTicketService {
         return deleted;
     }
 
-    // -- Transitions --
-
     public List<BoardTicketTransition> findTransitions(int ticketId) {
         return ticketRepository.findTransitions(ticketId);
     }
 
-    // -- Checklist --
+    // -- Transitions --
 
     public List<BoardChecklistItem> findChecklistItems(int ticketId) {
         return ticketRepository.findChecklistItems(ticketId);
     }
+
+    // -- Checklist --
 
     public BoardChecklistItem addChecklistItem(int ticketId, String title, int actorMemberId) {
         int position = ticketRepository.findChecklistItems(ticketId).size();
@@ -357,11 +338,11 @@ public class BoardTicketService {
         ticketRepository.reorderChecklistItems(ticketId, orderedIds);
     }
 
-    // -- Comments --
-
     public List<BoardComment> findComments(int ticketId) {
         return ticketRepository.findComments(ticketId);
     }
+
+    // -- Comments --
 
     public BoardComment createComment(int ticketId, Integer parentId, MemberIdentity author, String content) {
         var comment = ticketRepository.createComment(ticketId, parentId, author, content);
@@ -396,25 +377,6 @@ public class BoardTicketService {
         return comment;
     }
 
-    private List<Integer> parseMentions(int stationId, String content) {
-        var mentions = new ArrayList<Integer>();
-        // New format: @[stationUid/memberUid:Name]
-        var matcher = MENTION_PATTERN.matcher(content);
-        while (matcher.find()) {
-            try {
-                var memberUid = UUID.fromString(matcher.group(2));
-                stationMemberService.resolveId(stationId, memberUid).ifPresent(mentions::add);
-            } catch (IllegalArgumentException ignored) {
-            }
-        }
-        // Legacy format: @[123:Name]
-        var legacyMatcher = MENTION_PATTERN_LEGACY.matcher(content);
-        while (legacyMatcher.find()) {
-            mentions.add(Integer.parseInt(legacyMatcher.group(1)));
-        }
-        return mentions;
-    }
-
     public boolean updateComment(int id, String content) {
         return ticketRepository.updateComment(id, content);
     }
@@ -422,8 +384,6 @@ public class BoardTicketService {
     public boolean deleteComment(int id) {
         return ticketRepository.deleteComment(id);
     }
-
-    // -- Weblinks --
 
     public List<BoardWeblink> findWeblinks(int ticketId) {
         return ticketRepository.findWeblinks(ticketId);
@@ -434,13 +394,11 @@ public class BoardTicketService {
         return ticketRepository.createWeblink(ticketId, url, title, position);
     }
 
+    // -- Weblinks --
+
     public boolean deleteWeblink(int id) {
         return ticketRepository.deleteWeblink(id);
     }
-
-    // -- Attachments --
-
-    private static final Path ATTACHMENT_DIR = Path.of("data", "attachments", "board");
 
     public List<BoardTicketAttachment> findAttachments(int ticketId) {
         return ticketRepository.findAttachments(ticketId);
@@ -450,36 +408,30 @@ public class BoardTicketService {
         return ticketRepository.findAttachmentById(id);
     }
 
+    // -- Attachments --
+
     public BoardTicketAttachment uploadAttachment(
-            int ticketId, String originalName, String contentType, byte[] data, MemberIdentity uploader) {
-        String filename = UUID.randomUUID() + "_" + originalName.replaceAll("[^a-zA-Z0-9._-]", "_");
-        var dir = ATTACHMENT_DIR.resolve(String.valueOf(ticketId));
-        try {
-            Files.createDirectories(dir);
-            Files.write(dir.resolve(filename), data);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to store attachment", e);
-        }
+            int stationId,
+            int ticketId,
+            String originalName,
+            String contentType,
+            byte[] data,
+            MemberIdentity uploader) {
+        String filename = attachmentService.newFilename(originalName);
+        attachmentService.store(stationId, ticketId, filename, data, contentType);
         return ticketRepository.createAttachment(ticketId, filename, originalName, contentType, data.length, uploader);
     }
 
-    public boolean deleteAttachment(int id) {
+    public boolean deleteAttachment(int stationId, int id) {
         var att = ticketRepository.findAttachmentById(id).orElse(null);
         if (att == null) return false;
-        var file = ATTACHMENT_DIR.resolve(String.valueOf(att.ticketId())).resolve(att.filename());
-        try {
-            Files.deleteIfExists(file);
-        } catch (IOException e) {
-            // log but don't fail
-        }
+        attachmentService.delete(stationId, att.ticketId(), att.filename());
         return ticketRepository.deleteAttachment(id);
     }
 
-    public Path getAttachmentPath(BoardTicketAttachment att) {
-        return ATTACHMENT_DIR.resolve(String.valueOf(att.ticketId())).resolve(att.filename());
+    public Path getAttachmentPath(int stationId, BoardTicketAttachment att) {
+        return attachmentService.resolvePath(stationId, att.ticketId(), att.filename());
     }
-
-    // -- Watchers --
 
     public List<Integer> findWatchers(int ticketId) {
         return ticketRepository.findWatchers(ticketId);
@@ -488,6 +440,8 @@ public class BoardTicketService {
     public void watchTicket(int ticketId, int memberId) {
         ticketRepository.addWatcher(ticketId, memberId);
     }
+
+    // -- Watchers --
 
     public void addWatcher(int ticketId, MemberIdentity identity) {
         ticketRepository.addWatcher(ticketId, identity);
@@ -505,8 +459,6 @@ public class BoardTicketService {
         return ticketRepository.isWatching(ticketId, memberId);
     }
 
-    // -- Field values --
-
     public List<BoardTicketFieldValue> findFieldValues(int ticketId) {
         return ticketRepository.findFieldValues(ticketId);
     }
@@ -515,11 +467,11 @@ public class BoardTicketService {
         ticketRepository.setFieldValue(ticketId, fieldId, value.toJson());
     }
 
+    // -- Field values --
+
     public boolean deleteFieldValue(int ticketId, int fieldId) {
         return ticketRepository.deleteFieldValue(ticketId, fieldId);
     }
-
-    // -- KB Links --
 
     public List<BoardTicketKbLink> findKbLinks(int ticketId) {
         return ticketRepository.findKbLinks(ticketId);
@@ -529,11 +481,11 @@ public class BoardTicketService {
         return ticketRepository.addKbLink(ticketId, kbFileId);
     }
 
+    // -- KB Links --
+
     public boolean removeKbLink(int id) {
         return ticketRepository.removeKbLink(id);
     }
-
-    // -- History --
 
     public void logHistory(int ticketId, BoardTicketHistoryAction action, String detail, MemberIdentity actor) {
         ticketRepository.logHistory(ticketId, action, detail, actor);
@@ -543,9 +495,50 @@ public class BoardTicketService {
         return ticketRepository.findHistory(ticketId);
     }
 
-    // -- Activity feed --
+    // -- History --
 
     public List<BoardTicketRepository.ActivityEntry> findActivity(int ticketId) {
         return ticketRepository.findActivity(ticketId);
+    }
+
+    private void notifyWatchers(int ticketId, int boardId, String changeDescription, Integer actorMemberId) {
+        var watchers = ticketRepository.findWatchers(ticketId);
+        if (watchers.isEmpty()) return;
+        var board = boardRepository.findById(boardId).orElse(null);
+        var ticket = ticketRepository.findById(ticketId).orElse(null);
+        if (board == null || ticket == null) return;
+        var ticketKey = board.shortKey() + "-" + ticket.ticketNumber();
+        eventBus.publish(new BoardTicketChanged(
+                board.stationId(),
+                boardId,
+                ticketId,
+                board.shortKey(),
+                ticket.ticketNumber(),
+                board.name(),
+                ticketKey,
+                changeDescription,
+                actorMemberId,
+                watchers));
+    }
+
+    // -- Activity feed --
+
+    private List<Integer> parseMentions(int stationId, String content) {
+        var mentions = new ArrayList<Integer>();
+        // New format: @[stationUid/memberUid:Name]
+        var matcher = MENTION_PATTERN.matcher(content);
+        while (matcher.find()) {
+            try {
+                var memberUid = UUID.fromString(matcher.group(2));
+                stationMemberService.resolveId(stationId, memberUid).ifPresent(mentions::add);
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        // Legacy format: @[123:Name]
+        var legacyMatcher = MENTION_PATTERN_LEGACY.matcher(content);
+        while (legacyMatcher.find()) {
+            mentions.add(Integer.parseInt(legacyMatcher.group(1)));
+        }
+        return mentions;
     }
 }

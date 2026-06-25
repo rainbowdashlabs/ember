@@ -20,7 +20,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ColumnEntry(String name, String type, boolean nullable, boolean verified, String description) {
 
-    /** Backwards-compatible constructor for callers that don't supply a description. */
+    /**
+     * Backwards-compatible constructor for callers that don't supply a description.
+     */
     public ColumnEntry(String name, String type, boolean nullable, boolean verified) {
         this(name, type, nullable, verified, null);
     }

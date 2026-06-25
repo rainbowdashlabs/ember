@@ -8,38 +8,58 @@ package dev.chojo.ember.feature.storage.service;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
+import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
- * Recalculates actual storage usage per station by querying the database and walking the filesystem.
- * Runs on a configurable schedule (default daily at 03:00) and can be triggered manually by admins.
+ * Periodic sanity check that reconciles {@code station_storage_usage} against the actual bytes
+ * on the backend. Hot-path tracking happens in {@link StorageQuotaService}; this service only
+ * runs on a schedule (default daily) and on manual admin trigger to catch drift between the
+ * incremental counters and the real on-disk size.
+ *
+ * <p>Reconciliation goes through {@link StorageService#sumSize(StorageScope, StorageCategory)},
+ * which delegates to the resolved backend's prefix-sum primitive. The producer never walks the
+ * filesystem directly — that detail stays behind the storage interface so S3 / SMB / SFTP
+ * backends pick the appropriate native operation.
  */
 @Singleton
 public class StorageReconciliationService {
     private static final Logger log = LoggerFactory.getLogger(StorageReconciliationService.class);
 
+    private static final List<StorageCategory> STATION_CATEGORIES = List.of(
+            StorageCategory.PAGE_FILES,
+            StorageCategory.KB_FILES,
+            StorageCategory.BOARD_ATTACHMENTS,
+            StorageCategory.IMAGE_LOST_AND_FOUND,
+            StorageCategory.IMAGE_QUIZ_QUESTION,
+            StorageCategory.IMAGE_KB_ICON,
+            StorageCategory.IMAGE_KB_IMAGE);
+
     private final StorageUsageRepository usageRepository;
     private final StationRepository stationRepository;
+    private final StorageService storage;
 
     @Inject
     public StorageReconciliationService(
-            StorageUsageRepository usageRepository, StationRepository stationRepository, Storage storageConfig) {
+            StorageUsageRepository usageRepository,
+            StationRepository stationRepository,
+            StorageService storage,
+            Storage storageConfig) {
         this.usageRepository = usageRepository;
         this.stationRepository = stationRepository;
+        this.storage = storage;
 
         var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             var t = new Thread(r, "storage-reconciliation");
@@ -47,12 +67,11 @@ public class StorageReconciliationService {
             return t;
         });
         int intervalHours = storageConfig.reconciliationIntervalHours();
-        // Short delay to let QueryConfiguration initialize, then repeat at the configured interval
         scheduler.scheduleWithFixedDelay(this::reconcileAll, 1, intervalHours * 60L, TimeUnit.MINUTES);
     }
 
     /**
-     * Reconciles storage usage for all stations.
+     * Reconciles storage usage for every station.
      */
     public void reconcileAll() {
         try {
@@ -68,150 +87,41 @@ public class StorageReconciliationService {
     }
 
     /**
-     * Reconciles storage usage for a single station.
+     * Reconciles storage usage for one station.
      */
     public void reconcileStation(int stationId) {
         try {
-            reconcileKbFiles(stationId);
-            reconcileBoardAttachments(stationId);
-            reconcilePageImages(stationId);
-            reconcileImages(stationId);
+            UUID stationUid = stationRepository.resolveUid(stationId);
+            if (stationUid == null) {
+                log.warn("Skipping reconciliation for station {} — no UUID resolved", stationId);
+                return;
+            }
+            var scope = new StorageScope.Station(stationId, stationUid);
+            for (StorageCategory category : STATION_CATEGORIES) {
+                reconcileCategory(stationId, scope, category);
+            }
             reconcileAvatars(stationId);
         } catch (Exception e) {
             log.error("Error reconciling storage for station {}", stationId, e);
         }
     }
 
-    private void reconcileKbFiles(int stationId) {
-        var result = query("""
-                SELECT COALESCE(SUM(file_size), 0) AS total_bytes, COUNT(*) AS file_count
-                FROM kb_file
-                WHERE station_id = :station_id AND file_size > 0;
-                """)
-                .single(call().bind("station_id", stationId))
-                .map(row -> new UsageResult(row.getLong("total_bytes"), row.getInt("file_count")))
-                .first()
-                .orElse(new UsageResult(0, 0));
-        usageRepository.setUsage(stationId, StorageCategory.KB_FILES, result.totalBytes(), result.fileCount());
+    private void reconcileCategory(int stationId, StorageScope.Station scope, StorageCategory category) {
+        long totalBytes = storage.sumSize(scope, category);
+        int fileCount = storage.listKeys(scope, category, "").size();
+        usageRepository.setUsage(stationId, category, totalBytes, fileCount);
     }
 
-    private void reconcileBoardAttachments(int stationId) {
-        var result = query("""
-                SELECT COALESCE(SUM(a.size_bytes), 0) AS total_bytes, COUNT(*) AS file_count
-                FROM board_ticket_attachment a
-                JOIN board_ticket t ON t.id = a.ticket_id
-                JOIN board b ON b.id = t.board_id
-                WHERE b.station_id = :station_id;
-                """)
-                .single(call().bind("station_id", stationId))
-                .map(row -> new UsageResult(row.getLong("total_bytes"), row.getInt("file_count")))
-                .first()
-                .orElse(new UsageResult(0, 0));
-        usageRepository.setUsage(stationId, StorageCategory.BOARD_ATTACHMENTS, result.totalBytes(), result.fileCount());
-    }
-
-    private void reconcilePageImages(int stationId) {
-        var result = query("""
-                SELECT COALESCE(SUM(file_size), 0) AS total_bytes, COUNT(*) AS file_count
-                FROM page_file
-                WHERE station_id = :station_id;
-                """)
-                .single(call().bind("station_id", stationId))
-                .map(row -> new UsageResult(row.getLong("total_bytes"), row.getInt("file_count")))
-                .first()
-                .orElse(new UsageResult(0, 0));
-        usageRepository.setUsage(stationId, StorageCategory.PAGE_IMAGES, result.totalBytes(), result.fileCount());
-    }
-
-    private void reconcileImages(int stationId) {
-        // Images are stored on filesystem at data/images/{category}/{id}/
-        // We need to map image IDs back to stations through entity tables
-        long totalBytes = 0;
-        int fileCount = 0;
-
-        // KB icons: data/images/kb-icons/folder-{folderId}/
-        var kbIconResult = query("""
-                SELECT f.id FROM kb_file f
-                WHERE f.station_id = :station_id AND f.folder_id IS NULL AND f.file_type = 'IMAGE';
-                """)
-                .single(call().bind("station_id", stationId))
-                .map(row -> row.getInt("id"))
-                .all();
-        // Also get folders with icons
-        var folderIds = query("""
-                SELECT DISTINCT kff.id FROM kb_file kff
-                WHERE kff.station_id = :station_id AND kff.file_type = 'MARKDOWN';
-                """)
-                .single(call().bind("station_id", stationId))
-                .map(row -> row.getInt("id"))
-                .all();
-
-        // For simplicity, calculate image sizes from filesystem walk for station-specific paths
-        // KB icons are at data/images/kb-icons/folder-{folderId}
-        for (int folderId : folderIds) {
-            var size = directorySize(Path.of("data", "images", "kb-icons", "folder-" + folderId));
-            totalBytes += size.totalBytes();
-            fileCount += size.fileCount();
-        }
-
-        // KB inline images are at data/images/kb-images/{fileId}-{imageId}
-        var kbFileIds = query("SELECT id FROM kb_file WHERE station_id = :station_id;")
-                .single(call().bind("station_id", stationId))
-                .map(row -> row.getInt("id"))
-                .all();
-        Path kbImagesDir = Path.of("data", "images", "kb-images");
-        if (Files.exists(kbImagesDir)) {
-            for (int fileId : kbFileIds) {
-                String prefix = fileId + "-";
-                try (Stream<Path> paths = Files.list(kbImagesDir)) {
-                    for (Path dir : paths.filter(p -> p.getFileName().toString().startsWith(prefix))
-                            .toList()) {
-                        var size = directorySize(dir);
-                        totalBytes += size.totalBytes();
-                        fileCount += size.fileCount();
-                    }
-                } catch (IOException e) {
-                    log.warn("Failed to scan KB images for station {}", stationId, e);
-                }
-            }
-        }
-
-        // Quiz question images: data/images/quiz-questions/{questionId}
-        var questionIds = query("""
-                SELECT qq.id FROM quiz_question qq
-                JOIN quiz_catalog qc ON qc.id = qq.catalog_id
-                WHERE qc.station_id = :station_id;
-                """)
-                .single(call().bind("station_id", stationId))
-                .map(row -> row.getInt("id"))
-                .all();
-        for (int questionId : questionIds) {
-            var size = directorySize(Path.of("data", "images", "quiz-questions", String.valueOf(questionId)));
-            totalBytes += size.totalBytes();
-            fileCount += size.fileCount();
-        }
-
-        // Lost and found images: data/images/lost-and-found/{itemId}
-        var lostFoundIds = query("""
-                SELECT id FROM lost_and_found_item WHERE station_id = :station_id;
-                """)
-                .single(call().bind("station_id", stationId))
-                .map(row -> row.getInt("id"))
-                .all();
-        for (int itemId : lostFoundIds) {
-            var size = directorySize(Path.of("data", "images", "lost-and-found", String.valueOf(itemId)));
-            totalBytes += size.totalBytes();
-            fileCount += size.fileCount();
-        }
-
-        usageRepository.setUsage(stationId, StorageCategory.IMAGES, totalBytes, fileCount);
-    }
-
+    /**
+     * Avatars live in an account-scoped tree but the per-station usage row needs the bytes
+     * attributed to every station the account is a member of. Sum each member's account-scope
+     * avatar bytes and roll the result up into the station's IMAGE_AVATAR row.
+     */
     private void reconcileAvatars(int stationId) {
-        // Avatars: data/images/avatars/{memberUid}
-        var memberUids = query("""
-                SELECT sm.uid FROM station_member sm
-                WHERE sm.station_id = :station_id;
+        var accountUids = query("""
+                SELECT DISTINCT a.uid FROM ember_schema.account a
+                JOIN ember_schema.station_member sm ON sm.account_id = a.id
+                WHERE sm.station_id = :station_id AND a.uid IS NOT NULL;
                 """)
                 .single(call().bind("station_id", stationId))
                 .map(row -> row.getString("uid"))
@@ -219,28 +129,20 @@ public class StorageReconciliationService {
 
         long totalBytes = 0;
         int fileCount = 0;
-        for (String uid : memberUids) {
-            var size = directorySize(Path.of("data", "images", "avatars", uid));
-            totalBytes += size.totalBytes();
-            fileCount += size.fileCount();
-        }
-        usageRepository.setUsage(stationId, StorageCategory.AVATARS, totalBytes, fileCount);
-    }
-
-    private UsageResult directorySize(Path dir) {
-        if (!Files.exists(dir)) return new UsageResult(0, 0);
-        long totalBytes = 0;
-        int fileCount = 0;
-        try (Stream<Path> paths = Files.walk(dir)) {
-            for (Path path : paths.filter(Files::isRegularFile).toList()) {
-                totalBytes += Files.size(path);
-                fileCount++;
+        for (String uidStr : accountUids) {
+            UUID accountUid;
+            try {
+                accountUid = UUID.fromString(uidStr);
+            } catch (IllegalArgumentException ignored) {
+                continue;
             }
-        } catch (IOException e) {
-            log.warn("Failed to calculate directory size: {}", dir, e);
+            var scope = new StorageScope.Account(accountUid);
+            long bytes = storage.sumSize(scope, StorageCategory.IMAGE_AVATAR);
+            if (bytes == 0) continue;
+            totalBytes += bytes;
+            fileCount +=
+                    storage.listKeys(scope, StorageCategory.IMAGE_AVATAR, "").size();
         }
-        return new UsageResult(totalBytes, fileCount);
+        usageRepository.setUsage(stationId, StorageCategory.IMAGE_AVATAR, totalBytes, fileCount);
     }
-
-    private record UsageResult(long totalBytes, int fileCount) {}
 }

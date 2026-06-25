@@ -24,16 +24,16 @@ public enum LegalDocumentType {
         this.slug = slug;
     }
 
-    @JsonValue
-    public String slug() {
-        return slug;
-    }
-
     @JsonCreator
     public static LegalDocumentType fromSlug(String slug) {
         for (LegalDocumentType type : values()) {
             if (type.slug.equalsIgnoreCase(slug)) return type;
         }
         throw new IllegalArgumentException("Unknown legal document type: " + slug);
+    }
+
+    @JsonValue
+    public String slug() {
+        return slug;
     }
 }

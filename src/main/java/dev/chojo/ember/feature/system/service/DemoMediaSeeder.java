@@ -7,8 +7,7 @@ package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.media.service.ImageCategory;
-import dev.chojo.ember.feature.media.service.ImageService;
+import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.station.service.StationService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -37,14 +36,14 @@ public class DemoMediaSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoMediaSeeder.class);
     private static final Path AVATAR_CACHE_DIR = Path.of("data", "demo-avatars");
 
-    private final ImageService imageService;
+    private final AvatarService avatarService;
     private final StationService stationService;
     private final AccountRepository accountRepository;
 
     @Inject
     public DemoMediaSeeder(
-            ImageService imageService, StationService stationService, AccountRepository accountRepository) {
-        this.imageService = imageService;
+            AvatarService avatarService, StationService stationService, AccountRepository accountRepository) {
+        this.avatarService = avatarService;
         this.stationService = stationService;
         this.accountRepository = accountRepository;
     }
@@ -63,12 +62,11 @@ public class DemoMediaSeeder {
         try (var httpClient = HttpClient.newHttpClient()) {
             for (var account : accountRepository.findAll()) {
                 if (account.uid() == null) continue;
-                String key = account.uid().toString();
-                if (imageService.exists(ImageCategory.AVATARS, key)) continue;
+                if (avatarService.exists(account.uid())) continue;
                 try {
                     String seed = buildSeed(account);
                     byte[] data = fetchAvatar(httpClient, seed);
-                    imageService.store(ImageCategory.AVATARS, key, data, "image/png");
+                    avatarService.store(account.uid(), data, "image/png");
                 } catch (Exception e) {
                     log.warn("Failed to set demo avatar for account {}: {}", account.id(), e.getMessage());
                 }

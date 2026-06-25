@@ -89,22 +89,6 @@ public class BoardTicketRoutes implements Routes {
         this.memberIdentityFactory = memberIdentityFactory;
     }
 
-    private int resolveBoardId(Context ctx, int stationId) {
-        String boardKey = ctx.pathParam("boardKey");
-        return boardService
-                .findByShortKey(stationId, boardKey)
-                .orElseThrow(() -> new NotFoundResponse("Board not found: " + boardKey))
-                .id();
-    }
-
-    private int resolveTicketId(Context ctx, int boardId) {
-        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
-        return ticketService
-                .findByBoardAndNumber(boardId, ticketNumber)
-                .orElseThrow(() -> new NotFoundResponse("Ticket not found: " + ticketNumber))
-                .id();
-    }
-
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         String p = prefix + "/boards/{boardKey}/tickets";
@@ -177,6 +161,22 @@ public class BoardTicketRoutes implements Routes {
 
         // Activity
         routes.get(p + "/{ticketNumber}/activity", this::getActivity, StationPermission.BOARD_USE);
+    }
+
+    private int resolveBoardId(Context ctx, int stationId) {
+        String boardKey = ctx.pathParam("boardKey");
+        return boardService
+                .findByShortKey(stationId, boardKey)
+                .orElseThrow(() -> new NotFoundResponse("Board not found: " + boardKey))
+                .id();
+    }
+
+    private int resolveTicketId(Context ctx, int boardId) {
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
+        return ticketService
+                .findByBoardAndNumber(boardId, ticketNumber)
+                .orElseThrow(() -> new NotFoundResponse("Ticket not found: " + ticketNumber))
+                .id();
     }
 
     private void requireEditAccess(int boardId, UserSession session) {
@@ -832,6 +832,7 @@ public class BoardTicketRoutes implements Routes {
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
             var att = ticketService.uploadAttachment(
+                    session.stationId(),
                     ticketId,
                     file.filename(),
                     file.contentType(),
@@ -864,7 +865,7 @@ public class BoardTicketRoutes implements Routes {
         requireViewAccess(boardId, session);
         int attachmentId = ctx.pathParamAsClass("attachmentId", Integer.class).get();
         var att = ticketService.findAttachmentById(attachmentId).orElseThrow(NotFoundResponse::new);
-        var path = ticketService.getAttachmentPath(att);
+        var path = ticketService.getAttachmentPath(session.stationId(), att);
         if (!Files.exists(path)) throw new NotFoundResponse();
         ctx.contentType(SafeInlineMime.safeContentType(att.contentType()));
         ctx.header(
@@ -896,7 +897,7 @@ public class BoardTicketRoutes implements Routes {
         int boardId = resolveBoardId(ctx, session.stationId());
         requireEditAccess(boardId, session);
         int attachmentId = ctx.pathParamAsClass("attachmentId", Integer.class).get();
-        if (ticketService.deleteAttachment(attachmentId)) {
+        if (ticketService.deleteAttachment(session.stationId(), attachmentId)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw new NotFoundResponse();

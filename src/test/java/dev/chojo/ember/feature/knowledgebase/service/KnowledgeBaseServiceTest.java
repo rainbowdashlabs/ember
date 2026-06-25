@@ -36,7 +36,6 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
@@ -747,7 +746,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         assertEquals(KbFileType.PRESENTATION, file.fileType());
         // Simulate successful conversion by calling storePresentationResult directly
         byte[] fakePdf = "fake-pdf".getBytes(StandardCharsets.UTF_8);
-        service.storePresentationResult(file.id(), fakePdf);
+        service.storePresentationResult(station.id(), file.id(), fakePdf);
         var reloaded = service.findFile(file.id());
         assertTrue(reloaded.isPresent());
         assertEquals(ConversionStatus.SUCCESS, reloaded.get().conversionStatus());
@@ -808,7 +807,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 "application/vnd.openxmlformats-officedocument.presentationml.presentation",
                 member.id());
         // Simulate completed conversion
-        service.storePresentationResult(file.id(), "fake".getBytes(StandardCharsets.UTF_8));
+        service.storePresentationResult(station.id(), file.id(), "fake".getBytes(StandardCharsets.UTF_8));
         assertEquals(
                 ConversionStatus.SUCCESS,
                 service.findFile(file.id()).orElseThrow().conversionStatus());
@@ -835,9 +834,9 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         // Directly call storePresentationResult with fake PDF bytes
         byte[] fakePdf = "fake-pdf-content".getBytes(StandardCharsets.UTF_8);
         // Configure mock to return the stored PDF
-        when(fileStorage.readPresentationPdf(file.id()))
+        when(fileStorage.readPresentationPdf(station.id(), file.id()))
                 .thenReturn(Optional.of(new KbFileStorageService.FileData(fakePdf, "application/pdf")));
-        service.storePresentationResult(file.id(), fakePdf);
+        service.storePresentationResult(station.id(), file.id(), fakePdf);
         // Should now be SUCCESS
         var reloaded = service.findFile(file.id());
         assertTrue(reloaded.isPresent());
@@ -863,11 +862,12 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 member.id());
         // Make storage throw to trigger the error path
         try {
-            doThrow(new IOException("disk full")).when(fileStorage).storePresentationPdf(eq(file.id()), any());
-        } catch (IOException ignored) {
-            // Mockito stub setup, never actually thrown
+            doThrow(new RuntimeException("disk full"))
+                    .when(fileStorage)
+                    .storePresentationPdf(eq(station.id()), eq(file.id()), any());
+        } catch (Exception ignored) {
         }
-        service.storePresentationResult(file.id(), "pdf".getBytes(StandardCharsets.UTF_8));
+        service.storePresentationResult(station.id(), file.id(), "pdf".getBytes(StandardCharsets.UTF_8));
         var reloaded = service.findFile(file.id());
         assertTrue(reloaded.isPresent());
         assertEquals(ConversionStatus.FAILED, reloaded.get().conversionStatus());
@@ -889,7 +889,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 member.id());
         knowledgeBaseRepo.updateConversionStatus(file.id(), ConversionStatus.FAILED);
         // getPresentationPdf returns empty when no PDF was stored
-        when(fileStorage.readPresentationPdf(file.id())).thenReturn(Optional.empty());
+        when(fileStorage.readPresentationPdf(station.id(), file.id())).thenReturn(Optional.empty());
         var pdf = service.getPresentationPdf(file.id());
         assertTrue(pdf.isEmpty());
         var reloaded = service.findFile(file.id());

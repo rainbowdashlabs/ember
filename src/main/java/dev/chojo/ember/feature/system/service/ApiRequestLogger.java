@@ -61,67 +61,6 @@ public class ApiRequestLogger {
         }
     }
 
-    private void flush() {
-        var batch = new ArrayList<RequestEntry>();
-        RequestEntry entry;
-        while ((entry = buffer.poll()) != null && batch.size() < BATCH_SIZE * 2) {
-            batch.add(entry);
-        }
-        if (batch.isEmpty()) return;
-
-        try {
-            query("""
-                    INSERT INTO api_request_log(method, path, status_code, duration_ms)
-                    VALUES(:method, :path, :status_code, :duration_ms);""")
-                    .batch(batch.stream()
-                            .map(e -> call().bind("method", e.method)
-                                    .bind("path", e.path)
-                                    .bind("status_code", e.statusCode)
-                                    .bind("duration_ms", e.durationMs))
-                            .toList())
-                    .insert();
-        } catch (Exception e) {
-            log.warn("Failed to flush API request log batch ({} entries)", batch.size(), e);
-        }
-    }
-
-    private void prune() {
-        try {
-            // Retention is configurable via metrics.requestStatsRetentionDays; we compute the
-            // cutoff in Java rather than passing days to SQL because SADU bind() doesn't expand
-            // values into INTERVAL literals.
-            int days = Math.max(1, metrics.requestStatsRetentionDays());
-            query("DELETE FROM api_request_log WHERE created_at < now() - make_interval(days := :days);")
-                    .single(call().bind("days", days))
-                    .delete();
-        } catch (Exception e) {
-            log.warn("Failed to prune old API request log entries", e);
-        }
-    }
-
-    /**
-     * Normalizes paths by replacing numeric IDs with {id} placeholders
-     * so endpoints with path params get aggregated together.
-     */
-    private String normalizePath(String path) {
-        return path.replaceAll("/\\d+", "/{id}");
-    }
-
-    // -- Query methods for admin API --
-
-    public record EndpointStats(
-            String method,
-            String path,
-            long requestCount,
-            double avgDurationMs,
-            int minDurationMs,
-            int maxDurationMs,
-            double errorRate) {}
-
-    public record StatusBreakdown(String method, String path, int statusCode, long count) {}
-
-    public record HourlyStats(String hour, long requestCount, double avgDurationMs, long errorCount) {}
-
     public List<EndpointStats> getSlowestEndpoints(int limit) {
         return query("""
                 SELECT
@@ -208,6 +147,8 @@ public class ApiRequestLogger {
                 .all();
     }
 
+    // -- Query methods for admin API --
+
     public List<StatusBreakdown> getStatusBreakdown() {
         return query("""
                 SELECT
@@ -246,6 +187,65 @@ public class ApiRequestLogger {
                         row.getDouble("avg_ms"), row.getLong("errors")))
                 .all();
     }
+
+    private void flush() {
+        var batch = new ArrayList<RequestEntry>();
+        RequestEntry entry;
+        while ((entry = buffer.poll()) != null && batch.size() < BATCH_SIZE * 2) {
+            batch.add(entry);
+        }
+        if (batch.isEmpty()) return;
+
+        try {
+            query("""
+                    INSERT INTO api_request_log(method, path, status_code, duration_ms)
+                    VALUES(:method, :path, :status_code, :duration_ms);""")
+                    .batch(batch.stream()
+                            .map(e -> call().bind("method", e.method)
+                                    .bind("path", e.path)
+                                    .bind("status_code", e.statusCode)
+                                    .bind("duration_ms", e.durationMs))
+                            .toList())
+                    .insert();
+        } catch (Exception e) {
+            log.warn("Failed to flush API request log batch ({} entries)", batch.size(), e);
+        }
+    }
+
+    private void prune() {
+        try {
+            // Retention is configurable via metrics.requestStatsRetentionDays; we compute the
+            // cutoff in Java rather than passing days to SQL because SADU bind() doesn't expand
+            // values into INTERVAL literals.
+            int days = Math.max(1, metrics.requestStatsRetentionDays());
+            query("DELETE FROM api_request_log WHERE created_at < now() - make_interval(days := :days);")
+                    .single(call().bind("days", days))
+                    .delete();
+        } catch (Exception e) {
+            log.warn("Failed to prune old API request log entries", e);
+        }
+    }
+
+    /**
+     * Normalizes paths by replacing numeric IDs with {id} placeholders
+     * so endpoints with path params get aggregated together.
+     */
+    private String normalizePath(String path) {
+        return path.replaceAll("/\\d+", "/{id}");
+    }
+
+    public record EndpointStats(
+            String method,
+            String path,
+            long requestCount,
+            double avgDurationMs,
+            int minDurationMs,
+            int maxDurationMs,
+            double errorRate) {}
+
+    public record StatusBreakdown(String method, String path, int statusCode, long count) {}
+
+    public record HourlyStats(String hour, long requestCount, double avgDurationMs, long errorCount) {}
 
     private record RequestEntry(String method, String path, int statusCode, int durationMs) {}
 }

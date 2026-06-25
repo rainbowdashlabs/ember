@@ -100,6 +100,12 @@ public class NewsRoutes implements Routes {
         this.emailService = emailService;
     }
 
+    private static NewsSearchResult toSearchResult(News news) {
+        String md = news.contentMarkdown() != null ? news.contentMarkdown() : "";
+        String summary = md.length() > 200 ? md.substring(0, 200).trim() + "…" : md.trim();
+        return new NewsSearchResult(news.publicUid(), news.title(), summary, news.publishedAt());
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/news", this::list, StationPermission.LOGIN);
@@ -375,12 +381,6 @@ public class NewsRoutes implements Routes {
                 .map(NewsRoutes::toSearchResult)
                 .toList();
         ctx.json(results);
-    }
-
-    private static NewsSearchResult toSearchResult(News news) {
-        String md = news.contentMarkdown() != null ? news.contentMarkdown() : "";
-        String summary = md.length() > 200 ? md.substring(0, 200).trim() + "…" : md.trim();
-        return new NewsSearchResult(news.publicUid(), news.title(), summary, news.publishedAt());
     }
 
     // -- Comments --
@@ -878,105 +878,6 @@ public class NewsRoutes implements Routes {
 
     // -- Request / Response records --
 
-    /**
-     * Request body for creating or updating a news article.
-     */
-    public record NewsRequest(
-            String title,
-            String contentMarkdown,
-            String contentHtml,
-            List<StationUserType> userTypes,
-            List<Integer> groupIds,
-            List<Integer> tagIds,
-            List<Integer> memberIds,
-            Boolean publicBlog) {}
-
-    /**
-     * API response representing a news article with resolved author information.
-     */
-    public record NewsResponse(
-            int id,
-            int stationId,
-            String title,
-            String contentMarkdown,
-            String contentHtml,
-            MemberIdentity author,
-            String authorName,
-            Instant publishedAt,
-            Instant createdAt,
-            List<StationUserType> userTypes,
-            List<Integer> groupIds,
-            List<Integer> tagIds,
-            List<Integer> memberIds,
-            int commentCount,
-            boolean publicBlog,
-            int viewCount,
-            boolean viewedByMe) {}
-
-    /**
-     * Request body for creating or updating a comment.
-     */
-    public record CommentRequest(Integer parentId, String content) {}
-
-    /**
-     * API response representing a comment with resolved author information.
-     */
-    public record CommentResponse(
-            int id,
-            int newsId,
-            Integer parentId,
-            MemberIdentity author,
-            String authorName,
-            String content,
-            boolean deleted,
-            Instant createdAt) {}
-
-    public record NewsFederationShareResponse(
-            boolean shared, ShareScope scope, NewsVisibilityRole visibilityRole, List<Integer> partnerIds) {}
-
-    public record RemoteNewsSummary(
-            int id,
-            String title,
-            String contentHtml,
-            String authorName,
-            String publishedAt,
-            int commentCount,
-            NewsVisibilityRole visibilityRole) {}
-
-    public record RemoteNewsDetail(
-            int id,
-            String title,
-            String contentMarkdown,
-            String contentHtml,
-            String authorName,
-            String publishedAt,
-            int commentCount,
-            NewsVisibilityRole visibilityRole) {}
-
-    /**
-     * Request body for setting news federation sharing.
-     */
-    public record SetNewsFederationShareRequest(
-            ShareScope scope, NewsVisibilityRole visibilityRole, List<Integer> partnerIds) {}
-
-    /**
-     * Request body for creating a comment from a remote federated partner.
-     */
-    public record RemoteNewsCommentRequest(
-            UUID remoteMemberUid, String displayName, Integer parentId, String content) {}
-
-    /**
-     * Request body for updating a comment from a remote federated partner.
-     */
-    public record RemoteNewsCommentUpdateRequest(UUID remoteMemberUid, String content) {}
-
-    /**
-     * Request body for deleting a comment from a remote federated partner.
-     */
-    public record RemoteNewsCommentDeleteRequest(UUID remoteMemberUid) {}
-
-    // --- Public Blog ---
-
     private int resolvePublicStation(Context ctx) {
         String param = ctx.pathParam("stationUid");
         try {
@@ -1086,10 +987,111 @@ public class NewsRoutes implements Routes {
                 news.id(), news.publicUid(), news.title(), news.contentHtml(), authorName, news.publishedAt()));
     }
 
+    /**
+     * Request body for creating or updating a news article.
+     */
+    public record NewsRequest(
+            String title,
+            String contentMarkdown,
+            String contentHtml,
+            List<StationUserType> userTypes,
+            List<Integer> groupIds,
+            List<Integer> tagIds,
+            List<Integer> memberIds,
+            Boolean publicBlog) {}
+
+    /**
+     * API response representing a news article with resolved author information.
+     */
+    public record NewsResponse(
+            int id,
+            int stationId,
+            String title,
+            String contentMarkdown,
+            String contentHtml,
+            MemberIdentity author,
+            String authorName,
+            Instant publishedAt,
+            Instant createdAt,
+            List<StationUserType> userTypes,
+            List<Integer> groupIds,
+            List<Integer> tagIds,
+            List<Integer> memberIds,
+            int commentCount,
+            boolean publicBlog,
+            int viewCount,
+            boolean viewedByMe) {}
+
+    /**
+     * Request body for creating or updating a comment.
+     */
+    public record CommentRequest(Integer parentId, String content) {}
+
+    /**
+     * API response representing a comment with resolved author information.
+     */
+    public record CommentResponse(
+            int id,
+            int newsId,
+            Integer parentId,
+            MemberIdentity author,
+            String authorName,
+            String content,
+            boolean deleted,
+            Instant createdAt) {}
+
+    public record NewsFederationShareResponse(
+            boolean shared, ShareScope scope, NewsVisibilityRole visibilityRole, List<Integer> partnerIds) {}
+
+    public record RemoteNewsSummary(
+            int id,
+            String title,
+            String contentHtml,
+            String authorName,
+            String publishedAt,
+            int commentCount,
+            NewsVisibilityRole visibilityRole) {}
+
+    public record RemoteNewsDetail(
+            int id,
+            String title,
+            String contentMarkdown,
+            String contentHtml,
+            String authorName,
+            String publishedAt,
+            int commentCount,
+            NewsVisibilityRole visibilityRole) {}
+
+    // --- Public Blog ---
+
+    /**
+     * Request body for setting news federation sharing.
+     */
+    public record SetNewsFederationShareRequest(
+            ShareScope scope, NewsVisibilityRole visibilityRole, List<Integer> partnerIds) {}
+
+    /**
+     * Request body for creating a comment from a remote federated partner.
+     */
+    public record RemoteNewsCommentRequest(
+            UUID remoteMemberUid, String displayName, Integer parentId, String content) {}
+
+    /**
+     * Request body for updating a comment from a remote federated partner.
+     */
+    public record RemoteNewsCommentUpdateRequest(UUID remoteMemberUid, String content) {}
+
+    /**
+     * Request body for deleting a comment from a remote federated partner.
+     */
+    public record RemoteNewsCommentDeleteRequest(UUID remoteMemberUid) {}
+
     public record PublicBlogEntry(
             int id, UUID publicUid, String title, String contentHtml, String authorName, Instant publishedAt) {}
 
-    /** Response shape for {@code GET /api/v1/news/{id}/views} (editors only). */
+    /**
+     * Response shape for {@code GET /api/v1/news/{id}/views} (editors only).
+     */
     public record NewsViewsResponse(List<NewsViewerEntry> seen, List<NewsViewerEntry> unseen) {}
 
     /**
@@ -1098,13 +1100,15 @@ public class NewsRoutes implements Routes {
      */
     public record NewsViewerEntry(MemberIdentity member, Instant seenAt) {}
 
-    /** Lightweight response for {@code GET /api/v1/news/{id}/view-count} (editors only). */
+    /**
+     * Lightweight response for {@code GET /api/v1/news/{id}/view-count} (editors only).
+     */
     public record NewsViewCountResponse(int count) {}
 
     /**
      * Lightweight picker result shape for {@code GET /api/v1/news/search}. Exposes the public
      * UUID — never the internal integer id — so cell configs that reference this entry survive
-     * station-transfer renumbering (concept §2.3).
+     * station-transfer renumbering.
      */
     public record NewsSearchResult(UUID publicUid, String title, String summary, Instant publishedAt) {}
 }

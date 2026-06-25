@@ -112,7 +112,9 @@ public class GdprExportService {
         return data;
     }
 
-    /** ZIP archive containing {@code data.json}, an optional {@code data.pdf}, and the user's KB files. */
+    /**
+     * ZIP archive containing {@code data.json}, an optional {@code data.pdf}, and the user's KB files.
+     */
     public byte[] exportAccountDataAsZip(int accountId, String locale) {
         var data = exportAccountData(accountId);
 
@@ -146,7 +148,9 @@ public class GdprExportService {
         }
     }
 
-    /** Looks up a member by id and returns their metadata-driven export. */
+    /**
+     * Looks up a member by id and returns their metadata-driven export.
+     */
     public Map<String, Object> exportMemberData(int memberId) {
         var member = stationMemberRepository.findById(memberId);
         return member.map(this::exportMemberData).orElseGet(Map::of);
@@ -198,13 +202,14 @@ public class GdprExportService {
     private void addKbFiles(ZipOutputStream zip, int memberId) throws IOException {
         // Find KB files created by this member
         var files = query("""
-                SELECT kf.id, kf.name, kf.file_type
+                SELECT kf.id, kf.name, kf.file_type, kf.station_id
                 FROM kb_file kf
                 JOIN kb_file_version kfv ON kfv.file_id = kf.id
                 WHERE kfv.version = 1 AND kfv.created_by = :member_id;
                 """)
                 .single(call().bind("member_id", memberId))
-                .map(row -> new KbFileEntry(row.getInt("id"), row.getString("name"), row.getString("file_type")))
+                .map(row -> new KbFileEntry(
+                        row.getInt("id"), row.getString("name"), row.getString("file_type"), row.getInt("station_id")))
                 .all();
 
         for (var file : files) {
@@ -225,7 +230,7 @@ public class GdprExportService {
                     zip.closeEntry();
                 }
             } else {
-                var fileDataOpt = kbFileStorageService.read(fileId);
+                var fileDataOpt = kbFileStorageService.read(file.stationId(), fileId);
                 if (fileDataOpt.isPresent()) {
                     String ext =
                             switch (fileType) {
@@ -241,5 +246,5 @@ public class GdprExportService {
         }
     }
 
-    record KbFileEntry(int id, String name, String fileType) {}
+    record KbFileEntry(int id, String name, String fileType, int stationId) {}
 }

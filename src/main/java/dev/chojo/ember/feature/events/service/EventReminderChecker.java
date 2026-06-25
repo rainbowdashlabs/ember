@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -34,15 +35,18 @@ public class EventReminderChecker {
     private final EventRepository eventRepository;
     private final StationMemberRepository stationMemberRepository;
     private final NotificationService notificationService;
+    private final StationReadOnlyGuard readOnlyGuard;
 
     @Inject
     public EventReminderChecker(
             EventRepository eventRepository,
             StationMemberRepository stationMemberRepository,
-            NotificationService notificationService) {
+            NotificationService notificationService,
+            StationReadOnlyGuard readOnlyGuard) {
         this.eventRepository = eventRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.notificationService = notificationService;
+        this.readOnlyGuard = readOnlyGuard;
         var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             var t = new Thread(r, "event-reminder-checker");
             t.setDaemon(true);
@@ -57,6 +61,7 @@ public class EventReminderChecker {
             LocalDate today = LocalDate.now(ZoneOffset.UTC);
 
             for (var event : events) {
+                if (!readOnlyGuard.isWritable(event.stationId())) continue;
                 var reminderDays = eventRepository.findReminderDays(event.id());
                 var occurrences = computeOccurrences(event, today, reminderDays);
 

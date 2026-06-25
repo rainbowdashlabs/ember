@@ -6,7 +6,7 @@
 import client from './client'
 import type { CommentRequest, NewsComment, NewsEntry, NewsRequest, PublicBlogEntry } from './types'
 
-// -- Page-editor picker (concept §4.2). PAGE_EDIT-gated. --
+// -- Page-editor picker. PAGE_EDIT-gated. --
 
 export interface NewsSearchResult {
     publicUid: string

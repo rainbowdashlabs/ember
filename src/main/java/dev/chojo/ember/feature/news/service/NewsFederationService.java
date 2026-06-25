@@ -190,6 +190,49 @@ public class NewsFederationService {
         return collectResults(futures);
     }
 
+    /**
+     * Fetches a single federated news article by partner station UUID and news ID.
+     * Transparently handles local and remote partners.
+     */
+    public FederatedNewsData getFederatedNews(int localStationId, UUID partnerStationUid, int newsId) {
+        var partner = partnerRepository
+                .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
+        if (partner.status() != FederationStatus.ACTIVE) {
+            throw new BadRequestResponse("Partner is not active");
+        }
+        if (partner.isRemote()) {
+            var result = httpClient.get(
+                    partner.remoteHost(),
+                    "/remote/news/" + newsId,
+                    partner.partnerStationId(),
+                    localStationId,
+                    stationRepository
+                            .findById(localStationId)
+                            .map(Station::federationPrivateKey)
+                            .orElse(null),
+                    FederatedNewsData.class);
+            if (result == null) throw new IllegalStateException("Failed to fetch news from remote partner");
+            return result;
+        }
+        int partnerStationId = stationRepository
+                .findByUid(partner.partnerStationId())
+                .map(Station::id)
+                .orElseThrow();
+        var newsIds = findSharedNewsIds(partner.id(), partnerStationId);
+        if (!newsIds.contains(newsId)) {
+            throw new BadRequestResponse("News not shared with this partner");
+        }
+        return newsService
+                .findById(newsId)
+                .map(n -> {
+                    NewsVisibilityRole visibilityRole =
+                            findVisibilityRole(newsId).orElse(NewsVisibilityRole.MEMBER);
+                    return toNewsData(n, visibilityRole);
+                })
+                .orElseThrow();
+    }
+
     private List<FederatedNewsItem> browseNewsDirect(FederationPartner partner) {
         int partnerStationId = stationRepository
                 .findByUid(partner.partnerStationId())
@@ -236,49 +279,6 @@ public class NewsFederationService {
                             data);
                 })
                 .toList();
-    }
-
-    /**
-     * Fetches a single federated news article by partner station UUID and news ID.
-     * Transparently handles local and remote partners.
-     */
-    public FederatedNewsData getFederatedNews(int localStationId, UUID partnerStationUid, int newsId) {
-        var partner = partnerRepository
-                .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
-        if (partner.status() != FederationStatus.ACTIVE) {
-            throw new BadRequestResponse("Partner is not active");
-        }
-        if (partner.isRemote()) {
-            var result = httpClient.get(
-                    partner.remoteHost(),
-                    "/remote/news/" + newsId,
-                    partner.partnerStationId(),
-                    localStationId,
-                    stationRepository
-                            .findById(localStationId)
-                            .map(Station::federationPrivateKey)
-                            .orElse(null),
-                    FederatedNewsData.class);
-            if (result == null) throw new IllegalStateException("Failed to fetch news from remote partner");
-            return result;
-        }
-        int partnerStationId = stationRepository
-                .findByUid(partner.partnerStationId())
-                .map(Station::id)
-                .orElseThrow();
-        var newsIds = findSharedNewsIds(partner.id(), partnerStationId);
-        if (!newsIds.contains(newsId)) {
-            throw new BadRequestResponse("News not shared with this partner");
-        }
-        return newsService
-                .findById(newsId)
-                .map(n -> {
-                    NewsVisibilityRole visibilityRole =
-                            findVisibilityRole(newsId).orElse(NewsVisibilityRole.MEMBER);
-                    return toNewsData(n, visibilityRole);
-                })
-                .orElseThrow();
     }
 
     private String partnerStationName(FederationPartner partner) {

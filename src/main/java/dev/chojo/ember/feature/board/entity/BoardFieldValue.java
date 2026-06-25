@@ -26,18 +26,6 @@ public sealed interface BoardFieldValue {
                     .withGetterVisibility(JsonAutoDetect.Visibility.NONE))
             .build();
 
-    record StringValue(String value) implements BoardFieldValue {}
-
-    record NumberValue(double value) implements BoardFieldValue {}
-
-    record BooleanValue(boolean value) implements BoardFieldValue {}
-
-    record EnumValue(String value) implements BoardFieldValue {}
-
-    record DateValue(String value) implements BoardFieldValue {}
-
-    record LaneAssignee(int memberId) implements BoardFieldValue {}
-
     static BoardFieldValue parse(BoardFieldType fieldType, String json) {
         if (json == null || json.isBlank()) return null;
         try {
@@ -55,4 +43,16 @@ public sealed interface BoardFieldValue {
             return "{}";
         }
     }
+
+    record StringValue(String value) implements BoardFieldValue {}
+
+    record NumberValue(double value) implements BoardFieldValue {}
+
+    record BooleanValue(boolean value) implements BoardFieldValue {}
+
+    record EnumValue(String value) implements BoardFieldValue {}
+
+    record DateValue(String value) implements BoardFieldValue {}
+
+    record LaneAssignee(int memberId) implements BoardFieldValue {}
 }
