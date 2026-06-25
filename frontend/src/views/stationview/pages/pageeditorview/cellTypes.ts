@@ -3,7 +3,6 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-
 /**
  * Untyped configuration bag used by page-editor cell editors. Each cell stores its own shape
  * inside this record; the renderer reads the keys it cares about and ignores the rest.

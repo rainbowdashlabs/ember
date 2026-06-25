@@ -215,8 +215,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 containerRepo, containerKindRepo, inventoryRepo);
         var fieldDefSvc =
                 new dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService(fieldDefinitionRepo);
-        var inventorySeeder = new DemoInventorySeeder(
-                inventoryRepo, inventoryCheckRepo, accountRepo, containerSvc, fieldDefSvc);
+        var inventorySeeder =
+                new DemoInventorySeeder(inventoryRepo, inventoryCheckRepo, accountRepo, containerSvc, fieldDefSvc);
         var formSeeder = new DemoFormSeeder(formRepo, restrictionRepo);
         var notificationSeeder = new DemoNotificationSeeder(notificationRepo);
         var waitingListSeeder = new DemoWaitingListSeeder(

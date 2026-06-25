@@ -203,6 +203,16 @@ export interface ItemLastCheck {
     checkerName: string
 }
 
+export interface ItemCheckHistoryEntry {
+    checkId: number
+    result: string
+    checkedAt: string
+    checkerName: string
+    containerName: string | null
+    scope: 'CONTAINER' | 'MEMBER'
+    note: string
+}
+
 export async function listLastCheckResults(
     containerId: number,
     deep: boolean,
@@ -211,6 +221,11 @@ export async function listLastCheckResults(
         `/inventory-checks/container/${containerId}/last-results`,
         {params: {deep}},
     )
+    return res.data
+}
+
+export async function listItemCheckHistory(itemId: number): Promise<ItemCheckHistoryEntry[]> {
+    const res = await client.get<ItemCheckHistoryEntry[]>(`/inventory-checks/item/${itemId}/history`)
     return res.data
 }
 

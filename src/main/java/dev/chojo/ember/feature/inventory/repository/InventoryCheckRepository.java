@@ -5,14 +5,15 @@
  */
 package dev.chojo.ember.feature.inventory.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.inventory.entity.CheckDetail;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheck;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheckItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheckLock;
+import dev.chojo.ember.feature.inventory.entity.ItemCheckHistoryEntry;
 import dev.chojo.ember.feature.inventory.entity.ItemLastCheck;
-import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -254,6 +255,46 @@ public class InventoryCheckRepository {
                             row.getEnum("result", CheckResult.class),
                             row.get("checked_at", INSTANT_TIMESTAMP),
                             checkerName);
+                })
+                .all();
+    }
+
+    /**
+     * Returns every recorded check for a single item, newest-first, with the checker's name and
+     * the container's name (when the check was container-scoped) joined in for display.
+     */
+    public List<ItemCheckHistoryEntry> findCheckHistoryForItem(int itemId) {
+        return query("""
+                SELECT
+                    c.id            AS check_id,
+                    ci.result,
+                    c.checked_at,
+                    c.scope,
+                    ci.note,
+                    a.first_name,
+                    a.last_name,
+                    co.name         AS container_name
+                FROM inventory_check_item ci
+                    JOIN inventory_check c ON c.id = ci.check_id
+                    LEFT JOIN station_member sm ON sm.id = c.checked_by
+                    LEFT JOIN account a ON a.id = sm.account_id
+                    LEFT JOIN inventory_container co ON co.id = c.container_id
+                WHERE ci.item_id = :item_id
+                ORDER BY c.checked_at DESC;""")
+                .single(call().bind("item_id", itemId))
+                .map(row -> {
+                    String first = row.getString("first_name");
+                    String last = row.getString("last_name");
+                    String checkerName = ((first == null ? "" : first) + " " + (last == null ? "" : last)).trim();
+                    String note = row.getString("note");
+                    return new ItemCheckHistoryEntry(
+                            row.getInt("check_id"),
+                            row.getEnum("result", CheckResult.class),
+                            row.get("checked_at", INSTANT_TIMESTAMP),
+                            checkerName,
+                            row.getString("container_name"),
+                            row.getString("scope"),
+                            note == null ? "" : note);
                 })
                 .all();
     }

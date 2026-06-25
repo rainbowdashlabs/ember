@@ -7429,6 +7429,17 @@ volumes:
     },
     itemDetail: {
         title: 'Gegenstand',
+        checkHistory: {
+            title: 'Prüfungsverlauf',
+            empty: 'Dieser Gegenstand wurde noch nie geprüft.',
+            byChecker: 'Geprüft von {name}',
+            inContainer: 'in {container}',
+            result: {
+                CONFIRMED: 'Bestätigt',
+                NOT_IN_POSSESSION: 'Fehlte',
+                LOST: 'Verloren',
+            },
+        },
         name: 'Bezeichnung',
         internalId: 'Interne Nr.',
         size: 'Größe',

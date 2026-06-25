@@ -415,8 +415,7 @@ public class InventoryRepository {
      * @return {@code true} if the assignment was updated
      */
     public boolean assignItem(int itemId, Integer memberId) {
-        return query(
-                        """
+        return query("""
                 UPDATE inventory_item
                 SET assigned_to = :member_id,
                     container_id = CASE WHEN :member_id::int IS NOT NULL THEN NULL ELSE container_id END
@@ -436,8 +435,7 @@ public class InventoryRepository {
      * @return {@code true} if the item row was updated
      */
     public boolean setItemContainer(int itemId, Integer containerId) {
-        return query(
-                        """
+        return query("""
                 UPDATE inventory_item
                 SET container_id = :container_id,
                     assigned_to = CASE WHEN :container_id::int IS NOT NULL THEN NULL ELSE assigned_to END

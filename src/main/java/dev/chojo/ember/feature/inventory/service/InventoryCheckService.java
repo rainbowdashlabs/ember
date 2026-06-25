@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemCheckHistoryEntry;
 import dev.chojo.ember.feature.inventory.entity.ItemLastCheck;
 import dev.chojo.ember.feature.inventory.entity.RequiredInventoryItem;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
@@ -204,6 +205,13 @@ public class InventoryCheckService {
         List<Integer> itemIds = new ArrayList<>(expected.size());
         for (InventoryItem item : expected) itemIds.add(item.id());
         return checkRepository.latestCheckPerItem(itemIds);
+    }
+
+    /**
+     * Returns every recorded check for an item, newest-first, for display on the item-detail page.
+     */
+    public List<ItemCheckHistoryEntry> findCheckHistoryForItem(int itemId) {
+        return checkRepository.findCheckHistoryForItem(itemId);
     }
 
     /**

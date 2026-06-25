@@ -3,7 +3,6 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-
 /**
  * UI option for the ticket-priority picker (priority value + display strings + colour token).
  * Shared by the body, left/right columns, and the priority field so the same priority list can

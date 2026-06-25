@@ -175,8 +175,11 @@ class InventoryContainerServiceTest extends RepositoryTestBase {
             InventoryItem item = inventoryRepo.createItem(inventory.id(), null, "Excl Item", null, null);
 
             inventoryRepo.assignItem(item.id(), member.id());
-            assertEquals(Integer.valueOf(member.id()), inventoryRepo.findItemById(item.id()).orElseThrow().assignedTo());
-            assertEquals(null, inventoryRepo.findItemById(item.id()).orElseThrow().containerId());
+            assertEquals(
+                    Integer.valueOf(member.id()),
+                    inventoryRepo.findItemById(item.id()).orElseThrow().assignedTo());
+            assertEquals(
+                    null, inventoryRepo.findItemById(item.id()).orElseThrow().containerId());
 
             assertTrue(service.setItemContainer(item.id(), box.id()));
             InventoryItem placed = inventoryRepo.findItemById(item.id()).orElseThrow();

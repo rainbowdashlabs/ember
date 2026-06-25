@@ -23,7 +23,9 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import ItemMetadataPanel from './itemdetailview/ItemMetadataPanel.vue'
 import ItemActionsPanel from './itemdetailview/ItemActionsPanel.vue'
 import ItemHistoryPanel from './itemdetailview/ItemHistoryPanel.vue'
+import ItemCheckHistoryPanel from './itemdetailview/ItemCheckHistoryPanel.vue'
 import AssignItemModal from './itemdetailview/AssignItemModal.vue'
+import type {ItemCheckHistoryEntry} from '@/api/inventoryContainers'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -34,6 +36,7 @@ const canEdit = computed(() => hasPermission(StationPermission.INVENTORY_EDIT))
 const itemId = computed(() => Number(route.params.id))
 const item = ref<InventoryItem | null>(null)
 const historyEntries = ref<InventoryItemHistory[]>([])
+const checkHistory = ref<ItemCheckHistoryEntry[]>([])
 const sizes = ref<InventorySize[]>([])
 const members = ref<StationMember[]>([])
 const location = ref<ItemLocationResponse | null>(null)
@@ -45,12 +48,14 @@ const canEditItem = computed(() => canEdit.value || isManager.value)
 const showAssignModal = ref(false)
 
 const {loading, error} = useAsyncLoader(async () => {
-  const [i, h] = await Promise.all([
+  const [i, h, ch] = await Promise.all([
     inventory.getItem(itemId.value),
     inventory.getItemHistory(itemId.value),
+    inventoryContainers.listItemCheckHistory(itemId.value).catch(() => []),
   ])
   item.value = i
   historyEntries.value = h
+  checkHistory.value = ch
   const [s, m, loc] = await Promise.all([
     inventory.listSizes(i.inventoryId),
     stationMembers.listMembers(),
@@ -156,6 +161,8 @@ async function doMarkFound() {
         />
 
         <ItemHistoryPanel :entries="historyEntries"/>
+
+        <ItemCheckHistoryPanel :entries="checkHistory"/>
 
         <NeutralContainer v-if="isManager">
           <NoteEditor :entity-type="'ITEM'" :entity-id="itemId"/>

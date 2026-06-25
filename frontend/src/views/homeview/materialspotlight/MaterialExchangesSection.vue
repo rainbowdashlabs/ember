@@ -47,4 +47,3 @@ const {typeLabel, exchangeStatusLabel} = useMaterialLabels()
     </tbody>
   </table>
 </template>
-

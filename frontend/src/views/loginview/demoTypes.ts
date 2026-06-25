@@ -3,7 +3,6 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-
 /**
  * A demo account exposed by the backend on a demo or dev instance for
  * one-click login on the login page.

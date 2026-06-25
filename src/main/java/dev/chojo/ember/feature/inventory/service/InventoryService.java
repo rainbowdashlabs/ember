@@ -221,8 +221,13 @@ public class InventoryService {
     public InventoryItem createItem(
             int inventoryId, String internalId, String name, Integer sizeId, InventoryItemMetadata metadata) {
         InventoryItem item = inventoryRepository.createItem(inventoryId, internalId, name, sizeId, metadata);
-        log.info("Created item {} (name='{}', internalId='{}', sizeId={}) in inventory {}",
-                item.id(), name, internalId, sizeId, inventoryId);
+        log.info(
+                "Created item {} (name='{}', internalId='{}', sizeId={}) in inventory {}",
+                item.id(),
+                name,
+                internalId,
+                sizeId,
+                inventoryId);
         return item;
     }
 
@@ -244,9 +249,16 @@ public class InventoryService {
             Integer sizeId,
             InventoryItemMetadata metadata,
             InventoryItem.ItemSource itemSource) {
-        InventoryItem item = inventoryRepository.createItem(inventoryId, internalId, name, sizeId, metadata, itemSource);
-        log.info("Created item {} (name='{}', internalId='{}', sizeId={}, source={}) in inventory {}",
-                item.id(), name, internalId, sizeId, itemSource, inventoryId);
+        InventoryItem item =
+                inventoryRepository.createItem(inventoryId, internalId, name, sizeId, metadata, itemSource);
+        log.info(
+                "Created item {} (name='{}', internalId='{}', sizeId={}, source={}) in inventory {}",
+                item.id(),
+                name,
+                internalId,
+                sizeId,
+                itemSource,
+                inventoryId);
         return item;
     }
 

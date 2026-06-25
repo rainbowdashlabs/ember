@@ -47,4 +47,3 @@ const {typeLabel} = useMaterialLabels()
     </tbody>
   </table>
 </template>
-

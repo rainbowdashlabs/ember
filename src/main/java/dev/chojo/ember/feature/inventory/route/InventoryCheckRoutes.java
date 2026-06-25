@@ -82,6 +82,10 @@ public class InventoryCheckRoutes implements Routes {
                 prefix + "/inventory-checks/container/{containerId}/last-results",
                 this::containerLastItemResults,
                 StationPermission.INVENTORY_CHECK);
+        routes.get(
+                prefix + "/inventory-checks/item/{itemId}/history",
+                this::itemCheckHistory,
+                StationPermission.INVENTORY_CHECK);
         routes.post(
                 prefix + "/inventory-checks/container/{containerId}/complete",
                 this::completeContainerCheck,
@@ -114,6 +118,18 @@ public class InventoryCheckRoutes implements Routes {
         int containerId = ctx.pathParamAsClass("containerId", Integer.class).get();
         boolean deep = "true".equalsIgnoreCase(ctx.queryParam("deep"));
         ctx.json(checkService.lastCheckForContainerItems(containerId, deep));
+    }
+
+    @OpenApi(
+            path = "/api/v1/inventory-checks/item/{itemId}/history",
+            methods = HttpMethod.GET,
+            summary = "All recorded check results for a single item, newest-first",
+            tags = {"Inventory Checks"},
+            pathParams = @OpenApiParam(name = "itemId", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200"))
+    private void itemCheckHistory(Context ctx) {
+        int itemId = ctx.pathParamAsClass("itemId", Integer.class).get();
+        ctx.json(checkService.findCheckHistoryForItem(itemId));
     }
 
     @OpenApi(

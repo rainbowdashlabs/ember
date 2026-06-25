@@ -189,8 +189,7 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
         var container = containerRepo.create(station.id(), null, null, "CheckRoom", null, "", null);
         InventoryCheck created =
                 inventoryCheckRepo.createContainerCheck(station.id(), container.id(), member2.id(), true);
-        assertEquals(
-                dev.chojo.ember.feature.inventory.entity.InventoryCheckScope.CONTAINER, created.scope());
+        assertEquals(dev.chojo.ember.feature.inventory.entity.InventoryCheckScope.CONTAINER, created.scope());
         assertEquals(Integer.valueOf(container.id()), created.containerId());
         assertTrue(created.deep());
         assertEquals(member2.id(), created.checkedBy());

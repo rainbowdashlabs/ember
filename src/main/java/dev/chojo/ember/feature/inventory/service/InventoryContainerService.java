@@ -131,8 +131,7 @@ public class InventoryContainerService {
         }
         String resolvedIcon = (icon == null || icon.isBlank()) ? "box" : icon;
         InventoryContainerKind created = kindRepository.create(stationId, key, label, resolvedIcon, sortOrder, enabled);
-        log.info("Created container kind {} (key='{}', label='{}') in station {}",
-                created.id(), key, label, stationId);
+        log.info("Created container kind {} (key='{}', label='{}') in station {}", created.id(), key, label, stationId);
         return created;
     }
 
@@ -286,8 +285,13 @@ public class InventoryContainerService {
         if (parentId != null) fields.put("parentId", parentId);
         containerRepository.appendHistory(
                 created.id(), stationId, ContainerEventKind.CREATED, createdBy, detailJson(fields));
-        log.info("Created container {} (name='{}', parentId={}, kindId={}) in station {}",
-                created.id(), name, parentId, kindId, stationId);
+        log.info(
+                "Created container {} (name='{}', parentId={}, kindId={}) in station {}",
+                created.id(),
+                name,
+                parentId,
+                kindId,
+                stationId);
         return created;
     }
 
@@ -336,8 +340,13 @@ public class InventoryContainerService {
             containerRepository.appendHistory(
                     id, existing.stationId(), ContainerEventKind.MOVED, actorId, detailJson(details));
         }
-        log.info("Updated container {} (name='{}', parentId={}, renamed={}, moved={})",
-                id, name, parentId, !existing.name().equals(name), parentChanged);
+        log.info(
+                "Updated container {} (name='{}', parentId={}, renamed={}, moved={})",
+                id,
+                name,
+                parentId,
+                !existing.name().equals(name),
+                parentChanged);
         return containerRepository.findById(id);
     }
 

@@ -319,18 +319,14 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
 
         var results = java.util.List.of(
                 new dev.chojo.ember.feature.inventory.entity.CheckItemRequest(
-                        loose.id(),
-                        inventoryId,
-                        dev.chojo.ember.feature.inventory.entity.CheckResult.CONFIRMED,
-                        ""),
+                        loose.id(), inventoryId, dev.chojo.ember.feature.inventory.entity.CheckResult.CONFIRMED, ""),
                 new dev.chojo.ember.feature.inventory.entity.CheckItemRequest(
                         deepItem.id(),
                         inventoryId,
                         dev.chojo.ember.feature.inventory.entity.CheckResult.LOST,
                         "fehlt"));
         var completed = service.completeContainerCheck(station.id(), container.id(), checker.id(), true, results);
-        assertEquals(
-                dev.chojo.ember.feature.inventory.entity.InventoryCheckScope.CONTAINER, completed.scope());
+        assertEquals(dev.chojo.ember.feature.inventory.entity.InventoryCheckScope.CONTAINER, completed.scope());
         assertTrue(completed.deep());
 
         assertTrue(inventoryRepo.findItemById(deepItem.id()).orElseThrow().lostAt() != null);
