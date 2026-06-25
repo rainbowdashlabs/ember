@@ -42,7 +42,7 @@ for (const arg of process.argv.slice(2)) {
 const WINDOW = Number(args.get('window') ?? process.env.LINT_DUP_WINDOW ?? 8)
 const MIN_FILES = Number(args.get('min-files') ?? process.env.LINT_DUP_MIN_FILES ?? 2)
 const WARN_AT = Number(args.get('warn') ?? process.env.LINT_DUP_WARN ?? 2)
-const ERROR_AT = Number(args.get('error') ?? process.env.LINT_DUP_ERROR ?? 999)
+const ERROR_AT = Number(args.get('error') ?? process.env.LINT_DUP_ERROR ?? 4)
 
 const BOILERPLATE_LINE = new RegExp([
     '^\\s*(',
