@@ -114,6 +114,10 @@ services:
       - ..:/home/gradle/project
       - ember-dev-gradle-cache:/home/gradle/.gradle
       - ember-dev-gradle-build:/home/gradle/project/build
+      # Project-local .gradle holds incremental-build state and absolute file paths;
+      # isolating it from the host prevents host and container gradle invocations
+      # from polluting each other's snapshots with paths the other can't resolve.
+      - ember-dev-project-gradle:/home/gradle/project/.gradle
       - ./config:/home/gradle/project/config
       - ./data:/home/gradle/project/data
     depends_on:
@@ -147,4 +151,5 @@ volumes:
   ember-dev-smb:
   ember-dev-gradle-cache:
   ember-dev-gradle-build:
+  ember-dev-project-gradle:
   ember-dev-node-modules:
