@@ -1,5 +1,20 @@
 # Changelog
 
+## v26.10.0
+
+### New Features
+
+#### Pluggable Storage Backends
+
+- **Choose where uploaded files live.** A new backend layer lets the instance keep stored files on local disk (the default) or push them to an SMB share, an SFTP server, or any S3-compatible object store (AWS S3, MinIO, Backblaze B2, Wasabi, Hetzner Object Storage, Cloudflare R2). Operators pick the instance-wide default from Admin → Monitoring → Storage → Backend; remote backends talk their protocol directly, with no kernel mount, FUSE, or container privileges required.
+- **Per-station backend overrides.** A station manager can point their own station at a private S3 bucket, SMB share, or SFTP host from Station → Manage → Storage → Backend without instance-admin involvement; credentials are entered in the form, stored encrypted at rest, and a "test connection" button probes them before any change is applied.
+- **One-shot migration when the backend changes.** Applying a new backend probes the target, copies every existing file over, and only then flips the active backend in one step — there is no half-migrated state where the configuration points at one backend and the bytes still live on another. A failed migration leaves the previous backend authoritative.
+- **Stations on their own backend skip instance quotas.** Once a station is using its own remote backend, the instance-side total, per-page, per-image and per-file caps no longer apply and the quota bars on the storage dashboard hide behind a badge marking the station as using its own backend.
+- **Backend audit log.** Every backend create, update, delete, probe, rejection, and migration event is recorded with the actor (account or system), station, and outcome. Visible per station under Station → Manage → Storage → Backend → Audit and instance-wide under Admin → Monitoring → Storage → Audit.
+- **Cross-instance station transfer.** A station can be exported from one instance and imported on another in a single flow. The source flags the station read-only for the duration with a banner naming the destination, refuses writes with `503 Service Unavailable`, streams the database rows, stored files, and account avatars over a signed channel to the destination, and clears the flag when the operator aborts.
+- **Help articles for the new flows.** Help center entries cover the instance-wide backend swap, the per-station backend picker, and how to read the audit log.
+- **New operator config** — `storage.credentialEncryptionKey` (env `STORAGE_CREDENTIAL_ENCRYPTION_KEY`), the AES-256 key used to encrypt station-supplied remote-backend credentials before they hit the database. Required once any station opts into self-service remote storage; auto-generated on first boot in a fresh install.
+
 ## v26.9.1
 
 ### Changes
