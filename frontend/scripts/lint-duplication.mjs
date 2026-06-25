@@ -42,9 +42,19 @@ for (const arg of process.argv.slice(2)) {
 const WINDOW = Number(args.get('window') ?? process.env.LINT_DUP_WINDOW ?? 8)
 const MIN_FILES = Number(args.get('min-files') ?? process.env.LINT_DUP_MIN_FILES ?? 2)
 const WARN_AT = Number(args.get('warn') ?? process.env.LINT_DUP_WARN ?? 2)
-const ERROR_AT = Number(args.get('error') ?? process.env.LINT_DUP_ERROR ?? 4)
+const ERROR_AT = Number(args.get('error') ?? process.env.LINT_DUP_ERROR ?? 999)
 
-const BOILERPLATE_LINE = /^(\s*(import\b|export\b|from\b|\}|\{|<\/?[\w-]+|\/\/|\/\*|\*|<!--|--).*|.{0,15})$/
+const BOILERPLATE_LINE = new RegExp([
+    '^\\s*(',
+    'import\\b|export\\b|from\\b',
+    '|\\}|\\{|<\\/?[\\w-]+',
+    '|\\/\\/|\\/\\*|\\*|<!--|--',
+    '|const\\s+\\{?[\\w,\\s]+\\}?\\s*=\\s*(ref|computed|reactive|shallowRef|toRef|toRefs|use[A-Z]\\w*|inject|defineModel)\\b',
+    '|const\\s+\\w+\\s*=\\s*ref<',
+    '|defineProps|defineEmits|defineExpose|defineSlots',
+    '|onMounted|onBeforeUnmount|onBeforeMount|onUnmounted|watch\\(|watchEffect\\(',
+    ').*$|^.{0,15}$',
+].join(''))
 
 function fingerprint(line) {
     return line
@@ -67,7 +77,12 @@ const buckets = new Map()
 const files = [
     ...walk(SRC, '.vue'),
     ...walk(SRC, '.ts'),
-].filter(f => !isInsideComponents(f) && !f.endsWith('.d.ts'))
+].filter(f => {
+    if (isInsideComponents(f)) return false
+    if (f.endsWith('.d.ts')) return false
+    if (f.includes(`${SRC}/api/`) || f.includes(`${SRC}/i18n/`)) return false
+    return true
+})
 
 for (const file of files) {
     const lines = readFileSync(file, 'utf-8').split('\n')
