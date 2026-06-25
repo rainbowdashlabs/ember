@@ -14,6 +14,8 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import ScanButton from '@/components/scanner/ScanButton.vue'
+import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import {inventoryContainers} from '@/api'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
 
@@ -98,7 +100,10 @@ function onClose() {
       </label>
       <label class="flex flex-col gap-1 text-sm">
         <span>{{ t('inventory.storage.fields.internalId') }}</span>
-        <TextInput v-model="internalId" :placeholder="t('inventory.storage.fields.internalIdPlaceholder')" />
+        <div class="flex items-center gap-2">
+          <TextInput v-model="internalId" class="flex-1" :placeholder="t('inventory.storage.fields.internalIdPlaceholder')" />
+          <ScanButton @decoded="internalId = normaliseScannedPayload($event)" />
+        </div>
       </label>
       <label class="flex flex-col gap-1 text-sm">
         <span>{{ t('inventory.storage.fields.description') }}</span>

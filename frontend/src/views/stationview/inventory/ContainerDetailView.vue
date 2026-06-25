@@ -27,6 +27,8 @@ import ContainerNewModal from '@/views/stationview/inventory/storageview/Contain
 import UnknownScanModal from '@/views/stationview/inventory/UnknownScanModal.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import ScanButton from '@/components/scanner/ScanButton.vue'
+import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import {inventory, inventoryContainers} from '@/api'
 import type {InventoryItem} from '@/api/types'
 import type {
@@ -341,7 +343,10 @@ onMounted(load)
           </label>
           <label class="flex flex-col gap-1 text-sm">
             <span>{{ t('inventory.storage.fields.internalId') }}</span>
-            <TextInput v-model="editInternalId" />
+            <div class="flex items-center gap-2">
+              <TextInput v-model="editInternalId" class="flex-1" />
+              <ScanButton @decoded="editInternalId = normaliseScannedPayload($event)" />
+            </div>
           </label>
           <label class="flex flex-col gap-1 text-sm">
             <span>{{ t('inventory.storage.fields.description') }}</span>
