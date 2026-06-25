@@ -21,6 +21,8 @@ import EditButton from '@/components/button/EditButton.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import ScanButton from '@/components/scanner/ScanButton.vue'
+import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import ContainerNewModal from '@/views/stationview/inventory/storageview/ContainerNewModal.vue'
 import ContainerEditPanel from '@/views/stationview/inventory/storageview/ContainerEditPanel.vue'
 import AddExistingContainerModal from '@/views/stationview/inventory/storageview/AddExistingContainerModal.vue'
@@ -79,6 +81,12 @@ function flashScanError(msg: string) {
 function flashScanSuccess(msg: string) {
   scanSuccess.value = msg
   setTimeout(() => (scanSuccess.value = ''), 2500)
+}
+
+async function onCameraScan(value: string) {
+  if (scanBusy.value) return
+  scanValue.value = normaliseScannedPayload(value)
+  await handleScanAdd()
 }
 
 async function handleScanAdd() {
@@ -311,6 +319,7 @@ onMounted(load)
               class="flex-1"
               :disabled="scanBusy"
           />
+          <ScanButton mode="continuous" :disabled="scanBusy" @decoded="onCameraScan" />
           <PrimaryButton :disabled="scanBusy" @click="handleScanAdd">
             <font-awesome-icon :icon="['fas', 'barcode']" class="mr-2" />
             {{ t('inventory.storage.scan.action') }}
