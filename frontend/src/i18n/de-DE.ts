@@ -5293,8 +5293,15 @@ volumes:
             loadError: 'Behälter konnten nicht geladen werden.',
             contents: 'Inhalt',
             recursive: 'Verschachtelt anzeigen',
-            addChild: 'Neuer Behälter',
-            addExistingChild: 'Vorhandenen hinzufügen',
+            addChild: 'Behälter hinzufügen',
+            addChoice: {
+                title: 'Behälter hinzufügen',
+                intro: 'Was soll als Unter-Behälter hinzugefügt werden?',
+                existing: 'Vorhandenen verschieben',
+                existingHint: 'Einen bestehenden Behälter aus der Station unter diesen verschieben.',
+                new: 'Neuen anlegen',
+                newHint: 'Einen frischen Behälter erstellen und direkt hier ablegen.',
+            },
             addExisting: {
                 title: 'Vorhandenen Behälter hinzufügen',
                 intro: 'Bestehenden Behälter unter den geöffneten verschieben. Mehrere Klicks nacheinander funktionieren ohne Zwischenklick.',

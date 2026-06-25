@@ -25,7 +25,9 @@ import ScanButton from '@/components/scanner/ScanButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import ContainerNewModal from '@/views/stationview/inventory/storageview/ContainerNewModal.vue'
 import ContainerEditPanel from '@/views/stationview/inventory/storageview/ContainerEditPanel.vue'
+import ContainerContentsTree from '@/views/stationview/inventory/storageview/ContainerContentsTree.vue'
 import AddExistingContainerModal from '@/views/stationview/inventory/storageview/AddExistingContainerModal.vue'
+import AddChildChoiceModal from '@/views/stationview/inventory/storageview/AddChildChoiceModal.vue'
 import UnknownScanModal from '@/views/stationview/inventory/UnknownScanModal.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import {inventory, inventoryContainers} from '@/api'
@@ -53,7 +55,13 @@ const recursive = ref(false)
 const editing = ref(false)
 const showNewChildModal = ref(false)
 const showAddExistingModal = ref(false)
+const showAddChoiceModal = ref(false)
 const showDeleteConfirm = ref(false)
+
+function onAddChildChoice(target: 'existing' | 'new') {
+  if (target === 'existing') showAddExistingModal.value = true
+  else showNewChildModal.value = true
+}
 const submitting = ref(false)
 
 const scanValue = ref('')
@@ -347,11 +355,7 @@ onMounted(load)
             <ToggleInput v-model="recursive" />
             <span>{{ t('inventory.storage.recursive') }}</span>
           </label>
-          <SecondaryButton size="sm" @click="showAddExistingModal = true">
-            <font-awesome-icon :icon="['fas', 'arrow-right']" class="mr-1" />
-            {{ t('inventory.storage.addExistingChild') }}
-          </SecondaryButton>
-          <PrimaryButton size="sm" @click="showNewChildModal = true">
+          <PrimaryButton size="sm" @click="showAddChoiceModal = true">
             <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
             {{ t('inventory.storage.addChild') }}
           </PrimaryButton>
@@ -359,39 +363,50 @@ onMounted(load)
       </div>
 
       <NeutralContainer class="mb-6">
-        <div v-if="contents && (contents.children.length || contents.items.length)" class="flex flex-col gap-4">
-          <div v-if="contents.children.length > 0">
-            <SubHeader class="mb-2">{{ t('inventory.storage.childContainers') }}</SubHeader>
-            <ul class="divide-y divide-(--bg-accent)">
-              <li
-                  v-for="c in contents.children"
-                  :key="c.id"
-                  class="py-2 flex items-center gap-3 cursor-pointer hover:bg-(--bg-accent) rounded-theme px-2"
-                  @click="navigateToContainer(c.id)"
-              >
-                <font-awesome-icon :icon="['fas', kindById.get(c.kindId ?? -1)?.icon ?? 'box']" class="w-4 text-(--text-muted)" />
-                <span class="font-medium">{{ c.name }}</span>
-                <span v-if="c.internalId" class="text-xs text-(--text-muted)">{{ c.internalId }}</span>
-              </li>
-            </ul>
+        <template v-if="contents">
+          <ContainerContentsTree
+              v-if="recursive"
+              :root-container-id="detail.container.id"
+              :containers="contents.children"
+              :items="contents.items"
+              :kind-by-id="kindById"
+              @open-container="navigateToContainer"
+              @open-item="navigateToItem"
+          />
+          <div v-else-if="contents.children.length > 0 || contents.items.length > 0" class="flex flex-col gap-4">
+            <div v-if="contents.children.length > 0">
+              <SubHeader class="mb-2">{{ t('inventory.storage.childContainers') }}</SubHeader>
+              <ul class="divide-y divide-(--bg-accent)">
+                <li
+                    v-for="c in contents.children"
+                    :key="c.id"
+                    class="py-2 flex items-center gap-3 cursor-pointer hover:bg-(--bg-accent) rounded-theme px-2"
+                    @click="navigateToContainer(c.id)"
+                >
+                  <font-awesome-icon :icon="['fas', kindById.get(c.kindId ?? -1)?.icon ?? 'box']" class="w-4 text-(--text-muted)" />
+                  <span class="font-medium">{{ c.name }}</span>
+                  <span v-if="c.internalId" class="text-xs text-(--text-muted)">{{ c.internalId }}</span>
+                </li>
+              </ul>
+            </div>
+            <div v-if="contents.items.length > 0">
+              <SubHeader class="mb-2">{{ t('inventory.storage.containedItems') }}</SubHeader>
+              <ul class="divide-y divide-(--bg-accent)">
+                <li
+                    v-for="i in contents.items"
+                    :key="i.id"
+                    class="py-2 flex items-center gap-3 cursor-pointer hover:bg-(--bg-accent) rounded-theme px-2"
+                    @click="navigateToItem(i.id)"
+                >
+                  <font-awesome-icon :icon="['fas', 'cube']" class="w-4 text-(--text-muted)" />
+                  <span class="font-medium">{{ i.name ?? '' }}</span>
+                  <span v-if="i.internalId" class="text-xs text-(--text-muted)">{{ i.internalId }}</span>
+                </li>
+              </ul>
+            </div>
           </div>
-          <div v-if="contents.items.length > 0">
-            <SubHeader class="mb-2">{{ t('inventory.storage.containedItems') }}</SubHeader>
-            <ul class="divide-y divide-(--bg-accent)">
-              <li
-                  v-for="i in contents.items"
-                  :key="i.id"
-                  class="py-2 flex items-center gap-3 cursor-pointer hover:bg-(--bg-accent) rounded-theme px-2"
-                  @click="navigateToItem(i.id)"
-              >
-                <font-awesome-icon :icon="['fas', 'cube']" class="w-4 text-(--text-muted)" />
-                <span class="font-medium">{{ i.name ?? '' }}</span>
-                <span v-if="i.internalId" class="text-xs text-(--text-muted)">{{ i.internalId }}</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-        <EmptyState v-else :message="t('inventory.storage.contentsEmpty')" />
+          <EmptyState v-else :message="t('inventory.storage.contentsEmpty')" />
+        </template>
       </NeutralContainer>
 
       <SectionHeader>{{ t('inventory.storage.history') }}</SectionHeader>
@@ -425,6 +440,11 @@ onMounted(load)
           :default-parent-id="detail.container.id"
           @created="onChildCreated"
           @close="showNewChildModal = false"
+      />
+
+      <AddChildChoiceModal
+          v-model:open="showAddChoiceModal"
+          @choose="onAddChildChoice"
       />
 
       <AddExistingContainerModal
