@@ -8,7 +8,6 @@ import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PageHeader from '@/components/typography/PageHeader.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -68,9 +67,6 @@ onMounted(load)
 
 <template>
   <ViewContent>
-    <PageHeader>{{ t('inventory.checkContainer.title') }}</PageHeader>
-    <p class="text-sm text-(--text-muted) mb-4">{{ t('inventory.checkContainer.intro') }}</p>
-
     <NeutralContainer class="mb-4">
       <TextInput v-model="search" :placeholder="t('inventory.checkContainer.searchPlaceholder')" />
     </NeutralContainer>

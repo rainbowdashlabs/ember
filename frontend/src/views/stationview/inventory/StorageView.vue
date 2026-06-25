@@ -9,7 +9,6 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -104,9 +103,6 @@ onMounted(load)
 
 <template>
   <ViewContent>
-    <PageHeader>{{ t('inventory.storage.title') }}</PageHeader>
-    <p class="text-sm text-(--text-muted) mb-4">{{ t('inventory.storage.intro') }}</p>
-
     <div v-if="error" class="mb-4">
       <Alert variant="error">{{ error }}</Alert>
     </div>

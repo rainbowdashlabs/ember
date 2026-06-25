@@ -9,7 +9,6 @@ import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -189,8 +188,7 @@ onMounted(load)
         <span class="text-(--text)">{{ detail.pathDisplay }}</span>
       </div>
 
-      <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
-        <PageHeader>{{ t('inventory.checkContainer.walkTitle', {name: detail.container.name}) }}</PageHeader>
+      <div class="flex items-center justify-end mb-4 gap-3 flex-wrap">
         <label class="flex items-center gap-2 text-sm">
           <ToggleInput v-model="deep" @update:model-value="reloadOnDeepChange" />
           <span>{{ t('inventory.checkContainer.deep') }}</span>

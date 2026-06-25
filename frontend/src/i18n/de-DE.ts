@@ -567,6 +567,30 @@ export default {
             title: 'Inventar verwalten',
             subtitle: 'Inventare anlegen und bearbeiten',
         },
+        'inventory-storage': {
+            title: 'Lager',
+            subtitle: 'Räume, Schränke, Schubladen und Kisten als verschachtelte Behälter verwalten.',
+        },
+        'inventory-container-detail': {
+            title: 'Behälter',
+            subtitle: 'Inhalt, Position und Verlauf eines Behälters.',
+        },
+        'inventory-assign': {
+            title: 'Items zuweisen',
+            subtitle: 'Mitglied wählen und Items per Scan ausgeben oder zurücknehmen.',
+        },
+        'inventory-check-member-overview': {
+            title: 'Mitglieder-Prüfung',
+            subtitle: 'Items eines Mitglieds gegen die zugewiesenen Items abgleichen.',
+        },
+        'inventory-check-container-overview': {
+            title: 'Behälter-Prüfung',
+            subtitle: 'Den Inhalt eines Lagerbehälters per Scan abgleichen.',
+        },
+        'inventory-check-container-walk': {
+            title: 'Behälter-Prüfung',
+            subtitle: 'Erwartete Items per Scan bestätigen, Abweichungen markieren.',
+        },
         'attendance-session': {
             title: 'Anwesenheit',
             subtitle: 'Anwesenheit erfassen und prüfen',

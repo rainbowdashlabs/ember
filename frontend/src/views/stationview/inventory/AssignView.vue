@@ -8,7 +8,6 @@ import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -191,9 +190,6 @@ onMounted(load)
 
 <template>
   <ViewContent>
-    <PageHeader>{{ t('inventory.assign.title') }}</PageHeader>
-    <p class="text-sm text-(--text-muted) mb-4">{{ t('inventory.assign.intro') }}</p>
-
     <Alert v-if="error" variant="error" class="mb-3">{{ error }}</Alert>
     <Alert v-if="success" variant="success" class="mb-3">{{ success }}</Alert>
 
