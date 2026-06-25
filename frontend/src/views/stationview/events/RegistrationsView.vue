@@ -7,18 +7,11 @@
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import InfoBadge from '@/components/badge/InfoBadge.vue'
-import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import RegistrationStatsTable from './eventdetailview/RegistrationStatsTable.vue'
+import EventGroupCard from './registrationsview/EventGroupCard.vue'
 import {events, stationMembers} from '@/api'
 import type {StationEvent, StationMember} from '@/api/types'
 import {RegistrationStatus} from '@/api/types'
@@ -203,126 +196,22 @@ onMounted(loadData)
 
       <template v-if="!loading">
         <EmptyState v-if="eventGroups.length === 0">{{ t('eventsRegistrations.empty') }}</EmptyState>
-
         <div class="space-y-3">
-          <component
-            :is="group.deadlineExpired ? ErrorContainer : NeutralContainer"
-            v-for="group in eventGroups"
-            :key="group.event.id"
-            class="space-y-3 cursor-pointer"
-            @click="toggleExpand(group.event.id)"
-          >
-            <!-- Event summary row -->
-            <div class="flex items-center justify-between flex-wrap gap-2">
-              <div>
-                <span class="font-medium text-primary">{{ group.event.name }}</span>
-                <span v-if="group.event.registrationDeadline" class="text-xs text-(--text-muted) ml-2">
-                  {{ t('eventsRegistrations.deadline') }}: {{ formatDeadline(group.event.registrationDeadline) }}
-                </span>
-                <span v-if="group.event.registrationLimit" class="text-xs text-(--text-muted) ml-2">
-                  ({{ t('eventsRegistrations.limit') }}: {{ group.event.registrationLimit }})
-                </span>
-              </div>
-              <div class="flex items-center gap-2 flex-wrap">
-                <InfoBadge>
-                  <font-awesome-icon :icon="['fas', 'hourglass-half']" class="mr-1"/>
-                  {{ group.counts.PENDING }} {{ t('eventsRegistrations.pending') }}
-                </InfoBadge>
-                <SuccessBadge v-if="group.counts.ACCEPTED > 0">
-                  <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
-                  {{ group.counts.ACCEPTED }} {{ t('eventsRegistrations.accepted') }}
-                </SuccessBadge>
-                <ErrorBadge v-if="group.counts.DENIED > 0">
-                  <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1"/>
-                  {{ group.counts.DENIED }} {{ t('eventsRegistrations.denied') }}
-                </ErrorBadge>
-                <SecondaryBadge v-if="group.counts.DECLINED > 0">
-                  <font-awesome-icon :icon="['fas', 'user-slash']" class="mr-1"/>
-                  {{ group.counts.DECLINED }} {{ t('eventsRegistrations.declined') }}
-                </SecondaryBadge>
-                <SecondaryBadge v-if="group.counts.WITHDRAWN > 0">
-                  <font-awesome-icon :icon="['fas', 'rotate-left']" class="mr-1"/>
-                  {{ group.counts.WITHDRAWN }} {{ t('eventsRegistrations.withdrawn') }}
-                </SecondaryBadge>
-                <ErrorBadge v-if="group.deadlineExpired">{{ t('eventsRegistrations.expired') }}</ErrorBadge>
-              </div>
-            </div>
-
-            <!-- Expanded: per-status groups + fair acceptance table -->
-            <template v-if="expandedEventId === group.event.id">
-              <div class="border-t border-(--border) pt-3 space-y-4" @click.stop>
-                <Spinner v-if="expandedLoading" size="md"/>
-                <template v-else>
-                  <!-- Pending: priority — show with fair acceptance table + actions -->
-                  <section v-if="expandedByStatus.PENDING.length > 0" class="space-y-2">
-                    <SubHeader>
-                      <font-awesome-icon :icon="['fas', 'hourglass-half']" class="mr-1"/>
-                      {{ t('eventsRegistrations.groupPending') }} ({{ expandedByStatus.PENDING.length }})
-                    </SubHeader>
-                    <RegistrationStatsTable
-                        :registrations="expandedByStatus.PENDING"
-                        :stats="registrationStats"
-                        :show-actions="true"
-                        @accept="accept($event)"
-                        @deny="deny($event)"
-                    />
-                  </section>
-
-                  <!-- Accepted -->
-                  <section v-if="expandedByStatus.ACCEPTED.length > 0" class="space-y-2">
-                    <SubHeader>
-                      <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
-                      {{ t('eventsRegistrations.groupAccepted') }} ({{ expandedByStatus.ACCEPTED.length }})
-                    </SubHeader>
-                    <RegistrationStatsTable
-                        :registrations="expandedByStatus.ACCEPTED"
-                        :stats="registrationStats"
-                        :show-actions="false"
-                    />
-                  </section>
-
-                  <!-- Denied -->
-                  <section v-if="expandedByStatus.DENIED.length > 0" class="space-y-2">
-                    <SubHeader>
-                      <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1"/>
-                      {{ t('eventsRegistrations.groupDenied') }} ({{ expandedByStatus.DENIED.length }})
-                    </SubHeader>
-                    <RegistrationStatsTable
-                        :registrations="expandedByStatus.DENIED"
-                        :stats="registrationStats"
-                        :show-actions="false"
-                    />
-                  </section>
-
-                  <!-- Declined -->
-                  <section v-if="expandedByStatus.DECLINED.length > 0" class="space-y-2">
-                    <SubHeader>
-                      <font-awesome-icon :icon="['fas', 'user-slash']" class="mr-1"/>
-                      {{ t('eventsRegistrations.groupDeclined') }} ({{ expandedByStatus.DECLINED.length }})
-                    </SubHeader>
-                    <RegistrationStatsTable
-                        :registrations="expandedByStatus.DECLINED"
-                        :stats="registrationStats"
-                        :show-actions="false"
-                    />
-                  </section>
-
-                  <!-- Withdrawn -->
-                  <section v-if="expandedByStatus.WITHDRAWN.length > 0" class="space-y-2">
-                    <SubHeader>
-                      <font-awesome-icon :icon="['fas', 'rotate-left']" class="mr-1"/>
-                      {{ t('eventsRegistrations.groupWithdrawn') }} ({{ expandedByStatus.WITHDRAWN.length }})
-                    </SubHeader>
-                    <RegistrationStatsTable
-                        :registrations="expandedByStatus.WITHDRAWN"
-                        :stats="registrationStats"
-                        :show-actions="false"
-                    />
-                  </section>
-                </template>
-              </div>
-            </template>
-          </component>
+          <EventGroupCard
+              v-for="group in eventGroups"
+              :key="group.event.id"
+              :event="group.event"
+              :counts="group.counts"
+              :deadline-expired="group.deadlineExpired"
+              :expanded="expandedEventId === group.event.id"
+              :expanded-loading="expandedLoading"
+              :expanded-by-status="expandedByStatus"
+              :registration-stats="registrationStats"
+              :format-deadline="formatDeadline"
+              @toggle="toggleExpand(group.event.id)"
+              @accept="accept"
+              @deny="deny"
+          />
         </div>
       </template>
     </div>
