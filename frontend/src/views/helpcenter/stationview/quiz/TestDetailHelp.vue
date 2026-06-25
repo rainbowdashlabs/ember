@@ -55,7 +55,7 @@ const { t } = useI18n()
       <div class="space-y-2">
         <div class="flex items-center justify-between">
           <span class="font-medium text-sm">Abschnitt 1: Grundwissen</span>
-          <span class="text-xs text-(--text-muted)">5 {{ t('quiz.questions') }}</span>
+          <span class="text-xs text-(--text-muted)">5 {{ t('quiz.questions.title') }}</span>
         </div>
         <p class="text-xs text-(--text-muted)">Quelle: Brandschutz Grundlagen (Kategorie: Grundwissen)</p>
       </div>

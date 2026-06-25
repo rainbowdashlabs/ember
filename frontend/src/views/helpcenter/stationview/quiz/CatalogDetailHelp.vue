@@ -107,11 +107,11 @@ const { t } = useI18n()
       <div class="space-y-2">
         <div class="flex items-center justify-between">
           <span class="font-medium text-sm">Grundwissen</span>
-          <span class="text-xs text-(--text-muted)">5 {{ t('quiz.questions') }}</span>
+          <span class="text-xs text-(--text-muted)">5 {{ t('quiz.questions.title') }}</span>
         </div>
         <div class="flex items-center justify-between">
           <span class="font-medium text-sm">Fortgeschritten</span>
-          <span class="text-xs text-(--text-muted)">7 {{ t('quiz.questions') }}</span>
+          <span class="text-xs text-(--text-muted)">7 {{ t('quiz.questions.title') }}</span>
         </div>
       </div>
     </NeutralContainer>

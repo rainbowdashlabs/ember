@@ -110,13 +110,13 @@ const dummySelected = new Set([1])
     <!-- Dummy: Relations tab content -->
     <HelpSection :title="t('helpCenter.membersEdit.relationsExampleTitle')">
       <NeutralContainer class="space-y-3">
-        <SubHeader>{{ t('memberEdit.guardians') }}</SubHeader>
+        <SubHeader>{{ t('memberEdit.relations.guardians') }}</SubHeader>
         <div class="rounded-lg px-3 py-2 bg-bg-light-accent/30 dark:bg-bg-dark-accent/30 flex items-center justify-between">
           <span class="text-sm font-medium">Petra Mustermann</span>
           <MutedText size="sm">petra@example.com</MutedText>
         </div>
         <SecondaryButton :icon="['fas', 'plus']">
-          {{ t('memberEdit.addGuardian') }}
+          {{ t('memberEdit.relations.addGuardian') }}
         </SecondaryButton>
       </NeutralContainer>
     </HelpSection>
