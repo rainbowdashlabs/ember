@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -14,14 +14,18 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import {twoFactorAdmin} from '@/api'
 import type {TwoFactorPolicy} from '@/api/twoFactorAdmin'
+import {useConfigPanel} from '@/composables/useConfigPanel'
 
 const {t} = useI18n()
 const USER_TYPES = ['MEMBER', 'GUARDIAN', 'TEAM', 'MANAGER'] as const
 
-const loading = ref(true)
-const error = ref('')
-const policies = ref<TwoFactorPolicy[]>([])
 const saving = ref<string | null>(null)
+
+const {config: policies, loading, error, runWith} = useConfigPanel<TwoFactorPolicy[]>({
+  initial: [],
+  fetch: () => twoFactorAdmin.listInstancePolicies(),
+  formatError: (e: any) => e?.response?.data?.message || t('common.error'),
+})
 
 const policyByUserType = computed(() => {
   const map = new Map<string, TwoFactorPolicy>()
@@ -31,30 +35,17 @@ const policyByUserType = computed(() => {
   return map
 })
 
-async function load() {
-  loading.value = true
-  error.value = ''
-  try {
-    policies.value = await twoFactorAdmin.listInstancePolicies()
-  } catch (e: any) {
-    error.value = e?.response?.data?.message || t('common.error')
-  }
-  loading.value = false
-}
-
 async function togglePolicy(userType: string) {
   const existing = policyByUserType.value.get(userType)
   saving.value = userType
-  try {
+  await runWith(async () => {
     if (existing && existing.required) {
       await twoFactorAdmin.deleteInstancePolicy(existing.id)
     } else {
       await twoFactorAdmin.upsertInstancePolicy(userType, true)
     }
-    policies.value = await twoFactorAdmin.listInstancePolicies()
-  } catch (e: any) {
-    error.value = e?.response?.data?.message || t('common.error')
-  }
+    return twoFactorAdmin.listInstancePolicies()
+  })
   saving.value = null
 }
 
@@ -63,8 +54,6 @@ function userTypeLabel(name: string): string {
   const translated = t(key)
   return translated === key ? name : translated
 }
-
-onMounted(load)
 </script>
 
 <template>

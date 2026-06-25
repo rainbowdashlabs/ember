@@ -8,26 +8,20 @@ import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import PageHeader from '@/components/typography/PageHeader.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import EditButton from '@/components/button/EditButton.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import ScanButton from '@/components/scanner/ScanButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import ContainerNewModal from '@/views/stationview/inventory/storageview/ContainerNewModal.vue'
 import ContainerEditPanel from '@/views/stationview/inventory/storageview/ContainerEditPanel.vue'
-import ContainerContentsTree from '@/views/stationview/inventory/storageview/ContainerContentsTree.vue'
 import AddExistingContainerModal from '@/views/stationview/inventory/storageview/AddExistingContainerModal.vue'
 import AddChildChoiceModal from '@/views/stationview/inventory/storageview/AddChildChoiceModal.vue'
 import UnknownScanModal from '@/views/stationview/inventory/UnknownScanModal.vue'
+import ContainerHeader from '@/views/stationview/inventory/containerdetailview/ContainerHeader.vue'
+import ContainerContentsSection from '@/views/stationview/inventory/containerdetailview/ContainerContentsSection.vue'
+import ContainerHistorySection from '@/views/stationview/inventory/containerdetailview/ContainerHistorySection.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import {inventory, inventoryContainers} from '@/api'
 import type {InventoryItem} from '@/api/types'
@@ -227,40 +221,13 @@ onMounted(load)
       <Spinner size="lg" />
     </div>
     <template v-else-if="detail">
-      <div class="flex items-center flex-wrap gap-2 mb-3 text-sm text-(--text-muted)">
-        <router-link :to="{name: 'inventory-storage'}" class="hover:underline">
-          {{ t('inventory.storage.title') }}
-        </router-link>
-        <template v-for="(seg, i) in detail.pathSegments" :key="i">
-          <span>/</span>
-          <router-link
-              v-if="i < detail.pathSegments.length - 1"
-              :to="{name: 'inventory-container-detail', params: {id: String(detail.pathIds[i])}}"
-              class="hover:underline"
-          >
-            {{ seg }}
-          </router-link>
-          <span v-else class="text-(--text)">{{ seg }}</span>
-        </template>
-      </div>
-
-      <div class="flex items-center justify-between mb-4">
-        <PageHeader>
-          <font-awesome-icon
-              :icon="['fas', kindById.get(detail.container.kindId ?? -1)?.icon ?? 'box']"
-              class="mr-2 text-(--text-muted)"
-          />
-          {{ detail.container.name }}
-        </PageHeader>
-        <div class="flex gap-2">
-          <EditButton @click="editing = !editing" :label="t('common.edit')" />
-          <DeleteButton @click="showDeleteConfirm = true" :label="t('common.delete')" />
-        </div>
-      </div>
-
-      <div v-if="error" class="mb-4">
-        <Alert variant="error">{{ error }}</Alert>
-      </div>
+      <ContainerHeader
+          :detail="detail"
+          :kind-by-id="kindById"
+          :error="error"
+          @edit="editing = !editing"
+          @delete="showDeleteConfirm = true"
+      />
 
       <ContainerEditPanel
           v-if="editing"
@@ -279,82 +246,19 @@ onMounted(load)
       <Alert v-if="scanError" variant="error" class="mb-3">{{ scanError }}</Alert>
       <Alert v-if="scanSuccess" variant="success" class="mb-3">{{ scanSuccess }}</Alert>
 
-      <div class="flex items-center justify-between mb-2">
-        <SectionHeader>{{ t('inventory.storage.contents') }}</SectionHeader>
-        <div class="flex items-center gap-2 text-sm">
-          <label class="flex items-center gap-1">
-            <ToggleInput v-model="recursive" />
-            <span>{{ t('inventory.storage.recursive') }}</span>
-          </label>
-          <ScanButton mode="continuous" :disabled="scanBusy" @decoded="onCameraScan" />
-          <PrimaryButton size="sm" @click="showAddChoiceModal = true">
-            <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
-            {{ t('inventory.storage.addChild') }}
-          </PrimaryButton>
-        </div>
-      </div>
+      <ContainerContentsSection
+          :contents="contents"
+          :root-container-id="detail.container.id"
+          :kind-by-id="kindById"
+          v-model:recursive="recursive"
+          :scan-busy="scanBusy"
+          @scan="onCameraScan"
+          @add-child="showAddChoiceModal = true"
+          @open-container="navigateToContainer"
+          @open-item="navigateToItem"
+      />
 
-      <NeutralContainer class="mb-6">
-        <template v-if="contents">
-          <ContainerContentsTree
-              v-if="recursive"
-              :root-container-id="detail.container.id"
-              :containers="contents.children"
-              :items="contents.items"
-              :kind-by-id="kindById"
-              @open-container="navigateToContainer"
-              @open-item="navigateToItem"
-          />
-          <div v-else-if="contents.children.length > 0 || contents.items.length > 0" class="flex flex-col gap-4">
-            <div v-if="contents.children.length > 0">
-              <SubHeader class="mb-2">{{ t('inventory.storage.childContainers') }}</SubHeader>
-              <ul class="divide-y divide-(--bg-accent)">
-                <li
-                    v-for="c in contents.children"
-                    :key="c.id"
-                    class="py-2 flex items-center gap-3 cursor-pointer hover:bg-(--bg-accent) rounded-theme px-2"
-                    @click="navigateToContainer(c.id)"
-                >
-                  <font-awesome-icon :icon="['fas', kindById.get(c.kindId ?? -1)?.icon ?? 'box']" class="w-4 text-(--text-muted)" />
-                  <span class="font-medium">{{ c.name }}</span>
-                  <span v-if="c.internalId" class="text-xs text-(--text-muted)">{{ c.internalId }}</span>
-                </li>
-              </ul>
-            </div>
-            <div v-if="contents.items.length > 0">
-              <SubHeader class="mb-2">{{ t('inventory.storage.containedItems') }}</SubHeader>
-              <ul class="divide-y divide-(--bg-accent)">
-                <li
-                    v-for="i in contents.items"
-                    :key="i.id"
-                    class="py-2 flex items-center gap-3 cursor-pointer hover:bg-(--bg-accent) rounded-theme px-2"
-                    @click="navigateToItem(i.id)"
-                >
-                  <font-awesome-icon :icon="['fas', 'cube']" class="w-4 text-(--text-muted)" />
-                  <span class="font-medium">{{ i.name ?? '' }}</span>
-                  <span v-if="i.internalId" class="text-xs text-(--text-muted)">{{ i.internalId }}</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <EmptyState v-else :message="t('inventory.storage.contentsEmpty')" />
-        </template>
-      </NeutralContainer>
-
-      <SectionHeader>{{ t('inventory.storage.history') }}</SectionHeader>
-      <NeutralContainer>
-        <ul v-if="history.length > 0" class="divide-y divide-(--bg-accent) text-sm">
-          <li v-for="h in history" :key="h.id" class="py-2 flex items-center gap-3">
-            <font-awesome-icon
-                :icon="['fas', h.eventKind === 'MOVED' ? 'arrows-rotate' : h.eventKind === 'RENAMED' ? 'pen' : h.eventKind === 'DELETED' ? 'trash' : 'plus']"
-                class="w-4 text-(--text-muted)"
-            />
-            <span class="font-medium">{{ t(`inventory.storage.events.${h.eventKind}`) }}</span>
-            <span class="text-(--text-muted)">{{ new Date(h.eventTs).toLocaleString() }}</span>
-          </li>
-        </ul>
-        <EmptyState v-else :message="t('inventory.storage.historyEmpty')" />
-      </NeutralContainer>
+      <ContainerHistorySection :history="history" />
 
       <Modal v-model="showDeleteConfirm" size="sm">
         <SubHeader class="mb-2">{{ t('inventory.storage.deleteTitle') }}</SubHeader>

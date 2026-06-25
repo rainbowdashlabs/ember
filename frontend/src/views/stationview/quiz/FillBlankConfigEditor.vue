@@ -17,51 +17,44 @@ import FieldHint from '@/components/typography/FieldHint.vue'
 
 const { t } = useI18n()
 
-const props = defineProps<{
-  config: Record<string, unknown>
-}>()
-
-const emit = defineEmits<{
-  'update:config': [value: Record<string, unknown>]
-}>()
+const config = defineModel<Record<string, unknown>>('config', {required: true})
 
 function updateConfig(patch: Record<string, unknown>) {
-  emit('update:config', { ...props.config, ...patch })
+  config.value = { ...config.value, ...patch }
 }
 
-// --- Fill blank helpers ---
 function addFillBlankAnswer() {
-  const answers = [...((props.config.answers as string[]) || [])]
+  const answers = [...((config.value.answers as string[]) || [])]
   answers.push('')
   updateConfig({ answers })
 }
 
 function removeFillBlankAnswer(idx: number) {
-  const answers = [...((props.config.answers as string[]) || [])]
+  const answers = [...((config.value.answers as string[]) || [])]
   answers.splice(idx, 1)
   updateConfig({ answers })
 }
 
 function updateFillBlankAnswer(idx: number, value: string) {
-  const answers = [...((props.config.answers as string[]) || [])]
+  const answers = [...((config.value.answers as string[]) || [])]
   answers[idx] = value
   updateConfig({ answers })
 }
 
 function addDistractor() {
-  const distractors = [...((props.config.distractors as string[]) || [])]
+  const distractors = [...((config.value.distractors as string[]) || [])]
   distractors.push('')
   updateConfig({ distractors })
 }
 
 function removeDistractor(idx: number) {
-  const distractors = [...((props.config.distractors as string[]) || [])]
+  const distractors = [...((config.value.distractors as string[]) || [])]
   distractors.splice(idx, 1)
   updateConfig({ distractors })
 }
 
 function updateDistractor(idx: number, value: string) {
-  const distractors = [...((props.config.distractors as string[]) || [])]
+  const distractors = [...((config.value.distractors as string[]) || [])]
   distractors[idx] = value
   updateConfig({ distractors })
 }

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, onMounted, watch, computed} from 'vue'
+import {ref, watch, computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter, useRoute} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -16,6 +16,8 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import {useSession} from '@/composables/useSession'
+import {useConfirmAction} from '@/composables/useConfirmAction'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {knowledgeBase} from '@/api'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -28,31 +30,26 @@ const {loaded} = useSession()
 
 const file = ref<KbFile | null>(null)
 const versions = ref<KbFileVersion[]>([])
-const loading = ref(true)
-const error = ref('')
 
-// View version
 const selectedVersion = ref<KbFileVersion | null>(null)
 const loadingVersion = ref(false)
 
-// Revert confirmation
-const showRevertModal = ref(false)
-const versionToRevert = ref<KbFileVersion | null>(null)
-
 const fileId = computed(() => Number(route.params.id))
 
-async function loadData() {
-    loading.value = true
-    error.value = ''
-    try {
-        file.value = (await knowledgeBase.getFile(fileId.value)).file
-        versions.value = await knowledgeBase.listVersions(fileId.value)
-    } catch {
-        error.value = t('common.error')
-    } finally {
-        loading.value = false
-    }
-}
+const {loading, error, reload: loadData} = useAsyncLoader(async () => {
+    file.value = (await knowledgeBase.getFile(fileId.value)).file
+    versions.value = await knowledgeBase.listVersions(fileId.value)
+}, {autoLoad: false})
+
+const {
+    show: showRevertModal,
+    request: requestRevert,
+    confirm: handleRevert,
+} = useConfirmAction<KbFileVersion>({
+    onConfirm: v => knowledgeBase.revertToVersion(fileId.value, v.version),
+    onSuccess: () => { router.push({name: 'kb-file', params: {id: fileId.value}}) },
+    error,
+})
 
 async function viewVersion(version: KbFileVersion) {
     loadingVersion.value = true
@@ -65,23 +62,6 @@ async function viewVersion(version: KbFileVersion) {
     }
 }
 
-function confirmRevert(version: KbFileVersion) {
-    versionToRevert.value = version
-    showRevertModal.value = true
-}
-
-async function handleRevert() {
-    if (!versionToRevert.value) return
-    try {
-        await knowledgeBase.revertToVersion(fileId.value, versionToRevert.value.version)
-        showRevertModal.value = false
-        versionToRevert.value = null
-        router.push({name: 'kb-file', params: {id: fileId.value}})
-    } catch {
-        error.value = t('common.error')
-    }
-}
-
 function formatDate(dateStr: string): string {
     return new Date(dateStr).toLocaleString('de-DE')
 }
@@ -89,10 +69,6 @@ function formatDate(dateStr: string): string {
 watch(loaded, (isLoaded) => {
     if (isLoaded) loadData()
 }, {immediate: true})
-
-onMounted(() => {
-    if (loaded.value) loadData()
-})
 </script>
 
 <template>
@@ -132,7 +108,7 @@ onMounted(() => {
                         <SecondaryButton @click="viewVersion(version)">
                             <font-awesome-icon :icon="['fas', 'eye']"/>
                         </SecondaryButton>
-                        <PrimaryButton @click="confirmRevert(version)">
+                        <PrimaryButton @click="requestRevert(version)">
                             {{ t('kb.revert') }}
                         </PrimaryButton>
                     </div>

@@ -22,14 +22,14 @@ interface ExportColumn {
   label: string
 }
 
+const modelValue = defineModel<boolean>({required: true})
+
 const props = defineProps<{
-  modelValue: boolean
   availableFields: ProfileField[]
   selectedCount: number
 }>()
 
 const emit = defineEmits<{
-  'update:modelValue': [value: boolean]
   export: [columns: string[], format: 'csv' | 'values']
 }>()
 
@@ -78,7 +78,7 @@ function submit() {
 </script>
 
 <template>
-  <Modal :model-value="modelValue" @update:model-value="emit('update:modelValue', $event)">
+  <Modal v-model="modelValue">
     <div class="space-y-4">
       <SectionHeader>{{ t('membersList.export.title') }}</SectionHeader>
       <p class="text-sm text-(--text-muted)">{{ t('membersList.export.hint', {count: selectedCount}) }}</p>
@@ -119,7 +119,7 @@ function submit() {
       </div>
 
       <div class="flex justify-end gap-3">
-        <SecondaryButton @click="emit('update:modelValue', false)">{{ t('common.cancel') }}</SecondaryButton>
+        <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :icon="['fas', 'download']" :disabled="selectedColumns.size === 0" @click="submit">
           {{ t('membersList.export.submit') }}
         </PrimaryButton>

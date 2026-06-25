@@ -15,6 +15,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {useSession} from '@/composables/useSession'
+import {formatDateTime as formatDate} from '@/util/format'
 
 const props = withDefaults(defineProps<{
   comments: Comment[]
@@ -117,13 +118,6 @@ function resolveMentions(text: string): MentionPart[] {
     parts.push({type: 'text', value: text.substring(last)})
   }
   return parts
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString('de-DE', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  })
 }
 
 function startReply(commentId: number) {

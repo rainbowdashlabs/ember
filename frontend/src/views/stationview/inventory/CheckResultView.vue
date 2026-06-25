@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -16,61 +16,28 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type { CheckDetail } from '@/api/types'
 import { inventoryCheck } from '@/api'
-import SizeBadge from '@/components/badge/SizeBadge.vue'
-import MutedText from '@/components/typography/MutedText.vue'
+import { useConfigPanel } from '@/composables/useConfigPanel'
+import CheckResultItemCard from '@/views/stationview/inventory/checkresultview/CheckResultItemCard.vue'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
 const memberId = computed(() => Number(route.params.memberId))
-const detail = ref<CheckDetail | null>(null)
-const loading = ref(true)
-const error = ref('')
-const memberName = ref('')
-
-async function loadData() {
-  loading.value = true
-  error.value = ''
-  try {
-    detail.value = await inventoryCheck.getLastCheck(memberId.value)
-    // Get member name from the overview (passed via query param)
-    memberName.value = (route.query.name as string) ?? ''
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const memberName = computed(() => (route.query.name as string) ?? '')
+const {config: detail, loading, error} = useConfigPanel<CheckDetail | null>({
+  initial: null,
+  fetch: () => inventoryCheck.getLastCheck(memberId.value),
+})
 
 function formatDate(dateStr?: string | null): string {
   if (!dateStr) return '-'
   return new Date(dateStr).toLocaleString('de-DE')
 }
 
-function resultLabel(result: string): string {
-  switch (result) {
-    case 'CONFIRMED': return t('inventory.check.resultConfirmed')
-    case 'NOT_IN_POSSESSION': return t('inventory.check.resultNotInPossession')
-    case 'LOST': return t('inventory.check.resultLost')
-    default: return result
-  }
-}
-
-function resultClass(result: string): string {
-  switch (result) {
-    case 'CONFIRMED': return 'bg-success/10 border-success'
-    case 'NOT_IN_POSSESSION': return 'bg-info/10 border-info'
-    case 'LOST': return 'bg-error/10 border-error'
-    default: return ''
-  }
-}
-
 function goBack() {
   router.push({ name: 'inventory-checks' })
 }
-
-onMounted(loadData)
 </script>
 
 <template>
@@ -99,37 +66,12 @@ onMounted(loadData)
 
         <EmptyState v-if="detail.items.length === 0">{{ t('inventory.check.noLastCheck') }}</EmptyState>
 
-        <!-- Card layout for mobile, works well on desktop too -->
         <div class="space-y-2">
-          <NeutralContainer
+          <CheckResultItemCard
             v-for="item in detail.items"
             :key="item.id"
-            class="border-l-4 transition-all"
-            :class="resultClass(item.result)"
-          >
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div class="flex-1 min-w-0">
-                <div v-if="item.itemName" class="font-medium text-sm">
-                  {{ item.itemName }}
-                  <SizeBadge>{{ item.sizeName ?? t('common.unisize') }}</SizeBadge>
-                </div>
-                <div class="text-xs text-(--text-muted)">
-                  {{ item.inventoryName }}
-                  <template v-if="item.internalId"> &middot; {{ item.internalId }}</template>
-                </div>
-              </div>
-              <SuccessBadge v-if="item.result === 'CONFIRMED'" class="self-start shrink-0">
-                {{ resultLabel(item.result) }}
-              </SuccessBadge>
-              <InfoBadge v-else-if="item.result === 'NOT_IN_POSSESSION'" class="self-start shrink-0">
-                {{ resultLabel(item.result) }}
-              </InfoBadge>
-              <ErrorBadge v-else-if="item.result === 'LOST'" class="self-start shrink-0">
-                {{ resultLabel(item.result) }}
-              </ErrorBadge>
-            </div>
-            <MutedText tag="p" size="sm" class="mt-1" v-if="item.note">{{ item.note }}</MutedText>
-          </NeutralContainer>
+            :item="item"
+          />
         </div>
       </template>
 

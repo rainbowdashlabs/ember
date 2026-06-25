@@ -14,14 +14,14 @@ import DragList from '@/components/input/DragList.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type { BoardChecklistItem } from '@/api/boards'
 
+const newTitle = defineModel<string>('newTitle', {required: true})
+
 const props = defineProps<{
     checklist: BoardChecklistItem[]
-    newTitle: string
     readonly?: boolean
 }>()
 
 const emit = defineEmits<{
-    'update:newTitle': [value: string]
     toggle: [item: BoardChecklistItem]
     add: []
     remove: [itemId: number]
@@ -61,7 +61,7 @@ const total = computed(() => props.checklist.length)
                 </template>
             </DragList>
             <div class="flex gap-2 mt-2 items-center">
-                <TextInput :model-value="newTitle" :placeholder="t('boards.addChecklistItem')" class="flex-1 text-sm" @update:model-value="emit('update:newTitle', $event as string)" @keydown.enter="emit('add')" />
+                <TextInput v-model="newTitle" :placeholder="t('boards.addChecklistItem')" class="flex-1 text-sm" @keydown.enter="emit('add')" />
                 <IconButton :icon="['fas', 'plus']" :label="t('common.add')" class="text-(--text-muted)" @click="emit('add')" />
             </div>
         </template>

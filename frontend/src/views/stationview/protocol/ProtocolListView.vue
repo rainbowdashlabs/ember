@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -27,6 +27,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import { useSession } from '@/composables/useSession'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { protocol, federation } from '@/api'
 import type { TestProtocol, SharedProtocolEntry } from '@/api/protocol'
 
@@ -38,8 +39,6 @@ const canConfigure = computed(() => hasPermission(StationPermission.PROTOCOL_CON
 
 const protocols = ref<TestProtocol[]>([])
 const sharedProtocols = ref<SharedProtocolEntry[]>([])
-const loading = ref(true)
-const error = ref('')
 
 // Search & filters
 const searchQuery = ref('')
@@ -88,20 +87,16 @@ const filteredShared = computed(() => {
   return result
 })
 
-async function loadData() {
-  loading.value = true
-  try {
-    const data = await protocol.listProtocols()
-    if (Array.isArray(data)) {
-      protocols.value = data as unknown as typeof protocols.value
-      sharedProtocols.value = []
-    } else {
-      protocols.value = data.protocols ?? []
-      sharedProtocols.value = data.shared ?? []
-    }
-  } catch { error.value = t('common.error') }
-  finally { loading.value = false }
-}
+const {loading, error, reload} = useAsyncLoader(async () => {
+  const data = await protocol.listProtocols()
+  if (Array.isArray(data)) {
+    protocols.value = data as unknown as typeof protocols.value
+    sharedProtocols.value = []
+  } else {
+    protocols.value = data.protocols ?? []
+    sharedProtocols.value = data.shared ?? []
+  }
+}, {autoLoad: false})
 
 async function handleCreate() {
   if (!newName.value.trim()) return
@@ -125,19 +120,18 @@ async function handleDelete() {
     await protocol.deleteProtocol(deleteTarget.value.id)
     showDeleteModal.value = false
     deleteTarget.value = null
-    await loadData()
+    await reload()
   } catch { error.value = t('common.error') }
 }
 
 async function copySharedProtocol(protocolId: number) {
   try {
     await federation.copyProtocol(protocolId)
-    await loadData()
+    await reload()
   } catch { error.value = t('common.error') }
 }
 
-watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
-onMounted(() => { if (loaded.value) loadData() })
+watch(loaded, (v) => { if (v) reload() }, { immediate: true })
 </script>
 
 <template>

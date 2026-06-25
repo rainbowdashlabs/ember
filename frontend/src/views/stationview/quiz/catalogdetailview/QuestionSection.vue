@@ -8,27 +8,22 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ReadonlyQuestionList from './ReadonlyQuestionList.vue'
+import QuestionCard from './QuestionCard.vue'
+import QuestionInlineEditor from './QuestionInlineEditor.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import InfoBadge from '@/components/badge/InfoBadge.vue'
-import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
-import QuestionEditor from '../QuestionEditor.vue'
 import BatchActionModal from './BatchActionModal.vue'
 import type { QuizCategory, QuizQuestion, QuizQuestionTypeName } from '@/api/types'
 import { QuizQuestionTypes } from '@/api/types'
 import { quiz } from '@/api'
-import { useBreakpoint } from '@/composables/useBreakpoint'
 
 const props = defineProps<{
   catalogId: number
@@ -45,9 +40,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const router = useRouter()
-const { isMobile } = useBreakpoint()
 
-// Inline question editor state
 const expandedQuestion = ref<number | 'new' | null>(null)
 const editingQuestion = ref<QuizQuestion | null>(null)
 const questionTitle = ref('')
@@ -63,7 +56,6 @@ const questionHasImage = ref(false)
 const questionConfig = ref<Record<string, unknown>>({})
 const savingQuestion = ref(false)
 
-// Delete question modal
 const showDeleteQuestionModal = ref(false)
 const questionToDelete = ref<QuizQuestion | null>(null)
 
@@ -155,7 +147,9 @@ async function removeImage() {
   if (editingQuestion.value && questionHasImage.value && !questionImageFile.value) {
     try {
       await quiz.deleteQuestionImage(editingQuestion.value.id)
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
   questionImageFile.value = null
   questionImagePreview.value = null
@@ -222,7 +216,6 @@ function getCategoryName(catId: number | null): string {
   return cat ? cat.name : t('quiz.questions.noCategory')
 }
 
-// --- Filtering ---
 const filterType = ref<string>('')
 const filterCategory = ref<string>('')
 
@@ -240,7 +233,6 @@ const questionTypeOptions = computed(() => {
   return [...types].map(type => ({value: type, label: t(`quiz.questionTypes.${type}`)}))
 })
 
-// --- Selection ---
 const selectedIds = ref(new Set<number>())
 
 function toggleSelect(id: number) {
@@ -261,7 +253,6 @@ const selectedQuestions = computed(() => props.questions.filter(q => selectedIds
 const hasSelection = computed(() => selectedIds.value.size > 0)
 const selectedHasMc = computed(() => selectedQuestions.value.some(q => q.quizQuestionType === QuizQuestionTypes.MULTIPLE_CHOICE))
 
-// --- Batch Actions ---
 const showBatchModal = ref(false)
 const batchAction = ref('')
 
@@ -273,11 +264,9 @@ function openBatchAction(action: string) {
 function onBatchDone() {
   emit('updated')
 }
-
 </script>
 
 <template>
-  <!-- Editable questions section -->
   <div v-if="!readonly" class="space-y-3">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
       <SectionHeader>{{ t('quiz.questions.title') }}</SectionHeader>
@@ -297,42 +286,28 @@ function onBatchDone() {
       </div>
     </div>
 
-    <!-- New question inline editor -->
     <NeutralContainer v-if="expandedQuestion === 'new'">
-      <div class="space-y-4">
-        <div class="flex items-center justify-between">
-          <SubHeader>{{ t('quiz.questions.create') }}</SubHeader>
-          <IconButton :icon="['fas', 'xmark']" label="Close" class="text-(--text-muted) hover:text-error" @click="collapseQuestion" />
-        </div>
-        <QuestionEditor
-          :title="questionTitle"
-          :description="questionDescription"
-          :question-type="questionType"
-          :category-id="questionCategoryId"
-          :points="questionPoints"
-          :auto-points="questionAutoPoints"
-          :image-preview="questionImagePreview"
-          :auth-image-src="questionAuthImageSrc"
-          :has-image="questionHasImage"
-          :config="questionConfig"
-          :categories="categories"
-          :is-editing="false"
-          @update:title="questionTitle = $event"
-          @update:description="questionDescription = $event"
-          @update:question-type="onQuestionTypeChange"
-          @update:category-id="questionCategoryId = $event"
-          @update:points="questionPoints = $event"
-          @update:auto-points="questionAutoPoints = $event"
-          @update:config="questionConfig = $event"
-          @select-image="onImageSelected"
-          @remove-image="removeImage"
-          @save="saveQuestion"
-          @cancel="collapseQuestion"
-        />
-      </div>
+      <QuestionInlineEditor
+        :is-editing="false"
+        v-model:title="questionTitle"
+        v-model:description="questionDescription"
+        :question-type="questionType"
+        v-model:category-id="questionCategoryId"
+        v-model:points="questionPoints"
+        v-model:auto-points="questionAutoPoints"
+        v-model:config="questionConfig"
+        :image-preview="questionImagePreview"
+        :auth-image-src="questionAuthImageSrc"
+        :has-image="questionHasImage"
+        :categories="categories"
+        @update:question-type="onQuestionTypeChange"
+        @select-image="onImageSelected"
+        @remove-image="removeImage"
+        @save="saveQuestion"
+        @cancel="collapseQuestion"
+      />
     </NeutralContainer>
 
-    <!-- Filter bar -->
     <div v-if="questions.length > 0" class="grid grid-cols-2 sm:flex items-center gap-2 mb-3">
       <SelectInput v-model="filterType" class="w-auto text-sm">
         <option value="">{{ t('quiz.questions.allTypes') }}</option>
@@ -346,7 +321,6 @@ function onBatchDone() {
       <MutedText size="sm">{{ filteredQuestions.length }}/{{ questions.length }}</MutedText>
     </div>
 
-    <!-- Selection toolbar -->
     <div v-if="hasSelection" class="flex items-center gap-2 flex-wrap mb-3 p-2 rounded bg-primary/10 border border-primary/30">
       <MutedText size="sm" class="font-medium">{{ selectedIds.size }} {{ t('quiz.batch.selected') }}</MutedText>
       <SecondaryButton compact @click="selectAll">{{ t('quiz.batch.selectAll') }}</SecondaryButton>
@@ -361,93 +335,39 @@ function onBatchDone() {
 
     <EmptyState compact v-if="questions.length === 0 && expandedQuestion !== 'new'">{{ t('quiz.questions.noQuestions') }}</EmptyState>
 
-    <!-- Question list with inline expand -->
     <div class="space-y-2">
-      <NeutralContainer v-for="q in filteredQuestions" :key="q.id">
-        <!-- Collapsed view -->
-        <template v-if="expandedQuestion !== q.id">
-          <div v-if="isMobile" class="space-y-2">
-            <div class="flex items-center gap-2 cursor-pointer" @click.stop>
-              <CheckboxInput :model-value="selectedIds.has(q.id)" @update:model-value="toggleSelect(q.id)"/>
-              <div class="flex-1" @click="expandEditQuestion(q)">
-                <div class="flex items-center gap-1.5 flex-wrap mb-0.5">
-                  <InfoBadge>{{ t(`quiz.questionTypes.${q.quizQuestionType}`) }}</InfoBadge>
-                  <SecondaryBadge>{{ getCategoryName(q.categoryId) }}</SecondaryBadge>
-                  <span class="text-xs text-(--text-muted)">{{ q.points }} {{ t('quiz.questions.points') }}</span>
-                </div>
-                <span class="font-medium">{{ q.title }}</span>
-              </div>
-            </div>
-            <div class="flex items-center justify-end gap-2 border-t border-bg-light-accent dark:border-bg-dark-accent pt-2 mt-2">
-              <SecondaryButton :icon="['fas', 'pen']" @click="expandEditQuestion(q)">
-                {{ t('common.edit') }}
-              </SecondaryButton>
-              <DeleteButton @click="confirmDeleteQuestion(q)" />
-            </div>
-          </div>
-
-          <div v-else class="flex items-center justify-between gap-4">
-            <div class="flex items-center gap-2 shrink-0" @click.stop>
-              <CheckboxInput :model-value="selectedIds.has(q.id)" @update:model-value="toggleSelect(q.id)"/>
-            </div>
-            <div class="flex-1 min-w-0 space-y-0.5 cursor-pointer" @click="expandEditQuestion(q)">
-              <div class="flex items-center gap-1.5 flex-wrap">
-                <InfoBadge>{{ t(`quiz.questionTypes.${q.quizQuestionType}`) }}</InfoBadge>
-                <SecondaryBadge>{{ getCategoryName(q.categoryId) }}</SecondaryBadge>
-                <span class="text-xs text-(--text-muted)">{{ q.points }} {{ t('quiz.questions.points') }}</span>
-              </div>
-              <span class="font-medium">{{ q.title }}</span>
-              <p v-if="q.description" class="text-xs text-(--text-muted) truncate">{{ q.description }}</p>
-            </div>
-            <div class="flex items-center gap-2 shrink-0" @click.stop>
-              <IconButton :icon="['fas', 'pen']" :label="t('common.edit')" class="text-(--text-muted) hover:text-primary" @click="expandEditQuestion(q)" />
-              <DeleteButton @click="confirmDeleteQuestion(q)" />
-            </div>
-          </div>
-        </template>
-
-        <!-- Expanded inline editor -->
-        <template v-else>
-          <div class="space-y-4">
-            <div class="flex items-center justify-between">
-              <SubHeader>{{ t('quiz.questions.edit') }}</SubHeader>
-              <IconButton :icon="['fas', 'xmark']" label="Close" class="text-(--text-muted) hover:text-error" @click="collapseQuestion" />
-            </div>
-            <QuestionEditor
-              :title="questionTitle"
-              :description="questionDescription"
-              :question-type="questionType"
-              :category-id="questionCategoryId"
-              :points="questionPoints"
-              :auto-points="questionAutoPoints"
-              :image-preview="questionImagePreview"
-              :auth-image-src="questionAuthImageSrc"
-              :has-image="questionHasImage"
-              :config="questionConfig"
-              :categories="categories"
-              :is-editing="true"
-              @update:title="questionTitle = $event"
-              @update:description="questionDescription = $event"
-              @update:question-type="onQuestionTypeChange"
-              @update:category-id="questionCategoryId = $event"
-              @update:points="questionPoints = $event"
-              @update:auto-points="questionAutoPoints = $event"
-              @update:config="questionConfig = $event"
-              @select-image="onImageSelected"
-              @remove-image="removeImage"
-              @save="saveQuestion"
-              @cancel="collapseQuestion"
-            />
-          </div>
-        </template>
-      </NeutralContainer>
+      <QuestionCard
+        v-for="q in filteredQuestions"
+        :key="q.id"
+        :question="q"
+        :expanded="expandedQuestion === q.id"
+        :selected="selectedIds.has(q.id)"
+        :category-name="getCategoryName(q.categoryId)"
+        :categories="categories"
+        v-model:editor-title="questionTitle"
+        v-model:editor-description="questionDescription"
+        :editor-question-type="questionType"
+        v-model:editor-category-id="questionCategoryId"
+        v-model:editor-points="questionPoints"
+        v-model:editor-auto-points="questionAutoPoints"
+        v-model:editor-config="questionConfig"
+        :editor-image-preview="questionImagePreview"
+        :editor-auth-image-src="questionAuthImageSrc"
+        :editor-has-image="questionHasImage"
+        @toggle-select="toggleSelect(q.id)"
+        @edit="expandEditQuestion(q)"
+        @delete="confirmDeleteQuestion(q)"
+        @update:editor-question-type="onQuestionTypeChange"
+        @select-image="onImageSelected"
+        @remove-image="removeImage"
+        @save="saveQuestion"
+        @cancel="collapseQuestion"
+      />
     </div>
   </div>
 
-  <!-- Read-only question list -->
   <ReadonlyQuestionList v-if="readonly" :questions="questions" :categories="categories" />
 
-  <!-- Question Delete Modal -->
   <Modal v-model="showDeleteQuestionModal">
     <div class="space-y-4">
       <SubHeader>{{ t('common.delete') }}</SubHeader>
@@ -459,14 +379,12 @@ function onBatchDone() {
     </div>
   </Modal>
 
-  <!-- Batch Action Modal -->
   <BatchActionModal
-      :show="showBatchModal"
+      v-model:show="showBatchModal"
       :action="batchAction"
       :questions="selectedQuestions"
       :categories="categories"
       :catalog-id="catalogId"
-      @update:show="showBatchModal = $event"
       @done="onBatchDone"
       @error="emit('error', $event)"
   />

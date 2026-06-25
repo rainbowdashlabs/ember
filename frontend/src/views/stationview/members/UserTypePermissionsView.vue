@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -16,12 +16,14 @@ import PermissionPicker from '@/components/input/PermissionPicker.vue'
 import type {PermissionGrant} from '@/api/types'
 import {StationUserType} from '@/api/types'
 import {stationMembers} from '@/api'
+import {useConfigPanel} from '@/composables/useConfigPanel'
 
 const {t} = useI18n()
 
-const allRoles = ref<PermissionGrant[]>([])
-const loading = ref(true)
-const error = ref('')
+const {config: allRoles, loading, error} = useConfigPanel<PermissionGrant[]>({
+  initial: [],
+  fetch: () => stationMembers.listAllPermissions(),
+})
 
 const selectedType = ref<string | null>(null)
 const typePermissions = ref<PermissionGrant[]>([])
@@ -39,18 +41,6 @@ const permissionIds = computed({
   get: () => new Set(typePermissions.value.map(r => r.id)),
   set: (newIds: Set<number>) => syncPermissions(newIds),
 })
-
-async function loadData() {
-  loading.value = true
-  error.value = ''
-  try {
-    allRoles.value = await stationMembers.listAllPermissions()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
 
 async function selectType(userType: string) {
   selectedType.value = userType
@@ -74,8 +64,6 @@ async function syncPermissions(newIds: Set<number>) {
     error.value = msg || t('common.error')
   }
 }
-
-onMounted(loadData)
 </script>
 
 <template>

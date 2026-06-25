@@ -9,9 +9,10 @@ import {useI18n} from 'vue-i18n'
 import {useBreakpoint} from '@/composables/useBreakpoint'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 
-const props = withDefaults(defineProps<{
-    /** Cell width as percent. Editable from inside the menu. */
-    widthPercent?: number | null
+/** Cell width as percent. Editable from inside the menu. */
+const widthPercent = defineModel<number | null>('widthPercent')
+
+withDefaults(defineProps<{
     /** True when the surrounding row has more than one cell (so width and split make sense). */
     canResize?: boolean
     /** True when the clipboard currently holds a cell that can be pasted over this one. */
@@ -29,7 +30,6 @@ const emit = defineEmits<{
     paste: []
     delete: []
     split: [columns: number]
-    'update:widthPercent': [value: number]
 }>()
 
 const {t} = useI18n()
@@ -57,7 +57,7 @@ function commitWidth(value: string | number) {
     const v = typeof value === 'number' ? value : Number(value)
     if (!Number.isFinite(v)) return
     const clamped = Math.max(10, Math.min(100, Math.round(v)))
-    emit('update:widthPercent', clamped)
+    widthPercent.value = clamped
 }
 
 function doSplit(n: number) {

@@ -8,12 +8,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
-import TabBar from '@/components/navigation/TabBar.vue'
-import MemberFilterBar from './listview/FilterBar.vue'
-import MemberTable from './listview/Table.vue'
-import ExportModal from './listview/ExportModal.vue'
+import ListViewBody from './listview/ListViewBody.vue'
 import type { StationMember } from '@/api/types'
 import { StationPermission, StationUserType, parseFieldConfig } from '@/api/types'
 import { useMemberData, memberDisplayName } from './listview/useMemberData'
@@ -28,16 +23,14 @@ const { hasPermission } = useSession()
 const canExport = computed(() => hasPermission(StationPermission.MEMBER_EXPORT))
 const canEdit = computed(() => hasPermission(StationPermission.MEMBER_EDIT))
 
-// --- Member data ---
 const {
   members, fields, allGroups, allTags,
   memberRolesMap, memberGroupsMap, memberTagsMap, memberManagers,
   loading, error, expandedId, overviewFields,
   getFieldValue, getFieldValueAsString, getMemberType, getMemberGroups, getColumnValues,
-  loadData, toggleExpand,
+  toggleExpand,
 } = useMemberData()
 
-// --- Tab state ---
 const activeTab = ref('ALL')
 
 const tabStates = ref<Record<string, TabFilterState>>({
@@ -67,13 +60,9 @@ const tabs = computed(() => [
   { key: 'MANAGER', label: t('membersList.tabManager') },
 ])
 
-// --- Saved filters ---
 const { savedFilters, loadSavedFilters, saveCurrentFilter, applyFilter, deleteFilter, clearFilters } =
   useSavedFilters(tabStates, activeTab)
 
-// --- Column visibility ---
-// Default-visible (overview) fields appear unless their id is in hiddenColumnIds.
-// Optional (non-overview) fields appear only when their id is in extraColumnIds.
 const extraColumnIds = ref<Set<number>>(new Set())
 const hiddenColumnIds = ref<Set<number>>(new Set())
 
@@ -115,7 +104,6 @@ function toggleColumn(fieldId: number) {
   }
 }
 
-// --- Member filter ---
 const {
   onFilter: onMemberFilter,
   applyFilter: applyMemberFilter,
@@ -127,7 +115,6 @@ const {
     () => allTags.value,
 )
 
-// --- Filtered and sorted members ---
 const filteredMembers = computed(() => {
   let list = activeTab.value === 'ALL' ? members.value : members.value.filter(m => getMemberType(m.id) === activeTab.value)
   list = applyMemberFilter(list)
@@ -173,7 +160,6 @@ const filteredMembers = computed(() => {
   })
 })
 
-// --- Sort & column filter actions ---
 function toggleSort(column: 'name' | number) {
   const state = tabStates.value[activeTab.value]
   if (state.sortColumn === column) { state.sortAsc = !state.sortAsc }
@@ -190,13 +176,11 @@ function applyColumnFilter(key: 'name' | 'groups' | 'tags' | number, selected: S
   state.columnEmptyFilters = newEmpty
 }
 
-// --- Export ---
 const {
   exportMode, selectedIds, showExportModal,
   toggleExportMode, toggleSelect, toggleSelectAll, openExportModal, performExport,
 } = useExport(filteredMembers, fields, getMemberGroups, getFieldValueAsString)
 
-// --- Navigation ---
 function navigateToDetail(member: StationMember, event: Event) {
   event.stopPropagation()
   router.push({ name: 'members-detail', params: { id: member.id } })
@@ -208,76 +192,61 @@ function navigateToEdit(member: StationMember, event: Event) {
 }
 
 onMounted(() => {
-  loadData()
   loadSavedFilters()
 })
 </script>
 
 <template>
   <ViewContent>
-    <div class="space-y-6">
-      <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
-
-      <template v-if="!loading">
-        <TabBar v-model="activeTab" :tabs="tabs" />
-
-        <MemberFilterBar
-          v-model:filter-text="filterText"
-          :saved-filters="savedFilters"
-          :overview-fields="tabOverviewFields"
-          :non-overview-fields="tabNonOverviewFields"
-          :extra-column-ids="extraColumnIds"
-          :hidden-column-ids="hiddenColumnIds"
-          :export-mode="exportMode"
-          :selected-count="selectedIds.size"
-          :can-export="canExport"
-          :groups="allGroups"
-          :tags="allTags"
-          @clear-filters="clearFilters"
-          @apply-filter="applyFilter"
-          @delete-filter="deleteFilter"
-          @save-filter="saveCurrentFilter"
-          @toggle-column="toggleColumn"
-          @toggle-export="toggleExportMode"
-          @export-continue="openExportModal"
-          @filter="onMemberFilter"
-        />
-
-        <MemberTable
-          :members="filteredMembers"
-          :visible-columns="visibleColumns"
-          :expanded-id="expandedId"
-          :sort-column="sortColumn"
-          :sort-asc="sortAsc"
-          :column-multi-filters="columnMultiFilters"
-          :column-empty-filters="columnEmptyFilters"
-          :member-groups-map="memberGroupsMap"
-          :member-tags-map="memberTagsMap"
-          :member-roles-map="memberRolesMap"
-          :member-managers="memberManagers"
-          :all-members="members"
-          :overview-fields="overviewFields"
-          :get-field-value="getFieldValue"
-          :export-mode="exportMode"
-          :selected-ids="selectedIds"
-          :can-edit="canEdit"
-          @toggle-sort="toggleSort"
-          @apply-column-filter="applyColumnFilter"
-          @toggle-expand="toggleExpand"
-          @navigate-detail="navigateToDetail"
-          @navigate-edit="navigateToEdit"
-          @toggle-select="toggleSelect"
-          @toggle-select-all="toggleSelectAll"
-        />
-      </template>
-
-      <ExportModal
-        v-model="showExportModal"
-        :available-fields="tabScopedFields"
-        :selected-count="selectedIds.size"
-        @export="performExport"
-      />
-    </div>
+    <ListViewBody
+      v-model:active-tab="activeTab"
+      v-model:filter-text="filterText"
+      v-model:show-export-modal="showExportModal"
+      :loading="loading"
+      :error="error"
+      :tabs="tabs"
+      :saved-filters="savedFilters"
+      :tab-overview-fields="tabOverviewFields"
+      :tab-non-overview-fields="tabNonOverviewFields"
+      :tab-scoped-fields="tabScopedFields"
+      :extra-column-ids="extraColumnIds"
+      :hidden-column-ids="hiddenColumnIds"
+      :export-mode="exportMode"
+      :selected-ids="selectedIds"
+      :can-export="canExport"
+      :can-edit="canEdit"
+      :groups="allGroups"
+      :tags="allTags"
+      :filtered-members="filteredMembers"
+      :visible-columns="visibleColumns"
+      :expanded-id="expandedId"
+      :sort-column="sortColumn"
+      :sort-asc="sortAsc"
+      :column-multi-filters="columnMultiFilters"
+      :column-empty-filters="columnEmptyFilters"
+      :member-groups-map="memberGroupsMap"
+      :member-tags-map="memberTagsMap"
+      :member-roles-map="memberRolesMap"
+      :member-managers="memberManagers"
+      :all-members="members"
+      :overview-fields="overviewFields"
+      :get-field-value="getFieldValue"
+      @clear-filters="clearFilters"
+      @apply-filter="applyFilter"
+      @delete-filter="deleteFilter"
+      @save-filter="saveCurrentFilter"
+      @toggle-column="toggleColumn"
+      @toggle-export="toggleExportMode"
+      @export-continue="openExportModal"
+      @filter="onMemberFilter"
+      @toggle-sort="toggleSort"
+      @apply-column-filter="applyColumnFilter"
+      @toggle-expand="toggleExpand"
+      @navigate-detail="navigateToDetail"
+      @navigate-edit="navigateToEdit"
+      @toggle-select="toggleSelect"
+      @toggle-select-all="toggleSelectAll"
+      @export="performExport"
+    />
   </ViewContent>
 </template>

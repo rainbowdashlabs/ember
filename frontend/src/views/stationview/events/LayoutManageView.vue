@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted, ref, watch} from 'vue'
+import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -23,47 +23,36 @@ import EventFieldEditor from '@/components/input/EventFieldEditor.vue'
 import type {AttendanceTemplateField, EventFieldEntry, EventLayout, LayoutFieldEntry} from '@/api/types'
 import {attendance, events} from '@/api'
 import {useSession} from '@/composables/useSession'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {t} = useI18n()
 const {loaded} = useSession()
 
 const layouts = ref<EventLayout[]>([])
 const attendanceFields = ref<AttendanceTemplateField[]>([])
-const loading = ref(true)
 
-// Edit modal state
 const editOpen = ref(false)
 const editLayoutId = ref<number | null>(null)
 const editName = ref('')
 const editFields = ref<EventFieldEntry[]>([])
 
-onMounted(() => {
-  if (loaded.value) loadData()
-})
+const {loading, reload} = useAsyncLoader(async () => {
+  const [layoutList, templates] = await Promise.all([
+    events.listLayouts(),
+    attendance.listTemplates(),
+  ])
+  layouts.value = layoutList
+  const allFields: AttendanceTemplateField[] = []
+  for (const tmpl of templates) {
+    const fields = await attendance.listTemplateFields(tmpl.id)
+    allFields.push(...fields)
+  }
+  attendanceFields.value = allFields
+}, {autoLoad: loaded.value})
 
 watch(loaded, (isLoaded) => {
-  if (isLoaded && loading.value) loadData()
+  if (isLoaded) reload()
 })
-
-async function loadData() {
-  loading.value = true
-  try {
-    const [layoutList, templates] = await Promise.all([
-      events.listLayouts(),
-      attendance.listTemplates(),
-    ])
-    layouts.value = layoutList
-    // Flatten all template fields for linking
-    const allFields: AttendanceTemplateField[] = []
-    for (const tmpl of templates) {
-      const fields = await attendance.listTemplateFields(tmpl.id)
-      allFields.push(...fields)
-    }
-    attendanceFields.value = allFields
-  } finally {
-    loading.value = false
-  }
-}
 
 function openCreate() {
   editLayoutId.value = null
@@ -112,12 +101,12 @@ async function saveLayout() {
   }))
   await events.setLayoutFields(layoutId, {fields: fieldEntries})
   editOpen.value = false
-  await loadData()
+  await reload()
 }
 
 async function deleteLayout(id: number) {
   await events.deleteLayout(id)
-  await loadData()
+  await reload()
 }
 </script>
 

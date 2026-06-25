@@ -7,28 +7,16 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
+import {isYoutubeUrl, youtubeEmbedUrl as toYoutubeEmbedUrl} from '@/util/youtube'
 
-const props = defineProps<{
-    content: string
-    config: Record<string, unknown>
-}>()
-
-const emit = defineEmits<{
-    'update:content': [value: string]
-    'update:config': [value: Record<string, unknown>]
-}>()
+const content = defineModel<string>('content', {required: true})
+defineModel<Record<string, unknown>>('config', {required: true})
 
 const {t} = useI18n()
 
-const isYouTube = computed(() => {
-    return /youtube\.com|youtu\.be/.test(props.content)
-})
+const isYouTube = computed(() => isYoutubeUrl(content.value))
 
-const youtubeEmbedUrl = computed(() => {
-    const match = props.content.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/)
-    if (match) return `https://www.youtube-nocookie.com/embed/${match[1]}`
-    return props.content
-})
+const youtubeEmbedUrl = computed(() => toYoutubeEmbedUrl(content.value) ?? content.value)
 </script>
 
 <template>
@@ -36,7 +24,7 @@ const youtubeEmbedUrl = computed(() => {
         <TextInput
             :model-value="content"
             :placeholder="t('stationPages.editor.videoUrlPlaceholder')"
-            @update:model-value="$emit('update:content', $event)"
+            @update:model-value="content = String($event)"
         />
         <div v-if="content" class="mt-2">
             <div v-if="isYouTube" class="relative w-full" style="padding-bottom: 56.25%">

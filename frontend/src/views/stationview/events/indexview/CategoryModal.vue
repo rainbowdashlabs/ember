@@ -16,20 +16,20 @@ import type {EventCategory} from '@/api/types'
 
 const {t} = useI18n()
 
+const modelValue = defineModel<boolean>({required: true})
+
 const props = defineProps<{
-  modelValue: boolean
   category: EventCategory | null
 }>()
 
 const emit = defineEmits<{
-  'update:modelValue': [value: boolean]
   save: [name: string]
 }>()
 
 const categoryName = ref('')
 const saving = ref(false)
 
-watch(() => props.modelValue, (open) => {
+watch(modelValue, (open) => {
   if (!open) return
   categoryName.value = props.category?.name ?? ''
 })
@@ -42,7 +42,7 @@ function submit() {
 </script>
 
 <template>
-  <Modal :model-value="modelValue" @update:model-value="emit('update:modelValue', $event)">
+  <Modal v-model="modelValue">
     <div class="space-y-4">
       <SectionHeader>{{ category ? t('events.editCategory') : t('events.addCategory') }}</SectionHeader>
       <div class="space-y-1">
@@ -50,7 +50,7 @@ function submit() {
         <TextInput v-model="categoryName" :placeholder="t('events.categoryNamePlaceholder')"/>
       </div>
       <div class="flex justify-end gap-3">
-        <SecondaryButton @click="emit('update:modelValue', false)">{{ t('common.cancel') }}</SecondaryButton>
+        <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="saving || !categoryName" @click="submit">
           {{ saving ? t('common.loading') : t('common.save') }}
         </PrimaryButton>

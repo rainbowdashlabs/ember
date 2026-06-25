@@ -8,17 +8,12 @@ import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import SaveButton from '@/components/button/SaveButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import ScanButton from '@/components/scanner/ScanButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import type {InventoryItem, InventorySize} from '@/api/types'
 import {inventory, inventoryContainers, inventoryFields} from '@/api'
-import CustomFieldsSection from './CustomFieldsSection.vue'
+import EditItemFields from './edititemmodal/EditItemFields.vue'
+import EditItemCustomFields from './edititemmodal/EditItemCustomFields.vue'
+import EditItemFooter from './edititemmodal/EditItemFooter.vue'
 import {parseItemMetadata, serializeItemMetadata} from './itemMetadata'
 import type {InventoryContainer} from '@/api/inventoryContainers'
 import type {InventoryFieldDefinition} from '@/api/inventoryFields'
@@ -109,39 +104,21 @@ async function save() {
   <Modal v-model="show">
     <div class="space-y-4">
       <SectionHeader>{{ t('inventory.edit.editItem') }}</SectionHeader>
-      <div class="space-y-1">
-        <FieldLabel>{{ t('inventory.edit.itemName') }}</FieldLabel>
-        <TextInput v-model="itemName" :placeholder="t('inventory.edit.itemNamePlaceholder')" />
-      </div>
-      <div class="space-y-1">
-        <FieldLabel>{{ t('inventory.edit.itemInternalId') }}</FieldLabel>
-        <div class="flex items-center gap-2">
-          <TextInput v-model="internalId" class="flex-1" :placeholder="t('inventory.edit.itemInternalIdPlaceholder')" />
-          <ScanButton @decoded="internalId = $event"/>
-        </div>
-      </div>
-      <div v-if="props.hasSizes" class="space-y-1">
-        <FieldLabel>{{ t('inventory.edit.itemSize') }}</FieldLabel>
-        <SelectInput v-model="sizeId">
-          <option value="">&#x2013;</option>
-          <option v-for="size in props.sizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
-        </SelectInput>
-      </div>
-      <div class="space-y-1">
-        <FieldLabel>{{ t('inventory.edit.itemLocation') }}</FieldLabel>
-        <SelectInput v-model="containerId">
-          <option :value="null">{{ t('inventory.edit.itemLocationNone') }}</option>
-          <option v-for="c in sortedContainers" :key="c.id" :value="c.id">{{ c.name }}</option>
-        </SelectInput>
-      </div>
-      <div v-if="fieldDefs.length > 0" class="space-y-2 pt-2">
-        <SubHeader>{{ t('inventory.fields.title') }}</SubHeader>
-        <CustomFieldsSection :defs="fieldDefs" v-model="fieldValues" />
-      </div>
-      <div class="flex justify-end gap-3">
-        <SecondaryButton @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
-        <SaveButton :disabled="!itemName.trim()" :action="save"/>
-      </div>
+      <EditItemFields
+          v-model:itemName="itemName"
+          v-model:internalId="internalId"
+          v-model:sizeId="sizeId"
+          v-model:containerId="containerId"
+          :hasSizes="props.hasSizes"
+          :sizes="props.sizes"
+          :containers="sortedContainers"
+      />
+      <EditItemCustomFields :defs="fieldDefs" v-model="fieldValues"/>
+      <EditItemFooter
+          :saveDisabled="!itemName.trim()"
+          :save="save"
+          @cancel="show = false"
+      />
     </div>
   </Modal>
 </template>

@@ -12,31 +12,23 @@ import {AuthBucket, type AuthBucketName} from '@/api/traffic'
 /** Allowed metrics, mirrors {@code TrafficChart}'s prop type. */
 type Metric = 'ingressBytes' | 'egressBytes' | 'requests' | 'inout'
 
-const props = defineProps<{
-  windowHours: number
-  metric: Metric
-  authFilter: AuthBucketName | ''
-}>()
-
-const emit = defineEmits<{
-  (e: 'update:windowHours', value: number): void
-  (e: 'update:metric', value: Metric): void
-  (e: 'update:authFilter', value: AuthBucketName | ''): void
-}>()
+const windowHours = defineModel<number>('windowHours', {required: true})
+const metric = defineModel<Metric>('metric', {required: true})
+const authFilter = defineModel<AuthBucketName | ''>('authFilter', {required: true})
 
 const {t} = useI18n()
 
 const windowHoursModel = computed({
-  get: () => String(props.windowHours),
-  set: v => emit('update:windowHours', Number(v)),
+  get: () => String(windowHours.value),
+  set: v => windowHours.value = Number(v),
 })
 const metricModel = computed({
-  get: () => props.metric,
-  set: v => emit('update:metric', v as Metric),
+  get: () => metric.value,
+  set: v => metric.value = v as Metric,
 })
 const authModel = computed({
-  get: () => props.authFilter,
-  set: v => emit('update:authFilter', v as AuthBucketName | ''),
+  get: () => authFilter.value,
+  set: v => authFilter.value = v as AuthBucketName | '',
 })
 </script>
 

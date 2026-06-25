@@ -8,29 +8,29 @@ import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
-import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import {knowledgeBase, memberGroups, userTags} from '@/api'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {KbFolder} from '@/api/knowledgeBase'
 import type {MemberGroup, UserTag} from '@/api/types'
 import {useSession} from '@/composables/useSession'
+import KbRestrictionsField from './KbRestrictionsField.vue'
+import KbPublicVisibilityField from './KbPublicVisibilityField.vue'
+import KbTagsEditor from './KbTagsEditor.vue'
+import KbFolderIconField from './KbFolderIconField.vue'
 
 const {isKbPublic} = useSession()
 
 const {t} = useI18n()
 
+const show = defineModel<boolean>('show', {required: true})
+
 const props = defineProps<{
-    show: boolean
     folder: KbFolder | null
 }>()
 
 const emit = defineEmits<{
-    'update:show': [value: boolean]
     saved: []
 }>()
 
@@ -40,30 +40,13 @@ const selectedUserTypes = ref<string[]>([])
 const groupIds = ref<number[]>([])
 const tagIds = ref<number[]>([])
 const tags = ref<string[]>([])
-const newTag = ref('')
 const iconFile = ref<File | null>(null)
 const publicVisibility = ref<string>('default')
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
 const error = ref('')
 
-function onIconSelect(event: Event) {
-    const input = event.target as HTMLInputElement
-    iconFile.value = input.files?.[0] ?? null
-}
-
-function addTag() {
-    if (newTag.value.trim()) {
-        tags.value.push(newTag.value.trim())
-        newTag.value = ''
-    }
-}
-
-function removeTag(tag: string) {
-    tags.value = tags.value.filter(t => t !== tag)
-}
-
-watch(() => props.show, async (visible) => {
+watch(show, async (visible) => {
     if (visible && props.folder) {
         editName.value = props.folder.name
         editDescription.value = props.folder.description
@@ -71,7 +54,6 @@ watch(() => props.show, async (visible) => {
         groupIds.value = []
         tagIds.value = []
         tags.value = []
-        newTag.value = ''
         iconFile.value = null
         publicVisibility.value = 'default'
         error.value = ''
@@ -84,7 +66,7 @@ watch(() => props.show, async (visible) => {
             allGroups.value = groupList
             allTags.value = tagList
         } catch {
-            // ignore
+            error.value = ''
         }
 
         try {
@@ -99,7 +81,7 @@ watch(() => props.show, async (visible) => {
             tags.value = folderTags.map(t => t.name)
             publicVisibility.value = vis.visible === true ? 'public' : vis.visible === false ? 'hidden' : 'default'
         } catch {
-            // ignore
+            error.value = ''
         }
     }
 })
@@ -126,7 +108,7 @@ async function handleSave() {
             promises.push(knowledgeBase.uploadFolderIcon(props.folder.id, iconFile.value))
         }
         await Promise.all(promises)
-        emit('update:show', false)
+        show.value = false
         emit('saved')
     } catch {
         error.value = t('common.error')
@@ -135,71 +117,21 @@ async function handleSave() {
 </script>
 
 <template>
-    <Modal :model-value="show" @update:model-value="emit('update:show', $event)">
+    <Modal v-model="show">
         <SubHeader class="mb-3">{{ t('kb.editFolder') }}</SubHeader>
         <form @submit.prevent="handleSave" class="flex flex-col gap-3">
             <TextInput v-model="editName" :placeholder="t('kb.folderName')" required/>
             <TextAreaInput v-model="editDescription" :placeholder="t('kb.description')"/>
-
-            <!-- Folder icon -->
-            <div class="space-y-2">
-                <label class="text-xs text-[var(--text-muted)]">{{ t('kb.folderIcon') }}</label>
-                <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    class="block w-full text-sm text-[var(--text)] file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-[var(--primary)] file:text-[var(--color-primary-text)] cursor-pointer"
-                    @change="onIconSelect"
-                />
-            </div>
-
-            <!-- Restrictions -->
-            <div class="space-y-3 border-t border-bg-light-accent dark:border-bg-dark-accent pt-3">
-                <SubHeader class="text-sm">{{ t('kb.restrictions') }}</SubHeader>
-                <RestrictionPicker
-                    :groups="allGroups"
-                    :tags="allTags"
-                    :selected-user-types="selectedUserTypes"
-                    :selected-group-ids="groupIds"
-                    :selected-tag-ids="tagIds"
-                    @update:selected-user-types="selectedUserTypes = $event"
-                    @update:selected-group-ids="groupIds = $event"
-                    @update:selected-tag-ids="tagIds = $event"
-                />
-            </div>
-
-            <!-- Public visibility override -->
-            <div v-if="isKbPublic()" class="space-y-2 border-t border-bg-light-accent dark:border-bg-dark-accent pt-3">
-                <SubHeader class="text-sm">{{ t('kb.publicVisibility') }}</SubHeader>
-                <SelectInput v-model="publicVisibility">
-                    <option value="default">{{ t('kb.publicVisibilityDefault') }}</option>
-                    <option value="public">{{ t('kb.publicVisibilityPublic') }}</option>
-                    <option value="hidden">{{ t('kb.publicVisibilityHidden') }}</option>
-                </SelectInput>
-            </div>
-
-            <!-- Tags -->
-            <div class="space-y-2 border-t border-bg-light-accent dark:border-bg-dark-accent pt-3">
-                <label class="text-sm font-semibold">{{ t('kb.tags') }}</label>
-                <div class="flex flex-wrap gap-1.5">
-                    <span v-for="tag in tags" :key="tag"
-                          class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-[var(--bg-accent)] text-[var(--text)]">
-                        {{ tag }}
-                        <IconButton
-                            :icon="['fas', 'xmark']"
-                            :label="t('common.remove')"
-                            class="!p-0 !text-[10px]"
-                            @click="removeTag(tag)"
-                        />
-                    </span>
-                </div>
-                <form class="flex gap-2" @submit.prevent="addTag">
-                    <TextInput v-model="newTag" :placeholder="t('kb.tagPlaceholder')" class="flex-1"/>
-                    <SecondaryButton type="submit" :disabled="!newTag.trim()">
-                        <font-awesome-icon :icon="['fas', 'plus']"/>
-                    </SecondaryButton>
-                </form>
-            </div>
-
+            <KbFolderIconField v-model="iconFile"/>
+            <KbRestrictionsField
+                :all-groups="allGroups"
+                :all-tags="allTags"
+                v-model:selected-user-types="selectedUserTypes"
+                v-model:group-ids="groupIds"
+                v-model:tag-ids="tagIds"
+            />
+            <KbPublicVisibilityField v-if="isKbPublic()" v-model="publicVisibility"/>
+            <KbTagsEditor v-model="tags"/>
             <PrimaryButton type="submit">{{ t('common.save') }}</PrimaryButton>
         </form>
     </Modal>

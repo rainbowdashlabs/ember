@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onMounted, ref, watch} from 'vue'
+import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -16,34 +16,25 @@ import DiscoveryGrid from '@/components/discovery/DiscoveryGrid.vue'
 import {discovery, federation} from '@/api'
 import type {DiscoveryEntry} from '@/api/discovery'
 import {useSession} from '@/composables/useSession'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {t} = useI18n()
 const {loaded, canManageFederation} = useSession()
 
 const stations = ref<DiscoveryEntry[]>([])
-const loading = ref(true)
-const error = ref('')
 const success = ref('')
 
-async function loadAll() {
-  loading.value = true
-  error.value = ''
-  try {
-    const [stationsList, partners] = await Promise.all([
-      discovery.listDiscoverable(),
-      federation.listPartners(),
-    ])
-    const partnerUids = new Set(partners.map(p => p.partner.partnerStationId))
-    stations.value = stationsList.map(s => ({
-      ...s,
-      alreadyFederated: s.alreadyFederated || partnerUids.has(s.stationUid),
-    }))
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, error, reload: loadAll} = useAsyncLoader(async () => {
+  const [stationsList, partners] = await Promise.all([
+    discovery.listDiscoverable(),
+    federation.listPartners(),
+  ])
+  const partnerUids = new Set(partners.map(p => p.partner.partnerStationId))
+  stations.value = stationsList.map(s => ({
+    ...s,
+    alreadyFederated: s.alreadyFederated || partnerUids.has(s.stationUid),
+  }))
+}, {autoLoad: false})
 
 async function handleConnect(station: DiscoveryEntry) {
   try {
@@ -56,8 +47,7 @@ async function handleConnect(station: DiscoveryEntry) {
   }
 }
 
-onMounted(() => { if (loaded.value) loadAll() })
-watch(loaded, (v) => { if (v) loadAll() })
+watch(loaded, (v) => { if (v) loadAll() }, {immediate: true})
 </script>
 
 <template>

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted, ref, watch} from 'vue'
+import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -24,28 +24,22 @@ import MutedText from '@/components/typography/MutedText.vue'
 import type {EventTemplate} from '@/api/types'
 import {events} from '@/api'
 import {useSession} from '@/composables/useSession'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {t} = useI18n()
 const router = useRouter()
 const {loaded} = useSession()
 
 const templates = ref<EventTemplate[]>([])
-const loading = ref(true)
-const error = ref('')
 
 const createOpen = ref(false)
 const createName = ref('')
 
-onMounted(() => { if (loaded.value) loadData() })
-watch(loaded, (v) => { if (v && loading.value) loadData() })
+const {loading, error, reload} = useAsyncLoader(async () => {
+  templates.value = await events.listTemplates()
+}, {autoLoad: loaded.value})
 
-async function loadData() {
-  loading.value = true
-  try {
-    templates.value = await events.listTemplates()
-  } catch { error.value = t('common.error') }
-  finally { loading.value = false }
-}
+watch(loaded, (v) => { if (v) reload() })
 
 async function createTemplate() {
   if (!createName.value.trim()) return
@@ -60,7 +54,7 @@ async function createTemplate() {
 async function deleteTemplate(id: number) {
   try {
     await events.deleteTemplate(id)
-    await loadData()
+    await reload()
   } catch { error.value = t('common.error') }
 }
 </script>

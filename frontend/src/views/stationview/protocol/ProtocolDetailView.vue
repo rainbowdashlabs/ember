@@ -4,38 +4,32 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import Modal from '@/components/feedback/Modal.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import NumberInput from '@/components/input/number/NumberInput.vue'
-import DecimalInput from '@/components/input/number/DecimalInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import { useSession } from '@/composables/useSession'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { protocol, federation } from '@/api'
 import { getItem } from '@/api/storage'
 import type { TestProtocol, TestProtocolSection, TestProtocolItem } from '@/api/protocol'
 import MutedText from '@/components/typography/MutedText.vue'
-import MutedIcon from '@/components/display/MutedIcon.vue'
+import { StationPermission } from '@/api/types'
+import ProtocolSectionCard from './protocoldetailview/ProtocolSectionCard.vue'
+import ProtocolSectionModal from './protocoldetailview/ProtocolSectionModal.vue'
+import ProtocolItemModal from './protocoldetailview/ProtocolItemModal.vue'
+import ProtocolEditModal from './protocoldetailview/ProtocolEditModal.vue'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-import { StationPermission } from '@/api/types'
 const { hasPermission, loaded } = useSession()
 
 const isFederated = computed(() => {
@@ -50,10 +44,7 @@ const protocolId = computed(() => Number(route.params.id))
 const proto = ref<TestProtocol | null>(null)
 const sections = ref<TestProtocolSection[]>([])
 const items = ref<TestProtocolItem[]>([])
-const loading = ref(true)
-const error = ref('')
 
-// Section modal
 const showSectionModal = ref(false)
 const editSectionId = ref<number | null>(null)
 const sectionName = ref('')
@@ -62,7 +53,6 @@ const sectionParentId = ref<number | null>(null)
 const sectionMaxPoints = ref<number | undefined>(undefined)
 const sectionPassThreshold = ref<number | undefined>(undefined)
 
-// Item modal
 const showItemModal = ref(false)
 const editItemId = ref<number | null>(null)
 const itemSectionId = ref(0)
@@ -70,16 +60,12 @@ const itemLabel = ref('')
 const itemDescription = ref('')
 const itemPoints = ref(1)
 
-async function loadData() {
-  loading.value = true
-  try {
-    const data = await protocol.getProtocol(protocolId.value)
-    proto.value = data.protocol
-    sections.value = data.sections
-    items.value = data.items
-  } catch { error.value = t('common.error') }
-  finally { loading.value = false }
-}
+const {loading, error, reload: loadData} = useAsyncLoader(async () => {
+  const data = await protocol.getProtocol(protocolId.value)
+  proto.value = data.protocol
+  sections.value = data.sections
+  items.value = data.items
+}, {autoLoad: false})
 
 async function copyToStation() {
   if (!proto.value) return
@@ -202,7 +188,6 @@ async function handleDeleteItem(id: number) {
   catch { error.value = t('common.error') }
 }
 
-// Protocol edit modal
 const showEditProtocolModal = ref(false)
 const editProtoName = ref('')
 const editProtoDescription = ref('')
@@ -230,7 +215,6 @@ async function handleSaveProtocol() {
 }
 
 watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
-onMounted(() => { if (loaded.value) loadData() })
 </script>
 
 <template>
@@ -255,63 +239,24 @@ onMounted(() => { if (loaded.value) loadData() })
     <Alert v-if="error" variant="error">{{ error }}</Alert>
 
     <template v-if="!loading && proto">
-      <MutedText tag="p" size="sm" v-if="proto.description">{{ proto.description }}</MutedText>
+      <MutedText v-if="proto.description" tag="p" size="sm">{{ proto.description }}</MutedText>
 
-      <!-- Sections -->
       <div class="space-y-4">
-        <NeutralContainer v-for="section in topSections()" :key="section.id" class="space-y-2">
-          <div class="flex items-center gap-2">
-            <SubHeader>{{ section.name }}</SubHeader>
-            <MutedText class="ml-auto">{{ sectionTotalPoints(section.id) }}P</MutedText>
-            <template v-if="canEdit">
-              <IconButton :icon="['fas', 'plus']" :label="t('protocol.addItem')" @click="openAddItem(section.id)" />
-              <IconButton :icon="['fas', 'folder-plus']" :label="t('protocol.addSubsection')" @click="openAddSection(section.id)" />
-              <IconButton :icon="['fas', 'pen']" :label="t('common.edit')" @click="openEditSection(section)" />
-              <DeleteButton :label="t('common.delete')" @click="handleDeleteSection(section.id)" />
-            </template>
-          </div>
-          <MutedText v-if="section.description" tag="p" size="sm">{{ section.description }}</MutedText>
-
-          <!-- Items at section level -->
-          <div v-for="item in sectionItems(section.id)" :key="item.id" class="flex items-center gap-2 pl-4 text-xs">
-            <MutedIcon :icon="['fas', 'square']" />
-            <div class="flex-1">
-              <span>{{ item.label }}</span>
-              <p v-if="item.description" class="text-[var(--text-muted)]">{{ item.description }}</p>
-            </div>
-            <span class="text-xs text-[var(--text-muted)]">{{ item.points }}P</span>
-            <template v-if="canEdit">
-              <IconButton :icon="['fas', 'pen']" :label="t('common.edit')" @click="openEditItem(item)" />
-              <DeleteButton :label="t('common.delete')" @click="handleDeleteItem(item.id)" />
-            </template>
-          </div>
-
-          <!-- Subsections -->
-          <div v-for="sub in childSections(section.id)" :key="sub.id" class="ml-4 border-l-2 border-[var(--border)] pl-3 space-y-1">
-            <div class="flex items-center gap-2">
-              <span class="font-medium text-sm">{{ sub.name }}</span>
-              <MutedText class="ml-auto">{{ sectionTotalPoints(sub.id) }}P</MutedText>
-              <template v-if="canEdit">
-                <IconButton :icon="['fas', 'plus']" :label="t('protocol.addItem')" @click="openAddItem(sub.id)" />
-                <IconButton :icon="['fas', 'pen']" :label="t('common.edit')" @click="openEditSection(sub)" />
-                <DeleteButton :label="t('common.delete')" @click="handleDeleteSection(sub.id)" />
-              </template>
-            </div>
-            <MutedText v-if="sub.description" tag="p" size="sm">{{ sub.description }}</MutedText>
-            <div v-for="item in sectionItems(sub.id)" :key="item.id" class="flex items-center gap-2 pl-4 text-xs">
-              <MutedIcon :icon="['fas', 'square']" />
-              <div class="flex-1">
-                <span>{{ item.label }}</span>
-                <p v-if="item.description" class="text-[var(--text-muted)]">{{ item.description }}</p>
-              </div>
-              <span class="text-xs text-[var(--text-muted)]">{{ item.points }}P</span>
-              <template v-if="canEdit">
-                <IconButton :icon="['fas', 'pen']" :label="t('common.edit')" @click="openEditItem(item)" />
-                <DeleteButton :label="t('common.delete')" @click="handleDeleteItem(item.id)" />
-              </template>
-            </div>
-          </div>
-        </NeutralContainer>
+        <ProtocolSectionCard
+          v-for="section in topSections()"
+          :key="section.id"
+          :section="section"
+          :child-sections="childSections(section.id)"
+          :section-items="sectionItems"
+          :section-total-points="sectionTotalPoints"
+          :can-edit="canEdit"
+          @add-item="openAddItem"
+          @add-subsection="openAddSection"
+          @edit-section="openEditSection"
+          @delete-section="handleDeleteSection"
+          @edit-item="openEditItem"
+          @delete-item="handleDeleteItem"
+        />
       </div>
 
       <PrimaryButton v-if="canEdit" class="mt-4" @click="openAddSection()">
@@ -319,57 +264,31 @@ onMounted(() => { if (loaded.value) loadData() })
       </PrimaryButton>
     </template>
 
-    <!-- Section Modal -->
-    <Modal v-model="showSectionModal">
-      <SubHeader class="mb-3">{{ editSectionId ? t('protocol.editSection') : t('protocol.addSection') }}</SubHeader>
-      <form @submit.prevent="handleSaveSection" class="space-y-3">
-        <TextInput v-model="sectionName" :placeholder="t('protocol.sectionName')" required />
-        <TextAreaInput v-model="sectionDescription" :placeholder="t('protocol.description')" />
-        <div>
-          <label class="block text-sm mb-1">{{ t('protocol.maxPoints') }}</label>
-          <NumberInput v-model="sectionMaxPoints" />
-        </div>
-        <div>
-          <label class="block text-sm mb-1">{{ t('protocol.passThreshold') }}</label>
-          <NumberInput v-model="sectionPassThreshold" />
-        </div>
-        <div class="flex gap-2 justify-end">
-          <PrimaryButton type="submit">{{ t('common.save') }}</PrimaryButton>
-        </div>
-      </form>
-    </Modal>
+    <ProtocolSectionModal
+      v-model:visible="showSectionModal"
+      v-model:name="sectionName"
+      v-model:description="sectionDescription"
+      v-model:max-points="sectionMaxPoints"
+      v-model:pass-threshold="sectionPassThreshold"
+      :editing="editSectionId !== null"
+      @submit="handleSaveSection"
+    />
 
-    <!-- Item Modal -->
-    <Modal v-model="showItemModal">
-      <SubHeader class="mb-3">{{ editItemId ? t('protocol.editItem') : t('protocol.addItem') }}</SubHeader>
-      <form @submit.prevent="handleSaveItem" class="space-y-3">
-        <TextInput v-model="itemLabel" :placeholder="t('protocol.itemLabel')" required />
-        <TextAreaInput v-model="itemDescription" :placeholder="t('protocol.description')" />
-        <div>
-          <label class="block text-sm mb-1">{{ t('protocol.points') }}</label>
-          <DecimalInput v-model="itemPoints" step="0.5" />
-        </div>
-        <div class="flex gap-2 justify-end">
-          <PrimaryButton type="submit">{{ t('common.save') }}</PrimaryButton>
-        </div>
-      </form>
-    </Modal>
+    <ProtocolItemModal
+      v-model:visible="showItemModal"
+      v-model:label="itemLabel"
+      v-model:description="itemDescription"
+      v-model:points="itemPoints"
+      :editing="editItemId !== null"
+      @submit="handleSaveItem"
+    />
 
-    <!-- Edit Protocol Modal -->
-    <Modal v-model="showEditProtocolModal">
-      <SubHeader class="mb-3">{{ t('common.edit') }}</SubHeader>
-      <form @submit.prevent="handleSaveProtocol" class="space-y-3">
-        <TextInput v-model="editProtoName" :placeholder="t('protocol.name')" required />
-        <TextAreaInput v-model="editProtoDescription" :placeholder="t('protocol.description')" />
-        <div>
-          <FieldLabel class="mb-1">{{ t('protocol.passThreshold') }}</FieldLabel>
-          <NumberInput v-model="editProtoPassThreshold" />
-          <p class="text-xs text-[var(--text-muted)] mt-1">{{ t('protocol.passThresholdHint') }}</p>
-        </div>
-        <div class="flex gap-2 justify-end">
-          <PrimaryButton type="submit">{{ t('common.save') }}</PrimaryButton>
-        </div>
-      </form>
-    </Modal>
+    <ProtocolEditModal
+      v-model:visible="showEditProtocolModal"
+      v-model:name="editProtoName"
+      v-model:description="editProtoDescription"
+      v-model:pass-threshold="editProtoPassThreshold"
+      @submit="handleSaveProtocol"
+    />
   </ViewContent>
 </template>

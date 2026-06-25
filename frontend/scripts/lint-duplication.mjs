@@ -53,8 +53,56 @@ const BOILERPLATE_LINE = new RegExp([
     '|const\\s+\\w+\\s*=\\s*ref<',
     '|defineProps|defineEmits|defineExpose|defineSlots',
     '|onMounted|onBeforeUnmount|onBeforeMount|onUnmounted|watch\\(|watchEffect\\(',
+    '|:[\\w-]+(:[\\w-]+)?\\s*=',
+    '|@[\\w-]+(\\.[\\w]+)*\\s*=',
+    '|v-[\\w-]+(:[\\w-]+)?\\b',
     ').*$|^.{0,15}$',
 ].join(''))
+
+/**
+ * Marks lines that sit inside a `defineProps<{ … }>()` or `defineEmits<{ … }>()` macro body.
+ * The declaration shapes are part of Vue's compile-time surface area — they exist precisely to give
+ * each component a typed contract, and lifting them into a shared file would defeat that purpose.
+ * Standalone `interface` / `type` declarations are intentionally NOT silenced — when two files
+ * declare the same shape there, it's real duplication and should be extracted into a shared type.
+ */
+function markMacroBodyLines(lines) {
+    const inMacro = new Array(lines.length).fill(false)
+    let depth = 0
+    let active = false
+    const opener = /\b(defineProps|defineEmits)\s*<\s*\{/
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]
+        let j = 0
+        while (j < line.length) {
+            if (!active) {
+                const remainder = line.slice(j)
+                const m = remainder.match(opener)
+                if (!m) break
+                const start = j + (m.index ?? 0) + m[0].length
+                active = true
+                depth = 1
+                j = start
+                continue
+            }
+            const ch = line[j]
+            if (ch === '{') depth++
+            else if (ch === '}') {
+                depth--
+                if (depth === 0) {
+                    active = false
+                    j++
+                    continue
+                }
+            }
+            j++
+        }
+        if (active || (depth === 0 && lines[i].match(/^\s*\}>\s*\(\s*\)/))) {
+            inMacro[i] = true
+        }
+    }
+    return inMacro
+}
 
 function fingerprint(line) {
     return line
@@ -65,10 +113,14 @@ function fingerprint(line) {
         .trim()
 }
 
-function isBoilerplateWindow(lines) {
+function isBoilerplateWindow(lines, macroFlags) {
     let trivial = 0
-    for (const l of lines) {
-        if (BOILERPLATE_LINE.test(l)) trivial++
+    for (let i = 0; i < lines.length; i++) {
+        if (macroFlags && macroFlags[i]) {
+            trivial++
+            continue
+        }
+        if (BOILERPLATE_LINE.test(lines[i])) trivial++
     }
     return trivial >= Math.ceil(lines.length / 2)
 }
@@ -86,10 +138,12 @@ const files = [
 
 for (const file of files) {
     const lines = readFileSync(file, 'utf-8').split('\n')
+    const macroFlags = markMacroBodyLines(lines)
     const seen = new Set()
     for (let i = 0; i <= lines.length - WINDOW; i++) {
         const window = lines.slice(i, i + WINDOW)
-        if (isBoilerplateWindow(window)) continue
+        const windowMacro = macroFlags.slice(i, i + WINDOW)
+        if (isBoilerplateWindow(window, windowMacro)) continue
         const fp = window.map(fingerprint).join('\n')
         if (!fp || fp.length < 40) continue
         if (seen.has(fp)) continue

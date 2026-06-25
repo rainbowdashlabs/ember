@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted, ref, watch} from 'vue'
+import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -26,15 +26,14 @@ import MutedText from '@/components/typography/MutedText.vue'
 import type {EventCategory} from '@/api/types'
 import {events} from '@/api'
 import {useSession} from '@/composables/useSession'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {t} = useI18n()
 const {loaded} = useSession()
 
 const categories = ref<EventCategory[]>([])
-const loading = ref(true)
-const error = ref('')
 
-// Edit modal
 const editOpen = ref(false)
 const editId = ref<number | null>(null)
 const editName = ref('')
@@ -42,23 +41,22 @@ const editMaxShown = ref<number | null>(null)
 const editPublic = ref(false)
 const editColor = ref<string>('')
 
-// Delete modal
-const deleteOpen = ref(false)
-const deleteTarget = ref<EventCategory | null>(null)
+const {loading, error, reload} = useAsyncLoader(async () => {
+  categories.value = await events.listCategories()
+}, {autoLoad: loaded.value})
 
-async function loadData() {
-  loading.value = true
-  try {
-    categories.value = await events.listCategories()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const {
+  show: deleteOpen,
+  target: deleteTarget,
+  requestDelete,
+  confirm: confirmDelete,
+} = useConfirmDelete<EventCategory>({
+  onDelete: cat => events.deleteCategory(cat.id),
+  onSuccess: () => reload(),
+  error,
+})
 
-onMounted(() => { if (loaded.value) loadData() })
-watch(loaded, v => { if (v && loading.value) loadData() })
+watch(loaded, v => { if (v) reload() })
 
 function openCreate() {
   editId.value = null
@@ -93,27 +91,10 @@ async function saveCategory() {
       await events.createCategory(data)
     }
     editOpen.value = false
-    await loadData()
+    await reload()
   } catch (e) {
     error.value = t('common.error')
     throw e
-  }
-}
-
-function requestDelete(cat: EventCategory) {
-  deleteTarget.value = cat
-  deleteOpen.value = true
-}
-
-async function confirmDelete() {
-  if (!deleteTarget.value) return
-  try {
-    await events.deleteCategory(deleteTarget.value.id)
-    deleteOpen.value = false
-    deleteTarget.value = null
-    await loadData()
-  } catch {
-    error.value = t('common.error')
   }
 }
 

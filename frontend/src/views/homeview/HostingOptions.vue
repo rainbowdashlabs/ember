@@ -8,6 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import LandingEyebrow from '@/views/homeview/LandingEyebrow.vue'
 
 const {t, tm, rt} = useI18n()
 
@@ -29,7 +30,7 @@ const options = computed(() =>
 <template>
   <section class="hosting">
     <header class="head">
-      <div class="eyebrow">{{ t('landing.hosting.eyebrow') }}</div>
+      <LandingEyebrow>{{ t('landing.hosting.eyebrow') }}</LandingEyebrow>
       <SectionHeader class="display">{{ t('landing.hosting.headline') }}</SectionHeader>
     </header>
     <ul class="grid">
@@ -50,15 +51,6 @@ const options = computed(() =>
 .head {
   margin: 0 auto 3rem;
   max-width: 76rem;
-}
-.eyebrow {
-  font-family: 'Bitter', Georgia, serif;
-  font-size: 0.7rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  font-weight: 700;
-  opacity: 0.55;
-  margin-bottom: 0.75rem;
 }
 .display :deep(h2) {
   font-family: 'Bitter', Georgia, serif;

@@ -7,11 +7,9 @@
 import {useI18n} from 'vue-i18n'
 import type {ColumnEntry, GdprDeletionContext, TrackingStatusName} from '@/api/dataTracking'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import StatusBadge from './StatusBadge.vue'
+import StatusReasonFields from './StatusReasonFields.vue'
 import DeletionStrategyEditor from './DeletionStrategyEditor.vue'
 
 defineProps<{
@@ -36,19 +34,10 @@ const {t} = useI18n()
       <StatusBadge :status="deletion.status"/>
     </div>
     <div class="space-y-2 mt-2">
-      <SelectInput v-model="deletion.status">
-        <option v-for="s in statuses" :key="s" :value="s">{{ s }}</option>
-      </SelectInput>
-      <TextInput
-          v-if="deletion.status === 'IGNORED'"
-          v-model="deletion.reason"
-          :placeholder="t('adminDataTracking.detail.reason')"
-      />
-      <TextAreaInput
-          v-if="deletion.status === 'UNVERIFIED'"
-          v-model="deletion.reason"
-          :placeholder="t('adminDataTracking.detail.reviewNote')"
-          :rows="2"
+      <StatusReasonFields
+          v-model:status="deletion.status"
+          v-model:reason="deletion.reason"
+          :statuses="statuses"
       />
       <div>
         <div class="flex items-center justify-between mb-1">

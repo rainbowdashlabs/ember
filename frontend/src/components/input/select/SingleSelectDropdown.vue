@@ -8,17 +8,14 @@ import {computed, onBeforeUnmount, onMounted, ref} from 'vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import type {SelectOption} from '@/components/input/select/MultiSelectDropdown.vue'
 
+const modelValue = defineModel<string>({required: true})
+
 const props = defineProps<{
   options: SelectOption[]
-  modelValue: string
   placeholder?: string
   disabled?: boolean
   clearable?: boolean
   searchable?: boolean
-}>()
-
-const emit = defineEmits<{
-  'update:modelValue': [value: string]
 }>()
 
 const open = ref(false)
@@ -32,11 +29,11 @@ const filteredOptions = computed(() => {
 })
 
 const selectedLabel = computed(() => {
-  const opt = props.options.find(o => o.value === props.modelValue)
+  const opt = props.options.find(o => o.value === modelValue.value)
   return opt?.label ?? props.placeholder ?? 'Auswahl'
 })
 
-const hasSelection = computed(() => props.modelValue !== '' && props.options.some(o => o.value === props.modelValue))
+const hasSelection = computed(() => modelValue.value !== '' && props.options.some(o => o.value === modelValue.value))
 
 const groupedOptions = computed(() => {
   const opts = filteredOptions.value
@@ -53,12 +50,12 @@ const groupedOptions = computed(() => {
 })
 
 function select(value: string) {
-  emit('update:modelValue', value)
+  modelValue.value = value
   open.value = false
 }
 
 function clear() {
-  emit('update:modelValue', '')
+  modelValue.value = ''
   open.value = false
 }
 

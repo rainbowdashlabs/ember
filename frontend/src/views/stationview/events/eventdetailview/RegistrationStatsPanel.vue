@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted, ref, watch} from 'vue'
+import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -15,6 +15,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import type {EventCategory} from '@/api/types'
 import type {MemberRegistrationStats} from '@/api/events'
 import {events} from '@/api'
+import {useConfigPanel} from '@/composables/useConfigPanel'
 
 const props = defineProps<{
   eventId: number
@@ -24,10 +25,8 @@ const props = defineProps<{
 
 const {t} = useI18n()
 
-const stats = ref<MemberRegistrationStats[]>([])
 const categoryId = ref(String(props.defaultCategoryId ?? ''))
 const timeFilter = ref('12')
-const loading = ref(false)
 
 function getMonths(): number {
   if (timeFilter.value === 'year') {
@@ -37,20 +36,16 @@ function getMonths(): number {
   return Number(timeFilter.value) || 12
 }
 
-async function loadStats() {
-  loading.value = true
-  try {
-    stats.value = await events.getRegistrationStats(
-        props.eventId,
-        categoryId.value ? Number(categoryId.value) : undefined,
-        getMonths(),
-    )
-  } finally {
-    loading.value = false
-  }
-}
+const {config: stats, loading, reload: loadStats} = useConfigPanel<MemberRegistrationStats[]>({
+  initial: [],
+  fetch: () => events.getRegistrationStats(
+      props.eventId,
+      categoryId.value ? Number(categoryId.value) : undefined,
+      getMonths(),
+  ),
+  formatError: () => '',
+})
 
-onMounted(loadStats)
 watch(categoryId, loadStats)
 watch(timeFilter, loadStats)
 

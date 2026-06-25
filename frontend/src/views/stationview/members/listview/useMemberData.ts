@@ -4,10 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { ref, computed } from 'vue'
-import { useI18n } from 'vue-i18n'
 import type { ProfileField, StationMember, MemberGroup, UserTag, PermissionGrant } from '@/api/types'
 import { parseFieldConfig } from '@/api/types'
 import { profileFields, stationMembers } from '@/api'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
 
 export function computeAge(dateStr: string, mode: string): string {
   if (!dateStr) return ''
@@ -35,8 +35,6 @@ export function getMemberLastName(m: StationMember): string {
 }
 
 export function useMemberData() {
-  const { t } = useI18n()
-
   const members = ref<StationMember[]>([])
   const fields = ref<ProfileField[]>([])
   const allGroups = ref<MemberGroup[]>([])
@@ -47,8 +45,6 @@ export function useMemberData() {
   const memberGroupsMap = ref<Map<number, string[]>>(new Map())
   const memberTagsMap = ref<Map<number, string[]>>(new Map())
   const memberManagers = ref<Map<number, StationMember[]>>(new Map())
-  const loading = ref(true)
-  const error = ref('')
   const expandedId = ref<number | null>(null)
 
   const overviewFields = computed(() => fields.value.filter(f => parseFieldConfig(f.config).overview))
@@ -101,73 +97,65 @@ export function useMemberData() {
     return v ? [v] : []
   }
 
-  async function loadData() {
-    loading.value = true
-    error.value = ''
-    try {
-      const [richMembers, allFields, roles] = await Promise.all([
-        stationMembers.listRichMembers(),
-        profileFields.listFields(),
-        stationMembers.listAllPermissions(),
-      ])
-      fields.value = allFields
-      allRoles.value = roles
+  const {loading, error, reload} = useAsyncLoader(async () => {
+    const [richMembers, allFields, roles] = await Promise.all([
+      stationMembers.listRichMembers(),
+      profileFields.listFields(),
+      stationMembers.listAllPermissions(),
+    ])
+    fields.value = allFields
+    allRoles.value = roles
 
-      const memberList: StationMember[] = []
-      const valMap = new Map<number, Map<number, string>>()
-      const rolesMap = new Map<number, string[]>()
-      const groupsMap = new Map<number, string[]>()
-      const tagsMap = new Map<number, string[]>()
-      const groupSet = new Map<number, MemberGroup>()
-      const tagSet = new Map<number, UserTag>()
+    const memberList: StationMember[] = []
+    const valMap = new Map<number, Map<number, string>>()
+    const rolesMap = new Map<number, string[]>()
+    const groupsMap = new Map<number, string[]>()
+    const tagsMap = new Map<number, string[]>()
+    const groupSet = new Map<number, MemberGroup>()
+    const tagSet = new Map<number, UserTag>()
 
-      for (const rm of richMembers) {
-        memberList.push({
-          id: rm.id,
-          stationId: String(rm.stationId),
-          accountId: rm.accountId ?? 0,
-          name: rm.name,
-          email: rm.email,
-          userType: rm.userType,
-          identity: rm.identity,
-        })
+    for (const rm of richMembers) {
+      memberList.push({
+        id: rm.id,
+        stationId: String(rm.stationId),
+        accountId: rm.accountId ?? 0,
+        name: rm.name,
+        email: rm.email,
+        userType: rm.userType,
+        identity: rm.identity,
+      })
 
-        rolesMap.set(rm.id, rm.roles)
+      rolesMap.set(rm.id, rm.roles)
 
-        const fieldMap = new Map<number, string>()
-        for (const [key, val] of Object.entries(rm.profileValues)) {
-          fieldMap.set(Number(key), val != null ? String(val) : '')
-        }
-        valMap.set(rm.id, fieldMap)
+      const fieldMap = new Map<number, string>()
+      for (const [key, val] of Object.entries(rm.profileValues)) {
+        fieldMap.set(Number(key), val != null ? String(val) : '')
+      }
+      valMap.set(rm.id, fieldMap)
 
-        groupsMap.set(rm.id, rm.groups.map(g => g.name))
-        for (const g of rm.groups) {
-          if (!groupSet.has(g.id)) {
-            groupSet.set(g.id, { id: g.id, stationId: String(rm.stationId), name: g.name })
-          }
-        }
-
-        tagsMap.set(rm.id, rm.tags.map(t => t.name))
-        for (const tag of rm.tags) {
-          if (!tagSet.has(tag.id)) {
-            tagSet.set(tag.id, { id: tag.id, stationId: String(rm.stationId), name: tag.name })
-          }
+      groupsMap.set(rm.id, rm.groups.map(g => g.name))
+      for (const g of rm.groups) {
+        if (!groupSet.has(g.id)) {
+          groupSet.set(g.id, { id: g.id, stationId: String(rm.stationId), name: g.name })
         }
       }
 
-      members.value = memberList
-      memberValues.value = valMap
-      memberRolesMap.value = rolesMap
-      memberGroupsMap.value = groupsMap
-      memberTagsMap.value = tagsMap
-      allGroups.value = Array.from(groupSet.values())
-      allTags.value = Array.from(tagSet.values())
-    } catch {
-      error.value = t('common.error')
-    } finally {
-      loading.value = false
+      tagsMap.set(rm.id, rm.tags.map(t => t.name))
+      for (const tag of rm.tags) {
+        if (!tagSet.has(tag.id)) {
+          tagSet.set(tag.id, { id: tag.id, stationId: String(rm.stationId), name: tag.name })
+        }
+      }
     }
-  }
+
+    members.value = memberList
+    memberValues.value = valMap
+    memberRolesMap.value = rolesMap
+    memberGroupsMap.value = groupsMap
+    memberTagsMap.value = tagsMap
+    allGroups.value = Array.from(groupSet.values())
+    allTags.value = Array.from(tagSet.values())
+  })
 
   async function toggleExpand(member: StationMember) {
     if (expandedId.value === member.id) { expandedId.value = null; return }
@@ -201,7 +189,7 @@ export function useMemberData() {
     getMemberGroups,
     getMemberTags,
     getColumnValues,
-    loadData,
+    reload,
     toggleExpand,
   }
 }

@@ -1,0 +1,54 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+<script setup lang="ts">
+import ExchangeMobileCard from './ExchangeMobileCard.vue'
+import type { ExchangeRequestEntry, ExchangeStatusName, InventoryItem } from '@/api/types'
+
+defineProps<{
+  requests: ExchangeRequestEntry[]
+  showMemberColumn: boolean
+  canManageExchanges: boolean
+  exportMode: boolean
+  selectedForExport: Set<number>
+  updatingId: number | null
+  availableItems: InventoryItem[]
+  nextStatusesFor: (request: ExchangeRequestEntry) => ExchangeStatusName[]
+}>()
+
+const emit = defineEmits<{
+  (e: 'toggle-export', id: number): void
+  (e: 'open-log', id: number): void
+  (e: 'start-update', request: ExchangeRequestEntry): void
+  (e: 'delete', id: number): void
+  (e: 'status-done'): void
+  (e: 'status-cancel'): void
+  (e: 'status-error', msg: string): void
+}>()
+</script>
+
+<template>
+  <div class="space-y-3">
+    <ExchangeMobileCard
+      v-for="req in requests"
+      :key="req.id"
+      :request="req"
+      :show-member-column="showMemberColumn"
+      :can-manage-exchanges="canManageExchanges"
+      :export-mode="exportMode"
+      :selected="selectedForExport.has(req.id)"
+      :is-updating="updatingId === req.id"
+      :next-statuses="nextStatusesFor(req)"
+      :available-items="availableItems"
+      @toggle-export="emit('toggle-export', req.id)"
+      @open-log="emit('open-log', req.id)"
+      @start-update="emit('start-update', req)"
+      @delete="emit('delete', req.id)"
+      @status-done="emit('status-done')"
+      @status-cancel="emit('status-cancel')"
+      @status-error="(msg) => emit('status-error', msg)"
+    />
+  </div>
+</template>

@@ -10,29 +10,24 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import IconButton from '@/components/button/IconButton.vue'
 import MemberSearchPicker from '@/components/input/search/MemberSearchPicker.vue'
+import MemberListDynamicList from './MemberListDynamicList.vue'
+import MemberListManualList from './MemberListManualList.vue'
+import MemberListStaticList from './MemberListStaticList.vue'
 import {listGroups} from '@/api/memberGroups'
 import {listTags} from '@/api/userTags'
 import {getMemberPickerByUid, type MemberSearchResult} from '@/api/members'
 import {MemberListSortBy, resolveMemberListSource, type MemberListSortByName, type ResolvedMember} from '@/api/pageManage'
 import type {MemberGroup, UserTag} from '@/api/types'
+import {useConfigPatch} from '@/composables/useConfigPatch'
 
-const props = defineProps<{
-    config: Record<string, unknown>
-}>()
-
-const emit = defineEmits<{
-    'update:config': [value: Record<string, unknown>]
-}>()
+const config = defineModel<Record<string, unknown>>('config', {required: true})
 
 const {t} = useI18n()
 const TS = (k: string) => t(`stationPages.editor.${k}`)
 
-const cfg = computed(() => props.config)
-function patch(partial: Record<string, unknown>) {
-    emit('update:config', {...cfg.value, ...partial})
-}
+const cfg = computed(() => config.value)
+const patch = useConfigPatch(cfg, (_event, value) => { config.value = value })
 
 type OfficersSource = {kind?: string; groupId?: number | null; tagId?: number | null; memberUids?: string[]}
 const source = computed<OfficersSource>(() => (cfg.value.source as OfficersSource) ?? {})
@@ -68,12 +63,6 @@ async function resolveNames(uids: string[]) {
     })
     memberNames.value = nextNames
     memberResolveAttempted.value = nextAttempted
-}
-
-function memberLabel(uid: string): string {
-    if (memberNames.value[uid]) return memberNames.value[uid]
-    if (memberResolveAttempted.value[uid]) return t('stationPages.editor.memberListMissingMember')
-    return uid
 }
 
 function descriptionFor(uid: string): string {
@@ -148,51 +137,6 @@ function moveDynamicMember(from: number, to: number) {
     patch({memberOrder: next.map(m => m.memberUid)})
 }
 
-function onDynamicDragStart(event: DragEvent, index: number) {
-    dragIndex.value = index
-    if (event.dataTransfer) {
-        event.dataTransfer.effectAllowed = 'move'
-        event.dataTransfer.setData('text/plain', String(index))
-    }
-}
-function onDynamicDragOver(event: DragEvent, index: number) {
-    if (dragIndex.value === null) return
-    event.preventDefault()
-    dragOverIndex.value = index
-}
-function onDynamicDrop(event: DragEvent, index: number) {
-    event.preventDefault()
-    if (dragIndex.value !== null) moveDynamicMember(dragIndex.value, index)
-    dragIndex.value = null
-    dragOverIndex.value = null
-}
-
-const dragIndex = ref<number | null>(null)
-const dragOverIndex = ref<number | null>(null)
-
-function onDragStart(event: DragEvent, index: number) {
-    dragIndex.value = index
-    if (event.dataTransfer) {
-        event.dataTransfer.effectAllowed = 'move'
-        event.dataTransfer.setData('text/plain', String(index))
-    }
-}
-function onDragOver(event: DragEvent, index: number) {
-    if (dragIndex.value === null) return
-    event.preventDefault()
-    dragOverIndex.value = index
-}
-function onDrop(event: DragEvent, index: number) {
-    event.preventDefault()
-    if (dragIndex.value !== null) moveManualMember(dragIndex.value, index)
-    dragIndex.value = null
-    dragOverIndex.value = null
-}
-function onDragEnd() {
-    dragIndex.value = null
-    dragOverIndex.value = null
-}
-
 function removeManualMember(uid: string) {
     const map = {...((cfg.value.memberDescriptions as Record<string, string> | undefined) ?? {})}
     delete map[uid]
@@ -234,140 +178,34 @@ function removeManualMember(uid: string) {
     <template v-if="(sourceKind === 'group' || sourceKind === 'tag') && dynamicResolved.length > 0">
         <FieldLabel hint class="mb-1 mt-2">{{ TS('memberListGroupTagDescriptionsTitle') }}</FieldLabel>
         <p class="text-xs text-(--text-muted) mb-1">{{ TS('memberListGroupTagDescriptionsHint') }}</p>
-        <ul class="space-y-2 mb-2 text-sm">
-            <li
-                v-for="(m, i) in dynamicResolved"
-                :key="m.memberUid"
-                :draggable="isOrderSort"
-                class="flex items-stretch gap-2 px-2 py-2 rounded-theme border border-(--border) transition-colors"
-                :class="[
-                    isOrderSort ? 'cursor-move' : '',
-                    isOrderSort && dragOverIndex === i && dragIndex !== i ? 'border-primary bg-primary/5' : '',
-                ]"
-                @dragstart="isOrderSort ? onDynamicDragStart($event, i) : undefined"
-                @dragover="isOrderSort ? onDynamicDragOver($event, i) : undefined"
-                @drop="isOrderSort ? onDynamicDrop($event, i) : undefined"
-                @dragend="onDragEnd"
-            >
-                <div v-if="isOrderSort" class="flex flex-col items-center justify-between shrink-0">
-                    <IconButton
-                        :icon="['fas', 'arrow-up']"
-                        :label="TS('memberListManualMoveUp')"
-                        :disabled="i === 0"
-                        class="text-(--text-muted) hover:text-primary p-0.5!"
-                        @click="moveDynamicMember(i, i - 1)"
-                    />
-                    <font-awesome-icon
-                        :icon="['fas', 'grip-vertical']"
-                        class="text-(--text-muted)"
-                        :title="TS('memberListManualDragHandle')"
-                    />
-                    <IconButton
-                        :icon="['fas', 'arrow-down']"
-                        :label="TS('memberListManualMoveDown')"
-                        :disabled="i === dynamicResolved.length - 1"
-                        class="text-(--text-muted) hover:text-primary p-0.5!"
-                        @click="moveDynamicMember(i, i + 1)"
-                    />
-                </div>
-                <div class="flex-1 min-w-0 space-y-2">
-                    <div class="flex items-center gap-2">
-                        <font-awesome-icon :icon="['fas', 'user']" class="text-primary shrink-0"/>
-                        <span class="flex-1 truncate" :title="m.memberUid">{{ m.displayName }}</span>
-                    </div>
-                    <TextInput
-                        :model-value="descriptionFor(m.memberUid)"
-                        :placeholder="TS('memberListDescriptionPlaceholder')"
-                        @update:model-value="(v: string | undefined) => setDescription(m.memberUid, v)"
-                    />
-                </div>
-            </li>
-        </ul>
+        <MemberListDynamicList
+            :members="dynamicResolved"
+            :is-order-sort="isOrderSort"
+            :description-for="descriptionFor"
+            @move="moveDynamicMember"
+            @set-description="setDescription"
+        />
     </template>
 
     <template v-else-if="sourceKind === 'manual'">
         <FieldLabel hint class="mb-1">{{ TS('memberListManualList') }}</FieldLabel>
-        <ul v-if="isOrderSort" class="space-y-2 mb-2 text-sm">
-            <li
-                v-for="(uid, i) in manualUids"
-                :key="uid"
-                :draggable="true"
-                class="flex items-stretch gap-2 px-2 py-2 rounded-theme border border-(--border) cursor-move transition-colors"
-                :class="dragOverIndex === i && dragIndex !== i ? 'border-primary bg-primary/5' : ''"
-                @dragstart="onDragStart($event, i)"
-                @dragover="onDragOver($event, i)"
-                @drop="onDrop($event, i)"
-                @dragend="onDragEnd"
-            >
-                <div class="flex flex-col items-center justify-between shrink-0">
-                    <IconButton
-                        :icon="['fas', 'arrow-up']"
-                        :label="TS('memberListManualMoveUp')"
-                        :disabled="i === 0"
-                        class="text-(--text-muted) hover:text-primary p-0.5!"
-                        @click="moveManualMember(i, i - 1)"
-                    />
-                    <font-awesome-icon
-                        :icon="['fas', 'grip-vertical']"
-                        class="text-(--text-muted)"
-                        :title="TS('memberListManualDragHandle')"
-                    />
-                    <IconButton
-                        :icon="['fas', 'arrow-down']"
-                        :label="TS('memberListManualMoveDown')"
-                        :disabled="i === manualUids.length - 1"
-                        class="text-(--text-muted) hover:text-primary p-0.5!"
-                        @click="moveManualMember(i, i + 1)"
-                    />
-                </div>
-                <div class="flex-1 min-w-0 space-y-2">
-                    <div class="flex items-center gap-2">
-                        <font-awesome-icon :icon="['fas', 'user']" class="text-primary shrink-0"/>
-                        <span
-                            class="flex-1 truncate"
-                            :title="uid"
-                            :class="memberResolveAttempted[uid] && !memberNames[uid] ? 'italic text-(--text-muted)' : ''"
-                        >{{ memberLabel(uid) }}</span>
-                        <IconButton
-                            :icon="['fas', 'xmark']"
-                            :label="TS('memberListManualRemove')"
-                            class="text-(--text-muted) hover:text-error p-1!"
-                            @click="removeManualMember(uid)"
-                        />
-                    </div>
-                    <TextInput
-                        :model-value="descriptionFor(uid)"
-                        :placeholder="TS('memberListDescriptionPlaceholder')"
-                        @update:model-value="(v: string | undefined) => setDescription(uid, v)"
-                    />
-                </div>
-            </li>
-        </ul>
-        <ul v-else class="space-y-2 mb-2 text-sm">
-            <li
-                v-for="m in dynamicResolved"
-                :key="m.memberUid"
-                class="flex items-stretch gap-2 px-2 py-2 rounded-theme border border-(--border)"
-            >
-                <div class="flex-1 min-w-0 space-y-2">
-                    <div class="flex items-center gap-2">
-                        <font-awesome-icon :icon="['fas', 'user']" class="text-primary shrink-0"/>
-                        <span class="flex-1 truncate" :title="m.memberUid">{{ m.displayName }}</span>
-                        <IconButton
-                            :icon="['fas', 'xmark']"
-                            :label="TS('memberListManualRemove')"
-                            class="text-(--text-muted) hover:text-error p-1!"
-                            @click="removeManualMember(m.memberUid)"
-                        />
-                    </div>
-                    <TextInput
-                        :model-value="descriptionFor(m.memberUid)"
-                        :placeholder="TS('memberListDescriptionPlaceholder')"
-                        @update:model-value="(v: string | undefined) => setDescription(m.memberUid, v)"
-                    />
-                </div>
-            </li>
-        </ul>
+        <MemberListManualList
+            v-if="isOrderSort"
+            :uids="manualUids"
+            :member-names="memberNames"
+            :member-resolve-attempted="memberResolveAttempted"
+            :description-for="descriptionFor"
+            @move="moveManualMember"
+            @remove="removeManualMember"
+            @set-description="setDescription"
+        />
+        <MemberListStaticList
+            v-else
+            :members="dynamicResolved"
+            :description-for="descriptionFor"
+            @remove="removeManualMember"
+            @set-description="setDescription"
+        />
         <MemberSearchPicker
             :model-value="null"
             @pick="(item: MemberSearchResult) => addManualMember(item.memberUid)"

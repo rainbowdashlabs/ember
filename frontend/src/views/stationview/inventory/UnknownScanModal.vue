@@ -8,16 +8,11 @@ import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import CustomFieldsSection from '@/views/stationview/inventory/detailview/CustomFieldsSection.vue'
+import UnknownScanForm from '@/views/stationview/inventory/unknownscanmodal/UnknownScanForm.vue'
 import {serializeItemMetadata} from '@/views/stationview/inventory/detailview/itemMetadata'
 import {inventory, inventoryFields} from '@/api'
 import type {Inventory, InventoryItem, InventorySize} from '@/api/types'
@@ -252,84 +247,26 @@ load()
     <div v-if="loading" class="flex justify-center py-6">
       <Spinner size="md" />
     </div>
-    <div v-else class="flex flex-col gap-3">
-      <div class="space-y-1">
-        <FieldLabel>{{ t('inventory.unknownScan.targetInventory') }}</FieldLabel>
-        <SelectInput v-model="targetInventoryId">
-          <option v-for="inv in sortedInventories" :key="inv.id" :value="inv.id">{{ inv.name }}</option>
-          <option value="new">{{ t('inventory.unknownScan.createNewInventory') }}</option>
-        </SelectInput>
-      </div>
-
-      <template v-if="isCreatingInventory">
-        <div class="space-y-1">
-          <FieldLabel>{{ t('inventory.unknownScan.newInventoryName') }}</FieldLabel>
-          <TextInput v-model="newInventoryName" :placeholder="t('inventory.unknownScan.newInventoryPlaceholder')" />
-        </div>
-        <div class="space-y-1">
-          <FieldLabel>{{ t('inventory.unknownScan.newInventoryType') }}</FieldLabel>
-          <SelectInput v-model="newInventoryType">
-            <option :value="InventoryTypes.INTERNAL">{{ t('inventory.unknownScan.types.INTERNAL') }}</option>
-            <option :value="InventoryTypes.EXTERNAL">{{ t('inventory.unknownScan.types.EXTERNAL') }}</option>
-            <option :value="InventoryTypes.MIXED">{{ t('inventory.unknownScan.types.MIXED') }}</option>
-          </SelectInput>
-        </div>
-        <label class="flex items-center gap-2 text-sm">
-          <ToggleInput v-model="newInventoryHasSizes" />
-          <span>{{ t('inventory.unknownScan.newInventoryHasSizes') }}</span>
-        </label>
-        <div v-if="newInventoryHasSizes" class="space-y-1">
-          <FieldLabel>{{ t('inventory.unknownScan.newInventorySizes') }}</FieldLabel>
-          <p class="text-xs text-(--text-muted)">{{ t('inventory.unknownScan.newInventorySizesHint') }}</p>
-          <div v-for="(_, idx) in newInventorySizes" :key="idx" class="flex items-center gap-2">
-            <TextInput
-                v-model="newInventorySizes[idx]"
-                :placeholder="t('inventory.unknownScan.newInventorySizePlaceholder')"
-                class="flex-1"
-            />
-            <IconButton
-                v-if="newInventorySizes.length > 1"
-                :icon="['fas', 'xmark']"
-                :label="t('common.remove')"
-                @click="removeNewSizeRow(idx)"
-            />
-          </div>
-          <SecondaryButton size="sm" @click="addNewSizeRow">
-            <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
-            {{ t('inventory.unknownScan.addSize') }}
-          </SecondaryButton>
-        </div>
-      </template>
-
-      <div class="space-y-1">
-        <FieldLabel>{{ t('inventory.unknownScan.itemName') }}</FieldLabel>
-        <TextInput v-model="itemName" :placeholder="t('inventory.unknownScan.itemNamePlaceholder')" />
-      </div>
-
-      <div v-if="effectiveHasSizes" class="space-y-1">
-        <FieldLabel>
-          {{ t('inventory.unknownScan.itemSize') }}
-          <span class="text-error">*</span>
-        </FieldLabel>
-        <SelectInput v-model="pickedSizeLabel">
-          <option value="">{{ t('inventory.unknownScan.pickSize') }}</option>
-          <option v-for="label in sizeOptionLabels" :key="label" :value="label">{{ label }}</option>
-        </SelectInput>
-      </div>
-
-      <div v-if="showSourcePicker" class="space-y-1">
-        <FieldLabel>{{ t('inventory.unknownScan.itemSource') }}</FieldLabel>
-        <SelectInput v-model="itemSource">
-          <option :value="ItemSource.INTERNAL">{{ t('inventory.unknownScan.sources.INTERNAL') }}</option>
-          <option :value="ItemSource.EXTERNAL">{{ t('inventory.unknownScan.sources.EXTERNAL') }}</option>
-        </SelectInput>
-      </div>
-
-      <template v-if="fieldDefs.length > 0">
-        <SubHeader class="pt-2">{{ t('inventory.fields.title') }}</SubHeader>
-        <CustomFieldsSection :defs="fieldDefs" v-model="fieldValues" />
-      </template>
-    </div>
+    <UnknownScanForm
+        v-else
+        v-model:targetInventoryId="targetInventoryId"
+        v-model:newInventoryName="newInventoryName"
+        v-model:newInventoryType="newInventoryType"
+        v-model:newInventoryHasSizes="newInventoryHasSizes"
+        v-model:newInventorySizes="newInventorySizes"
+        v-model:itemName="itemName"
+        v-model:pickedSizeLabel="pickedSizeLabel"
+        v-model:itemSource="itemSource"
+        v-model:fieldValues="fieldValues"
+        :sortedInventories="sortedInventories"
+        :isCreatingInventory="isCreatingInventory"
+        :effectiveHasSizes="effectiveHasSizes"
+        :sizeOptionLabels="sizeOptionLabels"
+        :showSourcePicker="showSourcePicker"
+        :fieldDefs="fieldDefs"
+        @addNewSize="addNewSizeRow"
+        @removeNewSize="removeNewSizeRow"
+    />
 
     <div class="flex justify-end gap-2 mt-4">
       <SecondaryButton @click="onClose">{{ t('common.cancel') }}</SecondaryButton>

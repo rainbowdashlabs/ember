@@ -10,10 +10,7 @@ import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
-import EditButton from '@/components/button/EditButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -24,7 +21,9 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import TemplateItemCard from '@/views/stationview/procedure/proceduretemplateeditview/TemplateItemCard.vue'
 import { useSession } from '@/composables/useSession'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { procedures } from '@/api'
 import { StationPermission } from '@/api/types'
 import type { TemplateDetail, ProcedureTemplateItem } from '@/api/procedures'
@@ -37,17 +36,13 @@ const { hasPermission, loaded } = useSession()
 const canManage = computed(() => hasPermission(StationPermission.PROCEDURE_MANAGER))
 
 const detail = ref<TemplateDetail | null>(null)
-const loading = ref(true)
-const error = ref('')
 
 const templateId = computed(() => Number(route.params.id))
 
-// Edit template modal
 const showEditModal = ref(false)
 const editName = ref('')
 const editDescription = ref('')
 
-// Add/Edit item modal
 const showItemModal = ref(false)
 const editingItem = ref<ProcedureTemplateItem | null>(null)
 const itemTitle = ref('')
@@ -55,22 +50,13 @@ const itemDescription = ref('')
 const itemIsPublic = ref(true)
 const itemUserAssigned = ref(false)
 
-// Dependency modal
 const showDepModal = ref(false)
 const depTargetItem = ref<ProcedureTemplateItem | null>(null)
 const depSelectedId = ref<number | null>(null)
 
-async function loadData() {
-  loading.value = true
-  error.value = ''
-  try {
-    detail.value = await procedures.getTemplate(templateId.value)
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, error, reload} = useAsyncLoader(async () => {
+  detail.value = await procedures.getTemplate(templateId.value)
+}, {autoLoad: false})
 
 function openEditModal() {
   if (!detail.value) return
@@ -87,7 +73,7 @@ async function handleEdit() {
       description: editDescription.value || undefined,
     })
     showEditModal.value = false
-    await loadData()
+    await reload()
   } catch {
     error.value = t('common.error')
   }
@@ -130,7 +116,7 @@ async function handleSaveItem() {
       })
     }
     showItemModal.value = false
-    await loadData()
+    await reload()
   } catch {
     error.value = t('common.error')
   }
@@ -139,13 +125,12 @@ async function handleSaveItem() {
 async function handleDeleteItem(itemId: number) {
   try {
     await procedures.deleteTemplateItem(templateId.value, itemId)
-    await loadData()
+    await reload()
   } catch {
     error.value = t('common.error')
   }
 }
 
-// Dependencies helpers
 function getDepsForItem(itemId: number): number[] {
   if (!detail.value) return []
   return detail.value.dependencies.filter(d => d[1] === itemId).map(d => d[0])
@@ -167,7 +152,7 @@ async function addDependency() {
   try {
     await procedures.setTemplateDependencies(templateId.value, newDeps)
     depSelectedId.value = null
-    await loadData()
+    await reload()
   } catch {
     error.value = t('common.error')
   }
@@ -178,13 +163,13 @@ async function removeDependency(fromId: number, toId: number) {
   const newDeps = detail.value.dependencies.filter(d => !(d[0] === fromId && d[1] === toId))
   try {
     await procedures.setTemplateDependencies(templateId.value, newDeps)
-    await loadData()
+    await reload()
   } catch {
     error.value = t('common.error')
   }
 }
 
-watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
+watch(loaded, (v) => { if (v) reload() }, { immediate: true })
 </script>
 
 <template>
@@ -218,55 +203,19 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
       </div>
 
       <div class="space-y-2">
-        <NeutralContainer
+        <TemplateItemCard
           v-for="(item, index) in detail.items"
           :key="item.id"
-          class="group"
-        >
-          <div class="flex items-start gap-3">
-            <span class="text-sm font-mono text-[var(--text-muted)] pt-0.5 shrink-0">{{ index + 1 }}.</span>
-            <div class="flex-1 min-w-0">
-              <div class="font-medium">{{ item.title }}</div>
-              <div v-if="item.description" class="text-sm text-[var(--text-muted)]">{{ item.description }}</div>
-              <div class="flex flex-wrap gap-2 mt-1 text-xs text-[var(--text-muted)]">
-                <span v-if="item.isPublic">
-                  <font-awesome-icon :icon="['fas', 'eye']" class="w-3 h-3 mr-0.5" /> {{ t('procedures.itemPublic') }}
-                </span>
-                <span v-else>
-                  <font-awesome-icon :icon="['fas', 'eye-slash']" class="w-3 h-3 mr-0.5" /> {{ t('procedures.itemPrivate') }}
-                </span>
-                <span v-if="item.userAssigned">
-                  <font-awesome-icon :icon="['fas', 'user']" class="w-3 h-3 mr-0.5" /> {{ t('procedures.itemUserAssigned') }}
-                </span>
-              </div>
-              <!-- Dependencies list -->
-              <div v-if="getDepsForItem(item.id).length > 0" class="mt-2">
-                <span class="text-xs font-medium text-[var(--text-muted)]">{{ t('procedures.dependsOn') }}:</span>
-                <div class="flex flex-wrap gap-1 mt-1">
-                  <span
-                    v-for="depId in getDepsForItem(item.id)"
-                    :key="depId"
-                    class="inline-flex items-center gap-1 text-xs bg-[var(--bg-light-accent)] dark:bg-[var(--bg-dark-accent)] rounded px-1.5 py-0.5"
-                  >
-                    {{ getItemById(depId)?.title ?? depId }}
-                    <IconButton
-                      v-if="canManage"
-                      :icon="['fas', 'xmark']"
-                      label="Remove"
-                      class="!p-0 !w-3 !h-3 text-[var(--text-muted)]"
-                      @click="removeDependency(depId, item.id)"
-                    />
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div v-if="canManage" class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-              <IconButton :icon="['fas', 'link']" :label="t('procedures.dependencies')" @click="openDepModal(item)" />
-              <EditButton :label="t('common.edit')" @click="openEditItemModal(item)" />
-              <DeleteButton :label="t('procedures.deleteItem')" @click="handleDeleteItem(item.id)" />
-            </div>
-          </div>
-        </NeutralContainer>
+          :item="item"
+          :index="index"
+          :can-manage="canManage"
+          :dependencies="getDepsForItem(item.id)"
+          :get-item-by-id="getItemById"
+          @edit="openEditItemModal"
+          @delete="handleDeleteItem"
+          @open-deps="openDepModal"
+          @remove-dep="removeDependency"
+        />
       </div>
 
       <div v-if="detail.items.length === 0" class="text-center text-[var(--text-muted)] py-8">

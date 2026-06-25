@@ -19,13 +19,12 @@ interface FolderTreeNode extends PageFileFolder {
 defineProps<{
     folderTree: FolderTreeNode[]
     tags: PageFileTag[]
-    activeFolder: number | null
-    activeTagFilter: number | null
 }>()
 
+const activeFolder = defineModel<number | null>('activeFolder', {required: true})
+const activeTagFilter = defineModel<number | null>('activeTagFilter', {required: true})
+
 const emit = defineEmits<{
-    'update:activeFolder': [folderId: number | null]
-    'update:activeTagFilter': [tagId: number | null]
     'new-folder': []
     'edit-folder': [folder: PageFileFolder]
     'remove-folder': [folder: PageFileFolder]
@@ -47,7 +46,7 @@ const {t} = useI18n()
         <ul class="space-y-1 text-sm">
             <li v-for="root in folderTree" :key="root.id">
                 <FolderNode :folder="root" :active="activeFolder"
-                            @select="(id: number | null) => emit('update:activeFolder', id)"
+                            @select="(id: number | null) => activeFolder = id"
                             @edit="(f: PageFileFolder) => emit('edit-folder', f)"
                             @remove="(f: PageFileFolder) => emit('remove-folder', f)"/>
             </li>
@@ -60,12 +59,12 @@ const {t} = useI18n()
         <div class="flex flex-wrap gap-1">
             <BaseButton compact class="!rounded-full !border !font-normal"
                         :class="activeTagFilter === null ? '!border-primary !text-primary' : '!border-(--border) !text-(--text-muted)'"
-                        @click="emit('update:activeTagFilter', null)">{{ t('stationPages.editor.allTags') }}</BaseButton>
+                        @click="activeTagFilter = null">{{ t('stationPages.editor.allTags') }}</BaseButton>
             <div v-for="tag in tags" :key="tag.id" class="flex items-center">
                 <BaseButton compact class="!rounded-l-full !border !font-normal"
                             :style="activeTagFilter === tag.id ? {borderColor: tag.color ?? 'var(--primary)', color: tag.color ?? 'var(--primary)'} : {}"
                             :class="activeTagFilter === tag.id ? '!font-medium' : '!border-(--border)'"
-                            @click="emit('update:activeTagFilter', activeTagFilter === tag.id ? null : tag.id)">
+                            @click="activeTagFilter = activeTagFilter === tag.id ? null : tag.id">
                     <span class="inline-block w-2 h-2 rounded-full mr-1" :style="{background: tag.color ?? '#888'}"/>
                     {{ tag.name }}
                 </BaseButton>

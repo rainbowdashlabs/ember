@@ -7,21 +7,13 @@
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Modal from '@/components/feedback/Modal.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
-import InfoBadge from '@/components/badge/InfoBadge.vue'
+import StatusDetails from './waitingliststatusview/StatusDetails.vue'
+import StatusActions from './waitingliststatusview/StatusActions.vue'
+import RemoveConfirmationModal from './waitingliststatusview/RemoveConfirmationModal.vue'
 import type { WaitingListPublicStatus } from '@/api/types'
 import { waitingList } from '@/api'
 
@@ -85,36 +77,6 @@ async function removeFromList() {
   }
 }
 
-function statusBadgeComponent(statusStr: string) {
-  if (statusStr === 'JOINED') return SuccessBadge
-  if (statusStr === 'WITHDRAWN') return ErrorBadge
-  if (statusStr === 'TESTING') return PrimaryBadge
-  if (statusStr === 'INVITED') return InfoBadge
-  return SecondaryBadge
-}
-
-function formatDateTime(dateStr: string | undefined | null): string {
-  if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleString()
-}
-
-function formatDate(dateStr: string | undefined | null): string {
-  if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleDateString()
-}
-
-function guardianLabel(g: { firstname: string; lastname: string; email: string }): string {
-  const name = `${g.firstname ?? ''} ${g.lastname ?? ''}`.trim()
-  return name || g.email
-}
-
-function nextConfirmationDate(): string {
-  if (!status.value?.confirmedAt || !status.value.confirmIntervalDays) return '-'
-  const next = new Date(status.value.confirmedAt)
-  next.setDate(next.getDate() + status.value.confirmIntervalDays)
-  return next.toLocaleDateString()
-}
-
 onMounted(loadStatus)
 </script>
 
@@ -130,109 +92,31 @@ onMounted(loadStatus)
       <Alert v-if="error" variant="error">{{ error }}</Alert>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
 
-      <!-- Removed confirmation -->
       <template v-if="removed">
         <Alert variant="info">{{ t('waitingList.publicStatus.removed') }}</Alert>
       </template>
 
-      <!-- Status display -->
       <template v-if="!loading && status && !removed">
-        <NeutralContainer class="space-y-4">
-          <div class="text-center space-y-1">
-            <SectionHeader class="text-lg font-semibold">{{ status.listName }}</SectionHeader>
-          </div>
-
-          <div class="grid gap-3 sm:grid-cols-2">
-            <div class="text-sm">
-              <span class="text-(--text-muted)">{{ t('waitingList.firstname') }}:</span>
-              <span class="ml-1 font-medium">{{ status.firstname }}</span>
-            </div>
-            <div class="text-sm">
-              <span class="text-(--text-muted)">{{ t('waitingList.lastname') }}:</span>
-              <span class="ml-1 font-medium">{{ status.lastname || '-' }}</span>
-            </div>
-            <div v-if="status.email" class="text-sm sm:col-span-2">
-              <span class="text-(--text-muted)">{{ t('waitingList.email') }}:</span>
-              <span class="ml-1 font-medium">{{ status.email }}</span>
-            </div>
-            <div v-if="status.guardians && status.guardians.length > 0" class="text-sm sm:col-span-2">
-              <span class="text-(--text-muted)">{{ t('waitingList.guardians') }}:</span>
-              <span v-for="(g, i) in status.guardians" :key="i" class="ml-1 font-medium">
-                {{ guardianLabel(g) }}{{ g.phone ? ` (${g.phone})` : '' }}{{ i < status.guardians.length - 1 ? ', ' : '' }}
-              </span>
-            </div>
-            <div v-else-if="status.parentName" class="text-sm">
-              <span class="text-(--text-muted)">{{ t('waitingList.parentName') }}:</span>
-              <span class="ml-1 font-medium">{{ status.parentName }}</span>
-            </div>
-            <div class="text-sm">
-              <span class="text-(--text-muted)">{{ t('waitingList.status') }}:</span>
-              <component :is="statusBadgeComponent(status.status)" class="ml-1">{{ t('waitingList.status_' + status.status) }}</component>
-            </div>
-            <div v-if="status.status === 'WAITING'" class="text-sm sm:col-span-2">
-              <div>
-                <span class="text-(--text-muted)">{{ t('waitingList.position') }}:</span>
-                <span class="ml-1 font-medium text-lg">{{ status.position }}</span>
-              </div>
-              <p class="text-xs text-(--text-muted) mt-1">{{ t('waitingList.publicStatus.positionHint') }}</p>
-            </div>
-            <div class="text-sm">
-              <span class="text-(--text-muted)">{{ t('waitingList.publicStatus.waitingSince') }}:</span>
-              <span class="ml-1 font-medium">{{ formatDate(status.createdAt) }}</span>
-            </div>
-            <div class="text-sm">
-              <span class="text-(--text-muted)">{{ t('waitingList.publicStatus.lastConfirmation') }}:</span>
-              <span class="ml-1 font-medium">{{ formatDate(status.confirmedAt) }}</span>
-            </div>
-            <div v-if="status.confirmIntervalDays > 0" class="text-sm sm:col-span-2">
-              <span class="text-(--text-muted)">{{ t('waitingList.publicStatus.nextConfirmation') }}:</span>
-              <span class="ml-1 font-medium">{{ nextConfirmationDate() }}</span>
-            </div>
-          </div>
-
-          <!-- Field values -->
-          <div v-if="status.fields && status.fields.length > 0" class="border-t border-bg-light-accent dark:border-bg-dark-accent pt-3 space-y-2">
-            <div v-for="field in status.fields" :key="field.id" class="text-sm">
-              <span class="text-(--text-muted)">{{ field.name }}:</span>
-              <span class="ml-1 font-medium">
-                {{ status.values?.find(v => v.fieldId === field.id)?.value || '-' }}
-              </span>
-            </div>
-          </div>
-        </NeutralContainer>
-
-        <!-- Actions -->
-        <div v-if="status.status === 'WAITING'" class="flex flex-col sm:flex-row gap-3">
-          <PrimaryButton :icon="['fas', 'check']" :disabled="confirming" class="flex-1" @click="confirmInterest">
-            {{ confirming ? t('common.loading') : t('waitingList.publicStatus.confirmInterest') }}
-          </PrimaryButton>
-          <ErrorButton :icon="['fas', 'xmark']" class="flex-1" @click="showRemoveModal = true">
-            {{ t('waitingList.publicStatus.removeFromList') }}
-          </ErrorButton>
-        </div>
+        <StatusDetails :status="status" />
+        <StatusActions
+          v-if="status.status === 'WAITING'"
+          :confirming="confirming"
+          @confirm="confirmInterest"
+          @remove="showRemoveModal = true"
+        />
       </template>
 
-      <!-- Invalid token state -->
       <template v-if="!loading && !status && !removed">
         <div class="text-center">
           <router-link class="text-sm text-primary hover:underline" to="/login">{{ t('waitingList.publicStatus.backToLogin') }}</router-link>
         </div>
       </template>
 
-      <!-- Remove confirmation modal -->
-      <Modal v-model="showRemoveModal">
-        <div class="space-y-4">
-          <SectionHeader>{{ t('waitingList.publicStatus.removeTitle') }}</SectionHeader>
-          <p class="text-sm">{{ t('waitingList.publicStatus.removeConfirm') }}</p>
-          <p class="text-xs text-(--text-muted)">{{ t('waitingList.publicStatus.removeHint') }}</p>
-          <div class="flex justify-end gap-2">
-            <SecondaryButton @click="showRemoveModal = false">{{ t('common.cancel') }}</SecondaryButton>
-            <ErrorButton :disabled="removing" @click="removeFromList">
-              {{ removing ? t('common.loading') : t('waitingList.publicStatus.removeFromList') }}
-            </ErrorButton>
-          </div>
-        </div>
-      </Modal>
+      <RemoveConfirmationModal
+        v-model="showRemoveModal"
+        :removing="removing"
+        @confirm="removeFromList"
+      />
     </div>
   </div>
 </template>

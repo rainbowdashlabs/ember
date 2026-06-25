@@ -9,26 +9,14 @@ import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 
-const props = defineProps<{
-  windowHours: number
-  includeBots: boolean
-}>()
-
-const emit = defineEmits<{
-  (e: 'update:windowHours', value: number): void
-  (e: 'update:includeBots', value: boolean): void
-}>()
+const windowHours = defineModel<number>('windowHours', {required: true})
+const includeBots = defineModel<boolean>('includeBots', {required: true})
 
 const {t} = useI18n()
 
 const windowHoursModel = computed({
-  get: () => String(props.windowHours),
-  set: v => emit('update:windowHours', Number(v)),
-})
-
-const includeBotsModel = computed({
-  get: () => props.includeBots,
-  set: v => emit('update:includeBots', v),
+  get: () => String(windowHours.value),
+  set: v => { windowHours.value = Number(v) },
 })
 </script>
 
@@ -45,7 +33,7 @@ const includeBotsModel = computed({
       </SelectInput>
     </label>
     <label class="flex items-center gap-2 text-sm">
-      <ToggleInput v-model="includeBotsModel"/>
+      <ToggleInput v-model="includeBots"/>
       <span class="text-(--text-muted)">{{ t('insights.controls.includeBots') }}</span>
     </label>
   </div>

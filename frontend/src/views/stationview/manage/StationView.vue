@@ -4,12 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted, ref, watch} from 'vue'
+import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {hasPermission, loaded} = useSession()
 const router = useRouter()
@@ -18,21 +19,14 @@ watch(loaded, (isLoaded) => {
     router.replace('/station/dashboard/overview')
   }
 }, {immediate: true})
-import SaveButton from '@/components/button/SaveButton.vue'
-import FileUploadField from '@/components/input/FileUploadField.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import SearchSelectInput from '@/components/input/select/SearchSelectInput.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
 import {stationManage} from '@/api'
 import client from '@/api/client'
 import OwnerSection from './stationview/OwnerSection.vue'
 import LocationSection from './stationview/LocationSection.vue'
+import GeneralSection from './stationview/GeneralSection.vue'
+import LogoSection from './stationview/LogoSection.vue'
 
 const {t} = useI18n()
 
@@ -60,33 +54,23 @@ const hasLogo = ref(false)
 const isOwner = ref(false)
 const stationId = ref('')
 const ownerMemberId = ref<number | null>(null)
-const loading = ref(true)
 const uploading = ref(false)
-const error = ref('')
 const success = ref('')
 const logoObjectUrl = ref<string | null>(null)
 
-async function loadStation() {
-  loading.value = true
-  error.value = ''
-  try {
-    const info = await stationManage.getStationInfo()
-    name.value = info.name ?? ''
-    timezone.value = info.timezone ?? 'Europe/Berlin'
-    locale.value = info.locale ?? 'de-DE'
-    hasLogo.value = info.hasLogo
-    isOwner.value = info.isOwner
-    stationId.value = info.id
-    ownerMemberId.value = info.ownerMemberId ?? null
-    if (info.hasLogo) {
-      await loadLogoBlob()
-    }
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
+const {loading, error} = useAsyncLoader(async () => {
+  const info = await stationManage.getStationInfo()
+  name.value = info.name ?? ''
+  timezone.value = info.timezone ?? 'Europe/Berlin'
+  locale.value = info.locale ?? 'de-DE'
+  hasLogo.value = info.hasLogo
+  isOwner.value = info.isOwner
+  stationId.value = info.id
+  ownerMemberId.value = info.ownerMemberId ?? null
+  if (info.hasLogo) {
+    await loadLogoBlob()
   }
-}
+})
 
 async function loadLogoBlob() {
   try {
@@ -165,9 +149,6 @@ function handleSuccess(msg: string) {
   error.value = ''
 }
 
-onMounted(async () => {
-  await loadStation()
-})
 </script>
 
 <template>
@@ -178,71 +159,33 @@ onMounted(async () => {
       <Alert v-if="error" variant="error">{{ error }}</Alert>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
 
-      <NeutralContainer v-if="!loading" class="space-y-4">
-        <SectionHeader>{{ t('stationManage.nameTitle') }}</SectionHeader>
-        <div class="space-y-1">
-          <FieldLabel>{{ t('stationManage.name') }}</FieldLabel>
-          <TextInput v-model="name" :placeholder="t('stationManage.namePlaceholder')"/>
-        </div>
-        <div class="space-y-1">
-          <FieldLabel>{{ t('stationManage.timezone') }}</FieldLabel>
-          <SearchSelectInput v-model="timezone" :options="timezoneOptions" :placeholder="t('stationManage.timezone')"/>
-        </div>
-        <div class="space-y-1">
-          <FieldLabel>{{ t('stationManage.locale') }}</FieldLabel>
-          <SelectInput v-model="locale">
-            <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-          </SelectInput>
-        </div>
-        <SaveButton :disabled="!name" :action="saveName"/>
-      </NeutralContainer>
+      <GeneralSection
+          v-if="!loading"
+          v-model:name="name"
+          v-model:timezone="timezone"
+          v-model:locale="locale"
+          :timezone-options="timezoneOptions"
+          :locale-options="localeOptions"
+          :save-name="saveName"
+      />
 
-      <NeutralContainer v-if="!loading" class="space-y-4">
-        <SectionHeader>{{ t('stationManage.logoTitle') }}</SectionHeader>
+      <LogoSection
+          v-if="!loading"
+          :has-logo="hasLogo"
+          :logo-object-url="logoObjectUrl"
+          :uploading="uploading"
+          :logo-error="logoError"
+          :max-size="LOGO_MAX_SIZE"
+          @upload="handleLogoUpload"
+          @remove="removeLogo"
+      />
 
-        <div v-if="hasLogo" class="space-y-3">
-          <img
-              v-if="logoObjectUrl"
-              :src="logoObjectUrl"
-              alt="Station Logo"
-              class="max-h-32 max-w-64 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent object-contain"
-          />
-          <div class="flex items-start gap-2">
-            <FileUploadField
-                accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                :max-size="LOGO_MAX_SIZE"
-                :disabled="uploading"
-                :error="logoError"
-                :hint="t('stationManage.logoHint')"
-                :label="uploading ? t('common.loading') : t('stationManage.changeLogo')"
-                @select="handleLogoUpload"
-            />
-            <DeleteButton @click="removeLogo"/>
-          </div>
-        </div>
-
-        <div v-else class="space-y-3">
-          <p class="text-sm text-(--text-muted)">{{ t('stationManage.noLogo') }}</p>
-          <FileUploadField
-              accept="image/png,image/jpeg,image/webp,image/svg+xml"
-              :max-size="LOGO_MAX_SIZE"
-              :disabled="uploading"
-              :error="logoError"
-              :hint="t('stationManage.logoHint')"
-              :label="uploading ? t('common.loading') : t('stationManage.uploadLogo')"
-              @select="handleLogoUpload"
-          />
-        </div>
-      </NeutralContainer>
-
-      <!-- Geolocation: opt-in address + coordinates -->
       <LocationSection
           v-if="!loading"
           @error="handleError"
           @success="handleSuccess"
       />
 
-      <!-- Owner sections (transfer, handover, deletion) -->
       <OwnerSection
           v-if="!loading && isOwner"
           :station-id="stationId"

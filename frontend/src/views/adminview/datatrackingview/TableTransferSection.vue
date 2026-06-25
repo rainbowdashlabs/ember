@@ -8,11 +8,9 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {TrackingStatusName, TransferContext} from '@/api/dataTracking'
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import StatusBadge from './StatusBadge.vue'
+import StatusReasonFields from './StatusReasonFields.vue'
 
 const props = defineProps<{
   transfer: TransferContext
@@ -35,25 +33,12 @@ const ignoredColumns = computed({
       <StatusBadge :status="transfer.status"/>
     </div>
     <div class="space-y-2 mt-2">
-      <SelectInput v-model="transfer.status">
-        <option v-for="s in statuses" :key="s" :value="s">{{ s }}</option>
-      </SelectInput>
-      <TextInput
-          v-if="transfer.status === 'IGNORED'"
-          v-model="transfer.reason"
-          :placeholder="t('adminDataTracking.detail.reason')"
-      />
-      <TextAreaInput
-          v-if="transfer.status === 'TRACKED'"
-          v-model="transfer.rationale"
-          :placeholder="t('adminDataTracking.detail.rationale')"
-          :rows="2"
-      />
-      <TextAreaInput
-          v-if="transfer.status === 'UNVERIFIED'"
-          v-model="transfer.rationale"
-          :placeholder="t('adminDataTracking.detail.reviewNote')"
-          :rows="2"
+      <StatusReasonFields
+          v-model:status="transfer.status"
+          v-model:reason="transfer.reason"
+          v-model:rationale="transfer.rationale"
+          :statuses="statuses"
+          show-rationale-on-tracked
       />
       <div>
         <label class="block text-xs text-(--text-muted) mb-1">

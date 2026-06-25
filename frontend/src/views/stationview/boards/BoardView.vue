@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -25,13 +25,15 @@ import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.v
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
-import TicketTile from './boardview/TicketTile.vue'
+import KanbanLane from './boardview/KanbanLane.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import { boards, stationMembers } from '@/api'
 import type { MemberCompletion } from '@/api/stationMembers'
 import type { Board, BoardLane, BoardTicket, BoardLabel, TicketPriorityName } from '@/api/boards'
 import { TicketPriority } from '@/api/boards'
+import { priorityIcon, priorityColor } from '@/util/ticketPriority'
 import { useSession } from '@/composables/useSession'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -42,8 +44,6 @@ const boardKey = computed(() => route.params.boardKey as string)
 const board = ref<Board | null>(null)
 const lanes = ref<BoardLane[]>([])
 const tickets = ref<BoardTicket[]>([])
-const loading = ref(true)
-const error = ref('')
 
 const assigneeFilter = ref<Set<string>>(new Set())
 const labelFilter = ref<string[]>([])
@@ -62,36 +62,28 @@ const searchResults = ref<BoardTicket[] | null>(null)
 const searching = ref(false)
 
 const members = ref<MemberCompletion[]>([])
-async function loadData() {
-    loading.value = true
-    error.value = ''
-    try {
-        const [b, l, t, m, lb, tlm] = await Promise.all([
-            boards.getBoard(boardKey.value),
-            boards.getLanes(boardKey.value),
-            boards.listTickets(boardKey.value),
-            stationMembers.listCompletions(),
-            boards.getLabels(boardKey.value),
-            boards.getAllTicketLabels(boardKey.value),
-        ])
-        board.value = b
-        lanes.value = l
-        tickets.value = t
-        members.value = m
-        allLabels.value = lb
-        const map = new Map<number, number[]>()
-        for (const { ticketId, labelId } of tlm) { if (!map.has(ticketId)) map.set(ticketId, []); map.get(ticketId)!.push(labelId) }
-        ticketLabelMap.value = map
-        if (!createLaneId.value) {
-            const firstAllowed = b.backlogLaneId ?? l.find(la => la.id !== b.backlogLaneId)?.id
-            if (firstAllowed) createLaneId.value = String(firstAllowed)
-        }
-    } catch {
-        error.value = t('common.error')
-    } finally {
-        loading.value = false
+const {loading, error, reload} = useAsyncLoader(async () => {
+    const [b, l, t, m, lb, tlm] = await Promise.all([
+        boards.getBoard(boardKey.value),
+        boards.getLanes(boardKey.value),
+        boards.listTickets(boardKey.value),
+        stationMembers.listCompletions(),
+        boards.getLabels(boardKey.value),
+        boards.getAllTicketLabels(boardKey.value),
+    ])
+    board.value = b
+    lanes.value = l
+    tickets.value = t
+    members.value = m
+    allLabels.value = lb
+    const map = new Map<number, number[]>()
+    for (const { ticketId, labelId } of tlm) { if (!map.has(ticketId)) map.set(ticketId, []); map.get(ticketId)!.push(labelId) }
+    ticketLabelMap.value = map
+    if (!createLaneId.value) {
+        const firstAllowed = b.backlogLaneId ?? l.find(la => la.id !== b.backlogLaneId)?.id
+        if (firstAllowed) createLaneId.value = String(firstAllowed)
     }
-}
+})
 
 const visibleLanes = computed(() => lanes.value.filter(l => !board.value?.backlogLaneId || l.id !== board.value.backlogLaneId))
 const backlogLane = computed(() => board.value?.backlogLaneId ? lanes.value.find(l => l.id === board.value!.backlogLaneId) ?? null : null)
@@ -208,27 +200,6 @@ function laneName(laneId: number): string {
     return lanes.value.find(l => l.id === laneId)?.name ?? ''
 }
 
-function priorityIcon(priority: TicketPriorityName): string[] {
-    switch (priority) {
-        case TicketPriority.HIGHEST: return ['fas', 'angles-up']
-        case TicketPriority.HIGH: return ['fas', 'angle-up']
-        case TicketPriority.MEDIUM: return ['fas', 'equals']
-        case TicketPriority.LOW: return ['fas', 'angle-down']
-        case TicketPriority.LOWEST: return ['fas', 'angles-down']
-        default: return ['fas', 'minus']
-    }
-}
-
-function priorityColor(priority: TicketPriorityName): string {
-    switch (priority) {
-        case TicketPriority.HIGHEST: return 'text-red-500'
-        case TicketPriority.HIGH: return 'text-orange-500'
-        case TicketPriority.MEDIUM: return 'text-yellow-500'
-        case TicketPriority.LOW: return 'text-blue-400'
-        case TicketPriority.LOWEST: return 'text-gray-400'
-        default: return 'text-gray-400'
-    }
-}
 
 // -- Drag and drop --
 const dragTicket = ref<BoardTicket | null>(null)
@@ -287,11 +258,11 @@ async function onLaneDrop(laneId: number) {
     if (ticket.laneId === laneId) {
         try {
             await boards.reorderTickets(boardKey.value, ticket.ticketNumber, { laneId, orderedIds: otherTickets.map(t => t.id) })
-        } catch { await loadData() }
+        } catch { await reload() }
     } else {
         try {
             await boards.moveTicket(boardKey.value, ticket.ticketNumber, { toLaneId: laneId, position: pos })
-        } catch { await loadData() }
+        } catch { await reload() }
     }
 }
 
@@ -301,8 +272,7 @@ function onDragEnd() {
     dropPosition.value = null
 }
 
-onMounted(loadData)
-watch(boardKey, loadData)
+watch(boardKey, reload)
 </script>
 
 <template>
@@ -382,64 +352,27 @@ watch(boardKey, loadData)
 
             <!-- Kanban board -->
             <div class="flex flex-col md:flex-row gap-4 md:overflow-x-auto pb-4" style="min-height: 200px">
-                <div
+                <KanbanLane
                     v-for="lane in visibleLanes"
                     :key="lane.id"
-                    class="md:flex-1 md:min-w-[14rem] md:max-w-[24rem] bg-bg-light-accent dark:bg-bg-dark-accent border border-[var(--border)] rounded-lg p-3 border-t-2 transition-colors"
-                    :style="{ borderTopColor: lane.color ?? 'var(--primary)' }"
-                    :class="{ 'bg-primary/5': dropLaneId === lane.id && dragTicket }"
-                    @dragover="onLaneDragOver(lane.id, $event)"
-                    @dragleave="onLaneDragLeave($event)"
-                    @drop="onLaneDrop(lane.id)"
-                >
-                    <!-- Lane header -->
-                    <div class="flex items-center justify-between mb-3">
-                        <SubHeader class="text-sm text-[var(--text-muted)] uppercase tracking-wide">{{ lane.name }}</SubHeader>
-                        <BaseBadge bg-class="bg-[var(--bg)]" class="text-[var(--text-muted)]">{{ visibleTicketsForLane(lane.id).length }}</BaseBadge>
-                    </div>
-
-                    <!-- Tickets -->
-                    <div class="min-h-[3rem]">
-                        <template v-for="(ticket, idx) in visibleTicketsForLane(lane.id)" :key="ticket.id">
-                            <!-- Drop indicator before this ticket -->
-                            <div v-if="dropLaneId === lane.id && dropPosition === idx && dragTicket && dragTicket.id !== ticket.id"
-                                class="h-12 mb-2 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5" />
-                            <div
-                                :data-ticket-id="ticket.id"
-                                draggable="true"
-                                class="mb-2"
-                                :class="{ 'opacity-30': dragTicket?.id === ticket.id }"
-                                @dragstart="onTicketDragStart(ticket, $event)"
-                                @dragend="onDragEnd"
-                            >
-                                <TicketTile
-                                    :ticket="ticket"
-                                    :short-key="board.shortKey"
-                                    :member-name="ticket.assignee ? (members.find(m => m.memberUid === ticket.assignee?.memberUid)?.name) : undefined"
-                                    :identity="ticket.assignee"
-                                    :labels="labelsForTicket(ticket.id)"
-                                    :attachment-count="ticket.attachmentCount"
-                                    @click="openTicketDetail"
-                                />
-                            </div>
-                        </template>
-                        <!-- Drop indicator at end of lane -->
-                        <div v-if="dropLaneId === lane.id && dragTicket && dropPosition !== null && dropPosition >= visibleTicketsForLane(lane.id).filter(t => t.id !== dragTicket!.id).length"
-                            class="h-12 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5" />
-                    </div>
-
-                    <!-- Archived count -->
-                    <div v-if="isLastLane(lane.id) && archivedCountForLane(lane.id) > 0" class="mt-2">
-                        <SecondaryButton class="w-full text-xs" @click="router.push(`/station/boards/${board.shortKey}/archived`)">
-                            {{ archivedCountForLane(lane.id) }} {{ t('boards.archived') }}
-                        </SecondaryButton>
-                    </div>
-
-                    <!-- Empty state (only when not dragging) -->
-                    <p v-if="visibleTicketsForLane(lane.id).length === 0 && !dragTicket" class="text-xs text-[var(--text-muted)] text-center py-4">
-                        {{ t('boards.noTickets') }}
-                    </p>
-                </div>
+                    :lane="lane"
+                    :tickets="visibleTicketsForLane(lane.id)"
+                    :archived-count="archivedCountForLane(lane.id)"
+                    :is-last-lane="isLastLane(lane.id)"
+                    :drag-ticket="dragTicket"
+                    :drop-lane-id="dropLaneId"
+                    :drop-position="dropPosition"
+                    :members="members"
+                    :short-key="board.shortKey"
+                    :labels-for-ticket="labelsForTicket"
+                    @dragover="onLaneDragOver"
+                    @dragleave="onLaneDragLeave"
+                    @drop="onLaneDrop"
+                    @ticket-dragstart="onTicketDragStart"
+                    @ticket-dragend="onDragEnd"
+                    @ticket-click="openTicketDetail"
+                    @navigate-archived="router.push(`/station/boards/${board.shortKey}/archived`)"
+                />
             </div>
 
             <!-- Create ticket modal -->

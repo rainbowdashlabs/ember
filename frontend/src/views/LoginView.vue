@@ -7,24 +7,10 @@
 import {computed, onMounted, ref} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {useI18n} from 'vue-i18n'
-import TextInput from '@/components/input/text/TextInput.vue'
-import PasswordInput from '@/components/input/text/PasswordInput.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
-import SuccessButton from '@/components/button/SuccessButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import TabBar from '@/components/navigation/TabBar.vue'
-import Modal from '@/components/feedback/Modal.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import LinkButton from '@/components/button/LinkButton.vue'
 import {auth, session, adminSettings} from '@/api'
 import client from '@/api/client'
 import {StorageDeniedError} from '@/api/auth'
@@ -32,25 +18,18 @@ import type {StorageConsent} from '@/api/storage'
 import {acceptStorage, denyStorage, getConsent, getStoredLegalVersions, getItem, removeItem} from '@/api/storage'
 import {useStations} from '@/composables/useStations'
 import {useConsentGuard} from '@/composables/useConsentGuard'
-import {StationUserType} from '@/api/types'
-import MutedText from '@/components/typography/MutedText.vue'
-import DemoAccountGroups from '@/views/loginview/DemoAccountGroups.vue'
+import {StationUserType, StationUserTypeLabels} from '@/api/types'
+import DemoLogin from '@/views/loginview/DemoLogin.vue'
+import ConsentGate from '@/views/loginview/ConsentGate.vue'
+import LegalModal from '@/views/loginview/LegalModal.vue'
+import LoginForm from '@/views/loginview/LoginForm.vue'
+import DevDemoFooter from '@/views/loginview/DevDemoFooter.vue'
+import type {DemoAccount} from '@/views/loginview/demoTypes'
 
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
 const {setActiveStation} = useStations()
-
-interface DemoAccount {
-  email: string
-  firstName: string
-  lastName: string
-  userType: string
-  permissions: string[]
-  groups: string[]
-  tags: string[]
-  profileComplete: boolean
-}
 
 interface StationGroup {
   stationId: string
@@ -77,14 +56,6 @@ const stationTabs = computed(() => stationGroups.value.map(g => ({key: g.station
 const showStationTabs = computed(() => stationGroups.value.length > 1)
 
 const noStationRoleGroups = computed(() => buildRoleGroups(noStationAccounts.value))
-
-const userTypeFriendlyNames: Record<string, string> = {
-  MANAGER: 'Manager',
-  TEAM: 'Team',
-  GUARDIAN: 'Erziehungsberechtigter',
-  MEMBER: 'Mitglied',
-  TRIAL: 'Probe',
-}
 
 function buildRoleGroups(source: DemoAccount[]): { label: string; accounts: DemoAccount[] }[] {
   const groups: { label: string; accounts: DemoAccount[] }[] = []
@@ -114,7 +85,6 @@ onMounted(async () => {
     return
   }
 
-  // Load consent text and registration status in parallel with demo status
   loadConsentText()
   adminSettings.isRegistrationEnabled().then(v => registrationEnabled.value = v).catch(() => {})
 
@@ -123,7 +93,6 @@ onMounted(async () => {
     isDemo.value = res.data.demo
     isDev.value = res.data.dev
     if (isDemo.value) {
-      // Auto-accept storage in demo mode
       acceptStorage()
       consent.value = 'accepted'
     }
@@ -145,7 +114,9 @@ onMounted(async () => {
         activeStationTab.value = stationGroups.value[0].stationId
       }
     }
-  } catch { /* not demo/dev */
+  } catch {
+    isDemo.value = false
+    isDev.value = false
   }
   demoLoading.value = false
 })
@@ -196,7 +167,6 @@ async function loadConsentText() {
     privacyVersion.value = versions.privacyVersion
     tosVersion.value = versions.tosVersion
 
-    // If consent was already accepted but any version changed, re-prompt
     const stored = getStoredLegalVersions()
     if (consent.value === 'accepted' && stored.consent) {
       if (stored.consent !== versions.consentVersion
@@ -205,7 +175,9 @@ async function loadConsentText() {
         consent.value = null
       }
     }
-  } catch { /* use fallback */ }
+  } catch {
+    consentHtml.value = ''
+  }
   consentLoading.value = false
 }
 
@@ -219,7 +191,9 @@ async function loadPrivacyPolicy() {
   try {
     const data = await session.getPrivacyPolicy()
     privacyPolicyHtml.value = data.html
-  } catch { /* ignore */ }
+  } catch {
+    privacyPolicyHtml.value = ''
+  }
   privacyPolicyLoading.value = false
 }
 
@@ -233,7 +207,9 @@ async function loadTos() {
   try {
     const data = await session.getTermsOfService()
     tosHtml.value = data.html
-  } catch { /* ignore */ }
+  } catch {
+    tosHtml.value = ''
+  }
   tosLoading.value = false
 }
 
@@ -274,7 +250,6 @@ async function handleLogin() {
       return
     }
 
-    // Check consent status after successful login
     await checkAndRecordConsent()
 
     await resolveStationAndRedirect()
@@ -297,7 +272,6 @@ async function checkAndRecordConsent() {
     const status = await session.getConsentStatus()
 
     if (!status.consented) {
-      // First login or no consent record — auto-create from the consent the user just accepted
       await session.recordConsent({
         consentVersion: consentVersion.value || status.currentConsentVersion,
         privacyVersion: privacyVersion.value || status.currentPrivacyVersion,
@@ -309,18 +283,18 @@ async function checkAndRecordConsent() {
         tos: status.currentTosVersion,
       })
     } else if (!status.current) {
-      // Consent exists but documents changed — redirect to re-consent
       const {setNeedsReconsent} = useConsentGuard()
       setNeedsReconsent(true)
     } else {
-      // Consent is current — update local storage versions
       acceptStorage({
         consent: status.currentConsentVersion,
         privacy: status.currentPrivacyVersion,
         tos: status.currentTosVersion,
       })
     }
-  } catch { /* best effort — don't block login if consent check fails */ }
+  } catch {
+    error.value = ''
+  }
 }
 
 async function loginAsDemo(account: DemoAccount) {
@@ -351,7 +325,7 @@ async function loginAsDemo(account: DemoAccount) {
 }
 
 function topRoleLabel(account: DemoAccount): string {
-  return userTypeFriendlyNames[account.userType] ?? account.userType ?? 'Login'
+  return StationUserTypeLabels[account.userType as keyof typeof StationUserTypeLabels] ?? account.userType ?? 'Login'
 }
 </script>
 
@@ -365,125 +339,41 @@ function topRoleLabel(account: DemoAccount): string {
 
       <Spinner v-if="demoLoading" size="lg"/>
 
-      <!-- Demo mode: user picker only, no login form -->
-      <template v-if="isDemo && !demoLoading">
-        <div class="text-center">
-          <PageHeroIcon :icon="['fas', 'fire']"/>
-          <PageHeader class="text-2xl font-bold">{{ t('demo.title') }}</PageHeader>
-          <MutedText tag="p" size="sm" class="mt-1">{{ t('demo.loginHint') }}</MutedText>
-        </div>
-        <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <DemoLogin v-if="isDemo && !demoLoading"
+                 :error="error" :loading="loading"
+                 :no-station-role-groups="noStationRoleGroups" :role-groups="roleGroups"
+                 :station-tabs="stationTabs" :show-station-tabs="showStationTabs"
+                 v-model:active-station-tab="activeStationTab"
+                 :role-label="topRoleLabel" @login="loginAsDemo"/>
 
-        <DemoAccountGroups v-if="noStationRoleGroups.length > 0"
-                           :role-groups="noStationRoleGroups" :loading="loading"
-                           :role-label="topRoleLabel" @login="loginAsDemo"/>
-
-        <TabBar v-if="showStationTabs" v-model="activeStationTab" :tabs="stationTabs"/>
-
-        <DemoAccountGroups :role-groups="roleGroups" :loading="loading" :role-label="topRoleLabel" @login="loginAsDemo"/>
-      </template>
-
-      <!-- Normal / dev mode: login form -->
       <template v-if="!isDemo && !demoLoading">
-        <NeutralContainer v-if="consent === null" class="space-y-4">
-          <SectionHeader class="font-semibold text-lg">{{ t('storageConsent.title') }}</SectionHeader>
-
-          <Spinner v-if="consentLoading" size="sm"/>
-          <div v-else-if="consentHtml" class="legal-content max-h-64 overflow-y-auto text-sm border border-(--border) rounded-lg p-3" v-html="consentHtml"/>
-          <p v-else class="text-sm text-(--text-muted)">{{ t('storageConsent.description') }}</p>
-
-          <div class="flex gap-4">
-            <LinkButton @click="loadPrivacyPolicy">{{ t('storageConsent.privacyPolicy') }}</LinkButton>
-            <LinkButton @click="loadTos">{{ t('storageConsent.tos') }}</LinkButton>
-          </div>
-
-          <div class="flex gap-3">
-            <SuccessButton class="flex-1" @click="handleAccept">
-              {{ t('storageConsent.accept') }}
-            </SuccessButton>
-            <ErrorButton class="flex-1" @click="handleDeny">
-              {{ t('storageConsent.deny') }}
-            </ErrorButton>
-          </div>
-        </NeutralContainer>
+        <ConsentGate v-if="consent === null"
+                     :consent-loading="consentLoading" :consent-html="consentHtml"
+                     @accept="handleAccept" @deny="handleDeny"
+                     @show-privacy="loadPrivacyPolicy" @show-tos="loadTos"/>
 
         <Alert v-if="consent === 'denied'" variant="error">
           {{ t('login.storageDenied') }}
         </Alert>
 
-        <!-- Privacy Policy Modal -->
-        <Modal v-model="showPrivacyPolicy">
-          <div class="space-y-4 p-4">
-            <SubHeader>{{ t('storageConsent.privacyPolicyTitle') }}</SubHeader>
-            <Spinner v-if="privacyPolicyLoading" size="sm"/>
-            <div v-else-if="privacyPolicyHtml" class="legal-content max-h-[70vh] overflow-y-auto" v-html="privacyPolicyHtml"/>
-            <div class="flex justify-end">
-              <SecondaryButton @click="showPrivacyPolicy = false">{{ t('common.close') }}</SecondaryButton>
-            </div>
-          </div>
-        </Modal>
+        <LegalModal v-model="showPrivacyPolicy" :title="t('storageConsent.privacyPolicyTitle')"
+                    :loading="privacyPolicyLoading" :html="privacyPolicyHtml"/>
 
-        <!-- Terms of Service Modal -->
-        <Modal v-model="showTos">
-          <div class="space-y-4 p-4">
-            <SubHeader>{{ t('storageConsent.tosTitle') }}</SubHeader>
-            <Spinner v-if="tosLoading" size="sm"/>
-            <div v-else-if="tosHtml" class="legal-content max-h-[70vh] overflow-y-auto" v-html="tosHtml"/>
-            <div class="flex justify-end">
-              <SecondaryButton @click="showTos = false">{{ t('common.close') }}</SecondaryButton>
-            </div>
-          </div>
-        </Modal>
+        <LegalModal v-model="showTos" :title="t('storageConsent.tosTitle')"
+                    :loading="tosLoading" :html="tosHtml"/>
 
-        <form v-if="consent === 'accepted'" class="space-y-4" @submit.prevent="handleLogin">
-          <Alert v-if="error" variant="error">{{ error }}</Alert>
+        <LoginForm v-if="consent === 'accepted'"
+                   v-model:email="email" v-model:password="password"
+                   :error="error" :loading="loading"
+                   :registration-enabled="registrationEnabled"
+                   @submit="handleLogin"/>
 
-          <div class="space-y-1">
-            <FieldLabel>{{ t('login.email') }}</FieldLabel>
-            <TextInput
-                v-model="email"
-                :disabled="loading"
-                :placeholder="t('login.email')"
-            />
-          </div>
-
-          <div class="space-y-1">
-            <FieldLabel>{{ t('login.password') }}</FieldLabel>
-            <PasswordInput
-                v-model="password"
-                :disabled="loading"
-                :placeholder="t('login.password')"
-            />
-          </div>
-
-          <PrimaryButton
-              :disabled="loading || !email || !password"
-              class="w-full"
-              @click="handleLogin"
-          >
-            {{ loading ? t('common.loading') : t('login.submit') }}
-          </PrimaryButton>
-
-          <router-link class="block w-full text-center text-sm text-(--text-muted) hover:text-(--text) transition-colors"
-                       to="/forgot-password">
-            {{ t('login.forgotPassword') }}
-          </router-link>
-          <router-link v-if="registrationEnabled" class="block w-full text-center text-sm text-primary hover:underline" to="/apply">
-            {{ t('login.applyForStation') }}
-          </router-link>
-        </form>
-
-        <!-- Dev mode: quick login picker below the form -->
-        <template v-if="isDev && hasDemoAccounts && consent === 'accepted'">
-          <div class="border-t border-bg-light-accent dark:border-bg-dark-accent pt-4 mt-2">
-            <p class="text-sm font-medium mb-3">{{ t('demo.devLoginHint') }}</p>
-            <DemoAccountGroups v-if="noStationRoleGroups.length > 0"
-                               :role-groups="noStationRoleGroups" :loading="loading"
-                               :role-label="topRoleLabel" compact @login="loginAsDemo" class="mb-3"/>
-            <TabBar v-if="showStationTabs" v-model="activeStationTab" :tabs="stationTabs" class="mb-3"/>
-            <DemoAccountGroups :role-groups="roleGroups" :loading="loading" :role-label="topRoleLabel" compact @login="loginAsDemo"/>
-          </div>
-        </template>
+        <DevDemoFooter v-if="isDev && hasDemoAccounts && consent === 'accepted'"
+                       :loading="loading"
+                       :no-station-role-groups="noStationRoleGroups" :role-groups="roleGroups"
+                       :station-tabs="stationTabs" :show-station-tabs="showStationTabs"
+                       v-model:active-station-tab="activeStationTab"
+                       :role-label="topRoleLabel" @login="loginAsDemo"/>
       </template>
     </div>
   </div>

@@ -4,22 +4,19 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ProfileFieldModal from './membersconfig/FieldModal.vue'
-import ProfileFieldTable from './membersconfig/FieldTable.vue'
+import FieldsPanel from './membersconfig/FieldsPanel.vue'
+import type {FieldTemplate} from './membersconfig/fieldTemplates'
 import type {MemberGroup, ProfileField} from '@/api/types'
 import {parseFieldConfig} from '@/api/types'
 import {memberGroups, profileFields} from '@/api'
@@ -28,8 +25,6 @@ const {t} = useI18n()
 
 const allFields = ref<ProfileField[]>([])
 const availableGroups = ref<MemberGroup[]>([])
-const loading = ref(true)
-const error = ref('')
 const activeTab = ref('MEMBER')
 const selectedGroupId = ref('')
 
@@ -56,107 +51,19 @@ const currentFields = computed(() => {
 
 const dateFields = computed(() => currentFields.value.filter(f => f.fieldType === 'DATE'))
 
-// Field templates
-interface FieldTemplate {
-  name: string
-  icon: string
-  fields: Array<{ name: string; fieldType: string; config: string }>
-}
-
-const fieldTemplates: FieldTemplate[] = [
-  {
-    name: 'Adresse', icon: 'house', fields: [
-      {name: 'Straße', fieldType: 'TEXT', config: '{"required":true}'},
-      {name: 'Postleitzahl', fieldType: 'TEXT', config: '{"required":true}'},
-      {name: 'Ort', fieldType: 'TEXT', config: '{"required":true}'},
-    ]
-  },
-  {
-    name: 'Geburtsdatum', icon: 'calendar-plus', fields: [
-      {name: 'Geburtsdatum', fieldType: 'DATE', config: '{"required":true,"readonly":true}'},
-    ]
-  },
-  {
-    name: 'Festnetz', icon: 'phone', fields: [
-      {name: 'Festnetznummer', fieldType: 'TEXT', config: '{"notifyOnChange":true}'},
-    ]
-  },
-  {
-    name: 'Mobilnummer', icon: 'mobile-screen', fields: [
-      {name: 'Mobilnummer', fieldType: 'TEXT', config: '{"notifyOnChange":true}'},
-    ]
-  },
-  {
-    name: 'Notfallkontakt', icon: 'triangle-exclamation', fields: [
-      {name: 'Notfallkontakt Name', fieldType: 'TEXT', config: '{"required":true}'},
-      {name: 'Notfallkontakt Telefon', fieldType: 'TEXT', config: '{"required":true}'},
-    ]
-  },
-  {
-    name: 'Führerschein', icon: 'id-card', fields: [
-      {name: 'Führerscheinklasse', fieldType: 'TEXT', config: '{}'},
-      {name: 'Führerschein gültig bis', fieldType: 'DATE', config: '{}'},
-    ]
-  },
-  {
-    name: 'Beitrittsdatum', icon: 'calendar-plus', fields: [
-      {name: 'Beitrittsdatum', fieldType: 'DATE', config: '{"readonly":true}'},
-    ]
-  },
-  {
-    name: 'Personalnummer', icon: 'hashtag', fields: [
-      {name: 'Personalnummer', fieldType: 'TEXT', config: '{"readonly":true}'},
-    ]
-  },
-  {
-    name: 'Geschlecht', icon: 'rainbow', fields: [
-      {
-        name: 'Geschlecht',
-        fieldType: 'ENUM',
-        config: '{"options":["Männlich","Weiblich","Divers","Nicht-binär","Andere"],"readonly":true}'
-      },
-    ]
-  },
-  {
-    name: 'Jugendflamme', icon: 'fire', fields: [
-      {
-        name: 'Jugendflamme Stufe',
-        fieldType: 'ENUM',
-        config: '{"options":["Jugendflamme 1","Jugendflamme 2","Jugendflamme 3"],"readonly":true}'
-      },
-      {name: 'Jugendflamme Datum', fieldType: 'DATE', config: '{"readonly":true}'},
-    ]
-  },
-  {
-    name: 'Leistungsspange', icon: 'medal', fields: [
-      {name: 'Leistungsspange', fieldType: 'BOOLEAN', config: '{"readonly":true}'},
-      {name: 'Leistungsspange Datum', fieldType: 'DATE', config: '{"readonly":true}'},
-    ]
-  },
-]
-
-// Modal state
 const showFieldModal = ref(false)
 const editingField = ref<ProfileField | null>(null)
 const showDeleteModal = ref(false)
 const deleteTarget = ref<ProfileField | null>(null)
 
-async function loadFields() {
-  loading.value = true
-  error.value = ''
-  try {
-    const [fields, groups] = await Promise.all([
-      profileFields.listFields(),
-      memberGroups.listGroups(),
-    ])
-    allFields.value = fields
-    availableGroups.value = groups
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, error, reload} = useAsyncLoader(async () => {
+  const [fields, groups] = await Promise.all([
+    profileFields.listFields(),
+    memberGroups.listGroups(),
+  ])
+  allFields.value = fields
+  availableGroups.value = groups
+})
 
 function openAddField() {
   editingField.value = null
@@ -177,7 +84,7 @@ async function saveField(data: { name: string; fieldType: string; config: string
       await profileFields.createField({...data, position: currentFields.value.length})
     }
     showFieldModal.value = false
-    await loadFields()
+    await reload()
   } catch {
     error.value = t('common.error')
   }
@@ -206,7 +113,7 @@ async function toggleFieldConfig(field: ProfileField, key: string, value: boolea
     })
   } catch {
     error.value = t('common.error')
-    await loadFields()
+    await reload()
   }
 }
 
@@ -222,7 +129,7 @@ async function toggleKeepOnArchive(field: ProfileField, value: boolean) {
     })
   } catch {
     error.value = t('common.error')
-    await loadFields()
+    await reload()
   }
 }
 
@@ -237,7 +144,7 @@ async function confirmDelete() {
     await profileFields.deleteField(deleteTarget.value.id)
     showDeleteModal.value = false
     deleteTarget.value = null
-    await loadFields()
+    await reload()
   } catch {
     error.value = t('common.error')
   }
@@ -256,7 +163,7 @@ async function onReorder(fromIndex: number, toIndex: number) {
         position: i,
       })
     }
-    await loadFields()
+    await reload()
   } catch {
     error.value = t('common.error')
   }
@@ -276,13 +183,12 @@ async function applyTemplate(template: FieldTemplate) {
         scope: activeTab.value,
       })
     }
-    await loadFields()
+    await reload()
   } catch {
     error.value = t('common.error')
   }
 }
 
-onMounted(loadFields)
 </script>
 
 <template>
@@ -303,57 +209,18 @@ onMounted(loadFields)
           </SelectInput>
         </div>
 
-        <!-- Fields list -->
-        <NeutralContainer v-if="activeTab !== 'GROUP' || selectedGroupId" class="space-y-4">
-          <div class="flex items-center justify-between">
-            <SectionHeader>{{ t('membersConfig.fields') }}</SectionHeader>
-            <PrimaryButton :icon="['fas', 'plus']" @click="openAddField">
-              {{ t('membersConfig.addField') }}
-            </PrimaryButton>
-          </div>
-
-          <p class="text-sm text-(--text-muted)">
-            <template v-if="activeTab === 'MEMBER'">{{ t('membersConfig.memberHint') }}</template>
-            <template v-else-if="activeTab === 'GUARDIAN'">{{ t('membersConfig.guardianHint') }}</template>
-            <template v-else-if="activeTab === 'TEAM'">{{ t('membersConfig.teamHint') }}</template>
-            <template v-else-if="activeTab === 'MANAGER'">{{ t('membersConfig.stationManagerHint') }}</template>
-            <template v-else>{{ t('membersConfig.groupHint') }}</template>
-          </p>
-
-          <div v-if="currentFields.length === 0" class="space-y-4">
-            <EmptyState compact>{{ t('membersConfig.noFields') }}</EmptyState>
-            <div class="space-y-2">
-              <FieldLabel>{{ t('membersConfig.templates') }}</FieldLabel>
-              <div class="flex flex-wrap gap-2">
-                <SecondaryButton :icon="['fas', tpl.icon]" v-for="tpl in fieldTemplates" :key="tpl.name"
-                                 @click="applyTemplate(tpl)">
-                  {{ tpl.name }}
-                </SecondaryButton>
-              </div>
-            </div>
-          </div>
-
-          <ProfileFieldTable
-              v-if="currentFields.length > 0"
-              :fields="currentFields"
-              @delete="requestDelete"
-              @edit="openEditField"
-              @reorder="onReorder"
-              @toggle-config="toggleFieldConfig"
-              @toggle-keep-on-archive="toggleKeepOnArchive"
-          />
-
-          <!-- Templates when fields exist -->
-          <div v-if="currentFields.length > 0" class="pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
-            <FieldLabel hint class="mb-2">{{ t('membersConfig.templates') }}</FieldLabel>
-            <div class="flex flex-wrap gap-2">
-              <SecondaryButton :icon="['fas', tpl.icon]" v-for="tpl in fieldTemplates" :key="tpl.name"
-                               @click="applyTemplate(tpl)">
-                {{ tpl.name }}
-              </SecondaryButton>
-            </div>
-          </div>
-        </NeutralContainer>
+        <FieldsPanel
+            v-if="activeTab !== 'GROUP' || selectedGroupId"
+            :active-tab="activeTab"
+            :fields="currentFields"
+            @add="openAddField"
+            @edit="openEditField"
+            @delete="requestDelete"
+            @reorder="onReorder"
+            @toggle-config="toggleFieldConfig"
+            @toggle-keep-on-archive="toggleKeepOnArchive"
+            @apply-template="applyTemplate"
+        />
       </div>
 
       <ProfileFieldModal

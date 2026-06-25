@@ -22,6 +22,8 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import { useSession } from '@/composables/useSession'
+import { useConfirmAction } from '@/composables/useConfirmAction'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { procedures } from '@/api'
 import { StationPermission } from '@/api/types'
 import type { ProcedureTemplate } from '@/api/procedures'
@@ -33,35 +35,31 @@ const { hasPermission, loaded } = useSession()
 const canManage = computed(() => hasPermission(StationPermission.PROCEDURE_MANAGER))
 
 const templates = ref<ProcedureTemplate[]>([])
-const loading = ref(true)
-const error = ref('')
 const showArchived = ref(false)
 
-// Create modal
 const showCreateModal = ref(false)
 const newName = ref('')
 const newDescription = ref('')
 
-// Archive confirm modal
-const showArchiveModal = ref(false)
-const archiveTarget = ref<ProcedureTemplate | null>(null)
+const {loading, error, reload} = useAsyncLoader(async () => {
+  templates.value = await procedures.getTemplates()
+}, {autoLoad: false})
+
+const {
+  show: showArchiveModal,
+  target: archiveTarget,
+  request: requestArchive,
+  confirm: handleArchive,
+} = useConfirmAction<ProcedureTemplate>({
+  onConfirm: tpl => procedures.archiveTemplate(tpl.id),
+  onSuccess: () => reload(),
+  error,
+})
 
 const filteredTemplates = computed(() => {
   if (showArchived.value) return templates.value
   return templates.value.filter(t => !t.archived)
 })
-
-async function loadData() {
-  loading.value = true
-  error.value = ''
-  try {
-    templates.value = await procedures.getTemplates()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
 
 async function handleCreate() {
   if (!newName.value.trim()) return
@@ -79,19 +77,7 @@ async function handleCreate() {
   }
 }
 
-async function handleArchive() {
-  if (!archiveTarget.value) return
-  try {
-    await procedures.archiveTemplate(archiveTarget.value.id)
-    showArchiveModal.value = false
-    archiveTarget.value = null
-    await loadData()
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
-watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
+watch(loaded, (v) => { if (v) reload() }, { immediate: true })
 </script>
 
 <template>
@@ -137,7 +123,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
             v-if="!tpl.archived"
             :icon="['fas', 'box-archive']"
             :label="t('procedures.archiveTemplate')"
-            @click.stop="archiveTarget = tpl; showArchiveModal = true"
+            @click.stop="requestArchive(tpl)"
           />
         </div>
       </NeutralContainer>

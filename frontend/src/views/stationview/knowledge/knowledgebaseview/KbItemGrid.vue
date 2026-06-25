@@ -11,9 +11,9 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import type {KbFolder, KbFile, SharedFileEntry} from '@/api/knowledgeBase'
-import {KbFileType} from '@/api/knowledgeBase'
 import {knowledgeBase} from '@/api'
 import AuthImage from '@/components/display/AuthImage.vue'
+import {fileIcon} from '@/util/kbFileIcon'
 
 const {t} = useI18n()
 
@@ -40,25 +40,6 @@ const emit = defineEmits<{
     navigateToFavourites: []
 }>()
 
-function fileIcon(file: KbFile): string[] {
-    switch (file.fileType) {
-        case KbFileType.MARKDOWN:
-        case KbFileType.TEXT:
-            return ['fas', 'file-lines']
-        case KbFileType.PDF:
-            return ['fas', 'file-pdf']
-        case KbFileType.IMAGE:
-            return ['fas', 'image']
-        case KbFileType.YOUTUBE:
-            return ['fab', 'youtube']
-        case KbFileType.LINK:
-            return ['fas', 'link']
-        case KbFileType.PRESENTATION:
-            return ['fas', 'file-powerpoint']
-        default:
-            return ['fas', 'file']
-    }
-}
 </script>
 
 <template>

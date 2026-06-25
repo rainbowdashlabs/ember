@@ -4,10 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {discovery} from '@/api'
 import type {
   BlocklistKind,
@@ -26,8 +27,6 @@ import BlocklistCard from './BlocklistCard.vue'
 
 const {t} = useI18n()
 
-const loading = ref(true)
-const error = ref('')
 const flash = ref('')
 
 const identity = ref<DiscoveryIdentity | null>(null)
@@ -57,29 +56,21 @@ const sourceLabel: Record<DiscoveryPeerSource, string> = {
   MANUAL: t('adminDiscovery.sourceManual'),
 }
 
-async function loadAll() {
-  loading.value = true
-  error.value = ''
-  try {
-    const [id, set, pl, bl] = await Promise.all([
-      discovery.getDiscoveryIdentity(),
-      discovery.getDiscoverySettings(),
-      discovery.listDiscoveryPeers(),
-      discovery.listDiscoveryBlocklist(),
-    ])
-    identity.value = id
-    settings.value = set
-    peers.value = pl
-    blocklist.value = bl
-    draftEnabled.value = set.enabled
-    draftDepth.value = set.maxDepth
-    draftInterval.value = set.pingIntervalMinutes
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, error} = useAsyncLoader(async () => {
+  const [id, set, pl, bl] = await Promise.all([
+    discovery.getDiscoveryIdentity(),
+    discovery.getDiscoverySettings(),
+    discovery.listDiscoveryPeers(),
+    discovery.listDiscoveryBlocklist(),
+  ])
+  identity.value = id
+  settings.value = set
+  peers.value = pl
+  blocklist.value = bl
+  draftEnabled.value = set.enabled
+  draftDepth.value = set.maxDepth
+  draftInterval.value = set.pingIntervalMinutes
+})
 
 async function saveSettings() {
   if (!settings.value) return
@@ -199,7 +190,6 @@ const sortedPeers = computed(() =>
     [...peers.value].sort((a, b) => (a.lastSeenAt > b.lastSeenAt ? -1 : 1)),
 )
 
-onMounted(loadAll)
 </script>
 
 <template>
@@ -213,25 +203,20 @@ onMounted(loadAll)
     <DiscoverySettingsCard
         v-if="settings"
         :settings="settings"
-        :model-enabled="draftEnabled"
-        :model-depth="draftDepth"
-        :model-interval="draftInterval"
+        v-model:model-enabled="draftEnabled"
+        v-model:model-depth="draftDepth"
+        v-model:model-interval="draftInterval"
         :save="saveSettings"
-        @update:model-enabled="(v) => draftEnabled = v"
-        @update:model-depth="(v) => draftDepth = v"
-        @update:model-interval="(v) => draftInterval = v"
         @discover-now="discoverNow"
         @seed-federation="seedFederation"
     />
 
     <AddPeerCard
-        :base-url="probeBaseUrl"
-        :expected-key="probeExpectedKey"
+        v-model:base-url="probeBaseUrl"
+        v-model:expected-key="probeExpectedKey"
         :probing="probing"
         :probe-error="probeError"
         :probe-result="probeResult"
-        @update:base-url="(v) => probeBaseUrl = v"
-        @update:expected-key="(v) => probeExpectedKey = v"
         @probe="probe"
         @add="addPeer"
     />
@@ -251,12 +236,9 @@ onMounted(loadAll)
 
     <BlocklistCard
         :blocklist="blocklist"
-        :value="blocklistValue"
-        :kind="blocklistKind"
-        :note="blocklistNote"
-        @update:value="(v) => blocklistValue = v"
-        @update:kind="(v) => blocklistKind = v"
-        @update:note="(v) => blocklistNote = v"
+        v-model:value="blocklistValue"
+        v-model:kind="blocklistKind"
+        v-model:note="blocklistNote"
         @add="addToBlocklist"
         @remove="removeFromBlocklist"
     />

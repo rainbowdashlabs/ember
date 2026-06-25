@@ -6,21 +6,16 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import CellListItemsEditor, {type ItemFieldDef} from '../CellListItemsEditor.vue'
+import {useConfigPatch} from '@/composables/useConfigPatch'
+import type {CellEditorEmits, CellEditorProps} from '../cellTypes'
 
-const props = defineProps<{
-    config: Record<string, unknown>
-}>()
-
-const emit = defineEmits<{
-    'update:config': [value: Record<string, unknown>]
-}>()
+const props = defineProps<CellEditorProps>()
+const emit = defineEmits<CellEditorEmits>()
 
 const {t} = useI18n()
 const TS = (k: string) => t(`stationPages.editor.${k}`)
 
-function patch(partial: Record<string, unknown>) {
-    emit('update:config', {...props.config, ...partial})
-}
+const patch = useConfigPatch(() => props.config, emit)
 
 const TAB_FIELDS: ItemFieldDef[] = [
     {key: 'title', label: TS('tabTitle'), type: 'text'},

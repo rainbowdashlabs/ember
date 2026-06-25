@@ -13,6 +13,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type { ExchangeLogEntry, ExchangeStatusName } from '@/api/types'
 import { exchanges } from '@/api'
+import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
 
@@ -31,14 +32,6 @@ const logLoading = ref(false)
 
 function statusLabel(status: ExchangeStatusName): string {
   return t(`exchanges.status.${status}`)
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('de-DE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
 }
 
 watch(model, async (open) => {

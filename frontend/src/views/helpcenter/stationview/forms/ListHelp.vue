@@ -12,16 +12,8 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpRoleToggle from '@/components/helpcenter/HelpRoleToggle.vue'
 import type {HelpPerspective} from '@/components/helpcenter/HelpRoleToggle.vue'
 import {StationPermission} from '@/api/types'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
-import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import InfoBadge from '@/components/badge/InfoBadge.vue'
-import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import MutedIcon from '@/components/display/MutedIcon.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
 import BulletList from '@/components/typography/BulletList.vue'
+import DummyFormList from '@/views/helpcenter/stationview/forms/listhelp/DummyFormList.vue'
 
 const {t} = useI18n()
 
@@ -40,84 +32,8 @@ const activeView = ref('')
 
     <HelpRoleToggle v-model="activeView" :perspectives="perspectives"/>
 
-    <!-- Dummy: Form list -->
-    <div class="space-y-3">
-      <div class="flex items-center justify-between">
-        <SubHeader>{{ t('forms.title') }}</SubHeader>
-        <PrimaryButton :icon="['fas', 'plus']" v-if="activeView === 'manager'">
-          {{ t('forms.create') }}
-        </PrimaryButton>
-      </div>
+    <DummyFormList :view="activeView"/>
 
-      <NeutralContainer>
-        <div class="flex items-center justify-between">
-          <div class="space-y-1">
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="font-medium">Zufriedenheitsumfrage</span>
-              <MutedIcon v-if="activeView === 'manager'" :icon="['fas', 'lock']" class="ml-1"/>
-              <SuccessBadge>{{ t('forms.statusOpen') }}</SuccessBadge>
-            </div>
-            <p class="text-xs text-(--text-muted)">Wie gefällt dir unsere Jugendfeuerwehr?</p>
-          </div>
-          <div class="flex gap-2">
-            <PrimaryButton v-if="activeView === 'member'">{{ t('forms.fillForm') }}</PrimaryButton>
-            <template v-if="activeView === 'manager'">
-              <SecondaryButton>{{ t('forms.viewAnalytics') }}</SecondaryButton>
-              <SecondaryButton>{{ t('forms.close') }}</SecondaryButton>
-              <ErrorButton>{{ t('forms.delete') }}</ErrorButton>
-            </template>
-          </div>
-        </div>
-      </NeutralContainer>
-
-      <!-- Member: already answered form -->
-      <NeutralContainer v-if="activeView === 'member'">
-        <div class="flex items-center justify-between">
-          <div class="space-y-1">
-            <div class="flex items-center gap-2">
-              <span class="font-medium">Feedback Übungsabend</span>
-              <SuccessBadge>{{ t('forms.statusOpen') }}</SuccessBadge>
-            </div>
-            <p class="text-xs text-(--text-muted)">Rückmeldung zum letzten Übungsabend</p>
-          </div>
-          <SecondaryButton>{{ t('forms.editResponse') }}</SecondaryButton>
-        </div>
-      </NeutralContainer>
-
-      <NeutralContainer v-if="activeView === 'manager'">
-        <div class="flex items-center justify-between">
-          <div class="space-y-1">
-            <div class="flex items-center gap-2">
-              <span class="font-medium">Feedback Übungsabend</span>
-              <ErrorBadge>{{ t('forms.statusClosed') }}</ErrorBadge>
-            </div>
-            <p class="text-xs text-(--text-muted)">Rückmeldung zum letzten Übungsabend</p>
-          </div>
-          <div class="flex gap-2">
-            <SecondaryButton>{{ t('forms.viewAnalytics') }}</SecondaryButton>
-            <ErrorButton>{{ t('forms.delete') }}</ErrorButton>
-          </div>
-        </div>
-      </NeutralContainer>
-
-      <NeutralContainer v-if="activeView === 'manager'">
-        <div class="flex items-center justify-between">
-          <div class="space-y-1">
-            <div class="flex items-center gap-2">
-              <span class="font-medium">Neues Formular (Entwurf)</span>
-              <InfoBadge>{{ t('forms.statusDraft') }}</InfoBadge>
-            </div>
-          </div>
-          <div class="flex gap-2">
-            <SecondaryButton>{{ t('forms.publish') }}</SecondaryButton>
-            <SecondaryButton>{{ t('forms.edit') }}</SecondaryButton>
-            <ErrorButton>{{ t('forms.delete') }}</ErrorButton>
-          </div>
-        </div>
-      </NeutralContainer>
-    </div>
-
-    <!-- Member-specific explanation -->
     <HelpSection :title="t('helpCenter.forms.fillingTitle')">
       <p>{{ t('helpCenter.forms.fillingText') }}</p>
     </HelpSection>

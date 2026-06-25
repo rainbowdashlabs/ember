@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, onMounted, computed} from 'vue'
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -24,6 +24,7 @@ import {BarChart, LineChart} from 'echarts/charts'
 import {GridComponent, TooltipComponent} from 'echarts/components'
 import * as apiStatus from '@/api/apiStatus'
 import type {EndpointDetail} from '@/api/apiStatus'
+import {useConfigPanel} from '@/composables/useConfigPanel'
 
 use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent])
 
@@ -31,25 +32,17 @@ const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
 
-const loading = ref(true)
-const detail = ref<EndpointDetail | null>(null)
-
 const isDark = computed(() => document.documentElement.classList.contains('dark'))
 const textColor = computed(() => isDark.value ? '#ccc' : '#333')
 
 const method = computed(() => route.query.method as string)
 const path = computed(() => route.query.path as string)
 
-async function loadData() {
-    loading.value = true
-    try {
-        detail.value = await apiStatus.getEndpointDetail(method.value, path.value)
-    } catch {
-        // ignore
-    } finally {
-        loading.value = false
-    }
-}
+const {config: detail, loading} = useConfigPanel<EndpointDetail | null>({
+    initial: null,
+    fetch: () => apiStatus.getEndpointDetail(method.value, path.value),
+    formatError: () => '',
+})
 
 function methodColor(m: string): string {
     switch (m) {
@@ -117,7 +110,6 @@ const responseTimeChartOption = computed(() => {
     }
 })
 
-onMounted(loadData)
 </script>
 
 <template>

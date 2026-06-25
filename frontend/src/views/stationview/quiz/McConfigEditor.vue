@@ -21,40 +21,36 @@ import {getItem} from '@/api/storage'
 
 const {t} = useI18n()
 
+const config = defineModel<Record<string, unknown>>('config', {required: true})
+
 const props = defineProps<{
-  config: Record<string, unknown>
   questionTitle: string
 }>()
 
-const emit = defineEmits<{
-  'update:config': [value: Record<string, unknown>]
-}>()
-
 function updateConfig(patch: Record<string, unknown>) {
-  emit('update:config', {...props.config, ...patch})
+  config.value = {...config.value, ...patch}
 }
 
-// --- MC helpers ---
 function addMcOption() {
-  const opts = [...((props.config.options as { text: string; correct: boolean }[]) || [])]
+  const opts = [...((config.value.options as { text: string; correct: boolean }[]) || [])]
   opts.push({text: '', correct: false})
   updateConfig({options: opts})
 }
 
 function removeMcOption(idx: number) {
-  const opts = [...((props.config.options as { text: string; correct: boolean }[]) || [])]
+  const opts = [...((config.value.options as { text: string; correct: boolean }[]) || [])]
   opts.splice(idx, 1)
   updateConfig({options: opts})
 }
 
 function updateMcOptionText(idx: number, value: string) {
-  const opts = [...((props.config.options as { text: string; correct: boolean }[]) || [])]
+  const opts = [...((config.value.options as { text: string; correct: boolean }[]) || [])]
   opts[idx] = {...opts[idx], text: value}
   updateConfig({options: opts})
 }
 
 function toggleMcOptionCorrect(idx: number) {
-  const opts = [...((props.config.options as { text: string; correct: boolean }[]) || [])]
+  const opts = [...((config.value.options as { text: string; correct: boolean }[]) || [])]
   opts[idx] = {...opts[idx], correct: !opts[idx].correct}
   updateConfig({options: opts})
 }
@@ -66,7 +62,7 @@ const aiCountMode = ref<'add' | 'fillTo'>('add')
 const aiCount = ref(3)
 
 async function generateWrongAnswers() {
-  const options = (props.config.options as { text: string; correct: boolean }[]) || []
+  const options = (config.value.options as { text: string; correct: boolean }[]) || []
   const correctAnswer = options.filter(o => o.correct).map(o => o.text).join(', ')
   if (!correctAnswer || !props.questionTitle) return
 
@@ -93,7 +89,7 @@ async function generateWrongAnswers() {
     })
     if (results.length > 0) {
       const newOptions = [...options, ...results.map(text => ({text, correct: false}))]
-      emit('update:config', {...props.config, options: newOptions})
+      config.value = {...config.value, options: newOptions}
     }
   } catch (e: unknown) {
     aiError.value = e instanceof Error ? e.message : String(e)

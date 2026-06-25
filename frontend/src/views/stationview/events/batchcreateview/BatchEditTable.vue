@@ -17,40 +17,35 @@ import type {BatchRow} from '@/api/events'
 
 const {t} = useI18n()
 
+const rows = defineModel<BatchRow[]>('rows', {required: true})
+
 const props = defineProps<{
   fieldDefs: EventFieldEntry[]
-  rows: BatchRow[]
-}>()
-
-const emit = defineEmits<{
-  'update:rows': [rows: BatchRow[]]
 }>()
 
 const activeFields = () => props.fieldDefs.filter(f => f.name.trim())
 
 function removeRow(index: number) {
-  const updated = [...props.rows]
+  const updated = [...rows.value]
   updated.splice(index, 1)
-  emit('update:rows', updated)
+  rows.value = updated
 }
 
 function updateRow(index: number, row: BatchRow) {
-  const updated = [...props.rows]
+  const updated = [...rows.value]
   updated[index] = row
-  emit('update:rows', updated)
+  rows.value = updated
 }
 
 function setAllColumn(fieldName: string, value: string) {
-  const updated = props.rows.map(row => ({
+  rows.value = rows.value.map(row => ({
     ...row,
     fieldValues: {...(row.fieldValues ?? {}), [fieldName]: value},
   }))
-  emit('update:rows', updated)
 }
 
 function setAllName(value: string) {
-  const updated = props.rows.map(row => ({...row, name: value}))
-  emit('update:rows', updated)
+  rows.value = rows.value.map(row => ({...row, name: value}))
 }
 
 function formatDate(isoString: string): string {

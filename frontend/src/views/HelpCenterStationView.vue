@@ -14,6 +14,9 @@ import SidebarExpandableLink from '@/components/navigation/SidebarExpandableLink
 import BaseButton from '@/components/button/BaseButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
+import MembersSidebarGroup from '@/views/helpcenterstationview/MembersSidebarGroup.vue'
+import InventorySidebarGroup from '@/views/helpcenterstationview/InventorySidebarGroup.vue'
+import QuizSidebarGroup from '@/views/helpcenterstationview/QuizSidebarGroup.vue'
 import {useHelpSearch} from '@/composables/useHelpSearch'
 
 const {t, te} = useI18n()
@@ -177,138 +180,9 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
         </SidebarExpandableLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'users']" :label="t('sidebar.members')" prefix="/helpcenter/station/members"
-                    to="/helpcenter/station/members" name="help-members-module-overview" @navigate="close">
-        <SidebarLink :icon="['fas', 'user-plus']" name="help-members-create"
-                     to="/helpcenter/station/members/create" @navigate="close">
-          {{ t('sidebar.create') }}
-        </SidebarLink>
-        <SidebarExpandableLink :icon="['fas', 'upload']" name="help-members-import"
-                               to="/helpcenter/station/members/import" @navigate="close">
-          <template #label>{{ t('sidebar.membersImport') }}</template>
-          <SidebarLink :icon="['fas', 'users']" name="help-members-import-team"
-                       to="/helpcenter/station/members/import-team" @navigate="close">
-            {{ t('sidebar.membersImportTeam') }}
-          </SidebarLink>
-        </SidebarExpandableLink>
-        <SidebarLink :icon="['fas', 'list']" name="help-members-list" to="/helpcenter/station/members/list"
-                     @navigate="close">
-          {{ t('sidebar.list') }}
-        </SidebarLink>
-        <SidebarExpandableLink :icon="['fas', 'eye']" name="help-members-detail"
-                               to="/helpcenter/station/members/detail" @navigate="close">
-          <template #label>{{ t('sidebar.detail') }}</template>
-          <SidebarLink :icon="['fas', 'pen']" name="help-members-edit"
-                       to="/helpcenter/station/members/edit" @navigate="close">
-            {{ t('sidebar.edit') }}
-          </SidebarLink>
-        </SidebarExpandableLink>
-        <SidebarLink :icon="['fas', 'layer-group']" name="help-members-groups"
-                     to="/helpcenter/station/members/groups" @navigate="close">
-          {{ t('sidebar.groups') }}
-        </SidebarLink>
-        <SidebarLink :icon="['fas', 'shield']" name="help-members-type-permissions"
-                     to="/helpcenter/station/members/type-permissions" @navigate="close">
-          {{ t('sidebar.typePermissions') }}
-        </SidebarLink>
-        <SidebarLink :icon="['fas', 'hashtag']" name="help-members-tags" to="/helpcenter/station/members/tags"
-                     @navigate="close">
-          {{ t('sidebar.tags') }}
-        </SidebarLink>
-        <SidebarLink :icon="['fas', 'bell']" name="help-members-changes"
-                     to="/helpcenter/station/members/changes" @navigate="close">
-          {{ t('sidebar.changes') }}
-        </SidebarLink>
-        <SidebarLink :icon="['fas', 'user-slash']" name="help-members-former"
-                     to="/helpcenter/station/members/former" @navigate="close">
-          {{ t('sidebar.formerMembers') }}
-        </SidebarLink>
-        <SidebarLink :icon="['fas', 'clipboard-list']" name="help-waiting-lists"
-                     to="/helpcenter/station/members/waiting-lists" @navigate="close">
-          {{ t('sidebar.waitingLists') }}
-        </SidebarLink>
-        <SidebarLink :icon="['fas', 'users-gear']" name="help-station-members-config"
-                     to="/helpcenter/station/members/config" @navigate="close">
-          {{ t('sidebar.membersConfig') }}
-        </SidebarLink>
-      </SidebarGroup>
+      <MembersSidebarGroup :close="close"/>
 
-      <SidebarGroup :icon="['fas', 'boxes-stacked']" :label="t('sidebar.inventory')"
-                    prefix="/helpcenter/station/inventory"
-                    to="/helpcenter/station/inventory" name="help-inventory-module-overview" @navigate="close">
-        <SidebarLink :icon="['fas', 'house']" name="help-inventory-overview"
-                     to="/helpcenter/station/inventory/overview" @navigate="close">
-          {{ t('sidebar.overview') }}
-        </SidebarLink>
-        <SidebarLink :icon="['fas', 'boxes-stacked']" name="help-inventory-my"
-                     to="/helpcenter/station/inventory/my" @navigate="close">
-          {{ t('sidebar.myInventory') }}
-        </SidebarLink>
-        <SidebarLink :icon="['fas', 'rotate']" name="help-inventory-exchanges"
-                     to="/helpcenter/station/inventory/exchanges" @navigate="close">
-          {{ t('sidebar.inventoryExchanges') }}
-        </SidebarLink>
-        <SidebarExpandableLink :icon="['fas', 'users']" name="help-inventory-members"
-                               to="/helpcenter/station/inventory/members" prefix="/helpcenter/station/inventory/member" @navigate="close">
-          <template #label>{{ t('sidebar.inventoryMembers') }}</template>
-          <SidebarLink :icon="['fas', 'user']" name="help-inventory-member"
-                       to="/helpcenter/station/inventory/member" @navigate="close">
-            {{ t('sidebar.inventoryMemberDetail') }}
-          </SidebarLink>
-        </SidebarExpandableLink>
-        <SidebarExpandableLink :icon="['fas', 'box-open']" name="help-inventory-manage"
-                               to="/helpcenter/station/inventory/manage" @navigate="close">
-          <template #label>{{ t('sidebar.inventoryManage') }}</template>
-          <SidebarLink :icon="['fas', 'eye']" name="help-inventory-detail"
-                       to="/helpcenter/station/inventory/detail" @navigate="close">
-            {{ t('sidebar.inventoryDetail') }}
-          </SidebarLink>
-          <SidebarLink :icon="['fas', 'pen']" name="help-inventory-edit"
-                       to="/helpcenter/station/inventory/edit" @navigate="close">
-            {{ t('sidebar.inventoryEdit') }}
-          </SidebarLink>
-        </SidebarExpandableLink>
-        <SidebarLink :icon="['fas', 'clipboard-list']" name="help-inventory-requirements"
-                     to="/helpcenter/station/inventory/requirements" @navigate="close">
-          {{ t('sidebar.inventoryRequirements') }}
-        </SidebarLink>
-        <SidebarExpandableLink :icon="['fas', 'clipboard-check']" name="help-inventory-checks"
-                               to="/helpcenter/station/inventory/checks" @navigate="close">
-          <template #label>{{ t('sidebar.inventoryCheck') }}</template>
-          <SidebarLink :icon="['fas', 'user-check']" name="help-inventory-check-member"
-                       to="/helpcenter/station/inventory/checks/0" @navigate="close">
-            {{ t('sidebar.inventoryCheckMember') }}
-          </SidebarLink>
-          <SidebarLink :icon="['fas', 'clipboard-list']" name="help-inventory-check-result"
-                       to="/helpcenter/station/inventory/checks/0/result" @navigate="close">
-            {{ t('sidebar.inventoryCheckResult') }}
-          </SidebarLink>
-        </SidebarExpandableLink>
-        <SidebarLink :icon="['fas', 'folder-plus']" name="help-inventory-procurement"
-                     to="/helpcenter/station/inventory/procurement" @navigate="close">
-          {{ t('sidebar.inventoryProcurement') }}
-        </SidebarLink>
-        <SidebarExpandableLink :icon="['fas', 'handshake']" name="help-inventory-lending"
-                               to="/helpcenter/station/inventory/lending" prefix="/helpcenter/station/inventory/lending" @navigate="close">
-          <template #label>{{ t('sidebar.inventoryLending') }}</template>
-          <SidebarLink :icon="['fas', 'calendar-xmark']" name="help-inventory-lending-blocks"
-                       to="/helpcenter/station/inventory/lending/blocks" @navigate="close">
-            {{ t('helpCenter.inventoryLendingBlocks.title') }}
-          </SidebarLink>
-          <SidebarLink :icon="['fas', 'magnifying-glass']" name="help-inventory-lending-browse"
-                       to="/helpcenter/station/inventory/lending/browse" @navigate="close">
-            {{ t('helpCenter.inventoryLendingBrowse.title') }}
-          </SidebarLink>
-          <SidebarLink :icon="['fas', 'file-lines']" name="help-inventory-lending-request"
-                       to="/helpcenter/station/inventory/lending/request/0" @navigate="close">
-            {{ t('helpCenter.inventoryLendingRequest.title') }}
-          </SidebarLink>
-          <SidebarLink :icon="['fas', 'plus']" name="help-inventory-lending-create"
-                       to="/helpcenter/station/inventory/lending/request/new" @navigate="close">
-            {{ t('helpCenter.inventoryLendingCreate.title') }}
-          </SidebarLink>
-        </SidebarExpandableLink>
-      </SidebarGroup>
+      <InventorySidebarGroup :close="close"/>
 
       <SidebarGroup :icon="['fas', 'clipboard-user']" :label="t('sidebar.attendance')"
                     prefix="/helpcenter/station/attendance"
@@ -389,65 +263,7 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
                     to="/helpcenter/station/lost-and-found" name="help-lost-and-found" @navigate="close">
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'graduation-cap']" :label="t('sidebar.quiz')" prefix="/helpcenter/station/quiz"
-                    to="/helpcenter/station/quiz" name="help-quiz-module-overview" @navigate="close">
-        <SidebarExpandableLink :icon="['fas', 'book']" name="help-quiz-catalogs"
-                               to="/helpcenter/station/quiz/catalogs" prefix="/helpcenter/station/quiz/catalog" @navigate="close">
-          <template #label>{{ t('sidebar.quizCatalogs') }}</template>
-          <SidebarLink :icon="['fas', 'eye']" name="help-quiz-catalog-detail" to="/helpcenter/station/quiz/catalogs/0" @navigate="close">
-            {{ t('sidebar.quizCatalogDetail') }}
-          </SidebarLink>
-          <SidebarLink :icon="['fas', 'robot']" name="help-quiz-ai" to="/helpcenter/station/quiz/ai" @navigate="close">
-            {{ t('sidebar.quizAi') }}
-          </SidebarLink>
-          <SidebarLink :icon="['fas', 'robot']" name="help-quiz-catalog-generate" to="/helpcenter/station/quiz/catalogs/0/generate" @navigate="close">
-            {{ t('sidebar.quizCatalogGenerate') }}
-          </SidebarLink>
-          <SidebarLink :icon="['fas', 'file-import']" name="help-quiz-catalog-import" to="/helpcenter/station/quiz/catalogs/0/import" @navigate="close">
-            {{ t('sidebar.quizCatalogImport') }}
-          </SidebarLink>
-        </SidebarExpandableLink>
-        <SidebarExpandableLink :icon="['fas', 'file-lines']" name="help-quiz-tests"
-                               to="/helpcenter/station/quiz/tests" prefix="/helpcenter/station/quiz/tests" @navigate="close">
-          <template #label>{{ t('sidebar.quizTests') }}</template>
-          <SidebarLink :icon="['fas', 'plus']" name="help-quiz-test-create" to="/helpcenter/station/quiz/tests/create" @navigate="close">
-            {{ t('sidebar.quizTestCreate') }}
-          </SidebarLink>
-          <SidebarLink :icon="['fas', 'eye']" name="help-quiz-test-detail" to="/helpcenter/station/quiz/tests/0" @navigate="close">
-            {{ t('sidebar.quizTestDetail') }}
-          </SidebarLink>
-          <SidebarLink :icon="['fas', 'pen']" name="help-quiz-test-edit" to="/helpcenter/station/quiz/tests/0/edit" @navigate="close">
-            {{ t('sidebar.quizTestEdit') }}
-          </SidebarLink>
-          <SidebarLink :icon="['fas', 'pen']" name="help-quiz-test-take" to="/helpcenter/station/quiz/tests/0/take" @navigate="close">
-            {{ t('sidebar.quizTestTake') }}
-          </SidebarLink>
-          <SidebarLink :icon="['fas', 'star']" name="help-quiz-test-evaluate" to="/helpcenter/station/quiz/tests/0/evaluate/0" @navigate="close">
-            {{ t('sidebar.quizTestEvaluate') }}
-          </SidebarLink>
-        </SidebarExpandableLink>
-        <SidebarLink :icon="['fas', 'brain']" name="help-quiz-training" to="/helpcenter/station/quiz/training" @navigate="close">
-          {{ t('sidebar.quizTraining') }}
-        </SidebarLink>
-        <SidebarExpandableLink :icon="['fas', 'clipboard-check']" name="help-protocol-module-overview" to="/helpcenter/station/protocols" prefix="/helpcenter/station/protocols" @navigate="close">
-          <template #label>{{ t('sidebar.protocols') }}</template>
-          <SidebarLink :icon="['fas', 'eye']" name="help-protocol-detail" to="/helpcenter/station/protocols/0" @navigate="close">
-            {{ t('sidebar.protocolDetail') }}
-          </SidebarLink>
-          <SidebarExpandableLink :icon="['fas', 'list-check']" name="help-protocol-run-list" to="/helpcenter/station/protocols/runs" prefix="/helpcenter/station/protocols/runs" @navigate="close">
-            <template #label>{{ t('sidebar.protocolRuns') }}</template>
-            <SidebarLink :icon="['fas', 'eye']" name="help-protocol-run-detail" to="/helpcenter/station/protocols/runs/0" @navigate="close">
-              {{ t('sidebar.protocolRunDetail') }}
-            </SidebarLink>
-            <SidebarLink :icon="['fas', 'chart-bar']" name="help-protocol-evaluation" to="/helpcenter/station/protocols/runs/0/evaluation" @navigate="close">
-              {{ t('sidebar.protocolEvaluation') }}
-            </SidebarLink>
-            <SidebarLink :icon="['fas', 'pen-to-square']" name="help-protocol-grade" to="/helpcenter/station/protocols/runs/0/grade/0" @navigate="close">
-              {{ t('sidebar.protocolGrade') }}
-            </SidebarLink>
-          </SidebarExpandableLink>
-        </SidebarExpandableLink>
-      </SidebarGroup>
+      <QuizSidebarGroup :close="close"/>
 
       <SidebarGroup :icon="['fas', 'table-columns']" :label="t('sidebar.boards')" prefix="/helpcenter/station/boards"
                     :prefix2="['/helpcenter/station/federation/boards']" to="/helpcenter/station/boards" name="help-board-overview" @navigate="close">

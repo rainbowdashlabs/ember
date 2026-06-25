@@ -22,6 +22,7 @@ import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import type {InventoryDetail, InventoryItem, InventoryItemHistory, StationMember} from '@/api/types'
 import {ItemSource} from '@/api/types'
 import {inventory} from '@/api'
+import {useModalTarget} from '@/composables/useModalTarget'
 
 const {t} = useI18n()
 
@@ -105,15 +106,10 @@ async function saveItem() {
 }
 
 // Assign modal
-const showAssignModal = ref(false)
-const assignTarget = ref<InventoryItem | null>(null)
 const assignMemberId = ref('')
-
-function openAssign(item: InventoryItem) {
-  assignTarget.value = item
+const {isOpen: showAssignModal, target: assignTarget, open: openAssign} = useModalTarget<InventoryItem>(() => {
   assignMemberId.value = ''
-  showAssignModal.value = true
-}
+})
 
 async function submitAssign() {
   if (!assignTarget.value) return
@@ -129,15 +125,12 @@ async function submitAssign() {
 }
 
 // Quick assign modal
-const showQuickAssignModal = ref(false)
 const quickAssignMemberId = ref('')
 const quickAssignSizeId = ref('')
-
-function openQuickAssign() {
+const {isOpen: showQuickAssignModal, open: openQuickAssign} = useModalTarget<null>(() => {
   quickAssignMemberId.value = ''
   quickAssignSizeId.value = ''
-  showQuickAssignModal.value = true
-}
+})
 
 async function submitQuickAssign() {
   if (!quickAssignMemberId.value) return
@@ -180,13 +173,7 @@ async function openHistory(item: InventoryItem) {
 }
 
 // Delete
-const showDeleteModal = ref(false)
-const deleteTarget = ref<InventoryItem | null>(null)
-
-function requestDelete(item: InventoryItem) {
-  deleteTarget.value = item
-  showDeleteModal.value = true
-}
+const {isOpen: showDeleteModal, target: deleteTarget, open: requestDelete} = useModalTarget<InventoryItem>()
 
 async function confirmDelete() {
   if (!deleteTarget.value) return

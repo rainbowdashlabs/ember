@@ -4,17 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+const currentStep = defineModel<number>('currentStep', {required: true})
+
 defineProps<{
   steps: { label: string; disabled?: boolean }[]
-  currentStep: number
-}>()
-
-const emit = defineEmits<{
-  'update:currentStep': [step: number]
 }>()
 
 function selectStep(index: number, disabled?: boolean) {
-  if (!disabled) emit('update:currentStep', index)
+  if (!disabled) currentStep.value = index
 }
 </script>
 

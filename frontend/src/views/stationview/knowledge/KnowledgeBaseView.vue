@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, onMounted, watch, computed} from 'vue'
+import {ref, watch, computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter, useRoute} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -12,9 +12,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import KbBreadcrumb from './knowledgebaseview/KbBreadcrumb.vue'
-import KbCreateMenu from './knowledgebaseview/KbCreateMenu.vue'
-import KbItemGrid from './knowledgebaseview/KbItemGrid.vue'
-import KbItemList from './knowledgebaseview/KbItemList.vue'
+import KbBrowseSection from './knowledgebaseview/KbBrowseSection.vue'
 import KbEditFolderModal from './knowledgebaseview/KbEditFolderModal.vue'
 import KbEditFileModal from './knowledgebaseview/KbEditFileModal.vue'
 import KbCreateModals from './knowledgebaseview/KbCreateModals.vue'
@@ -22,11 +20,12 @@ import KbSearchResults from './knowledgebaseview/KbSearchResults.vue'
 import KbDeleteModals from './knowledgebaseview/KbDeleteModals.vue'
 import KbFiltersBar from './knowledgebaseview/KbFiltersBar.vue'
 import {useSession} from '@/composables/useSession'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import {useKbTagFilter} from '@/composables/useKbTagFilter'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {getItem} from '@/api/storage'
 import {knowledgeBase, federation} from '@/api'
 import type {KbFolder, KbFile, SharedFileEntry} from '@/api/knowledgeBase'
-import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -36,8 +35,6 @@ const {canEditKnowledge, loaded, isKbPublic} = useSession()
 // View mode
 const viewMode = ref<'grid' | 'list'>('grid')
 
-const loading = ref(true)
-const error = ref('')
 const currentFolder = ref<KbFolder | null>(null)
 const folders = ref<KbFolder[]>([])
 const files = ref<KbFile[]>([])
@@ -115,11 +112,57 @@ const editFolderData = ref<KbFolder | null>(null)
 const showEditFileModal = ref(false)
 const editFileData = ref<KbFile | null>(null)
 
-// Delete modals
-const showDeleteFolderModal = ref(false)
-const folderToDelete = ref<KbFolder | null>(null)
-const showDeleteFileModal = ref(false)
-const fileToDelete = ref<KbFile | null>(null)
+const {loading, error, reload: loadData} = useAsyncLoader(async () => {
+    if (isFavouritesView.value) {
+        const result = await knowledgeBase.browse(null)
+        currentFolder.value = null
+        folders.value = []
+        files.value = result.favourites ?? []
+        sharedFiles.value = []
+        favourites.value = result.favourites ?? []
+        breadcrumbs.value = []
+    } else {
+        const result = await knowledgeBase.browse(currentFolderId.value)
+        currentFolder.value = result.currentFolder
+        folders.value = result.folders
+        files.value = result.files
+        favourites.value = result.favourites ?? []
+        await buildBreadcrumbs()
+
+        if (currentFolderId.value == null) {
+            try {
+                const shared = await federation.browseSharedKb()
+                sharedFiles.value = shared.map(s => ({
+                    file: {id: s.remoteId, name: s.title, description: s.description} as any,
+                    stationName: s.stationName,
+                    sourceStationId: s.stationId,
+                }))
+            } catch { sharedFiles.value = [] }
+        } else {
+            sharedFiles.value = []
+        }
+    }
+}, {autoLoad: false})
+
+const {
+    show: showDeleteFolderModal,
+    request: confirmDeleteFolder,
+    confirm: handleDeleteFolder,
+} = useConfirmAction<KbFolder>({
+    onConfirm: f => knowledgeBase.deleteFolder(f.id),
+    onSuccess: () => loadData(),
+    error,
+})
+
+const {
+    show: showDeleteFileModal,
+    request: confirmDeleteFile,
+    confirm: handleDeleteFile,
+} = useConfirmAction<KbFile>({
+    onConfirm: f => knowledgeBase.deleteFile(f.id),
+    onSuccess: () => loadData(),
+    error,
+})
 
 // Create modals ref
 const createModalsRef = ref<InstanceType<typeof KbCreateModals> | null>(null)
@@ -149,47 +192,6 @@ async function toggleFavourite(file: KbFile, event?: MouseEvent) {
         }
     } catch {
         error.value = t('common.error')
-    }
-}
-
-async function loadData() {
-    loading.value = true
-    error.value = ''
-    try {
-        if (isFavouritesView.value) {
-            const result = await knowledgeBase.browse(null)
-            currentFolder.value = null
-            folders.value = []
-            files.value = result.favourites ?? []
-            sharedFiles.value = []
-            favourites.value = result.favourites ?? []
-            breadcrumbs.value = []
-        } else {
-            const result = await knowledgeBase.browse(currentFolderId.value)
-            currentFolder.value = result.currentFolder
-            folders.value = result.folders
-            files.value = result.files
-            favourites.value = result.favourites ?? []
-            await buildBreadcrumbs()
-
-            // Load federated KB content at root level
-            if (currentFolderId.value == null) {
-                try {
-                    const shared = await federation.browseSharedKb()
-                    sharedFiles.value = shared.map(s => ({
-                        file: {id: s.remoteId, name: s.title, description: s.description} as any,
-                        stationName: s.stationName,
-                        sourceStationId: s.stationId,
-                    }))
-                } catch { sharedFiles.value = [] }
-            } else {
-                sharedFiles.value = []
-            }
-        }
-    } catch {
-        error.value = t('common.error')
-    } finally {
-        loading.value = false
     }
 }
 
@@ -278,40 +280,6 @@ function openEditFile(file: KbFile) {
     showEditFileModal.value = true
 }
 
-function confirmDeleteFolder(folder: KbFolder) {
-    folderToDelete.value = folder
-    showDeleteFolderModal.value = true
-}
-
-function confirmDeleteFile(file: KbFile) {
-    fileToDelete.value = file
-    showDeleteFileModal.value = true
-}
-
-async function handleDeleteFolder() {
-    if (!folderToDelete.value) return
-    try {
-        await knowledgeBase.deleteFolder(folderToDelete.value.id)
-        showDeleteFolderModal.value = false
-        folderToDelete.value = null
-        await loadData()
-    } catch {
-        error.value = t('common.error')
-    }
-}
-
-async function handleDeleteFile() {
-    if (!fileToDelete.value) return
-    try {
-        await knowledgeBase.deleteFile(fileToDelete.value.id)
-        showDeleteFileModal.value = false
-        fileToDelete.value = null
-        await loadData()
-    } catch {
-        error.value = t('common.error')
-    }
-}
-
 watch(() => route.query.folderId, () => {
     loadData()
 })
@@ -319,10 +287,6 @@ watch(() => route.query.folderId, () => {
 watch(loaded, (isLoaded) => {
     if (isLoaded) { loadData(); loadTags() }
 }, {immediate: true})
-
-onMounted(() => {
-    if (loaded.value) { loadData(); loadTags() }
-})
 
 const shareCopied = ref(false)
 function copyShareLink() {
@@ -388,74 +352,34 @@ function navigateToFavourites() {
             @copy-shared-file="copySharedFile"
         />
 
-        <!-- Browse -->
-        <div v-else>
-            <Spinner v-if="loading"/>
-            <template v-else>
-                <!-- Folder description -->
-                <MutedText tag="p" size="sm" v-if="currentFolder?.description">
-                    {{ currentFolder.description }}
-                </MutedText>
-
-                <!-- Manager actions -->
-                <KbCreateMenu
-                    v-if="canEditKnowledge()"
-                    @create-folder="createModalsRef?.openCreateFolder()"
-                    @create-markdown="createModalsRef?.openCreateFile()"
-                    @upload="createModalsRef?.openUpload()"
-                    @youtube="createModalsRef?.openYoutube()"
-                    @link="createModalsRef?.openLink()"
-                    @import-document="createModalsRef?.openImportDocument()"
-                />
-
-                <!-- Content: Grid or List -->
-                <template v-if="filteredFolders.length > 0 || filteredFiles.length > 0 || filteredSharedFiles.length > 0 || (!currentFolder && !isFavouritesView && favourites.length > 0)">
-                    <KbItemGrid
-                        v-if="viewMode === 'grid'"
-                        :folders="filteredFolders"
-                        :files="filteredFiles"
-                        :shared-files="filteredSharedFiles"
-                        :favourites="favourites"
-                        :favourite-ids="favouriteIds"
-                        :can-manage="canEditKnowledge()"
-                        :is-favourites-view="isFavouritesView"
-                        :current-folder="currentFolder"
-                        @navigate-folder="navigateToFolder"
-                        @navigate-file="navigateToFile"
-                        @edit-folder="openEditFolder"
-                        @delete-folder="confirmDeleteFolder"
-                        @edit-file="openEditFile"
-                        @delete-file="confirmDeleteFile"
-                        @copy-shared-file="copySharedFile"
-                        @toggle-favourite="toggleFavourite"
-                        @navigate-to-favourites="navigateToFavourites"
-                    />
-                    <KbItemList
-                        v-else
-                        :folders="filteredFolders"
-                        :files="filteredFiles"
-                        :shared-files="filteredSharedFiles"
-                        :favourites="favourites"
-                        :favourite-ids="favouriteIds"
-                        :can-manage="canEditKnowledge()"
-                        :is-favourites-view="isFavouritesView"
-                        :current-folder="currentFolder"
-                        @navigate-folder="navigateToFolder"
-                        @navigate-file="navigateToFile"
-                        @edit-folder="openEditFolder"
-                        @delete-folder="confirmDeleteFolder"
-                        @edit-file="openEditFile"
-                        @delete-file="confirmDeleteFile"
-                        @copy-shared-file="copySharedFile"
-                        @navigate-to-favourites="navigateToFavourites"
-                    />
-                </template>
-
-                <p v-else class="text-[var(--text-muted)] text-center py-8">
-                    {{ t('kb.emptyFolder') }}
-                </p>
-            </template>
-        </div>
+        <KbBrowseSection
+            v-else
+            :loading="loading"
+            :current-folder="currentFolder"
+            :is-favourites-view="isFavouritesView"
+            :favourites="favourites"
+            :view-mode="viewMode"
+            :filtered-folders="filteredFolders"
+            :filtered-files="filteredFiles"
+            :filtered-shared-files="filteredSharedFiles"
+            :favourite-ids="favouriteIds"
+            :can-manage="canEditKnowledge()"
+            @create-folder="createModalsRef?.openCreateFolder()"
+            @create-markdown="createModalsRef?.openCreateFile()"
+            @upload="createModalsRef?.openUpload()"
+            @youtube="createModalsRef?.openYoutube()"
+            @link="createModalsRef?.openLink()"
+            @import-document="createModalsRef?.openImportDocument()"
+            @navigate-folder="navigateToFolder"
+            @navigate-file="navigateToFile"
+            @edit-folder="openEditFolder"
+            @delete-folder="confirmDeleteFolder"
+            @edit-file="openEditFile"
+            @delete-file="confirmDeleteFile"
+            @copy-shared-file="copySharedFile"
+            @toggle-favourite="toggleFavourite"
+            @navigate-to-favourites="navigateToFavourites"
+        />
 
         <!-- Create Modals -->
         <KbCreateModals
@@ -467,25 +391,21 @@ function navigateToFavourites() {
 
         <!-- Edit Folder Modal -->
         <KbEditFolderModal
-            :show="showEditFolderModal"
+            v-model:show="showEditFolderModal"
             :folder="editFolderData"
-            @update:show="showEditFolderModal = $event"
             @saved="loadData()"
         />
 
         <!-- Edit File Modal -->
         <KbEditFileModal
-            :show="showEditFileModal"
+            v-model:show="showEditFileModal"
             :file="editFileData"
-            @update:show="showEditFileModal = $event"
             @saved="loadData()"
         />
 
         <KbDeleteModals
-            :show-folder="showDeleteFolderModal"
-            :show-file="showDeleteFileModal"
-            @update:show-folder="showDeleteFolderModal = $event"
-            @update:show-file="showDeleteFileModal = $event"
+            v-model:show-folder="showDeleteFolderModal"
+            v-model:show-file="showDeleteFileModal"
             @confirm-folder="handleDeleteFolder"
             @confirm-file="handleDeleteFile"
         />

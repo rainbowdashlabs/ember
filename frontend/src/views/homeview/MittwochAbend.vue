@@ -7,6 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PageHeader from '@/components/typography/PageHeader.vue'
+import LandingEyebrow from '@/views/homeview/LandingEyebrow.vue'
 
 const {t, tm, rt} = useI18n()
 
@@ -19,9 +20,9 @@ const beats = computed(() =>
 </script>
 
 <template>
-  <section class="evening">
-    <div class="eyebrow">{{ t('landing.evening.eyebrow') }}</div>
-    <div class="grid">
+  <section class="landing-section landing-section-bordered">
+    <LandingEyebrow margin-bottom="2.5rem">{{ t('landing.evening.eyebrow') }}</LandingEyebrow>
+    <div class="landing-grid-2col landing-grid-2col-airy">
       <div class="poster">
         <PageHeader class="title">
           {{ t('landing.evening.titleLine1') }}<br>
@@ -41,33 +42,6 @@ const beats = computed(() =>
 </template>
 
 <style scoped>
-.evening {
-  padding: 6rem 1.5rem;
-  max-width: 76rem;
-  margin: 0 auto;
-  border-top: 1px solid var(--border);
-}
-.eyebrow {
-  font-family: 'Bitter', Georgia, serif;
-  font-size: 0.7rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  font-weight: 700;
-  opacity: 0.55;
-  margin-bottom: 2.5rem;
-}
-.grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 3rem;
-  align-items: start;
-}
-@media (min-width: 900px) {
-  .grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 5rem;
-  }
-}
 .title :deep(h1) {
   font-family: 'Bitter', Georgia, serif;
   font-weight: 700;

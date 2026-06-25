@@ -4,19 +4,16 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import MemberName from '@/components/avatar/MemberName.vue'
+import SubmissionList from './contactsubmissionsview/SubmissionList.vue'
 import type {Form, FormResponse, FormAnswer, FormQuestion} from '@/api/types'
 import {QuestionTypes} from '@/api/types'
 import {forms} from '@/api'
@@ -31,8 +28,6 @@ const {t} = useI18n()
 const route = useRoute()
 
 const formId = computed(() => Number(route.params.id))
-const loading = ref(true)
-const error = ref('')
 const form = ref<Form | null>(null)
 const questions = ref<FormQuestion[]>([])
 const submissions = ref<FormResponse[]>([])
@@ -45,34 +40,26 @@ const questionsById = computed(() => {
     return map
 })
 
-async function loadData() {
-    loading.value = true
-    error.value = ''
-    try {
-        const [f, qs, list] = await Promise.all([
-            forms.getForm(formId.value),
-            forms.getQuestions(formId.value),
-            forms.listResponses(formId.value, FormAnalyticsBase.PAGE_FORMS),
-        ])
-        form.value = f
-        questions.value = qs
-        submissions.value = list
-        const answersMap = new Map<number, FormAnswer[]>()
-        for (const sub of list) {
-            try {
-                const detail = await forms.getResponseDetail(formId.value, sub.id, FormAnalyticsBase.PAGE_FORMS)
-                answersMap.set(sub.id, detail.answers)
-            } catch {
-                answersMap.set(sub.id, [])
-            }
+const {loading, error, reload} = useAsyncLoader(async () => {
+    const [f, qs, list] = await Promise.all([
+        forms.getForm(formId.value),
+        forms.getQuestions(formId.value),
+        forms.listResponses(formId.value, FormAnalyticsBase.PAGE_FORMS),
+    ])
+    form.value = f
+    questions.value = qs
+    submissions.value = list
+    const answersMap = new Map<number, FormAnswer[]>()
+    for (const sub of list) {
+        try {
+            const detail = await forms.getResponseDetail(formId.value, sub.id, FormAnalyticsBase.PAGE_FORMS)
+            answersMap.set(sub.id, detail.answers)
+        } catch {
+            answersMap.set(sub.id, [])
         }
-        answersByResponse.value = answersMap
-    } catch {
-        error.value = t('common.error')
-    } finally {
-        loading.value = false
     }
-}
+    answersByResponse.value = answersMap
+})
 
 async function acknowledge(submission: FormResponse) {
     if (submission.acknowledgedAt) return
@@ -81,7 +68,7 @@ async function acknowledge(submission: FormResponse) {
     ackInFlight.value = next
     try {
         await acknowledgeContactResponse(formId.value, submission.id)
-        await loadData()
+        await reload()
     } catch {
         const cleared = new Set(ackInFlight.value)
         cleared.delete(submission.id)
@@ -130,8 +117,6 @@ function formatAnswer(answer: FormAnswer): string {
 function formatTimestamp(iso: string): string {
     return new Date(iso).toLocaleString('de-DE')
 }
-
-onMounted(loadData)
 </script>
 
 <template>
@@ -146,47 +131,16 @@ onMounted(loadData)
                 {{ t('forms.contactSubmissions.empty') }}
             </EmptyState>
 
-            <div v-if="!loading && submissions.length > 0" class="space-y-3">
-                <NeutralContainer
-                    v-for="sub in submissions"
-                    :key="sub.id"
-                    class="space-y-3"
-                >
-                    <div class="flex flex-wrap items-center justify-between gap-2">
-                        <SubHeader class="mb-0">{{ formatTimestamp(sub.submittedAt) }}</SubHeader>
-                        <SuccessBadge v-if="sub.acknowledgedAt">
-                            <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
-                            {{ t('forms.contactSubmissions.acknowledged') }}
-                        </SuccessBadge>
-                    </div>
-
-                    <div v-for="answer in answersByResponse.get(sub.id) ?? []" :key="answer.id" class="space-y-0.5">
-                        <p class="text-xs text-(--text-muted)">{{ questionTitle(answer) }}</p>
-                        <p class="text-sm whitespace-pre-line">{{ formatAnswer(answer) }}</p>
-                    </div>
-
-                    <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-(--border)">
-                        <p v-if="sub.acknowledgedAt && sub.acknowledgedByIdentity"
-                           class="text-xs text-(--text-muted) flex items-center gap-1.5">
-                            {{ t('forms.contactSubmissions.acknowledgedBy') }}
-                            <MemberName :identity="sub.acknowledgedByIdentity" size="sm"/>
-                            <span>·</span>
-                            <span>{{ formatTimestamp(sub.acknowledgedAt) }}</span>
-                        </p>
-                        <span v-else class="text-xs text-(--text-muted) italic">
-                            {{ t('forms.contactSubmissions.notAcknowledged') }}
-                        </span>
-                        <PrimaryButton
-                            v-if="!sub.acknowledgedAt"
-                            :disabled="ackInFlight.has(sub.id)"
-                            @click="acknowledge(sub)"
-                        >
-                            <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
-                            {{ t('forms.contactSubmissions.acknowledge') }}
-                        </PrimaryButton>
-                    </div>
-                </NeutralContainer>
-            </div>
+            <SubmissionList
+                v-if="!loading && submissions.length > 0"
+                :submissions="submissions"
+                :answers-by-response="answersByResponse"
+                :ack-in-flight="ackInFlight"
+                :question-title="questionTitle"
+                :format-answer="formatAnswer"
+                :format-timestamp="formatTimestamp"
+                @acknowledge="acknowledge"
+            />
         </div>
     </ViewContent>
 </template>

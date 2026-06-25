@@ -16,13 +16,12 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
-import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
 import THead from '@/components/table/THead.vue'
 import TRow from '@/components/table/TRow.vue'
+import MetadataSection from './itemdetailhelp/MetadataSection.vue'
 
 const {t} = useI18n()
 </script>
@@ -37,61 +36,7 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.itemDetail.howToText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Item metadata -->
-    <HelpSection :title="t('helpCenter.itemDetail.metadataTitle')">
-      <p>{{ t('helpCenter.itemDetail.metadataText') }}</p>
-
-      <NeutralContainer class="space-y-3">
-        <div class="flex items-center justify-between">
-          <SubHeader>{{ t('helpCenter.itemDetail.dummyItemName') }}</SubHeader>
-          <SecondaryButton :icon="['fas', 'pen']">
-            {{ t('itemDetail.edit') }}
-          </SecondaryButton>
-        </div>
-
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-          <div>
-            <FieldLabel class="text-xs">{{ t('itemDetail.internalId') }}</FieldLabel>
-            <span class="font-mono">INV-0001</span>
-          </div>
-          <div>
-            <FieldLabel class="text-xs">{{ t('itemDetail.size') }}</FieldLabel>
-            <span>M</span>
-          </div>
-          <div>
-            <FieldLabel class="text-xs">{{ t('itemDetail.status') }}</FieldLabel>
-            <SuccessBadge>{{ t('itemDetail.active') }}</SuccessBadge>
-          </div>
-          <div>
-            <FieldLabel class="text-xs">{{ t('itemDetail.assignedTo') }}</FieldLabel>
-            <span>Max Mustermann</span>
-          </div>
-        </div>
-      </NeutralContainer>
-
-      <!-- Dummy: Lost item example -->
-      <NeutralContainer class="space-y-3 mt-3">
-        <SubHeader>{{ t('helpCenter.itemDetail.dummyLostItemName') }}</SubHeader>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-          <div>
-            <FieldLabel class="text-xs">{{ t('itemDetail.internalId') }}</FieldLabel>
-            <span class="font-mono">INV-0015</span>
-          </div>
-          <div>
-            <FieldLabel class="text-xs">{{ t('itemDetail.size') }}</FieldLabel>
-            <span>L</span>
-          </div>
-          <div>
-            <FieldLabel class="text-xs">{{ t('itemDetail.status') }}</FieldLabel>
-            <ErrorBadge>{{ t('helpCenter.itemDetail.dummyLostSince') }}</ErrorBadge>
-          </div>
-          <div>
-            <FieldLabel class="text-xs">{{ t('itemDetail.assignedTo') }}</FieldLabel>
-            <span>Erika Musterfrau</span>
-          </div>
-        </div>
-      </NeutralContainer>
-    </HelpSection>
+    <MetadataSection/>
 
     <!-- Dummy: Action buttons -->
     <HelpSection :title="t('helpCenter.itemDetail.actionsTitle')">

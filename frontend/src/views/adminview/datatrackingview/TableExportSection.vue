@@ -8,11 +8,9 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {GdprExportContext, TrackingStatusName} from '@/api/dataTracking'
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import StatusBadge from './StatusBadge.vue'
+import StatusReasonFields from './StatusReasonFields.vue'
 
 const props = defineProps<{
   exportCtx: GdprExportContext
@@ -35,19 +33,10 @@ const ignoredColumns = computed({
       <StatusBadge :status="exportCtx.status"/>
     </div>
     <div class="space-y-2 mt-2">
-      <SelectInput v-model="exportCtx.status">
-        <option v-for="s in statuses" :key="s" :value="s">{{ s }}</option>
-      </SelectInput>
-      <TextInput
-          v-if="exportCtx.status === 'IGNORED'"
-          v-model="exportCtx.reason"
-          :placeholder="t('adminDataTracking.detail.reason')"
-      />
-      <TextAreaInput
-          v-if="exportCtx.status === 'UNVERIFIED'"
-          v-model="exportCtx.reason"
-          :placeholder="t('adminDataTracking.detail.reviewNote')"
-          :rows="2"
+      <StatusReasonFields
+          v-model:status="exportCtx.status"
+          v-model:reason="exportCtx.reason"
+          :statuses="statuses"
       />
       <div>
         <label class="block text-xs text-(--text-muted) mb-1">

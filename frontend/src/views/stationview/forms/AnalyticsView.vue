@@ -4,48 +4,34 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import { use } from 'echarts/core'
-import { CanvasRenderer } from 'echarts/renderers'
-import { BarChart, PieChart } from 'echarts/charts'
-import { TitleComponent, TooltipComponent, LegendComponent, GridComponent } from 'echarts/components'
-import VChart from 'vue-echarts'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import Modal from '@/components/feedback/Modal.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
-import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
-import type { Form, FormAnalytics, FormQuestionAnalytics, FormResponse, FormAnswer, ProfileField } from '@/api/types'
+import AnalyticsHeader from '@/views/stationview/forms/analyticsview/AnalyticsHeader.vue'
+import ChartsTab from '@/views/stationview/forms/analyticsview/ChartsTab.vue'
+import IndividualResponseTab from '@/views/stationview/forms/analyticsview/IndividualResponseTab.vue'
+import ExportModal from '@/views/stationview/forms/analyticsview/ExportModal.vue'
+import type { Form, FormAnalytics, FormResponse, FormAnswer, ProfileField } from '@/api/types'
 import { QuestionTypes } from '@/api/types'
 import { forms, profileFields, stationMembers } from '@/api'
 import { FormAnalyticsBase, type FormAnalyticsBaseName } from '@/api/forms'
-
-const analyticsBase = computed<FormAnalyticsBaseName>(() => {
-  const meta = route.meta?.formAnalyticsBase as FormAnalyticsBaseName | undefined
-  return meta ?? FormAnalyticsBase.FORMS
-})
-import MemberName from '@/components/avatar/MemberName.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-
-use([CanvasRenderer, BarChart, PieChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent])
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
+const analyticsBase = computed<FormAnalyticsBaseName>(() => {
+  const meta = route.meta?.formAnalyticsBase as FormAnalyticsBaseName | undefined
+  return meta ?? FormAnalyticsBase.FORMS
+})
 
 const formId = computed(() => Number(route.params.id))
-const loading = ref(true)
-const error = ref('')
 const form = ref<Form | null>(null)
 const analytics = ref<FormAnalytics | null>(null)
 const responses = ref<FormResponse[]>([])
@@ -58,7 +44,6 @@ const tabs = computed(() => [
   { key: 'individual', label: t('forms.analytics.tabIndividual') },
 ])
 
-// Individual response browsing
 const currentResponseIndex = ref(0)
 const currentAnswers = ref<FormAnswer[]>([])
 const loadingResponse = ref(false)
@@ -71,7 +56,7 @@ async function loadResponseAnswers() {
   try {
     const detail = await forms.getResponseDetail(formId.value, currentResponse.value.id, analyticsBase.value)
     currentAnswers.value = detail.answers
-  } catch { /* ignore */ }
+  } catch (e) { void e }
   loadingResponse.value = false
 }
 
@@ -92,6 +77,15 @@ function nextResponse() {
 function getAnswerForQuestion(questionId: number): string {
   const answer = currentAnswers.value.find(a => a.questionId === questionId)
   return answer?.value ?? ''
+}
+
+function parseConfig(config: Record<string, unknown> | string): Record<string, unknown> {
+  if (typeof config === 'object' && config !== null) return config
+  try { return JSON.parse(config || '{}') } catch { return {} }
+}
+
+function parseValue(value: string): Record<string, unknown> {
+  try { return JSON.parse(value || '{}') } catch { return {} }
 }
 
 function formatAnswerDisplay(questionType: string, config: string | Record<string, unknown>, value: string): string {
@@ -125,14 +119,12 @@ function formatAnswerDisplay(questionType: string, config: string | Record<strin
   return value
 }
 
-// Export
 const showExportModal = ref(false)
 const allFields = ref<ProfileField[]>([])
 const exportQuestionIds = ref<Set<number>>(new Set())
 const exportFieldIds = ref<Set<number>>(new Set())
 
 function openExportModal() {
-  // Pre-select all questions
   if (analytics.value) {
     exportQuestionIds.value = new Set(analytics.value.questions.map(q => q.questionId))
   }
@@ -161,7 +153,6 @@ async function performExport() {
   if (!analytics.value) return
   showExportModal.value = false
 
-  // Load profile values for selected fields if needed
   const selectedFieldIds = [...exportFieldIds.value]
   const memberFieldValues = new Map<number, Map<number, string>>()
 
@@ -180,7 +171,6 @@ async function performExport() {
     }
   }
 
-  // Load all answers for export
   const allResponseAnswers = new Map<number, FormAnswer[]>()
   for (const resp of responses.value) {
     try {
@@ -198,14 +188,12 @@ async function performExport() {
     return val
   }
 
-  // Build header
   const headerCols: string[] = [t('forms.analytics.exportMember')]
   const selectedQuestions = analytics.value.questions.filter(q => exportQuestionIds.value.has(q.questionId))
   for (const q of selectedQuestions) headerCols.push(q.title)
   const selectedFields = allFields.value.filter(f => exportFieldIds.value.has(f.id))
   for (const f of selectedFields) headerCols.push(f.name ?? '')
 
-  // Build rows
   const rows: string[] = []
   for (const resp of responses.value) {
     const cols: string[] = [memberNames.value.get(resp.memberId) ?? `#${resp.memberId}`]
@@ -236,111 +224,34 @@ async function performExport() {
   URL.revokeObjectURL(url)
 }
 
-// Charts
-function parseConfig(config: Record<string, unknown> | string): Record<string, unknown> {
-  if (typeof config === 'object' && config !== null) return config
-  try { return JSON.parse(config || '{}') } catch { return {} }
-}
+const { loading, error } = useAsyncLoader(async () => {
+  const [f, a, r, fields, members] = await Promise.all([
+    forms.getForm(formId.value),
+    forms.getAnalytics(formId.value, analyticsBase.value),
+    forms.listResponses(formId.value, analyticsBase.value),
+    profileFields.listFields(),
+    analyticsBase.value === FormAnalyticsBase.FORMS
+      ? stationMembers.listMembers()
+      : Promise.resolve([] as Awaited<ReturnType<typeof stationMembers.listMembers>>),
+  ])
+  form.value = f
+  analytics.value = a
+  responses.value = r
+  allFields.value = fields
 
-function parseValue(value: string): Record<string, unknown> {
-  try { return JSON.parse(value || '{}') } catch { return {} }
-}
-
-function buildChoiceChart(q: FormQuestionAnalytics) {
-  const cfg = parseConfig(q.config)
-  const options = (cfg.options as string[]) || []
-  const counts = new Array(options.length).fill(0)
-  let otherCount = 0
-  for (const v of q.values) {
-    const parsed = parseValue(v) as { selected?: number[]; other?: string }
-    if (parsed.selected) { for (const idx of parsed.selected) { if (idx < counts.length) counts[idx]++ } }
-    if (parsed.other) otherCount++
+  const names = new Map<number, string>()
+  const accountIds = new Map<number, number>()
+  for (const m of members) {
+    names.set(m.id, m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`)
+    if (m.accountId) accountIds.set(m.id, m.accountId)
   }
-  const data = options.map((opt, i) => ({ name: opt, value: counts[i] }))
-  if (cfg.allowOther && otherCount > 0) data.push({ name: 'Sonstiges', value: otherCount })
-  return { tooltip: { trigger: 'item' }, series: [{ type: 'pie', radius: ['30%', '70%'], data, emphasis: { itemStyle: { shadowBlur: 10 } } }] }
-}
+  memberNames.value = names
+  memberAccountIds.value = accountIds
 
-function buildRatingChart(q: FormQuestionAnalytics) {
-  const cfg = parseConfig(q.config)
-  const scale = (cfg.scale as number) || 5
-  const counts = new Array(scale).fill(0)
-  for (const v of q.values) {
-    const parsed = parseValue(v) as { rating?: number }
-    if (parsed.rating && parsed.rating >= 1 && parsed.rating <= scale) counts[parsed.rating - 1]++
+  if (r.length > 0) {
+    await loadResponseAnswers()
   }
-  return { tooltip: { trigger: 'axis' }, xAxis: { type: 'category', data: Array.from({ length: scale }, (_, i) => String(i + 1)) }, yAxis: { type: 'value' }, series: [{ type: 'bar', data: counts, itemStyle: { color: '#FF6421' } }] }
-}
-
-function buildRankingChart(q: FormQuestionAnalytics) {
-  const cfg = parseConfig(q.config)
-  const options = (cfg.options as string[]) || []
-  const scores = new Array(options.length).fill(0)
-  for (const v of q.values) {
-    const parsed = parseValue(v) as { order?: number[] }
-    if (parsed.order) { for (let rank = 0; rank < parsed.order.length; rank++) { scores[parsed.order[rank]] += (parsed.order.length - rank) } }
-  }
-  return { tooltip: { trigger: 'axis' }, xAxis: { type: 'category', data: options }, yAxis: { type: 'value' }, series: [{ type: 'bar', data: scores, itemStyle: { color: '#3694FF' } }] }
-}
-
-function buildLikertChart(q: FormQuestionAnalytics) {
-  const cfg = parseConfig(q.config)
-  const statements = (cfg.statements as string[]) || []
-  const scaleMin = (cfg.scaleMin as number) || 1
-  const scaleMax = (cfg.scaleMax as number) || 5
-  const avgScores = new Array(statements.length).fill(0)
-  const counts = new Array(statements.length).fill(0)
-  for (const v of q.values) {
-    const parsed = parseValue(v) as { ratings?: Record<string, number> }
-    if (parsed.ratings) { for (const [si, rating] of Object.entries(parsed.ratings)) { const idx = Number(si); if (idx < statements.length) { avgScores[idx] += rating; counts[idx]++ } } }
-  }
-  const data = statements.map((stmt, i) => ({ name: stmt || `Option ${i + 1}`, value: counts[i] > 0 ? Math.round((avgScores[i] / counts[i]) * 10) / 10 : 0 }))
-  return { tooltip: { trigger: 'axis' }, xAxis: { type: 'category', data: data.map(d => d.name) }, yAxis: { type: 'value', min: scaleMin, max: scaleMax }, series: [{ type: 'bar', data: data.map(d => d.value), itemStyle: { color: '#73CEFF' } }] }
-}
-
-function getTextResponses(q: FormQuestionAnalytics): string[] {
-  return q.values.map(v => (parseValue(v) as { text?: string }).text).filter((t): t is string => !!t)
-}
-
-async function loadData() {
-  loading.value = true
-  try {
-    const [f, a, r, fields, members] = await Promise.all([
-      forms.getForm(formId.value),
-      forms.getAnalytics(formId.value, analyticsBase.value),
-      forms.listResponses(formId.value, analyticsBase.value),
-      profileFields.listFields(),
-      analyticsBase.value === FormAnalyticsBase.FORMS
-        ? stationMembers.listMembers()
-        : Promise.resolve([] as Awaited<ReturnType<typeof stationMembers.listMembers>>),
-    ])
-    form.value = f
-    analytics.value = a
-    responses.value = r
-    allFields.value = fields
-
-    // Build member name map
-    const names = new Map<number, string>()
-    const accountIds = new Map<number, number>()
-    for (const m of members) {
-      names.set(m.id, m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`)
-      if (m.accountId) accountIds.set(m.id, m.accountId)
-    }
-    memberNames.value = names
-    memberAccountIds.value = accountIds
-
-    // Load first response answers if available
-    if (r.length > 0) {
-      await loadResponseAnswers()
-    }
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
-
-onMounted(loadData)
+})
 </script>
 
 <template>
@@ -350,131 +261,45 @@ onMounted(loadData)
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading && form && analytics">
-        <div class="flex items-center justify-between">
-          <div>
-            <SectionHeader>{{ form.title }}</SectionHeader>
-            <p class="text-(--text-muted) text-sm">
-              {{ t('forms.analytics.totalResponses') }}: {{ analytics.totalResponses }}
-            </p>
-          </div>
-          <div class="flex gap-2">
-            <SecondaryButton :icon="['fas', 'file-export']" @click="openExportModal">
-              {{ t('forms.analytics.export') }}
-            </SecondaryButton>
-            <SecondaryButton @click="router.push({ name: 'forms-list' })">{{ t('common.back') }}</SecondaryButton>
-          </div>
-        </div>
+        <AnalyticsHeader
+          :title="form.title"
+          :total-responses="analytics.totalResponses"
+          @export="openExportModal"
+          @back="router.push({ name: 'forms-list' })"
+        />
 
         <EmptyState v-if="analytics.totalResponses === 0">{{ t('forms.analytics.noResponses') }}</EmptyState>
 
         <template v-else>
           <TabBar v-model="activeTab" :tabs="tabs" />
-
-          <!-- Charts Tab -->
-          <div v-if="activeTab === 'charts'" class="space-y-6">
-            <NeutralContainer v-for="q in analytics.questions" :key="q.questionId">
-              <div class="space-y-3">
-                <SubHeader>{{ q.title }}</SubHeader>
-                <p class="text-xs text-(--text-muted)">{{ q.values.length }} {{ t('forms.responses') }}</p>
-                <VChart v-if="q.questionType === QuestionTypes.CHOICE" :option="buildChoiceChart(q)" autoresize style="height: 250px" />
-                <VChart v-if="q.questionType === QuestionTypes.RATING" :option="buildRatingChart(q)" autoresize style="height: 200px" />
-                <VChart v-if="q.questionType === QuestionTypes.RANKING" :option="buildRankingChart(q)" autoresize style="height: 250px" />
-                <VChart v-if="q.questionType === QuestionTypes.LIKERT" :option="buildLikertChart(q)" autoresize style="height: 250px" />
-                <div v-if="q.questionType === QuestionTypes.TEXT" class="space-y-1 max-h-60 overflow-y-auto">
-                  <div v-for="(text, i) in getTextResponses(q)" :key="i"
-                       class="text-sm px-3 py-2 rounded border border-bg-light-accent/50 dark:border-bg-dark-accent/50">{{ text }}</div>
-                </div>
-                <div v-if="q.questionType === QuestionTypes.DATE" class="space-y-1">
-                  <div v-for="(v, i) in q.values" :key="i" class="text-sm text-(--text-muted)">
-                    {{ (parseValue(v) as { date?: string }).date || '–' }}
-                  </div>
-                </div>
-              </div>
-            </NeutralContainer>
-          </div>
-
-          <!-- Individual Responses Tab -->
-          <div v-if="activeTab === 'individual'" class="space-y-4">
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-(--text-muted)">
-                {{ t('forms.analytics.responseOf', { current: currentResponseIndex + 1, total: responses.length }) }}
-              </span>
-              <div class="flex items-center gap-2">
-                <IconButton :icon="['fas', 'chevron-left']" :label="'Previous'" :disabled="currentResponseIndex === 0"
-                            class="text-(--text-muted) hover:text-primary" @click="prevResponse" />
-                <IconButton :icon="['fas', 'chevron-right']" :label="'Next'" :disabled="currentResponseIndex === responses.length - 1"
-                            class="text-(--text-muted) hover:text-primary" @click="nextResponse" />
-              </div>
-            </div>
-
-            <NeutralContainer v-if="currentResponse">
-              <div class="space-y-1 mb-4">
-                <p v-if="currentResponse.memberIdentity" class="font-medium">
-                  <MemberName :identity="currentResponse.memberIdentity"/>
-                </p>
-                <p class="text-xs text-(--text-muted)">{{ new Date(currentResponse.submittedAt).toLocaleString('de-DE') }}</p>
-                <p v-if="currentResponse.submittedByName" class="text-xs text-(--text-muted) italic">{{ t('common.submittedBy', { name: currentResponse.submittedByName }) }}</p>
-              </div>
-
-              <Spinner v-if="loadingResponse" size="sm" />
-              <div v-else class="space-y-4">
-                <div v-for="q in analytics.questions" :key="q.questionId"
-                     class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50 pb-3 last:border-0">
-                  <p class="text-xs text-(--text-muted) mb-1">{{ q.title }}</p>
-                  <p class="text-sm font-medium">
-                    {{ formatAnswerDisplay(q.questionType, q.config, getAnswerForQuestion(q.questionId)) }}
-                  </p>
-                </div>
-              </div>
-            </NeutralContainer>
-          </div>
+          <ChartsTab v-if="activeTab === 'charts'" :questions="analytics.questions" />
+          <IndividualResponseTab
+            v-if="activeTab === 'individual'"
+            :responses="responses"
+            :current-response="currentResponse"
+            :current-response-index="currentResponseIndex"
+            :questions="analytics.questions"
+            :loading-response="loadingResponse"
+            :format-answer="formatAnswerDisplay"
+            :get-answer-for-question="getAnswerForQuestion"
+            @prev="prevResponse"
+            @next="nextResponse"
+          />
         </template>
       </template>
 
-      <!-- Export Modal -->
-      <Modal v-model="showExportModal">
-        <div class="space-y-4">
-          <SubHeader>{{ t('forms.analytics.export') }}</SubHeader>
-
-          <!-- Question selection -->
-          <div class="space-y-2">
-            <div class="flex items-center justify-between">
-              <label class="text-sm font-medium">{{ t('forms.analytics.exportQuestions') }}</label>
-              <div class="flex gap-2 text-xs">
-                <SecondaryButton class="text-xs !px-2 !py-0.5" @click="selectAllQuestions">{{ t('forms.analytics.selectAll') }}</SecondaryButton>
-                <SecondaryButton class="text-xs !px-2 !py-0.5" @click="selectNoQuestions">{{ t('forms.analytics.selectNone') }}</SecondaryButton>
-              </div>
-            </div>
-            <div class="max-h-40 overflow-y-auto space-y-1 border rounded border-bg-light-accent dark:border-bg-dark-accent p-2">
-              <div v-for="q in analytics?.questions" :key="q.questionId" class="py-0.5">
-                <SelectionToggleButton :selected="exportQuestionIds.has(q.questionId)" @toggle="toggleExportQuestion(q.questionId)">
-                  {{ q.title }}
-                </SelectionToggleButton>
-              </div>
-            </div>
-          </div>
-
-          <!-- Profile field selection -->
-          <div class="space-y-2">
-            <label class="text-sm font-medium">{{ t('forms.analytics.exportFields') }}</label>
-            <div class="max-h-40 overflow-y-auto space-y-1 border rounded border-bg-light-accent dark:border-bg-dark-accent p-2">
-              <div v-for="f in allFields" :key="f.id" class="py-0.5">
-                <SelectionToggleButton :selected="exportFieldIds.has(f.id)" @toggle="toggleExportField(f.id)">
-                  {{ f.name }}
-                </SelectionToggleButton>
-              </div>
-              <p v-if="allFields.length === 0" class="text-xs text-(--text-muted)">–</p>
-            </div>
-          </div>
-
-          <div class="flex justify-end gap-3">
-            <SecondaryButton @click="showExportModal = false">{{ t('common.cancel') }}</SecondaryButton>
-            <PrimaryButton @click="performExport" :disabled="exportQuestionIds.size === 0">
-              {{ t('forms.analytics.exportCsv') }}
-            </PrimaryButton>
-          </div>
-        </div>
-      </Modal>
+      <ExportModal
+        v-model="showExportModal"
+        :questions="analytics?.questions ?? []"
+        :fields="allFields"
+        :selected-question-ids="exportQuestionIds"
+        :selected-field-ids="exportFieldIds"
+        @toggle-question="toggleExportQuestion"
+        @toggle-field="toggleExportField"
+        @select-all-questions="selectAllQuestions"
+        @select-no-questions="selectNoQuestions"
+        @export="performExport"
+      />
     </div>
   </ViewContent>
 </template>

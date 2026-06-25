@@ -4,40 +4,38 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {userSettings} from '@/api'
 import type {UserSettings} from '@/api/types'
+import {useConfigPanel} from '@/composables/useConfigPanel'
+import {ref} from 'vue'
 import NotificationsSection from './settingsview/NotificationsSection.vue'
 import FeedSection from './settingsview/FeedSection.vue'
 
 const {t} = useI18n()
 
-const settings = ref<UserSettings | null>(null)
-const loading = ref(true)
-const error = ref('')
-const saved = ref(false)
+const {config: settings, loading, error, runWith} = useConfigPanel<UserSettings | null>({
+  initial: null,
+  fetch: () => userSettings.getSettings(),
+})
 
-async function loadData() {
-  loading.value = true
-  try { settings.value = await userSettings.getSettings() }
-  catch { error.value = t('common.error') }
-  finally { loading.value = false }
-}
+const saved = ref(false)
 
 async function save() {
   if (!settings.value) return
-  saved.value = false; error.value = ''
-  try {
-    settings.value = await userSettings.updateSettings({
-      emailEnabled: settings.value.emailEnabled,
-      notifications: settings.value.notifications,
+  saved.value = false
+  const current = settings.value
+  await runWith(async () => {
+    const updated = await userSettings.updateSettings({
+      emailEnabled: current.emailEnabled,
+      notifications: current.notifications,
     })
     saved.value = true
-  } catch { error.value = t('common.error') }
+    return updated
+  })
 }
 
 function toggleEmailEnabled() {
@@ -66,8 +64,6 @@ function toggleFeed(type: string) {
   settings.value.notifications[type] = {app: current.app, email: current.email, feed: !current.feed}
   save()
 }
-
-onMounted(loadData)
 </script>
 
 <template>

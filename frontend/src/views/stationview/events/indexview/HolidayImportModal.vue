@@ -15,12 +15,9 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const {t} = useI18n()
 
-defineProps<{
-  modelValue: boolean
-}>()
+const modelValue = defineModel<boolean>({required: true})
 
 const emit = defineEmits<{
-  'update:modelValue': [value: boolean]
   import: [holidays: Array<{ name: string; startDate: string; endDate: string }>]
 }>()
 
@@ -70,7 +67,7 @@ async function importHolidays() {
 </script>
 
 <template>
-  <Modal :model-value="modelValue" @update:model-value="emit('update:modelValue', $event)">
+  <Modal v-model="modelValue">
     <div class="space-y-4">
       <SectionHeader>{{ t('events.importHolidaysTitle') }}</SectionHeader>
       <p class="text-sm text-(--text-muted)">{{ t('events.importHolidaysHint') }}</p>
@@ -92,7 +89,7 @@ async function importHolidays() {
       <p v-if="error" class="text-sm text-error">{{ error }}</p>
 
       <div class="flex justify-end gap-3">
-        <SecondaryButton @click="emit('update:modelValue', false)">{{ t('common.cancel') }}</SecondaryButton>
+        <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="loading" @click="importHolidays">
           {{ loading ? t('common.loading') : t('events.importHolidaysSubmit') }}
         </PrimaryButton>

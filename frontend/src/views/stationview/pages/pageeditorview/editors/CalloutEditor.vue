@@ -10,23 +10,16 @@ import MarkdownFieldInput from '@/components/input/text/MarkdownFieldInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import {CalloutVariant} from '@/api/pageManage'
+import {useConfigPatch} from '@/composables/useConfigPatch'
+import type {CellEditorContentEmits, CellEditorContentProps} from '../cellTypes'
 
-const props = defineProps<{
-    config: Record<string, unknown>
-    content: string
-}>()
-
-const emit = defineEmits<{
-    'update:config': [value: Record<string, unknown>]
-    'update:content': [value: string]
-}>()
+const props = defineProps<CellEditorContentProps>()
+const emit = defineEmits<CellEditorContentEmits>()
 
 const {t} = useI18n()
 const TS = (k: string) => t(`stationPages.editor.${k}`)
 
-function patch(partial: Record<string, unknown>) {
-    emit('update:config', {...props.config, ...partial})
-}
+const patch = useConfigPatch(() => props.config, emit)
 </script>
 
 <template>

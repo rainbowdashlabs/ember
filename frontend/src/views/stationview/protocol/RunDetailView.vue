@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -20,6 +20,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import { useSession } from '@/composables/useSession'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { protocol, stationMembers } from '@/api'
 import type { TestProtocolRun, RunMemberWithProgress } from '@/api/protocol'
 import type { StationMember } from '@/api/types'
@@ -36,22 +37,16 @@ const run = ref<TestProtocolRun | null>(null)
 const runMembers = ref<RunMemberWithProgress[]>([])
 const memberMap = ref<Map<number, StationMember>>(new Map())
 const filterIncomplete = ref(false)
-const loading = ref(true)
-const error = ref('')
 
-async function loadData() {
-  loading.value = true
-  try {
-    const [runData, allMembers] = await Promise.all([
-      protocol.getRun(runId.value),
-      stationMembers.listMembers(),
-    ])
-    run.value = runData.run
-    runMembers.value = runData.members
-    memberMap.value = new Map(allMembers.map(m => [m.id, m]))
-  } catch { error.value = t('common.error') }
-  finally { loading.value = false }
-}
+const {loading, error, reload: loadData} = useAsyncLoader(async () => {
+  const [runData, allMembers] = await Promise.all([
+    protocol.getRun(runId.value),
+    stationMembers.listMembers(),
+  ])
+  run.value = runData.run
+  runMembers.value = runData.members
+  memberMap.value = new Map(allMembers.map(m => [m.id, m]))
+}, {autoLoad: false})
 
 function memberName(memberId: number): string {
   const m = memberMap.value.get(memberId)
@@ -80,7 +75,6 @@ function startGrading(memberId: number) {
 }
 
 watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
-onMounted(() => { if (loaded.value) loadData() })
 </script>
 
 <template>

@@ -11,6 +11,8 @@ import PendingMemberCard from './PendingMemberCard.vue'
 
 const {t} = useI18n()
 
+const acknowledgeComment = defineModel<string>('acknowledgeComment', {required: true})
+
 defineProps<{
   loading: boolean
   summaries: MemberChangeSummary[]
@@ -19,7 +21,6 @@ defineProps<{
   loadingChanges: boolean
   acknowledging: boolean
   showCommentForChangeId: number | null
-  acknowledgeComment: string
   isAcknowledgedByMe: (change: ProfileFieldChange) => boolean
   formatDate: (dateStr?: string) => string
 }>()
@@ -30,7 +31,6 @@ const emit = defineEmits<{
   acknowledgeOne: [changeId: number]
   toggleComment: [changeId: number]
   goToDetail: [memberId: number]
-  'update:acknowledgeComment': [value: string]
 }>()
 </script>
 
@@ -44,13 +44,13 @@ const emit = defineEmits<{
       <PendingMemberCard
           v-for="summary in summaries"
           :key="summary.memberId"
+          v-model:acknowledge-comment="acknowledgeComment"
           :summary="summary"
           :expanded="expandedMemberId === summary.memberId"
           :member-changes="memberChanges"
           :loading-changes="loadingChanges"
           :acknowledging="acknowledging"
           :show-comment-for-change-id="showCommentForChangeId"
-          :acknowledge-comment="acknowledgeComment"
           :is-acknowledged-by-me="isAcknowledgedByMe"
           :format-date="formatDate"
           @toggle="emit('toggle', summary.memberId)"
@@ -58,7 +58,6 @@ const emit = defineEmits<{
           @acknowledge-one="(id) => emit('acknowledgeOne', id)"
           @toggle-comment="(id) => emit('toggleComment', id)"
           @go-to-detail="emit('goToDetail', summary.memberId)"
-          @update:acknowledge-comment="(v) => emit('update:acknowledgeComment', v)"
       />
     </div>
   </template>

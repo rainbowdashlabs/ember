@@ -27,8 +27,9 @@ interface SavedFilter {
   multiFilters: Record<string, string[]>
 }
 
+const filterText = defineModel<string>('filterText', {required: true})
+
 const props = defineProps<{
-  filterText: string
   savedFilters: SavedFilter[]
   overviewFields: ProfileField[]
   nonOverviewFields: ProfileField[]
@@ -54,7 +55,6 @@ function isColumnVisible(fieldId: number): boolean {
 }
 
 const emit = defineEmits<{
-  'update:filterText': [value: string]
   clearFilters: []
   applyFilter: [preset: SavedFilter]
   deleteFilter: [index: number]
@@ -152,7 +152,7 @@ function submitSaveFilter() {
   />
 
   <div class="space-y-2">
-    <TextInput ref="searchInput" :model-value="filterText" :placeholder="t('membersList.filter')" class="w-full" @update:model-value="(v: string | undefined) => emit('update:filterText', v ?? '')" />
+    <TextInput ref="searchInput" v-model="filterText" :placeholder="t('membersList.filter')" class="w-full" />
     <div class="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-2">
       <div class="relative">
         <SecondaryButton :icon="['fas', 'table-columns']" :full-width="isMobile" @click="showColumnPicker = !showColumnPicker">

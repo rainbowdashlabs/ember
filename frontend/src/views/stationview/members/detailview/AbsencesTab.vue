@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
@@ -21,6 +21,7 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import type { MemberAbsence } from '@/api/absences'
 import { listMemberAbsences, createMemberAbsence, deleteMemberAbsence } from '@/api/absences'
+import { useConfigPanel } from '@/composables/useConfigPanel'
 
 const props = defineProps<{
   memberId: number
@@ -28,27 +29,16 @@ const props = defineProps<{
 
 const { t } = useI18n()
 
-const absences = ref<MemberAbsence[]>([])
-const loading = ref(true)
-const error = ref('')
+const { config: absences, loading, error, reload: loadData } = useConfigPanel<MemberAbsence[]>({
+  initial: [],
+  fetch: () => listMemberAbsences(props.memberId),
+})
 const success = ref('')
 const saving = ref(false)
 
 const newFrom = ref('')
 const newUntil = ref('')
 const newReason = ref('')
-
-async function loadData() {
-  loading.value = true
-  error.value = ''
-  try {
-    absences.value = await listMemberAbsences(props.memberId)
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
 
 function statusOf(a: MemberAbsence): 'active' | 'upcoming' | 'expired' {
   const today = new Date().toISOString().slice(0, 10)
@@ -73,7 +63,7 @@ async function create() {
     newFrom.value = ''
     newUntil.value = ''
     newReason.value = ''
-    absences.value = await listMemberAbsences(props.memberId)
+    await loadData()
     success.value = t('memberDetail.absences.saved')
     setTimeout(() => { success.value = '' }, 3000)
   } catch {
@@ -87,7 +77,7 @@ async function remove(id: number) {
   error.value = ''
   try {
     await deleteMemberAbsence(id)
-    absences.value = await listMemberAbsences(props.memberId)
+    await loadData()
   } catch {
     error.value = t('common.error')
   }
@@ -97,8 +87,6 @@ function formatDate(d: string | undefined): string {
   if (!d) return '-'
   return new Date(d).toLocaleDateString()
 }
-
-onMounted(loadData)
 </script>
 
 <template>

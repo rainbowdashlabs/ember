@@ -16,7 +16,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
+import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import ToggleSwitch from '@/components/input/toggle/ToggleSwitch.vue'
@@ -26,6 +26,7 @@ import AiSettingsPanel from './cataloggenerateview/AiSettingsPanel.vue'
 import {quiz, ai} from '@/api'
 import {getItem} from '@/api/storage'
 import {useSession} from '@/composables/useSession'
+import {useConfigPanel} from '@/composables/useConfigPanel'
 import {QuizQuestionTypes} from '@/api/types'
 
 const {t} = useI18n()
@@ -34,9 +35,11 @@ const router = useRouter()
 const {loaded} = useSession()
 
 const catalogId = computed(() => Number(route.params.id))
-const catalogName = ref('')
-const loading = ref(true)
-const error = ref('')
+const {config: catalogName, loading, error, reload: loadData} = useConfigPanel<string>({
+  initial: '',
+  fetch: async () => (await quiz.getCatalog(catalogId.value)).name,
+  immediate: false,
+})
 
 // Config phase
 const countMode = ref<string>('fillTo')
@@ -63,18 +66,6 @@ const phase = ref<'config' | 'review'>('config')
 
 // Save phase
 const savedCount = ref(0)
-
-async function loadData() {
-  loading.value = true
-  try {
-    const detail = await quiz.getCatalog(catalogId.value)
-    catalogName.value = detail.name
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
 
 async function generate() {
   const provider = getItem('ai_provider') || 'openai'
@@ -243,7 +234,7 @@ watch(loaded, v => { if (v) loadData() }, {immediate: true})
         <NeutralContainer v-for="(item, qIdx) in reviewItems" :key="item.questionId">
           <div class="flex items-start justify-between gap-2 mb-3">
             <SubHeader>{{ item.title }}</SubHeader>
-            <IconButton :icon="['fas', 'xmark']" :label="t('common.remove')" class="text-(--text-muted) hover:text-error shrink-0" @click="removeQuestion(qIdx)"/>
+            <MutedIconButton :icon="['fas', 'xmark']" :label="t('common.remove')" hover="error" class="shrink-0" @click="removeQuestion(qIdx)"/>
           </div>
 
           <div class="space-y-1.5">

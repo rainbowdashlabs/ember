@@ -8,11 +8,7 @@ import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
-import InfoBadge from '@/components/badge/InfoBadge.vue'
+import WaitingListStatusBadge from '@/components/badge/WaitingListStatusBadge.vue'
 import type { WaitingListEntryWithScore } from '@/api/types'
 
 const props = defineProps<{
@@ -30,14 +26,6 @@ const { t } = useI18n()
 function entryFullName(item: WaitingListEntryWithScore): string {
   const e = item.entry
   return e.lastname ? `${e.firstname} ${e.lastname}` : e.firstname
-}
-
-function statusBadgeComponent(status: string) {
-  if (status === 'JOINED') return SuccessBadge
-  if (status === 'WITHDRAWN') return ErrorBadge
-  if (status === 'TESTING') return PrimaryBadge
-  if (status === 'INVITED') return InfoBadge
-  return SecondaryBadge
 }
 
 function canNavigateToMember(item: WaitingListEntryWithScore): boolean {
@@ -80,7 +68,7 @@ function formatDate(dateStr: string | undefined | null): string {
           >
             {{ entryFullName(item) }}
           </span>
-          <component :is="statusBadgeComponent(item.entry.status)">{{ t('waitingList.status_' + item.entry.status) }}</component>
+          <WaitingListStatusBadge :status="item.entry.status" />
         </div>
         <span class="text-xs text-(--text-muted)">
           {{ item.entry.status === 'JOINED' ? formatDate(item.entry.joinedAt) : formatDate(item.entry.withdrawnAt) }}

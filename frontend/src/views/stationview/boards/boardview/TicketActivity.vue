@@ -31,8 +31,13 @@ const emit = defineEmits<{
     deleteComment: [commentId: number]
 }>()
 
-const { t } = useI18n()
+const { t, te } = useI18n()
 const activeTab = ref('comments')
+
+function historyActionLabel(action: string): string {
+    const key = `boards.historyActions.${action}`
+    return te(key) ? t(key) : action
+}
 
 const commentsAsGeneric = computed<Comment[]>(() =>
     props.comments.map(c => ({
@@ -66,7 +71,6 @@ const changesActivity = computed<ActivityItem[]>(() => {
     return items.sort((a, b) => a.ts.localeCompare(b.ts))
 })
 
-const historyActionLabel: Record<string, string> = { PRIORITY_CHANGED: 'Priorität', LABEL_ADDED: 'Label hinzugefügt', LABEL_REMOVED: 'Label entfernt', TITLE_CHANGED: 'Titel geändert', DESCRIPTION_CHANGED: 'Beschreibung geändert', DUE_DATE_CHANGED: 'Fälligkeitsdatum', FIELD_CHANGED: 'Feld geändert', LINK_ADDED: 'Link hinzugefügt', LINK_REMOVED: 'Link entfernt', ASSIGNEE_CHANGED: 'Zuweisung' }
 const priorityIcons: Record<string, { icon: string[]; color: string }> = { HIGHEST: { icon: ['fas', 'angles-up'], color: 'text-red-500' }, HIGH: { icon: ['fas', 'angle-up'], color: 'text-orange-500' }, MEDIUM: { icon: ['fas', 'equals'], color: 'text-yellow-500' }, LOW: { icon: ['fas', 'angle-down'], color: 'text-blue-400' }, LOWEST: { icon: ['fas', 'angles-down'], color: 'text-gray-400' } }
 function findLabel(name: string) { return props.labels.find(l => l.name === name) }
 
@@ -117,7 +121,7 @@ function formatDate(iso: string): string {
                 </div>
                 <div v-else-if="item.type === 'history'" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
                     <MemberName :identity="(item.data as BoardTicketHistoryEntry).actor" size="sm" />
-                    <span class="font-medium text-(--text)">{{ historyActionLabel[(item.data as BoardTicketHistoryEntry).action] ?? (item.data as BoardTicketHistoryEntry).action }}</span>
+                    <span class="font-medium text-(--text)">{{ historyActionLabel((item.data as BoardTicketHistoryEntry).action) }}</span>
                     <template v-if="(item.data as BoardTicketHistoryEntry).action === 'PRIORITY_CHANGED' && (item.data as BoardTicketHistoryEntry).detail">
                         <template v-for="(part, i) in ((item.data as BoardTicketHistoryEntry).detail ?? '').split(' → ')" :key="i">
                             <span v-if="i > 0" class="text-(--text-muted)">→</span>
@@ -159,7 +163,7 @@ function formatDate(iso: string): string {
                 </div>
                 <div v-else-if="item.type === 'history'" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
                     <MemberName :identity="(item.data as BoardTicketHistoryEntry).actor" size="sm" />
-                    <span class="font-medium text-(--text)">{{ historyActionLabel[(item.data as BoardTicketHistoryEntry).action] ?? (item.data as BoardTicketHistoryEntry).action }}</span>
+                    <span class="font-medium text-(--text)">{{ historyActionLabel((item.data as BoardTicketHistoryEntry).action) }}</span>
                     <template v-if="(item.data as BoardTicketHistoryEntry).action === 'PRIORITY_CHANGED' && (item.data as BoardTicketHistoryEntry).detail">
                         <template v-for="(part, i) in ((item.data as BoardTicketHistoryEntry).detail ?? '').split(' → ')" :key="i">
                             <span v-if="i > 0" class="text-(--text-muted)">→</span>

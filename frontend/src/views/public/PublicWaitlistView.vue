@@ -4,42 +4,31 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onMounted, ref, computed} from 'vue'
+import {ref, computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SuccessContainer from '@/components/container/SuccessContainer.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import NumberInput from '@/components/input/number/NumberInput.vue'
-import DateInput from '@/components/input/datetime/DateInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PublicConsentCheckbox from '@/components/public/PublicConsentCheckbox.vue'
+import WaitlistSuccessPanel from './publicwaitlistview/WaitlistSuccessPanel.vue'
+import WaitlistSelector from './publicwaitlistview/WaitlistSelector.vue'
+import WaitlistFormHeader from './publicwaitlistview/WaitlistFormHeader.vue'
+import WaitlistRegistrationForm from './publicwaitlistview/WaitlistRegistrationForm.vue'
 import type {GuardianInput, PublicWaitlistSummary, PublicWaitlistFormResponse, WaitingListField} from '@/api/types'
 import {waitingList} from '@/api'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {t} = useI18n()
 const route = useRoute()
 const stationUid = computed(() => route.params.stationUid as string)
 
-const loading = ref(true)
-const error = ref('')
 const lists = ref<PublicWaitlistSummary[]>([])
 const selectedListId = ref<number | null>(null)
 const form = ref<PublicWaitlistFormResponse | null>(null)
 const loadingForm = ref(false)
 
-// Form data
 const firstname = ref('')
 const lastname = ref('')
 const email = ref('')
@@ -57,21 +46,13 @@ function removeGuardian(index: number) {
   guardians.value = guardians.value.filter((_, i) => i !== index)
 }
 
-async function loadLists() {
-  loading.value = true
-  error.value = ''
-  try {
-    lists.value = await waitingList.listPublicWaitlists(stationUid.value)
-    if (lists.value.length === 1) {
-      selectedListId.value = lists.value[0].id
-      await loadForm()
-    }
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
+const {loading, error} = useAsyncLoader(async () => {
+  lists.value = await waitingList.listPublicWaitlists(stationUid.value)
+  if (lists.value.length === 1) {
+    selectedListId.value = lists.value[0].id
+    await loadForm()
   }
-}
+})
 
 async function loadForm() {
   if (!selectedListId.value) return
@@ -91,12 +72,13 @@ async function selectList(id: number) {
   await loadForm()
 }
 
-function fieldValueModel(field: WaitingListField) {
-  return fieldValues.value[field.id] ?? ''
-}
-
 function setFieldValue(field: WaitingListField, value: string) {
   fieldValues.value[field.id] = value
+}
+
+function clearSelection() {
+  form.value = null
+  selectedListId.value = null
 }
 
 const consentAccepted = ref(false)
@@ -144,130 +126,57 @@ async function submit() {
     submitting.value = false
   }
 }
-
-function parseConfig(configStr: string | undefined | null): Record<string, unknown> {
-  if (!configStr) return {}
-  try { return JSON.parse(configStr) } catch { return {} }
-}
-
-onMounted(loadLists)
 </script>
 
 <template>
   <ViewContent>
-  <div class="max-w-2xl mx-auto space-y-6">
-    <SectionHeader>{{ t('waitingList.publicRegistration.title') }}</SectionHeader>
-    <p class="text-(--text-muted)">{{ t('waitingList.publicRegistration.subtitle') }}</p>
+    <div class="max-w-2xl mx-auto space-y-6">
+      <SectionHeader>{{ t('waitingList.publicRegistration.title') }}</SectionHeader>
+      <p class="text-(--text-muted)">{{ t('waitingList.publicRegistration.subtitle') }}</p>
 
-    <Spinner v-if="loading" size="lg"/>
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <Spinner v-if="loading" size="lg"/>
+      <Alert v-if="error" variant="error">{{ error }}</Alert>
 
-    <!-- Success state -->
-    <SuccessContainer v-if="submitted" class="space-y-3">
-      <SubHeader>{{ t('waitingList.publicRegistration.successTitle') }}</SubHeader>
-      <p>{{ t('waitingList.publicRegistration.successText') }}</p>
-      <p class="text-sm text-(--text-muted)">{{ t('waitingList.publicRegistration.successHint') }}</p>
-    </SuccessContainer>
+      <WaitlistSuccessPanel v-if="submitted"/>
 
-    <!-- List selection (if multiple) -->
-    <template v-if="!loading && !submitted">
-      <EmptyState v-if="lists.length === 0">{{ t('waitingList.publicRegistration.noLists') }}</EmptyState>
+      <template v-if="!loading && !submitted">
+        <EmptyState v-if="lists.length === 0">{{ t('waitingList.publicRegistration.noLists') }}</EmptyState>
 
-      <div v-if="lists.length > 1 && !form" class="space-y-3">
-        <SubHeader>{{ t('waitingList.publicRegistration.selectList') }}</SubHeader>
-        <NeutralContainer
-            v-for="l in lists"
-            :key="l.id"
-            class="cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all p-4"
-            @click="selectList(l.id)"
-        >
-          <SubHeader>{{ l.name }}</SubHeader>
-          <p v-if="l.description" class="text-sm text-(--text-muted) mt-1">{{ l.description }}</p>
-        </NeutralContainer>
-      </div>
+        <WaitlistSelector
+            v-if="lists.length > 1 && !form"
+            :lists="lists"
+            @select="selectList"
+        />
 
-      <!-- Registration form -->
-      <Spinner v-if="loadingForm" size="lg"/>
-      <template v-if="form && !loadingForm">
-        <NeutralContainer class="space-y-2">
-          <div class="flex items-center justify-between">
-            <SubHeader>{{ form.listName }}</SubHeader>
-            <SecondaryButton v-if="lists.length > 1" size="sm" @click="form = null; selectedListId = null">
-              {{ t('waitingList.back') }}
-            </SecondaryButton>
-          </div>
-          <p v-if="form.listDescription" class="text-sm text-(--text-muted)">{{ form.listDescription }}</p>
-        </NeutralContainer>
-
-        <NeutralContainer class="space-y-4">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div class="space-y-1">
-              <FormLabel>{{ t('waitingList.publicRegistration.firstname') }} *</FormLabel>
-              <TextInput v-model="firstname"/>
-            </div>
-            <div class="space-y-1">
-              <FormLabel>{{ t('waitingList.publicRegistration.lastname') }}</FormLabel>
-              <TextInput v-model="lastname"/>
-            </div>
-          </div>
-          <div class="space-y-1">
-            <FormLabel>{{ t('waitingList.publicRegistration.email') }} *</FormLabel>
-            <TextInput v-model="email" type="email"/>
-            <p class="text-xs text-(--text-muted)">{{ t('waitingList.publicRegistration.emailHint') }}</p>
-          </div>
-
-          <!-- Guardians -->
-          <div class="space-y-3">
-            <SubHeader>{{ t('waitingList.guardians') }}</SubHeader>
-            <NeutralContainer v-for="(g, i) in guardians" :key="i" class="space-y-2">
-              <div class="flex items-center justify-between">
-                <span class="text-sm font-medium">{{ t('waitingList.guardian') }} {{ i + 1 }}</span>
-                <DeleteButton v-if="guardians.length > 1" @click="removeGuardian(i)"/>
-              </div>
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-                <TextInput v-model="g.firstname" :placeholder="t('waitingList.firstnamePlaceholder')"/>
-                <TextInput v-model="g.lastname" :placeholder="t('waitingList.lastnamePlaceholder')"/>
-                <TextInput v-model="g.email" :placeholder="t('waitingList.guardianEmailPlaceholder')"/>
-                <TextInput v-model="g.phone" :placeholder="t('waitingList.guardianPhonePlaceholder')"/>
-              </div>
-            </NeutralContainer>
-            <SecondaryButton :icon="['fas', 'plus']" @click="addGuardian">{{ t('waitingList.addGuardian') }}</SecondaryButton>
-          </div>
-
-          <!-- Custom fields -->
-          <template v-if="form.fields.length > 0">
-            <div v-for="field in form.fields" :key="field.id" class="space-y-1">
-              <FormLabel>{{ field.name }}{{ field.required ? ' *' : '' }}</FormLabel>
-              <TextInput v-if="field.fieldType === 'TEXT'" :model-value="fieldValueModel(field)" @update:model-value="setFieldValue(field, $event)"/>
-              <NumberInput v-else-if="field.fieldType === 'NUMBER'" :model-value="Number(fieldValueModel(field)) || 0" @update:model-value="setFieldValue(field, String($event))"/>
-              <DateInput v-else-if="field.fieldType === 'DATE'" :model-value="fieldValueModel(field)" @update:model-value="setFieldValue(field, $event)"/>
-              <ToggleInput v-else-if="field.fieldType === 'BOOLEAN'" :model-value="fieldValueModel(field) === 'true'" @update:model-value="setFieldValue(field, String($event))"/>
-              <SelectInput v-else-if="field.fieldType === 'ENUM'" :model-value="fieldValueModel(field)" @update:model-value="setFieldValue(field, $event)">
-                <option value="">{{ t('waitingList.selectOption') }}</option>
-                <option v-for="opt in (parseConfig(field.config) as {options?: string[]}).options ?? []" :key="opt" :value="opt">{{ opt }}</option>
-              </SelectInput>
-            </div>
-          </template>
-
-          <!-- Notes -->
-          <div class="space-y-1">
-            <FormLabel>{{ t('waitingList.publicRegistration.notes') }}</FormLabel>
-            <TextAreaInput v-model="notes" :placeholder="t('waitingList.publicRegistration.notesPlaceholder')"/>
-          </div>
-
-          <PublicConsentCheckbox
-              v-model:accepted="consentAccepted"
+        <Spinner v-if="loadingForm" size="lg"/>
+        <template v-if="form && !loadingForm">
+          <WaitlistFormHeader
+              :list-name="form.listName"
+              :list-description="form.listDescription"
+              :show-back="lists.length > 1"
+              @back="clearSelection"
+          />
+          <WaitlistRegistrationForm
+              :form="form"
+              v-model:firstname="firstname"
+              v-model:lastname="lastname"
+              v-model:email="email"
+              v-model:notes="notes"
+              :guardians="guardians"
+              :field-values="fieldValues"
+              v-model:consent-accepted="consentAccepted"
               v-model:consent-version="consentVersion"
               v-model:privacy-version="privacyVersion"
               v-model:tos-version="tosVersion"
-              class="block mt-4"/>
-
-          <PrimaryButton :disabled="!canSubmit || submitting" class="w-full mt-4" @click="submit">
-            {{ submitting ? t('common.loading') : t('waitingList.publicRegistration.submit') }}
-          </PrimaryButton>
-        </NeutralContainer>
+              :can-submit="canSubmit"
+              :submitting="submitting"
+              @add-guardian="addGuardian"
+              @remove-guardian="removeGuardian"
+              @set-field="setFieldValue"
+              @submit="submit"
+          />
+        </template>
       </template>
-    </template>
-  </div>
+    </div>
   </ViewContent>
 </template>

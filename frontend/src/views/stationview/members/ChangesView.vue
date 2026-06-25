@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted, ref} from 'vue'
+import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -15,8 +15,10 @@ import type {MemberChangeSummary, ProfileFieldChange} from '@/api/types'
 import {profileFieldChanges} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import PendingTabContent from './changesview/PendingTabContent.vue'
 import HistoryTabContent from './changesview/HistoryTabContent.vue'
+import {formatDateTime} from '@/util/format'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -30,8 +32,6 @@ const tabs = [
 ]
 
 const summaries = ref<MemberChangeSummary[]>([])
-const loading = ref(true)
-const error = ref('')
 const expandedMemberId = ref<number | null>(null)
 const memberChanges = ref<ProfileFieldChange[]>([])
 const loadingChanges = ref(false)
@@ -47,26 +47,9 @@ const loadingHistory = ref(false)
 
 const currentMemberId = () => sessionInfo.value?.member?.id ?? 0
 
-function formatDate(dateStr?: string): string {
-  if (!dateStr) return ''
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('de-DE', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  })
-}
-
-async function loadPending() {
-  loading.value = true
-  error.value = ''
-  try {
-    summaries.value = await profileFieldChanges.getPendingSummary()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, error} = useAsyncLoader(async () => {
+  summaries.value = await profileFieldChanges.getPendingSummary()
+})
 
 async function toggleMember(memberId: number) {
   if (expandedMemberId.value === memberId) {
@@ -184,7 +167,6 @@ function onTabChange(tab: string) {
   }
 }
 
-onMounted(loadPending)
 </script>
 
 <template>
@@ -196,6 +178,7 @@ onMounted(loadPending)
 
       <PendingTabContent
           v-if="activeTab === 'pending'"
+          v-model:acknowledge-comment="acknowledgeComment"
           :loading="loading"
           :summaries="summaries"
           :expanded-member-id="expandedMemberId"
@@ -203,15 +186,13 @@ onMounted(loadPending)
           :loading-changes="loadingChanges"
           :acknowledging="acknowledging"
           :show-comment-for-change-id="showCommentForChangeId"
-          :acknowledge-comment="acknowledgeComment"
           :is-acknowledged-by-me="isAcknowledgedByMe"
-          :format-date="formatDate"
+          :format-date="formatDateTime"
           @toggle="toggleMember"
           @acknowledge-all="acknowledgeAllForMember"
           @acknowledge-one="acknowledgeChange"
           @toggle-comment="toggleComment"
           @go-to-detail="goToDetail"
-          @update:acknowledge-comment="(v) => acknowledgeComment = v"
       />
 
       <HistoryTabContent
@@ -223,7 +204,7 @@ onMounted(loadPending)
           :total="historyTotal"
           :page="historyPage()"
           :total-pages="historyTotalPages()"
-          :format-date="formatDate"
+          :format-date="formatDateTime"
           @prev="historyPrevPage"
           @next="historyNextPage"
       />

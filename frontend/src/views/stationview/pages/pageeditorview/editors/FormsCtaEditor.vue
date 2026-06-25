@@ -10,21 +10,16 @@ import MarkdownFieldInput from '@/components/input/text/MarkdownFieldInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import FormPickerInput from '@/components/input/search/FormPickerInput.vue'
 import {FormPurpose} from '@/api/types'
+import {useConfigPatch} from '@/composables/useConfigPatch'
+import type {CellEditorEmits, CellEditorProps} from '../cellTypes'
 
-const props = defineProps<{
-    config: Record<string, unknown>
-}>()
-
-const emit = defineEmits<{
-    'update:config': [value: Record<string, unknown>]
-}>()
+const props = defineProps<CellEditorProps>()
+const emit = defineEmits<CellEditorEmits>()
 
 const {t} = useI18n()
 const TS = (k: string) => t(`stationPages.editor.${k}`)
 
-function patch(partial: Record<string, unknown>) {
-    emit('update:config', {...props.config, ...partial})
-}
+const patch = useConfigPatch(() => props.config, emit)
 </script>
 
 <template>

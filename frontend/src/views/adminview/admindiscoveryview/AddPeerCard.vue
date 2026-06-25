@@ -14,16 +14,15 @@ import Alert from '@/components/feedback/Alert.vue'
 import type {DiscoveryInfoProbe} from '@/api/discovery'
 
 defineProps<{
-  baseUrl: string
-  expectedKey: string
   probing: boolean
   probeError: string
   probeResult: DiscoveryInfoProbe | null
 }>()
 
+const baseUrl = defineModel<string>('baseUrl', {required: true})
+const expectedKey = defineModel<string>('expectedKey', {required: true})
+
 const emit = defineEmits<{
-  'update:baseUrl': [value: string]
-  'update:expectedKey': [value: string]
   probe: []
   add: []
 }>()
@@ -36,10 +35,8 @@ const {t} = useI18n()
     <SubHeader>{{ t('adminDiscovery.addPeer') }}</SubHeader>
     <p class="text-sm text-(--text-muted)">{{ t('adminDiscovery.addPeerHelp') }}</p>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <TextInput :model-value="baseUrl" :placeholder="t('adminDiscovery.baseUrlPlaceholder')"
-                 @update:model-value="(v) => emit('update:baseUrl', v as string)"/>
-      <TextInput :model-value="expectedKey" :placeholder="t('adminDiscovery.expectedKey')"
-                 @update:model-value="(v) => emit('update:expectedKey', v as string)"/>
+      <TextInput v-model="baseUrl" :placeholder="t('adminDiscovery.baseUrlPlaceholder')"/>
+      <TextInput v-model="expectedKey" :placeholder="t('adminDiscovery.expectedKey')"/>
     </div>
     <div class="flex flex-wrap gap-2">
       <SecondaryButton :disabled="!baseUrl.trim() || probing" @click="emit('probe')">

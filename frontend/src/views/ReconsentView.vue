@@ -12,13 +12,11 @@ import {acceptStorage} from '@/api/storage'
 import {useConsentGuard} from '@/composables/useConsentGuard'
 import type {ConsentChangesResponse} from '@/api/types'
 import Spinner from '@/components/feedback/Spinner.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
-import LinkButton from '@/components/button/LinkButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
+import PolicyChangeSection from '@/views/reconsentview/PolicyChangeSection.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -27,14 +25,11 @@ const loading = ref(true)
 const submitting = ref(false)
 const error = ref('')
 const changes = ref<ConsentChangesResponse | null>(null)
-const showPrivacyFull = ref(false)
-const showTosFull = ref(false)
 
 onMounted(async () => {
   try {
     const status = await session.getConsentStatus()
     if (status.current) {
-      // Already up to date, shouldn't be here
       await router.replace({name: 'dashboard-overview'})
       return
     }
@@ -44,23 +39,6 @@ onMounted(async () => {
   }
   loading.value = false
 })
-
-function parseDiff(diff: string | undefined | null): { added: string[]; removed: string[] } {
-  if (!diff) return {added: [], removed: []}
-  const lines = diff.split('\n')
-  const added: string[] = []
-  const removed: string[] = []
-  for (const line of lines) {
-    if (line.startsWith('+ ') && line.trim() !== '+') {
-      const content = line.substring(2).trim()
-      if (content) added.push(content)
-    } else if (line.startsWith('- ') && line.trim() !== '-') {
-      const content = line.substring(2).trim()
-      if (content) removed.push(content)
-    }
-  }
-  return {added, removed}
-}
 
 async function handleAccept() {
   if (!changes.value) return
@@ -97,51 +75,20 @@ async function handleAccept() {
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="changes && !loading">
-        <!-- Privacy policy changes -->
-        <NeutralContainer v-if="changes.privacyChanged" class="space-y-3">
-          <SubHeader>{{ t('reconsent.privacyChanged') }}</SubHeader>
+        <PolicyChangeSection v-if="changes.privacyChanged"
+                             :title="t('reconsent.privacyChanged')"
+                             :diff="changes.privacyDiff"
+                             :html="changes.privacyHtml"
+                             added-key-prefix="pa-"
+                             removed-key-prefix="pr-"/>
 
-          <template v-if="changes.privacyDiff">
-            <div class="text-xs text-(--text-muted) mb-1">{{ t('reconsent.whatChanged') }}</div>
-            <div class="border border-(--border) rounded-lg p-3 text-sm space-y-1 max-h-48 overflow-y-auto bg-(--bg)">
-              <div v-for="(line, i) in parseDiff(changes.privacyDiff).removed" :key="'pr-' + i"
-                   class="text-error line-through">{{ line }}</div>
-              <div v-for="(line, i) in parseDiff(changes.privacyDiff).added" :key="'pa-' + i"
-                   class="text-success">{{ line }}</div>
-            </div>
-          </template>
+        <PolicyChangeSection v-if="changes.tosChanged"
+                             :title="t('reconsent.tosChanged')"
+                             :diff="changes.tosDiff"
+                             :html="changes.tosHtml"
+                             added-key-prefix="ta-"
+                             removed-key-prefix="tr-"/>
 
-          <LinkButton @click="showPrivacyFull = !showPrivacyFull">
-            {{ showPrivacyFull ? t('reconsent.hideFullText') : t('reconsent.showFullText') }}
-          </LinkButton>
-          <div v-if="showPrivacyFull && changes.privacyHtml"
-               class="legal-content max-h-96 overflow-y-auto border border-(--border) rounded-lg p-3"
-               v-html="changes.privacyHtml"/>
-        </NeutralContainer>
-
-        <!-- ToS changes -->
-        <NeutralContainer v-if="changes.tosChanged" class="space-y-3">
-          <SubHeader>{{ t('reconsent.tosChanged') }}</SubHeader>
-
-          <template v-if="changes.tosDiff">
-            <div class="text-xs text-(--text-muted) mb-1">{{ t('reconsent.whatChanged') }}</div>
-            <div class="border border-(--border) rounded-lg p-3 text-sm space-y-1 max-h-48 overflow-y-auto bg-(--bg)">
-              <div v-for="(line, i) in parseDiff(changes.tosDiff).removed" :key="'tr-' + i"
-                   class="text-error line-through">{{ line }}</div>
-              <div v-for="(line, i) in parseDiff(changes.tosDiff).added" :key="'ta-' + i"
-                   class="text-success">{{ line }}</div>
-            </div>
-          </template>
-
-          <LinkButton @click="showTosFull = !showTosFull">
-            {{ showTosFull ? t('reconsent.hideFullText') : t('reconsent.showFullText') }}
-          </LinkButton>
-          <div v-if="showTosFull && changes.tosHtml"
-               class="legal-content max-h-96 overflow-y-auto border border-(--border) rounded-lg p-3"
-               v-html="changes.tosHtml"/>
-        </NeutralContainer>
-
-        <!-- Consent text (always shown) -->
         <InfoContainer class="space-y-2">
           <p class="text-sm">{{ t('reconsent.consentNote') }}</p>
         </InfoContainer>

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted, ref, watch} from 'vue'
+import {onMounted, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -19,39 +19,18 @@ import {attendance} from '@/api'
 import type {SessionSummary} from '@/api/attendance'
 import {useSession} from '@/composables/useSession'
 import MutedText from '@/components/typography/MutedText.vue'
+import {useConfigPanel} from '@/composables/useConfigPanel'
+import {formatDate, formatTime} from '@/util/format'
 
 const {t} = useI18n()
 const router = useRouter()
 const {loaded} = useSession()
 
-const sessions = ref<SessionSummary[]>([])
-const loading = ref(true)
-const error = ref('')
-
-function formatDate(iso?: string): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  return d.toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric'})
-}
-
-function formatTime(iso?: string): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
-async function loadData() {
-  loading.value = true
-  error.value = ''
-  try {
-    sessions.value = await attendance.listSessionSummaries()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const {config: sessions, loading, error, reload: loadData} = useConfigPanel<SessionSummary[]>({
+  initial: [],
+  fetch: () => attendance.listSessionSummaries(),
+  immediate: false,
+})
 
 function openSession(id: number) {
   router.push({name: 'attendance-session', params: {id}})

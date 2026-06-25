@@ -4,12 +4,22 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, ref, watch} from 'vue'
+import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
+import Spinner from '@/components/feedback/Spinner.vue'
+import Alert from '@/components/feedback/Alert.vue'
+import ThemeDefaultsPanel from './stationthemeview/ThemeDefaultsPanel.vue'
+import CustomColorsPanel from './stationthemeview/CustomColorsPanel.vue'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
+import {stationManage} from '@/api'
+import {THEMES} from '@/theme/themes'
+import type {ModeColors, ThemeColors} from '@/theme/themes'
+import {useTheme} from '@/composables/useTheme'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {hasPermission, loaded} = useSession()
 const router = useRouter()
@@ -18,36 +28,15 @@ watch(loaded, (isLoaded) => {
     router.replace('/station/dashboard/overview')
   }
 }, {immediate: true})
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import SaveButton from '@/components/button/SaveButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
-import ThemeSelector from '@/components/theme/ThemeSelector.vue'
-import {stationManage} from '@/api'
-import {THEMES} from '@/theme/themes'
-import type {ThemeColors, ModeColors} from '@/theme/themes'
-import {useTheme} from '@/composables/useTheme'
 
 const {t} = useI18n()
 const themeCtrl = useTheme()
 
-const themeOptions = Object.entries(THEMES).map(([key, theme]) => ({value: key, label: theme.label}))
-
-const loading = ref(true)
-const error = ref('')
 const stationName = ref('')
 
 const lockTheme = ref(false)
 const lockFeel = ref(false)
 
-// Custom colors
 const customEnabled = ref(false)
 const presetKey = ref('')
 
@@ -67,54 +56,29 @@ function defaultColors(): ThemeColors {
 
 const customColors = ref<ThemeColors>(defaultColors())
 
-const modeColorFields: { key: keyof ModeColors; label: string }[] = [
-  {key: 'primary', label: 'colorPrimary'},
-  {key: 'primaryAccent', label: 'colorPrimaryAccent'},
-  {key: 'secondary', label: 'colorSecondary'},
-  {key: 'secondaryAccent', label: 'colorSecondaryAccent'},
-  {key: 'info', label: 'colorInfo'},
-  {key: 'infoAccent', label: 'colorInfoAccent'},
-  {key: 'success', label: 'colorSuccess'},
-  {key: 'error', label: 'colorError'},
-]
-
-const bgFields: { key: 'bgLight' | 'bgLightAccent' | 'bgDark' | 'bgDarkAccent'; label: string }[] = [
-  {key: 'bgLight', label: 'colorBgLight'},
-  {key: 'bgLightAccent', label: 'colorBgLightAccent'},
-  {key: 'bgDark', label: 'colorBgDark'},
-  {key: 'bgDarkAccent', label: 'colorBgDarkAccent'},
-]
-
 function loadPreset() {
   const theme = THEMES[presetKey.value]
   if (!theme) return
   customColors.value = JSON.parse(JSON.stringify(theme.colors)) as ThemeColors
 }
 
-async function loadStation() {
-  loading.value = true
-  error.value = ''
-  try {
-    const info = await stationManage.getStationInfo()
-    stationName.value = info.name ?? ''
-    lockTheme.value = !(info.allowUserTheme ?? true)
-    lockFeel.value = !(info.allowUserFeel ?? true)
-    // Apply the station's default theme/feel into the selector
-    if (info.defaultTheme) themeCtrl.applyTheme(info.defaultTheme)
-    if (info.customThemeColors) {
-      try {
-        customColors.value = JSON.parse(info.customThemeColors) as ThemeColors
-        customEnabled.value = true
-      } catch { /* ignore */ }
-    } else {
+const {loading, error} = useAsyncLoader(async () => {
+  const info = await stationManage.getStationInfo()
+  stationName.value = info.name ?? ''
+  lockTheme.value = !(info.allowUserTheme ?? true)
+  lockFeel.value = !(info.allowUserFeel ?? true)
+  if (info.defaultTheme) themeCtrl.applyTheme(info.defaultTheme)
+  if (info.customThemeColors) {
+    try {
+      customColors.value = JSON.parse(info.customThemeColors) as ThemeColors
+      customEnabled.value = true
+    } catch {
       customEnabled.value = false
     }
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
+  } else {
+    customEnabled.value = false
   }
-}
+})
 
 async function save() {
   error.value = ''
@@ -137,13 +101,6 @@ function removeCustomColors() {
   customEnabled.value = false
   save()
 }
-
-const previewUrl = computed(() => {
-  const encoded = encodeURIComponent(JSON.stringify(customColors.value))
-  return `/style?customTheme=${encoded}`
-})
-
-onMounted(loadStation)
 </script>
 
 <template>
@@ -153,96 +110,14 @@ onMounted(loadStation)
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
-        <!-- Theme + Feel + Lock toggles -->
-        <NeutralContainer class="space-y-4">
-          <SectionHeader>{{ t('theme.stationTheme') }}</SectionHeader>
-          <p class="text-xs text-(--text-muted)">{{ t('theme.stationDefaultThemeHint') }}</p>
-          <ThemeSelector
-            v-model:lock-theme="lockTheme"
-            v-model:lock-feel="lockFeel"
-            :show-lock-theme="true"
-            :show-lock-feel="true"
-          />
-        </NeutralContainer>
-
-        <!-- Custom colors -->
-        <NeutralContainer class="space-y-4">
-          <div class="flex items-center justify-between">
-            <SubHeader>{{ t('theme.customColors') }}</SubHeader>
-            <ToggleInput v-model="customEnabled"/>
-          </div>
-          <p class="text-sm text-(--text-muted)">{{ t('theme.customColorsHint') }}</p>
-
-          <template v-if="customEnabled">
-            <!-- Load preset -->
-            <div class="flex items-end gap-2">
-              <div class="flex-1 space-y-1">
-                <FieldLabel>{{ t('theme.loadPreset') }}</FieldLabel>
-                <SelectInput v-model="presetKey">
-                  <option value="" disabled>{{ t('theme.selectPreset') }}</option>
-                  <option v-for="opt in themeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                </SelectInput>
-              </div>
-              <SecondaryButton :disabled="!presetKey" @click="loadPreset">{{ t('theme.applyPreset') }}</SecondaryButton>
-            </div>
-
-            <!-- Light mode colors -->
-            <SubHeader class="!mt-4">{{ t('theme.lightModeColors') }}</SubHeader>
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              <div v-for="field in modeColorFields" :key="'light-' + field.key" class="space-y-1">
-                <FieldLabel class="text-xs">{{ t(`theme.${field.label}`) }}</FieldLabel>
-                <div class="flex items-center gap-2">
-                  <input
-                    v-model="customColors.light[field.key]"
-                    type="color"
-                    class="h-9 w-12 rounded-theme border border-(--border) cursor-pointer bg-transparent"
-                  />
-                  <span class="text-xs text-(--text-muted) font-mono">{{ customColors.light[field.key] }}</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Dark mode colors -->
-            <SubHeader class="!mt-4">{{ t('theme.darkModeColors') }}</SubHeader>
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              <div v-for="field in modeColorFields" :key="'dark-' + field.key" class="space-y-1">
-                <FieldLabel class="text-xs">{{ t(`theme.${field.label}`) }}</FieldLabel>
-                <div class="flex items-center gap-2">
-                  <input
-                    v-model="customColors.dark[field.key]"
-                    type="color"
-                    class="h-9 w-12 rounded-theme border border-(--border) cursor-pointer bg-transparent"
-                  />
-                  <span class="text-xs text-(--text-muted) font-mono">{{ customColors.dark[field.key] }}</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Background colors -->
-            <SubHeader class="!mt-4">{{ t('theme.backgrounds') }}</SubHeader>
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              <div v-for="field in bgFields" :key="field.key" class="space-y-1">
-                <FieldLabel class="text-xs">{{ t(`theme.${field.label}`) }}</FieldLabel>
-                <div class="flex items-center gap-2">
-                  <input
-                    v-model="customColors[field.key]"
-                    type="color"
-                    class="h-9 w-12 rounded-theme border border-(--border) cursor-pointer bg-transparent"
-                  />
-                  <span class="text-xs text-(--text-muted) font-mono">{{ customColors[field.key] }}</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="flex items-center gap-2">
-              <a :href="previewUrl" target="_blank">
-                <SecondaryButton :icon="['fas', 'eye']">{{ t('theme.preview') }}</SecondaryButton>
-              </a>
-              <DeleteButton @click="removeCustomColors"/>
-            </div>
-          </template>
-        </NeutralContainer>
-
+        <ThemeDefaultsPanel v-model:lock-theme="lockTheme" v-model:lock-feel="lockFeel"/>
+        <CustomColorsPanel
+            v-model:enabled="customEnabled"
+            v-model:colors="customColors"
+            v-model:preset-key="presetKey"
+            @load-preset="loadPreset"
+            @remove="removeCustomColors"
+        />
         <SaveButton :action="save"/>
       </template>
     </div>

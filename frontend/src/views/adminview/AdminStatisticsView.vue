@@ -10,19 +10,19 @@ import {use} from 'echarts/core'
 import {CanvasRenderer} from 'echarts/renderers'
 import {BarChart, PieChart} from 'echarts/charts'
 import {GridComponent, TitleComponent, TooltipComponent} from 'echarts/components'
-import VChart from 'vue-echarts'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import StatValue from '@/components/typography/StatValue.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import client from '@/api/client'
+import EmailStatsSection from './adminstatisticsview/EmailStatsSection.vue'
+import PlatformStatsSection from './adminstatisticsview/PlatformStatsSection.vue'
+import DataStatsSection from './adminstatisticsview/DataStatsSection.vue'
+import {useConfigPanel} from '@/composables/useConfigPanel'
 
 use([CanvasRenderer, BarChart, PieChart, TitleComponent, TooltipComponent, GridComponent])
 
-const {t} = useI18n()
+const {t, te} = useI18n()
 
 const isDark = ref(document.documentElement.classList.contains('dark'))
 let observer: MutationObserver | null = null
@@ -32,7 +32,6 @@ onMounted(() => {
     isDark.value = document.documentElement.classList.contains('dark')
   })
   observer.observe(document.documentElement, {attributes: true, attributeFilter: ['class']})
-  loadStats()
 })
 
 onUnmounted(() => {
@@ -64,28 +63,19 @@ interface AdminStats {
   totalGroups: number
 }
 
-const stats = ref<AdminStats | null>(null)
-const loading = ref(true)
-const error = ref('')
-
-const statusLabels: Record<string, string> = {
-  PENDING: 'Warteschlange', SENDING: 'Wird gesendet', SENT: 'Gesendet', FAILED: 'Fehlgeschlagen',
-}
 const statusColors: Record<string, string> = {
   PENDING: '#ffdd1b', SENDING: '#3694FF', SENT: '#00C507', FAILED: '#ec2929',
 }
 
-async function loadStats() {
-  loading.value = true
-  error.value = ''
-  try {
-    stats.value = (await client.get<AdminStats>('/admin/statistics')).data
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
+function statusLabel(status: string): string {
+  const key = `adminStats.emailStatusLabels.${status}`
+  return te(key) ? t(key) : status
 }
+
+const {config: stats, loading, error} = useConfigPanel<AdminStats | null>({
+  initial: null,
+  fetch: async () => (await client.get<AdminStats>('/admin/statistics')).data,
+})
 
 const emailByDayOption = computed(() => {
   if (!stats.value || !stats.value.emailByDay.length) return {}
@@ -109,7 +99,7 @@ const emailStatusOption = computed(() => {
       type: 'pie', radius: ['40%', '70%'],
       label: {color: mutedColor.value},
       data: stats.value.emailByStatus.map(e => ({
-        name: statusLabels[e.status] ?? e.status, value: e.cnt,
+        name: statusLabel(e.status), value: e.cnt,
         itemStyle: {color: statusColors[e.status] ?? '#CFCFCF'},
       })),
     }],
@@ -125,86 +115,27 @@ const emailStatusOption = computed(() => {
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading && stats">
-        <!-- Email -->
-        <SubHeader>{{ t('adminStats.emailSection') }}</SubHeader>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <NeutralContainer class="text-center">
-            <StatValue color="success">{{ stats.emailSentToday }}</StatValue>
-            <p class="text-sm text-(--text-muted)">{{ t('adminStats.sentToday') }}</p>
-          </NeutralContainer>
-          <NeutralContainer class="text-center">
-            <p :class="stats.emailPending > 0 ? 'text-info' : ''" class="text-2xl font-bold">{{
-                stats.emailPending
-              }}</p>
-            <p class="text-sm text-(--text-muted)">{{ t('adminStats.queued') }}</p>
-          </NeutralContainer>
-          <NeutralContainer class="text-center">
-            <p class="text-2xl font-bold">{{ stats.emailSent }}</p>
-            <p class="text-sm text-(--text-muted)">{{ t('adminStats.totalSent') }}</p>
-          </NeutralContainer>
-          <NeutralContainer class="text-center">
-            <p :class="stats.emailFailed > 0 ? 'text-error' : ''" class="text-2xl font-bold">{{ stats.emailFailed }}</p>
-            <p class="text-sm text-(--text-muted)">{{ t('adminStats.failed') }}</p>
-          </NeutralContainer>
-        </div>
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <NeutralContainer v-if="stats.emailByDay.length > 0">
-            <VChart :option="emailByDayOption" autoresize style="height: 300px"/>
-          </NeutralContainer>
-          <NeutralContainer v-if="stats.emailByStatus.length > 0">
-            <VChart :option="emailStatusOption" autoresize style="height: 300px"/>
-          </NeutralContainer>
-        </div>
-
-        <!-- Platform totals -->
-        <SubHeader>{{ t('adminStats.platformSection') }}</SubHeader>
-        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
-          <NeutralContainer class="text-center">
-            <StatValue>{{ stats.totalStations }}</StatValue>
-            <p class="text-sm text-(--text-muted)">{{ t('adminStats.stations') }}</p>
-          </NeutralContainer>
-          <NeutralContainer class="text-center">
-            <StatValue>{{ stats.totalAccounts }}</StatValue>
-            <p class="text-sm text-(--text-muted)">{{ t('adminStats.accounts') }}</p>
-          </NeutralContainer>
-          <NeutralContainer class="text-center">
-            <StatValue>{{ stats.totalMembers }}</StatValue>
-            <p class="text-sm text-(--text-muted)">{{ t('adminStats.members') }}</p>
-          </NeutralContainer>
-          <NeutralContainer class="text-center">
-            <StatValue>{{ stats.activeSessions }}</StatValue>
-            <p class="text-sm text-(--text-muted)">{{ t('adminStats.activeSessions') }}</p>
-          </NeutralContainer>
-          <NeutralContainer class="text-center">
-            <StatValue>{{ stats.totalGroups }}</StatValue>
-            <p class="text-sm text-(--text-muted)">{{ t('adminStats.groups') }}</p>
-          </NeutralContainer>
-        </div>
-
-        <!-- Data totals -->
-        <SubHeader>{{ t('adminStats.dataSection') }}</SubHeader>
-        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
-          <NeutralContainer class="text-center">
-            <StatValue>{{ stats.totalEvents }}</StatValue>
-            <p class="text-sm text-(--text-muted)">{{ t('adminStats.events') }}</p>
-          </NeutralContainer>
-          <NeutralContainer class="text-center">
-            <StatValue>{{ stats.totalAttendanceSessions }}</StatValue>
-            <p class="text-sm text-(--text-muted)">{{ t('adminStats.attendanceSessions') }}</p>
-          </NeutralContainer>
-          <NeutralContainer class="text-center">
-            <StatValue>{{ stats.totalAttendanceEntries }}</StatValue>
-            <p class="text-sm text-(--text-muted)">{{ t('adminStats.attendanceEntries') }}</p>
-          </NeutralContainer>
-          <NeutralContainer class="text-center">
-            <StatValue>{{ stats.totalInventoryItems }}</StatValue>
-            <p class="text-sm text-(--text-muted)">{{ t('adminStats.inventoryItems') }}</p>
-          </NeutralContainer>
-          <NeutralContainer class="text-center">
-            <StatValue>{{ stats.totalProfileFields }}</StatValue>
-            <p class="text-sm text-(--text-muted)">{{ t('adminStats.profileFields') }}</p>
-          </NeutralContainer>
-        </div>
+        <EmailStatsSection
+            :email-sent-today="stats.emailSentToday"
+            :email-pending="stats.emailPending"
+            :email-sent="stats.emailSent"
+            :email-failed="stats.emailFailed"
+            :email-by-day-count="stats.emailByDay.length"
+            :email-by-status-count="stats.emailByStatus.length"
+            :email-by-day-option="emailByDayOption"
+            :email-status-option="emailStatusOption"/>
+        <PlatformStatsSection
+            :total-stations="stats.totalStations"
+            :total-accounts="stats.totalAccounts"
+            :total-members="stats.totalMembers"
+            :active-sessions="stats.activeSessions"
+            :total-groups="stats.totalGroups"/>
+        <DataStatsSection
+            :total-events="stats.totalEvents"
+            :total-attendance-sessions="stats.totalAttendanceSessions"
+            :total-attendance-entries="stats.totalAttendanceEntries"
+            :total-inventory-items="stats.totalInventoryItems"
+            :total-profile-fields="stats.totalProfileFields"/>
       </template>
     </div>
   </ViewContent>

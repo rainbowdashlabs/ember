@@ -7,7 +7,8 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {DataTracking, TableEntry} from '@/api/dataTracking'
-import StatusBadge from './StatusBadge.vue'
+import TableRowSummary from './tablelistrow/TableRowSummary.vue'
+import TableRowStatusChips, {type StrategyChip} from './tablelistrow/TableRowStatusChips.vue'
 
 interface Row {
   name: string
@@ -15,13 +16,6 @@ interface Row {
   hasUnverifiedColumns: boolean
   needsReview: boolean
   rowKey: string
-}
-
-interface StrategyChip {
-  strategy: string
-  column: string
-  reason: string
-  cascadeFrom?: {table: string; effective: string}
 }
 
 const props = defineProps<{
@@ -37,8 +31,6 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
-
-// -- Helpers ----------------------------------------------------------------
 
 const query = computed(() => props.search.trim().toLowerCase())
 
@@ -137,88 +129,17 @@ function strategyTooltip(chip: StrategyChip): string {
         :aria-label="t('adminDataTracking.batch.toggleRow')"
         @click.stop="emit('toggle-batch')"
     />
-    <div class="min-w-0 flex-1">
-      <div class="font-mono text-sm font-semibold truncate">{{ row.name }}</div>
-      <div
-          v-if="row.entry.description"
-          class="text-xs text-(--text-muted) italic truncate"
-          :title="row.entry.description"
-      >
-        {{ row.entry.description }}
-      </div>
-      <div class="text-xs text-(--text-muted)">
-        {{ row.entry.columns.length }} cols
-        <span v-if="row.entry.foreignKeys?.length"> · {{ row.entry.foreignKeys.length }} fk</span>
-        <span v-if="row.entry.lookups?.length"> · {{ row.entry.lookups.length }} lookups</span>
-        <span v-if="row.entry.outputShape && row.entry.outputShape !== 'ROWS'">· {{ row.entry.outputShape }}</span>
-        <span v-if="row.entry.customScope"> · customScope</span>
-      </div>
-      <div
-          v-if="row.entry.foreignKeys?.length"
-          class="text-xs font-mono mt-0.5 flex items-center gap-1 flex-wrap"
-      >
-        <span
-            v-for="fk in row.entry.foreignKeys"
-            :key="fk.column"
-            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-(--bg-accent) text-(--text-muted)"
-            :title="`FK → ${fk.refTable}.${fk.refColumn} (${fk.onDelete})`"
-        >
-          <font-awesome-icon :icon="['fas', 'key']" class="text-primary"/>
-          <span>{{ fk.column }}</span>
-        </span>
-      </div>
-      <div
-          v-if="matchedColumns.length"
-          class="text-xs font-mono text-(--accent) mt-0.5 truncate flex items-center gap-1 flex-wrap"
-      >
-        <span>↳</span>
-        <span
-            v-for="col in matchedColumns"
-            :key="col"
-            class="inline-flex items-center gap-0.5"
-        >
-          <font-awesome-icon
-              v-if="isForeignKeyColumn(col)"
-              :icon="['fas', 'key']"
-              class="opacity-70"
-              :title="t('adminDataTracking.foreignKeyHint')"
-          />
-          <span>{{ col }}</span>
-        </span>
-      </div>
-    </div>
-    <div class="flex items-center gap-1 flex-wrap justify-end">
-      <StatusBadge :status="row.entry.stationTransfer.status" :label="t('adminDataTracking.shortLabel.transfer')"/>
-      <StatusBadge :status="row.entry.gdprExport.status" :label="t('adminDataTracking.shortLabel.gdprE')"/>
-      <StatusBadge :status="row.entry.gdprDeletion.status" :label="t('adminDataTracking.shortLabel.gdprD')"/>
-      <span
-          v-for="chip in strategyChips"
-          :key="chip.strategy + ':' + chip.column"
-          class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-semibold"
-          :class="strategyClasses(chip.strategy)"
-          :title="strategyTooltip(chip)"
-      >
-        <span>{{ chip.strategy }}</span>
-        <span
-            v-if="chip.cascadeFrom"
-            class="opacity-70"
-        >
-          ← {{ chip.cascadeFrom.table }} ({{ chip.cascadeFrom.effective }})
-        </span>
-        <font-awesome-icon
-            v-if="isCascadeMisleading(chip)"
-            :icon="['fas', 'triangle-exclamation']"
-            class="text-[#a07a00] dark:text-[#ffdd1b]"
-            :title="t('adminDataTracking.cascadeMisleading')"
-        />
-      </span>
-      <span
-          v-if="row.hasUnverifiedColumns"
-          class="ml-1 text-xs font-mono text-[#ec2929]"
-          :title="t('adminDataTracking.unverifiedColumns')"
-      >
-        !cols
-      </span>
-    </div>
+    <TableRowSummary
+        :name="row.name"
+        :entry="row.entry"
+        :matched-columns="matchedColumns"
+        :is-foreign-key-column="isForeignKeyColumn"/>
+    <TableRowStatusChips
+        :entry="row.entry"
+        :has-unverified-columns="row.hasUnverifiedColumns"
+        :strategy-chips="strategyChips"
+        :strategy-classes="strategyClasses"
+        :strategy-tooltip="strategyTooltip"
+        :is-cascade-misleading="isCascadeMisleading"/>
   </div>
 </template>

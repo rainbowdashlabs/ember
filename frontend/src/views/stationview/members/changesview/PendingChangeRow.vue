@@ -16,19 +16,19 @@ import AcknowledgementList from './AcknowledgementList.vue'
 
 const {t} = useI18n()
 
+const acknowledgeComment = defineModel<string>('acknowledgeComment', {required: true})
+
 defineProps<{
   change: ProfileFieldChange
   isAcknowledgedByMe: boolean
   showComment: boolean
   acknowledging: boolean
-  acknowledgeComment: string
   formatDate: (dateStr?: string) => string
 }>()
 
 const emit = defineEmits<{
   acknowledge: []
   toggleComment: []
-  'update:acknowledgeComment': [value: string]
 }>()
 </script>
 
@@ -73,10 +73,9 @@ const emit = defineEmits<{
 
     <div v-if="showComment" class="space-y-2 pt-1">
       <TextAreaInput
-          :model-value="acknowledgeComment"
+          v-model="acknowledgeComment"
           :placeholder="t('memberDetail.commentPlaceholder')"
           class="text-sm"
-          @update:model-value="(v) => emit('update:acknowledgeComment', v as string)"
       />
       <PrimaryButton :disabled="acknowledging" @click="emit('acknowledge')">
         {{ t('memberDetail.submitAcknowledge') }}

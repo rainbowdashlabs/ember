@@ -4,8 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {useConfigPanel} from '@/composables/useConfigPanel'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -39,18 +40,20 @@ interface AssignmentEvent {
 
 const {t} = useI18n()
 
-const members = ref<StationMember[]>([])
+const {config: members, loading, error} = useConfigPanel<StationMember[]>({
+  initial: [],
+  fetch: () => stationMembers.listMembers(),
+  formatError: (e: any) => e?.response?.data?.message ?? t('inventory.assign.loadError'),
+})
 const memberId = ref<number | null>(null)
 const memberUid = ref<string | null>(null)
 const selectedDisplayName = ref<string | null>(null)
 const scanValue = ref('')
 const bulkMode = ref(false)
 const submitting = ref(false)
-const error = ref('')
 const success = ref('')
 const recent = ref<AssignmentEvent[]>([])
 const recentCounter = ref(1)
-const loading = ref(true)
 const unknownScanCode = ref<string | null>(null)
 
 const selectedMember = computed(() =>
@@ -58,18 +61,6 @@ const selectedMember = computed(() =>
 
 function memberDisplay(m: StationMember): string {
   return (m.name ?? '').trim() || `#${m.id}`
-}
-
-async function load() {
-  loading.value = true
-  error.value = ''
-  try {
-    members.value = await stationMembers.listMembers()
-  } catch (e: any) {
-    error.value = e?.response?.data?.message ?? t('inventory.assign.loadError')
-  } finally {
-    loading.value = false
-  }
 }
 
 async function onMemberPicked(picked: MemberSearchResult) {
@@ -204,7 +195,6 @@ async function onUnknownScanCreated(item: InventoryItem) {
   }
 }
 
-onMounted(load)
 </script>
 
 <template>

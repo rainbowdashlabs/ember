@@ -8,8 +8,6 @@ import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import type {
   AttendanceEntry,
   AttendanceSession,
@@ -26,12 +24,7 @@ import {useSession} from '@/composables/useSession'
 import {useSessionMeta} from './sessionview/useSessionMeta'
 import {useCheckMode} from './sessionview/useCheckMode'
 import {useSessionFields} from './sessionview/useSessionFields'
-import SessionToolbar from './sessionview/SessionToolbar.vue'
-import SessionHeader from './sessionview/SessionHeader.vue'
-import CheckModePanel from './sessionview/CheckModePanel.vue'
-import SessionFieldsPanel from './sessionview/SessionFieldsPanel.vue'
-import AttendanceSummary from './sessionview/AttendanceSummary.vue'
-import MemberListPanel from './sessionview/MemberListPanel.vue'
+import SessionContent from './sessionview/SessionContent.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -254,69 +247,41 @@ watch(loaded, (isLoaded) => {
 
 <template>
   <ViewContent>
-    <div class="space-y-6">
-      <SessionToolbar
-          :check-mode="checkMode"
-          :unchecked-count="uncheckedEntries.length"
-          :readonly="!canEdit"
-          @back="goBack"
-          @export="exportPdf"
-          @sync="syncFromEvent"
-          @start-check-mode="startCheckMode"
-      />
-
-      <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
-
-      <template v-if="!loading && session">
-        <SessionHeader
-            :session="session"
-            :readonly="!canEdit"
-            @update-title="setSessionTitle"
-            @update-start-time="setSessionStartTime"
-            @update-end-time="setSessionEndTime"
-        />
-
-        <CheckModePanel
-            v-if="checkMode"
-            :current-entry="currentCheckEntry"
-            :check-index="checkIndex"
-            :total-unchecked="uncheckedEntries.length"
-            :member-name="currentCheckEntry ? getMemberName(currentCheckEntry.memberId) : ''"
-            :member-identity="currentCheckEntry ? getMemberIdentity(currentCheckEntry.memberId) : null"
-            @set-status="checkSetStatus"
-            @skip="skipCheck"
-            @end="checkMode = false"
-        />
-
-        <template v-if="!checkMode">
-          <SessionFieldsPanel
-              :template-fields="templateFields"
-              :field-values="fieldValues"
-              :group-members="groupMembers"
-              :all-members="allMembers"
-              :readonly="!canEdit"
-              @field-update="onFieldUpdate"
-              @field-member-ids="setFieldMemberIds"
-          />
-
-          <AttendanceSummary :entries="entries" :member-sections="memberSections"/>
-
-          <MemberListPanel
-              :entries="entries"
-              :all-members="allMembers"
-              :member-sections="memberSections"
-              :selected-member-id="selectedMemberId"
-              :readonly="!canEdit"
-              @set-status="setStatus"
-              @check-in="setCheckIn"
-              @check-out="setCheckOut"
-              @reset-times="resetEntryTimes"
-              @add-member="addMember"
-              @update:selected-member-id="selectedMemberId = $event"
-          />
-        </template>
-      </template>
-    </div>
+    <SessionContent
+        v-model:selected-member-id="selectedMemberId"
+        :loading="loading"
+        :error="error"
+        :session="session"
+        :can-edit="canEdit"
+        :check-mode="checkMode"
+        :check-index="checkIndex"
+        :unchecked-entries="uncheckedEntries"
+        :current-check-entry="currentCheckEntry"
+        :current-member-name="currentCheckEntry ? getMemberName(currentCheckEntry.memberId) : ''"
+        :current-member-identity="currentCheckEntry ? getMemberIdentity(currentCheckEntry.memberId) : null"
+        :template-fields="templateFields"
+        :field-values="fieldValues"
+        :group-members="groupMembers"
+        :all-members="allMembers"
+        :entries="entries"
+        :member-sections="memberSections"
+        @back="goBack"
+        @export="exportPdf"
+        @sync="syncFromEvent"
+        @start-check-mode="startCheckMode"
+        @update-title="setSessionTitle"
+        @update-start-time="setSessionStartTime"
+        @update-end-time="setSessionEndTime"
+        @check-set-status="checkSetStatus"
+        @skip-check="skipCheck"
+        @end-check-mode="checkMode = false"
+        @field-update="onFieldUpdate"
+        @field-member-ids="setFieldMemberIds"
+        @set-status="setStatus"
+        @check-in="setCheckIn"
+        @check-out="setCheckOut"
+        @reset-times="resetEntryTimes"
+        @add-member="addMember"
+    />
   </ViewContent>
 </template>

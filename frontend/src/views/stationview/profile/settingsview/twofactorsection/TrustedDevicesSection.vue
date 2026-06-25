@@ -4,7 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {listTrustedDevices, revokeAllTrustedDevices, revokeTrustedDevice} from '@/api/twoFactor'
 import type {TrustedDevice} from '@/api/twoFactor'
@@ -15,48 +14,38 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import {useConfigPanel} from '@/composables/useConfigPanel'
 
 const {t} = useI18n()
 
-const devices = ref<TrustedDevice[]>([])
-const loading = ref(true)
-const error = ref('')
-
-async function load() {
-  loading.value = true
-  error.value = ''
-  try {
-    devices.value = await listTrustedDevices()
-  } catch (e: any) {
-    error.value = e?.response?.data?.message || t('common.error')
-  }
-  loading.value = false
+function describeError(e: unknown): string {
+  return (e as {response?: {data?: {message?: string}}})?.response?.data?.message || t('common.error')
 }
 
+const {config: devices, loading, error, runWith} = useConfigPanel<TrustedDevice[]>({
+  initial: [],
+  fetch: () => listTrustedDevices(),
+  formatError: describeError,
+})
+
 async function handleRevoke(device: TrustedDevice) {
-  try {
+  await runWith(async () => {
     await revokeTrustedDevice(device.id)
-    await load()
-  } catch (e: any) {
-    error.value = e?.response?.data?.message || t('common.error')
-  }
+    return await listTrustedDevices()
+  })
 }
 
 async function handleRevokeAll() {
   if (devices.value.length === 0) return
-  try {
+  await runWith(async () => {
     await revokeAllTrustedDevices()
-    await load()
-  } catch (e: any) {
-    error.value = e?.response?.data?.message || t('common.error')
-  }
+    return await listTrustedDevices()
+  })
 }
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString('de-DE')
 }
-
-onMounted(load)
 </script>
 
 <template>

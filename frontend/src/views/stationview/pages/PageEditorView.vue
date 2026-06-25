@@ -4,22 +4,17 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, computed, onMounted, watch} from 'vue'
+import {ref, computed, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PageHeader from '@/components/typography/PageHeader.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SaveButton from '@/components/button/SaveButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import Modal from '@/components/feedback/Modal.vue'
-import EditorRow from './pageeditorview/EditorRow.vue'
+import PageEditorHeader from './pageeditorview/PageEditorHeader.vue'
+import MetadataPanel from './pageeditorview/MetadataPanel.vue'
+import PageEditorAddRowDivider from './pageeditorview/PageEditorAddRowDivider.vue'
+import RowsList from './pageeditorview/RowsList.vue'
+import AddRowDialog from './pageeditorview/AddRowDialog.vue'
 import type {RowEditData} from './pageeditorview/EditorRow.vue'
 import type {CellEditData} from './pageeditorview/EditorCell.vue'
 import {
@@ -35,6 +30,7 @@ import {
 import {useSession} from '@/composables/useSession'
 import {useToast} from '@/composables/useToast'
 import {usePageClipboard} from '@/composables/usePageClipboard'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -45,8 +41,6 @@ const {pasteRow, hasClipboard, clipboardType} = usePageClipboard()
 
 const page = ref<StationPage | null>(null)
 const allPages = ref<StationPage[]>([])
-const loading = ref(true)
-const error = ref('')
 const preview = ref(false)
 const hasUnsavedChanges = ref(false)
 
@@ -83,28 +77,20 @@ function pageToRows(p: StationPage): RowEditData[] {
         }))
 }
 
-async function loadData() {
-    loading.value = true
-    error.value = ''
-    try {
-        const [p, pages] = await Promise.all([
-            getPage(pageId.value),
-            listPages(),
-        ])
-        page.value = p
-        allPages.value = pages.pages
-        title.value = p.title
-        slug.value = p.slug
-        parentId.value = p.parentId
-        metaDescription.value = p.metaDescription ?? ''
-        rows.value = pageToRows(p)
-        hasUnsavedChanges.value = false
-    } catch {
-        error.value = t('common.error')
-    } finally {
-        loading.value = false
-    }
-}
+const {loading, error} = useAsyncLoader(async () => {
+    const [p, pages] = await Promise.all([
+        getPage(pageId.value),
+        listPages(),
+    ])
+    page.value = p
+    allPages.value = pages.pages
+    title.value = p.title
+    slug.value = p.slug
+    parentId.value = p.parentId
+    metaDescription.value = p.metaDescription ?? ''
+    rows.value = pageToRows(p)
+    hasUnsavedChanges.value = false
+})
 
 function markDirty() {
     hasUnsavedChanges.value = true
@@ -218,7 +204,6 @@ async function save() {
     }
 }
 
-onMounted(() => loadData())
 </script>
 
 <template>
@@ -227,148 +212,51 @@ onMounted(() => loadData())
             <Spinner v-if="loading" size="lg"/>
 
             <template v-if="!loading && page">
-                <!-- Header -->
-                <div class="flex items-center justify-between flex-wrap gap-2">
-                    <div class="flex items-center gap-3">
-                        <IconButton
-                            :icon="['fas', 'arrow-left']"
-                            :label="t('common.back')"
-                            class="text-[var(--text-muted)] hover:text-[var(--text)]"
-                            @click="router.push({name: 'pages-list'})"
-                        />
-                        <PageHeader>{{ page.title || t('stationPages.editor.newPage') }}</PageHeader>
-                        <span
-                            v-if="hasUnsavedChanges"
-                            class="text-xs text-info-accent font-medium"
-                        >
-                            {{ t('stationPages.editor.unsavedChanges') }}
-                        </span>
-                    </div>
-                    <div class="flex gap-2">
-                        <SecondaryButton @click="togglePreview">
-                            <font-awesome-icon :icon="['fas', preview ? 'pen' : 'eye']" class="mr-1"/>
-                            {{ preview ? t('stationPages.editor.edit') : t('stationPages.editor.preview') }}
-                        </SecondaryButton>
-                        <SaveButton :action="save"/>
-                    </div>
-                </div>
+                <PageEditorHeader
+                    :title="page.title || t('stationPages.editor.newPage')"
+                    :has-unsaved-changes="hasUnsavedChanges"
+                    :preview="preview"
+                    :save="save"
+                    @back="router.push({name: 'pages-list'})"
+                    @toggle-preview="togglePreview"
+                />
 
                 <Alert v-if="error" variant="error">{{ error }}</Alert>
 
-                <!-- Metadata section (hidden in preview) -->
-                <NeutralContainer v-if="!preview" class="space-y-3">
-                    <SectionHeader>{{ t('stationPages.editor.metadata') }}</SectionHeader>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                            <FormLabel>{{ t('stationPages.editor.titleLabel') }}</FormLabel>
-                            <TextInput v-model="title" :placeholder="t('stationPages.editor.titlePlaceholder')"/>
-                        </div>
-                        <div>
-                            <FormLabel>{{ t('stationPages.editor.slugLabel') }}</FormLabel>
-                            <TextInput v-model="slug" :placeholder="t('stationPages.editor.slugPlaceholder')"/>
-                        </div>
-                        <div>
-                            <FormLabel>{{ t('stationPages.editor.parent') }}</FormLabel>
-                            <SelectInput v-model="parentId as unknown as string">
-                                <option :value="null">{{ t('stationPages.editor.noParent') }}</option>
-                                <option
-                                    v-for="p in parentOptions"
-                                    :key="p.id"
-                                    :value="p.id"
-                                >
-                                    {{ p.title }}
-                                </option>
-                            </SelectInput>
-                        </div>
-                        <div>
-                            <FormLabel>{{ t('stationPages.editor.metaDescription') }}</FormLabel>
-                            <TextInput
-                                v-model="metaDescription"
-                                :placeholder="t('stationPages.editor.metaDescriptionPlaceholder')"
-                            />
-                        </div>
-                    </div>
-                </NeutralContainer>
+                <MetadataPanel
+                    v-if="!preview"
+                    v-model:title="title"
+                    v-model:slug="slug"
+                    v-model:parent-id="parentId"
+                    v-model:meta-description="metaDescription"
+                    :parent-options="parentOptions"
+                />
 
-                <div v-if="!preview" class="relative flex items-center justify-center py-2">
-                    <div class="absolute inset-x-0 top-1/2 h-px bg-(--border)"/>
-                    <div class="relative flex items-center gap-2">
-                        <IconButton
-                            :icon="['fas', 'plus']"
-                            :label="t('stationPages.editor.addRow')"
-                            class="rounded-full bg-(--bg) border border-(--border) text-(--text-muted) hover:text-primary hover:border-primary !p-1 text-xs shadow-sm"
-                            @click="openAddRowDialog(0)"
-                        />
-                        <IconButton
-                            v-if="hasClipboard && clipboardType === 'row'"
-                            :icon="['fas', 'paste']"
-                            :label="t('stationPages.editor.pasteRow')"
-                            class="rounded-full bg-(--bg) border border-(--border) text-primary hover:border-primary !p-1 text-xs shadow-sm"
-                            @click="onPasteRow(0)"
-                        />
-                    </div>
-                </div>
+                <PageEditorAddRowDivider
+                    v-if="!preview"
+                    :has-clipboard="hasClipboard"
+                    :clipboard-type="clipboardType"
+                    @add="openAddRowDialog(0)"
+                    @paste="onPasteRow(0)"
+                />
 
-                <!-- Rows -->
-                <div class="space-y-2">
-                    <div v-for="(row, index) in rows" :key="row.id + '-' + index">
-                        <EditorRow
-                            :row="row"
-                            :page-id="pageId"
-                            :station-uid="stationUid"
-                            :preview="preview"
-                            :is-first="index === 0"
-                            :is-last="index === rows.length - 1"
-                            @update:row="updateRow(index, $event)"
-                            @delete="deleteRow(index)"
-                            @move-up="moveRow(index, -1)"
-                            @move-down="moveRow(index, 1)"
-                        />
-
-                        <div v-if="!preview" class="relative flex items-center justify-center py-2">
-                            <div class="absolute inset-x-0 top-1/2 h-px bg-(--border)"/>
-                            <div class="relative flex items-center gap-2">
-                                <IconButton
-                                    :icon="['fas', 'plus']"
-                                    :label="t('stationPages.editor.addRow')"
-                                    class="rounded-full bg-(--bg) border border-(--border) text-(--text-muted) hover:text-primary hover:border-primary !p-1 text-xs shadow-sm"
-                                    @click="openAddRowDialog(index + 1)"
-                                />
-                                <IconButton
-                                    v-if="hasClipboard && clipboardType === 'row'"
-                                    :icon="['fas', 'paste']"
-                                    :label="t('stationPages.editor.pasteRow')"
-                                    class="rounded-full bg-(--bg) border border-(--border) text-primary hover:border-primary !p-1 text-xs shadow-sm"
-                                    @click="onPasteRow(index + 1)"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <RowsList
+                    :rows="rows"
+                    :page-id="pageId"
+                    :station-uid="stationUid"
+                    :preview="preview"
+                    :has-clipboard="hasClipboard"
+                    :clipboard-type="clipboardType"
+                    @update:row="updateRow"
+                    @delete="deleteRow"
+                    @move-up="(i: number) => moveRow(i, -1)"
+                    @move-down="(i: number) => moveRow(i, 1)"
+                    @add-at="(i: number) => openAddRowDialog(i)"
+                    @paste-at="(i: number) => onPasteRow(i)"
+                />
             </template>
         </div>
 
-        <!-- Add-row column-count dialog -->
-        <Modal v-model="showAddRowDialog">
-            <div class="space-y-4">
-                <SectionHeader>{{ t('stationPages.editor.addRowTitle') }}</SectionHeader>
-                <p class="text-sm text-(--text-muted)">{{ t('stationPages.editor.addRowHint') }}</p>
-                <div class="grid grid-cols-4 gap-2">
-                    <button
-                        v-for="n in 4" :key="n"
-                        class="flex flex-col items-center gap-2 rounded-theme border border-[var(--border)] hover:border-primary hover:bg-primary/5 transition-colors p-3"
-                        @click="addRow(n)"
-                    >
-                        <span class="inline-flex gap-1 h-8 w-full">
-                            <span v-for="i in n" :key="i" class="flex-1 rounded-sm bg-primary/20"/>
-                        </span>
-                        <span class="text-xs font-medium">{{ n }}</span>
-                    </button>
-                </div>
-                <div class="flex justify-end">
-                    <SecondaryButton @click="showAddRowDialog = false">{{ t('common.cancel') }}</SecondaryButton>
-                </div>
-            </div>
-        </Modal>
+        <AddRowDialog v-model="showAddRowDialog" @select="addRow"/>
     </ViewContent>
 </template>

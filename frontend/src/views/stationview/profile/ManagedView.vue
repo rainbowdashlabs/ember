@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
@@ -20,6 +20,8 @@ import type { ProfileField } from '@/api/types'
 import { parseFieldConfig } from '@/api/types'
 import { managedMembers } from '@/api'
 import type { ManagedMember } from '@/api/managedMembers'
+import { decodeProfileValues, getFieldValue, setFieldValue } from '@/util/profileFields'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import MutedText from '@/components/typography/MutedText.vue'
 
 const { t } = useI18n()
@@ -28,9 +30,7 @@ const members = ref<ManagedMember[]>([])
 const fields = ref<ProfileField[]>([])
 const selectedMemberId = ref<string>('')
 const values = ref<Map<number, string>>(new Map())
-const loading = ref(true)
 const loadingProfile = ref(false)
-const error = ref('')
 
 function memberDisplayName(member: ManagedMember): string {
   if (member.name && member.name.trim()) return member.name
@@ -50,26 +50,16 @@ function isReadonly(field: ProfileField): boolean {
 }
 
 function getValue(fieldId: number): string {
-  return values.value.get(fieldId) ?? ''
+  return getFieldValue(values, fieldId)
 }
 
 function setValue(fieldId: number, val: string) {
-  const newMap = new Map(values.value)
-  newMap.set(fieldId, val)
-  values.value = newMap
+  setFieldValue(values, fieldId, val)
 }
 
-async function loadData() {
-  loading.value = true
-  error.value = ''
-  try {
-    members.value = await managedMembers.listManaged()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const { loading, error } = useAsyncLoader(async () => {
+  members.value = await managedMembers.listManaged()
+})
 
 async function loadMemberProfile() {
   if (!selectedMemberId.value) return
@@ -79,13 +69,7 @@ async function loadMemberProfile() {
     const memberId = Number(selectedMemberId.value)
     const profile = await managedMembers.getProfile(memberId)
     fields.value = profile.fields
-    const map = new Map<number, string>()
-    for (const v of profile.values) {
-      let val = v.value ?? ''
-      try { val = JSON.parse(val) } catch { /* use as-is */ }
-      map.set(v.fieldId, typeof val === 'string' ? val : String(val))
-    }
-    values.value = map
+    values.value = decodeProfileValues(profile.values)
   } catch {
     error.value = t('common.error')
   } finally {
@@ -106,8 +90,6 @@ async function saveProfile() {
     throw e
   }
 }
-
-onMounted(loadData)
 </script>
 
 <template>

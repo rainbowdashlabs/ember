@@ -11,14 +11,11 @@ interface FieldInfo {
   type?: string
 }
 
+const modelValue = defineModel<string>({required: true})
+
 const props = defineProps<{
-  modelValue: string
   placeholder?: string
   fields: FieldInfo[]
-}>()
-
-const emit = defineEmits<{
-  'update:modelValue': [value: string]
 }>()
 
 const inputRef = ref<HTMLInputElement | null>(null)
@@ -58,7 +55,7 @@ function onInput(event: Event) {
   const pos = input.selectionStart ?? 0
   cursorPos.value = pos
   currentPartial.value = extractPartial(input.value, pos)
-  emit('update:modelValue', input.value)
+  modelValue.value = input.value
   showSuggestions.value = currentPartial.value.length > 0
   selectedIndex.value = 0
 }
@@ -82,7 +79,7 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 function applySuggestion(suggestion: { label: string; wrap: 'bracket' | 'none' }) {
-  const text = props.modelValue
+  const text = modelValue.value
   const pos = cursorPos.value
   const bracketStart = text.lastIndexOf('[', pos - 1)
   if (bracketStart === -1) return
@@ -105,7 +102,7 @@ function applySuggestion(suggestion: { label: string; wrap: 'bracket' | 'none' }
     newPos = bracketStart + 1 + suggestion.label.length + (needsClose ? 1 : 0)
   }
 
-  emit('update:modelValue', newValue)
+  modelValue.value = newValue
   showSuggestions.value = false
   currentPartial.value = ''
   nextTick(() => {

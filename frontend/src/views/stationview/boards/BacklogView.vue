@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -17,7 +17,7 @@ import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import { boards, stationMembers } from '@/api'
 import type { MemberCompletion } from '@/api/stationMembers'
 import type { Board, BoardTicket } from '@/api/boards'
-// Priority helpers use raw strings, no enum import needed
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -27,27 +27,18 @@ const boardKey = computed(() => route.params.boardKey as string)
 const board = ref<Board | null>(null)
 const tickets = ref<BoardTicket[]>([])
 const members = ref<MemberCompletion[]>([])
-const loading = ref(true)
-const error = ref('')
 
-async function loadData() {
-    loading.value = true
-    try {
-        const [b, t, m] = await Promise.all([boards.getBoard(boardKey.value), boards.listTickets(boardKey.value), stationMembers.listCompletions()])
-        board.value = b
-        members.value = m
-        if (b.backlogLaneId) {
-            tickets.value = t.filter(tk => tk.laneId === b.backlogLaneId).sort((a, b) => a.position - b.position)
-        }
-    } catch { error.value = t('common.error') }
-    finally { loading.value = false }
-}
+const {loading, error} = useAsyncLoader(async () => {
+    const [b, t, m] = await Promise.all([boards.getBoard(boardKey.value), boards.listTickets(boardKey.value), stationMembers.listCompletions()])
+    board.value = b
+    members.value = m
+    if (b.backlogLaneId) {
+        tickets.value = t.filter(tk => tk.laneId === b.backlogLaneId).sort((a, b) => a.position - b.position)
+    }
+})
 
 function priorityIcon(p: string) { return { HIGHEST: ['fas','angles-up'], HIGH: ['fas','angle-up'], MEDIUM: ['fas','equals'], LOW: ['fas','angle-down'], LOWEST: ['fas','angles-down'] }[p] ?? ['fas','minus'] }
 function priorityColor(p: string) { return { HIGHEST: 'text-red-500', HIGH: 'text-orange-500', MEDIUM: 'text-yellow-500', LOW: 'text-blue-400', LOWEST: 'text-gray-400' }[p] ?? 'text-gray-400' }
-
-
-onMounted(loadData)
 </script>
 
 <template>

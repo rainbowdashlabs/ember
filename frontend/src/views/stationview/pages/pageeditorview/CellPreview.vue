@@ -19,6 +19,7 @@ import {
     type VideoConfig,
 } from '@/api/pageManage'
 import {enhancePageMarkdownImages} from '@/util/pageMarkdownImages'
+import {isYoutubeUrl, youtubeEmbedUrl as toYoutubeEmbedUrl} from '@/util/youtube'
 
 /**
  * Read-only render of a cell exactly as it appears on the public page. Mirrors the renderer for
@@ -47,14 +48,12 @@ const renderedHtml = computed(() => {
 
 const isYouTube = computed(() => {
     if (props.cell.contentType !== CellContentType.VIDEO) return false
-    return /youtube\.com|youtu\.be/.test(props.cell.content)
+    return isYoutubeUrl(props.cell.content)
 })
 
 const youtubeEmbedUrl = computed(() => {
     const url = props.cell.content
-    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/)
-    if (match) return `https://www.youtube-nocookie.com/embed/${match[1]}`
-    return url
+    return toYoutubeEmbedUrl(url) ?? url
 })
 
 const nestedRows = computed<RowEditData[]>(() => {

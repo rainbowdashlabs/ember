@@ -12,14 +12,6 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SuccessContainer from '@/components/container/SuccessContainer.vue'
-import ErrorContainer from '@/components/container/ErrorContainer.vue'
-import InfoContainer from '@/components/container/InfoContainer.vue'
-import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import {dataTracking} from '@/api'
 import type {
   DataTracking,
@@ -28,8 +20,13 @@ import type {
   TableUpdatePayload,
   TrackingStatusName,
 } from '@/api/dataTracking'
-import StatusBadge from './datatrackingview/StatusBadge.vue'
 import TableDetailDrawer from './datatrackingview/TableDetailDrawer.vue'
+import TableListRow from './datatrackingview/TableListRow.vue'
+import SummaryCards from './datatrackingview/SummaryCards.vue'
+import StatusBreakdownGrid from './datatrackingview/StatusBreakdownGrid.vue'
+import DanglingRefAudit, {type DanglingRef} from './datatrackingview/DanglingRefAudit.vue'
+import TableFilterBar from './datatrackingview/TableFilterBar.vue'
+import BatchToolbar from './datatrackingview/BatchToolbar.vue'
 
 const {t} = useI18n()
 
@@ -42,9 +39,6 @@ const filterContext = ref<'all' | 'transfer' | 'gdprExport' | 'gdprDeletion'>('a
 const filterStatus = ref<'all' | 'TRACKED' | 'IGNORED' | 'UNVERIFIED' | 'NEEDS_REVIEW'>('all')
 const selectedTable = ref<string | null>(null)
 
-// -- Batch selection state ---------------------------------------------------
-// Tables checked on the main page for a bulk status change. Selection persists across filter
-// changes so the developer can pick rows under different filters before applying.
 const selectedForBatch = ref<Set<string>>(new Set())
 const batchContext = ref<'stationTransfer' | 'gdprExport' | 'gdprDeletion'>('stationTransfer')
 const batchStatus = ref<TrackingStatusName>('UNVERIFIED')
@@ -84,23 +78,16 @@ function matchesSearch(r: Row, q: string): boolean {
   if (!q) return true
   if (r.name.toLowerCase().includes(q)) return true
   if (r.entry.description && r.entry.description.toLowerCase().includes(q)) return true
-  // Also match on column names + descriptions so a developer can find tables by either.
   return r.entry.columns.some(c =>
       c.name.toLowerCase().includes(q) || (c.description ?? '').toLowerCase().includes(q),
   )
 }
 
-interface DanglingRef {
-  table: string
-  column: string
-  identityType: string
-  hint: string
-}
-
 /**
  * Returns every TRACKED gdprExport identity column whose declared column has no FK to
- * {@code station_member} — these are at-risk data-integrity links because deleting a member won't
- * clean them up via FK CASCADE. The station_member self-PK is filtered out (it IS the member table).
+ * the station_member table — these are at-risk data-integrity links because deleting a member
+ * won't clean them up via FK CASCADE. The station_member self-PK is filtered out (it IS the
+ * member table).
  */
 const danglingMemberRefs = computed<DanglingRef[]>(() => {
   if (!tracking.value) return []
@@ -108,7 +95,6 @@ const danglingMemberRefs = computed<DanglingRef[]>(() => {
   for (const [name, entry] of Object.entries(tracking.value.tables)) {
     if (entry.gdprExport?.status !== 'TRACKED') continue
     for (const ic of entry.gdprExport.identityColumns ?? []) {
-      // Only flag MEMBER_ID — MEMBER_UID columns are intentionally not FKed (federation).
       if (ic.type !== 'MEMBER_ID') continue
       const colExists = entry.columns.some(c => c.name === ic.column)
       if (!colExists) {
@@ -120,7 +106,6 @@ const danglingMemberRefs = computed<DanglingRef[]>(() => {
         })
         continue
       }
-      // Skip the station_member.id self-PK.
       if (name === 'station_member') continue
       const fks = entry.foreignKeys ?? []
       const hasMemberFk = fks.some(fk => fk.column === ic.column && fk.refTable === 'station_member')
@@ -195,13 +180,10 @@ async function onTableUpdated(name: string, entry: TableEntry) {
     ...tracking.value,
     tables: {...tracking.value.tables, [name]: entry},
   }
-  // Refresh summary counts on every change so the dashboard stays in sync
   try {
     summary.value = await dataTracking.getDataTrackingSummary()
   } catch { /* ignore */ }
 }
-
-// -- Batch helpers -----------------------------------------------------------
 
 function toggleBatchSelection(name: string) {
   const next = new Set(selectedForBatch.value)
@@ -236,8 +218,6 @@ async function applyBatch() {
     const existing = tracking.value.tables[name]
     if (!existing) continue
     try {
-      // Send a minimal update touching only the chosen context. The backend preserves all the
-      // other fields, including the existing reason/rationale and ignoredColumns lists.
       const payload: TableUpdatePayload = {}
       if (batchContext.value === 'stationTransfer') {
         payload.stationTransfer = {...existing.stationTransfer, status: batchStatus.value}
@@ -253,7 +233,6 @@ async function applyBatch() {
     }
   }
 
-  // Merge successful updates back into the tracking ref in one go.
   if (Object.keys(successUpdates).length > 0) {
     tracking.value = {
       ...tracking.value,
@@ -290,139 +269,27 @@ onMounted(loadData)
     <Spinner v-if="loading"/>
 
     <template v-else-if="summary">
-      <!-- Summary cards -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <NeutralContainer class="!py-3">
-          <div class="text-xs text-(--text-muted) uppercase">{{ t('adminDataTracking.totalTables') }}</div>
-          <div class="text-2xl font-bold">{{ summary.totalTables }}</div>
-        </NeutralContainer>
-        <SuccessContainer class="!py-3">
-          <div class="text-xs uppercase">{{ t('adminDataTracking.columnsVerified') }}</div>
-          <div class="text-2xl font-bold">{{ summary.verifiedColumns }} / {{ summary.totalColumns }}</div>
-          <div class="text-xs">{{ verifiedPct }}%</div>
-        </SuccessContainer>
-        <component
-            :is="needsReviewCount > 0 ? ErrorContainer : SuccessContainer"
-            class="!py-3"
-        >
-          <div class="text-xs uppercase">{{ t('adminDataTracking.needsReview') }}</div>
-          <div class="text-2xl font-bold">{{ needsReviewCount }}</div>
-        </component>
-        <InfoContainer class="!py-3">
-          <div class="text-xs uppercase">{{ t('adminDataTracking.schemaHash') }}</div>
-          <div class="text-xs font-mono break-all">{{ tracking?.schemaHash ?? '—' }}</div>
-        </InfoContainer>
-      </div>
-
-      <!-- Per-context status bars -->
-      <SectionHeader>{{ t('adminDataTracking.statusBreakdown') }}</SectionHeader>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-        <NeutralContainer>
-          <div class="font-semibold mb-2">{{ t('adminDataTracking.stationTransfer') }}</div>
-          <div class="flex items-center gap-2 text-sm flex-wrap">
-            <StatusBadge status="TRACKED" :count="summary.stationTransfer.tracked"/>
-            <StatusBadge status="IGNORED" :count="summary.stationTransfer.ignored"/>
-            <StatusBadge status="UNVERIFIED" :count="summary.stationTransfer.unverified"/>
-          </div>
-        </NeutralContainer>
-        <NeutralContainer>
-          <div class="font-semibold mb-2">{{ t('adminDataTracking.gdprExport') }}</div>
-          <div class="flex items-center gap-2 text-sm flex-wrap">
-            <StatusBadge status="TRACKED" :count="summary.gdprExport.tracked"/>
-            <StatusBadge status="IGNORED" :count="summary.gdprExport.ignored"/>
-            <StatusBadge status="UNVERIFIED" :count="summary.gdprExport.unverified"/>
-          </div>
-        </NeutralContainer>
-        <NeutralContainer>
-          <div class="font-semibold mb-2">{{ t('adminDataTracking.gdprDeletion') }}</div>
-          <div class="flex items-center gap-2 text-sm flex-wrap">
-            <StatusBadge status="TRACKED" :count="summary.gdprDeletion.tracked"/>
-            <StatusBadge status="IGNORED" :count="summary.gdprDeletion.ignored"/>
-            <StatusBadge status="UNVERIFIED" :count="summary.gdprDeletion.unverified"/>
-          </div>
-        </NeutralContainer>
-      </div>
-
-      <!-- Dangling-reference audit: MEMBER_ID identity columns without an FK to station_member.
-           Particularly important for members from the local station — without an FK the row stays
-           around after a member is deleted, leaving an orphaned integer reference. -->
-      <ErrorContainer
-          v-if="danglingMemberRefs.length"
-          class="mb-4 text-sm"
-      >
-        <div class="font-semibold mb-1">
-          <font-awesome-icon :icon="['fas', 'triangle-exclamation']" class="mr-1"/>
-          {{ t('adminDataTracking.danglingHeader', {n: danglingMemberRefs.length}) }}
-        </div>
-        <ul class="font-mono text-xs space-y-0.5">
-          <li v-for="d in danglingMemberRefs" :key="`${d.table}.${d.column}`">
-            <span class="font-semibold">{{ d.table }}.{{ d.column }}</span>
-            <span class="text-(--text-muted)"> — {{ d.hint }}</span>
-          </li>
-        </ul>
-      </ErrorContainer>
-
-      <!-- Filters -->
+      <SummaryCards
+          :summary="summary"
+          :needs-review-count="needsReviewCount"
+          :verified-pct="verifiedPct"
+          :schema-hash="tracking?.schemaHash"/>
+      <StatusBreakdownGrid :summary="summary"/>
+      <DanglingRefAudit :refs="danglingMemberRefs"/>
       <SectionHeader>{{ t('adminDataTracking.tables') }}</SectionHeader>
-      <div class="flex flex-wrap items-center gap-2 mb-3">
-        <TextInput
-            v-model="search"
-            :placeholder="t('adminDataTracking.searchPlaceholder')"
-            class="max-w-xs"
-        />
-        <SelectionToggleButton
-            v-for="opt in ['all', 'transfer', 'gdprExport', 'gdprDeletion']"
-            :key="opt"
-            :selected="filterContext === opt"
-            @toggle="filterContext = opt as typeof filterContext"
-        >
-          {{ t(`adminDataTracking.context.${opt}`) }}
-        </SelectionToggleButton>
-        <span class="mx-2 text-(--text-muted)">|</span>
-        <SelectionToggleButton
-            v-for="opt in ['all', 'TRACKED', 'IGNORED', 'UNVERIFIED', 'NEEDS_REVIEW']"
-            :key="opt"
-            :selected="filterStatus === opt"
-            @toggle="filterStatus = opt as typeof filterStatus"
-        >
-          {{ t(`adminDataTracking.filter.${opt}`) }}
-        </SelectionToggleButton>
-      </div>
-
-      <!-- Batch action toolbar — only visible when at least one row is selected -->
-      <div
-          v-if="selectedForBatch.size > 0"
-          class="sticky top-0 z-10 mb-3 p-3 rounded-theme border border-(--accent)/40 bg-(--accent)/10 flex items-center gap-2 flex-wrap"
-      >
-        <span class="text-sm font-semibold">
-          {{ t('adminDataTracking.batch.selected', {n: selectedForBatch.size}) }}
-        </span>
-        <span class="text-xs text-(--text-muted)">{{ t('adminDataTracking.batch.setStatusOn') }}</span>
-        <SelectInput v-model="batchContext" class="!w-auto">
-          <option value="stationTransfer">{{ t('adminDataTracking.stationTransfer') }}</option>
-          <option value="gdprExport">{{ t('adminDataTracking.gdprExport') }}</option>
-          <option value="gdprDeletion">{{ t('adminDataTracking.gdprDeletion') }}</option>
-        </SelectInput>
-        <SelectInput v-model="batchStatus" class="!w-auto">
-          <option value="TRACKED">TRACKED</option>
-          <option value="IGNORED">IGNORED</option>
-          <option value="UNVERIFIED">UNVERIFIED</option>
-        </SelectInput>
-        <PrimaryButton :disabled="batchSaving" @click="applyBatch">
-          <font-awesome-icon v-if="batchSaving" :icon="['fas', 'spinner']" class="animate-spin mr-1"/>
-          {{ t('adminDataTracking.batch.apply') }}
-        </PrimaryButton>
-        <SecondaryButton @click="selectAllFiltered">
-          {{ t('adminDataTracking.batch.selectAllFiltered') }}
-        </SecondaryButton>
-        <SecondaryButton @click="clearBatchSelection">
-          {{ t('adminDataTracking.batch.clear') }}
-        </SecondaryButton>
-      </div>
-
+      <TableFilterBar
+          v-model:search="search"
+          v-model:filter-context="filterContext"
+          v-model:filter-status="filterStatus"/>
+      <BatchToolbar
+          :selected-count="selectedForBatch.size"
+          v-model:batch-context="batchContext"
+          v-model:batch-status="batchStatus"
+          :batch-saving="batchSaving"
+          @apply="applyBatch"
+          @select-all="selectAllFiltered"
+          @clear="clearBatchSelection"/>
       <Alert v-if="batchError" variant="error" class="mb-3 whitespace-pre-line">{{ batchError }}</Alert>
-
-      <!-- Table list -->
       <div class="space-y-1">
         <TableListRow
             v-for="row in filteredRows"
@@ -432,8 +299,7 @@ onMounted(loadData)
             :search="search"
             :tracking="tracking"
             @open="selectedTable = row.name"
-            @toggle-batch="toggleBatchSelection(row.name)"
-        />
+            @toggle-batch="toggleBatchSelection(row.name)"/>
         <div v-if="filteredRows.length === 0" class="text-center text-(--text-muted) py-8">
           {{ t('adminDataTracking.noMatches') }}
         </div>
@@ -445,8 +311,7 @@ onMounted(loadData)
         :name="selectedTable"
         :entry="selectedEntry()!"
         @close="selectedTable = null"
-        @updated="onTableUpdated"
-    />
+        @updated="onTableUpdated"/>
   </ViewContent>
 
   <ViewContent v-else>

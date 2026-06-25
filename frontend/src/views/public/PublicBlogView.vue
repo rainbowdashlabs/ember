@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onMounted, ref, computed, type ComputedRef} from 'vue'
+import {ref, computed, type ComputedRef} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -17,6 +17,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import type {PublicBlogEntry} from '@/api/types'
 import {news} from '@/api'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -31,21 +32,11 @@ useHead({
     ],
 })
 
-const loading = ref(true)
-const error = ref('')
 const entries = ref<PublicBlogEntry[]>([])
 
-async function load() {
-  loading.value = true
-  error.value = ''
-  try {
-    entries.value = await news.listPublicBlog(stationUid.value)
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, error} = useAsyncLoader(async () => {
+  entries.value = await news.listPublicBlog(stationUid.value)
+})
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('de-DE', {year: 'numeric', month: 'long', day: 'numeric'})
@@ -63,8 +54,6 @@ function excerpt(html: string, maxLength = 200): string {
   const text = html.replace(/<[^>]*>/g, '')
   return text.length > maxLength ? text.substring(0, maxLength) + '…' : text
 }
-
-onMounted(load)
 </script>
 
 <template>

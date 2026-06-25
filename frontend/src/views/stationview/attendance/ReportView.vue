@@ -4,30 +4,21 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SaveButton from '@/components/button/SaveButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import THead from '@/components/table/THead.vue'
-import TRow from '@/components/table/TRow.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import ReportPresetList from './reportview/ReportPresetList.vue'
+import ReportFilters from './reportview/ReportFilters.vue'
+import ReportPreview from './reportview/ReportPreview.vue'
 import type {MemberGroup} from '@/api/types'
-import {StationUserType} from '@/api/types'
+import {StationUserType, StationUserTypeLabels} from '@/api/types'
 import {attendance, memberGroups} from '@/api'
 import type {ReportData, ReportPreset} from '@/api/attendance'
 import {useSession} from '@/composables/useSession'
-import Td from '@/components/table/Td.vue'
-import Th from '@/components/table/Th.vue'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {t} = useI18n()
 const {loaded} = useSession()
@@ -35,29 +26,18 @@ const {loaded} = useSession()
 const groups = ref<MemberGroup[]>([])
 const presets = ref<ReportPreset[]>([])
 const report = ref<ReportData | null>(null)
-const loading = ref(true)
 const previewing = ref(false)
 const exporting = ref(false)
-const error = ref('')
 
-// Filter state
 const selectedUserTypes = ref<string[]>([])
 const selectedGroupIds = ref<string[]>([])
 
-const USER_TYPE_LABELS: Record<string, string> = {
-  TRIAL: 'Probe',
-  MEMBER: 'Mitglied',
-  GUARDIAN: 'Erziehungsberechtigter',
-  TEAM: 'Team',
-  MANAGER: 'Manager',
-}
-
 const userTypeOptions = computed(() =>
-    Object.values(StationUserType).map(ut => ({ value: ut, label: USER_TYPE_LABELS[ut] ?? ut }))
+    Object.values(StationUserType).map(ut => ({value: ut, label: StationUserTypeLabels[ut] ?? ut})),
 )
 
 const groupOptions = computed(() =>
-    groups.value.map(g => ({ value: String(g.id), label: g.name ?? '' }))
+    groups.value.map(g => ({value: String(g.id), label: g.name ?? ''})),
 )
 const selectedPeriod = ref('month')
 const selectedYear = ref(new Date().getFullYear())
@@ -111,9 +91,8 @@ const timeRange = computed(() => {
   let to: Date
 
   if (selectedPeriod.value === 'week') {
-    // ISO week: Monday-based. Find the Monday of the selected week in selectedYear.
     const jan4 = new Date(selectedYear.value, 0, 4)
-    const dayOfWeek = (jan4.getDay() + 6) % 7 // 0=Mon
+    const dayOfWeek = (jan4.getDay() + 6) % 7
     const week1Monday = new Date(jan4)
     week1Monday.setDate(jan4.getDate() - dayOfWeek)
     from = new Date(week1Monday)
@@ -142,22 +121,14 @@ function buildParams() {
   return params
 }
 
-async function loadData() {
-  loading.value = true
-  error.value = ''
-  try {
-    const [allGroups, allPresets] = await Promise.all([
-      memberGroups.listGroups(),
-      attendance.listPresets(),
-    ])
-    groups.value = allGroups
-    presets.value = allPresets
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, error, reload} = useAsyncLoader(async () => {
+  const [allGroups, allPresets] = await Promise.all([
+    memberGroups.listGroups(),
+    attendance.listPresets(),
+  ])
+  groups.value = allGroups
+  presets.value = allPresets
+}, {autoLoad: false})
 
 async function preview() {
   if (!canPreview.value) return
@@ -230,262 +201,51 @@ async function removePreset(id: number) {
   }
 }
 
-function presetLabel(preset: ReportPreset): string {
-  const parts: string[] = []
-  if (preset.roleName) parts.push(preset.roleName)
-  if (preset.groupId) {
-    const g = groups.value.find(g => g.id === preset.groupId)
-    parts.push(g?.name ?? 'Gruppe')
-  }
-  return parts.length > 0 ? `${preset.name} (${parts.join(', ')})` : preset.name
-}
-
-onMounted(() => {
-  if (loaded.value) loadData()
-})
-
 watch(loaded, (isLoaded) => {
-  if (isLoaded && loading.value) loadData()
-})
+  if (isLoaded) reload()
+}, {immediate: true})
 </script>
 
 <template>
   <ViewContent>
-    <div class="space-y-6">
-      <SectionHeader>{{ t('attendanceReport.title') }}</SectionHeader>
-
-      <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
-
-      <template v-if="!loading">
-        <!-- Saved presets -->
-        <div v-if="presets.length > 0" class="flex flex-wrap gap-2">
-          <button
-              v-for="preset in presets"
-              :key="preset.id"
-              class="rounded-lg px-3 py-1.5 text-xs font-medium border transition-all border-bg-light-accent dark:border-bg-dark-accent hover:border-primary flex items-center gap-2"
-              @click="applyPreset(preset)"
-          >
-            {{ presetLabel(preset) }}
-            <span class="text-(--text-muted) hover:text-error cursor-pointer" @click.stop="removePreset(preset.id)">
-              <font-awesome-icon :icon="['fas', 'xmark']" class="h-3 w-3"/>
-            </span>
-          </button>
-        </div>
-
-        <!-- Filters -->
-        <NeutralContainer class="space-y-4">
-          <SubHeader>{{ t('attendanceReport.filters') }}</SubHeader>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div class="space-y-1">
-              <FieldLabel>{{ t('attendanceReport.userTypes') }}</FieldLabel>
-              <MultiSelectDropdown
-                  :options="userTypeOptions"
-                  :model-value="selectedUserTypes"
-                  :placeholder="t('attendanceReport.selectUserTypes')"
-                  @update:model-value="selectedUserTypes = $event"
-              />
-            </div>
-            <div class="space-y-1">
-              <FieldLabel>{{ t('attendanceReport.groups') }}</FieldLabel>
-              <MultiSelectDropdown
-                  :options="groupOptions"
-                  :model-value="selectedGroupIds"
-                  :placeholder="t('attendanceReport.selectGroups')"
-                  @update:model-value="selectedGroupIds = $event"
-              />
-            </div>
-            <div class="space-y-1">
-              <FieldLabel>{{ t('attendanceReport.rounding') }}</FieldLabel>
-              <SelectInput v-model="selectedRounding" class="w-full">
-                <option v-for="opt in roundingOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-              </SelectInput>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div class="space-y-1">
-              <FieldLabel>{{ t('attendanceReport.period') }}</FieldLabel>
-              <SelectInput v-model="selectedPeriod" class="w-full">
-                <option v-for="opt in periodOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-              </SelectInput>
-            </div>
-            <div class="space-y-1">
-              <FieldLabel>{{ t('attendanceReport.year') }}</FieldLabel>
-              <SelectInput :model-value="String(selectedYear)" class="w-full" @update:model-value="selectedYear = Number($event)">
-                <option v-for="y in yearOptions" :key="y" :value="String(y)">{{ y }}</option>
-              </SelectInput>
-            </div>
-            <div v-if="selectedPeriod === 'month'" class="space-y-1">
-              <FieldLabel>{{ t('attendanceReport.month') }}</FieldLabel>
-              <SelectInput :model-value="String(selectedMonth)" class="w-full" @update:model-value="selectedMonth = Number($event)">
-                <option v-for="m in monthOptions" :key="m.value" :value="String(m.value)">{{ m.label }}</option>
-              </SelectInput>
-            </div>
-            <div v-if="selectedPeriod === 'week'" class="space-y-1">
-              <FieldLabel>{{ t('attendanceReport.week') }}</FieldLabel>
-              <SelectInput :model-value="String(selectedWeek)" class="w-full" @update:model-value="selectedWeek = Number($event)">
-                <option v-for="w in weekOptions" :key="w" :value="String(w)">KW {{ w }}</option>
-              </SelectInput>
-            </div>
-          </div>
-          <div class="flex items-center gap-2 flex-wrap">
-            <PrimaryButton :icon="['fas', 'eye']" :disabled="!canPreview || previewing" @click="preview">
-              {{ previewing ? t('common.loading') : t('attendanceReport.preview') }}
-            </PrimaryButton>
-            <SecondaryButton :icon="['fas', 'copy']" v-if="!showSavePreset" :disabled="!canPreview" @click="showSavePreset = true">
-              {{ t('attendanceReport.savePreset') }}
-            </SecondaryButton>
-            <template v-if="showSavePreset">
-              <TextInput v-model="presetName" :placeholder="t('attendanceReport.presetName')" class="w-48"/>
-              <SaveButton :disabled="!presetName" :action="savePreset"/>
-              <SecondaryButton @click="showSavePreset = false">{{ t('common.cancel') }}</SecondaryButton>
-            </template>
-          </div>
-        </NeutralContainer>
-
-        <!-- Preview -->
-        <template v-if="report">
-          <div class="flex justify-end">
-            <PrimaryButton :icon="['fas', 'download']" :disabled="exporting" @click="exportPdf">
-              {{ exporting ? t('common.loading') : t('attendanceReport.exportPdf') }}
-            </PrimaryButton>
-          </div>
-
-          <!-- Overall summary -->
-          <NeutralContainer class="space-y-3">
-            <SubHeader>{{ t('attendanceReport.summary') }} – {{ report.filterLabel }}</SubHeader>
-            <div class="overflow-x-auto">
-              <table class="w-full text-sm">
-                <thead>
-                <THead>
-                  <th class="text-left py-2 px-3">{{ t('attendanceReport.name') }}</th>
-                  <Th align="center">{{ t('attendanceReport.sessions') }}</th>
-                  <Th align="center">{{ t('attendanceReport.present') }}</th>
-                  <th class="text-right py-2 px-3">{{ t('attendanceReport.hours') }}</Th>
-                </THead>
-                </thead>
-                <tbody>
-                <TRow v-for="m in report.members" :key="m.memberId">
-                  <Td>{{ m.name }}</Td>
-                  <Td align="center">{{ m.sessionCount }}</Td>
-                  <Td align="center">{{ m.presentCount }}</Td>
-                  <Td align="right" class="font-mono">{{ m.totalHours.toFixed(1) }}</Td>
-                </TRow>
-                </tbody>
-              </table>
-            </div>
-          </NeutralContainer>
-
-          <!-- Year report: monthly breakdown with sessions per month -->
-          <template v-if="report.monthlySummaries.length > 1">
-            <template v-for="ms in report.monthlySummaries" :key="ms.month">
-              <SectionHeader>{{ t('attendanceReport.monthReport', {month: ms.month}) }}</SectionHeader>
-
-              <NeutralContainer class="space-y-3">
-                <SubHeader>{{ t('attendanceReport.monthlySummary') }}</SubHeader>
-                <div class="overflow-x-auto">
-                  <table class="w-full text-sm">
-                    <thead>
-                    <THead>
-                      <th class="text-left py-2 px-3">{{ t('attendanceReport.name') }}</Th>
-                      <Th align="center">{{ t('attendanceReport.present') }}</th>
-                      <th class="text-right py-2 px-3">{{ t('attendanceReport.hours') }}</Th>
-                    </THead>
-                    </thead>
-                    <tbody>
-                    <TRow v-for="m in ms.members" :key="m.memberId">
-                      <Td>{{ m.name }}</Td>
-                      <Td align="center">{{ m.presentCount }}</Td>
-                      <Td align="right" class="font-mono">{{ m.totalHours.toFixed(1) }}</Td>
-                    </TRow>
-                    </tbody>
-                  </table>
-                </div>
-              </NeutralContainer>
-
-              <NeutralContainer v-for="session in ms.sessions" :key="session.sessionId" class="space-y-2">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span class="font-medium">{{ session.title }}</span>
-                  <span class="text-sm text-(--text-muted)">{{ session.date }} · {{
-                      session.startTime
-                    }} – {{ session.endTime }}</span>
-                </div>
-                <div class="text-xs text-(--text-muted)">
-                  {{
-                    t('attendanceReport.presentOfExpected', {
-                      present: session.presentCount,
-                      expected: session.expectedCount
-                    })
-                  }}
-                </div>
-                <div class="overflow-x-auto">
-                  <table class="w-full text-sm">
-                    <thead>
-                    <THead>
-                      <th class="text-left py-1.5 px-2">{{ t('attendanceReport.name') }}</th>
-                      <th class="text-center py-1.5 px-2">{{ t('attendanceReport.from') }}</th>
-                      <th class="text-center py-1.5 px-2">{{ t('attendanceReport.to') }}</th>
-                      <th class="text-right py-1.5 px-2">{{ t('attendanceReport.hours') }}</th>
-                    </THead>
-                    </thead>
-                    <tbody>
-                    <tr v-for="entry in session.entries" :key="entry.memberId"
-                        class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-                      <td class="py-1.5 px-2">{{ entry.name }}</td>
-                      <td class="text-center py-1.5 px-2">{{ entry.checkIn }}</td>
-                      <td class="text-center py-1.5 px-2">{{ entry.checkOut }}</td>
-                      <td class="text-right py-1.5 px-2 font-mono">{{ entry.hours.toFixed(1) }}</td>
-                    </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </NeutralContainer>
-            </template>
-          </template>
-
-          <!-- Week/month report: sessions directly -->
-          <template v-else>
-            <NeutralContainer v-for="session in report.sessions" :key="session.sessionId" class="space-y-2">
-              <div class="flex items-center gap-2 flex-wrap">
-                <span class="font-medium">{{ session.title }}</span>
-                <span class="text-sm text-(--text-muted)">{{ session.date }} · {{
-                    session.startTime
-                  }} – {{ session.endTime }}</span>
-              </div>
-              <div class="text-xs text-(--text-muted)">
-                {{
-                  t('attendanceReport.presentOfExpected', {
-                    present: session.presentCount,
-                    expected: session.expectedCount
-                  })
-                }}
-              </div>
-              <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                  <thead>
-                  <THead>
-                    <th class="text-left py-1.5 px-2">{{ t('attendanceReport.name') }}</th>
-                    <th class="text-center py-1.5 px-2">{{ t('attendanceReport.from') }}</th>
-                    <th class="text-center py-1.5 px-2">{{ t('attendanceReport.to') }}</th>
-                    <th class="text-right py-1.5 px-2">{{ t('attendanceReport.hours') }}</th>
-                  </THead>
-                  </thead>
-                  <tbody>
-                  <tr v-for="entry in session.entries" :key="entry.memberId"
-                      class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-                    <td class="py-1.5 px-2">{{ entry.name }}</td>
-                    <td class="text-center py-1.5 px-2">{{ entry.checkIn }}</td>
-                    <td class="text-center py-1.5 px-2">{{ entry.checkOut }}</td>
-                    <td class="text-right py-1.5 px-2 font-mono">{{ entry.hours.toFixed(1) }}</td>
-                  </tr>
-                  </tbody>
-                </table>
-              </div>
-            </NeutralContainer>
-          </template>
-        </template>
-      </template>
-    </div>
+    <SectionHeader>{{ t('attendanceReport.title') }}</SectionHeader>
+    <Spinner v-if="loading" size="lg"/>
+    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <template v-if="!loading">
+      <ReportPresetList
+          :presets="presets"
+          :groups="groups"
+          @apply="applyPreset"
+          @remove="removePreset"
+      />
+      <ReportFilters
+          v-model:selected-user-types="selectedUserTypes"
+          v-model:selected-group-ids="selectedGroupIds"
+          v-model:selected-rounding="selectedRounding"
+          v-model:selected-period="selectedPeriod"
+          v-model:selected-year="selectedYear"
+          v-model:selected-month="selectedMonth"
+          v-model:selected-week="selectedWeek"
+          v-model:show-save-preset="showSavePreset"
+          v-model:preset-name="presetName"
+          :user-type-options="userTypeOptions"
+          :group-options="groupOptions"
+          :rounding-options="roundingOptions"
+          :period-options="periodOptions"
+          :year-options="yearOptions"
+          :month-options="monthOptions"
+          :week-options="weekOptions"
+          :can-preview="canPreview"
+          :previewing="previewing"
+          :save-preset="savePreset"
+          @preview="preview"
+      />
+      <ReportPreview
+          v-if="report"
+          :report="report"
+          :exporting="exporting"
+          @export="exportPdf"
+      />
+    </template>
   </ViewContent>
 </template>

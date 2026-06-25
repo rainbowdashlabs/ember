@@ -16,28 +16,24 @@ import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue
 import * as publicEvents from '@/api/publicEvents'
 import * as events from '@/api/events'
 import type {EventCategory} from '@/api/types'
+import {useConfigPatch} from '@/composables/useConfigPatch'
 
 /**
  * Editor block for FEATURED_EVENT / UPCOMING_EVENTS / PAST_EVENT_RECAP cells. Extracted from
  * {@code CellLayoutEditors.vue} purely to keep that file under the 500-line view limit; logic
  * is unchanged.
  */
+const config = defineModel<Record<string, unknown>>('config', {required: true})
+
 const props = defineProps<{
     kind: 'FEATURED_EVENT' | 'UPCOMING_EVENTS' | 'PAST_EVENT_RECAP'
-    config: Record<string, unknown>
     stationUid: string
-}>()
-
-const emit = defineEmits<{
-    'update:config': [value: Record<string, unknown>]
 }>()
 
 const {t} = useI18n()
 const TS = (k: string) => t(`stationPages.editor.${k}`)
 
-function patch(partial: Record<string, unknown>) {
-    emit('update:config', {...props.config, ...partial})
-}
+const patch = useConfigPatch(() => config.value, (_event, value) => { config.value = value })
 
 const eventCategories = ref<EventCategory[]>([])
 const eventCategoriesLoaded = ref(false)
@@ -52,18 +48,18 @@ onMounted(() => { if (props.kind === 'UPCOMING_EVENTS') ensureEventCategoriesLoa
 watch(() => props.kind, k => { if (k === 'UPCOMING_EVENTS') ensureEventCategoriesLoaded() })
 
 function toggleCategoryId(id: number) {
-    const current = (props.config.categoryIds as number[] | undefined) ?? []
+    const current = (config.value.categoryIds as number[] | undefined) ?? []
     const next = current.includes(id) ? current.filter(x => x !== id) : [...current, id]
     patch({categoryIds: next.length === 0 ? null : next})
 }
 function isCategorySelected(id: number): boolean {
-    return ((props.config.categoryIds as number[] | undefined) ?? []).includes(id)
+    return ((config.value.categoryIds as number[] | undefined) ?? []).includes(id)
 }
 
 /** Pre-fills descriptionOverride from the picked event's own description when still empty. */
 async function onFeaturedEventPick(eventUid: string) {
     const updates: Record<string, unknown> = {eventUid}
-    if (!props.config.descriptionOverride && props.stationUid) {
+    if (!config.value.descriptionOverride && props.stationUid) {
         try {
             const list = await publicEvents.listPublicEvents(props.stationUid)
             const match = list.find(e => e.publicUid === eventUid)

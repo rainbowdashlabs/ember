@@ -8,22 +8,23 @@ import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
+import BasicInfoFields from './eventmodal/BasicInfoFields.vue'
+import ScheduleFields from './eventmodal/ScheduleFields.vue'
+import TemplateSection from './eventmodal/TemplateSection.vue'
+import CategorySelect from './eventmodal/CategorySelect.vue'
+import RegistrationFields from './eventmodal/RegistrationFields.vue'
+import RestrictionsFields from './eventmodal/RestrictionsFields.vue'
 import type { StationEvent, EventCategory, AttendanceTemplate, AttendanceTemplateField, MemberGroup, UserTag } from '@/api/types'
 import { EventTypes } from '@/api/types'
 import type { EventFieldDefault } from '@/api/events'
 
 const { t } = useI18n()
 
+const modelValue = defineModel<boolean>({required: true})
+
 const props = defineProps<{
-  modelValue: boolean
   event: StationEvent | null
   categories: EventCategory[]
   templates: AttendanceTemplate[]
@@ -37,7 +38,6 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  'update:modelValue': [value: boolean]
   save: [data: Record<string, unknown>]
 }>()
 
@@ -62,7 +62,6 @@ const eventRequiresConfirmation = ref(false)
 const selectedUserTypes = ref<string[]>([])
 const selectedGroupIds = ref<number[]>([])
 const selectedTagIds = ref<number[]>([])
-// field defaults: fieldId -> { source, value }
 const fieldDefaults = ref<Map<number, { source: string; value: string }>>(new Map())
 const saving = ref(false)
 
@@ -72,7 +71,7 @@ function toLocalDateTime(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-watch(() => props.modelValue, (open) => {
+watch(modelValue, (open) => {
   if (!open) return
   const ev = props.event
   if (ev) {
@@ -177,137 +176,17 @@ function submit() {
 </script>
 
 <template>
-  <Modal :model-value="modelValue" @update:model-value="emit('update:modelValue', $event)">
+  <Modal v-model="modelValue">
     <div class="space-y-4">
       <SectionHeader>{{ event ? t('events.editEvent') : t('events.addEvent') }}</SectionHeader>
-
-      <div class="space-y-1">
-        <FieldLabel>{{ t('events.name') }}</FieldLabel>
-        <TextInput v-model="eventName" :placeholder="t('events.namePlaceholder')" />
-      </div>
-
-      <div class="space-y-1">
-        <FieldLabel>{{ t('events.description') }}</FieldLabel>
-        <TextInput v-model="eventDescription" :placeholder="t('events.descriptionPlaceholder')" />
-      </div>
-
-      <div class="space-y-1">
-        <FieldLabel>{{ t('events.type') }}</FieldLabel>
-        <SelectInput v-model="eventType">
-          <option :value="EventTypes.RECURRING">{{ t('events.typeRecurring') }}</option>
-          <option :value="EventTypes.ONE_TIME">{{ t('events.typeOneTime') }}</option>
-        </SelectInput>
-      </div>
-
-      <div v-if="eventType === EventTypes.RECURRING" class="space-y-1">
-        <FieldLabel>{{ t('events.dayOfWeek') }}</FieldLabel>
-        <SelectInput v-model="eventDayOfWeek">
-          <option value="1">Montag</option>
-          <option value="2">Dienstag</option>
-          <option value="3">Mittwoch</option>
-          <option value="4">Donnerstag</option>
-          <option value="5">Freitag</option>
-          <option value="6">Samstag</option>
-          <option value="7">Sonntag</option>
-        </SelectInput>
-      </div>
-
-      <div class="grid grid-cols-2 gap-3">
-        <div class="space-y-1">
-          <FieldLabel>{{ t('events.startTime') }}</FieldLabel>
-          <DateTimeInput v-model="eventStartTime" />
-        </div>
-        <div class="space-y-1">
-          <FieldLabel>{{ t('events.endTime') }}</FieldLabel>
-          <DateTimeInput v-model="eventEndTime" />
-        </div>
-      </div>
-
-      <div class="space-y-1">
-        <FieldLabel>{{ t('events.template') }}</FieldLabel>
-        <SelectInput v-model="eventTemplateId">
-          <option value="">{{ t('events.noTemplate') }}</option>
-          <option v-for="tpl in templates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
-        </SelectInput>
-        <p class="text-xs text-(--text-muted)">{{ t('events.templateHint') }}</p>
-      </div>
-
-      <!-- Field defaults for template -->
-      <div v-if="currentTemplateFields.length > 0" class="space-y-3">
-        <FieldLabel>{{ t('events.fieldDefaults') }}</FieldLabel>
-        <p class="text-xs text-(--text-muted)">{{ t('events.fieldDefaultsHint') }}</p>
-        <div class="space-y-2">
-          <div v-for="field in currentTemplateFields" :key="field.id" class="rounded-lg px-3 py-2 bg-bg-light-accent/20 dark:bg-bg-dark-accent/20 space-y-2">
-            <div class="text-sm font-medium">{{ field.name }} <span class="text-xs text-(--text-muted)">({{ field.fieldType }})</span></div>
-            <div class="grid gap-2 sm:grid-cols-2">
-              <SelectInput
-                :model-value="getFieldDefault(field.id).source"
-                @update:model-value="setFieldDefaultSource(field.id, ($event as string) ?? '')"
-              >
-                <option value="">{{ t('events.noDefault') }}</option>
-                <option value="VALUE">{{ t('events.staticValue') }}</option>
-                <option v-for="src in EVENT_SOURCES" :key="src.value" :value="src.value">{{ src.label }}</option>
-              </SelectInput>
-              <TextInput
-                v-if="getFieldDefault(field.id).source === 'VALUE'"
-                :model-value="getFieldDefault(field.id).value"
-                :placeholder="t('events.defaultValuePlaceholder')"
-                @update:model-value="setFieldDefaultValue(field.id, ($event as string) ?? '')"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="space-y-1">
-        <FieldLabel>{{ t('events.category') }}</FieldLabel>
-        <SelectInput v-model="eventCategoryId">
-          <option value="">{{ t('events.noCategory') }}</option>
-          <option v-for="cat in categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
-        </SelectInput>
-      </div>
-
-      <div class="flex items-center justify-between">
-        <label class="text-sm font-medium">{{ t('events.requiresRegistration') }}</label>
-        <ToggleInput v-model="eventRequiresRegistration" />
-      </div>
-
-      <template v-if="eventRequiresRegistration">
-        <div class="flex items-center justify-between">
-          <label class="text-sm font-medium">{{ t('events.requiresConfirmation') }}</label>
-          <ToggleInput v-model="eventRequiresConfirmation" />
-        </div>
-        <p class="text-xs text-(--text-muted)">{{ t('events.requiresConfirmationHint') }}</p>
-
-        <div class="flex items-center justify-between">
-          <label class="text-sm font-medium">{{ t('events.hasDeadline') }}</label>
-          <ToggleInput v-model="eventHasDeadline" />
-        </div>
-
-        <div v-if="eventHasDeadline" class="space-y-1">
-          <FieldLabel>{{ t('events.registrationDeadline') }}</FieldLabel>
-          <DateTimeInput v-model="eventRegistrationDeadline" />
-        </div>
-      </template>
-
-      <!-- Restrictions -->
-      <div class="space-y-2">
-        <FieldLabel>{{ t('events.restrictToRoles') }}</FieldLabel>
-        <p class="text-xs text-(--text-muted)">{{ t('events.restrictToRolesHint') }}</p>
-        <RestrictionPicker
-          :groups="groups"
-          :tags="tags"
-          :selected-user-types="selectedUserTypes"
-          :selected-group-ids="selectedGroupIds"
-          :selected-tag-ids="selectedTagIds"
-          @update:selected-user-types="selectedUserTypes = $event"
-          @update:selected-group-ids="selectedGroupIds = $event"
-          @update:selected-tag-ids="selectedTagIds = $event"
-        />
-      </div>
-
+      <BasicInfoFields v-model:event-name="eventName" v-model:event-description="eventDescription" v-model:event-type="eventType" v-model:event-day-of-week="eventDayOfWeek"/>
+      <ScheduleFields v-model:event-start-time="eventStartTime" v-model:event-end-time="eventEndTime"/>
+      <TemplateSection v-model:event-template-id="eventTemplateId" :templates="templates" :current-template-fields="currentTemplateFields" :sources="EVENT_SOURCES" :get-default="getFieldDefault" @update-source="setFieldDefaultSource" @update-value="setFieldDefaultValue"/>
+      <CategorySelect v-model:event-category-id="eventCategoryId" :categories="categories"/>
+      <RegistrationFields v-model:event-requires-registration="eventRequiresRegistration" v-model:event-requires-confirmation="eventRequiresConfirmation" v-model:event-has-deadline="eventHasDeadline" v-model:event-registration-deadline="eventRegistrationDeadline"/>
+      <RestrictionsFields v-model:selected-user-types="selectedUserTypes" v-model:selected-group-ids="selectedGroupIds" v-model:selected-tag-ids="selectedTagIds" :groups="groups" :tags="tags"/>
       <div class="flex justify-end gap-3">
-        <SecondaryButton @click="emit('update:modelValue', false)">{{ t('common.cancel') }}</SecondaryButton>
+        <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="saving || !eventName || !eventStartTime || !eventEndTime" @click="submit">
           {{ saving ? t('common.loading') : t('common.save') }}
         </PrimaryButton>

@@ -6,21 +6,12 @@
 <script setup lang="ts">
 import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
 
-defineProps<{
-    content: string
-}>()
-
-defineEmits<{
-    'update:content': [value: string]
-}>()
+const content = defineModel<string>('content', {required: true})
 </script>
 
 <template>
     <div class="cell-markdown-editor flex-1 flex flex-col">
-        <MarkdownEditor
-            :model-value="content"
-            @update:model-value="$emit('update:content', $event)"
-        />
+        <MarkdownEditor v-model="content"/>
     </div>
 </template>
 

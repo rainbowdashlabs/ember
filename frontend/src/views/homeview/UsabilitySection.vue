@@ -7,6 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import LandingEyebrow from '@/views/homeview/LandingEyebrow.vue'
 
 const {t, tm, rt} = useI18n()
 
@@ -28,8 +29,8 @@ const points = computed(() =>
 </script>
 
 <template>
-  <section class="usability">
-    <div class="grid">
+  <section class="landing-section landing-section-bordered">
+    <div class="landing-grid-2col landing-grid-2col-wide-right">
       <aside class="help" :aria-label="t('landing.usability.help.aria')">
         <div class="help-head">
           <div class="help-crumbs">
@@ -57,9 +58,9 @@ const points = computed(() =>
       </aside>
 
       <div class="copy">
-        <div class="eyebrow">{{ t('landing.usability.eyebrow') }}</div>
-        <SectionHeader class="display">{{ t('landing.usability.headline') }}</SectionHeader>
-        <p class="lede">{{ t('landing.usability.lede') }}</p>
+        <LandingEyebrow>{{ t('landing.usability.eyebrow') }}</LandingEyebrow>
+        <SectionHeader class="landing-h2 landing-h2-tight">{{ t('landing.usability.headline') }}</SectionHeader>
+        <p class="landing-lede landing-lede-spaced">{{ t('landing.usability.lede') }}</p>
         <ul class="points">
           <li v-for="p in points" :key="p.text" class="point">
             <font-awesome-icon :icon="p.icon" class="point-icon"/>
@@ -72,25 +73,6 @@ const points = computed(() =>
 </template>
 
 <style scoped>
-.usability {
-  padding: 6rem 1.5rem;
-  max-width: 76rem;
-  margin: 0 auto;
-  border-top: 1px solid var(--border);
-}
-.grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 3rem;
-  align-items: start;
-}
-@media (min-width: 900px) {
-  .grid {
-    grid-template-columns: 1fr 1.05fr;
-    gap: 4.5rem;
-  }
-}
-
 .help {
   border: 1px solid var(--border);
   border-radius: var(--radius-theme);
@@ -190,29 +172,6 @@ const points = computed(() =>
   height: 0.7rem;
 }
 
-.eyebrow {
-  font-family: 'Bitter', Georgia, serif;
-  font-size: 0.7rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  font-weight: 700;
-  opacity: 0.55;
-  margin-bottom: 0.75rem;
-}
-.display :deep(h2) {
-  font-family: 'Bitter', Georgia, serif;
-  font-size: clamp(1.85rem, 3.6vw, 2.5rem);
-  line-height: 1.1;
-  letter-spacing: -0.005em;
-  margin: 0 0 1.25rem;
-}
-.lede {
-  font-size: 1.05rem;
-  line-height: 1.6;
-  opacity: 0.78;
-  margin: 0 0 1.75rem;
-  max-width: 32rem;
-}
 .points {
   list-style: none;
   padding: 0;

@@ -11,12 +11,9 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import NumberInput from '@/components/input/number/NumberInput.vue'
-import DecimalInput from '@/components/input/number/DecimalInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import BatchActionFields from '@/views/stationview/quiz/catalogdetailview/batchactionmodal/BatchActionFields.vue'
+import BatchGenerateOptions from '@/views/stationview/quiz/catalogdetailview/batchactionmodal/BatchGenerateOptions.vue'
 import type {QuizCategory, QuizQuestion} from '@/api/types'
 import {QuizQuestionTypes} from '@/api/types'
 import {quiz, ai} from '@/api'
@@ -24,8 +21,9 @@ import {getItem} from '@/api/storage'
 
 const {t} = useI18n()
 
+const show = defineModel<boolean>('show', {required: true})
+
 const props = defineProps<{
-  show: boolean
   action: string
   questions: QuizQuestion[]
   categories: QuizCategory[]
@@ -33,7 +31,6 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  'update:show': [value: boolean]
   done: []
   error: [message: string]
 }>()
@@ -41,7 +38,6 @@ const emit = defineEmits<{
 const processing = ref(false)
 const progress = ref('')
 
-// Batch fields
 const batchAutoPoints = ref(true)
 const batchPoints = ref(1)
 const batchPointsPerCorrect = ref(1)
@@ -113,7 +109,7 @@ async function execute() {
     }
 
     emit('done')
-    emit('update:show', false)
+    show.value = false
   } catch {
     emit('error', t('common.error'))
   } finally {
@@ -162,98 +158,43 @@ async function batchGenerate(targets: QuizQuestion[]) {
         }
         if (poll.done) break
       }
-    } catch { /* skip */ }
+    } catch {
+      continue
+    }
   }
 }
 </script>
 
 <template>
-  <Modal :model-value="show" @update:model-value="emit('update:show', $event)">
+  <Modal v-model="show">
     <div class="space-y-4">
       <SubHeader>{{ t(`quiz.batch.action_${action}`) }}</SubHeader>
       <MutedText>{{ questions.length }} {{ t('quiz.batch.selected') }}</MutedText>
 
-      <template v-if="action === 'autoPoints'">
-        <div class="flex items-center gap-2">
-          <ToggleInput v-model="batchAutoPoints"/>
-          <span class="text-sm">{{ t('quiz.batch.autoPointsLabel') }}</span>
-        </div>
-      </template>
-
-      <template v-if="action === 'setPoints'">
-        <div class="flex items-center gap-2">
-          <FieldLabel>{{ t('quiz.questions.points') }}</FieldLabel>
-          <NumberInput v-model="batchPoints" class="w-20"/>
-        </div>
-      </template>
-
-      <template v-if="action === 'pointsPerCorrect'">
-        <div class="flex items-center gap-2">
-          <FieldLabel>{{ t('quiz.questions.config.pointsPerCorrect') }}</FieldLabel>
-          <DecimalInput v-model="batchPointsPerCorrect" step="0.5" class="w-20"/>
-        </div>
-      </template>
-
-      <template v-if="action === 'setCategory'">
-        <SelectInput v-model="batchCategoryId">
-          <option value="">{{ t('quiz.questions.noCategory') }}</option>
-          <option v-for="cat in categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
-        </SelectInput>
-      </template>
+      <BatchActionFields
+        :action="action"
+        :categories="categories"
+        v-model:auto-points="batchAutoPoints"
+        v-model:points="batchPoints"
+        v-model:points-per-correct="batchPointsPerCorrect"
+        v-model:category-id="batchCategoryId"
+      />
 
       <template v-if="action === 'generate'">
-        <div class="space-y-3">
-          <template v-if="selectedTypesSet.has('MULTIPLE_CHOICE')">
-            <SubHeader class="text-sm">Multiple Choice</SubHeader>
-            <div class="flex items-center gap-3 flex-wrap">
-              <div class="flex items-center gap-1">
-                <FieldLabel hint>{{ t('quiz.batch.correctCount') }}</FieldLabel>
-                <NumberInput v-model="batchAiMcCorrect" class="w-14"/>
-              </div>
-              <div class="flex items-center gap-1">
-                <FieldLabel hint>{{ t('quiz.batch.wrongCount') }}</FieldLabel>
-                <NumberInput v-model="batchAiMcWrong" class="w-14"/>
-              </div>
-            </div>
-          </template>
-          <template v-if="selectedTypesSet.has('CONNECT')">
-            <SubHeader class="text-sm">{{ t('quiz.questionTypes.CONNECT') }}</SubHeader>
-            <div class="flex items-center gap-1">
-              <FieldLabel hint>{{ t('quiz.batch.pairCount') }}</FieldLabel>
-              <NumberInput v-model="batchAiConnectPairs" class="w-14"/>
-            </div>
-          </template>
-          <template v-if="selectedTypesSet.has('ORDERING')">
-            <SubHeader class="text-sm">{{ t('quiz.questionTypes.ORDERING') }}</SubHeader>
-            <div class="flex items-center gap-3 flex-wrap">
-              <div class="flex items-center gap-1">
-                <FieldLabel hint>Min</FieldLabel>
-                <NumberInput v-model="batchAiOrderMin" class="w-14"/>
-              </div>
-              <div class="flex items-center gap-1">
-                <FieldLabel hint>Max</FieldLabel>
-                <NumberInput v-model="batchAiOrderMax" class="w-14"/>
-              </div>
-            </div>
-          </template>
-          <template v-if="selectedTypesSet.has('FILL_IN_THE_BLANK')">
-            <SubHeader class="text-sm">{{ t('quiz.questionTypes.FILL_IN_THE_BLANK') }}</SubHeader>
-            <div class="flex items-center gap-3 flex-wrap">
-              <div class="flex items-center gap-1">
-                <FieldLabel hint>{{ t('quiz.batch.gapCount') }}</FieldLabel>
-                <NumberInput v-model="batchAiFillGaps" class="w-14"/>
-              </div>
-              <div class="flex items-center gap-1">
-                <FieldLabel hint>{{ t('quiz.batch.sentenceCount') }}</FieldLabel>
-                <NumberInput v-model="batchAiFillSentences" class="w-14"/>
-              </div>
-            </div>
-          </template>
-        </div>
+        <BatchGenerateOptions
+          :selected-types="selectedTypesSet"
+          v-model:mc-correct="batchAiMcCorrect"
+          v-model:mc-wrong="batchAiMcWrong"
+          v-model:connect-pairs="batchAiConnectPairs"
+          v-model:order-min="batchAiOrderMin"
+          v-model:order-max="batchAiOrderMax"
+          v-model:fill-gaps="batchAiFillGaps"
+          v-model:fill-sentences="batchAiFillSentences"
+        />
       </template>
 
       <div class="flex justify-end gap-2">
-        <SecondaryButton @click="emit('update:show', false)">{{ t('common.cancel') }}</SecondaryButton>
+        <SecondaryButton @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="processing" @click="execute">
           <Spinner v-if="processing" size="sm" class="mr-1"/>
           {{ processing ? progress : t('common.save') }}

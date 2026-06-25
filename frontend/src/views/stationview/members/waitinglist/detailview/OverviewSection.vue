@@ -5,19 +5,12 @@
  */
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import SaveButton from '@/components/button/SaveButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import NumberInput from '@/components/input/number/NumberInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import FormulaInput from '@/components/input/FormulaInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
+import OverviewEditFields from './overviewsection/OverviewEditFields.vue'
+import OverviewEditActions from './overviewsection/OverviewEditActions.vue'
 import type { WaitingList, WaitingListField, MemberGroup } from '@/api/types'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import { ref, computed } from 'vue'
 import { waitingList as waitingListApi } from '@/api'
 
@@ -37,8 +30,6 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const fieldInfos = computed(() => props.fields.map(f => ({ name: f.name, type: f.fieldType })))
-
 const editing = ref(false)
 const editName = ref('')
 const editDescription = ref('')
@@ -48,6 +39,8 @@ const editTestingGroupId = ref<number | null>(null)
 const editJoinGroupId = ref<number | null>(null)
 const editAttendanceThreshold = ref(5)
 const editIsPublic = ref(false)
+
+const canSave = computed(() => !!editName.value.trim())
 
 function startEditing() {
   editName.value = props.list.name
@@ -66,7 +59,7 @@ function cancelEditing() {
 }
 
 async function saveEditing() {
-  if (!editName.value.trim()) return
+  if (!canSave.value) return
   try {
     const updated = await waitingListApi.update(props.listId, {
       name: editName.value.trim(),
@@ -92,8 +85,6 @@ function groupName(groupId: number | null | undefined): string {
   if (!groupId) return '-'
   return props.groups.find(g => g.id === groupId)?.name ?? '-'
 }
-
-
 </script>
 
 <template>
@@ -142,57 +133,23 @@ function groupName(groupId: number | null | undefined): string {
     </template>
 
     <template v-else>
-      <div class="space-y-3">
-        <div class="space-y-1">
-          <FieldLabel>{{ t('waitingList.name') }}</FieldLabel>
-          <TextInput v-model="editName" />
-        </div>
-        <div class="space-y-1">
-          <FieldLabel>{{ t('waitingList.description') }}</FieldLabel>
-          <TextAreaInput v-model="editDescription" />
-        </div>
-        <div class="space-y-1">
-          <FieldLabel>{{ t('waitingList.scoringFormula') }}</FieldLabel>
-          <FormulaInput v-model="editScoringFormula" :placeholder="t('waitingList.scoringFormulaPlaceholder')" :fields="fieldInfos" />
-          <p class="text-xs text-(--text-muted)">{{ t('waitingList.scoringFormulaHint') }}</p>
-        </div>
-        <div class="space-y-1">
-          <FieldLabel>{{ t('waitingList.confirmInterval') }}</FieldLabel>
-          <NumberInput v-model="editConfirmInterval" />
-          <p class="text-xs text-(--text-muted)">{{ t('waitingList.confirmIntervalHint') }}</p>
-        </div>
-        <div class="grid gap-3 sm:grid-cols-2">
-          <div class="space-y-1">
-            <FieldLabel>{{ t('waitingList.testingGroup') }}</FieldLabel>
-            <SelectInput :model-value="editTestingGroupId != null ? String(editTestingGroupId) : ''" @update:model-value="editTestingGroupId = $event ? Number($event) : null">
-              <option value="">{{ t('waitingList.noGroup') }}</option>
-              <option v-for="g in groups" :key="g.id" :value="String(g.id)">{{ g.name }}</option>
-            </SelectInput>
-          </div>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('waitingList.joinGroup') }}</FieldLabel>
-            <SelectInput :model-value="editJoinGroupId != null ? String(editJoinGroupId) : ''" @update:model-value="editJoinGroupId = $event ? Number($event) : null">
-              <option value="">{{ t('waitingList.noGroup') }}</option>
-              <option v-for="g in groups" :key="g.id" :value="String(g.id)">{{ g.name }}</option>
-            </SelectInput>
-          </div>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('waitingList.attendanceThreshold') }}</FieldLabel>
-            <NumberInput v-model="editAttendanceThreshold" />
-          </div>
-        </div>
-        <div class="flex items-center justify-between">
-          <div>
-            <FieldLabel>{{ t('waitingList.isPublic') }}</FieldLabel>
-            <p class="text-xs text-(--text-muted)">{{ t('waitingList.isPublicHint') }}</p>
-          </div>
-          <ToggleInput v-model="editIsPublic" />
-        </div>
-        <div class="flex justify-end gap-2">
-          <SecondaryButton @click="cancelEditing">{{ t('common.cancel') }}</SecondaryButton>
-          <SaveButton :disabled="!editName.trim()" :action="saveEditing"/>
-        </div>
-      </div>
+      <OverviewEditFields
+        v-model:name="editName"
+        v-model:description="editDescription"
+        v-model:scoring-formula="editScoringFormula"
+        v-model:confirm-interval="editConfirmInterval"
+        v-model:testing-group-id="editTestingGroupId"
+        v-model:join-group-id="editJoinGroupId"
+        v-model:attendance-threshold="editAttendanceThreshold"
+        :fields="fields"
+        :groups="groups"
+      />
+      <OverviewEditActions
+        v-model:is-public="editIsPublic"
+        :can-save="canSave"
+        :save="saveEditing"
+        @cancel="cancelEditing"
+      />
     </template>
   </NeutralContainer>
 </template>

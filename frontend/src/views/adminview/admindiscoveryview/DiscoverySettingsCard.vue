@@ -17,16 +17,14 @@ import type {DiscoverySettings} from '@/api/discovery'
 
 defineProps<{
   settings: DiscoverySettings
-  modelEnabled: boolean
-  modelDepth: number
-  modelInterval: number
   save: () => Promise<void>
 }>()
 
+const modelEnabled = defineModel<boolean>('modelEnabled', {required: true})
+const modelDepth = defineModel<number>('modelDepth', {required: true})
+const modelInterval = defineModel<number>('modelInterval', {required: true})
+
 const emit = defineEmits<{
-  'update:modelEnabled': [value: boolean]
-  'update:modelDepth': [value: number]
-  'update:modelInterval': [value: number]
   discoverNow: []
   seedFederation: []
 }>()
@@ -43,19 +41,17 @@ const {t} = useI18n()
           <FieldLabel>{{ t('adminDiscovery.enabled') }}</FieldLabel>
           <p class="text-xs text-(--text-muted)">{{ t('adminDiscovery.enabledHelp') }}</p>
         </div>
-        <ToggleInput :model-value="modelEnabled" @update:model-value="(v) => emit('update:modelEnabled', v)"/>
+        <ToggleInput v-model="modelEnabled"/>
       </div>
       <div>
         <FieldLabel>{{ t('adminDiscovery.maxDepth') }}</FieldLabel>
         <p class="text-xs text-(--text-muted)">{{ t('adminDiscovery.maxDepthHelp') }}</p>
-        <NumberInput :model-value="modelDepth" :min="0" :max="settings.hardMaxDepth"
-                     @update:model-value="(v) => emit('update:modelDepth', v)"/>
+        <NumberInput v-model="modelDepth" :min="0" :max="settings.hardMaxDepth"/>
       </div>
       <div>
         <FieldLabel>{{ t('adminDiscovery.pingInterval') }}</FieldLabel>
         <p class="text-xs text-(--text-muted)">{{ t('adminDiscovery.pingIntervalHelp') }}</p>
-        <NumberInput :model-value="modelInterval" :min="60"
-                     @update:model-value="(v) => emit('update:modelInterval', v)"/>
+        <NumberInput v-model="modelInterval" :min="60"/>
       </div>
       <div class="flex flex-wrap gap-2 pt-2">
         <SaveButton :action="save"/>

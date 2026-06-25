@@ -6,17 +6,14 @@
 <script lang="ts" setup>
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
-import IconButton from '@/components/button/IconButton.vue'
+import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import PartnerStationSearchPicker from '@/components/input/search/PartnerStationSearchPicker.vue'
 import {resolvePartnerStations, type PublicPartnerSummary} from '@/api/publicPages'
 
+const modelValue = defineModel<string[]>({required: true})
+
 const props = defineProps<{
     stationUid: string
-    modelValue: string[]
-}>()
-
-const emit = defineEmits<{
-    'update:modelValue': [value: string[]]
 }>()
 
 const {t} = useI18n()
@@ -25,7 +22,7 @@ const nameCache = ref<Record<string, string>>({})
 const dragIndex = ref<number | null>(null)
 const dragOverIndex = ref<number | null>(null)
 
-const uids = computed(() => props.modelValue ?? [])
+const uids = computed(() => modelValue.value ?? [])
 
 async function refreshNames(list: string[]) {
     const missing = list.filter(uid => !(uid in nameCache.value))
@@ -51,16 +48,16 @@ function move(from: number, to: number) {
     const next = [...uids.value]
     const [item] = next.splice(from, 1)
     next.splice(to, 0, item)
-    emit('update:modelValue', next)
+    modelValue.value = next
 }
 
 function remove(index: number) {
-    emit('update:modelValue', uids.value.filter((_, i) => i !== index))
+    modelValue.value = uids.value.filter((_, i) => i !== index)
 }
 
 function add(stationUid: string) {
     if (uids.value.includes(stationUid)) return
-    emit('update:modelValue', [...uids.value, stationUid])
+    modelValue.value = [...uids.value, stationUid]
 }
 
 function onDragStart(event: DragEvent, index: number) {
@@ -106,24 +103,25 @@ function onDragEnd() {
             <font-awesome-icon :icon="['fas', 'grip-vertical']" class="text-(--text-muted) shrink-0"/>
             <font-awesome-icon :icon="['fas', 'handshake']" class="text-primary shrink-0"/>
             <span class="flex-1 truncate" :title="uid">{{ displayName(uid) }}</span>
-            <IconButton
+            <MutedIconButton
                 :icon="['fas', 'arrow-up']"
                 :label="t('stationPages.editor.partnerStationMoveUp')"
                 :disabled="i === 0"
-                class="text-(--text-muted) hover:text-primary !p-1"
+                class="!p-1"
                 @click="move(i, i - 1)"
             />
-            <IconButton
+            <MutedIconButton
                 :icon="['fas', 'arrow-down']"
                 :label="t('stationPages.editor.partnerStationMoveDown')"
                 :disabled="i === uids.length - 1"
-                class="text-(--text-muted) hover:text-primary !p-1"
+                class="!p-1"
                 @click="move(i, i + 1)"
             />
-            <IconButton
+            <MutedIconButton
                 :icon="['fas', 'xmark']"
                 :label="t('stationPages.editor.removePartnerStation')"
-                class="text-(--text-muted) hover:text-error !p-1"
+                hover="error"
+                class="!p-1"
                 @click="remove(i)"
             />
         </li>

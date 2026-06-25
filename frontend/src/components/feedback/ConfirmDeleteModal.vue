@@ -11,23 +11,23 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 
 const {t} = useI18n()
 
+const modelValue = defineModel<boolean>({required: true})
+
 defineProps<{
-  modelValue: boolean
   message: string
 }>()
 
 const emit = defineEmits<{
-  'update:modelValue': [value: boolean]
   confirm: []
 }>()
 </script>
 
 <template>
-  <Modal :model-value="modelValue" @update:model-value="emit('update:modelValue', $event)">
+  <Modal v-model="modelValue">
     <div class="space-y-4">
       <p>{{ message }}</p>
       <div class="flex justify-end gap-3">
-        <SecondaryButton @click="emit('update:modelValue', false)">{{ t('common.cancel') }}</SecondaryButton>
+        <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
         <ErrorButton @click="emit('confirm')">{{ t('common.delete') }}</ErrorButton>
       </div>
     </div>

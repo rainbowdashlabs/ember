@@ -4,7 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -20,27 +19,26 @@ import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import type {AttendanceTemplate} from '@/api/types'
 import {attendance} from '@/api'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
+import {useConfigPanel} from '@/composables/useConfigPanel'
 
 const {t} = useI18n()
 const router = useRouter()
 
-const templates = ref<AttendanceTemplate[]>([])
-const loading = ref(true)
-const error = ref('')
-const showDeleteModal = ref(false)
-const deleteTarget = ref<AttendanceTemplate | null>(null)
-
-async function loadTemplates() {
-  loading.value = true
-  error.value = ''
-  try {
-    templates.value = await attendance.listTemplates()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const {config: templates, loading, error, reload: loadTemplates} = useConfigPanel<AttendanceTemplate[]>({
+  initial: [],
+  fetch: () => attendance.listTemplates(),
+})
+const {
+  show: showDeleteModal,
+  target: deleteTarget,
+  requestDelete,
+  confirm: confirmDelete,
+} = useConfirmDelete<AttendanceTemplate>({
+  onDelete: tpl => attendance.deleteTemplate(tpl.id),
+  onSuccess: () => loadTemplates(),
+  error,
+})
 
 function navigateToCreate() {
   router.push({name: 'station-attendance-config-edit'})
@@ -50,35 +48,16 @@ function navigateToEdit(id: number) {
   router.push({name: 'station-attendance-config-edit', params: {id}})
 }
 
-function requestDelete(tpl: AttendanceTemplate) {
-  deleteTarget.value = tpl
-  showDeleteModal.value = true
-}
-
-async function confirmDelete() {
-  if (!deleteTarget.value) return
-  try {
-    await attendance.deleteTemplate(deleteTarget.value.id)
-    showDeleteModal.value = false
-    deleteTarget.value = null
-    await loadTemplates()
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
 async function duplicateTemplate(tpl: AttendanceTemplate) {
   error.value = ''
   try {
     const detail = await attendance.getTemplate(tpl.id)
     const created = await attendance.createTemplate({name: (detail.name ?? '') + ' (Kopie)'})
 
-    // Copy groups
     if (detail.groups && detail.groups.length > 0) {
       await attendance.setTemplateGroups(created.id, {groups: detail.groups})
     }
 
-    // Copy fields
     if (detail.fields) {
       for (const field of detail.fields) {
         await attendance.createTemplateField(created.id, {
@@ -95,8 +74,6 @@ async function duplicateTemplate(tpl: AttendanceTemplate) {
     error.value = t('common.error')
   }
 }
-
-onMounted(loadTemplates)
 </script>
 
 <template>

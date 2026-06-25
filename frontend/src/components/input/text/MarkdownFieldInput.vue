@@ -52,9 +52,8 @@ function apply() {
         <div class="space-y-3 flex flex-col h-[80vh]">
             <SectionHeader>{{ title ?? t('stationPages.editor.editMarkdown') }}</SectionHeader>
             <MarkdownEditor
+                v-model="draft"
                 class="flex-1 flex flex-col min-h-0"
-                :model-value="draft"
-                @update:model-value="draft = $event"
             />
             <div class="flex justify-end">
                 <PrimaryButton @click="apply">{{ t('common.save') }}</PrimaryButton>

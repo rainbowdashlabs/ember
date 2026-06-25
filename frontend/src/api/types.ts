@@ -14,6 +14,19 @@ export const StationUserType = {
 } as const
 export type StationUserTypeName = (typeof StationUserType)[keyof typeof StationUserType]
 
+/**
+ * Human-readable German labels for each station user type. Single source of truth
+ * for any picker, badge, filter, or summary that needs to render a user type name
+ * without going through i18n.
+ */
+export const StationUserTypeLabels: Record<StationUserTypeName, string> = {
+    TRIAL: 'Probe',
+    MEMBER: 'Mitglied',
+    GUARDIAN: 'Erziehungsberechtigter',
+    TEAM: 'Team',
+    MANAGER: 'Manager',
+}
+
 // -- Station Permissions --
 
 export const StationPermission = {

@@ -12,20 +12,15 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import NumberInput from '@/components/input/number/NumberInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EventFieldList from './eventshared/EventFieldList.vue'
 import EventReminderEditor from './eventshared/EventReminderEditor.vue'
+import EventDefaultsSection from './templateeditview/EventDefaultsSection.vue'
 import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry} from '@/api/types'
-import {EventTypes} from '@/api/types'
 import {attendance, events} from '@/api'
 import {useSession} from '@/composables/useSession'
 
@@ -42,7 +37,6 @@ const attendanceFields = ref<AttendanceTemplateField[]>([])
 const loading = ref(true)
 const error = ref('')
 
-// Form state
 const name = ref('')
 const title = ref('')
 const description = ref('')
@@ -70,11 +64,9 @@ async function loadData() {
     categories.value = cats
     attendanceTemplates.value = attTpls
 
-    // Load attendance fields for all templates
     const fieldResults = await Promise.all(attTpls.map(t => attendance.listTemplateFields(t.id)))
     attendanceFields.value = fieldResults.flat()
 
-    // Populate form
     const tpl = detail.template
     name.value = tpl.name
     title.value = tpl.title ?? ''
@@ -149,77 +141,32 @@ async function save() {
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
-        <!-- Basic info -->
         <NeutralContainer class="space-y-4">
           <SubHeader>{{ t('eventTemplates.name') }}</SubHeader>
           <TextInput v-model="name" :placeholder="t('eventTemplates.namePlaceholder')"/>
         </NeutralContainer>
 
-        <!-- Event defaults -->
-        <NeutralContainer class="space-y-4">
-          <SubHeader>{{ t('eventTemplates.eventDefaults') }}</SubHeader>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="space-y-1">
-              <FieldLabel>{{ t('eventTemplates.eventTitle') }}</FieldLabel>
-              <TextInput v-model="title" :placeholder="t('eventTemplates.eventTitlePlaceholder')"/>
-            </div>
-            <div class="space-y-1">
-              <FieldLabel>{{ t('eventTemplates.category') }}</FieldLabel>
-              <SelectInput v-model="categoryId" class="w-full">
-                <option value="">{{ t('eventTemplates.noCategory') }}</option>
-                <option v-for="cat in categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
-              </SelectInput>
-            </div>
-            <div class="space-y-1">
-              <FieldLabel>{{ t('eventTemplates.eventType') }}</FieldLabel>
-              <SelectInput v-model="eventType" class="w-full">
-                <option value="">{{ t('eventTemplates.noDefault') }}</option>
-                <option :value="EventTypes.ONE_TIME">{{ t('events.typeOneTime') }}</option>
-                <option :value="EventTypes.RECURRING">{{ t('events.typeRecurring') }}</option>
-                <option :value="EventTypes.MONTHLY_FIRST">{{ t('events.typeMonthlyFirst') }}</option>
-                <option :value="EventTypes.QUARTERLY">{{ t('events.typeQuarterly') }}</option>
-                <option :value="EventTypes.YEARLY">{{ t('events.typeYearly') }}</option>
-              </SelectInput>
-            </div>
-            <div class="space-y-1">
-              <FieldLabel>{{ t('eventTemplates.attendanceTemplate') }}</FieldLabel>
-              <SelectInput v-model="attendanceTemplateId" class="w-full">
-                <option value="">{{ t('eventTemplates.noDefault') }}</option>
-                <option v-for="tpl in attendanceTemplates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
-              </SelectInput>
-            </div>
-          </div>
-
-          <div class="space-y-1">
-            <FieldLabel>{{ t('eventTemplates.eventDescription') }}</FieldLabel>
-            <TextAreaInput v-model="description" :rows="3"/>
-          </div>
-
-          <div class="flex items-center justify-between">
-            <span class="text-sm font-medium">{{ t('events.requiresRegistration') }}</span>
-            <ToggleInput v-model="requiresRegistration"/>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-sm font-medium">{{ t('events.requiresConfirmation') }}</span>
-            <ToggleInput v-model="requiresConfirmation"/>
-          </div>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('events.registrationLimit') }}</FieldLabel>
-            <NumberInput v-model="registrationLimit" :placeholder="t('events.registrationLimitHint')"/>
-          </div>
-        </NeutralContainer>
+        <EventDefaultsSection
+            v-model:title="title"
+            v-model:description="description"
+            v-model:category-id="categoryId"
+            v-model:event-type="eventType"
+            v-model:attendance-template-id="attendanceTemplateId"
+            v-model:requires-registration="requiresRegistration"
+            v-model:requires-confirmation="requiresConfirmation"
+            v-model:registration-limit="registrationLimit"
+            :categories="categories"
+            :attendance-templates="attendanceTemplates"
+        />
 
         <NeutralContainer>
           <EventReminderEditor v-model="reminderDays" />
         </NeutralContainer>
 
-        <!-- Fields -->
         <NeutralContainer class="space-y-4">
           <EventFieldList v-model:fields="fields" :attendance-fields="attendanceFields"/>
         </NeutralContainer>
 
-        <!-- Save -->
         <SaveButton :disabled="!name.trim()" :action="save"/>
       </template>
     </div>

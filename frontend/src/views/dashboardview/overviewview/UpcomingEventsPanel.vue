@@ -18,6 +18,7 @@ import {events} from '@/api'
 import {getFeedStatus} from '@/api/feedToken'
 import type {FeedStatusResponse} from '@/api/feedToken'
 import {useSession} from '@/composables/useSession'
+import {formatTime} from '@/util/format'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -103,13 +104,6 @@ const upcomingEvents = computed((): UpcomingEvent[] => {
   upcoming.sort((a, b) => a.date.localeCompare(b.date))
   return upcoming.slice(0, 10)
 })
-
-function formatTime(iso?: string): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
 
 async function loadData() {
   try {

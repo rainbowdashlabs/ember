@@ -11,26 +11,20 @@ import MarkdownFieldInput from '@/components/input/text/MarkdownFieldInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import * as publicQuiz from '@/api/publicQuiz'
+import {useConfigPatch} from '@/composables/useConfigPatch'
+import type {CellEditorEmits, CellEditorStationProps} from './cellTypes'
 
 /**
  * Editor block for the QUIZ_TEASER cell. The cell stores a list of public catalog ids — the
  * renderer draws one random question from them and reveals the answer on click.
  */
-const props = defineProps<{
-    config: Record<string, unknown>
-    stationUid: string
-}>()
-
-const emit = defineEmits<{
-    'update:config': [value: Record<string, unknown>]
-}>()
+const props = defineProps<CellEditorStationProps>()
+const emit = defineEmits<CellEditorEmits>()
 
 const {t} = useI18n()
 const TS = (k: string) => t(`stationPages.editor.${k}`)
 
-function patch(partial: Record<string, unknown>) {
-    emit('update:config', {...props.config, ...partial})
-}
+const patch = useConfigPatch(() => props.config, emit)
 
 const catalogs = ref<publicQuiz.PublicQuizCatalog[]>([])
 const catalogsLoaded = ref(false)

@@ -119,16 +119,6 @@ export async function resetStationQuotas(stationUid: string): Promise<void> {
     await client.delete(`/admin/storage/stations/${stationUid}/quotas`)
 }
 
-// Utility: format bytes
-export function formatBytes(bytes: number): string {
-    if (bytes === 0) return '0 B'
-    const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB']
-    const i = Math.floor(Math.log(bytes) / Math.log(1024))
-    const value = bytes / Math.pow(1024, i)
-    return `${value.toFixed(i === 0 ? 0 : 1)} ${units[i]}`
-}
-
-// Category display names
 export const StorageCategory = {
     PAGE_FILES: 'PAGE_FILES',
     PAGE_IMAGES: 'PAGE_IMAGES',

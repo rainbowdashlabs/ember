@@ -4,24 +4,18 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
-import TodayEvents from './indexview/TodayEvents.vue'
-import EventsByCategory from './indexview/EventsByCategory.vue'
-import BreaksList from './indexview/BreaksList.vue'
-import BreakModal from './indexview/BreakModal.vue'
-import HolidayImportModal from './indexview/HolidayImportModal.vue'
-import ExportModal from './indexview/ExportModal.vue'
+import EventDashboardBody from './indexview/EventDashboardBody.vue'
+import EventDashboardModals from './indexview/EventDashboardModals.vue'
 import type {AttendanceTemplate, EventBreak, EventCategory, EventField, StationEvent} from '@/api/types'
 import {attendance, events} from '@/api'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -31,8 +25,6 @@ const breaks = ref<EventBreak[]>([])
 const categories = ref<EventCategory[]>([])
 const templates = ref<AttendanceTemplate[]>([])
 const overviewFields = ref<Record<number, EventField[]>>({})
-const loading = ref(true)
-const error = ref('')
 
 interface CategoryGroup {
   category: EventCategory | null
@@ -61,41 +53,50 @@ const eventsByCategory = computed((): CategoryGroup[] => {
   return groups
 })
 
-// Modal state (breaks, categories, delete confirmations)
 const showBreakModal = ref(false)
 const editingBreak = ref<EventBreak | null>(null)
 const showHolidayModal = ref(false)
-const showDeleteEventModal = ref(false)
-const deleteEventTarget = ref<StationEvent | null>(null)
-const showDeleteBreakModal = ref(false)
-const deleteBreakTarget = ref<EventBreak | null>(null)
+const showExportModal = ref(false)
 
-async function loadData() {
-  loading.value = true
-  error.value = ''
-  try {
-    const [ev, today, br, cats, tpl, ovFields] = await Promise.all([
-      events.listEvents(),
-      events.listTodayEvents(),
-      events.listBreaks(),
-      events.listCategories(),
-      attendance.listTemplates(),
-      events.getOverviewFields(),
-    ])
-    allEvents.value = ev
-    todayEvents.value = today
-    breaks.value = br
-    categories.value = cats
-    templates.value = tpl
-    overviewFields.value = ovFields
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, error, reload} = useAsyncLoader(async () => {
+  const [ev, today, br, cats, tpl, ovFields] = await Promise.all([
+    events.listEvents(),
+    events.listTodayEvents(),
+    events.listBreaks(),
+    events.listCategories(),
+    attendance.listTemplates(),
+    events.getOverviewFields(),
+  ])
+  allEvents.value = ev
+  todayEvents.value = today
+  breaks.value = br
+  categories.value = cats
+  templates.value = tpl
+  overviewFields.value = ovFields
+})
 
-// Event navigation
+const {
+  show: showDeleteEventModal,
+  target: deleteEventTarget,
+  requestDelete: requestDeleteEvent,
+  confirm: confirmDeleteEvent,
+} = useConfirmDelete<StationEvent>({
+  onDelete: ev => events.deleteEvent(ev.id),
+  onSuccess: () => reload(),
+  error,
+})
+
+const {
+  show: showDeleteBreakModal,
+  target: deleteBreakTarget,
+  requestDelete: requestDeleteBreak,
+  confirm: confirmDeleteBreak,
+} = useConfirmDelete<EventBreak>({
+  onDelete: br => events.deleteBreak(br.id),
+  onSuccess: () => reload(),
+  error,
+})
+
 function openAddEvent() {
   router.push({name: 'event-new'})
 }
@@ -104,24 +105,6 @@ function openEditEvent(ev: StationEvent) {
   router.push({name: 'event-edit', params: {id: ev.id}})
 }
 
-function requestDeleteEvent(ev: StationEvent) {
-  deleteEventTarget.value = ev
-  showDeleteEventModal.value = true
-}
-
-async function confirmDeleteEvent() {
-  if (!deleteEventTarget.value) return
-  try {
-    await events.deleteEvent(deleteEventTarget.value.id)
-    showDeleteEventModal.value = false
-    deleteEventTarget.value = null
-    await loadData()
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
-// Break CRUD
 function openAddBreak() {
   editingBreak.value = null
   showBreakModal.value = true
@@ -141,30 +124,12 @@ async function saveBreak(data: { name: string; startDate: string; endDate: strin
       await events.createBreak(data)
     }
     showBreakModal.value = false
-    await loadData()
+    await reload()
   } catch {
     error.value = t('common.error')
   }
 }
 
-function requestDeleteBreak(br: EventBreak) {
-  deleteBreakTarget.value = br
-  showDeleteBreakModal.value = true
-}
-
-async function confirmDeleteBreak() {
-  if (!deleteBreakTarget.value) return
-  try {
-    await events.deleteBreak(deleteBreakTarget.value.id)
-    showDeleteBreakModal.value = false
-    deleteBreakTarget.value = null
-    await loadData()
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
-// Holiday import
 async function onImportHolidays(holidays: Array<{ name: string; startDate: string; endDate: string }>) {
   error.value = ''
   try {
@@ -172,25 +137,18 @@ async function onImportHolidays(holidays: Array<{ name: string; startDate: strin
       await events.createBreak(h)
     }
     showHolidayModal.value = false
-    await loadData()
+    await reload()
   } catch {
     error.value = t('common.error')
   }
 }
 
-
-
-// Attendance
 function goToAttendance(ev: StationEvent) {
   if (ev.templateId) {
     router.push({name: 'attendance-new', query: {templateId: String(ev.templateId), eventId: String(ev.id)}})
   }
 }
 
-// -- Export --
-const showExportModal = ref(false)
-
-onMounted(loadData)
 </script>
 
 <template>
@@ -199,58 +157,40 @@ onMounted(loadData)
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
-      <template v-if="!loading">
-        <TodayEvents :events="todayEvents" @attendance="goToAttendance"/>
-
-        <EventsByCategory
-            :groups="eventsByCategory"
-            :has-events="allEvents.length > 0"
-            :templates="templates"
-            :overview-fields="overviewFields"
-            @add-event="openAddEvent"
-            @edit-event="openEditEvent"
-            @delete-event="requestDeleteEvent"
-        />
-
-        <BreaksList
-            :breaks="breaks"
-            @add="openAddBreak"
-            @delete="requestDeleteBreak"
-            @edit="openEditBreak"
-            @import-holidays="showHolidayModal = true"
-        />
-        <!-- Export Button -->
-        <NeutralContainer class="flex items-center justify-between">
-          <SectionHeader>{{ t('events.export') }}</SectionHeader>
-          <PrimaryButton :icon="['fas', 'file-export']" @click="showExportModal = true">
-            {{ t('events.exportPdf') }}
-          </PrimaryButton>
-        </NeutralContainer>
-      </template>
-
-      <ExportModal v-model="showExportModal" :categories="categories" @error="e => error = e"/>
-
-      <BreakModal
-          v-model="showBreakModal"
-          :event-break="editingBreak"
-          @save="saveBreak"
+      <EventDashboardBody
+          v-if="!loading"
+          :today-events="todayEvents"
+          :events-by-category="eventsByCategory"
+          :has-events="allEvents.length > 0"
+          :templates="templates"
+          :overview-fields="overviewFields"
+          :breaks="breaks"
+          @attendance="goToAttendance"
+          @add-event="openAddEvent"
+          @edit-event="openEditEvent"
+          @delete-event="requestDeleteEvent"
+          @add-break="openAddBreak"
+          @edit-break="openEditBreak"
+          @delete-break="requestDeleteBreak"
+          @import-holidays="showHolidayModal = true"
+          @open-export="showExportModal = true"
       />
 
-      <HolidayImportModal
-          v-model="showHolidayModal"
-          @import="onImportHolidays"
-      />
-
-      <ConfirmDeleteModal
-          v-model="showDeleteEventModal"
-          :message="t('events.deleteEventConfirm', { name: deleteEventTarget?.name })"
-          @confirm="confirmDeleteEvent"
-      />
-
-      <ConfirmDeleteModal
-          v-model="showDeleteBreakModal"
-          :message="t('events.deleteBreakConfirm', { name: deleteBreakTarget?.name })"
-          @confirm="confirmDeleteBreak"
+      <EventDashboardModals
+          v-model:show-export="showExportModal"
+          v-model:show-break="showBreakModal"
+          v-model:show-holiday="showHolidayModal"
+          v-model:show-delete-event="showDeleteEventModal"
+          v-model:show-delete-break="showDeleteBreakModal"
+          :categories="categories"
+          :editing-break="editingBreak"
+          :delete-event-target="deleteEventTarget"
+          :delete-break-target="deleteBreakTarget"
+          @error="e => error = e"
+          @save-break="saveBreak"
+          @import-holidays="onImportHolidays"
+          @confirm-delete-event="confirmDeleteEvent"
+          @confirm-delete-break="confirmDeleteBreak"
       />
     </div>
   </ViewContent>

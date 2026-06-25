@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -12,14 +12,12 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
+import GradingSectionPanel from './gradingview/GradingSectionPanel.vue'
 import { useSession } from '@/composables/useSession'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { protocol, stationMembers } from '@/api'
 import type { TestProtocolSection, TestProtocolItem } from '@/api/protocol'
 import type { StationMember } from '@/api/types'
@@ -32,7 +30,6 @@ const { loaded } = useSession()
 
 const runId = computed(() => Number(route.params.id))
 const memberId = computed(() => Number(route.params.memberId))
-// Store IDs for cleanup in onBeforeUnmount (route params may be gone by then)
 let storedRunId = 0
 let storedMemberId = 0
 
@@ -41,8 +38,6 @@ const items = ref<TestProtocolItem[]>([])
 const checks = ref<Map<number, boolean>>(new Map())
 const doneSections = ref<Set<number>>(new Set())
 const member = ref<StationMember | null>(null)
-const loading = ref(true)
-const error = ref('')
 const saving = ref(false)
 const locked = ref(false)
 const currentSectionIndex = ref(0)
@@ -103,7 +98,6 @@ let saveDebounce: ReturnType<typeof setTimeout> | null = null
 
 function toggleCheck(itemId: number) {
   checks.value.set(itemId, !checks.value.get(itemId))
-  // Auto-save after a short debounce
   if (saveDebounce) clearTimeout(saveDebounce)
   saveDebounce = setTimeout(() => autoSave(), 500)
 }
@@ -116,44 +110,35 @@ async function autoSave() {
   const checksObj: Record<number, boolean> = {}
   for (const [k, v] of checks.value) checksObj[k] = v
   try { await protocol.saveChecks(runId.value, memberId.value, checksObj) }
-  catch { /* silent */ }
+  catch { }
 }
 
-async function loadData() {
-  loading.value = true
-  try {
-    // Lock the member
-    await protocol.lockMember(runId.value, memberId.value)
-    locked.value = true
-    storedRunId = runId.value
-    storedMemberId = memberId.value
+const {loading, error, reload: loadData} = useAsyncLoader(async () => {
+  await protocol.lockMember(runId.value, memberId.value)
+  locked.value = true
+  storedRunId = runId.value
+  storedMemberId = memberId.value
 
-    const [protocolData, existingChecks, doneIds, allMembers] = await Promise.all([
-      protocol.getProtocol((await protocol.getRun(runId.value)).run.protocolId),
-      protocol.getChecks(runId.value, memberId.value),
-      protocol.getSectionsDone(runId.value, memberId.value),
-      stationMembers.listMembers(),
-    ])
-    sections.value = protocolData.sections
-    items.value = protocolData.items
-    member.value = allMembers.find(m => m.id === memberId.value) ?? null
+  const [protocolData, existingChecks, doneIds, allMembers] = await Promise.all([
+    protocol.getProtocol((await protocol.getRun(runId.value)).run.protocolId),
+    protocol.getChecks(runId.value, memberId.value),
+    protocol.getSectionsDone(runId.value, memberId.value),
+    stationMembers.listMembers(),
+  ])
+  sections.value = protocolData.sections
+  items.value = protocolData.items
+  member.value = allMembers.find(m => m.id === memberId.value) ?? null
 
-    // Initialize checks
-    const checkMap = new Map<number, boolean>()
-    for (const item of protocolData.items) {
-      checkMap.set(item.id, false)
-    }
-    for (const c of existingChecks) {
-      checkMap.set(c.itemId, c.checked)
-    }
-    checks.value = checkMap
-    doneSections.value = new Set(doneIds)
-  } catch (e) {
-    error.value = t('protocol.lockError')
-  } finally {
-    loading.value = false
+  const checkMap = new Map<number, boolean>()
+  for (const item of protocolData.items) {
+    checkMap.set(item.id, false)
   }
-}
+  for (const c of existingChecks) {
+    checkMap.set(c.itemId, c.checked)
+  }
+  checks.value = checkMap
+  doneSections.value = new Set(doneIds)
+}, {autoLoad: false, errorMessageKey: 'protocol.lockError'})
 
 async function saveAndNext() {
   saving.value = true
@@ -237,7 +222,7 @@ async function saveAndExit() {
 
 onBeforeUnmount(async () => {
   if (locked.value && storedRunId && storedMemberId) {
-    try { await protocol.unlockMember(storedRunId, storedMemberId) } catch { /* best effort */ }
+    try { await protocol.unlockMember(storedRunId, storedMemberId) } catch { }
   }
 })
 
@@ -247,7 +232,6 @@ function memberName(): string {
 }
 
 watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
-onMounted(() => { if (loaded.value) loadData() })
 </script>
 
 <template>
@@ -256,7 +240,6 @@ onMounted(() => { if (loaded.value) loadData() })
     <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
 
     <template v-if="!loading && currentSection">
-      <!-- Header with member name and progress -->
       <div class="flex items-center justify-between mb-2">
         <SectionHeader>{{ memberName() }}</SectionHeader>
         <SecondaryButton @click="saveAndExit">
@@ -264,7 +247,6 @@ onMounted(() => { if (loaded.value) loadData() })
         </SecondaryButton>
       </div>
 
-      <!-- Section selector tabs -->
       <div class="flex flex-wrap gap-1.5 mb-4">
         <SelectionToggleButton
           v-for="(sec, idx) in topSections"
@@ -278,73 +260,23 @@ onMounted(() => { if (loaded.value) loadData() })
         </SelectionToggleButton>
       </div>
 
-      <!-- Total score -->
       <div class="flex items-center justify-between text-sm mb-4">
         <span class="text-[var(--text-muted)]">{{ t('protocol.totalScore') }}:</span>
         <span class="font-mono font-bold text-lg">{{ totalScore }} / {{ totalMaxPoints }}P</span>
       </div>
 
-      <!-- Current section -->
-      <NeutralContainer class="space-y-3 mb-4">
-        <div class="flex items-center justify-between">
-          <SectionHeader class="font-bold">
-            <font-awesome-icon v-if="doneSections.has(currentSection.id)" :icon="['fas', 'circle-check']" class="w-4 h-4 text-[var(--success)] mr-1" />
-            {{ currentSection.name }}
-          </SectionHeader>
-          <div class="flex items-center gap-2">
-            <SuccessBadge>{{ currentSectionScore }} / {{ currentSectionMaxPoints }}P</SuccessBadge>
-            <IconButton v-if="!doneSections.has(currentSection.id)" icon="check" :label="t('protocol.markDone')" @click="toggleSectionDone(currentSection.id)" />
-            <IconButton v-else icon="rotate-left" :label="t('protocol.unmarkDone')" @click="toggleSectionDone(currentSection.id)" />
-          </div>
-        </div>
+      <GradingSectionPanel
+        :section="currentSection"
+        :child-sections="childSections(currentSection.id)"
+        :section-items="sectionItems"
+        :checks="checks"
+        :score="currentSectionScore"
+        :max-points="currentSectionMaxPoints"
+        :done="doneSections.has(currentSection.id)"
+        @toggle-check="toggleCheck"
+        @toggle-done="toggleSectionDone(currentSection.id)"
+      />
 
-        <!-- Items at section level -->
-        <div v-for="item in sectionItems(currentSection.id)" :key="item.id">
-          <button
-            type="button"
-            class="w-full flex items-center gap-2 p-3 rounded-lg border-2 transition-all text-left cursor-pointer"
-            :class="checks.get(item.id)
-              ? 'border-[var(--success)] bg-[color-mix(in_srgb,var(--success)_10%,transparent)]'
-              : 'border-[var(--border)] hover:border-[var(--text-muted)]'"
-            @click="toggleCheck(item.id)"
-          >
-            <font-awesome-icon
-              :icon="['fas', checks.get(item.id) ? 'square-check' : 'square']"
-              :class="['w-6 h-6 transition-colors', checks.get(item.id) ? 'text-[var(--success)]' : 'text-[var(--text-muted)]']"
-            />
-            <span class="flex-1 text-sm">{{ item.label }}</span>
-            <span class="text-xs text-[var(--text-muted)] font-mono">{{ item.points }}P</span>
-          </button>
-        </div>
-
-        <!-- Subsections -->
-        <template v-for="sub in childSections(currentSection.id)" :key="sub.id">
-          <div class="border-t border-[var(--border)] pt-3 mt-3">
-            <SubHeader class="text-sm mb-2">{{ sub.name }}</SubHeader>
-            <div class="space-y-2">
-              <button
-                v-for="item in sectionItems(sub.id)"
-                :key="item.id"
-                type="button"
-                class="w-full flex items-center gap-2 p-3 rounded-lg border-2 transition-all text-left cursor-pointer"
-                :class="checks.get(item.id)
-                  ? 'border-[var(--success)] bg-[color-mix(in_srgb,var(--success)_10%,transparent)]'
-                  : 'border-[var(--border)] hover:border-[var(--text-muted)]'"
-                @click="toggleCheck(item.id)"
-              >
-                <font-awesome-icon
-                  :icon="['fas', checks.get(item.id) ? 'square-check' : 'square']"
-                  :class="['w-6 h-6 transition-colors', checks.get(item.id) ? 'text-[var(--success)]' : 'text-[var(--text-muted)]']"
-                />
-                <span class="flex-1 text-sm">{{ item.label }}</span>
-                <span class="text-xs text-[var(--text-muted)] font-mono">{{ item.points }}P</span>
-              </button>
-            </div>
-          </div>
-        </template>
-      </NeutralContainer>
-
-      <!-- Navigation -->
       <div class="space-y-2">
         <div class="flex items-center gap-2">
           <SuccessButton v-if="!doneSections.has(currentSection.id) && currentSectionIndex < topSections.length - 1" class="flex-1 sm:flex-initial" @click="markDoneAndNext" :disabled="saving">

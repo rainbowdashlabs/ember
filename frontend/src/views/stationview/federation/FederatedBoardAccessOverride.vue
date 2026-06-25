@@ -11,20 +11,17 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
-import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
+import RestrictionsField from '@/components/input/RestrictionsField.vue'
 import { federatedBoards, stationMembers, memberGroups, userTags } from '@/api'
 import type { PermissionGrant, MemberGroup, UserTag } from '@/api/types'
 
 const { t } = useI18n()
 
+const modelValue = defineModel<boolean>({required: true})
+
 const props = defineProps<{
     partnerUid: string
     boardKey: string
-    modelValue: boolean
-}>()
-
-const emit = defineEmits<{
-    'update:modelValue': [value: boolean]
 }>()
 
 const allRoles = ref<PermissionGrant[]>([])
@@ -83,7 +80,7 @@ onMounted(loadData)
 </script>
 
 <template>
-    <Modal :model-value="modelValue" @update:model-value="emit('update:modelValue', $event)">
+    <Modal v-model="modelValue">
         <SubHeader class="mb-4">{{ t('boards.accessOverride') }}</SubHeader>
         <p class="text-sm text-(--text-muted) mb-4">{{ t('boards.accessOverrideDesc') }}</p>
 
@@ -91,32 +88,26 @@ onMounted(loadData)
             <div>
                 <FieldLabel class="mb-2">{{ t('boards.viewOverride') }}</FieldLabel>
                 <p class="text-xs text-(--text-muted) mb-2">Leer = sichtbar für alle Mitglieder</p>
-                <RestrictionPicker
+                <RestrictionsField
                     :roles="allRoles"
                     :groups="allGroups"
                     :tags="allTags"
-                    :selected-user-types="viewUserTypes"
-                    :selected-group-ids="viewGroupIds"
-                    :selected-tag-ids="viewTagIds"
-                    @update:selected-user-types="viewUserTypes = $event"
-                    @update:selected-group-ids="viewGroupIds = $event"
-                    @update:selected-tag-ids="viewTagIds = $event"
+                    v-model:selected-user-types="viewUserTypes"
+                    v-model:selected-group-ids="viewGroupIds"
+                    v-model:selected-tag-ids="viewTagIds"
                 />
             </div>
 
             <div>
                 <FieldLabel class="mb-2">{{ t('boards.editOverride') }}</FieldLabel>
                 <p class="text-xs text-(--text-muted) mb-2">Leer = alle mit Lesezugriff können bearbeiten</p>
-                <RestrictionPicker
+                <RestrictionsField
                     :roles="allRoles"
                     :groups="allGroups"
                     :tags="allTags"
-                    :selected-user-types="editUserTypes"
-                    :selected-group-ids="editGroupIds"
-                    :selected-tag-ids="editTagIds"
-                    @update:selected-user-types="editUserTypes = $event"
-                    @update:selected-group-ids="editGroupIds = $event"
-                    @update:selected-tag-ids="editTagIds = $event"
+                    v-model:selected-user-types="editUserTypes"
+                    v-model:selected-group-ids="editGroupIds"
+                    v-model:selected-tag-ids="editTagIds"
                 />
             </div>
 

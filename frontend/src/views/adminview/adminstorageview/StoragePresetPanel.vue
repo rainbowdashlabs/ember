@@ -20,12 +20,12 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import {
   type AdminStationUsage,
   type StorageQuotaPreset,
-  formatBytes,
   createPreset,
   updatePreset,
   deletePreset,
   applyPreset,
 } from '@/api/storageMonitoring'
+import {formatBytes} from '@/util/storage'
 
 const props = defineProps<{
   presets: StorageQuotaPreset[]

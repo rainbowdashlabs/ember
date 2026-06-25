@@ -7,6 +7,7 @@
 import {onBeforeUnmount, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
+import EditorFloatButton from './EditorFloatButton.vue'
 
 const props = withDefaults(defineProps<{
     leftPercent: number
@@ -69,17 +70,15 @@ onBeforeUnmount(onResizeEnd)
             @mousedown.prevent.stop="onResizeStart"
             @click.prevent.stop
         />
-        <IconButton
+        <EditorFloatButton
             :icon="['fas', 'arrow-right-arrow-left']"
             :label="t('stationPages.editor.swapCells')"
-            class="rounded-full bg-(--bg) border border-(--border) text-(--text-muted) hover:text-primary hover:border-primary shadow-sm !p-1 text-xs"
             @click="emit('swap')"
         />
-        <IconButton
+        <EditorFloatButton
             v-if="canAddColumn"
             :icon="['fas', 'plus']"
             :label="t('stationPages.editor.addColumn')"
-            class="rounded-full bg-(--bg) border border-(--border) text-(--text-muted) hover:text-primary hover:border-primary shadow-sm !p-1 text-xs"
             @click="emit('add-column')"
         />
     </div>

@@ -99,7 +99,7 @@ function handleFreeAnswer(text: string) {
     :connect-pairs="connectPairs"
     :mc-display-order="mcDisplayOrder"
     @toggle-mc-option="handleToggleMc"
-    @update:tf-answer="(v: boolean) => emit('setTrueFalse', v)"
+    @update:tf-answer="(v: boolean | null) => v !== null && emit('setTrueFalse', v)"
     @update:free-answer="handleFreeAnswer"
     @set-fill-gap="(gi: number, v: string) => emit('setFillBlankGap', gi, v)"
     @reorder-items="(from: number, to: number) => emit('reorderItems', from, to)"

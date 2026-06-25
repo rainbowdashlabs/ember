@@ -4,46 +4,25 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SuccessButton from '@/components/button/SuccessButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import InfoBadge from '@/components/badge/InfoBadge.vue'
-import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
-import SearchInput from '@/components/input/text/SearchInput.vue'
-
-import { QuizTestStatus } from '@/api/types'
-import type { QuizTestDetail, QuizTestAttempt, QuizCatalog, MemberGroup, UserTag, QuizQuestion } from '@/api/types'
+import { StationPermission } from '@/api/types'
+import type { QuizTestDetail, QuizTestAttempt, QuizCatalog, MemberGroup, UserTag, QuizQuestion, StationMember } from '@/api/types'
 import type { FrozenQuestionDetail } from '@/api/quiz'
 import { quiz, stationMembers, memberGroups, userTags } from '@/api'
-import type { StationMember } from '@/api/types'
 import { useSession } from '@/composables/useSession'
-import TestRestrictions from './testdetailview/TestRestrictions.vue'
-import TestAccessGrant from './testdetailview/TestAccessGrant.vue'
-import TabBar from '@/components/navigation/TabBar.vue'
-import TestAttemptList from './testdetailview/TestAttemptList.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import TestDetailBody from './testdetailview/TestDetailBody.vue'
 
 const { t } = useI18n()
 const route = useRoute()
-const router = useRouter()
-import { StationPermission } from '@/api/types'
 const { hasPermission, loaded } = useSession()
 const canConfigure = () => hasPermission(StationPermission.TEST_CONFIGURE)
 const canReadResults = () => hasPermission(StationPermission.TEST_RESULT_READ)
@@ -58,14 +37,11 @@ const detailTabs = computed(() => {
 
 const testId = computed(() => Number(route.params.id))
 
-const loading = ref(true)
-const error = ref('')
 const detail = ref<QuizTestDetail | null>(null)
 const attempts = ref<QuizTestAttempt[]>([])
 const catalogs = ref<QuizCatalog[]>([])
 const members = ref<StationMember[]>([])
 
-// Frozen questions
 const frozenQuestions = ref<FrozenQuestionDetail[]>([])
 const frozenLoading = ref(false)
 const showPickModal = ref(false)
@@ -73,7 +49,6 @@ const pickPosition = ref<number | null>(null)
 const availableQuestions = ref<QuizQuestion[]>([])
 const pickSearch = ref('')
 
-// Restrictions
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
 const selectedUserTypes = ref<string[]>([])
@@ -81,7 +56,6 @@ const selectedGroupIds = ref<number[]>([])
 const selectedTagIds = ref<number[]>([])
 const restrictionsDirty = ref(false)
 
-// Confirmation modal
 const confirmModalOpen = ref(false)
 const confirmModalMessage = ref('')
 const confirmModalAction = ref<(() => Promise<void>) | null>(null)
@@ -95,7 +69,7 @@ function showConfirm(message: string, action: () => Promise<void>) {
 async function executeConfirm() {
   confirmModalOpen.value = false
   if (confirmModalAction.value) {
-    try { await confirmModalAction.value() } catch { /* handled */ }
+    try { await confirmModalAction.value() } catch { void 0 }
   }
 }
 
@@ -109,12 +83,6 @@ function catalogName(catalogId: number): string {
 const editStartAt = ref('')
 const editEndAt = ref('')
 const timesDirty = ref(false)
-
-function formatDateTime(dateStr: string | null | undefined): string {
-  if (!dateStr) return '-'
-  const d = new Date(dateStr)
-  return `${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-}
 
 function toLocalInput(dateStr: string | null | undefined): string {
   if (!dateStr) return ''
@@ -134,45 +102,40 @@ async function saveTimes() {
       endAt: editEndAt.value ? new Date(editEndAt.value).toISOString() : null,
     })
     timesDirty.value = false
-    await loadData()
+    await reload()
   } catch (e) {
     error.value = t('common.error')
     throw e
   }
 }
 
-async function loadData() {
-  loading.value = true
-  error.value = ''
-  try {
-    const [d, catalogList] = await Promise.all([quiz.getTest(testId.value), quiz.listCatalogs()])
-    detail.value = d
-    catalogs.value = catalogList.catalogs
-    editStartAt.value = toLocalInput(d.test.startAt)
-    editEndAt.value = toLocalInput(d.test.endAt)
-    timesDirty.value = false
+const {loading, error, reload} = useAsyncLoader(async () => {
+  const [d, catalogList] = await Promise.all([quiz.getTest(testId.value), quiz.listCatalogs()])
+  detail.value = d
+  catalogs.value = catalogList.catalogs
+  editStartAt.value = toLocalInput(d.test.startAt)
+  editEndAt.value = toLocalInput(d.test.endAt)
+  timesDirty.value = false
 
-    if (canReadResults()) {
-      loadFrozenQuestions()
-      const [attemptList, memberList, groupList, tagList, restrictions] = await Promise.all([
-        quiz.listAttempts(testId.value),
-        stationMembers.listMembers(),
-        memberGroups.listGroups(),
-        userTags.listTags(),
-        quiz.getRestrictions(testId.value),
-      ])
-      attempts.value = attemptList
-      members.value = memberList
-      allGroups.value = groupList
-      allTags.value = tagList
-      selectedUserTypes.value = restrictions.userTypes ?? []
-      selectedGroupIds.value = restrictions.groupIds ?? []
-      selectedTagIds.value = restrictions.tagIds ?? []
-      restrictionsDirty.value = false
-    }
-  } catch { error.value = t('common.error') }
-  finally { loading.value = false }
-}
+  if (canReadResults()) {
+    loadFrozenQuestions()
+    const [attemptList, memberList, groupList, tagList, restrictions] = await Promise.all([
+      quiz.listAttempts(testId.value),
+      stationMembers.listMembers(),
+      memberGroups.listGroups(),
+      userTags.listTags(),
+      quiz.getRestrictions(testId.value),
+    ])
+    attempts.value = attemptList
+    members.value = memberList
+    allGroups.value = groupList
+    allTags.value = tagList
+    selectedUserTypes.value = restrictions.userTypes ?? []
+    selectedGroupIds.value = restrictions.groupIds ?? []
+    selectedTagIds.value = restrictions.tagIds ?? []
+    restrictionsDirty.value = false
+  }
+}, {autoLoad: loaded.value})
 
 async function loadFrozenQuestions() {
   try { frozenQuestions.value = await quiz.listFrozenQuestions(testId.value) }
@@ -226,11 +189,11 @@ const filteredAvailableQuestions = computed(() => {
 })
 
 function activateTest() {
-  showConfirm(t('quiz.tests.confirmActivate'), async () => { await quiz.activateTest(testId.value); await loadData() })
+  showConfirm(t('quiz.tests.confirmActivate'), async () => { await quiz.activateTest(testId.value); await reload() })
 }
 
 function closeTest() {
-  showConfirm(t('quiz.tests.confirmClose'), async () => { await quiz.closeTest(testId.value); await loadData() })
+  showConfirm(t('quiz.tests.confirmClose'), async () => { await quiz.closeTest(testId.value); await reload() })
 }
 
 function onUserTypesUpdate(types: string[]) {
@@ -266,8 +229,7 @@ async function grantAccess(memberId: number, closesAt: string | null) {
   catch { error.value = t('common.error') }
 }
 
-onMounted(() => { if (loaded.value) loadData() })
-watch(loaded, (isLoaded) => { if (isLoaded && loading.value) loadData() })
+watch(loaded, (isLoaded) => { if (isLoaded) reload() })
 </script>
 
 <template>
@@ -276,201 +238,25 @@ watch(loaded, (isLoaded) => { if (isLoaded && loading.value) loadData() })
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
-      <template v-if="!loading && test">
-        <!-- Header -->
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div class="space-y-1">
-            <div class="flex items-center gap-2 flex-wrap">
-              <SubHeader>{{ test.title }}</SubHeader>
-              <SuccessBadge v-if="test.status === QuizTestStatus.ACTIVE">{{ t('quiz.tests.statusActive') }}</SuccessBadge>
-              <ErrorBadge v-else-if="test.status === QuizTestStatus.CLOSED">{{ t('quiz.tests.statusClosed') }}</ErrorBadge>
-              <SecondaryBadge v-else>{{ t('quiz.tests.statusDraft') }}</SecondaryBadge>
-            </div>
-            <p v-if="test.description" class="text-sm text-(--text-muted)">{{ test.description }}</p>
-            <p v-if="canReadResults() && detail" class="text-sm text-(--text-muted)">{{ detail.attemptCount }} {{ t('quiz.attemptCount') }}</p>
-          </div>
-          <div class="flex items-center gap-2 flex-wrap">
-            <PrimaryButton :icon="['fas', 'play']" v-if="test.status === QuizTestStatus.ACTIVE" @click="router.push({ name: 'quiz-test-take', params: { id: test.id } })">
-              {{ t('quiz.tests.takeTest') }}
-            </PrimaryButton>
-            <template v-if="canConfigure()">
-              <SuccessButton v-if="test.status === QuizTestStatus.DRAFT" @click="activateTest">
-                {{ t('quiz.tests.activate') }}
-              </SuccessButton>
-              <ErrorButton v-if="test.status === QuizTestStatus.ACTIVE" @click="closeTest">
-                {{ t('quiz.tests.close') }}
-              </ErrorButton>
-              <SecondaryButton v-if="test.status === QuizTestStatus.DRAFT"
-                               @click="router.push({ name: 'quiz-test-edit', params: { id: test.id } })">
-                {{ t('common.edit') }}
-              </SecondaryButton>
-              <SecondaryButton :icon="['fas', 'file-lines']" @click="quiz.downloadQuestionPdf(test.id)">
-                {{ t('quiz.tests.exportQuestions') }}
-              </SecondaryButton>
-              <SecondaryButton :icon="['fas', 'file-lines']" @click="quiz.downloadSolutionPdf(test.id)">
-                {{ t('quiz.tests.exportSolutions') }}
-              </SecondaryButton>
-            </template>
-          </div>
-        </div>
+      <TestDetailBody
+          v-if="!loading && test" :test="test" :detail="detail" :sections="sections"
+          :attempts="attempts" :members="members" :frozen-questions="frozenQuestions"
+          :frozen-loading="frozenLoading" :filtered-available-questions="filteredAvailableQuestions"
+          :all-groups="allGroups" :all-tags="allTags" :restrictions-dirty="restrictionsDirty"
+          :detail-tabs="detailTabs" :times-dirty="timesDirty" :can-configure="canConfigure()"
+          :can-read-results="canReadResults()" :catalog-name="catalogName"
+          :question-type-name="questionTypeName" :save-times="saveTimes"
+          v-model:active-tab="activeTab" v-model:edit-start-at="editStartAt"
+          v-model:edit-end-at="editEndAt" v-model:show-pick-modal="showPickModal"
+          v-model:pick-search="pickSearch" :selected-user-types="selectedUserTypes"
+          :selected-group-ids="selectedGroupIds" :selected-tag-ids="selectedTagIds"
+          @update:selected-user-types="onUserTypesUpdate"
+          @update:selected-group-ids="onGroupIdsUpdate" @update:selected-tag-ids="onTagIdsUpdate"
+          @activate="activateTest" @close="closeTest" @mark-times-dirty="markTimesDirty"
+          @generate="generateQuestions" @random-replace="randomReplace" @pick-replace="openPickModal"
+          @pick="pickQuestion" @save-restrictions="saveRestrictions" @grant="grantAccess"
+      />
 
-        <TabBar v-if="detailTabs.length > 1" v-model="activeTab" :tabs="detailTabs" />
-
-        <!-- Test tab -->
-        <template v-if="activeTab === 'test'">
-
-        <!-- Test info -->
-        <NeutralContainer>
-          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <span class="text-xs text-(--text-muted) block">{{ t('quiz.tests.timeLimit') }}</span>
-              <span>{{ test.timeLimit ? t('quiz.tests.timeLimitValue', { minutes: test.timeLimit }) : t('quiz.tests.noTimeLimit') }}</span>
-            </div>
-            <div>
-              <span class="text-xs text-(--text-muted) block">{{ t('quiz.tests.shuffle') }}</span>
-              <span>{{ test.shuffle ? t('common.yes') : t('common.no') }}</span>
-            </div>
-            <div v-if="canConfigure() && test.status !== QuizTestStatus.CLOSED">
-              <FieldLabel hint class="mb-1">{{ t('quiz.tests.startAt') }}</FieldLabel>
-              <DateTimeInput v-model="editStartAt" @update:model-value="markTimesDirty" />
-            </div>
-            <div v-else>
-              <span class="text-xs text-(--text-muted) block">{{ t('quiz.tests.startAt') }}</span>
-              <span>{{ formatDateTime(test.startAt) }}</span>
-            </div>
-            <div v-if="canConfigure() && test.status !== QuizTestStatus.CLOSED">
-              <FieldLabel hint class="mb-1">{{ t('quiz.tests.endAt') }}</FieldLabel>
-              <DateTimeInput v-model="editEndAt" @update:model-value="markTimesDirty" />
-            </div>
-            <div v-else>
-              <span class="text-xs text-(--text-muted) block">{{ t('quiz.tests.endAt') }}</span>
-              <span>{{ formatDateTime(test.endAt) }}</span>
-            </div>
-          </div>
-          <div v-if="timesDirty" class="flex justify-end mt-3">
-            <SaveButton :action="saveTimes"/>
-          </div>
-        </NeutralContainer>
-
-        <!-- Sections -->
-        <div class="space-y-3">
-          <SectionHeader>{{ t('quiz.sections.title') }} ({{ sections.length }})</SectionHeader>
-          <NeutralContainer v-for="(section, idx) in sections" :key="section.id">
-            <div class="space-y-2">
-              <div class="flex items-center gap-2">
-                <span class="text-xs font-semibold text-(--text-muted)">{{ idx + 1 }}.</span>
-                <span class="font-medium">{{ section.title || t('quiz.sections.untitled') }}</span>
-              </div>
-              <p v-if="section.description" class="text-xs text-(--text-muted)">{{ section.description }}</p>
-              <div class="flex flex-wrap gap-2">
-                <InfoBadge v-for="source in section.sources" :key="source.id">
-                  {{ catalogName(source.catalogId) }}
-                  <template v-if="source.categoryId"> / {{ source.categoryId }}</template>
-                  ({{ source.questionCount }})
-                </InfoBadge>
-              </div>
-            </div>
-          </NeutralContainer>
-        </div>
-
-        <!-- Frozen Questions -->
-        <template v-if="canConfigure()">
-          <div class="space-y-3">
-            <div class="flex items-center justify-between flex-wrap gap-2">
-              <SectionHeader>{{ t('quiz.frozenQuestions.title') }} ({{ frozenQuestions.length }})</SectionHeader>
-              <SecondaryButton v-if="test.status !== QuizTestStatus.ACTIVE" :disabled="frozenLoading" @click="generateQuestions">
-                <Spinner v-if="frozenLoading" size="sm" />
-                <font-awesome-icon v-else :icon="['fas', 'rotate']" class="mr-1" />
-                {{ frozenQuestions.length > 0 ? t('quiz.frozenQuestions.regenerate') : t('quiz.frozenQuestions.generate') }}
-              </SecondaryButton>
-            </div>
-            <EmptyState compact v-if="frozenQuestions.length === 0">{{ t('quiz.frozenQuestions.empty') }}</EmptyState>
-            <NeutralContainer v-for="fq in frozenQuestions" :key="fq.position">
-              <div v-if="fq.question" class="flex items-start gap-3">
-                <span class="text-xs text-(--text-muted) w-6 shrink-0 pt-0.5">{{ fq.position + 1 }}.</span>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-sm font-medium">{{ fq.question.title }}</span>
-                    <SecondaryBadge>{{ questionTypeName(fq.question) }}</SecondaryBadge>
-                    <InfoBadge>{{ fq.question.points }} {{ t('quiz.points') }}</InfoBadge>
-                  </div>
-                  <p v-if="fq.question.description" class="text-xs text-(--text-muted) mt-0.5">{{ fq.question.description }}</p>
-                </div>
-                <div v-if="test.status === QuizTestStatus.DRAFT" class="flex gap-1 shrink-0">
-                  <IconButton :icon="['fas', 'shuffle']" :label="t('quiz.frozenQuestions.randomReplace')" class="text-(--text-muted) hover:text-primary" @click="randomReplace(fq.position)" />
-                  <IconButton :icon="['fas', 'arrow-right-arrow-left']" :label="t('quiz.frozenQuestions.pickReplace')" class="text-(--text-muted) hover:text-primary" @click="openPickModal(fq.position)" />
-                </div>
-              </div>
-              <div v-else class="text-xs text-(--text-muted) italic">{{ t('quiz.frozenQuestions.questionMissing') }}</div>
-            </NeutralContainer>
-          </div>
-        </template>
-
-        <!-- Pick Question Modal -->
-        <Modal v-model="showPickModal">
-          <div class="space-y-4">
-            <SubHeader>{{ t('quiz.frozenQuestions.pickTitle') }}</SubHeader>
-            <SearchInput v-model="pickSearch" :placeholder="t('quiz.frozenQuestions.searchPlaceholder')" />
-            <div class="max-h-80 overflow-y-auto space-y-2">
-              <div v-if="filteredAvailableQuestions.length === 0" class="text-center text-(--text-muted) py-4 text-sm">
-                {{ t('quiz.frozenQuestions.noAvailable') }}
-              </div>
-              <NeutralContainer
-                v-for="q in filteredAvailableQuestions"
-                :key="q.id"
-                class="cursor-pointer hover:!border-primary transition-colors"
-                @click="pickQuestion(q.id)"
-              >
-                <div class="flex items-center gap-2">
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <span class="text-sm font-medium">{{ q.title }}</span>
-                      <SecondaryBadge>{{ questionTypeName(q) }}</SecondaryBadge>
-                      <InfoBadge>{{ q.points }} {{ t('quiz.points') }}</InfoBadge>
-                    </div>
-                  </div>
-                </div>
-              </NeutralContainer>
-            </div>
-            <div class="flex justify-end">
-              <SecondaryButton @click="showPickModal = false">{{ t('common.cancel') }}</SecondaryButton>
-            </div>
-          </div>
-        </Modal>
-
-        <!-- Restrictions (readonly for result readers, editable for configurers) -->
-        <template v-if="canReadResults()">
-          <TestRestrictions
-            :all-groups="allGroups"
-            :all-tags="allTags"
-            :selected-user-types="selectedUserTypes"
-            :selected-group-ids="selectedGroupIds"
-            :selected-tag-ids="selectedTagIds"
-            :restrictions-dirty="canConfigure() && restrictionsDirty"
-            @update:selected-user-types="canConfigure() && onUserTypesUpdate($event)"
-            @update:selected-group-ids="canConfigure() && onGroupIdsUpdate($event)"
-            @update:selected-tag-ids="canConfigure() && onTagIdsUpdate($event)"
-            @save="saveRestrictions"
-          />
-        </template>
-
-        <TestAccessGrant v-if="canConfigure()" :members="members" @grant="grantAccess" />
-
-        </template>
-
-        <!-- Results tab -->
-        <template v-if="activeTab === 'results'">
-          <TestAttemptList :test-id="test.id" :attempts="attempts" :members="members" />
-        </template>
-
-        <div class="flex justify-start">
-          <SecondaryButton :icon="['fas', 'arrow-left']" @click="router.push({ name: 'quiz-tests' })">
-            {{ t('quiz.tests.backToList') }}
-          </SecondaryButton>
-        </div>
-      </template>
-
-      <!-- Confirmation Modal -->
       <Modal v-model="confirmModalOpen">
         <div class="space-y-4">
           <p class="text-sm">{{ confirmModalMessage }}</p>

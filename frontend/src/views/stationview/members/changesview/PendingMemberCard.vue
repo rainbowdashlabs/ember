@@ -16,6 +16,8 @@ import PendingChangeRow from './PendingChangeRow.vue'
 
 const {t} = useI18n()
 
+const acknowledgeComment = defineModel<string>('acknowledgeComment', {required: true})
+
 defineProps<{
   summary: MemberChangeSummary
   expanded: boolean
@@ -23,7 +25,6 @@ defineProps<{
   loadingChanges: boolean
   acknowledging: boolean
   showCommentForChangeId: number | null
-  acknowledgeComment: string
   isAcknowledgedByMe: (change: ProfileFieldChange) => boolean
   formatDate: (dateStr?: string) => string
 }>()
@@ -34,7 +35,6 @@ const emit = defineEmits<{
   acknowledgeOne: [changeId: number]
   toggleComment: [changeId: number]
   goToDetail: []
-  'update:acknowledgeComment': [value: string]
 }>()
 </script>
 
@@ -80,15 +80,14 @@ const emit = defineEmits<{
         <PendingChangeRow
             v-for="change in memberChanges"
             :key="change.id"
+            v-model:acknowledge-comment="acknowledgeComment"
             :change="change"
             :is-acknowledged-by-me="isAcknowledgedByMe(change)"
             :show-comment="showCommentForChangeId === change.id"
             :acknowledging="acknowledging"
-            :acknowledge-comment="acknowledgeComment"
             :format-date="formatDate"
             @acknowledge="emit('acknowledgeOne', change.id)"
             @toggle-comment="emit('toggleComment', change.id)"
-            @update:acknowledge-comment="(v) => emit('update:acknowledgeComment', v)"
         />
       </template>
     </div>

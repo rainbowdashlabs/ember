@@ -5,9 +5,9 @@
  */
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
-import IconButton from '@/components/button/IconButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EditorCell from './EditorCell.vue'
+import EditorFloatButton from './EditorFloatButton.vue'
 import ColumnGutter from './ColumnGutter.vue'
 import RowActionsMenu from './RowActionsMenu.vue'
 import PublicPageRow from '@/views/public/publicpageview/PublicPageRow.vue'
@@ -21,8 +21,9 @@ export interface RowEditData {
     cells: CellEditData[]
 }
 
+const row = defineModel<RowEditData>('row', {required: true})
+
 const props = withDefaults(defineProps<{
-    row: RowEditData
     pageId: number
     stationUid: string
     preview: boolean
@@ -34,7 +35,6 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{
-    'update:row': [row: RowEditData]
     delete: []
     'move-up': []
     'move-down': []
@@ -44,24 +44,24 @@ const {t} = useI18n()
 const {copyRow, cutRow, pasteCell, hasClipboard, clipboardType} = usePageClipboard()
 
 function updateCells(cells: CellEditData[]) {
-    emit('update:row', {...props.row, cells})
+    row.value = {...row.value, cells}
 }
 
 function updateCell(index: number, cell: CellEditData) {
-    const cells = [...props.row.cells]
+    const cells = [...row.value.cells]
     cells[index] = cell
     updateCells(cells)
 }
 
 function deleteCell(index: number) {
-    const current = props.row.cells[index]
+    const current = row.value.cells[index]
     const isEmpty = current.contentType === CellContentType.EMPTY
-    if (isEmpty && props.row.cells.length <= 1) {
+    if (isEmpty && row.value.cells.length <= 1) {
         emit('delete')
         return
     }
     if (isEmpty) {
-        const remaining = props.row.cells.filter((_, i) => i !== index)
+        const remaining = row.value.cells.filter((_, i) => i !== index)
         const total = remaining.reduce((sum, c) => sum + c.widthPercent, 0)
         const redistributed = remaining.map((c, i) => ({
             ...c,
@@ -71,20 +71,20 @@ function deleteCell(index: number) {
         updateCells(redistributed)
         return
     }
-    if (props.row.cells.length <= 1) {
-        const cells = [...props.row.cells]
+    if (row.value.cells.length <= 1) {
+        const cells = [...row.value.cells]
         cells[index] = {...current, contentType: CellContentType.EMPTY, content: '', config: {}}
         updateCells(cells)
         return
     }
-    const cells = [...props.row.cells]
+    const cells = [...row.value.cells]
     cells[index] = {...cells[index], contentType: CellContentType.EMPTY, content: '', config: {}}
     updateCells(cells)
 }
 
 function insertColumn(index: number) {
-    if (props.row.cells.length >= 4) return
-    const count = props.row.cells.length + 1
+    if (row.value.cells.length >= 4) return
+    const count = row.value.cells.length + 1
     const widthPercent = 100 / count
     const newCell: CellEditData = {
         id: 0,
@@ -94,25 +94,25 @@ function insertColumn(index: number) {
         content: '',
         config: {},
     }
-    const next = [...props.row.cells]
+    const next = [...row.value.cells]
     next.splice(index, 0, newCell)
     updateCells(next.map((c, i) => ({...c, widthPercent, sortOrder: i})))
 }
 
 function onResize(cellIndex: number, leftDelta: number) {
-    const cells = [...props.row.cells]
+    const cells = [...row.value.cells]
     cells[cellIndex] = {...cells[cellIndex], widthPercent: cells[cellIndex].widthPercent + leftDelta}
     cells[cellIndex + 1] = {...cells[cellIndex + 1], widthPercent: cells[cellIndex + 1].widthPercent - leftDelta}
     updateCells(cells)
 }
 
 function setCellWidth(cellIndex: number, widthPercent: number) {
-    if (props.row.cells.length < 2) return
-    const clamped = Math.max(10, Math.min(100 - 10 * (props.row.cells.length - 1), widthPercent))
+    if (row.value.cells.length < 2) return
+    const clamped = Math.max(10, Math.min(100 - 10 * (row.value.cells.length - 1), widthPercent))
     const remainingTotal = 100 - clamped
-    const otherCells = props.row.cells.filter((_, i) => i !== cellIndex)
+    const otherCells = row.value.cells.filter((_, i) => i !== cellIndex)
     const otherTotal = otherCells.reduce((sum, c) => sum + c.widthPercent, 0)
-    const cells = props.row.cells.map((c, i) => {
+    const cells = row.value.cells.map((c, i) => {
         if (i === cellIndex) return {...c, widthPercent: clamped}
         // Scale the rest proportionally so the row still sums to 100.
         const newWidth = otherTotal === 0
@@ -124,7 +124,7 @@ function setCellWidth(cellIndex: number, widthPercent: number) {
 }
 
 function swapCells(leftIndex: number) {
-    const cells = [...props.row.cells]
+    const cells = [...row.value.cells]
     const temp = cells[leftIndex]
     cells[leftIndex] = cells[leftIndex + 1]
     cells[leftIndex + 1] = temp
@@ -132,17 +132,17 @@ function swapCells(leftIndex: number) {
 }
 
 function onCopy() {
-    copyRow(props.row)
+    copyRow(row.value)
 }
 
 function onCut() {
-    cutRow(props.row, () => emit('delete'))
+    cutRow(row.value, () => emit('delete'))
 }
 
 function onPasteCell() {
     const data = pasteCell() as CellEditData | null
     if (!data) return
-    const cells = [...props.row.cells]
+    const cells = [...row.value.cells]
     const newCell: CellEditData = {
         ...data,
         id: 0,
@@ -210,18 +210,18 @@ function onPasteCell() {
                     @add-column="insertColumn(ci + 1)"
                 />
             </template>
-            <IconButton
+            <EditorFloatButton
                 v-if="row.cells.length < 4"
                 :icon="['fas', 'plus']"
                 :label="t('stationPages.editor.addColumn')"
-                class="absolute -left-2 top-1/2 -translate-y-1/2 z-10 rounded-full bg-(--bg) border border-(--border) text-(--text-muted) hover:text-primary hover:border-primary !p-1 text-xs shadow-sm"
+                class="absolute -left-2 top-1/2 -translate-y-1/2 z-10"
                 @click="insertColumn(0)"
             />
-            <IconButton
+            <EditorFloatButton
                 v-if="row.cells.length < 4"
                 :icon="['fas', 'plus']"
                 :label="t('stationPages.editor.addColumn')"
-                class="absolute -right-2 top-1/2 -translate-y-1/2 z-10 rounded-full bg-(--bg) border border-(--border) text-(--text-muted) hover:text-primary hover:border-primary !p-1 text-xs shadow-sm"
+                class="absolute -right-2 top-1/2 -translate-y-1/2 z-10"
                 @click="insertColumn(row.cells.length)"
             />
         </div>

@@ -4,30 +4,24 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import { QuizTestStatus } from '@/api/types'
 import type { QuizTest, QuizTestSummary, QuizAvailableTest } from '@/api/types'
-import InfoBadge from '@/components/badge/InfoBadge.vue'
 import { quiz } from '@/api'
 import { useSession } from '@/composables/useSession'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
-import MutedIcon from '@/components/display/MutedIcon.vue'
+import TestList from './testlistview/TestList.vue'
+import ResultsList from './testlistview/ResultsList.vue'
+import ConfirmDeleteModal from './testlistview/ConfirmDeleteModal.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -47,8 +41,6 @@ const tabs = computed(() => {
 const testSummaries = ref<QuizTestSummary[]>([])
 const tests = ref<QuizTest[]>([])
 const availableTests = ref<QuizAvailableTest[]>([])
-const loading = ref(true)
-const error = ref('')
 
 const confirmModalOpen = ref(false)
 const confirmModalMessage = ref('')
@@ -87,37 +79,23 @@ function isSubmitted(test: QuizTest): boolean {
   return status === 'SUBMITTED' || status === 'GRADED'
 }
 
-async function loadData() {
-  loading.value = true
-  error.value = ''
-  try {
-    if (canReadResults()) {
-      testSummaries.value = await quiz.listTests()
-      tests.value = testSummaries.value.map(s => s.test)
-      availableTests.value = []
-    } else {
-      testSummaries.value = []
-      availableTests.value = await quiz.listAvailableTests()
-      tests.value = availableTests.value.map(a => a.test)
-    }
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
+const { loading, error, reload: loadData } = useAsyncLoader(async () => {
+  if (canReadResults()) {
+    testSummaries.value = await quiz.listTests()
+    tests.value = testSummaries.value.map(s => s.test)
+    availableTests.value = []
+  } else {
+    testSummaries.value = []
+    availableTests.value = await quiz.listAvailableTests()
+    tests.value = availableTests.value.map(a => a.test)
   }
-}
+}, { autoLoad: false })
 
 function deleteTest(test: QuizTest) {
   showConfirm(t('quiz.tests.confirmDelete'), async () => {
     await quiz.deleteTest(test.id)
     await loadData()
   })
-}
-
-function formatDateTime(dateStr: string | null): string {
-  if (!dateStr) return '-'
-  const d = new Date(dateStr)
-  return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 }
 
 function attemptStartedAt(test: QuizTest): string | null {
@@ -130,13 +108,7 @@ function attemptSubmittedAt(test: QuizTest): string | null {
   return available?.submittedAt ?? null
 }
 
-onMounted(() => {
-  if (loaded.value) loadData()
-})
-
-watch(loaded, (isLoaded) => {
-  if (isLoaded && loading.value) loadData()
-})
+watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 </script>
 
 <template>
@@ -157,141 +129,34 @@ watch(loaded, (isLoaded) => {
 
         <EmptyState v-if="tests.length === 0">{{ t('quiz.tests.noTests') }}</EmptyState>
 
-        <!-- Tests tab -->
-        <template v-if="activeTab === 'tests'">
+        <TestList
+          v-if="activeTab === 'tests'"
+          :tests="tests"
+          :is-mobile="isMobile"
+          :can-configure="canConfigure()"
+          :can-read-results="canReadResults()"
+          :submitted-for="isSubmitted"
+          :attempt-count-for="attemptCount"
+          :attempt-started-at-for="attemptStartedAt"
+          :attempt-submitted-at-for="attemptSubmittedAt"
+          @navigate="(test) => router.push(testClickRoute(test))"
+          @take="(test) => router.push({ name: 'quiz-test-take', params: { id: test.id } })"
+          @edit="(test) => router.push({ name: 'quiz-test-edit', params: { id: test.id } })"
+          @remove="deleteTest"
+        />
 
-        <!-- Mobile card layout -->
-        <div v-if="isMobile" class="space-y-2">
-          <NeutralContainer
-            v-for="test in tests"
-            :key="test.id"
-            class="cursor-pointer"
-            @click="router.push(testClickRoute(test))"
-          >
-            <div class="space-y-2">
-              <div class="flex items-center justify-between">
-                <span class="font-medium">{{ test.title }}</span>
-                <MutedIcon v-if="test.restricted" :icon="['fas', 'lock']" class="ml-1"/>
-                <SuccessBadge v-if="test.status === QuizTestStatus.ACTIVE">{{ t('quiz.tests.statusActive') }}</SuccessBadge>
-                <ErrorBadge v-else-if="test.status === QuizTestStatus.CLOSED">{{ t('quiz.tests.statusClosed') }}</ErrorBadge>
-                <SecondaryBadge v-else>{{ t('quiz.tests.statusDraft') }}</SecondaryBadge>
-                <InfoBadge v-if="isSubmitted(test)">{{ t('quiz.tests.taken') }}</InfoBadge>
-              </div>
-              <p v-if="test.description" class="text-xs text-(--text-muted) line-clamp-2">{{ test.description }}</p>
-              <div v-if="canReadResults() && (test.startAt || test.endAt)" class="flex items-center justify-between text-xs text-(--text-muted)">
-                <span v-if="test.startAt">{{ t('quiz.tests.startAt') }}: {{ formatDateTime(test.startAt) }}</span>
-                <span>{{ attemptCount(test) }} {{ t('quiz.attemptCount') }}</span>
-                <span v-if="test.endAt">{{ t('quiz.tests.endAt') }}: {{ formatDateTime(test.endAt) }}</span>
-              </div>
-              <div v-else-if="canReadResults()" class="text-xs text-(--text-muted)">
-                {{ attemptCount(test) }} {{ t('quiz.attemptCount') }}
-              </div>
-              <div v-if="!canReadResults() && isSubmitted(test)" class="flex items-center justify-between text-xs text-(--text-muted)">
-                <span v-if="attemptStartedAt(test)">{{ t('quiz.tests.startedAt') }}: {{ formatDateTime(attemptStartedAt(test)) }}</span>
-                <span v-if="attemptSubmittedAt(test)">{{ t('quiz.tests.submittedAt') }}: {{ formatDateTime(attemptSubmittedAt(test)) }}</span>
-              </div>
-              <div class="flex items-center gap-2 pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
-                <PrimaryButton v-if="test.status === QuizTestStatus.ACTIVE && !canReadResults() && !isSubmitted(test)" @click.stop="router.push({ name: 'quiz-test-take', params: { id: test.id } })">
-                  {{ t('quiz.tests.takeTest') }}
-                </PrimaryButton>
-                <template v-if="canConfigure()">
-                  <SecondaryButton @click.stop="router.push({ name: 'quiz-test-edit', params: { id: test.id } })">
-                    {{ t('common.edit') }}
-                  </SecondaryButton>
-                  <ErrorButton @click.stop="deleteTest(test)">
-                    {{ t('common.delete') }}
-                  </ErrorButton>
-                </template>
-              </div>
-            </div>
-          </NeutralContainer>
-        </div>
-
-        <!-- Desktop table layout -->
-        <div v-else class="space-y-2">
-          <NeutralContainer
-            v-for="test in tests"
-            :key="test.id"
-            class="cursor-pointer"
-            @click="router.push(testClickRoute(test))"
-          >
-            <div class="flex items-center justify-between gap-4">
-              <div class="flex-1 space-y-1">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span class="font-medium">{{ test.title }}</span>
-                  <MutedIcon v-if="test.restricted" :icon="['fas', 'lock']" class="ml-1"/>
-                  <SuccessBadge v-if="test.status === QuizTestStatus.ACTIVE">{{ t('quiz.tests.statusActive') }}</SuccessBadge>
-                  <ErrorBadge v-else-if="test.status === QuizTestStatus.CLOSED">{{ t('quiz.tests.statusClosed') }}</ErrorBadge>
-                  <SecondaryBadge v-else>{{ t('quiz.tests.statusDraft') }}</SecondaryBadge>
-                  <InfoBadge v-if="isSubmitted(test)">{{ t('quiz.tests.taken') }}</InfoBadge>
-                </div>
-                <p v-if="test.description" class="text-xs text-(--text-muted) line-clamp-1">{{ test.description }}</p>
-              </div>
-              <div class="flex items-center gap-4 text-xs text-(--text-muted) shrink-0">
-                <span v-if="canReadResults()">{{ attemptCount(test) }} {{ t('quiz.attemptCount') }}</span>
-                <div v-if="canReadResults() && (test.startAt || test.endAt)" class="text-right">
-                  <div v-if="test.startAt">{{ t('quiz.tests.startAt') }}: {{ formatDateTime(test.startAt) }}</div>
-                  <div v-if="test.endAt">{{ t('quiz.tests.endAt') }}: {{ formatDateTime(test.endAt) }}</div>
-                </div>
-                <div v-if="!canReadResults() && isSubmitted(test)" class="text-right">
-                  <div v-if="attemptStartedAt(test)">{{ t('quiz.tests.startedAt') }}: {{ formatDateTime(attemptStartedAt(test)) }}</div>
-                  <div v-if="attemptSubmittedAt(test)">{{ t('quiz.tests.submittedAt') }}: {{ formatDateTime(attemptSubmittedAt(test)) }}</div>
-                </div>
-                <div class="flex items-center gap-2" @click.stop>
-                  <PrimaryButton v-if="test.status === QuizTestStatus.ACTIVE && !canReadResults() && !isSubmitted(test)" @click="router.push({ name: 'quiz-test-take', params: { id: test.id } })">
-                    {{ t('quiz.tests.takeTest') }}
-                  </PrimaryButton>
-                  <template v-if="canConfigure()">
-                    <SecondaryButton @click="router.push({ name: 'quiz-test-edit', params: { id: test.id } })">
-                      {{ t('common.edit') }}
-                    </SecondaryButton>
-                    <ErrorButton @click="deleteTest(test)">
-                      {{ t('common.delete') }}
-                    </ErrorButton>
-                  </template>
-                </div>
-              </div>
-            </div>
-          </NeutralContainer>
-        </div>
-
-        </template>
-
-        <!-- Results tab -->
-        <template v-if="activeTab === 'results'">
-          <div class="space-y-2">
-            <NeutralContainer
-              v-for="summary in testSummaries.filter(s => s.attemptCount > 0)"
-              :key="summary.test.id"
-              class="cursor-pointer"
-              @click="router.push({ name: 'quiz-test-detail', params: { id: summary.test.id } })"
-            >
-              <div class="flex items-center justify-between gap-4">
-                <div class="flex-1 space-y-1">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <span class="font-medium">{{ summary.test.title }}</span>
-                    <SuccessBadge v-if="summary.test.status === QuizTestStatus.ACTIVE">{{ t('quiz.tests.statusActive') }}</SuccessBadge>
-                    <ErrorBadge v-else-if="summary.test.status === QuizTestStatus.CLOSED">{{ t('quiz.tests.statusClosed') }}</ErrorBadge>
-                    <SecondaryBadge v-else>{{ t('quiz.tests.statusDraft') }}</SecondaryBadge>
-                  </div>
-                </div>
-                <span class="text-sm font-mono shrink-0">{{ summary.attemptCount }} {{ t('quiz.attemptCount') }}</span>
-              </div>
-            </NeutralContainer>
-            <EmptyState v-if="testSummaries.filter(s => s.attemptCount > 0).length === 0">{{ t('quiz.tests.noResults') }}</EmptyState>
-          </div>
-        </template>
+        <ResultsList
+          v-if="activeTab === 'results'"
+          :summaries="testSummaries"
+          @open="(summary) => router.push({ name: 'quiz-test-detail', params: { id: summary.test.id } })"
+        />
       </template>
 
-      <Modal v-model="confirmModalOpen">
-        <div class="space-y-4">
-          <p class="text-sm">{{ confirmModalMessage }}</p>
-          <div class="flex justify-end gap-3">
-            <SecondaryButton @click="confirmModalOpen = false">{{ t('common.cancel') }}</SecondaryButton>
-            <ErrorButton @click="executeConfirm">{{ t('common.confirm') }}</ErrorButton>
-          </div>
-        </div>
-      </Modal>
+      <ConfirmDeleteModal
+        v-model="confirmModalOpen"
+        :message="confirmModalMessage"
+        @confirm="executeConfirm"
+      />
     </div>
   </ViewContent>
 </template>

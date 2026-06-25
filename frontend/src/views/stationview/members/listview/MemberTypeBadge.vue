@@ -4,19 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {StationUserType} from '@/api/types'
+import {StationUserTypeLabels, type StationUserTypeName} from '@/api/types'
 
 defineProps<{
   userType?: string | null
 }>()
-
-const userTypeLabels: Record<string, string> = {
-  [StationUserType.TEAM]: 'Team',
-  [StationUserType.MANAGER]: 'Manager',
-  [StationUserType.GUARDIAN]: 'Erziehungsberechtigter',
-  [StationUserType.MEMBER]: 'Mitglied',
-  [StationUserType.TRIAL]: 'Probe',
-}
 </script>
 
 <template>
@@ -28,5 +20,5 @@ const userTypeLabels: Record<string, string> = {
         'bg-info/10 text-info-accent': userType === 'GUARDIAN',
         'bg-bg-light-accent dark:bg-bg-dark-accent text-(--text-muted)': userType === 'MEMBER' || userType === 'TRIAL',
       }"
-  >{{ userTypeLabels[userType] ?? userType }}</span>
+  >{{ StationUserTypeLabels[userType as StationUserTypeName] ?? userType }}</span>
 </template>

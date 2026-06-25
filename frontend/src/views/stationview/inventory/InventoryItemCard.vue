@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import IconButton from '@/components/button/IconButton.vue'
+import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
@@ -55,25 +55,23 @@ const emit = defineEmits<{
         </InfoBadge>
       </div>
       <div class="flex items-center gap-1">
-        <IconButton
+        <MutedIconButton
             v-if="props.showExchangeButton && !props.exchange"
             :icon="['fas', 'rotate']"
             :label="t('profile.requestExchange')"
-            class="text-(--text-muted) hover:text-primary"
             @click="emit('requestExchange', props.item)"
         />
-        <IconButton
+        <MutedIconButton
             v-if="props.showReassignButton"
             :icon="['fas', 'arrow-right-arrow-left']"
             :label="t('memberDetail.reassignItem')"
-            class="text-(--text-muted) hover:text-primary"
             @click="emit('reassign', props.item)"
         />
-        <IconButton
+        <MutedIconButton
             v-if="props.showUnassignButton"
             :icon="['fas', 'xmark']"
             :label="t('memberDetail.unassignItem')"
-            class="text-(--text-muted) hover:text-error"
+            hover="error"
             @click="emit('unassign', props.item)"
         />
       </div>

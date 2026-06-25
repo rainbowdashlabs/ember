@@ -8,13 +8,7 @@ import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
-import MutedIcon from '@/components/display/MutedIcon.vue'
+import DummyRequirementsList from '@/views/helpcenter/stationview/inventory/requirementshelp/DummyRequirementsList.vue'
 
 const {t} = useI18n()
 </script>
@@ -31,57 +25,7 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryRequirements.createQuantity') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Requirements list -->
-    <div class="space-y-4">
-      <div class="flex items-center justify-between">
-        <SectionHeader>{{ t('inventory.requirements.title') }}</SectionHeader>
-        <PrimaryButton :icon="['fas', 'plus']">
-          {{ t('inventory.requirements.add') }}
-        </PrimaryButton>
-      </div>
-
-      <NeutralContainer class="space-y-3">
-        <div class="flex items-center justify-between">
-          <SubHeader>
-            <span class="text-xs uppercase tracking-wide text-(--text-muted) mr-2">{{ t('inventory.requirements.userType') }}</span>
-            {{ t('membersCreate.roleMember') }}
-          </SubHeader>
-          <SecondaryButton :icon="['fas', 'plus']">
-            {{ t('inventory.requirements.addItem') }}
-          </SecondaryButton>
-        </div>
-        <div class="grid grid-cols-[auto_1fr_6rem_2.5rem] gap-2 items-center px-3 py-2 border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-          <MutedIcon size="md" :icon="['fas', 'grip-vertical']" />
-          <div class="text-sm">Helme</div>
-          <div class="text-sm text-center font-medium">1</div>
-          <DeleteButton />
-        </div>
-        <div class="grid grid-cols-[auto_1fr_6rem_2.5rem] gap-2 items-center px-3 py-2 border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-          <MutedIcon size="md" :icon="['fas', 'grip-vertical']" />
-          <div class="text-sm">Jacken</div>
-          <div class="text-sm text-center font-medium">1</div>
-          <DeleteButton />
-        </div>
-      </NeutralContainer>
-
-      <NeutralContainer class="space-y-3">
-        <div class="flex items-center justify-between">
-          <SubHeader>
-            <span class="text-xs uppercase tracking-wide text-(--text-muted) mr-2">{{ t('inventory.requirements.group') }}</span>
-            Anfänger
-          </SubHeader>
-          <SecondaryButton :icon="['fas', 'plus']">
-            {{ t('inventory.requirements.addItem') }}
-          </SecondaryButton>
-        </div>
-        <div class="grid grid-cols-[auto_1fr_6rem_2.5rem] gap-2 items-center px-3 py-2 border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-          <MutedIcon size="md" :icon="['fas', 'grip-vertical']" />
-          <div class="text-sm">Stiefel</div>
-          <div class="text-sm text-center font-medium">1</div>
-          <DeleteButton />
-        </div>
-      </NeutralContainer>
-    </div>
+    <DummyRequirementsList/>
 
     <HelpTip>{{ t('helpCenter.inventoryRequirements.tip') }}</HelpTip>
   </HelpArticle>

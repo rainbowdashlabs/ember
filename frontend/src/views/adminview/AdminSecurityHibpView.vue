@@ -4,7 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -19,41 +18,23 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import { adminSettings } from '@/api'
 import type { HibpConfig } from '@/api/adminSettings'
+import { useConfigPanel } from '@/composables/useConfigPanel'
 
 const { t } = useI18n()
 
-const loading = ref(true)
-const error = ref('')
-const config = ref<HibpConfig>({
-  enabled: true,
-  endpoint: 'https://api.pwnedpasswords.com/range/',
-  staleAfterDays: 30,
-  timeoutSeconds: 5,
+const {config, loading, error, runWith} = useConfigPanel<HibpConfig>({
+  initial: {
+    enabled: true,
+    endpoint: 'https://api.pwnedpasswords.com/range/',
+    staleAfterDays: 30,
+    timeoutSeconds: 5,
+  },
+  fetch: () => adminSettings.getHibpConfig(),
 })
 
-async function load() {
-  loading.value = true
-  error.value = ''
-  try {
-    config.value = await adminSettings.getHibpConfig()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
-
 async function save() {
-  error.value = ''
-  try {
-    config.value = await adminSettings.updateHibpConfig(config.value)
-  } catch (e) {
-    error.value = t('common.error')
-    throw e
-  }
+  await runWith(() => adminSettings.updateHibpConfig(config.value), {rethrow: true})
 }
-
-onMounted(load)
 </script>
 
 <template>

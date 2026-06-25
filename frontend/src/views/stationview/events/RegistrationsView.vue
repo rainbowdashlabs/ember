@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -12,19 +12,18 @@ import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import EventGroupCard from './registrationsview/EventGroupCard.vue'
-import {events, stationMembers} from '@/api'
-import type {StationEvent, StationMember} from '@/api/types'
+import {events} from '@/api'
+import type {StationEvent} from '@/api/types'
 import {RegistrationStatus} from '@/api/types'
-import type {EventRegistrationEntry, MemberRegistrationStats, RegistrationCount} from '@/api/events'
+import type {EventRegistrationEntry, MemberRegistrationStats} from '@/api/events'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useEventEditDeps} from '@/composables/useEventEditDeps'
 
 const {t} = useI18n()
 
+const {registrationCounts, reload: reloadDeps} = useEventEditDeps({withMembers: true, withCounts: true, autoLoad: false})
 const pendingRegistrations = ref<EventRegistrationEntry[]>([])
 const allEvents = ref<StationEvent[]>([])
-const allMembers = ref<StationMember[]>([])
-const registrationCounts = ref<RegistrationCount[]>([])
-const loading = ref(true)
-const error = ref('')
 const expandedEventId = ref<number | null>(null)
 const registrationStats = ref<MemberRegistrationStats[]>([])
 const expandedRegistrations = ref<EventRegistrationEntry[]>([])
@@ -144,7 +143,9 @@ async function refreshExpanded() {
     ])
     expandedRegistrations.value = regs
     registrationCounts.value = counts
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 async function accept(regId: number) {
@@ -165,25 +166,15 @@ async function deny(regId: number) {
   } catch { error.value = t('common.error') }
 }
 
-async function loadData() {
-  loading.value = true
-  error.value = ''
-  try {
-    const [regs, evs, members, counts] = await Promise.all([
-      events.listPendingRegistrations(),
-      events.listEvents(),
-      stationMembers.listMembers(),
-      events.listRegistrationCounts(),
-    ])
-    pendingRegistrations.value = regs
-    allEvents.value = evs
-    allMembers.value = members
-    registrationCounts.value = counts
-  } catch { error.value = t('common.error') }
-  finally { loading.value = false }
-}
-
-onMounted(loadData)
+const {loading, error} = useAsyncLoader(async () => {
+  const [regs, evs] = await Promise.all([
+    events.listPendingRegistrations(),
+    events.listEvents(),
+    reloadDeps(),
+  ])
+  pendingRegistrations.value = regs
+  allEvents.value = evs
+})
 </script>
 
 <template>

@@ -22,17 +22,9 @@ import type {
 
 const props = defineProps<{
   field: InventoryFieldDefinition
-  modelValue: any
 }>()
 
-const emit = defineEmits<{
-  (e: 'update:modelValue', value: any): void
-}>()
-
-const value = computed({
-  get: () => props.modelValue,
-  set: (v) => emit('update:modelValue', v),
-})
+const value = defineModel<any>({required: true})
 
 const textConfig = computed(() => props.field.config as TextFieldConfig)
 const numberConfig = computed(() => props.field.config as NumberFieldConfig)

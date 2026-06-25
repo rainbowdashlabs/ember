@@ -8,42 +8,36 @@ import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import HelpCenterHint from '@/components/help/HelpCenterHint.vue'
 import {stations, traffic} from '@/api'
 import type {AuthBucketName, HourlyTrafficRow} from '@/api/traffic'
 import type {Station} from '@/api/types'
-import TrafficChart from './admintrafficview/TrafficChart.vue'
 import TrafficTotals from './admintrafficview/TrafficTotals.vue'
 import TrafficWindowSelector from './admintrafficview/TrafficWindowSelector.vue'
+import TrafficChartCard from './admintrafficview/TrafficChartCard.vue'
+import TrafficLeaderboard, {type StationTotal} from './admintrafficview/TrafficLeaderboard.vue'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
-const {t, n} = useI18n()
+const {t} = useI18n()
 
 const windowHours = ref(72)
 const metric = ref<'ingressBytes' | 'egressBytes' | 'requests' | 'inout'>('egressBytes')
 const authFilter = ref<AuthBucketName | ''>('')
 const rows = ref<HourlyTrafficRow[]>([])
 const stationNames = ref<Map<string, string>>(new Map())
-const loading = ref(false)
 
-async function load() {
-  loading.value = true
-  try {
-    const to = new Date()
-    const from = new Date(to.getTime() - windowHours.value * 3600_000)
-    const res = await traffic.getAdminHourly({
-      from: from.toISOString(),
-      to: to.toISOString(),
-      auth: authFilter.value === '' ? undefined : authFilter.value,
-    })
-    rows.value = res.rows
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, reload} = useAsyncLoader(async () => {
+  const to = new Date()
+  const from = new Date(to.getTime() - windowHours.value * 3600_000)
+  const res = await traffic.getAdminHourly({
+    from: from.toISOString(),
+    to: to.toISOString(),
+    auth: authFilter.value === '' ? undefined : authFilter.value,
+  })
+  rows.value = res.rows
+}, {autoLoad: false})
 
 async function loadStationNames() {
   try {
@@ -61,16 +55,9 @@ async function loadStationNames() {
 
 onMounted(async () => {
   await loadStationNames()
-  await load()
+  await reload()
 })
-watch([windowHours, authFilter], load)
-
-interface StationTotal {
-  stationId: string | null
-  ingressBytes: number
-  egressBytes: number
-  requests: number
-}
+watch([windowHours, authFilter], reload)
 
 const stationLeaderboard = computed<StationTotal[]>(() => {
   const byStation = new Map<string | null, StationTotal>()
@@ -126,39 +113,11 @@ function stationLabel(stationId: string | null): string {
     <Spinner v-if="loading"/>
     <template v-else>
       <TrafficTotals :rows="rows"/>
-
-      <NeutralContainer class="space-y-2">
-        <SectionHeader>{{ t('traffic.chart.title') }}</SectionHeader>
-        <MutedText tag="p" size="sm">{{ t('traffic.chart.hint') }}</MutedText>
-        <TrafficChart v-if="rows.length > 0" :rows="rows" :metric="metric"/>
-        <MutedText v-else tag="div" size="sm">{{ t('traffic.noData') }}</MutedText>
-      </NeutralContainer>
-
-      <NeutralContainer class="space-y-2">
-        <SectionHeader>{{ t('traffic.stationLeaderboard.title') }}</SectionHeader>
-        <MutedText tag="p" size="sm">{{ t('traffic.stationLeaderboard.hint') }}</MutedText>
-        <table v-if="stationLeaderboard.length > 0" class="w-full text-sm">
-          <thead>
-          <tr class="text-left text-(--text-muted)">
-            <th class="py-1 pr-3 font-medium">{{ t('traffic.stationLeaderboard.station') }}</th>
-            <th class="py-1 pr-3 font-medium">{{ t('traffic.totals.ingress') }}</th>
-            <th class="py-1 pr-3 font-medium">{{ t('traffic.totals.egress') }}</th>
-            <th class="py-1 pr-3 font-medium">{{ t('traffic.totals.requests') }}</th>
-          </tr>
-          </thead>
-          <tbody>
-          <tr v-for="entry in stationLeaderboard"
-              :key="entry.stationId ?? 'global'"
-              class="border-t border-(--border)">
-            <td class="py-1 pr-3 font-mono">{{ stationLabel(entry.stationId) }}</td>
-            <td class="py-1 pr-3 whitespace-nowrap">{{ formatBytes(entry.ingressBytes) }}</td>
-            <td class="py-1 pr-3 whitespace-nowrap">{{ formatBytes(entry.egressBytes) }}</td>
-            <td class="py-1 pr-3 whitespace-nowrap">{{ n(entry.requests) }}</td>
-          </tr>
-          </tbody>
-        </table>
-        <MutedText v-else tag="div" size="sm">{{ t('traffic.noData') }}</MutedText>
-      </NeutralContainer>
+      <TrafficChartCard :rows="rows" :metric="metric"/>
+      <TrafficLeaderboard
+          :entries="stationLeaderboard"
+          :station-label="stationLabel"
+          :format-bytes="formatBytes"/>
     </template>
     </div>
   </ViewContent>
