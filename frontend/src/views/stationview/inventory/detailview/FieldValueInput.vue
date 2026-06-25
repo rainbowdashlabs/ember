@@ -41,7 +41,7 @@ const enumConfig = computed(() => props.field.config as EnumFieldConfig)
 
 <template>
   <template v-if="field.fieldType === FieldType.TEXT">
-    <TextAreaInput v-if="textConfig.multiline" v-model="value" :maxlength="textConfig.maxLength || undefined" rows="3" />
+    <TextAreaInput v-if="textConfig.multiline" v-model="value" :maxlength="textConfig.maxLength || undefined" :rows="3" />
     <TextInput v-else v-model="value" :maxlength="textConfig.maxLength || undefined" />
   </template>
   <template v-else-if="field.fieldType === FieldType.NUMBER">

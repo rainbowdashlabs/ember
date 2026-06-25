@@ -15,6 +15,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
+import ContainerKindPicker from '@/views/stationview/inventory/storageview/ContainerKindPicker.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import {inventoryContainers} from '@/api'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
@@ -38,10 +39,10 @@ const internalId = ref('')
 const description = ref('')
 const parentId = ref<number | null>(props.defaultParentId ?? null)
 const kindId = ref<number | null>(null)
+const kindPicker = ref<InstanceType<typeof ContainerKindPicker> | null>(null)
 const submitting = ref(false)
 const error = ref('')
 
-const enabledKinds = computed(() => props.kinds.filter(k => k.enabled))
 const sortedContainers = computed(() => [...props.containers].sort((a, b) => a.name.localeCompare(b.name)))
 
 async function submit() {
@@ -52,16 +53,17 @@ async function submit() {
   submitting.value = true
   error.value = ''
   try {
+    const resolvedKindId = (await kindPicker.value?.resolve()) ?? null
     await inventoryContainers.createContainer({
       parentId: parentId.value,
       internalId: internalId.value.trim() || null,
       name: name.value.trim(),
-      kindId: kindId.value,
+      kindId: resolvedKindId,
       description: description.value.trim(),
     })
     emit('created')
   } catch (e: any) {
-    error.value = e?.response?.data?.message ?? t('inventory.storage.errors.createFailed')
+    error.value = e?.message ?? e?.response?.data?.message ?? t('inventory.storage.errors.createFailed')
   } finally {
     submitting.value = false
   }
@@ -91,13 +93,10 @@ function onClose() {
           <option v-for="c in sortedContainers" :key="c.id" :value="c.id">{{ c.name }}</option>
         </SelectInput>
       </label>
-      <label class="flex flex-col gap-1 text-sm">
+      <div class="flex flex-col gap-1 text-sm">
         <span>{{ t('inventory.storage.fields.kind') }}</span>
-        <SelectInput v-model="kindId">
-          <option :value="null">{{ t('inventory.storage.fields.kindNone') }}</option>
-          <option v-for="k in enabledKinds" :key="k.id" :value="k.id">{{ k.label }}</option>
-        </SelectInput>
-      </label>
+        <ContainerKindPicker ref="kindPicker" :kinds="kinds" v-model="kindId" />
+      </div>
       <label class="flex flex-col gap-1 text-sm">
         <span>{{ t('inventory.storage.fields.internalId') }}</span>
         <div class="flex items-center gap-2">
@@ -107,7 +106,7 @@ function onClose() {
       </label>
       <label class="flex flex-col gap-1 text-sm">
         <span>{{ t('inventory.storage.fields.description') }}</span>
-        <TextAreaInput v-model="description" rows="3" />
+        <TextAreaInput v-model="description" :rows="3" />
       </label>
     </div>
     <div class="flex justify-end gap-2 mt-4">

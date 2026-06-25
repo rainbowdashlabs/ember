@@ -24,6 +24,7 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import ContainerNewModal from '@/views/stationview/inventory/storageview/ContainerNewModal.vue'
+import ContainerKindPicker from '@/views/stationview/inventory/storageview/ContainerKindPicker.vue'
 import UnknownScanModal from '@/views/stationview/inventory/UnknownScanModal.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import IconButton from '@/components/button/IconButton.vue'
@@ -56,6 +57,7 @@ const editName = ref('')
 const editInternalId = ref('')
 const editDescription = ref('')
 const editKindId = ref<number | null>(null)
+const editKindPicker = ref<InstanceType<typeof ContainerKindPicker> | null>(null)
 const editParentId = ref<number | null>(null)
 const showNewChildModal = ref(false)
 const showDeleteConfirm = ref(false)
@@ -227,17 +229,18 @@ async function saveEdit() {
   submitting.value = true
   error.value = ''
   try {
+    const resolvedKindId = (await editKindPicker.value?.resolve()) ?? null
     await inventoryContainers.updateContainer(detail.value.container.id, {
       parentId: editParentId.value,
       internalId: editInternalId.value.trim() || null,
       name: editName.value.trim(),
-      kindId: editKindId.value,
+      kindId: resolvedKindId,
       description: editDescription.value,
     })
     editing.value = false
     await load()
   } catch (e: any) {
-    error.value = e?.response?.data?.message ?? t('inventory.storage.errors.updateFailed')
+    error.value = e?.message ?? e?.response?.data?.message ?? t('inventory.storage.errors.updateFailed')
   } finally {
     submitting.value = false
   }
@@ -334,13 +337,10 @@ onMounted(load)
               >{{ c.name }}</option>
             </SelectInput>
           </label>
-          <label class="flex flex-col gap-1 text-sm">
+          <div class="flex flex-col gap-1 text-sm">
             <span>{{ t('inventory.storage.fields.kind') }}</span>
-            <SelectInput v-model="editKindId">
-              <option :value="null">{{ t('inventory.storage.fields.kindNone') }}</option>
-              <option v-for="k in kinds.filter(k => k.enabled)" :key="k.id" :value="k.id">{{ k.label }}</option>
-            </SelectInput>
-          </label>
+            <ContainerKindPicker ref="editKindPicker" :kinds="kinds" v-model="editKindId" />
+          </div>
           <label class="flex flex-col gap-1 text-sm">
             <span>{{ t('inventory.storage.fields.internalId') }}</span>
             <div class="flex items-center gap-2">
@@ -350,7 +350,7 @@ onMounted(load)
           </label>
           <label class="flex flex-col gap-1 text-sm">
             <span>{{ t('inventory.storage.fields.description') }}</span>
-            <TextAreaInput v-model="editDescription" rows="3" />
+            <TextAreaInput v-model="editDescription" :rows="3" />
           </label>
         </div>
         <div class="flex justify-end gap-2 mt-4">
