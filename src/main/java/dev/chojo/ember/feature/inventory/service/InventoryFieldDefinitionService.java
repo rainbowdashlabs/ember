@@ -11,6 +11,8 @@ import dev.chojo.ember.feature.inventory.entity.InventoryFieldDefinition;
 import dev.chojo.ember.feature.inventory.repository.InventoryFieldDefinitionRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +26,7 @@ import java.util.regex.Pattern;
  */
 @Singleton
 public class InventoryFieldDefinitionService {
+    private static final Logger log = LoggerFactory.getLogger(InventoryFieldDefinitionService.class);
 
     private static final Pattern KEY_PATTERN = Pattern.compile("^[a-z][a-z0-9_]*$");
 
@@ -80,7 +83,17 @@ public class InventoryFieldDefinitionService {
                 throw new IllegalArgumentException("Field key already exists on this inventory");
             }
         }
-        return repository.create(inventoryId, key, label, fieldType, required, sortOrder, effectiveConfig.toJson());
+        InventoryFieldDefinition created =
+                repository.create(inventoryId, key, label, fieldType, required, sortOrder, effectiveConfig.toJson());
+        log.info(
+                "Created field definition {} (key='{}', label='{}', type={}, required={}) in inventory {}",
+                created.id(),
+                key,
+                label,
+                fieldType,
+                required,
+                inventoryId);
+        return created;
     }
 
     /**
@@ -91,7 +104,10 @@ public class InventoryFieldDefinitionService {
     public Optional<InventoryFieldDefinition> update(
             int id, String label, boolean required, int sortOrder, FieldConfig config) {
         Optional<InventoryFieldDefinition> existing = repository.findById(id);
-        if (existing.isEmpty()) return Optional.empty();
+        if (existing.isEmpty()) {
+            log.warn("Update skipped: field definition {} not found", id);
+            return Optional.empty();
+        }
         if (label == null || label.isBlank()) {
             throw new IllegalArgumentException("Field label is required");
         }
@@ -101,8 +117,10 @@ public class InventoryFieldDefinitionService {
             throw new IllegalArgumentException("Field config type does not match the field's type");
         }
         if (!repository.update(id, label, required, sortOrder, effective.toJson())) {
+            log.warn("Update of field definition {} did not change any row", id);
             return Optional.empty();
         }
+        log.info("Updated field definition {} (label='{}', required={}, sortOrder={})", id, label, required, sortOrder);
         return repository.findById(id);
     }
 
@@ -111,7 +129,10 @@ public class InventoryFieldDefinitionService {
      * metadata JSON until the operator edits the item.
      */
     public boolean delete(int id) {
-        return repository.delete(id);
+        boolean deleted = repository.delete(id);
+        if (deleted) log.info("Deleted field definition {}", id);
+        else log.warn("Delete of field definition {} did not change any row", id);
+        return deleted;
     }
 
     /**

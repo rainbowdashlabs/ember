@@ -86,7 +86,7 @@ async function saveItem() {
       name: itemName.value,
       internalId: normalisedInternalId || undefined,
       sizeId: itemSizeId.value ? Number(itemSizeId.value) : undefined,
-      metadata: '{}',
+      metadata: {owned: false, fields: {}},
     }
     if (editingItem.value) {
       await inventory.updateItem(editingItem.value.id, data)
@@ -141,7 +141,7 @@ async function submitQuickAssign() {
     const item = await inventory.createItem(props.detail.id, {
       name: props.detail.name ?? '',
       sizeId,
-      metadata: '{}',
+      metadata: {owned: false, fields: {}},
       itemSource: ItemSource.EXTERNAL,
     })
     await inventory.assignItem(item.id, {memberId, memberName})

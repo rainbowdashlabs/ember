@@ -14,12 +14,15 @@ import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.ProcurementRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
 
 @Singleton
 public class ProcurementService {
+    private static final Logger log = LoggerFactory.getLogger(ProcurementService.class);
     private final ProcurementRepository procurementRepository;
     private final InventoryService inventoryService;
     private final InventoryRepository inventoryRepository;
@@ -42,6 +45,13 @@ public class ProcurementService {
         String inventoryName =
                 inventoryRepository.findById(inventoryId).map(Inventory::name).orElse("?");
         eventBus.publish(new ProcurementCreated(stationId, memberId, inventoryId, inventoryName));
+        log.info(
+                "Created procurement {} for member {} on inventory {} (sizeId={}, station={})",
+                procurement.id(),
+                memberId,
+                inventoryId,
+                sizeId,
+                stationId);
         return procurement;
     }
 
@@ -59,7 +69,10 @@ public class ProcurementService {
 
     public boolean fulfill(int id) {
         var procurement = procurementRepository.findById(id);
-        if (procurement.isEmpty()) return false;
+        if (procurement.isEmpty()) {
+            log.warn("Fulfill skipped: procurement {} not found", id);
+            return false;
+        }
         var proc = procurement.get();
 
         var inv = inventoryService.findById(proc.inventoryId());
@@ -76,12 +89,22 @@ public class ProcurementService {
                     .orElse("?");
             eventBus.publish(
                     new ProcurementFulfilled(proc.stationId(), proc.memberId(), proc.inventoryId(), inventoryName));
+            log.info(
+                    "Fulfilled procurement {} for member {} on inventory {} (station={})",
+                    id,
+                    proc.memberId(),
+                    proc.inventoryId(),
+                    proc.stationId());
             return true;
         }
+        log.warn("Fulfill of procurement {} did not change any row", id);
         return false;
     }
 
     public boolean delete(int id) {
-        return procurementRepository.delete(id);
+        boolean deleted = procurementRepository.delete(id);
+        if (deleted) log.info("Deleted procurement {}", id);
+        else log.warn("Delete of procurement {} did not change any row", id);
+        return deleted;
     }
 }

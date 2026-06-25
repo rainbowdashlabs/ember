@@ -29,6 +29,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   created: []
   close: []
+  'kind-created': [kind: InventoryContainerKind]
 }>()
 
 const {t} = useI18n()
@@ -95,7 +96,7 @@ function onClose() {
       </label>
       <div class="flex flex-col gap-1 text-sm">
         <span>{{ t('inventory.storage.fields.kind') }}</span>
-        <ContainerKindPicker ref="kindPicker" :kinds="kinds" v-model="kindId" />
+        <ContainerKindPicker ref="kindPicker" :kinds="kinds" v-model="kindId" @kind-created="(k) => emit('kind-created', k)"/>
       </div>
       <label class="flex flex-col gap-1 text-sm">
         <span>{{ t('inventory.storage.fields.internalId') }}</span>

@@ -27,12 +27,14 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import {inventory, inventoryContainers} from '@/api'
-import type {ContainerDetail, ContainerCheckItemResult} from '@/api/inventoryContainers'
+import type {ContainerDetail, ContainerCheckItemResult, ItemLastCheck} from '@/api/inventoryContainers'
 import type {InventoryItem} from '@/api/types'
+import {formatDate} from '@/util/format'
 
 interface ExpectedRow {
   item: InventoryItem
   result: 'PENDING' | 'CONFIRMED' | 'NOT_IN_POSSESSION' | 'LOST'
+  lastCheck?: ItemLastCheck
 }
 
 interface ExtraRow {
@@ -70,12 +72,15 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const [d, items] = await Promise.all([
+    const [d, items, lastResults] = await Promise.all([
       inventoryContainers.getContainer(containerId.value),
       inventoryContainers.listExpectedItemsInContainer(containerId.value, deep.value),
+      inventoryContainers.listLastCheckResults(containerId.value, deep.value),
     ])
     detail.value = d
-    expectedRows.value = items.map(i => ({item: i, result: 'PENDING'}))
+    const lastByItem = new Map<number, ItemLastCheck>()
+    for (const r of lastResults) lastByItem.set(r.itemId, r)
+    expectedRows.value = items.map(i => ({item: i, result: 'PENDING', lastCheck: lastByItem.get(i.id)}))
     extraRows.value = []
   } catch (e: any) {
     error.value = e?.response?.data?.message ?? t('inventory.checkContainer.loadError')
@@ -234,6 +239,17 @@ onMounted(load)
               <span class="flex-1">
                 <span class="font-medium">{{ row.item.name }}</span>
                 <span v-if="row.item.internalId" class="text-xs text-(--text-muted) ml-2">{{ row.item.internalId }}</span>
+                <span v-if="row.lastCheck" class="block text-xs text-(--text-muted) mt-0.5">
+                  {{ t('inventory.checkContainer.lastChecked', {
+                    date: formatDate(row.lastCheck.checkedAt),
+                    by: row.lastCheck.checkerName || t('common.unknown'),
+                  }) }}
+                  —
+                  {{ t(`inventory.checkContainer.previousResult.${row.lastCheck.result}`) }}
+                </span>
+                <span v-else class="block text-xs text-(--text-muted) mt-0.5">
+                  {{ t('inventory.checkContainer.lastCheckedNever') }}
+                </span>
               </span>
               <SuccessBadge v-if="row.result === 'CONFIRMED'">{{ t('inventory.checkContainer.statusConfirmed') }}</SuccessBadge>
               <ErrorBadge v-else-if="row.result === 'LOST'">{{ t('inventory.checkContainer.statusLost') }}</ErrorBadge>

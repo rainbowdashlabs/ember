@@ -13,7 +13,8 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import UnknownScanForm from '@/views/stationview/inventory/unknownscanmodal/UnknownScanForm.vue'
-import {serializeItemMetadata} from '@/views/stationview/inventory/detailview/itemMetadata'
+import {buildItemMetadata} from '@/views/stationview/inventory/detailview/itemMetadata'
+import type {ItemMetadata} from '@/api/types'
 import {inventory, inventoryFields} from '@/api'
 import type {Inventory, InventoryItem, InventorySize} from '@/api/types'
 import {InventoryTypes, ItemSource} from '@/api/types'
@@ -96,6 +97,7 @@ watch(selectedInventory, async (inv) => {
   availableSizes.value = []
   fieldDefs.value = []
   if (!inv) return
+  itemName.value = inv.name ?? ''
   if (inv.inventoryType === InventoryTypes.EXTERNAL) itemSource.value = ItemSource.EXTERNAL
   else if (inv.inventoryType === InventoryTypes.INTERNAL) itemSource.value = ItemSource.INTERNAL
   try {
@@ -108,6 +110,10 @@ watch(selectedInventory, async (inv) => {
   } catch {
     /* swallow — surfaced on submit */
   }
+})
+
+watch(newInventoryName, (name) => {
+  if (isCreatingInventory.value) itemName.value = name
 })
 
 watch(targetInventoryId, () => {
@@ -135,11 +141,10 @@ function removeNewSizeRow(index: number) {
   if (newInventorySizes.value.length === 0) newInventorySizes.value.push('')
 }
 
-function buildMetadata(): string | undefined {
+function buildMetadata(): ItemMetadata | undefined {
   if (fieldDefs.value.length === 0) return undefined
-  const serialised = serializeItemMetadata(fieldDefs.value, fieldValues.value, false)
-  const parsed = JSON.parse(serialised) as {owned: boolean; fields: Record<string, unknown>}
-  return Object.keys(parsed.fields).length === 0 ? undefined : serialised
+  const built = buildItemMetadata(fieldDefs.value, fieldValues.value, false)
+  return Object.keys(built.fields).length === 0 ? undefined : built
 }
 
 function validate(): string | null {

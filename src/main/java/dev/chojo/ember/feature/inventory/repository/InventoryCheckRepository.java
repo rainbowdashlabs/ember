@@ -11,9 +11,13 @@ import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheck;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheckItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheckLock;
+import dev.chojo.ember.feature.inventory.entity.ItemLastCheck;
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -215,6 +219,43 @@ public class InventoryCheckRepository {
                 .map(InventoryCheckItem.map())
                 .first()
                 .orElseThrow();
+    }
+
+    /**
+     * Returns the most recent check result for each supplied item. Items that have never been
+     * included in a check are absent from the result list, so the caller can treat their entry
+     * as "never checked".
+     *
+     * @param itemIds the items to look up
+     * @return one entry per item that has at least one prior check, ordered by most-recent-first
+     */
+    public List<ItemLastCheck> latestCheckPerItem(Collection<Integer> itemIds) {
+        if (itemIds == null || itemIds.isEmpty()) return Collections.emptyList();
+        return query("""
+                SELECT DISTINCT ON (ci.item_id)
+                    ci.item_id,
+                    ci.result,
+                    c.checked_at,
+                    a.first_name,
+                    a.last_name
+                FROM inventory_check_item ci
+                    JOIN inventory_check c ON c.id = ci.check_id
+                    LEFT JOIN station_member sm ON sm.id = c.checked_by
+                    LEFT JOIN account a ON a.id = sm.account_id
+                WHERE ci.item_id = ANY(:item_ids)
+                ORDER BY ci.item_id, c.checked_at DESC;""")
+                .single(call().bind("item_ids", List.copyOf(itemIds), PostgreSqlTypes.INTEGER))
+                .map(row -> {
+                    String first = row.getString("first_name");
+                    String last = row.getString("last_name");
+                    String checkerName = ((first == null ? "" : first) + " " + (last == null ? "" : last)).trim();
+                    return new ItemLastCheck(
+                            row.getInt("item_id"),
+                            row.getEnum("result", CheckResult.class),
+                            row.get("checked_at", INSTANT_TIMESTAMP),
+                            checkerName);
+                })
+                .all();
     }
 
     /**

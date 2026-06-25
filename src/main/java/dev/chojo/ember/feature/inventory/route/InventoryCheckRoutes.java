@@ -78,6 +78,10 @@ public class InventoryCheckRoutes implements Routes {
                 prefix + "/inventory-checks/container/{containerId}/expected",
                 this::containerExpectedItems,
                 StationPermission.INVENTORY_CHECK);
+        routes.get(
+                prefix + "/inventory-checks/container/{containerId}/last-results",
+                this::containerLastItemResults,
+                StationPermission.INVENTORY_CHECK);
         routes.post(
                 prefix + "/inventory-checks/container/{containerId}/complete",
                 this::completeContainerCheck,
@@ -96,6 +100,20 @@ public class InventoryCheckRoutes implements Routes {
         int containerId = ctx.pathParamAsClass("containerId", Integer.class).get();
         boolean deep = "true".equalsIgnoreCase(ctx.queryParam("deep"));
         ctx.json(checkService.expectedContainerItems(containerId, deep));
+    }
+
+    @OpenApi(
+            path = "/api/v1/inventory-checks/container/{containerId}/last-results",
+            methods = HttpMethod.GET,
+            summary = "Latest check result per item currently in the container",
+            tags = {"Inventory Checks"},
+            pathParams = @OpenApiParam(name = "containerId", type = Integer.class, required = true),
+            queryParams = @OpenApiParam(name = "deep", type = Boolean.class),
+            responses = @OpenApiResponse(status = "200"))
+    private void containerLastItemResults(Context ctx) {
+        int containerId = ctx.pathParamAsClass("containerId", Integer.class).get();
+        boolean deep = "true".equalsIgnoreCase(ctx.queryParam("deep"));
+        ctx.json(checkService.lastCheckForContainerItems(containerId, deep));
     }
 
     @OpenApi(

@@ -17,6 +17,8 @@ import dev.chojo.ember.feature.inventory.repository.InventoryContainerRepository
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.util.HashSet;
@@ -39,19 +41,22 @@ import java.util.Set;
  */
 @Singleton
 public class InventoryContainerService {
+    private static final Logger log = LoggerFactory.getLogger(InventoryContainerService.class);
 
     /**
      * The seven default kinds seeded into every station on first container use.
      * Mirrors the catalogue described in the storage concept doc.
      */
     public static final List<DefaultKind> DEFAULT_KINDS = List.of(
-            new DefaultKind("room", "Room", "house", 10),
-            new DefaultKind("area", "Area", "warehouse", 20),
-            new DefaultKind("shelf", "Shelf", "layer-group", 30),
-            new DefaultKind("drawer", "Drawer", "inbox", 40),
-            new DefaultKind("box", "Box", "box", 50),
-            new DefaultKind("case", "Case", "suitcase", 60),
-            new DefaultKind("other", "Other", "circle-question", 70));
+            new DefaultKind("station_building", "Gerätehaus", "house", 10),
+            new DefaultKind("vehicle_bay", "Fahrzeughalle", "warehouse", 20),
+            new DefaultKind("equipment_room", "Geräteraum", "building", 30),
+            new DefaultKind("workshop", "Werkstatt", "gears", 40),
+            new DefaultKind("shelf", "Regal", "layer-group", 50),
+            new DefaultKind("drawer", "Schublade", "inbox", 60),
+            new DefaultKind("gear_box", "Materialkiste", "box", 70),
+            new DefaultKind("operation_case", "Einsatzkoffer", "suitcase", 80),
+            new DefaultKind("other", "Sonstiges", "circle-question", 90));
 
     private static final JsonMapper DETAIL_MAPPER = JsonMapper.builder().build();
 
@@ -125,7 +130,10 @@ public class InventoryContainerService {
             throw new IllegalArgumentException("Kind key already exists for this station");
         }
         String resolvedIcon = (icon == null || icon.isBlank()) ? "box" : icon;
-        return kindRepository.create(stationId, key, label, resolvedIcon, sortOrder, enabled);
+        InventoryContainerKind created = kindRepository.create(stationId, key, label, resolvedIcon, sortOrder, enabled);
+        log.info("Created container kind {} (key='{}', label='{}') in station {}",
+                created.id(), key, label, stationId);
+        return created;
     }
 
     /**
@@ -142,6 +150,7 @@ public class InventoryContainerService {
         if (!kindRepository.update(id, label, resolvedIcon, sortOrder, enabled)) {
             return Optional.empty();
         }
+        log.info("Updated container kind {} (label='{}', enabled={})", id, label, enabled);
         return kindRepository.findById(id);
     }
 
@@ -150,7 +159,10 @@ public class InventoryContainerService {
      * have their {@code kind_id} cleared via {@code ON DELETE SET NULL}.
      */
     public boolean deleteKind(int id) {
-        return kindRepository.delete(id);
+        boolean deleted = kindRepository.delete(id);
+        if (deleted) log.info("Deleted container kind {}", id);
+        else log.warn("Delete of container kind {} did not change any row", id);
+        return deleted;
     }
 
     /**
@@ -274,6 +286,8 @@ public class InventoryContainerService {
         if (parentId != null) fields.put("parentId", parentId);
         containerRepository.appendHistory(
                 created.id(), stationId, ContainerEventKind.CREATED, createdBy, detailJson(fields));
+        log.info("Created container {} (name='{}', parentId={}, kindId={}) in station {}",
+                created.id(), name, parentId, kindId, stationId);
         return created;
     }
 
@@ -322,6 +336,8 @@ public class InventoryContainerService {
             containerRepository.appendHistory(
                     id, existing.stationId(), ContainerEventKind.MOVED, actorId, detailJson(details));
         }
+        log.info("Updated container {} (name='{}', parentId={}, renamed={}, moved={})",
+                id, name, parentId, !existing.name().equals(name), parentChanged);
         return containerRepository.findById(id);
     }
 
@@ -332,7 +348,10 @@ public class InventoryContainerService {
      */
     public boolean delete(int id, Integer actorId) {
         Optional<InventoryContainer> existingOpt = containerRepository.findById(id);
-        if (existingOpt.isEmpty()) return false;
+        if (existingOpt.isEmpty()) {
+            log.warn("Delete skipped: container {} not found", id);
+            return false;
+        }
         InventoryContainer existing = existingOpt.get();
         boolean deleted = containerRepository.delete(id);
         if (deleted) {
@@ -341,6 +360,9 @@ public class InventoryContainerService {
             details.put("name", existing.name());
             containerRepository.appendHistory(
                     null, existing.stationId(), ContainerEventKind.DELETED, actorId, detailJson(details));
+            log.info("Deleted container {} (name='{}', station={})", id, existing.name(), existing.stationId());
+        } else {
+            log.warn("Delete of container {} did not change any row", id);
         }
         return deleted;
     }
@@ -354,11 +376,17 @@ public class InventoryContainerService {
      */
     public boolean setItemContainer(int itemId, Integer containerId) {
         Optional<InventoryItem> itemOpt = inventoryRepository.findItemById(itemId);
-        if (itemOpt.isEmpty()) return false;
+        if (itemOpt.isEmpty()) {
+            log.warn("setItemContainer skipped: item {} not found", itemId);
+            return false;
+        }
         InventoryItem item = itemOpt.get();
         if (containerId != null) {
             Optional<InventoryContainer> targetOpt = containerRepository.findById(containerId);
-            if (targetOpt.isEmpty()) return false;
+            if (targetOpt.isEmpty()) {
+                log.warn("setItemContainer skipped: container {} not found", containerId);
+                return false;
+            }
             int itemStationId = inventoryRepository
                     .findById(item.inventoryId())
                     .map(Inventory::stationId)
@@ -370,7 +398,10 @@ public class InventoryContainerService {
         if (containerId != null && item.assignedTo() != null) {
             inventoryRepository.returnHistory(itemId, item.assignedTo());
         }
-        return inventoryRepository.setItemContainer(itemId, containerId);
+        boolean updated = inventoryRepository.setItemContainer(itemId, containerId);
+        if (updated) log.info("Moved item {} to container {}", itemId, containerId);
+        else log.warn("setItemContainer of item {} to container {} did not change any row", itemId, containerId);
+        return updated;
     }
 
     /**

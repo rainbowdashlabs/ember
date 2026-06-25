@@ -1064,11 +1064,16 @@ export interface InventoryItem {
     containerId?: number | null
 }
 
+export interface ItemMetadata {
+    owned: boolean
+    fields: Record<string, {kind: string; value: unknown}>
+}
+
 export interface ItemRequest {
     internalId?: string
     name?: string
     sizeId?: number
-    metadata?: string
+    metadata?: ItemMetadata
     itemSource?: string
 }
 

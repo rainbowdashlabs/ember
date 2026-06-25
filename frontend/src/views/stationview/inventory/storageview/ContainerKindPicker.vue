@@ -11,11 +11,14 @@ import IconButton from '@/components/button/IconButton.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import {inventoryContainers} from '@/api'
 import type {InventoryContainerKind} from '@/api/inventoryContainers'
+import {showToast} from '@/util/toast'
 
 const KIND_ICONS: ReadonlyArray<{name: string; key: string}> = [
   {name: 'house', key: 'house'},
   {name: 'warehouse', key: 'warehouse'},
   {name: 'building', key: 'building'},
+  {name: 'fire', key: 'fire'},
+  {name: 'gears', key: 'gears'},
   {name: 'layer-group', key: 'layerGroup'},
   {name: 'inbox', key: 'inbox'},
   {name: 'box', key: 'box'},
@@ -45,12 +48,18 @@ const showSuggestions = ref(false)
 const iconPickerOpen = ref(false)
 const pendingLabel = ref('')
 const creating = ref(false)
+const locallyCreated = ref<InventoryContainerKind[]>([])
+
+const allKinds = computed(() => {
+  const known = new Set(props.kinds.map(k => k.id))
+  return [...props.kinds, ...locallyCreated.value.filter(k => !known.has(k.id))]
+})
 
 const selectedKind = computed(() => selectedId.value != null
-    ? props.kinds.find(k => k.id === selectedId.value) ?? null
+    ? allKinds.value.find(k => k.id === selectedId.value) ?? null
     : null)
 
-const enabledKinds = computed(() => props.kinds.filter(k => k.enabled))
+const enabledKinds = computed(() => allKinds.value.filter(k => k.enabled))
 
 const suggestions = computed(() => {
   const q = inputValue.value.toLowerCase().trim()
@@ -127,11 +136,14 @@ async function commitWithIcon(iconName: string) {
       sortOrder: Math.max(0, ...props.kinds.map(k => k.sortOrder)) + 10,
       enabled: true,
     })
+    locallyCreated.value = [...locallyCreated.value, created]
     selectedId.value = created.id
     emit('kind-created', created)
     iconPickerOpen.value = false
     pendingLabel.value = ''
     inputValue.value = ''
+  } catch {
+    showToast(t('inventory.storage.fields.kindCreateFailed'), 'error')
   } finally {
     creating.value = false
   }

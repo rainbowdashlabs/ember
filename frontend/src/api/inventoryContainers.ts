@@ -196,6 +196,24 @@ export async function listExpectedItemsInContainer(
     return res.data
 }
 
+export interface ItemLastCheck {
+    itemId: number
+    result: string
+    checkedAt: string
+    checkerName: string
+}
+
+export async function listLastCheckResults(
+    containerId: number,
+    deep: boolean,
+): Promise<ItemLastCheck[]> {
+    const res = await client.get<ItemLastCheck[]>(
+        `/inventory-checks/container/${containerId}/last-results`,
+        {params: {deep}},
+    )
+    return res.data
+}
+
 export async function completeContainerCheck(
     containerId: number,
     body: CompleteContainerCheckRequest,

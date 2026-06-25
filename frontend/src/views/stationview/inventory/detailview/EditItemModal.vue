@@ -14,7 +14,7 @@ import {inventory, inventoryContainers, inventoryFields} from '@/api'
 import EditItemFields from './edititemmodal/EditItemFields.vue'
 import EditItemCustomFields from './edititemmodal/EditItemCustomFields.vue'
 import EditItemFooter from './edititemmodal/EditItemFooter.vue'
-import {parseItemMetadata, serializeItemMetadata} from './itemMetadata'
+import {parseItemMetadata, buildItemMetadata} from './itemMetadata'
 import type {InventoryContainer} from '@/api/inventoryContainers'
 import type {InventoryFieldDefinition} from '@/api/inventoryFields'
 
@@ -86,7 +86,7 @@ async function save() {
       name: itemName.value,
       internalId: normalisedInternalId || undefined,
       sizeId: sizeId.value ? Number(sizeId.value) : undefined,
-      metadata: serializeItemMetadata(fieldDefs.value, fieldValues.value, owned.value),
+      metadata: buildItemMetadata(fieldDefs.value, fieldValues.value, owned.value),
     })
     if (containerId.value !== (props.item.containerId ?? null)) {
       await inventoryContainers.setItemContainer(props.item.id, containerId.value)

@@ -29,25 +29,24 @@ export function parseItemMetadata(raw: string | undefined): ParsedItemMetadata {
 }
 
 /**
- * Serialises {@code fieldValues} into the JSONB shape persisted in
- * {@code inventory_item.metadata}. Skips empty / null / undefined values so
- * the stored blob stays small.
+ * Builds the structured {@code inventory_item.metadata} payload to send to the API. Skips empty /
+ * null / undefined values so the stored blob stays small.
  *
  * @param defs   the inventory's field schema; each def's {@code key} and
  *               {@code fieldType} drive the output entry
  * @param values the editor's current per-key values
  * @param owned  the {@code owned} flag carried alongside the field values
  */
-export function serializeItemMetadata(
+export function buildItemMetadata(
     defs: InventoryFieldDefinition[],
     values: Record<string, unknown>,
     owned: boolean,
-): string {
+): ParsedItemMetadata {
     const fields: Record<string, {kind: FieldTypeName; value: unknown}> = {}
     for (const def of defs) {
         const v = values[def.key]
         if (v === undefined || v === null || v === '') continue
         fields[def.key] = {kind: def.fieldType, value: v}
     }
-    return JSON.stringify({owned, fields})
+    return {owned, fields}
 }

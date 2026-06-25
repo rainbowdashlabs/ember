@@ -201,12 +201,17 @@ function navigateToContainer(id: number) {
 }
 
 function navigateToItem(itemId: number) {
-  router.push({name: 'inventory-detail', params: {id: String(itemId)}})
+  router.push({name: 'inventory-item-detail', params: {id: String(itemId)}})
 }
 
 async function onChildCreated() {
   showNewChildModal.value = false
   await load()
+}
+
+function onKindCreated(kind: InventoryContainerKind) {
+  if (kinds.value.some(k => k.id === kind.id)) return
+  kinds.value = [...kinds.value, kind]
 }
 
 watch(recursive, loadContents)
@@ -276,6 +281,7 @@ onMounted(load)
           :default-parent-id="detail.container.id"
           @created="onChildCreated"
           @close="showNewChildModal = false"
+          @kind-created="onKindCreated"
       />
 
       <AddChildChoiceModal

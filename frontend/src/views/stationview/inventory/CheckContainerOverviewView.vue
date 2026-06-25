@@ -13,7 +13,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ContainerTree from '@/views/stationview/inventory/storageview/ContainerTree.vue'
 import {inventoryContainers} from '@/api'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
 
@@ -32,14 +32,23 @@ const kindById = computed(() => {
   return map
 })
 
-const filtered = computed(() => {
-  const term = search.value.trim().toLowerCase()
-  if (!term) return containers.value
-  return containers.value.filter(c =>
-      c.name.toLowerCase().includes(term)
-      || (c.internalId ?? '').toLowerCase().includes(term)
-      || (c.description ?? '').toLowerCase().includes(term))
+const childrenByParent = computed(() => {
+  const map = new Map<number, InventoryContainer[]>()
+  for (const c of containers.value) {
+    if (c.parentId == null) continue
+    const list = map.get(c.parentId) ?? []
+    list.push(c)
+    map.set(c.parentId, list)
+  }
+  for (const list of map.values()) {
+    list.sort((a, b) => a.name.localeCompare(b.name))
+  }
+  return map
 })
+
+const roots = computed(() => containers.value
+    .filter(c => c.parentId == null)
+    .sort((a, b) => a.name.localeCompare(b.name)))
 
 async function load() {
   loading.value = true
@@ -78,22 +87,15 @@ onMounted(load)
     </div>
     <template v-else>
       <NeutralContainer>
-        <EmptyState v-if="filtered.length === 0" :message="t('inventory.checkContainer.noContainers')" />
-        <ul v-else class="divide-y divide-(--bg-accent)">
-          <li
-              v-for="c in filtered"
-              :key="c.id"
-              class="py-2 flex items-center gap-3"
-          >
-            <font-awesome-icon :icon="['fas', kindById.get(c.kindId ?? -1)?.icon ?? 'box']" class="w-4 text-(--text-muted)" />
-            <span class="flex-1 font-medium">{{ c.name }}</span>
-            <span v-if="c.internalId" class="text-xs text-(--text-muted)">{{ c.internalId }}</span>
-            <PrimaryButton size="sm" @click="startCheck(c)">
-              <font-awesome-icon :icon="['fas', 'clipboard-check']" class="mr-2" />
-              {{ t('inventory.checkContainer.start') }}
-            </PrimaryButton>
-          </li>
-        </ul>
+        <EmptyState v-if="roots.length === 0" :message="t('inventory.checkContainer.noContainers')" />
+        <ContainerTree
+            v-else
+            :roots="roots"
+            :children-by-parent="childrenByParent"
+            :kind-by-id="kindById"
+            :search="search"
+            @open="startCheck"
+        />
       </NeutralContainer>
     </template>
   </ViewContent>

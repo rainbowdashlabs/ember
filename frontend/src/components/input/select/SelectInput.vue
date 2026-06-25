@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-const model = defineModel<string>()
+const model = defineModel<string | number | null>()
 
 defineProps<{
   disabled?: boolean
