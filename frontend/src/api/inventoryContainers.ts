@@ -172,3 +172,34 @@ export async function getItemLocation(itemId: number): Promise<ItemLocationRespo
 export async function setItemContainer(itemId: number, containerId: number | null): Promise<void> {
     await client.put(`/inventory-items/${itemId}/container`, {containerId})
 }
+
+export interface ContainerCheckItemResult {
+    itemId: number | null
+    inventoryId: number | null
+    result: string
+    note?: string
+}
+
+export interface CompleteContainerCheckRequest {
+    deep: boolean
+    items: ContainerCheckItemResult[]
+}
+
+export async function listExpectedItemsInContainer(
+    containerId: number,
+    deep: boolean,
+): Promise<import('./types').InventoryItem[]> {
+    const res = await client.get<import('./types').InventoryItem[]>(
+        `/inventory-checks/container/${containerId}/expected`,
+        {params: {deep}},
+    )
+    return res.data
+}
+
+export async function completeContainerCheck(
+    containerId: number,
+    body: CompleteContainerCheckRequest,
+): Promise<unknown> {
+    const res = await client.post(`/inventory-checks/container/${containerId}/complete`, body)
+    return res.data
+}

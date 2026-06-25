@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:2562a200ad9d66c877ad3463acb548fd0a58e01f7b4755e978bf56bc732ec509",
-  "generatedAt" : "2026-06-25T12:06:54Z",
+  "schemaHash" : "sha256:f0514cf8bfe2bb5d075643b7c889dea00ebf359834a4a6c68c74803009c4b4ec",
+  "generatedAt" : "2026-06-25T13:45:05Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -6451,7 +6451,7 @@
     "inventory_check" : {
       "feature" : "inventory",
       "scope" : "STATION",
-      "tableHash" : "sha256:37a12381e827e4013b0172537e6e69737a247e3413636246402cd35e29d4854d",
+      "tableHash" : "sha256:1dfe5e8c52518563b9f8885a0a450592da9e9ccf06c83be4d9c11205d08914db",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -6467,7 +6467,7 @@
       }, {
         "name" : "member_id",
         "type" : "int4",
-        "nullable" : false,
+        "nullable" : true,
         "verified" : true,
         "description" : "Member being checked."
       }, {
@@ -6482,10 +6482,33 @@
         "nullable" : false,
         "verified" : true,
         "description" : "When the check was performed."
+      }, {
+        "name" : "scope",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Discriminator: MEMBER (default, legacy rows) means the check covers a single member's assigned items; CONTAINER means the check covers the items physically held inside a container."
+      }, {
+        "name" : "container_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Target container for a CONTAINER-scope check. NULL on MEMBER-scope checks."
+      }, {
+        "name" : "deep",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "On a CONTAINER-scope check, whether the walk includes all descendant containers (TRUE) or only the direct container (FALSE)."
       } ],
       "foreignKeys" : [ {
         "column" : "checked_by",
         "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "container_id",
+        "refTable" : "inventory_container",
         "refColumn" : "id",
         "onDelete" : "CASCADE"
       }, {

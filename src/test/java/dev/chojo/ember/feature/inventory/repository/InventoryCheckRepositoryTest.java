@@ -182,4 +182,24 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
         assertTrue(next.isEmpty());
         inventoryCheckRepo.releaseLock(member2.id());
     }
+
+    @Test
+    @Order(40)
+    void containerCheckCrud() {
+        var container = containerRepo.create(station.id(), null, null, "CheckRoom", null, "", null);
+        InventoryCheck created =
+                inventoryCheckRepo.createContainerCheck(station.id(), container.id(), member2.id(), true);
+        assertEquals(
+                dev.chojo.ember.feature.inventory.entity.InventoryCheckScope.CONTAINER, created.scope());
+        assertEquals(Integer.valueOf(container.id()), created.containerId());
+        assertTrue(created.deep());
+        assertEquals(member2.id(), created.checkedBy());
+
+        var latest = inventoryCheckRepo.latestCheckForContainer(container.id());
+        assertTrue(latest.isPresent());
+        assertEquals(created.id(), latest.get().id());
+        assertTrue(inventoryCheckRepo.latestCheckForContainer(987654321).isEmpty());
+
+        containerRepo.delete(container.id());
+    }
 }

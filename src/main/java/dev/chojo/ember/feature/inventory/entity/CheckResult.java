@@ -20,5 +20,11 @@ public enum CheckResult {
     /**
      * The item has been lost.
      */
-    LOST
+    LOST,
+    /**
+     * An item was found that the check did not expect. Used by container-scope
+     * checks when the operator scans something that the system does not believe
+     * belongs in the container.
+     */
+    EXTRA
 }

@@ -74,6 +74,52 @@ public class InventoryCheckRoutes implements Routes {
                 this::createAndAssign,
                 StationPermission.INVENTORY_CHECK);
         routes.get(prefix + "/inventory-checks/next", this::nextMember, StationPermission.INVENTORY_CHECK);
+        routes.get(
+                prefix + "/inventory-checks/container/{containerId}/expected",
+                this::containerExpectedItems,
+                StationPermission.INVENTORY_CHECK);
+        routes.post(
+                prefix + "/inventory-checks/container/{containerId}/complete",
+                this::completeContainerCheck,
+                StationPermission.INVENTORY_CHECK);
+    }
+
+    @OpenApi(
+            path = "/api/v1/inventory-checks/container/{containerId}/expected",
+            methods = HttpMethod.GET,
+            summary = "List the items expected inside a container for a check",
+            tags = {"Inventory Checks"},
+            pathParams = @OpenApiParam(name = "containerId", type = Integer.class, required = true),
+            queryParams = @OpenApiParam(name = "deep", type = Boolean.class),
+            responses = @OpenApiResponse(status = "200"))
+    private void containerExpectedItems(Context ctx) {
+        int containerId = ctx.pathParamAsClass("containerId", Integer.class).get();
+        boolean deep = "true".equalsIgnoreCase(ctx.queryParam("deep"));
+        ctx.json(checkService.expectedContainerItems(containerId, deep));
+    }
+
+    @OpenApi(
+            path = "/api/v1/inventory-checks/container/{containerId}/complete",
+            methods = HttpMethod.POST,
+            summary = "Complete a container-scope inventory check",
+            tags = {"Inventory Checks"},
+            pathParams = @OpenApiParam(name = "containerId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CompleteContainerCheckRequest.class)),
+            responses = @OpenApiResponse(status = "201"))
+    private void completeContainerCheck(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int containerId = ctx.pathParamAsClass("containerId", Integer.class).get();
+        var request = ctx.bodyAsClass(CompleteContainerCheckRequest.class);
+        if (request.items() == null) {
+            throw new BadRequestResponse("items are required");
+        }
+        List<CheckItemRequest> items = request.items().stream()
+                .map(i ->
+                        new CheckItemRequest(i.itemId(), i.inventoryId(), i.result(), i.note() != null ? i.note() : ""))
+                .toList();
+        var check = checkService.completeContainerCheck(
+                session.stationId(), containerId, session.member().id(), request.deep(), items);
+        ctx.status(HttpStatus.CREATED).json(check);
     }
 
     @OpenApi(
@@ -281,6 +327,8 @@ public class InventoryCheckRoutes implements Routes {
     }
 
     public record CompleteCheckRequest(List<CheckItemResult> items) {}
+
+    public record CompleteContainerCheckRequest(boolean deep, List<CheckItemResult> items) {}
 
     public record CheckItemResult(Integer itemId, Integer inventoryId, CheckResult result, String note) {}
 

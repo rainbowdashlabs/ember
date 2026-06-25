@@ -39,13 +39,16 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
+        var containerService = new dev.chojo.ember.feature.inventory.service.InventoryContainerService(
+                containerRepo, containerKindRepo, inventoryRepo);
         service = new InventoryCheckService(
                 inventoryCheckRepo,
                 inventoryRepo,
                 stationMemberRepo,
                 memberGroupRepo,
                 accountRepo,
-                memberIdentityFactory);
+                memberIdentityFactory,
+                containerService);
         station = stationRepo.create("CheckSvcStation");
         checkerAccount = accountRepo.create("checker-svc@test.com", "Check", "Er");
         targetAccount = accountRepo.create("target-svc@test.com", "Target", "Member");
@@ -295,5 +298,46 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
         inventoryRepo.deleteRequirement(req.id());
         memberGroupRepo.removeMember(group.id(), target.id());
         memberGroupRepo.delete(group.id());
+    }
+
+    @Test
+    @Order(80)
+    void containerCheckExpectedAndComplete() {
+        var container = containerRepo.create(station.id(), null, null, "SvcCheckRoom", null, "", null);
+        var bench = containerRepo.create(station.id(), container.id(), null, "Bench", null, "", null);
+        var loose = inventoryRepo.createItem(inventoryId, "CCS-1", "Loose", null, null);
+        var deepItem = inventoryRepo.createItem(inventoryId, "CCS-2", "Deep", null, null);
+        inventoryRepo.setItemContainer(loose.id(), container.id());
+        inventoryRepo.setItemContainer(deepItem.id(), bench.id());
+
+        var shallow = service.expectedContainerItems(container.id(), false);
+        assertEquals(1, shallow.size());
+        assertEquals(loose.id(), shallow.getFirst().id());
+
+        var deep = service.expectedContainerItems(container.id(), true);
+        assertEquals(2, deep.size());
+
+        var results = java.util.List.of(
+                new dev.chojo.ember.feature.inventory.entity.CheckItemRequest(
+                        loose.id(),
+                        inventoryId,
+                        dev.chojo.ember.feature.inventory.entity.CheckResult.CONFIRMED,
+                        ""),
+                new dev.chojo.ember.feature.inventory.entity.CheckItemRequest(
+                        deepItem.id(),
+                        inventoryId,
+                        dev.chojo.ember.feature.inventory.entity.CheckResult.LOST,
+                        "fehlt"));
+        var completed = service.completeContainerCheck(station.id(), container.id(), checker.id(), true, results);
+        assertEquals(
+                dev.chojo.ember.feature.inventory.entity.InventoryCheckScope.CONTAINER, completed.scope());
+        assertTrue(completed.deep());
+
+        assertTrue(inventoryRepo.findItemById(deepItem.id()).orElseThrow().lostAt() != null);
+
+        inventoryRepo.deleteItem(loose.id());
+        inventoryRepo.deleteItem(deepItem.id());
+        containerRepo.delete(bench.id());
+        containerRepo.delete(container.id());
     }
 }

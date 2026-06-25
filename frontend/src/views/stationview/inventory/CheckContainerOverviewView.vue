@@ -14,6 +14,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import {inventoryContainers} from '@/api'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
 
@@ -58,8 +59,8 @@ async function load() {
   }
 }
 
-function open(c: InventoryContainer) {
-  router.push({name: 'inventory-container-detail', params: {id: String(c.id)}})
+function startCheck(c: InventoryContainer) {
+  router.push({name: 'inventory-check-container-walk', params: {id: String(c.id)}})
 }
 
 onMounted(load)
@@ -69,8 +70,6 @@ onMounted(load)
   <ViewContent>
     <PageHeader>{{ t('inventory.checkContainer.title') }}</PageHeader>
     <p class="text-sm text-(--text-muted) mb-4">{{ t('inventory.checkContainer.intro') }}</p>
-
-    <Alert variant="info" class="mb-4">{{ t('inventory.checkContainer.workflowPending') }}</Alert>
 
     <NeutralContainer class="mb-4">
       <TextInput v-model="search" :placeholder="t('inventory.checkContainer.searchPlaceholder')" />
@@ -88,13 +87,15 @@ onMounted(load)
           <li
               v-for="c in filtered"
               :key="c.id"
-              class="py-2 flex items-center gap-3 cursor-pointer hover:bg-(--bg-accent) rounded-theme px-2"
-              @click="open(c)"
+              class="py-2 flex items-center gap-3"
           >
             <font-awesome-icon :icon="['fas', kindById.get(c.kindId ?? -1)?.icon ?? 'box']" class="w-4 text-(--text-muted)" />
-            <span class="font-medium">{{ c.name }}</span>
+            <span class="flex-1 font-medium">{{ c.name }}</span>
             <span v-if="c.internalId" class="text-xs text-(--text-muted)">{{ c.internalId }}</span>
-            <span v-if="c.description" class="text-xs text-(--text-muted) truncate">{{ c.description }}</span>
+            <PrimaryButton size="sm" @click="startCheck(c)">
+              <font-awesome-icon :icon="['fas', 'clipboard-check']" class="mr-2" />
+              {{ t('inventory.checkContainer.start') }}
+            </PrimaryButton>
           </li>
         </ul>
       </NeutralContainer>

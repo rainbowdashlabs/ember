@@ -90,3 +90,24 @@ CREATE INDEX idx_inventory_item_container
 
 COMMENT ON COLUMN ember_schema.inventory_item.container_id IS
     'Optional reference to the container that physically holds this item. NULL means unlocated. ON DELETE SET NULL keeps the item even if the container is deleted.';
+
+ALTER TABLE ember_schema.inventory_check
+    ALTER COLUMN member_id DROP NOT NULL;
+
+ALTER TABLE ember_schema.inventory_check
+    ADD COLUMN scope        TEXT    NOT NULL DEFAULT 'MEMBER',
+    ADD COLUMN container_id INTEGER NULL REFERENCES ember_schema.inventory_container (id) ON DELETE CASCADE,
+    ADD COLUMN deep         BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD CONSTRAINT inventory_check_scope_target CHECK (
+        (scope = 'MEMBER' AND member_id IS NOT NULL AND container_id IS NULL)
+        OR (scope = 'CONTAINER' AND container_id IS NOT NULL AND member_id IS NULL)
+    );
+
+CREATE INDEX idx_inventory_check_container ON ember_schema.inventory_check (container_id) WHERE container_id IS NOT NULL;
+
+COMMENT ON COLUMN ember_schema.inventory_check.scope IS
+    'Discriminator: MEMBER (default, legacy rows) means the check covers a single member''s assigned items; CONTAINER means the check covers the items physically held inside a container.';
+COMMENT ON COLUMN ember_schema.inventory_check.container_id IS
+    'Target container for a CONTAINER-scope check. NULL on MEMBER-scope checks.';
+COMMENT ON COLUMN ember_schema.inventory_check.deep IS
+    'On a CONTAINER-scope check, whether the walk includes all descendant containers (TRUE) or only the direct container (FALSE).';

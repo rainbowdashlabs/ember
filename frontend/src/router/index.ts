@@ -406,6 +406,11 @@ const router = createRouter({
                     component: () => import('@/views/stationview/inventory/CheckContainerOverviewView.vue'),
                 },
                 {
+                    path: 'inventory/checks/container/:id',
+                    name: 'inventory-check-container-walk',
+                    component: () => import('@/views/stationview/inventory/CheckContainerWalkView.vue'),
+                },
+                {
                     path: 'inventory/storage',
                     name: 'inventory-storage',
                     component: () => import('@/views/stationview/inventory/StorageView.vue'),
@@ -1413,6 +1418,11 @@ const router = createRouter({
                     path: 'inventory/checks/container',
                     name: 'help-inventory-check-container-overview',
                     component: () => import('@/views/helpcenter/stationview/inventory/CheckContainerHelp.vue')
+                },
+                {
+                    path: 'inventory/checks/container/:id',
+                    name: 'help-inventory-check-container-walk',
+                    component: () => import('@/views/helpcenter/stationview/inventory/CheckContainerWalkHelp.vue')
                 },
                 {
                     path: 'inventory/storage',

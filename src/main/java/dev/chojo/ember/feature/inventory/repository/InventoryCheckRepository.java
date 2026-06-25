@@ -39,15 +39,52 @@ public class InventoryCheckRepository {
      */
     public InventoryCheck createCheck(int stationId, int memberId, int checkedBy) {
         return query("""
-                INSERT INTO inventory_check(station_id, member_id, checked_by)
-                VALUES (:station_id, :member_id, :checked_by)
-                RETURNING id, station_id, member_id, checked_by, checked_at;""")
+                INSERT INTO inventory_check(station_id, member_id, checked_by, scope)
+                VALUES (:station_id, :member_id, :checked_by, 'MEMBER')
+                RETURNING id, station_id, member_id, checked_by, checked_at, scope, container_id, deep;""")
                 .single(call().bind("station_id", stationId)
                         .bind("member_id", memberId)
                         .bind("checked_by", checkedBy))
                 .map(InventoryCheck.map())
                 .first()
                 .orElseThrow();
+    }
+
+    /**
+     * Creates a new container-scoped check.
+     *
+     * @param stationId   the station ID
+     * @param containerId the target container
+     * @param checkedBy   the member performing the check
+     * @param deep        whether descendant containers are included in the walk
+     * @return the created check
+     */
+    public InventoryCheck createContainerCheck(int stationId, int containerId, int checkedBy, boolean deep) {
+        return query("""
+                INSERT INTO inventory_check(station_id, container_id, checked_by, scope, deep)
+                VALUES (:station_id, :container_id, :checked_by, 'CONTAINER', :deep)
+                RETURNING id, station_id, member_id, checked_by, checked_at, scope, container_id, deep;""")
+                .single(call().bind("station_id", stationId)
+                        .bind("container_id", containerId)
+                        .bind("checked_by", checkedBy)
+                        .bind("deep", deep))
+                .map(InventoryCheck.map())
+                .first()
+                .orElseThrow();
+    }
+
+    /**
+     * Returns the most recent container-scope check for the given container, if any.
+     */
+    public Optional<InventoryCheck> latestCheckForContainer(int containerId) {
+        return query("""
+                SELECT id, station_id, member_id, checked_by, checked_at, scope, container_id, deep
+                FROM inventory_check
+                WHERE container_id = :container_id AND scope = 'CONTAINER'
+                ORDER BY checked_at DESC LIMIT 1;""")
+                .single(call().bind("container_id", containerId))
+                .map(InventoryCheck.map())
+                .first();
     }
 
     /**
@@ -58,7 +95,7 @@ public class InventoryCheckRepository {
      */
     public Optional<InventoryCheck> latestCheckForMember(int memberId) {
         return query(
-                        "SELECT id, station_id, member_id, checked_by, checked_at FROM inventory_check WHERE member_id = :member_id ORDER BY checked_at DESC LIMIT 1;")
+                        "SELECT id, station_id, member_id, checked_by, checked_at, scope, container_id, deep FROM inventory_check WHERE member_id = :member_id ORDER BY checked_at DESC LIMIT 1;")
                 .single(call().bind("member_id", memberId))
                 .map(InventoryCheck.map())
                 .first();

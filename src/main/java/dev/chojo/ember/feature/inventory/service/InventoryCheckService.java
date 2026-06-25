@@ -55,6 +55,7 @@ public class InventoryCheckService {
     private final MemberGroupRepository memberGroupRepository;
     private final AccountRepository accountRepository;
     private final MemberIdentityFactory memberIdentityFactory;
+    private final InventoryContainerService containerService;
 
     @Inject
     public InventoryCheckService(
@@ -63,13 +64,15 @@ public class InventoryCheckService {
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
             AccountRepository accountRepository,
-            MemberIdentityFactory memberIdentityFactory) {
+            MemberIdentityFactory memberIdentityFactory,
+            InventoryContainerService containerService) {
         this.checkRepository = checkRepository;
         this.inventoryRepository = inventoryRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.accountRepository = accountRepository;
         this.memberIdentityFactory = memberIdentityFactory;
+        this.containerService = containerService;
     }
 
     /**
@@ -155,6 +158,47 @@ public class InventoryCheckService {
         }
 
         checkRepository.releaseLock(memberId);
+        return check;
+    }
+
+    /**
+     * Returns the expected items for a container-scope check. With
+     * {@code deep = true} the walk includes every descendant container's
+     * items, depth-first; with {@code deep = false} only the direct items
+     * placed in the container are returned.
+     *
+     * @param containerId target container
+     * @param deep        whether the walk includes descendants
+     * @return the items the operator should find in the container
+     */
+    public List<InventoryItem> expectedContainerItems(int containerId, boolean deep) {
+        return deep
+                ? containerService.findItemsInSubtree(containerId)
+                : containerService.findItemsInContainer(containerId);
+    }
+
+    /**
+     * Completes a container-scope check by writing the {@code inventory_check}
+     * row plus per-item results, marking any LOST items, and returning the
+     * created check.
+     *
+     * @param stationId   the station ID
+     * @param containerId target container
+     * @param checkedBy   the member performing the check
+     * @param deep        whether the walk included descendants
+     * @param results     per-item results
+     * @return the created check
+     */
+    public InventoryCheck completeContainerCheck(
+            int stationId, int containerId, int checkedBy, boolean deep, List<CheckItemRequest> results) {
+        InventoryCheck check = checkRepository.createContainerCheck(stationId, containerId, checkedBy, deep);
+        for (CheckItemRequest result : results) {
+            checkRepository.createCheckItem(
+                    check.id(), result.itemId(), result.inventoryId(), result.result(), result.note());
+            if (result.result() == CheckResult.LOST && result.itemId() != null) {
+                inventoryRepository.markLost(result.itemId());
+            }
+        }
         return check;
     }
 
