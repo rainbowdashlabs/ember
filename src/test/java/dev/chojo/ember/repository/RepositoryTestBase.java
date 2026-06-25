@@ -67,6 +67,7 @@ import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.station.repository.StationApplicationRepository;
 import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.storage.repository.StorageBackendAuditRepository;
 import dev.chojo.ember.feature.storage.repository.StorageQuotaPresetRepository;
 import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
@@ -140,6 +141,7 @@ public abstract class RepositoryTestBase {
     protected static PageRepository pageRepo;
     protected static StorageUsageRepository storageUsageRepo;
     protected static StorageQuotaPresetRepository storagePresetRepo;
+    protected static StorageBackendAuditRepository storageBackendAuditRepo;
     protected static DiscoveryPeerRepository discoveryPeerRepo;
     protected static DiscoveryPingRepository discoveryPingRepo;
     protected static DiscoveryStationCacheRepository discoveryStationCacheRepo;
@@ -246,6 +248,7 @@ public abstract class RepositoryTestBase {
         pageRepo = new PageRepository();
         storageUsageRepo = new StorageUsageRepository();
         storagePresetRepo = new StorageQuotaPresetRepository();
+        storageBackendAuditRepo = new StorageBackendAuditRepository();
         discoveryPeerRepo = new DiscoveryPeerRepository();
         discoveryPingRepo = new DiscoveryPingRepository();
         discoveryStationCacheRepo = new DiscoveryStationCacheRepository();

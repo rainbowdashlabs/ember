@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -194,22 +193,5 @@ public class PageHitRecorder {
         return Instant.now().truncatedTo(ChronoUnit.HOURS);
     }
 
-    private record BucketKey(Instant hour, int pageId, String country, String refererDomain, boolean isBot) {
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof BucketKey(Instant hour1, int id, String country1, String domain, boolean bot)))
-                return false;
-            return pageId == id
-                    && isBot == bot
-                    && hour.equals(hour1)
-                    && country.equals(country1)
-                    && refererDomain.equals(domain);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(hour, pageId, country, refererDomain, isBot);
-        }
-    }
+    private record BucketKey(Instant hour, int pageId, String country, String refererDomain, boolean isBot) {}
 }
