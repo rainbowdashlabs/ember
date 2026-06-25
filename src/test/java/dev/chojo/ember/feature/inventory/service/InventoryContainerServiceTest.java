@@ -166,6 +166,36 @@ class InventoryContainerServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    void containerAndAssignmentAreMutuallyExclusive() {
+        Station station = stationRepo.create("ExclusivityStation");
+        StationMember member = stationMemberRepo.create(station.id(), account.id());
+        Inventory inventory = inventoryRepo.create(station.id(), "Exclusive", InventoryType.INTERNAL, false);
+        try {
+            InventoryContainer box = service.create(station.id(), null, null, "Exclusive Box", null, "", null);
+            InventoryItem item = inventoryRepo.createItem(inventory.id(), null, "Excl Item", null, null);
+
+            inventoryRepo.assignItem(item.id(), member.id());
+            assertEquals(Integer.valueOf(member.id()), inventoryRepo.findItemById(item.id()).orElseThrow().assignedTo());
+            assertEquals(null, inventoryRepo.findItemById(item.id()).orElseThrow().containerId());
+
+            assertTrue(service.setItemContainer(item.id(), box.id()));
+            InventoryItem placed = inventoryRepo.findItemById(item.id()).orElseThrow();
+            assertEquals(null, placed.assignedTo());
+            assertEquals(Integer.valueOf(box.id()), placed.containerId());
+
+            inventoryRepo.assignItem(item.id(), member.id());
+            InventoryItem assigned = inventoryRepo.findItemById(item.id()).orElseThrow();
+            assertEquals(Integer.valueOf(member.id()), assigned.assignedTo());
+            assertEquals(null, assigned.containerId());
+
+            inventoryRepo.deleteItem(item.id());
+            service.delete(box.id(), member.id());
+        } finally {
+            stationRepo.delete(station.id());
+        }
+    }
+
+    @Test
     void wouldCreateCycleReturnsTrueForSelfAndDescendants() {
         Station station = stationRepo.create("CycleStation");
         try {

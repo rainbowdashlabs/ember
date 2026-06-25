@@ -348,20 +348,27 @@ public class InventoryContainerService {
     /**
      * Places an item into a container, or clears its location with a
      * {@code null} container id. Validates that the item and the container
-     * belong to the same station.
+     * belong to the same station. An item placed in a container is
+     * implicitly returned from any member it was assigned to — the two
+     * states are mutually exclusive.
      */
     public boolean setItemContainer(int itemId, Integer containerId) {
+        Optional<InventoryItem> itemOpt = inventoryRepository.findItemById(itemId);
+        if (itemOpt.isEmpty()) return false;
+        InventoryItem item = itemOpt.get();
         if (containerId != null) {
-            Optional<InventoryItem> itemOpt = inventoryRepository.findItemById(itemId);
             Optional<InventoryContainer> targetOpt = containerRepository.findById(containerId);
-            if (itemOpt.isEmpty() || targetOpt.isEmpty()) return false;
+            if (targetOpt.isEmpty()) return false;
             int itemStationId = inventoryRepository
-                    .findById(itemOpt.get().inventoryId())
+                    .findById(item.inventoryId())
                     .map(Inventory::stationId)
                     .orElseThrow(() -> new IllegalArgumentException("Item has no inventory"));
             if (itemStationId != targetOpt.get().stationId()) {
                 throw new IllegalArgumentException("Item and container belong to different stations");
             }
+        }
+        if (containerId != null && item.assignedTo() != null) {
+            inventoryRepository.returnHistory(itemId, item.assignedTo());
         }
         return inventoryRepository.setItemContainer(itemId, containerId);
     }

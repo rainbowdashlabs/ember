@@ -407,27 +407,41 @@ public class InventoryRepository {
 
     /**
      * Assigns an item to a member, or unassigns it by passing {@code null}.
+     * Assigning an item to a member also clears the item's container — an
+     * item handed to a member is no longer in storage.
      *
      * @param itemId   the item ID
      * @param memberId the member ID to assign to, or {@code null} to unassign
      * @return {@code true} if the assignment was updated
      */
     public boolean assignItem(int itemId, Integer memberId) {
-        return query("UPDATE inventory_item SET assigned_to = :member_id WHERE id = :id;")
+        return query(
+                        """
+                UPDATE inventory_item
+                SET assigned_to = :member_id,
+                    container_id = CASE WHEN :member_id::int IS NOT NULL THEN NULL ELSE container_id END
+                WHERE id = :id;""")
                 .single(call().bind("member_id", memberId).bind("id", itemId))
                 .update()
                 .changed();
     }
 
     /**
-     * Sets or clears the container an item is physically placed in.
+     * Sets or clears the container an item is physically placed in. Placing
+     * an item in a container also clears the assignment — an item back in
+     * storage is no longer with a member.
      *
      * @param itemId      the item ID
      * @param containerId the container ID, or {@code null} to clear the location
      * @return {@code true} if the item row was updated
      */
     public boolean setItemContainer(int itemId, Integer containerId) {
-        return query("UPDATE inventory_item SET container_id = :container_id WHERE id = :id;")
+        return query(
+                        """
+                UPDATE inventory_item
+                SET container_id = :container_id,
+                    assigned_to = CASE WHEN :container_id::int IS NOT NULL THEN NULL ELSE assigned_to END
+                WHERE id = :id;""")
                 .single(call().bind("container_id", containerId).bind("id", itemId))
                 .update()
                 .changed();

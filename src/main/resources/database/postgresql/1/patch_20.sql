@@ -88,8 +88,13 @@ CREATE INDEX idx_inventory_item_container
     ON ember_schema.inventory_item (container_id)
     WHERE container_id IS NOT NULL;
 
+ALTER TABLE ember_schema.inventory_item
+    ADD CONSTRAINT inventory_item_assigned_xor_in_container CHECK (
+        NOT (assigned_to IS NOT NULL AND container_id IS NOT NULL)
+    );
+
 COMMENT ON COLUMN ember_schema.inventory_item.container_id IS
-    'Optional reference to the container that physically holds this item. NULL means unlocated. ON DELETE SET NULL keeps the item even if the container is deleted.';
+    'Optional reference to the container that physically holds this item. NULL means unlocated. An item with a container is not assigned to a member; the two states are mutually exclusive via the inventory_item_assigned_xor_in_container CHECK. ON DELETE SET NULL keeps the item even if the container is deleted.';
 
 ALTER TABLE ember_schema.inventory_check
     ALTER COLUMN member_id DROP NOT NULL;
