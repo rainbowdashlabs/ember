@@ -25,7 +25,8 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import ContainerNewModal from '@/views/stationview/inventory/storageview/ContainerNewModal.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import {inventoryContainers} from '@/api'
+import IconButton from '@/components/button/IconButton.vue'
+import {inventory, inventoryContainers} from '@/api'
 import type {
   ContainerDetail,
   ContainerContents,
@@ -55,6 +56,100 @@ const editParentId = ref<number | null>(null)
 const showNewChildModal = ref(false)
 const showDeleteConfirm = ref(false)
 const submitting = ref(false)
+
+const scanValue = ref('')
+const scanError = ref('')
+const scanSuccess = ref('')
+const scanBusy = ref(false)
+
+interface ScanEvent {
+  id: number
+  kind: 'item' | 'container'
+  name: string
+  internalId?: string | null
+  ts: string
+}
+
+const scanHistory = ref<ScanEvent[]>([])
+let scanCounter = 0
+
+function flashScanError(msg: string) {
+  scanError.value = msg
+  setTimeout(() => (scanError.value = ''), 3500)
+}
+
+function flashScanSuccess(msg: string) {
+  scanSuccess.value = msg
+  setTimeout(() => (scanSuccess.value = ''), 2500)
+}
+
+async function handleScanAdd() {
+  const term = scanValue.value.trim()
+  if (!term || !detail.value) return
+  scanValue.value = ''
+  scanBusy.value = true
+  try {
+    const container = await inventoryContainers.resolveContainerByScan(term)
+    if (container) {
+      if (container.id === detail.value.container.id) {
+        flashScanError(t('inventory.storage.scan.selfTarget'))
+        return
+      }
+      if (container.parentId === detail.value.container.id) {
+        flashScanSuccess(t('inventory.storage.scan.containerAlreadyHere', {name: container.name}))
+        return
+      }
+      try {
+        await inventoryContainers.updateContainer(container.id, {
+          parentId: detail.value.container.id,
+          internalId: container.internalId ?? null,
+          name: container.name,
+          kindId: container.kindId,
+          description: container.description ?? '',
+        })
+      } catch (e: any) {
+        flashScanError(e?.response?.data?.message ?? t('inventory.storage.scan.containerFailed'))
+        return
+      }
+      scanHistory.value.unshift({
+        id: ++scanCounter,
+        kind: 'container',
+        name: container.name,
+        internalId: container.internalId,
+        ts: new Date().toISOString(),
+      })
+      flashScanSuccess(t('inventory.storage.scan.containerMoved', {name: container.name}))
+      await Promise.all([loadContents(), loadHistory()])
+      return
+    }
+    const item = await inventory.findByInternalId(term)
+    if (item) {
+      if (item.containerId === detail.value.container.id) {
+        flashScanSuccess(t('inventory.storage.scan.itemAlreadyHere', {name: item.name ?? ''}))
+        return
+      }
+      try {
+        await inventoryContainers.setItemContainer(item.id, detail.value.container.id)
+      } catch (e: any) {
+        flashScanError(e?.response?.data?.message ?? t('inventory.storage.scan.itemFailed'))
+        return
+      }
+      scanHistory.value.unshift({
+        id: ++scanCounter,
+        kind: 'item',
+        name: item.name ?? '',
+        internalId: item.internalId,
+        ts: new Date().toISOString(),
+      })
+      flashScanSuccess(t('inventory.storage.scan.itemPlaced', {name: item.name ?? ''}))
+      await loadContents()
+      return
+    }
+    flashScanError(t('inventory.storage.scan.notFound', {scan: term}))
+  } finally {
+    scanBusy.value = false
+  }
+}
 
 const containerId = computed(() => Number(route.params.id))
 const kindById = computed(() => {
@@ -242,6 +337,37 @@ onMounted(load)
       <p v-if="detail.container.description" class="text-sm mb-4 whitespace-pre-line">
         {{ detail.container.description }}
       </p>
+
+      <NeutralContainer class="mb-4">
+        <SubHeader class="mb-2">{{ t('inventory.storage.scan.title') }}</SubHeader>
+        <p class="text-xs text-(--text-muted) mb-2">{{ t('inventory.storage.scan.hint') }}</p>
+        <div class="flex gap-2">
+          <TextInput
+              v-model="scanValue"
+              :placeholder="t('inventory.storage.scan.placeholder')"
+              @keydown.enter="handleScanAdd"
+              class="flex-1"
+              :disabled="scanBusy"
+          />
+          <PrimaryButton :disabled="scanBusy" @click="handleScanAdd">
+            <font-awesome-icon :icon="['fas', 'barcode']" class="mr-2" />
+            {{ t('inventory.storage.scan.action') }}
+          </PrimaryButton>
+        </div>
+        <Alert v-if="scanError" variant="error" class="mt-2">{{ scanError }}</Alert>
+        <Alert v-if="scanSuccess" variant="success" class="mt-2">{{ scanSuccess }}</Alert>
+        <ul v-if="scanHistory.length > 0" class="mt-3 text-xs divide-y divide-(--bg-accent)">
+          <li v-for="entry in scanHistory" :key="entry.id" class="py-1 flex items-center gap-2">
+            <font-awesome-icon
+                :icon="['fas', entry.kind === 'container' ? 'box-open' : 'cube']"
+                class="text-(--text-muted)"
+            />
+            <span class="font-medium">{{ entry.name }}</span>
+            <span v-if="entry.internalId" class="text-(--text-muted)">{{ entry.internalId }}</span>
+            <span class="ml-auto text-(--text-muted)">{{ new Date(entry.ts).toLocaleTimeString() }}</span>
+          </li>
+        </ul>
+      </NeutralContainer>
 
       <div class="flex items-center justify-between mb-2">
         <SectionHeader>{{ t('inventory.storage.contents') }}</SectionHeader>

@@ -22,16 +22,65 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import InventoryItemCard from './InventoryItemCard.vue'
 import {inventory, exchanges, stationMembers} from '@/api'
 import type {ExchangeRequestEntry, InventorySize, StationMember} from '@/api/types'
-import {ExchangeStatus} from '@/api/types'
+import {ExchangeStatus, StationPermission} from '@/api/types'
 import type {MyInventoryItem} from '@/api/inventory'
 import {useSession} from '@/composables/useSession'
 import MutedText from '@/components/typography/MutedText.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import TextInput from '@/components/input/text/TextInput.vue'
 
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
 
-const {canManageInventory} = useSession()
+const {canManageInventory, hasPermission} = useSession()
+const canAssign = computed(() =>
+    hasPermission(StationPermission.INVENTORY_ASSIGN) || hasPermission(StationPermission.INVENTORY_EDIT))
+
+const scanValue = ref('')
+const scanError = ref('')
+const scanSuccess = ref('')
+const scanBusy = ref(false)
+
+function flashScanError(msg: string) {
+  scanError.value = msg
+  setTimeout(() => (scanError.value = ''), 3500)
+}
+
+function flashScanSuccess(msg: string) {
+  scanSuccess.value = msg
+  setTimeout(() => (scanSuccess.value = ''), 2500)
+}
+
+async function handleScanAssign() {
+  const term = scanValue.value.trim()
+  if (!term) return
+  scanValue.value = ''
+  scanBusy.value = true
+  try {
+    const item = await inventory.findByInternalId(term)
+    if (!item) {
+      flashScanError(t('inventory.assign.errors.notFound', {scan: term}))
+      return
+    }
+    if (item.assignedTo === memberId.value) {
+      flashScanSuccess(t('inventory.memberInventory.alreadyHere', {name: item.name ?? ''}))
+      return
+    }
+    await inventory.assignItem(item.id, {
+      memberId: memberId.value,
+      memberName: member.value
+          ? `${member.value.firstName ?? ''} ${member.value.lastName ?? ''}`.trim()
+          : '',
+    })
+    flashScanSuccess(t('inventory.assign.assigned', {name: item.name ?? ''}))
+    items.value = await inventory.memberItems(memberId.value)
+  } catch (e: any) {
+    flashScanError(e?.response?.data?.message ?? t('inventory.assign.errors.failed'))
+  } finally {
+    scanBusy.value = false
+  }
+}
 
 const memberId = computed(() => Number(route.params.memberId))
 const member = ref<StationMember | null>(null)
@@ -159,6 +208,26 @@ watch(memberId, loadData)
 
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
+
+      <NeutralContainer v-if="canAssign && !loading">
+        <SubHeader class="mb-2">{{ t('inventory.memberInventory.scanTitle') }}</SubHeader>
+        <p class="text-xs text-(--text-muted) mb-2">{{ t('inventory.memberInventory.scanHint') }}</p>
+        <div class="flex gap-2">
+          <TextInput
+              v-model="scanValue"
+              :placeholder="t('inventory.memberInventory.scanPlaceholder')"
+              @keydown.enter="handleScanAssign"
+              class="flex-1"
+              :disabled="scanBusy"
+          />
+          <PrimaryButton :disabled="scanBusy" @click="handleScanAssign">
+            <font-awesome-icon :icon="['fas', 'barcode']" class="mr-2" />
+            {{ t('inventory.memberInventory.scanAction') }}
+          </PrimaryButton>
+        </div>
+        <Alert v-if="scanError" variant="error" class="mt-2">{{ scanError }}</Alert>
+        <Alert v-if="scanSuccess" variant="success" class="mt-2">{{ scanSuccess }}</Alert>
+      </NeutralContainer>
 
       <template v-if="!loading">
         <EmptyState v-if="grouped.length === 0 && items.length === 0">{{ t('profile.noInventory') }}</EmptyState>
