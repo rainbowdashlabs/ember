@@ -27,8 +27,9 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import NoteEditor from '@/components/comment/NoteEditor.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import {inventory, stationMembers} from '@/api'
+import {inventory, inventoryContainers, stationMembers} from '@/api'
 import type {InventoryItem, InventoryItemHistory, InventorySize, StationMember} from '@/api/types'
+import type {ItemLocationResponse} from '@/api/inventoryContainers'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 
@@ -43,6 +44,7 @@ const item = ref<InventoryItem | null>(null)
 const historyEntries = ref<InventoryItemHistory[]>([])
 const sizes = ref<InventorySize[]>([])
 const members = ref<StationMember[]>([])
+const location = ref<ItemLocationResponse | null>(null)
 const loading = ref(true)
 const error = ref('')
 const success = ref('')
@@ -163,12 +165,14 @@ async function loadData() {
     ])
     item.value = i
     historyEntries.value = h
-    const [s, m] = await Promise.all([
+    const [s, m, loc] = await Promise.all([
       inventory.listSizes(i.inventoryId),
       stationMembers.listMembers(),
+      inventoryContainers.getItemLocation(itemId.value).catch(() => null),
     ])
     sizes.value = s
     members.value = m
+    location.value = loc
   } catch {
     error.value = t('common.error')
   } finally {
@@ -245,6 +249,20 @@ onMounted(loadData)
             <div v-if="assignedMember">
               <FieldLabel class="text-xs">{{ t('itemDetail.assignedTo') }}</FieldLabel>
               <MemberName :identity="assignedMemberIdentity"/>
+            </div>
+            <div v-if="location && location.pathSegments.length > 0" class="col-span-2 sm:col-span-4">
+              <FieldLabel class="text-xs">{{ t('itemDetail.location') }}</FieldLabel>
+              <span class="text-sm">
+                <template v-for="(seg, i) in location.pathSegments" :key="i">
+                  <router-link
+                      :to="{name: 'inventory-container-detail', params: {id: String(location.pathIds[i])}}"
+                      class="hover:underline"
+                  >
+                    {{ seg }}
+                  </router-link>
+                  <span v-if="i < location.pathSegments.length - 1" class="text-(--text-muted)"> / </span>
+                </template>
+              </span>
             </div>
           </div>
         </NeutralContainer>

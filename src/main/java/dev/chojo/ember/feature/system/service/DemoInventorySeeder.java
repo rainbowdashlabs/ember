@@ -7,20 +7,30 @@ package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
+import dev.chojo.ember.feature.inventory.entity.FieldConfig;
+import dev.chojo.ember.feature.inventory.entity.FieldType;
+import dev.chojo.ember.feature.inventory.entity.InventoryContainer;
+import dev.chojo.ember.feature.inventory.entity.InventoryContainerKind;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemFieldValues;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
+import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Random;
 
@@ -34,15 +44,21 @@ public class DemoInventorySeeder {
     private final InventoryRepository inventoryRepository;
     private final InventoryCheckRepository inventoryCheckRepository;
     private final AccountRepository accountRepository;
+    private final InventoryContainerService containerService;
+    private final InventoryFieldDefinitionService fieldDefinitionService;
 
     @Inject
     public DemoInventorySeeder(
             InventoryRepository inventoryRepository,
             InventoryCheckRepository inventoryCheckRepository,
-            AccountRepository accountRepository) {
+            AccountRepository accountRepository,
+            InventoryContainerService containerService,
+            InventoryFieldDefinitionService fieldDefinitionService) {
         this.inventoryRepository = inventoryRepository;
         this.inventoryCheckRepository = inventoryCheckRepository;
         this.accountRepository = accountRepository;
+        this.containerService = containerService;
+        this.fieldDefinitionService = fieldDefinitionService;
     }
 
     public void seedInventory(
@@ -282,7 +298,131 @@ public class DemoInventorySeeder {
             historyCount++;
         }
 
+        seedStorageContainers(stationId, rng, helm, stiefel, sporttasche, blouson, parka, latzhose);
+        seedCustomFields(stiefel.id(), helm.id());
+
         log.info("Demo: Created {} inventory items with {} history entries", itemCounter - 1, historyCount);
+    }
+
+    private void seedStorageContainers(
+            int stationId,
+            Random rng,
+            dev.chojo.ember.feature.inventory.entity.Inventory helm,
+            dev.chojo.ember.feature.inventory.entity.Inventory stiefel,
+            dev.chojo.ember.feature.inventory.entity.Inventory sporttasche,
+            dev.chojo.ember.feature.inventory.entity.Inventory blouson,
+            dev.chojo.ember.feature.inventory.entity.Inventory parka,
+            dev.chojo.ember.feature.inventory.entity.Inventory latzhose) {
+        containerService.seedDefaultKinds(stationId);
+        containerService.createKind(stationId, "tour_case", "Tour Case", "suitcase", 80, true);
+        containerService.createKind(stationId, "workshop_bench", "Werkbank", "warehouse", 90, true);
+
+        var kinds = containerService.listKinds(stationId);
+        java.util.function.Function<String, Integer> kindIdOf = key -> kinds.stream()
+                .filter(k -> k.key().equals(key))
+                .findFirst()
+                .map(InventoryContainerKind::id)
+                .orElse(null);
+
+        InventoryContainer lagerA = containerService.create(
+                stationId, null, "STO-A", "Lager A", kindIdOf.apply("room"), "Hauptlager", null);
+        InventoryContainer regal1 = containerService.create(
+                stationId, lagerA.id(), "STO-A-R1", "Regal 1", kindIdOf.apply("shelf"), "Helme & Kopfschutz", null);
+        InventoryContainer regal2 = containerService.create(
+                stationId, lagerA.id(), "STO-A-R2", "Regal 2", kindIdOf.apply("shelf"), "Stiefel & Schuhe", null);
+        InventoryContainer kiste1 = containerService.create(
+                stationId, regal1.id(), "STO-A-R1-B1", "Kiste 1", kindIdOf.apply("box"), "Helme", null);
+        InventoryContainer kiste2 = containerService.create(
+                stationId, regal1.id(), "STO-A-R1-B2", "Kiste 2", kindIdOf.apply("box"), "Helme Ersatz", null);
+        InventoryContainer kiste3 = containerService.create(
+                stationId, regal2.id(), "STO-A-R2-B1", "Kiste 3", kindIdOf.apply("box"), "Stiefel", null);
+
+        InventoryContainer backstage = containerService.create(
+                stationId, null, "STO-B", "Backstage", kindIdOf.apply("area"), "Hinter der Bühne", null);
+        InventoryContainer schrank = containerService.create(
+                stationId, backstage.id(), "STO-B-S1", "Schrank", kindIdOf.apply("drawer"), "Kleidung", null);
+        InventoryContainer kiste4 = containerService.create(
+                stationId, schrank.id(), "STO-B-S1-B1", "Kiste 4", kindIdOf.apply("box"), "Blousons & Parkas", null);
+
+        placeItemsInto(helm.id(), kiste1.id(), 6);
+        placeItemsInto(helm.id(), kiste2.id(), 3);
+        placeItemsInto(stiefel.id(), kiste3.id(), 8);
+        placeItemsInto(sporttasche.id(), backstage.id(), 4);
+        placeItemsInto(blouson.id(), kiste4.id(), 5);
+        placeItemsInto(parka.id(), kiste4.id(), 4);
+        placeItemsInto(latzhose.id(), schrank.id(), 6);
+    }
+
+    private void placeItemsInto(int inventoryId, int containerId, int count) {
+        var items = inventoryRepository.findItems(inventoryId);
+        int placed = 0;
+        for (var item : items) {
+            if (placed >= count) break;
+            if (item.containerId() != null) continue;
+            inventoryRepository.setItemContainer(item.id(), containerId);
+            placed++;
+        }
+    }
+
+    private void seedCustomFields(int stiefelId, int helmId) {
+        FieldConfig.EnumConfig condition = new FieldConfig.EnumConfig(List.of(
+                new FieldConfig.EnumConfig.EnumOption("new", "Neu"),
+                new FieldConfig.EnumConfig.EnumOption("good", "Gut"),
+                new FieldConfig.EnumConfig.EnumOption("worn", "Abgenutzt")));
+        fieldDefinitionService.create(stiefelId, "last_service", "Letzter Service", FieldType.DATE, false, 10, null);
+        fieldDefinitionService.create(stiefelId, "condition", "Zustand", FieldType.ENUM, false, 20, condition);
+        fieldDefinitionService.create(stiefelId, "notes", "Notizen", FieldType.TEXT, false, 30, null);
+        fieldDefinitionService.create(
+                stiefelId,
+                "weight_kg",
+                "Gewicht",
+                FieldType.NUMBER,
+                false,
+                40,
+                new FieldConfig.NumberConfig(BigDecimal.ZERO, BigDecimal.valueOf(50), BigDecimal.valueOf(0.1), "kg"));
+        fieldDefinitionService.create(
+                stiefelId,
+                "owner_supplied",
+                "Eigener Stiefel",
+                FieldType.BOOLEAN,
+                false,
+                50,
+                new FieldConfig.BooleanConfig("Ja", "Nein"));
+
+        fieldDefinitionService.create(
+                helmId,
+                "size_cm",
+                "Kopfumfang",
+                FieldType.NUMBER,
+                false,
+                10,
+                new FieldConfig.NumberConfig(BigDecimal.valueOf(50), BigDecimal.valueOf(65), BigDecimal.ONE, "cm"));
+
+        var stiefelItems = inventoryRepository.findItems(stiefelId);
+        int idx = 0;
+        var conditions = List.of("new", "good", "worn");
+        for (var item : stiefelItems) {
+            LinkedHashMap<String, ItemFieldValues.FieldValue> values = new LinkedHashMap<>();
+            values.put("condition", new ItemFieldValues.EnumValue(conditions.get(idx % conditions.size())));
+            values.put(
+                    "last_service",
+                    new ItemFieldValues.DateValue(LocalDate.now().minusDays(30L * (idx % 12))));
+            values.put(
+                    "weight_kg",
+                    new ItemFieldValues.NumberValue(
+                            BigDecimal.valueOf(1.2 + 0.1 * (idx % 5)).setScale(1, java.math.RoundingMode.HALF_UP)));
+            if (idx % 3 == 0) {
+                values.put("notes", new ItemFieldValues.TextValue("Aus letzter Inventur"));
+            }
+            inventoryRepository.updateItem(
+                    item.id(),
+                    item.internalId(),
+                    item.name(),
+                    item.sizeId(),
+                    new InventoryItemMetadata(false, new ItemFieldValues(values)));
+            idx++;
+        }
+        log.info("Demo: Seeded custom fields and storage containers for inventories {} and {}", stiefelId, helmId);
     }
 
     public void seedInventoryChecks(

@@ -62,7 +62,7 @@ class InventoryFieldDefinitionRepositoryTest extends RepositoryTestBase {
 
         List<InventoryFieldDefinition> all = fieldDefinitionRepo.findByInventory(inventory.id());
         assertEquals(2, all.size());
-        assertEquals("weight", all.get(0).key());
+        assertEquals("weight", all.getFirst().key());
 
         assertTrue(fieldDefinitionRepo.findById(condition.id()).isPresent());
         assertTrue(fieldDefinitionRepo.findById(99999).isEmpty());

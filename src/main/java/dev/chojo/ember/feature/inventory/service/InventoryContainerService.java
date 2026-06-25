@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.feature.inventory.entity.ContainerEventKind;
 import dev.chojo.ember.feature.inventory.entity.ContainerPath;
+import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryContainer;
 import dev.chojo.ember.feature.inventory.entity.InventoryContainerHistory;
 import dev.chojo.ember.feature.inventory.entity.InventoryContainerKind;
@@ -356,7 +357,7 @@ public class InventoryContainerService {
             if (itemOpt.isEmpty() || targetOpt.isEmpty()) return false;
             int itemStationId = inventoryRepository
                     .findById(itemOpt.get().inventoryId())
-                    .map(inv -> inv.stationId())
+                    .map(Inventory::stationId)
                     .orElseThrow(() -> new IllegalArgumentException("Item has no inventory"));
             if (itemStationId != targetOpt.get().stationId()) {
                 throw new IllegalArgumentException("Item and container belong to different stations");

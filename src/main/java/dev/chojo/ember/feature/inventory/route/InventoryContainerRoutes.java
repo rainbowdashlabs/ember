@@ -336,7 +336,7 @@ public class InventoryContainerRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "Resolve a scanned internal id to its container",
             tags = {"Inventory"},
-            queryParams = @OpenApiParam(name = "internalId", type = String.class, required = true),
+            queryParams = @OpenApiParam(name = "internalId", required = true),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventoryContainer.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
