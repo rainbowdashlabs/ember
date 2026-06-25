@@ -328,10 +328,6 @@ onMounted(load)
               :disabled="scanBusy"
           />
           <ScanButton mode="continuous" :disabled="scanBusy" @decoded="onCameraScan" />
-          <PrimaryButton :disabled="scanBusy" @click="handleScanAdd">
-            <font-awesome-icon :icon="['fas', 'barcode']" class="mr-2" />
-            {{ t('inventory.storage.scan.action') }}
-          </PrimaryButton>
         </div>
         <Alert v-if="scanError" variant="error" class="mt-2">{{ scanError }}</Alert>
         <Alert v-if="scanSuccess" variant="success" class="mt-2">{{ scanSuccess }}</Alert>

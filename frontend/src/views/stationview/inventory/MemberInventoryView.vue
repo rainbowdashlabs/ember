@@ -28,6 +28,8 @@ import {useSession} from '@/composables/useSession'
 import MutedText from '@/components/typography/MutedText.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import ScanButton from '@/components/scanner/ScanButton.vue'
+import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import UnknownScanModal from '@/views/stationview/inventory/UnknownScanModal.vue'
 
 const {t} = useI18n()
@@ -63,6 +65,12 @@ async function assignToCurrentMember(item: InventoryItem | {id: number; name?: s
   })
   flashScanSuccess(t('inventory.assign.assigned', {name: item.name ?? ''}))
   items.value = await inventory.memberItems(memberId.value)
+}
+
+async function onCameraScan(value: string) {
+  if (scanBusy.value) return
+  scanValue.value = normaliseScannedPayload(value)
+  await handleScanAssign()
 }
 
 async function handleScanAssign() {
@@ -235,10 +243,7 @@ watch(memberId, loadData)
               class="flex-1"
               :disabled="scanBusy"
           />
-          <PrimaryButton :disabled="scanBusy" @click="handleScanAssign">
-            <font-awesome-icon :icon="['fas', 'barcode']" class="mr-2" />
-            {{ t('inventory.memberInventory.scanAction') }}
-          </PrimaryButton>
+          <ScanButton mode="continuous" :disabled="scanBusy" @decoded="onCameraScan" />
         </div>
         <Alert v-if="scanError" variant="error" class="mt-2">{{ scanError }}</Alert>
         <Alert v-if="scanSuccess" variant="success" class="mt-2">{{ scanSuccess }}</Alert>

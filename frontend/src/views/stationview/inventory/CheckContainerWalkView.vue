@@ -22,6 +22,8 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import ScanButton from '@/components/scanner/ScanButton.vue'
+import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
@@ -85,6 +87,11 @@ async function load() {
 
 async function reloadOnDeepChange() {
   await load()
+}
+
+async function onCameraScan(value: string) {
+  scanValue.value = normaliseScannedPayload(value)
+  await handleScan()
 }
 
 async function handleScan() {
@@ -211,10 +218,7 @@ onMounted(load)
                 @keydown.enter="handleScan"
                 class="flex-1"
             />
-            <PrimaryButton @click="handleScan">
-              <font-awesome-icon :icon="['fas', 'barcode']" class="mr-2" />
-              {{ t('inventory.checkContainer.scanAction') }}
-            </PrimaryButton>
+            <ScanButton mode="continuous" @decoded="onCameraScan" />
           </div>
           <div class="flex gap-4 text-sm mt-3">
             <SuccessBadge>{{ t('inventory.checkContainer.statusConfirmed') }}: {{ counts.confirmed }}</SuccessBadge>

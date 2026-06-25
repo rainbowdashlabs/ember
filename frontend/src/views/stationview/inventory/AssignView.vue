@@ -23,6 +23,8 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import {inventory, stationMembers} from '@/api'
 import type {InventoryItem, StationMember} from '@/api/types'
 import UnknownScanModal from '@/views/stationview/inventory/UnknownScanModal.vue'
+import ScanButton from '@/components/scanner/ScanButton.vue'
+import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 
 interface AssignmentEvent {
   id: number
@@ -80,6 +82,12 @@ function flashError(msg: string) {
 function flashSuccess(msg: string) {
   success.value = msg
   setTimeout(() => (success.value = ''), 2500)
+}
+
+async function onCameraScan(value: string) {
+  if (submitting.value) return
+  scanValue.value = normaliseScannedPayload(value)
+  await handleScan()
 }
 
 async function handleScan() {
@@ -211,10 +219,7 @@ onMounted(load)
               class="flex-1"
               :disabled="!memberId"
           />
-          <PrimaryButton :disabled="!memberId || submitting" @click="handleScan">
-            <font-awesome-icon :icon="['fas', 'barcode']" class="mr-2" />
-            {{ t('inventory.assign.action') }}
-          </PrimaryButton>
+          <ScanButton mode="continuous" :disabled="!memberId || submitting" @decoded="onCameraScan" />
         </div>
         <label class="flex items-center gap-2 text-sm mt-3">
           <ToggleInput v-model="bulkMode" />
