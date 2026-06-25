@@ -23,6 +23,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param assignedTo  the member this item is assigned to, or {@code null} if unassigned
  * @param lostAt      when the item was marked as lost, or {@code null} if not lost
  * @param itemSource  whether the item is internally or externally sourced
+ * @param containerId the container that physically holds this item, or {@code null} if unlocated
  */
 public record InventoryItem(
         int id,
@@ -33,7 +34,8 @@ public record InventoryItem(
         InventoryItemMetadata metadata,
         Integer assignedTo,
         Instant lostAt,
-        ItemSource itemSource) {
+        ItemSource itemSource,
+        Integer containerId) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -47,7 +49,8 @@ public record InventoryItem(
                 InventoryItemMetadata.parse(row.getString("metadata")),
                 row.getObject("assigned_to", Integer.class),
                 row.get("lost_at", INSTANT_TIMESTAMP),
-                row.getEnum("item_source", ItemSource.class));
+                row.getEnum("item_source", ItemSource.class),
+                row.getObject("container_id", Integer.class));
     }
 
     /**

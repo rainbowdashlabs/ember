@@ -11,6 +11,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.inventory.entity.ContainerPath;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
@@ -18,6 +19,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
+import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryExportService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
@@ -48,6 +50,7 @@ public class InventoryRoutes implements Routes {
     private final InventoryService inventoryService;
     private final InventoryCheckService checkService;
     private final InventoryExportService inventoryExportService;
+    private final InventoryContainerService containerService;
     private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
@@ -55,10 +58,12 @@ public class InventoryRoutes implements Routes {
             InventoryService inventoryService,
             InventoryCheckService checkService,
             InventoryExportService inventoryExportService,
+            InventoryContainerService containerService,
             MemberIdentityFactory memberIdentityFactory) {
         this.inventoryService = inventoryService;
         this.checkService = checkService;
         this.inventoryExportService = inventoryExportService;
+        this.containerService = containerService;
         this.memberIdentityFactory = memberIdentityFactory;
     }
 
@@ -107,6 +112,11 @@ public class InventoryRoutes implements Routes {
         routes.get(prefix + "/inventory-items/{id}", this::getItem, StationPermission.INVENTORY_READ);
         routes.put(prefix + "/inventory-items/{id}", this::updateItem, StationPermission.INVENTORY_EDIT);
         routes.put(prefix + "/inventory-items/{id}/assign", this::assignItem, StationPermission.INVENTORY_EDIT);
+        routes.get(prefix + "/inventory-items/{id}/location", this::getItemLocation, StationPermission.INVENTORY_READ);
+        routes.put(
+                prefix + "/inventory-items/{id}/container",
+                this::setItemContainer,
+                StationPermission.INVENTORY_STORAGE);
         routes.get(prefix + "/inventory-items/{id}/history", this::getHistory, StationPermission.INVENTORY_READ);
         routes.put(prefix + "/inventory-items/{id}/lost", this::markLost, StationPermission.INVENTORY_EDIT);
         routes.delete(prefix + "/inventory-items/{id}/lost", this::markFound, StationPermission.INVENTORY_EDIT);
@@ -595,6 +605,51 @@ public class InventoryRoutes implements Routes {
                 });
     }
 
+    @OpenApi(
+            path = "/api/v1/inventory-items/{id}/location",
+            methods = HttpMethod.GET,
+            summary = "Get an item's container path",
+            tags = {"Inventory"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = ItemLocationResponse.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void getItemLocation(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        verifyItemOwnership(id, UserSession.from(ctx));
+        InventoryItem item = inventoryService.findItemById(id).orElseThrow(NotFoundResponse::new);
+        ContainerPath path = containerService.pathOfItem(item);
+        ctx.json(new ItemLocationResponse(item.id(), item.containerId(), path.segments(), path.ids(), path.display()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/inventory-items/{id}/container",
+            methods = HttpMethod.PUT,
+            summary = "Place an item into a container, or clear its container",
+            tags = {"Inventory"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ContainerAssignRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void setItemContainer(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        verifyItemOwnership(id, UserSession.from(ctx));
+        var body = ctx.bodyAsClass(ContainerAssignRequest.class);
+        try {
+            if (containerService.setItemContainer(id, body.containerId())) {
+                ctx.status(HttpStatus.NO_CONTENT);
+            } else {
+                throw new NotFoundResponse();
+            }
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse(e.getMessage());
+        }
+    }
+
     private void getHistory(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var session = UserSession.from(ctx);
@@ -841,6 +896,11 @@ public class InventoryRoutes implements Routes {
             InventoryItem.ItemSource itemSource) {}
 
     public record AssignRequest(Integer memberId, String memberName) {}
+
+    public record ContainerAssignRequest(Integer containerId) {}
+
+    public record ItemLocationResponse(
+            int itemId, Integer containerId, List<String> pathSegments, List<Integer> pathIds, String pathDisplay) {}
 
     public record RequirementRequest(int inventoryId, StationUserType userType, Integer groupId, int quantity) {}
 

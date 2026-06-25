@@ -420,6 +420,39 @@ public class InventoryRepository {
     }
 
     /**
+     * Sets or clears the container an item is physically placed in.
+     *
+     * @param itemId      the item ID
+     * @param containerId the container ID, or {@code null} to clear the location
+     * @return {@code true} if the item row was updated
+     */
+    public boolean setItemContainer(int itemId, Integer containerId) {
+        return query("UPDATE inventory_item SET container_id = :container_id WHERE id = :id;")
+                .single(call().bind("container_id", containerId).bind("id", itemId))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Returns whether the given station has any item whose internal id matches.
+     */
+    public boolean itemInternalIdExists(int stationId, String internalId, Integer excludeItemId) {
+        return query("""
+                SELECT 1 FROM inventory_item ii
+                JOIN inventory i ON i.id = ii.inventory_id
+                WHERE i.station_id = :station_id
+                  AND ii.internal_id = :internal_id
+                  AND (:exclude_id::int IS NULL OR ii.id <> :exclude_id)
+                LIMIT 1;""")
+                .single(call().bind("station_id", stationId)
+                        .bind("internal_id", internalId)
+                        .bind("exclude_id", excludeItemId))
+                .map(row -> row.getInt(1))
+                .first()
+                .isPresent();
+    }
+
+    /**
      * Marks an inventory item as lost by setting the lost timestamp.
      *
      * @param id the item ID
