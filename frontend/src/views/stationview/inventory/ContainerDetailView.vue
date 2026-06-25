@@ -19,7 +19,6 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
@@ -64,21 +63,9 @@ function onAddChildChoice(target: 'existing' | 'new') {
 }
 const submitting = ref(false)
 
-const scanValue = ref('')
+const scanBusy = ref(false)
 const scanError = ref('')
 const scanSuccess = ref('')
-const scanBusy = ref(false)
-
-interface ScanEvent {
-  id: number
-  kind: 'item' | 'container'
-  name: string
-  internalId?: string | null
-  ts: string
-}
-
-const scanHistory = ref<ScanEvent[]>([])
-let scanCounter = 0
 const unknownScanCode = ref<string | null>(null)
 
 function flashScanError(msg: string) {
@@ -92,15 +79,9 @@ function flashScanSuccess(msg: string) {
 }
 
 async function onCameraScan(value: string) {
-  if (scanBusy.value) return
-  scanValue.value = normaliseScannedPayload(value)
-  await handleScanAdd()
-}
-
-async function handleScanAdd() {
-  const term = scanValue.value.trim()
-  if (!term || !detail.value) return
-  scanValue.value = ''
+  if (scanBusy.value || !detail.value) return
+  const term = normaliseScannedPayload(value).trim()
+  if (!term) return
   scanBusy.value = true
   try {
     const container = await inventoryContainers.resolveContainerByScan(term)
@@ -125,13 +106,6 @@ async function handleScanAdd() {
         flashScanError(e?.response?.data?.message ?? t('inventory.storage.scan.containerFailed'))
         return
       }
-      scanHistory.value.unshift({
-        id: ++scanCounter,
-        kind: 'container',
-        name: container.name,
-        internalId: container.internalId,
-        ts: new Date().toISOString(),
-      })
       flashScanSuccess(t('inventory.storage.scan.containerMoved', {name: container.name}))
       await Promise.all([loadContents(), loadHistory()])
       return
@@ -148,13 +122,6 @@ async function handleScanAdd() {
         flashScanError(e?.response?.data?.message ?? t('inventory.storage.scan.itemFailed'))
         return
       }
-      scanHistory.value.unshift({
-        id: ++scanCounter,
-        kind: 'item',
-        name: item.name ?? '',
-        internalId: item.internalId,
-        ts: new Date().toISOString(),
-      })
       flashScanSuccess(t('inventory.storage.scan.itemPlaced', {name: item.name ?? ''}))
       await loadContents()
       return
@@ -170,13 +137,6 @@ async function onUnknownScanCreated(item: InventoryItem) {
   if (!detail.value) return
   try {
     await inventoryContainers.setItemContainer(item.id, detail.value.container.id)
-    scanHistory.value.unshift({
-      id: ++scanCounter,
-      kind: 'item',
-      name: item.name ?? '',
-      internalId: item.internalId,
-      ts: new Date().toISOString(),
-    })
     flashScanSuccess(t('inventory.storage.scan.itemCreatedAndPlaced', {name: item.name ?? ''}))
     await loadContents()
   } catch (e: any) {
@@ -316,33 +276,8 @@ onMounted(load)
         {{ detail.container.description }}
       </p>
 
-      <NeutralContainer class="mb-4">
-        <SubHeader class="mb-2">{{ t('inventory.storage.scan.title') }}</SubHeader>
-        <p class="text-xs text-(--text-muted) mb-2">{{ t('inventory.storage.scan.hint') }}</p>
-        <div class="flex gap-2">
-          <TextInput
-              v-model="scanValue"
-              :placeholder="t('inventory.storage.scan.placeholder')"
-              @keydown.enter="handleScanAdd"
-              class="flex-1"
-              :disabled="scanBusy"
-          />
-          <ScanButton mode="continuous" :disabled="scanBusy" @decoded="onCameraScan" />
-        </div>
-        <Alert v-if="scanError" variant="error" class="mt-2">{{ scanError }}</Alert>
-        <Alert v-if="scanSuccess" variant="success" class="mt-2">{{ scanSuccess }}</Alert>
-        <ul v-if="scanHistory.length > 0" class="mt-3 text-xs divide-y divide-(--bg-accent)">
-          <li v-for="entry in scanHistory" :key="entry.id" class="py-1 flex items-center gap-2">
-            <font-awesome-icon
-                :icon="['fas', entry.kind === 'container' ? 'box-open' : 'cube']"
-                class="text-(--text-muted)"
-            />
-            <span class="font-medium">{{ entry.name }}</span>
-            <span v-if="entry.internalId" class="text-(--text-muted)">{{ entry.internalId }}</span>
-            <span class="ml-auto text-(--text-muted)">{{ new Date(entry.ts).toLocaleTimeString() }}</span>
-          </li>
-        </ul>
-      </NeutralContainer>
+      <Alert v-if="scanError" variant="error" class="mb-3">{{ scanError }}</Alert>
+      <Alert v-if="scanSuccess" variant="success" class="mb-3">{{ scanSuccess }}</Alert>
 
       <div class="flex items-center justify-between mb-2">
         <SectionHeader>{{ t('inventory.storage.contents') }}</SectionHeader>
@@ -351,6 +286,7 @@ onMounted(load)
             <ToggleInput v-model="recursive" />
             <span>{{ t('inventory.storage.recursive') }}</span>
           </label>
+          <ScanButton mode="continuous" :disabled="scanBusy" @decoded="onCameraScan" />
           <PrimaryButton size="sm" @click="showAddChoiceModal = true">
             <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
             {{ t('inventory.storage.addChild') }}
