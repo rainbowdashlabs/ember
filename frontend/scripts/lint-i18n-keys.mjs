@@ -111,6 +111,11 @@ for (const file of files) {
     for (const m of text.matchAll(T_CALL)) {
         const key = m[2]
         if (!key.includes('.')) continue
+        if (key.includes('${')) {
+            const prefix = key.split('${')[0].replace(/\.+$/, '')
+            if (prefix) usedPrefixes.add(prefix)
+            continue
+        }
         usedExact.add(key)
         if (!definedKeys.has(key)) {
             const offset = m.index ?? 0
