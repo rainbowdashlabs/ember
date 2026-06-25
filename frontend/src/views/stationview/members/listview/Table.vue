@@ -6,26 +6,15 @@
 <script lang="ts" setup>
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import EditButton from '@/components/button/EditButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
-import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import MemberName from '@/components/avatar/MemberName.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import ColumnFilterModal from './ColumnFilterModal.vue'
+import MemberCardMobile from './MemberCardMobile.vue'
+import MemberDesktopTable from './MemberDesktopTable.vue'
 import type {ProfileField, StationMember} from '@/api/types'
 import {StationUserType} from '@/api/types'
-import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
 import {useBreakpoint} from '@/composables/useBreakpoint'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import Th from '@/components/table/Th.vue'
-import Td from '@/components/table/Td.vue'
-import THead from '@/components/table/THead.vue'
-import TRow from '@/components/table/TRow.vue'
-import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const {isMobile} = useBreakpoint()
-
 const {t} = useI18n()
 
 const props = defineProps<{
@@ -63,7 +52,6 @@ const allSelected = computed(() => {
   return props.members.every(m => props.selectedIds!.has(m.id))
 })
 
-// Filter modal state
 const filterModalOpen = ref(false)
 const filterModalColumn = ref<'name' | 'groups' | 'tags' | number>('name')
 const filterModalLabel = ref('')
@@ -152,14 +140,6 @@ function managerName(mgr: StationMember): string {
   return m ? memberDisplayName(m) : `#${mgr.id}`
 }
 
-const userTypeLabels: Record<string, string> = {
-  [StationUserType.TEAM]: 'Team',
-  [StationUserType.MANAGER]: 'Manager',
-  [StationUserType.GUARDIAN]: 'Erziehungsberechtigter',
-  [StationUserType.MEMBER]: 'Mitglied',
-  [StationUserType.TRIAL]: 'Probe',
-}
-
 function onRowClick(member: StationMember) {
   if (props.exportMode) {
     emit('toggleSelect', member.id)
@@ -170,225 +150,54 @@ function onRowClick(member: StationMember) {
 </script>
 
 <template>
-  <!-- Mobile card layout -->
   <div v-if="isMobile" class="space-y-3">
     <EmptyState v-if="members.length === 0">{{ t('membersList.empty') }}</EmptyState>
-    <NeutralContainer v-for="member in members" :key="member.id" class="space-y-2" @click="onRowClick(member)">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <div>
-            <MemberName :identity="member.identity" size="sm" class="font-medium"/>
-            <ErrorBadge v-if="member.profileComplete === false" class="ml-1.5 text-[10px]">{{ t('membersList.incomplete') }}</ErrorBadge>
-            <div v-if="member.userType" class="mt-0.5">
-              <span
-                  class="inline-block rounded-full px-2 py-0.5 text-[10px] font-medium"
-                  :class="{
-                    'bg-primary/10 text-primary': member.userType === 'TEAM' || member.userType === 'MANAGER',
-                    'bg-info/10 text-info-accent': member.userType === 'GUARDIAN',
-                    'bg-bg-light-accent dark:bg-bg-dark-accent text-(--text-muted)': member.userType === 'MEMBER' || member.userType === 'TRIAL',
-                  }"
-              >{{ userTypeLabels[member.userType] ?? member.userType }}</span>
-            </div>
-          </div>
-        </div>
-        <div v-if="!exportMode" class="flex gap-1" @click.stop>
-          <IconButton :icon="['fas', 'eye']" :label="t('membersList.detail')" class="text-primary hover:bg-primary/15" @click="emit('navigateDetail', member, $event)"/>
-          <EditButton v-if="canEdit" @click="emit('navigateEdit', member, $event)"/>
-        </div>
-        <div v-else @click.stop>
-          <CheckboxInput :model-value="selectedIds?.has(member.id) ?? false" @update:model-value="emit('toggleSelect', member.id)"/>
-        </div>
-      </div>
-      <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mt-1">
-        <div v-if="member.email" class="col-span-2 text-(--text-muted) text-xs">{{ member.email }}</div>
-        <div v-if="getMemberGroups(member.id).length > 0" class="text-xs">
-          <div class="text-(--text-muted)">{{ t('membersList.colGroups') }}</div>
-          <div>{{ getMemberGroups(member.id).join(', ') }}</div>
-        </div>
-        <div v-if="getMemberTags(member.id).length > 0" class="text-xs">
-          <div class="text-(--text-muted)">{{ t('membersList.colTags') }}</div>
-          <div>{{ getMemberTags(member.id).join(', ') }}</div>
-        </div>
-        <template v-for="field in visibleColumns" :key="field.id">
-          <div v-if="isFieldApplicable(member.id, field) && getFieldValue(member.id, field.id)" class="text-xs">
-            <div class="text-(--text-muted)">{{ field.name }}</div>
-            <div><FieldValueDisplay :value="getFieldValue(member.id, field.id)" :field-type="field.fieldType"/></div>
-          </div>
-        </template>
-      </div>
-    </NeutralContainer>
+    <MemberCardMobile
+        v-for="member in members"
+        :key="member.id"
+        :member="member"
+        :visible-columns="visibleColumns"
+        :member-groups="getMemberGroups(member.id)"
+        :member-tags="getMemberTags(member.id)"
+        :is-field-applicable="(f) => isFieldApplicable(member.id, f)"
+        :get-field-value="(id) => getFieldValue(member.id, id)"
+        :export-mode="exportMode"
+        :selected="selectedIds?.has(member.id)"
+        :can-edit="canEdit"
+        @click="onRowClick(member)"
+        @toggle-select="emit('toggleSelect', member.id)"
+        @navigate-detail="(e) => emit('navigateDetail', member, e)"
+        @navigate-edit="(e) => emit('navigateEdit', member, e)"
+    />
   </div>
 
-  <!-- Desktop table layout -->
   <template v-else>
-  <div class="overflow-x-auto">
-    <table class="w-full text-sm">
-      <thead>
-      <THead>
-        <th v-if="exportMode" class="px-2 py-2 w-10">
-          <CheckboxInput :model-value="allSelected" @update:model-value="emit('toggleSelectAll')"/>
-        </th>
-        <th v-if="!exportMode" class="px-3 py-2 w-20"></th>
-        <!-- Name column -->
-        <Th>
-          <span class="inline-flex items-center gap-1">
-            {{ t('membersList.colName') }}
-            <font-awesome-icon
-                :icon="['fas', sortIcon('name')]"
-                class="h-3 w-3 text-(--text-muted) cursor-pointer hover:text-primary"
-                @click="emit('toggleSort', 'name')"
-            />
-            <font-awesome-icon
-                :icon="['fas', 'filter']"
-                :class="hasActiveFilter('name') ? 'text-primary' : 'text-(--text-muted)'"
-                class="h-3 w-3 cursor-pointer hover:text-primary"
-                @click.stop="openFilterModal('name', t('membersList.colName'))"
-            />
-          </span>
-        </Th>
-        <!-- Type column -->
-        <Th>{{ t('membersList.colRole') }}</Th>
-        <!-- Email column -->
-        <Th>{{ t('membersList.colEmail') }}</Th>
-        <!-- Groups column -->
-        <Th>
-          <span class="inline-flex items-center gap-1">
-            {{ t('membersList.colGroups') }}
-            <font-awesome-icon
-                :icon="['fas', 'filter']"
-                :class="hasActiveFilter('groups') ? 'text-primary' : 'text-(--text-muted)'"
-                class="h-3 w-3 cursor-pointer hover:text-primary"
-                @click.stop="openFilterModal('groups', t('membersList.colGroups'))"
-            />
-          </span>
-        </Th>
-        <!-- Tags column -->
-        <Th>
-          <span class="inline-flex items-center gap-1">
-            {{ t('membersList.colTags') }}
-            <font-awesome-icon
-                :icon="['fas', 'filter']"
-                :class="hasActiveFilter('tags') ? 'text-primary' : 'text-(--text-muted)'"
-                class="h-3 w-3 cursor-pointer hover:text-primary"
-                @click.stop="openFilterModal('tags', t('membersList.colTags'))"
-            />
-          </span>
-        </Th>
-        <!-- Dynamic field columns -->
-        <Th v-for="field in visibleColumns" :key="field.id">
-          <span class="inline-flex items-center gap-1">
-            {{ field.name }}
-            <font-awesome-icon
-                :icon="['fas', sortIcon(field.id)]"
-                class="h-3 w-3 text-(--text-muted) cursor-pointer hover:text-primary"
-                @click="emit('toggleSort', field.id)"
-            />
-            <font-awesome-icon
-                :icon="['fas', 'filter']"
-                :class="hasActiveFilter(field.id) ? 'text-primary' : 'text-(--text-muted)'"
-                class="h-3 w-3 cursor-pointer hover:text-primary"
-                @click.stop="openFilterModal(field.id, field.name ?? '')"
-            />
-          </span>
-        </Th>
-      </THead>
-      </thead>
-      <tbody>
-      <template v-for="member in members" :key="member.id">
-        <TRow
-            :class="{
-              'bg-bg-light-accent/30 dark:bg-bg-dark-accent/30': !exportMode && expandedId === member.id,
-              'bg-primary/5': exportMode && selectedIds?.has(member.id),
-              'cursor-pointer hover:bg-bg-light-accent/30 dark:hover:bg-bg-dark-accent/30 transition-colors': true,
-            }"
-            @click="onRowClick(member)"
-        >
-          <td v-if="exportMode" class="px-2 py-2.5" @click.stop>
-            <CheckboxInput :model-value="selectedIds?.has(member.id) ?? false" @update:model-value="emit('toggleSelect', member.id)"/>
-          </td>
-          <Td v-if="!exportMode" @click.stop>
-            <IconButton :icon="['fas', 'eye']" :label="t('membersList.detail')"
-                        class="text-primary hover:bg-primary/15"
-                        @click="emit('navigateDetail', member, $event)"/>
-            <EditButton v-if="canEdit" @click="emit('navigateEdit', member, $event)"/>
-          </Td>
-          <Td>
-            <div class="flex items-center gap-2">
-              <MemberName :identity="member.identity" size="sm" class="font-medium"/>
-              <ErrorBadge v-if="member.profileComplete === false" class="ml-1.5 text-[10px]">{{
-                  t('membersList.incomplete')
-                }}</ErrorBadge>
-            </div>
-          </Td>
-          <Td>
-            <span
-                v-if="member.userType"
-                class="inline-block rounded-full px-2 py-0.5 text-[10px] font-medium"
-                :class="{
-                  'bg-primary/10 text-primary': member.userType === 'TEAM' || member.userType === 'MANAGER',
-                  'bg-info/10 text-info-accent': member.userType === 'GUARDIAN',
-                  'bg-bg-light-accent dark:bg-bg-dark-accent text-(--text-muted)': member.userType === 'MEMBER' || member.userType === 'TRIAL',
-                }"
-            >{{ userTypeLabels[member.userType] ?? member.userType }}</span>
-          </Td>
-          <Td class="text-(--text-muted) text-xs">
-            {{ member.email || '–' }}
-          </Td>
-          <Td class="text-(--text-muted) text-xs">
-            {{ getMemberGroups(member.id).join(', ') || '–' }}
-          </Td>
-          <Td class="text-(--text-muted) text-xs">
-            {{ getMemberTags(member.id).join(', ') || '–' }}
-          </Td>
-          <Td
-              v-for="field in visibleColumns"
-              :key="field.id"
-              :class="isFieldApplicable(member.id, field) ? 'text-(--text-muted)' : 'bg-bg-light-accent/40 dark:bg-bg-dark-accent/40'"
-          >
-            <template v-if="isFieldApplicable(member.id, field)">
-              <FieldValueDisplay :value="getFieldValue(member.id, field.id)" :field-type="field.fieldType"/>
-            </template>
-          </Td>
-        </TRow>
-        <tr v-if="!exportMode && expandedId === member.id">
-          <td :colspan="visibleColumns.length + 8" class="px-3 py-4 bg-bg-light-accent/20 dark:bg-bg-dark-accent/20">
-            <div class="space-y-3">
-              <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                <div v-for="field in getApplicableOverviewFields(member.id)" :key="field.id" class="text-sm">
-                  <span class="text-(--text-muted)">{{ field.name }}:</span>
-                  <span class="ml-1 font-medium"><FieldValueDisplay :value="getFieldValue(member.id, field.id)" :field-type="field.fieldType"/></span>
-                </div>
-              </div>
-              <div v-if="getManagers(member.id).length > 0">
-                <h4 class="text-xs font-semibold uppercase text-(--text-muted) mb-2">{{
-                    t('membersList.managers')
-                  }}</h4>
-                <div class="space-y-2">
-                  <div v-for="mgr in getManagers(member.id)" :key="mgr.id"
-                       class="rounded-lg px-4 py-3 bg-bg-light-accent/40 dark:bg-bg-dark-accent/40 space-y-1">
-                    <div class="flex items-center gap-2">
-                      <MutedIcon :icon="['fas', 'user']"/>
-                      <span class="text-sm font-medium">{{ managerName(mgr) }}</span>
-                      <span v-if="mgr.email" class="text-xs text-(--text-muted)">{{ mgr.email }}</span>
-                    </div>
-                    <div class="grid gap-x-4 gap-y-1 sm:grid-cols-2 lg:grid-cols-3 pl-5">
-                      <div v-for="field in getApplicableOverviewFields(mgr.id)" :key="field.id" class="text-xs">
-                        <span class="text-(--text-muted)">{{ field.name }}:</span>
-                        <span class="ml-1"><FieldValueDisplay :value="getFieldValue(mgr.id, field.id)" :field-type="field.fieldType"/></span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </td>
-        </tr>
-      </template>
-      </tbody>
-    </table>
-  </div>
-
-  <EmptyState v-if="members.length === 0">{{ t('membersList.empty') }}</EmptyState>
+    <MemberDesktopTable
+        :members="members"
+        :visible-columns="visibleColumns"
+        :expanded-id="expandedId"
+        :all-selected="allSelected"
+        :sort-icon="sortIcon"
+        :has-active-filter="hasActiveFilter"
+        :open-filter-modal="openFilterModal"
+        :get-member-groups="getMemberGroups"
+        :get-member-tags="getMemberTags"
+        :is-field-applicable="isFieldApplicable"
+        :get-field-value="getFieldValue"
+        :get-applicable-overview-fields="getApplicableOverviewFields"
+        :get-managers="getManagers"
+        :manager-name="managerName"
+        :export-mode="exportMode"
+        :selected-ids="selectedIds"
+        :can-edit="canEdit"
+        @toggle-sort="(c) => emit('toggleSort', c)"
+        @toggle-select-all="emit('toggleSelectAll')"
+        @row-click="onRowClick"
+        @toggle-select="(id) => emit('toggleSelect', id)"
+        @navigate-detail="(m, e) => emit('navigateDetail', m, e)"
+        @navigate-edit="(m, e) => emit('navigateEdit', m, e)"
+    />
+    <EmptyState v-if="members.length === 0">{{ t('membersList.empty') }}</EmptyState>
   </template>
 
   <ColumnFilterModal
