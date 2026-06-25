@@ -20,16 +20,12 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import ContainerNewModal from '@/views/stationview/inventory/storageview/ContainerNewModal.vue'
-import ContainerKindPicker from '@/views/stationview/inventory/storageview/ContainerKindPicker.vue'
+import ContainerEditPanel from '@/views/stationview/inventory/storageview/ContainerEditPanel.vue'
+import AddExistingContainerModal from '@/views/stationview/inventory/storageview/AddExistingContainerModal.vue'
 import UnknownScanModal from '@/views/stationview/inventory/UnknownScanModal.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import IconButton from '@/components/button/IconButton.vue'
-import ScanButton from '@/components/scanner/ScanButton.vue'
-import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import {inventory, inventoryContainers} from '@/api'
 import type {InventoryItem} from '@/api/types'
 import type {
@@ -53,13 +49,8 @@ const loading = ref(true)
 const error = ref('')
 const recursive = ref(false)
 const editing = ref(false)
-const editName = ref('')
-const editInternalId = ref('')
-const editDescription = ref('')
-const editKindId = ref<number | null>(null)
-const editKindPicker = ref<InstanceType<typeof ContainerKindPicker> | null>(null)
-const editParentId = ref<number | null>(null)
 const showNewChildModal = ref(false)
+const showAddExistingModal = ref(false)
 const showDeleteConfirm = ref(false)
 const submitting = ref(false)
 
@@ -198,7 +189,6 @@ async function load() {
     kinds.value = k
     allContainers.value = all
     await Promise.all([loadContents(), loadHistory()])
-    resetEditForm()
   } catch (e: any) {
     error.value = e?.response?.data?.message ?? t('inventory.storage.loadError')
   } finally {
@@ -214,36 +204,13 @@ async function loadHistory() {
   history.value = await inventoryContainers.getContainerHistory(containerId.value)
 }
 
-function resetEditForm() {
-  if (!detail.value) return
-  const c = detail.value.container
-  editName.value = c.name
-  editInternalId.value = c.internalId ?? ''
-  editDescription.value = c.description ?? ''
-  editKindId.value = c.kindId ?? null
-  editParentId.value = c.parentId ?? null
+async function onEditSaved() {
+  editing.value = false
+  await load()
 }
 
-async function saveEdit() {
-  if (!detail.value) return
-  submitting.value = true
-  error.value = ''
-  try {
-    const resolvedKindId = (await editKindPicker.value?.resolve()) ?? null
-    await inventoryContainers.updateContainer(detail.value.container.id, {
-      parentId: editParentId.value,
-      internalId: editInternalId.value.trim() || null,
-      name: editName.value.trim(),
-      kindId: resolvedKindId,
-      description: editDescription.value,
-    })
-    editing.value = false
-    await load()
-  } catch (e: any) {
-    error.value = e?.message ?? e?.response?.data?.message ?? t('inventory.storage.errors.updateFailed')
-  } finally {
-    submitting.value = false
-  }
+function onEditError(message: string) {
+  error.value = message
 }
 
 async function confirmDelete() {
@@ -319,47 +286,15 @@ onMounted(load)
         <Alert variant="error">{{ error }}</Alert>
       </div>
 
-      <NeutralContainer v-if="editing" class="mb-4">
-        <SubHeader class="mb-3">{{ t('inventory.storage.editTitle') }}</SubHeader>
-        <div class="flex flex-col gap-3">
-          <label class="flex flex-col gap-1 text-sm">
-            <span>{{ t('inventory.storage.fields.name') }}</span>
-            <TextInput v-model="editName" />
-          </label>
-          <label class="flex flex-col gap-1 text-sm">
-            <span>{{ t('inventory.storage.fields.parent') }}</span>
-            <SelectInput v-model="editParentId">
-              <option :value="null">{{ t('inventory.storage.fields.parentNone') }}</option>
-              <option
-                  v-for="c in allContainers.filter(c => c.id !== detail!.container.id)"
-                  :key="c.id"
-                  :value="c.id"
-              >{{ c.name }}</option>
-            </SelectInput>
-          </label>
-          <div class="flex flex-col gap-1 text-sm">
-            <span>{{ t('inventory.storage.fields.kind') }}</span>
-            <ContainerKindPicker ref="editKindPicker" :kinds="kinds" v-model="editKindId" />
-          </div>
-          <label class="flex flex-col gap-1 text-sm">
-            <span>{{ t('inventory.storage.fields.internalId') }}</span>
-            <div class="flex items-center gap-2">
-              <TextInput v-model="editInternalId" class="flex-1" />
-              <ScanButton @decoded="editInternalId = normaliseScannedPayload($event)" />
-            </div>
-          </label>
-          <label class="flex flex-col gap-1 text-sm">
-            <span>{{ t('inventory.storage.fields.description') }}</span>
-            <TextAreaInput v-model="editDescription" :rows="3" />
-          </label>
-        </div>
-        <div class="flex justify-end gap-2 mt-4">
-          <SecondaryButton @click="editing = false; resetEditForm()">{{ t('common.cancel') }}</SecondaryButton>
-          <PrimaryButton :disabled="submitting" @click="saveEdit">
-            {{ submitting ? t('common.saving') : t('common.save') }}
-          </PrimaryButton>
-        </div>
-      </NeutralContainer>
+      <ContainerEditPanel
+          v-if="editing"
+          :container="detail.container"
+          :containers="allContainers"
+          :kinds="kinds"
+          @saved="onEditSaved"
+          @cancel="editing = false"
+          @error="onEditError"
+      />
 
       <p v-if="detail.container.description" class="text-sm mb-4 whitespace-pre-line">
         {{ detail.container.description }}
@@ -403,6 +338,10 @@ onMounted(load)
             <ToggleInput v-model="recursive" />
             <span>{{ t('inventory.storage.recursive') }}</span>
           </label>
+          <SecondaryButton size="sm" @click="showAddExistingModal = true">
+            <font-awesome-icon :icon="['fas', 'arrow-right']" class="mr-1" />
+            {{ t('inventory.storage.addExistingChild') }}
+          </SecondaryButton>
           <PrimaryButton size="sm" @click="showNewChildModal = true">
             <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
             {{ t('inventory.storage.addChild') }}
@@ -477,6 +416,15 @@ onMounted(load)
           :default-parent-id="detail.container.id"
           @created="onChildCreated"
           @close="showNewChildModal = false"
+      />
+
+      <AddExistingContainerModal
+          v-if="showAddExistingModal"
+          :target-container-id="detail.container.id"
+          :containers="allContainers"
+          :kinds="kinds"
+          @moved="load"
+          @close="showAddExistingModal = false"
       />
 
       <UnknownScanModal
