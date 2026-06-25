@@ -156,8 +156,10 @@ class PageHitRepositoryTest extends RepositoryTestBase {
     void hourlyTotalsIncludeBotsWhenRequested() {
         var noBots = pageHitRepo.stationHourlyTotals(station.id(), HOUR, HOUR, false);
         var withBots = pageHitRepo.stationHourlyTotals(station.id(), HOUR, HOUR, true);
-        long noBotsTotal = noBots.stream().mapToLong(PageHitRepository.HourlyTotal::hits).sum();
-        long withBotsTotal = withBots.stream().mapToLong(PageHitRepository.HourlyTotal::hits).sum();
+        long noBotsTotal =
+                noBots.stream().mapToLong(PageHitRepository.HourlyTotal::hits).sum();
+        long withBotsTotal =
+                withBots.stream().mapToLong(PageHitRepository.HourlyTotal::hits).sum();
         assertTrue(withBotsTotal > noBotsTotal);
     }
 

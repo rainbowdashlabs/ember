@@ -198,7 +198,8 @@ public class PageHitRecorder {
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (!(o instanceof BucketKey(Instant hour1, int id, String country1, String domain, boolean bot))) return false;
+            if (!(o instanceof BucketKey(Instant hour1, int id, String country1, String domain, boolean bot)))
+                return false;
             return pageId == id
                     && isBot == bot
                     && hour.equals(hour1)

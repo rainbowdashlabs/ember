@@ -207,8 +207,7 @@ public class StationStorageBackendRoutes implements Routes {
         int stationId = sessionStationId(ctx);
         Optional<java.time.Instant> before =
                 Optional.ofNullable(ctx.queryParam("before")).map(java.time.Instant::parse);
-        int limit = Math.clamp(ctx.queryParamAsClass("limit", Integer.class).getOrDefault(50),
-                1, 200);
+        int limit = Math.clamp(ctx.queryParamAsClass("limit", Integer.class).getOrDefault(50), 1, 200);
         List<AuditEntryResponse> entries = auditRepository.findByStation(stationId, before, limit).stream()
                 .map(StationStorageBackendRoutes::toResponse)
                 .toList();
