@@ -17,10 +17,11 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import MemberSearchPicker from '@/components/input/search/MemberSearchPicker.vue'
 import {inventory, stationMembers} from '@/api'
 import type {InventoryItem, StationMember} from '@/api/types'
+import type {MemberSearchResult} from '@/api/members'
 import UnknownScanModal from '@/views/stationview/inventory/UnknownScanModal.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
@@ -40,6 +41,8 @@ const {t} = useI18n()
 
 const members = ref<StationMember[]>([])
 const memberId = ref<number | null>(null)
+const memberUid = ref<string | null>(null)
+const selectedDisplayName = ref<string | null>(null)
 const scanValue = ref('')
 const bulkMode = ref(false)
 const submitting = ref(false)
@@ -50,16 +53,12 @@ const recentCounter = ref(1)
 const loading = ref(true)
 const unknownScanCode = ref<string | null>(null)
 
-const sortedMembers = computed(() => {
-  return [...members.value].sort((a, b) =>
-      (a.firstName ?? '').localeCompare(b.firstName ?? '')
-      || (a.lastName ?? '').localeCompare(b.lastName ?? ''))
-})
-
 const selectedMember = computed(() =>
     memberId.value != null ? members.value.find(m => m.id === memberId.value) ?? null : null)
 
-const memberDisplay = (m: StationMember) => `${m.firstName ?? ''} ${m.lastName ?? ''}`.trim() || `#${m.id}`
+function memberDisplay(m: StationMember): string {
+  return (m.name ?? '').trim() || `#${m.id}`
+}
 
 async function load() {
   loading.value = true
@@ -71,6 +70,26 @@ async function load() {
   } finally {
     loading.value = false
   }
+}
+
+async function onMemberPicked(picked: MemberSearchResult) {
+  memberUid.value = picked.memberUid
+  selectedDisplayName.value = picked.displayName
+  let match = members.value.find(m => m.identity?.memberUid === picked.memberUid)
+  if (!match) {
+    try {
+      members.value = await stationMembers.listMembers()
+      match = members.value.find(m => m.identity?.memberUid === picked.memberUid)
+    } catch {
+      /* swallow — surfaced below */
+    }
+  }
+  if (!match) {
+    flashError(t('inventory.assign.errors.memberLookupFailed'))
+    memberId.value = null
+    return
+  }
+  memberId.value = match.id
 }
 
 function flashError(msg: string) {
@@ -199,10 +218,12 @@ onMounted(load)
     <template v-else>
       <NeutralContainer class="mb-4">
         <SubHeader class="mb-2">{{ t('inventory.assign.selectMember') }}</SubHeader>
-        <SelectInput v-model="memberId">
-          <option :value="null">{{ t('inventory.assign.pickMember') }}</option>
-          <option v-for="m in sortedMembers" :key="m.id" :value="m.id">{{ memberDisplay(m) }}</option>
-        </SelectInput>
+        <MemberSearchPicker
+            v-model="memberUid"
+            :selected-display="selectedDisplayName"
+            :placeholder="t('inventory.assign.pickMember')"
+            @pick="onMemberPicked"
+        />
       </NeutralContainer>
 
       <NeutralContainer class="mb-4">

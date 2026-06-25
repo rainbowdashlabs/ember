@@ -5451,6 +5451,7 @@ volumes:
                 pickMember: 'Bitte zuerst ein Mitglied auswählen.',
                 notFound: 'Kein Item zu "{scan}" gefunden.',
                 failed: 'Aktion fehlgeschlagen.',
+                memberLookupFailed: 'Mitglied konnte nicht zugeordnet werden. Bitte Seite neu laden.',
             },
         },
         checkContainer: {

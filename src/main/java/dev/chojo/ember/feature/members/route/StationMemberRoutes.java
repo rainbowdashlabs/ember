@@ -95,7 +95,13 @@ public class StationMemberRoutes implements Routes {
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/permissions", this::listAllPermissions, StationPermission.LOGIN);
         routes.get(prefix + "/station-members/completions", this::completions, StationPermission.LOGIN);
-        routes.get(prefix + "/members/search", this::searchPicker, StationPermission.PAGE_EDIT);
+        routes.get(
+                prefix + "/members/search",
+                this::searchPicker,
+                StationPermission.PAGE_EDIT,
+                StationPermission.INVENTORY_ASSIGN,
+                StationPermission.INVENTORY_EDIT,
+                StationPermission.MEMBER_READ);
         routes.get(
                 prefix + "/station-members",
                 this::listByStation,
@@ -180,10 +186,7 @@ public class StationMemberRoutes implements Routes {
                     + " scoped to the caller's own station. Empty query returns the 20 most"
                     + " recently joined active members.",
             tags = {"Station Members"},
-            queryParams = {
-                @OpenApiParam(name = "q", type = String.class),
-                @OpenApiParam(name = "limit", type = Integer.class)
-            },
+            queryParams = {@OpenApiParam(name = "q"), @OpenApiParam(name = "limit", type = Integer.class)},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberSearchResult[].class)))
     private void searchPicker(Context ctx) {
         var session = UserSession.from(ctx);
@@ -539,7 +542,7 @@ public class StationMemberRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "Get station-level permissions for a user type",
             tags = {"Station Members"},
-            pathParams = @OpenApiParam(name = "userType", type = String.class, required = true),
+            pathParams = @OpenApiParam(name = "userType", required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Permission[].class)))
     private void getUserTypePermissions(Context ctx) {
         UserSession session = UserSession.from(ctx);
@@ -554,7 +557,7 @@ public class StationMemberRoutes implements Routes {
             methods = HttpMethod.PUT,
             summary = "Set station-level permissions for a user type",
             tags = {"Station Members"},
-            pathParams = @OpenApiParam(name = "userType", type = String.class, required = true),
+            pathParams = @OpenApiParam(name = "userType", required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetUserTypePermissionsRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Permission[].class)))
     private void setUserTypePermissions(Context ctx) {
@@ -571,7 +574,7 @@ public class StationMemberRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "Get the expanded effective permissions granted by a user type (defaults + station overrides)",
             tags = {"Station Members"},
-            pathParams = @OpenApiParam(name = "userType", type = String.class, required = true),
+            pathParams = @OpenApiParam(name = "userType", required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = String[].class)))
     private void getEffectiveUserTypePermissions(Context ctx) {
         UserSession session = UserSession.from(ctx);
