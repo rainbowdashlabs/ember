@@ -134,20 +134,19 @@ public class StorageRoutes implements Routes {
 
         // Admin: instance default storage backend
         routes.get(prefix + "/admin/storage/backend", this::getInstanceBackend, InstancePermission.ADMINISTRATOR);
-        routes.put(
-                prefix + "/admin/storage/backend",
-                this::updateInstanceBackend,
-                InstancePermission.ADMINISTRATOR,
-                StepUpCategory.INSTANCE_CONFIG);
         routes.post(
                 prefix + "/admin/storage/backend/probe", this::probeInstanceBackend, InstancePermission.ADMINISTRATOR);
         routes.post(
-                prefix + "/admin/storage/migrate",
-                this::migrateInstanceBackend,
+                prefix + "/admin/storage/backend/probe-config",
+                this::probeInstanceBackendConfig,
+                InstancePermission.ADMINISTRATOR);
+        routes.post(
+                prefix + "/admin/storage/backend/apply",
+                this::applyInstanceBackend,
                 InstancePermission.ADMINISTRATOR,
                 StepUpCategory.INSTANCE_CONFIG);
         routes.get(
-                prefix + "/admin/storage/migrate/status",
+                prefix + "/admin/storage/backend/apply/status",
                 this::migrateInstanceStatus,
                 InstancePermission.ADMINISTRATOR);
 
@@ -177,13 +176,16 @@ public class StorageRoutes implements Routes {
                 .filter(u -> u.category().enforcesQuota())
                 .mapToLong(StorageUsage::totalBytes)
                 .sum();
-        long quotaBytes = quotaService.getEffectiveTotalQuota(stationId);
+        boolean usesOwnBackend = quotaService.hasOwnBackend(stationId);
+        long quotaBytes = usesOwnBackend ? 0L : quotaService.getEffectiveTotalQuota(stationId);
         int quotaUsedPercent = quotaBytes > 0 ? (int) (totalBytes * 100 / quotaBytes) : 0;
 
         Map<String, Long> categoryQuotas = new HashMap<>();
-        for (StorageCategory cat : StorageCategory.values()) {
-            if (cat.enforcesQuota()) {
-                categoryQuotas.put(cat.name(), quotaService.getEffectiveCategoryQuota(stationId, cat));
+        if (!usesOwnBackend) {
+            for (StorageCategory cat : StorageCategory.values()) {
+                if (cat.enforcesQuota()) {
+                    categoryQuotas.put(cat.name(), quotaService.getEffectiveCategoryQuota(stationId, cat));
+                }
             }
         }
 
@@ -194,7 +196,8 @@ public class StorageRoutes implements Routes {
                 totalBytes,
                 quotaBytes,
                 quotaUsedPercent,
-                categoryQuotas));
+                categoryQuotas,
+                usesOwnBackend));
     }
 
     // -- Admin overview --
@@ -218,7 +221,8 @@ public class StorageRoutes implements Routes {
                             .filter(u -> u.category().enforcesQuota())
                             .mapToLong(StorageUsage::totalBytes)
                             .sum();
-                    long quotaBytes = quotaService.getEffectiveTotalQuota(station.id());
+                    boolean usesOwnBackend = quotaService.hasOwnBackend(station.id());
+                    long quotaBytes = usesOwnBackend ? 0L : quotaService.getEffectiveTotalQuota(station.id());
                     int quotaUsedPercent = quotaBytes > 0 ? (int) (totalBytes * 100 / quotaBytes) : 0;
                     var assignment = presetAssignments.get(station.id());
                     return new AdminStationUsage(
@@ -231,7 +235,8 @@ public class StorageRoutes implements Routes {
                                     .map(u -> new CategoryUsage(u.category().name(), u.totalBytes(), u.fileCount()))
                                     .toList(),
                             assignment != null ? assignment.presetId() : null,
-                            assignment != null ? assignment.presetName() : null);
+                            assignment != null ? assignment.presetName() : null,
+                            usesOwnBackend);
                 })
                 .toList();
 
@@ -350,43 +355,41 @@ public class StorageRoutes implements Routes {
     }
 
     /**
-     * Updates the instance-default backend configuration in conf.yml WITHOUT migrating any
-     * bytes. Operators use this on a green-field instance or after they have copied bytes by
-     * hand; in normal operation the migrate endpoint is what they want.
+     * Dry-run probe against an unsaved form payload — accepts an {@link InstanceBackendRequest},
+     * builds a transient backend from it, runs {@link StorageBackend#probe()} and returns the
+     * result without writing to conf.yml or invalidating any cached backend. The UI calls this
+     * from the "Verbindung testen" button so an operator can validate credentials before
+     * clicking Save (which itself probes and refuses to persist a broken config, but only
+     * after committing the request).
      */
-    private void updateInstanceBackend(Context ctx) {
+    private void probeInstanceBackendConfig(Context ctx) {
         InstanceBackendRequest req = ctx.bodyAsClass(InstanceBackendRequest.class);
+        boolean healthy;
+        String errorOrNull;
+        java.time.Instant checkedAt;
         try (StorageBackend probe = backendFactory.buildForInstance(buildSettings(req, credentialCipher))) {
-            HealthStatus probeStatus = probe.probe();
-            if (!probeStatus.healthy()) {
-                throw new BadRequestResponse(
-                        "Probe failed: " + probeStatus.error().orElse("unknown error"));
-            }
-        } catch (BadRequestResponse e) {
-            throw e;
+            HealthStatus status = probe.probe();
+            healthy = status.healthy();
+            errorOrNull = status.error().orElse(null);
+            checkedAt = status.checkedAt();
         } catch (Exception e) {
-            throw new BadRequestResponse("Probe failed: " + e.getMessage());
+            healthy = false;
+            errorOrNull = e.getMessage();
+            checkedAt = java.time.Instant.now();
         }
-        String oldRedacted = redactedSettings(storageConfig.backend());
-        try {
-            applyToConfig(req, storageConfig.backend());
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to apply backend settings to config", e);
-        }
-        conf.save();
-        backendFactory.invalidateInstanceDefault();
-        String newRedacted = redactedSettings(storageConfig.backend());
-        auditService.recordInstanceConfigUpdate(actor(ctx), oldRedacted, newRedacted);
-        ctx.status(HttpStatus.NO_CONTENT);
+        ctx.status(HttpStatus.OK).json(new ProbeResult(healthy, errorOrNull, checkedAt.toString()));
     }
 
     /**
-     * Runs the full instance-wide byte migration to a new backend. Holds an instance-wide
-     * read-only window so writes return {@code 503} for the duration of the copy; flips the
-     * YAML and invalidates the cached backend only after the byte copy and sample-verify
-     * succeed.
+     * Unified "save and apply" for the instance-default backend: probes the target, holds an
+     * instance-wide read-only window while the copy runs, flips {@code conf.yml} and
+     * invalidates the cached backend only after the copy + sample-verify succeed, then deletes
+     * the source bytes unless {@code keepSource} is set. The previous bare update endpoint that
+     * swapped config without moving bytes is gone — every config change goes through this
+     * primitive so an operator can never end up with bytes on one backend and reads pointed at
+     * another. For an empty source the copy phase is a no-op.
      */
-    private void migrateInstanceBackend(Context ctx) {
+    private void applyInstanceBackend(Context ctx) {
         InstanceMigrateRequest req = ctx.bodyAsClass(InstanceMigrateRequest.class);
         if (req.target() == null) {
             throw new BadRequestResponse("target is required");
@@ -419,8 +422,9 @@ public class StorageRoutes implements Routes {
         }
         auditService.recordInstanceMigration(
                 actor, StorageAuditAction.INSTANCE_MIGRATION_COMPLETED, oldRedacted, newRedacted, null);
-        ctx.json(new InstanceMigrationResultResponse(
-                result.totalKeys(), result.copied(), result.skipped(), result.deleted(), result.copiedBytes()));
+        ctx.status(HttpStatus.OK)
+                .json(new InstanceMigrationResultResponse(
+                        result.totalKeys(), result.copied(), result.skipped(), result.deleted(), result.copiedBytes()));
     }
 
     private void migrateInstanceStatus(Context ctx) {
@@ -674,8 +678,8 @@ public class StorageRoutes implements Routes {
         var stationId = ctx.queryParam("stationUid") == null
                 ? java.util.Optional.<Integer>empty()
                 : stationRepository.resolveId(UUID.fromString(ctx.queryParam("stationUid")));
-        int limit = Math.max(
-                1, Math.min(ctx.queryParamAsClass("limit", Integer.class).getOrDefault(50), 200));
+        int limit = Math.clamp(ctx.queryParamAsClass("limit", Integer.class).getOrDefault(50),
+                1, 200);
         var entries = auditRepository.findAll(before, stationId, limit).stream()
                 .map(StationStorageBackendRoutes::toResponse)
                 .toList();
@@ -721,16 +725,22 @@ public class StorageRoutes implements Routes {
      * Sealed sum type for the GET /admin/storage/backend response. Each variant carries the
      * concrete settings for its backend type; credentials are never included.
      */
-    public sealed interface InstanceBackendSummary {
-        StorageBackendType type();
-    }
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes({
+        @JsonSubTypes.Type(value = LocalSummary.class, name = "LOCAL"),
+        @JsonSubTypes.Type(value = S3Summary.class, name = "S3"),
+        @JsonSubTypes.Type(value = SmbSummary.class, name = "SMB"),
+        @JsonSubTypes.Type(value = SftpSummary.class, name = "SFTP")
+    })
+    public sealed interface InstanceBackendSummary {}
 
     record StationUsageResponse(
             List<CategoryUsage> categories,
             long totalBytes,
             long quotaBytes,
             int quotaUsedPercent,
-            Map<String, Long> categoryQuotas) {}
+            Map<String, Long> categoryQuotas,
+            boolean usesOwnBackend) {}
 
     record CategoryUsage(String category, long totalBytes, int fileCount) {}
 
@@ -742,7 +752,8 @@ public class StorageRoutes implements Routes {
             int quotaUsedPercent,
             List<CategoryUsage> categories,
             Integer presetId,
-            String presetName) {}
+            String presetName,
+            boolean usesOwnBackend) {}
 
     record PresetRequest(
             String name, long total, long kb, long board, long images, long pages, long perFile, long perImage) {}
@@ -758,37 +769,17 @@ public class StorageRoutes implements Routes {
             Long perFileBytes,
             Long perImageBytes) {}
 
-    public record LocalSummary(String root) implements InstanceBackendSummary {
-        @Override
-        public StorageBackendType type() {
-            return StorageBackendType.LOCAL;
-        }
-    }
+    public record LocalSummary(String root) implements InstanceBackendSummary {}
 
     public record SmbSummary(String host, int port, String share, String basePath, boolean seal, boolean dfs)
-            implements InstanceBackendSummary {
-        @Override
-        public StorageBackendType type() {
-            return StorageBackendType.SMB;
-        }
-    }
+            implements InstanceBackendSummary {}
 
     public record SftpSummary(String host, int port, String username, String basePath, boolean knownHostsPinned)
-            implements InstanceBackendSummary {
-        @Override
-        public StorageBackendType type() {
-            return StorageBackendType.SFTP;
-        }
-    }
+            implements InstanceBackendSummary {}
 
     public record S3Summary(
             String endpoint, String region, String bucket, boolean pathStyle, String sseAlgorithm, String basePath)
-            implements InstanceBackendSummary {
-        @Override
-        public StorageBackendType type() {
-            return StorageBackendType.S3;
-        }
-    }
+            implements InstanceBackendSummary {}
 
     record ProbeResult(boolean healthy, String error, String checkedAt) {}
 

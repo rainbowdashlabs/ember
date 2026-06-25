@@ -33,11 +33,11 @@ import {
     type S3Request,
     type SftpRequest,
     type SmbRequest,
+    applyInstanceBackend,
     getInstanceBackend,
     getInstanceMigrationStatus,
-    migrateInstanceBackend,
     probeInstanceBackend,
-    updateInstanceBackend,
+    probeInstanceBackendConfig,
 } from '@/api/storageBackend'
 
 const {t} = useI18n()
@@ -65,9 +65,9 @@ const sftp = ref<SftpRequest>(newSftp())
 
 const keepSource = ref(false)
 const probingLive = ref(false)
+const probingConfig = ref(false)
 const saving = ref(false)
-const migrating = ref(false)
-const confirmMigrate = ref(false)
+const confirmApply = ref(false)
 
 const summaryLabel = computed(() => {
     if (!backend.value) return ''
@@ -158,38 +158,39 @@ async function probeLive() {
     }
 }
 
-async function save() {
-    error.value = ''
-    success.value = ''
-    saving.value = true
+async function probeConfig() {
+    probingConfig.value = true
+    probeOutcome.value = null
     try {
-        await updateInstanceBackend(currentRequest())
-        success.value = t('adminStorageBackend.feedback.saved')
-        await loadAll()
+        probeOutcome.value = await probeInstanceBackendConfig(currentRequest())
     } catch (e: any) {
-        error.value = e?.response?.data?.title ?? e?.message ?? t('adminStorageBackend.errors.saveFailed')
+        probeOutcome.value = {
+            healthy: false,
+            error: e?.response?.data?.title ?? e?.message ?? t('adminStorageBackend.errors.probeFailed'),
+            checkedAt: new Date().toISOString(),
+        }
     } finally {
-        saving.value = false
+        probingConfig.value = false
     }
 }
 
-async function runMigrate() {
-    confirmMigrate.value = false
-    migrating.value = true
+async function runApply() {
+    confirmApply.value = false
+    saving.value = true
     error.value = ''
     success.value = ''
     try {
-        const result = await migrateInstanceBackend({target: currentRequest(), keepSource: keepSource.value})
-        success.value = t('adminStorageBackend.feedback.migrated', {
+        const result = await applyInstanceBackend({target: currentRequest(), keepSource: keepSource.value})
+        success.value = t('adminStorageBackend.feedback.applied', {
             copied: result.copied,
             skipped: result.skipped,
             deleted: result.deleted,
         })
         await loadAll()
     } catch (e: any) {
-        error.value = e?.response?.data?.title ?? e?.message ?? t('adminStorageBackend.errors.migrateFailed')
+        error.value = e?.response?.data?.title ?? e?.message ?? t('adminStorageBackend.errors.applyFailed')
     } finally {
-        migrating.value = false
+        saving.value = false
     }
 }
 
@@ -301,23 +302,19 @@ function newSftp(): SftpRequest {
                     <SmbBackendForm v-else-if="selectedType === 'SMB'" v-model="smb" />
                     <SftpBackendForm v-else-if="selectedType === 'SFTP'" v-model="sftp" />
 
-                    <Alert variant="info">
-                        {{ t('adminStorageBackend.form.saveVsMigrateHint') }}
-                    </Alert>
-
                     <div class="flex flex-wrap items-center gap-3">
-                        <PrimaryButton :disabled="saving" @click="save">
-                            {{ saving ? t('adminStorageBackend.actions.saving') : t('adminStorageBackend.actions.save') }}
-                        </PrimaryButton>
-                        <SecondaryButton :disabled="migrating" @click="confirmMigrate = true">
-                            {{ migrating ? t('adminStorageBackend.actions.migrating') : t('adminStorageBackend.actions.migrate') }}
+                        <SecondaryButton :disabled="probingConfig || selectedType === 'LOCAL'" @click="probeConfig">
+                            {{ probingConfig ? t('adminStorageBackend.actions.probing') : t('adminStorageBackend.actions.probeConfig') }}
                         </SecondaryButton>
+                        <PrimaryButton :disabled="saving" @click="confirmApply = true">
+                            {{ saving ? t('adminStorageBackend.actions.applying') : t('adminStorageBackend.actions.apply') }}
+                        </PrimaryButton>
                     </div>
                 </NeutralContainer>
             </template>
         </div>
 
-        <Modal v-model="confirmMigrate" size="md">
+        <Modal v-model="confirmApply" size="md">
             <div class="space-y-4">
                 <SubHeader>{{ t('adminStorageBackend.confirm.title') }}</SubHeader>
                 <MutedText tag="p" size="sm">{{ t('adminStorageBackend.confirm.body') }}</MutedText>
@@ -326,10 +323,10 @@ function newSftp(): SftpRequest {
                     <span>{{ t('adminStorageBackend.confirm.keepSource') }}</span>
                 </FieldLabel>
                 <div class="flex justify-end gap-3">
-                    <SecondaryButton @click="confirmMigrate = false">
+                    <SecondaryButton @click="confirmApply = false">
                         {{ t('adminStorageBackend.confirm.cancel') }}
                     </SecondaryButton>
-                    <PrimaryButton :disabled="migrating" @click="runMigrate">
+                    <PrimaryButton :disabled="saving" @click="runApply">
                         {{ t('adminStorageBackend.confirm.confirm') }}
                     </PrimaryButton>
                 </div>

@@ -265,7 +265,7 @@ class IcalEventRendererTest {
         assertTrue(description.contains("Bob"));
         assertTrue(description.contains("label.accepted"));
         // Only one of the two managed members is ACCEPTED (Alice); owner accepts are not counted
-        // in this aggregate per the concept spec.
+        // in this aggregate.
         assertTrue(description.contains("1 / "));
     }
 

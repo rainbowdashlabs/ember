@@ -118,7 +118,7 @@ public class PageService {
     }
 
     /**
-     * Page picker for the {@code PAGE_LINK} cell — see concept §4.5. Returns a compact
+     * Page picker for the {@code PAGE_LINK} cell. Returns a compact
      * {@code PickerPage} shape (public UUID + title + slug + updatedAt) for published pages of the
      * supplied station, with optional case-insensitive title-substring filter.
      */

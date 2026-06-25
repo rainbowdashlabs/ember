@@ -17,7 +17,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Per-domain wrapper for knowledge-base inline images (concept §11.3). Producer-supplied
+ * Per-domain wrapper for knowledge-base inline images. Producer-supplied
  * keys (e.g. {@code file-<fileId>-<timestamp>}) under the owning station's scope:
  * {@code station/<stationUid>/images/kb-images/<imageId>/...}.
  */

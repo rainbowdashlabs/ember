@@ -17,7 +17,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Per-domain wrapper for quiz question images (concept §11.3 / §11.7). Keyed by question id
+ * Per-domain wrapper for quiz question images. Keyed by question id
  * under the owning station's scope: {@code station/<stationUid>/images/quiz-questions/<questionId>/...}.
  *
  * <p>Used by both the upload route (which already knows the owning station from the session)

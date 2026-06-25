@@ -22,9 +22,16 @@ const {t} = useI18n()
             <p>{{ t('helpCenter.stationStorageBackend.where.types') }}</p>
         </HelpSection>
 
-        <HelpSection :title="t('helpCenter.stationStorageBackend.moving.title')">
-            <p>{{ t('helpCenter.stationStorageBackend.moving.text') }}</p>
-            <p>{{ t('helpCenter.stationStorageBackend.moving.window') }}</p>
+        <HelpSection :title="t('helpCenter.stationStorageBackend.probe.title')">
+            <p>{{ t('helpCenter.stationStorageBackend.probe.text') }}</p>
+            <p>{{ t('helpCenter.stationStorageBackend.probe.live') }}</p>
+        </HelpSection>
+
+        <HelpSection :title="t('helpCenter.stationStorageBackend.apply.title')">
+            <p>{{ t('helpCenter.stationStorageBackend.apply.text') }}</p>
+            <p>{{ t('helpCenter.stationStorageBackend.apply.empty') }}</p>
+            <p>{{ t('helpCenter.stationStorageBackend.apply.window') }}</p>
+            <p>{{ t('helpCenter.stationStorageBackend.apply.back') }}</p>
         </HelpSection>
 
         <HelpSection :title="t('helpCenter.stationStorageBackend.audit.title')">

@@ -11,6 +11,7 @@ import dev.chojo.ember.event.events.StorageWarningEvent;
 import dev.chojo.ember.feature.storage.entity.StationStorageQuota;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageUsage;
+import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -31,14 +32,29 @@ public class StorageQuotaService {
     private static final Logger log = LoggerFactory.getLogger(StorageQuotaService.class);
 
     private final StorageUsageRepository usageRepository;
+    private final StationStorageConfigRepository overrideRepository;
     private final Storage storageConfig;
     private final DomainEventBus eventBus;
 
     @Inject
-    public StorageQuotaService(StorageUsageRepository usageRepository, Storage storageConfig, DomainEventBus eventBus) {
+    public StorageQuotaService(
+            StorageUsageRepository usageRepository,
+            StationStorageConfigRepository overrideRepository,
+            Storage storageConfig,
+            DomainEventBus eventBus) {
         this.usageRepository = usageRepository;
+        this.overrideRepository = overrideRepository;
         this.storageConfig = storageConfig;
         this.eventBus = eventBus;
+    }
+
+    /**
+     * Returns {@code true} when the station has its own remote-backend override. Instance-side
+     * quotas (per-category, per-file, per-image, total) do not apply in that case — the station
+     * is paying for its own storage and the instance has no business limiting it.
+     */
+    public boolean hasOwnBackend(int stationId) {
+        return overrideRepository.findOne(stationId).isPresent();
     }
 
     /**
@@ -48,6 +64,7 @@ public class StorageQuotaService {
      */
     public void checkQuota(int stationId, StorageCategory category, long incomingBytes) {
         if (!category.enforcesQuota()) return;
+        if (hasOwnBackend(stationId)) return;
 
         var quota = resolveQuotas(stationId);
         long categoryUsed = usageRepository.categoryBytes(stationId, category);
@@ -74,6 +91,7 @@ public class StorageQuotaService {
      * @throws StorageQuotaExceededException if the file exceeds the limit
      */
     public void checkFileSize(int stationId, long fileBytes) {
+        if (hasOwnBackend(stationId)) return;
         var quota = resolveQuotas(stationId);
         long limit = quota.perFileBytes() != null ? quota.perFileBytes() : storageConfig.defaultPerFileBytes();
         if (fileBytes > limit) {
@@ -88,6 +106,7 @@ public class StorageQuotaService {
      * @throws StorageQuotaExceededException if the image exceeds the limit
      */
     public void checkImageSize(int stationId, long imageBytes) {
+        if (hasOwnBackend(stationId)) return;
         var quota = resolveQuotas(stationId);
         long limit = quota.perImageBytes() != null ? quota.perImageBytes() : storageConfig.defaultPerImageBytes();
         if (imageBytes > limit) {
@@ -207,20 +226,19 @@ public class StorageQuotaService {
             case KB_FILES -> quota.quotaKbBytes() != null ? quota.quotaKbBytes() : storageConfig.defaultKbBytes();
             case BOARD_ATTACHMENTS ->
                 quota.quotaBoardBytes() != null ? quota.quotaBoardBytes() : storageConfig.defaultBoardBytes();
-            case IMAGES,
-                    IMAGE_LOST_AND_FOUND,
-                    IMAGE_QUIZ_QUESTION,
-                    IMAGE_KB_ICON,
-                    IMAGE_KB_IMAGE,
-                    IMAGE_LOGO_FRAGMENT ->
+            case IMAGE_LOST_AND_FOUND, IMAGE_QUIZ_QUESTION, IMAGE_KB_ICON, IMAGE_KB_IMAGE, IMAGE_LOGO_FRAGMENT ->
                 quota.quotaImagesBytes() != null ? quota.quotaImagesBytes() : storageConfig.defaultImagesBytes();
             case PAGE_FILES, PAGE_IMAGES ->
                 quota.quotaPagesBytes() != null ? quota.quotaPagesBytes() : storageConfig.defaultPagesBytes();
-            case AVATARS, IMAGE_AVATAR, DOCUMENT, DISCOVERY_KEY, MAP_TILE_CACHE, DEMO_AVATAR -> Long.MAX_VALUE;
+            case IMAGE_AVATAR, DOCUMENT, DISCOVERY_KEY, MAP_TILE_CACHE, DEMO_AVATAR -> Long.MAX_VALUE;
         };
     }
 
     private void checkWarningThreshold(int stationId) {
+        if (hasOwnBackend(stationId)) {
+            if (isWarningSent(stationId)) setWarningSent(stationId, false);
+            return;
+        }
         var quota = resolveQuotas(stationId);
         long totalUsed = usageRepository.totalEnforcedBytes(stationId);
         long totalLimit = effectiveTotalQuota(quota);

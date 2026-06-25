@@ -76,13 +76,6 @@ public class DiscoveryStationCacheRepository {
     }
 
     /**
-     * Editor's PARTNER_STATIONS picker (concept §3.9 / §4.5). Searches the discovery cache by
-     * the cached card's name, country, or city — all case-insensitive. Only stations on
-     * reachable, non-blocked peers are returned; the cache only contains public stations to
-     * begin with (the `/public/discovery/stations` source endpoint excludes private ones), so
-     * every result is selectable. Empty {@code search} returns the most recently fetched rows.
-     */
-    /**
      * Look up cached station cards by their UUIDs (across all reachable peers).
      */
     public List<CachedDiscoveryStation> findByStationUids(List<String> stationUids) {

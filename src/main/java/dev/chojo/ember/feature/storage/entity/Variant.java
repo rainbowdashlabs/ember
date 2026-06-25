@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.storage.entity;
 
 /**
- * Sub-file selector under a producer-chosen storage key (concept §4.3). For image categories
+ * Sub-file selector under a producer-chosen storage key. For image categories
  * the variant carries widths ({@code original}, {@code 1024}, …); for KB files the gzip
  * decision ({@code content} vs {@code content.gz}); for everything else the implicit
  * {@link #ORIGINAL}.

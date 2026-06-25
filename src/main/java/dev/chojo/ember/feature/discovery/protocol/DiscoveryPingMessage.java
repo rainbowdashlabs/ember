@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.discovery.protocol;
 import java.time.Instant;
 
 /**
- * Body of {@code POST /api/v1/discovery/ping}. See {@code .concept/discovery.md} §3.1.
+ * Body of {@code POST /api/v1/discovery/ping}.
  *
  * @param from        identity of the pinging instance
  * @param nonce       32-byte random base64; used to correlate the asynchronous callback and

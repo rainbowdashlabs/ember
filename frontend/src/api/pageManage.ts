@@ -135,7 +135,7 @@ export interface CountdownConfig {
 }
 
 export interface FeaturedEventConfig {
-    /** Public UUID of the referenced event (concept §2.3). All other display fields come live. */
+    /** Public UUID of the referenced event. All other display fields come live. */
     eventUid?: string | null
     /** Optional editor-supplied teaser blurb above the auto-rendered location row. */
     descriptionOverride?: string | null
@@ -144,7 +144,7 @@ export interface FeaturedEventConfig {
 export interface UpcomingEventsConfig {
     title?: string | null
     /** Empty / unset = "all categories". Event categories are referenced by their numeric id —
-     *  no public_uid exists for them today (concept §3.4). */
+     *  no public_uid exists for them today. */
     categoryIds?: number[] | null
     /** Max items to render. Default 5, max 20. */
     limit?: number | null
@@ -153,7 +153,7 @@ export interface UpcomingEventsConfig {
 }
 
 export interface KbArticleConfig {
-    /** Internal KB file id. KB doesn't expose a public_uid yet (concept §3.6 deferred);
+    /** Internal KB file id. KB doesn't expose a public_uid yet;
      *  the renderer + picker both speak the integer id directly. */
     articleId?: number | null
     /** Optional editor-supplied fallback shown until the live KB lookup resolves the real name. */
@@ -161,12 +161,12 @@ export interface KbArticleConfig {
 }
 
 export interface NewsTeaserConfig {
-    /** Public UUID of the referenced news entry (concept §2.3). All other fields come live from the entity. */
+    /** Public UUID of the referenced news entry. All other fields come live from the entity. */
     newsUid?: string | null
 }
 
 export interface PageLinkConfig {
-    /** Public UUID of the referenced station page (concept §2.3). Live title sourced from the entity. */
+    /** Public UUID of the referenced station page. Live title sourced from the entity. */
     pageUid?: string | null
 }
 
@@ -189,14 +189,14 @@ export interface AddressCardConfig {
 
 export interface PartnerStationsConfig {
     title?: string | null
-    /** Explicit list of partner station UUIDs to render (concept §3.9). */
+    /** Explicit list of partner station UUIDs to render. */
     stationUids?: string[] | null
     /** When true, the cell ignores {@link stationUids} and pulls every federated partner. */
     autoFillFromPartners?: boolean | null
 }
 
 export interface MemberSpotlightConfig {
-    /** UUID of the spotlighted member (concept §3.10). All display fields come live. */
+    /** UUID of the spotlighted member. All display fields come live. */
     memberUid?: string | null
     /** Editor-supplied free-form blurb shown next to the live member card. */
     blurb?: string | null
@@ -232,7 +232,7 @@ export interface ResolvedMember {
 
 export interface MemberListConfig {
     title?: string | null
-    /** Source of the member list — group / tag / manual override (concept §3.11). */
+    /** Source of the member list — group / tag / manual override. */
     source?: MemberListSource | null
     /** Default {@link MemberListSortBy.ORDER}; falls back to natural source order or memberOrder. */
     sortBy?: MemberListSortByName | null
@@ -291,7 +291,7 @@ export interface HeroBannerConfig {
 }
 
 export interface PastEventRecapConfig {
-    /** Public UUID of the referenced past event (concept §2.3). */
+    /** Public UUID of the referenced past event. */
     eventUid?: string | null
     /** Editor-supplied recap text shown alongside the event's own description. */
     recapDescription?: string | null
@@ -350,7 +350,7 @@ export interface PollEmbedConfig {
 export interface QuizTeaserConfig {
     title?: string | null
     description?: string | null
-    /** Ids of public quiz catalogs (concept §3.15). At least one required to render. */
+    /** Ids of public quiz catalogs. At least one required to render. */
     catalogIds?: number[] | null
 }
 
@@ -486,7 +486,7 @@ export async function listPages(): Promise<PagesListResponse> {
     return res.data
 }
 
-// -- Page-editor PAGE_LINK picker (concept §4.5). PAGE_EDIT-gated. --
+// -- Page-editor PAGE_LINK picker. PAGE_EDIT-gated. --
 
 export interface PageSearchResult {
     pageUid: string
@@ -563,6 +563,14 @@ export const uploadPageImage = uploadPageFile
 
 export async function deletePageFile(pageId: number, fileId: number): Promise<void> {
     await client.delete(`/pages/${pageId}/files/${fileId}`)
+}
+
+/**
+ * Deletes a station-scoped page file directly (no page context). Used by the
+ * file browser at /station/pages/files for single and bulk delete.
+ */
+export async function deleteStationPageFile(fileId: number): Promise<void> {
+    await client.delete(`/pages/files/${fileId}`)
 }
 
 /** Public URL for a page-file, addressed by its content hash. */

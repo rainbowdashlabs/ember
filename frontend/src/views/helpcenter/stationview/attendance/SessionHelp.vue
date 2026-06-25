@@ -74,7 +74,7 @@ const {t} = useI18n()
     <!-- Dummy: Attendance entries with check-in/check-out -->
     <HelpSection :title="t('helpCenter.attendanceSession.memberEntryTitle')">
       <p>{{ t('helpCenter.attendanceSession.memberEntryText') }}</p>
-      <SubHeader>Anfaenger</SubHeader>
+      <SubHeader>Anfänger</SubHeader>
       <div class="space-y-1">
         <div class="rounded-lg px-4 py-3 border-l-4 transition-all border-success bg-success/5">
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">

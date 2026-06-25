@@ -14,7 +14,7 @@ import * as publicQuiz from '@/api/publicQuiz'
 
 /**
  * Editor block for the QUIZ_TEASER cell. The cell stores a list of public catalog ids — the
- * renderer draws one random question from them and reveals the answer on click (concept §3.15).
+ * renderer draws one random question from them and reveals the answer on click.
  */
 const props = defineProps<{
     config: Record<string, unknown>

@@ -36,7 +36,7 @@ import java.util.stream.Stream;
  *
  * <p>The cache is <em>opportunistic</em> — it only stores tiles a real user requested,
  * never pre-fetched grid regions. That matches the OSM Tile Usage Policy carve-out for
- * "long-lived browser caches". See {@code .concept/geolocation.md} §4.5.
+ * "long-lived browser caches".
  *
  * <p>LRU bookkeeping rides the filesystem's mtime: every read touches the file's mtime,
  * eviction picks the oldest mtimes first. No separate index file, survives restart.

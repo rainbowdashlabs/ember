@@ -1108,7 +1108,7 @@ public class NewsRoutes implements Routes {
     /**
      * Lightweight picker result shape for {@code GET /api/v1/news/search}. Exposes the public
      * UUID — never the internal integer id — so cell configs that reference this entry survive
-     * station-transfer renumbering (concept §2.3).
+     * station-transfer renumbering.
      */
     public record NewsSearchResult(UUID publicUid, String title, String summary, Instant publishedAt) {}
 }

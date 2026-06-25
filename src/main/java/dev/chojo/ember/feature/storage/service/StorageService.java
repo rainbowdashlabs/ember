@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Single producer-facing entry point for every byte Ember persists. Concept §4.1.
+ * Single producer-facing entry point for every byte Ember persists.
  *
  * <p>Producers never reach for {@link java.nio.file.Files} or any backend implementation
  * directly. The façade:

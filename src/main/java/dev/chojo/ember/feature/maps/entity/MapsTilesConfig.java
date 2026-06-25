@@ -12,8 +12,7 @@ import tools.jackson.databind.json.JsonMapper;
  * under the key {@code maps_tiles}.
  *
  * <p>Unset URL template / attribution fall back to the provider's defaults at read time;
- * the persisted record stores whatever the operator typed. See
- * {@code .concept/geolocation.md} §4.4.
+ * the persisted record stores whatever the operator typed.
  */
 public record MapsTilesConfig(
         MapTileProvider provider, String apiKey, String urlTemplate, String attribution, int minZoom, int maxZoom) {

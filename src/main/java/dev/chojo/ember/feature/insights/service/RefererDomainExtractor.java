@@ -26,7 +26,7 @@ import java.util.Locale;
  * </ul>
  *
  * <p>Long-tail collapse to {@code other} is done at flush time by the recorder, which checks
- * the historical row count for the domain — see concept §7.5.
+ * the historical row count for the domain.
  */
 @Singleton
 public class RefererDomainExtractor {

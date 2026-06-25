@@ -221,6 +221,17 @@ public class AccountRepository {
     }
 
     /**
+     * Replaces the {@code uid} column for the account. Used by the demo seeder to pin
+     * deterministic UUIDs so demo data does not accumulate on disk across restarts.
+     */
+    public void setUid(int id, java.util.UUID uid) {
+        query("UPDATE account SET uid = :uid::uuid WHERE id = :id;")
+                .single(call().bind("uid", uid, de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING)
+                        .bind("id", id))
+                .update();
+    }
+
+    /**
      * Checks whether an account is an instance administrator.
      */
     public boolean isAdministrator(int accountId) {

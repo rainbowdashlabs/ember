@@ -76,7 +76,7 @@ public class EventService {
 
     /**
      * Event picker for the {@code FEATURED_EVENT} / {@code UPCOMING_EVENTS} /
-     * {@code PAST_EVENT_RECAP} cells — see concept §4.5. Returns a compact picker shape filtered
+     * {@code PAST_EVENT_RECAP} cells. Returns a compact picker shape filtered
      * to public events (per-event {@code public = TRUE} or category-default).
      */
     public List<EventRepository.PickerEvent> searchEventPicker(

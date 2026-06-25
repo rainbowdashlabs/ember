@@ -127,7 +127,7 @@ class TotpServiceTest {
         // Forge a payload large enough that QR encoding can't fit it into the matrix,
         // exercising the WriterException catch branch.
         StringBuilder huge = new StringBuilder("otpauth://huge?data=");
-        for (int i = 0; i < 5000; i++) huge.append('A');
+        huge.repeat("A", 5000);
         assertThrows(IllegalStateException.class, () -> service.generateQrPng(huge.toString(), 64));
     }
 }

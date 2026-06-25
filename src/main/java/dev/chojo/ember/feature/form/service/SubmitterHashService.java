@@ -18,7 +18,7 @@ import java.util.Base64;
 
 /**
  * Produces the pseudonymous {@code submitter_hash} stored alongside anonymous public
- * form responses (concept §4.4).
+ * form responses.
  *
  * <p>The hash is {@code SHA-256(realClientIp || ':' || form.id || ':' || instanceSalt)}.
  * Scoping the hash by form id means the same visitor on a different form yields a

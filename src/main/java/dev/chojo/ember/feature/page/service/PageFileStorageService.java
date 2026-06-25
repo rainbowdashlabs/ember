@@ -35,7 +35,7 @@ import java.util.stream.Stream;
  * {@link StorageService}; this class owns only the page-files specific keying convention
  * (content-hash key, {@code orig.<ext>} / {@code w<width>.<ext>} variant slot).
  *
- * <p>Layout in the new storage model (concept §4.3):
+ * <p>Layout in the new storage model:
  * {@code <scope>/<category>/<contentHash>/<variantFilename>} →
  * {@code station/<uid>/page-files/<contentHash>/orig.<ext>}.
  *

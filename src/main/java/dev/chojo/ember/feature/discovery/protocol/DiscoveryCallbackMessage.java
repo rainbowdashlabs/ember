@@ -10,7 +10,6 @@ import java.util.List;
 
 /**
  * Body of {@code POST /api/v1/discovery/peers} — the asynchronous answer to a ping.
- * See {@code .concept/discovery.md} §3.2.
  */
 public record DiscoveryCallbackMessage(
         DiscoveryIdentity from, String inReplyTo, Instant issuedAt, List<PeerAnnouncement> peers) {}

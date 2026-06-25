@@ -27,7 +27,7 @@ import javax.imageio.ImageWriter;
 import javax.imageio.stream.MemoryCacheImageOutputStream;
 
 /**
- * Generates and resolves width-keyed image variants (concept §11.1). At upload time the
+ * Generates and resolves width-keyed image variants. At upload time the
  * service is invoked once per stored original — it produces a resized copy of the original
  * for each configured width, plus a WebP copy when WebP variants are enabled. At read time
  * the service picks the smallest variant ≥ the requested width and, when the client's

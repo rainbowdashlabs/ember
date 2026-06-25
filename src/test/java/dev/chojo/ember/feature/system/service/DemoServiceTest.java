@@ -56,6 +56,7 @@ import dev.chojo.ember.feature.protocol.service.TestProtocolService;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionImageService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
 import dev.chojo.ember.feature.station.service.StationService;
+import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.service.PdfCompressor;
 import dev.chojo.ember.feature.storage.service.PresentationCompressor;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
@@ -252,7 +253,8 @@ class DemoServiceTest extends RepositoryTestBase {
                         new PageFileMetaRepository(),
                         demoStorage,
                         new PageImageVariantService(demoStorage, demoStorageConfig),
-                        new StorageQuotaService(storageUsageRepo, demoStorageConfig, noOpBus),
+                        new StorageQuotaService(
+                                storageUsageRepo, new StationStorageConfigRepository(), demoStorageConfig, noOpBus),
                         stationMemberRepo,
                         avatarService),
                 formRepo,

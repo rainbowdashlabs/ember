@@ -70,6 +70,7 @@ public class PageRoutes implements Routes {
         routes.post(prefix + "/pages/files", this::uploadStationFile, StationPermission.PAGE_EDIT);
         routes.post(prefix + "/pages/files/prune", this::pruneFiles, StationPermission.PAGE_MANAGER);
         routes.put(prefix + "/pages/files/{fileId}", this::updateFileMeta, StationPermission.PAGE_EDIT);
+        routes.delete(prefix + "/pages/files/{fileId}", this::deleteFile, StationPermission.PAGE_MANAGER);
         routes.put(prefix + "/pages/files/{fileId}/folder", this::moveFileFolder, StationPermission.PAGE_EDIT);
         routes.post(prefix + "/pages/files/{fileId}/tags/{tagId}", this::assignTag, StationPermission.PAGE_EDIT);
         routes.delete(prefix + "/pages/files/{fileId}/tags/{tagId}", this::unassignTag, StationPermission.PAGE_EDIT);

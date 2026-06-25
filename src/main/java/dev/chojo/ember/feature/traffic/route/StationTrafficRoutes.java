@@ -26,8 +26,7 @@ import java.time.Instant;
  * Permission: {@link StationPermission#STATION_ADMINISTRATOR}.
  *
  * <p>Path follows the existing {@code /station/...} convention (station id derived from
- * the session) rather than the {@code /stations/{id}/...} variant sketched in the concept,
- * so it sits next to {@code /station/manage/...} and similar.
+ * the session), so it sits next to {@code /station/manage/...} and similar.
  */
 @Singleton
 public class StationTrafficRoutes implements Routes {

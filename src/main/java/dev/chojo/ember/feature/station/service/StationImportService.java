@@ -151,7 +151,6 @@ public class StationImportService {
         for (StorageCategory c : StorageCategory.values()) {
             if (c.scopeKind() != StorageScope.Kind.STATION) continue;
             if (!c.isMovable()) continue;
-            if (StorageCategory.LEGACY_CATEGORIES.contains(c)) continue;
             out.add(c);
         }
         return out;

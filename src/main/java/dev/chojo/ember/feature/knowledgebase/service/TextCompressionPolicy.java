@@ -17,8 +17,8 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 /**
- * Decides whether a given {@code (contentType, bytes)} payload should be gzipped on disk
- * (concept §11.3) and performs the encoding / decoding when the answer is yes. Pulled out of
+ * Decides whether a given {@code (contentType, bytes)} payload should be gzipped on disk,
+ * and performs the encoding / decoding when the answer is yes. Pulled out of
  * {@code KbFileStorageService} so the storage service stays a pure I/O layer that just stores
  * whatever bytes it is given.
  */

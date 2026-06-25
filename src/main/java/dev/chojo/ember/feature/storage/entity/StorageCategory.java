@@ -6,13 +6,10 @@
 package dev.chojo.ember.feature.storage.entity;
 
 import java.util.List;
-import java.util.Set;
 
 /**
  * Single source of truth for everything Ember stores on disk: scope kind, backend
  * resolvability, quota behaviour, accepted MIME types and per-category flags.
- *
- * <p>See concept §4.5 for the full table and the rationale behind each row.
  *
  * <p>Entries are split conceptually into:
  * <ul>
@@ -136,24 +133,6 @@ public enum StorageCategory {
             List.of("image/png", "image/svg+xml"),
             false,
             false,
-            null),
-    AVATARS(
-            "images/avatars",
-            StorageScope.Kind.STATION,
-            true,
-            QuotaMode.TRACKED,
-            List.of("image/png", "image/jpeg", "image/webp", "image/gif"),
-            false,
-            false,
-            null),
-    IMAGES(
-            "images",
-            StorageScope.Kind.STATION,
-            true,
-            QuotaMode.ENFORCED,
-            List.of("image/png", "image/jpeg", "image/webp", "image/gif"),
-            false,
-            false,
             null);
 
     /**
@@ -162,11 +141,6 @@ public enum StorageCategory {
      * sentinel; callers iterating over the list should treat it as "no restriction".
      */
     public static final List<String> MIME_ANY = MimeLists.ANY;
-    /**
-     * Set of legacy categories kept around so the existing quota tables and routes keep
-     * working while the rollout is in progress. New code must not branch on these.
-     */
-    public static final Set<StorageCategory> LEGACY_CATEGORIES = Set.of(AVATARS, IMAGES);
 
     private final String prefix;
     private final StorageScope.Kind scopeKind;
@@ -297,7 +271,7 @@ public enum StorageCategory {
     }
 
     /**
-     * Quota tracking mode — see concept §4.5.
+     * Quota tracking mode.
      */
     public enum QuotaMode {
         /**

@@ -289,7 +289,7 @@ public class EmberModule extends AbstractModule {
         bind(StorageReconciliationService.class).asEagerSingleton();
         bind(FederationVersionBroadcaster.class).asEagerSingleton();
         bind(FeedMetricsService.class).asEagerSingleton();
-        // Discovery chain — see .concept/discovery.md
+        // Discovery chain
         bind(FederationPartnerSeeder.class).asEagerSingleton();
         bind(DiscoveryPingScheduler.class).asEagerSingleton();
         bind(DiscoveryStationRefreshScheduler.class).asEagerSingleton();

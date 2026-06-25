@@ -40,9 +40,9 @@ import java.util.concurrent.TimeUnit;
  *
  * <p>The protocol is intentionally fire-and-forget on the wire — every {@code POST
  * /discovery/ping} returns {@code 204} immediately, and the actual peer list comes back via a
- * delayed callback. See {@code .concept/discovery.md} §3.
+ * delayed callback.
  *
- * <p>Fan-out (§3.3) is <em>not yet implemented</em>; the {@code depth} field is sent and
+ * <p>Fan-out is <em>not yet implemented</em>; the {@code depth} field is sent and
  * recorded but receivers currently always answer with what they already know. The protocol
  * is forward-compatible: enabling fan-out is a local code change.
  */

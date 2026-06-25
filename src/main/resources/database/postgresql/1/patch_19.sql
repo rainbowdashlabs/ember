@@ -2,9 +2,6 @@ UPDATE ember_schema.station_storage_usage
 SET category = 'PAGE_FILES'
 WHERE category = 'PAGE_IMAGES';
 
-DELETE FROM ember_schema.station_storage_usage
-WHERE category IN ('AVATARS', 'IMAGES');
-
 CREATE TABLE ember_schema.station_storage_config (
     station_id   INTEGER NOT NULL PRIMARY KEY REFERENCES ember_schema.station(id) ON DELETE CASCADE,
     backend_type TEXT    NOT NULL,

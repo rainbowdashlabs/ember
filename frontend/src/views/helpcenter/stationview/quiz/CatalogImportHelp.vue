@@ -87,7 +87,7 @@ const { t } = useI18n()
           </PrimaryButton>
         </div>
         <NeutralContainer v-for="q in [
-          { title: 'Welche Notrufnummer waehlt man bei Feuer?', type: 'Multiple Choice' },
+          { title: 'Welche Notrufnummer wählt man bei Feuer?', type: 'Multiple Choice' },
           { title: 'Wasser leitet Strom.', type: 'Wahr/Falsch' },
           { title: 'Was bedeutet ABC?', type: 'Freitext' },
         ]" :key="q.title">

@@ -43,7 +43,7 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.quizTestCreate.basicText') }}</p>
       <NeutralContainer class="space-y-4">
         <TextInput :model-value="'Jugendflamme Stufe 1 — Wissenstest'" disabled />
-        <TextAreaInput :model-value="'Theoretischer Teil der Pruefung'" disabled />
+        <TextAreaInput :model-value="'Theoretischer Teil der Prüfung'" disabled />
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>

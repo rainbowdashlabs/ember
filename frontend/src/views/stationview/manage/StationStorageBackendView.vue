@@ -15,9 +15,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Modal from '@/components/feedback/Modal.vue'
@@ -34,13 +32,13 @@ import {
     type S3Request,
     type SftpRequest,
     type SmbRequest,
+    type StationApplyRequest,
     type StationBackendRequest,
-    deleteStationBackend,
+    applyStationBackend,
     getStationBackend,
     getStationStorageAudit,
-    migrateStationBackend,
     probeStationBackend,
-    upsertStationBackend,
+    probeStationBackendConfig,
 } from '@/api/storageBackend'
 
 const {t} = useI18n()
@@ -63,13 +61,10 @@ const selectedType = ref<'LOCAL' | 'S3' | 'SMB' | 'SFTP'>('LOCAL')
 const s3 = ref<S3Request>(newS3())
 const smb = ref<SmbRequest>(newSmb())
 const sftp = ref<SftpRequest>(newSftp())
-const keepSource = ref(false)
-
 const probing = ref(false)
 const saving = ref(false)
-const migrating = ref(false)
 const probeOutcome = ref<ProbeResult | null>(null)
-const confirmMigrate = ref(false)
+const confirmApply = ref(false)
 
 const overrideType = computed(() => backend.value?.override?.type ?? null)
 const hasOverride = computed(() => overrideType.value !== null)
@@ -172,66 +167,49 @@ async function probe() {
     }
 }
 
-async function save() {
-    error.value = ''
-    success.value = ''
-    if (selectedType.value === 'LOCAL') {
-        await removeOverride()
-        return
-    }
-    const req = currentRequest()
-    if (!req) return
-    saving.value = true
-    try {
-        await upsertStationBackend(req)
-        success.value = t('stationStorageBackend.feedback.saved')
-        await loadAll()
-    } catch (e: any) {
-        error.value = e?.response?.data?.title ?? e?.message ?? t('stationStorageBackend.errors.saveFailed')
-    } finally {
-        saving.value = false
-    }
-}
-
-async function removeOverride() {
-    if (!hasOverride.value) {
-        success.value = t('stationStorageBackend.feedback.noOverride')
-        return
-    }
-    saving.value = true
-    try {
-        await deleteStationBackend()
-        success.value = t('stationStorageBackend.feedback.deleted')
-        await loadAll()
-    } catch (e: any) {
-        error.value = e?.response?.data?.title ?? e?.message ?? t('stationStorageBackend.errors.deleteFailed')
-    } finally {
-        saving.value = false
-    }
-}
-
-async function runMigrate() {
-    confirmMigrate.value = false
+async function probeConfig() {
     const req = currentRequest()
     if (!req) {
-        error.value = t('stationStorageBackend.errors.migrateNeedsOverride')
+        probeOutcome.value = null
         return
     }
-    migrating.value = true
+    probing.value = true
+    probeOutcome.value = null
+    try {
+        probeOutcome.value = await probeStationBackendConfig(req)
+    } catch (e: any) {
+        probeOutcome.value = {
+            healthy: false,
+            error: e?.response?.data?.title ?? e?.message ?? t('stationStorageBackend.errors.probeFailed'),
+            checkedAt: new Date().toISOString(),
+        }
+    } finally {
+        probing.value = false
+    }
+}
+
+function applyRequest(): StationApplyRequest {
+    if (selectedType.value === 'LOCAL') return {type: 'LOCAL'}
+    return currentRequest()!
+}
+
+async function runApply() {
+    confirmApply.value = false
+    saving.value = true
     error.value = ''
     success.value = ''
     try {
-        const result = await migrateStationBackend(req)
-        success.value = t('stationStorageBackend.feedback.migrated', {
+        const result = await applyStationBackend(applyRequest())
+        success.value = t('stationStorageBackend.feedback.applied', {
             copied: result.copied,
             skipped: result.skipped,
             deleted: result.deleted,
         })
         await loadAll()
     } catch (e: any) {
-        error.value = e?.response?.data?.title ?? e?.message ?? t('stationStorageBackend.errors.migrateFailed')
+        error.value = e?.response?.data?.title ?? e?.message ?? t('stationStorageBackend.errors.applyFailed')
     } finally {
-        migrating.value = false
+        saving.value = false
     }
 }
 
@@ -333,22 +311,15 @@ function newSftp(): SftpRequest {
                     </div>
 
                     <div class="flex flex-wrap items-center gap-3">
+                        <SecondaryButton :disabled="probing || selectedType === 'LOCAL'" @click="probeConfig">
+                            {{ probing ? t('stationStorageBackend.actions.probing') : t('stationStorageBackend.actions.probeConfig') }}
+                        </SecondaryButton>
                         <SecondaryButton :disabled="probing || !hasOverride" @click="probe">
-                            {{ probing ? t('stationStorageBackend.actions.probing') : t('stationStorageBackend.actions.probe') }}
+                            {{ probing ? t('stationStorageBackend.actions.probing') : t('stationStorageBackend.actions.probeLive') }}
                         </SecondaryButton>
-                        <PrimaryButton :disabled="saving" @click="save">
-                            {{ saving ? t('stationStorageBackend.actions.saving') : t('stationStorageBackend.actions.save') }}
+                        <PrimaryButton :disabled="saving" @click="confirmApply = true">
+                            {{ saving ? t('stationStorageBackend.actions.applying') : t('stationStorageBackend.actions.apply') }}
                         </PrimaryButton>
-                        <DeleteButton v-if="hasOverride" :disabled="saving" @click="removeOverride">
-                            {{ t('stationStorageBackend.actions.removeOverride') }}
-                        </DeleteButton>
-                        <SecondaryButton
-                            v-if="hasOverride"
-                            :disabled="migrating || selectedType === 'LOCAL'"
-                            @click="confirmMigrate = true"
-                        >
-                            {{ migrating ? t('stationStorageBackend.actions.migrating') : t('stationStorageBackend.actions.migrate') }}
-                        </SecondaryButton>
                     </div>
                 </NeutralContainer>
 
@@ -359,19 +330,15 @@ function newSftp(): SftpRequest {
             </template>
         </div>
 
-        <Modal v-model="confirmMigrate" size="md">
+        <Modal v-model="confirmApply" size="md">
             <div class="space-y-4">
                 <SubHeader>{{ t('stationStorageBackend.confirm.title') }}</SubHeader>
                 <MutedText tag="p" size="sm">{{ t('stationStorageBackend.confirm.body') }}</MutedText>
-                <FieldLabel inline>
-                    <ToggleInput v-model="keepSource" />
-                    <span>{{ t('stationStorageBackend.confirm.keepSource') }}</span>
-                </FieldLabel>
                 <div class="flex justify-end gap-3">
-                    <SecondaryButton @click="confirmMigrate = false">
+                    <SecondaryButton @click="confirmApply = false">
                         {{ t('stationStorageBackend.confirm.cancel') }}
                     </SecondaryButton>
-                    <PrimaryButton :disabled="migrating" @click="runMigrate">
+                    <PrimaryButton :disabled="saving" @click="runApply">
                         {{ t('stationStorageBackend.confirm.confirm') }}
                     </PrimaryButton>
                 </div>

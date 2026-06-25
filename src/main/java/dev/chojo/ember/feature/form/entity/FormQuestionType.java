@@ -39,7 +39,7 @@ public enum FormQuestionType {
     /**
      * Whether this question type may be used on a form with the given purpose.
      *
-     * <p>The whitelist (see concept §4.1):
+     * <p>The whitelist:
      * <ul>
      *   <li>{@link FormPurpose#INTERNAL} — all types.</li>
      *   <li>{@link FormPurpose#CONTACT} — {@link #TEXT}, {@link #CHOICE}, {@link #DATE} only.</li>

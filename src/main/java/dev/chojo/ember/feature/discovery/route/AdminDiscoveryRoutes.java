@@ -179,7 +179,7 @@ public class AdminDiscoveryRoutes implements Routes {
         // Authenticated user-facing endpoint for the /station/discovery page.
         routes.get(prefix + "/discovery/stations", this::listCachedStations);
 
-        // Editor-facing picker for the PARTNER_STATIONS cell (concept §4.5). Auth-gated by
+        // Editor-facing picker for the PARTNER_STATIONS cell. Auth-gated by
         // PAGE_EDIT so it never escapes the editor surface — public scrapers cannot use it to
         // enumerate the federation network.
         routes.get(prefix + "/federation/stations/search", this::searchStationPicker, StationPermission.PAGE_EDIT);

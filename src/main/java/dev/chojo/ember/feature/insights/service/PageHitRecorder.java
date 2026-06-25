@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * path (only a {@link ConcurrentHashMap} lookup and an {@link AtomicLong} increment), with
  * the DB upsert on a single-threaded scheduler so request latency is never affected.
  *
- * <p>Long-tail referer collapse (concept §7.5): at flush time, before upserting, the
+ * <p>Long-tail referer collapse: at flush time, before upserting, the
  * recorder checks how often the bucket's referer domain has appeared for the page in the
  * last week; domains that haven't crossed the threshold collapse to {@code other} so the
  * referer dimension stays bounded.
@@ -198,12 +198,12 @@ public class PageHitRecorder {
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (!(o instanceof BucketKey b)) return false;
-            return pageId == b.pageId
-                    && isBot == b.isBot
-                    && hour.equals(b.hour)
-                    && country.equals(b.country)
-                    && refererDomain.equals(b.refererDomain);
+            if (!(o instanceof BucketKey(Instant hour1, int id, String country1, String domain, boolean bot))) return false;
+            return pageId == id
+                    && isBot == bot
+                    && hour.equals(hour1)
+                    && country.equals(country1)
+                    && refererDomain.equals(domain);
         }
 
         @Override

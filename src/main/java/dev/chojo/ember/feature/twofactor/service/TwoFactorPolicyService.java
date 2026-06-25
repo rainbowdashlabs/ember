@@ -20,6 +20,7 @@ import jakarta.inject.Singleton;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Reads and writes {@code two_factor_policy} rows and assembles the per-station member status
@@ -29,7 +30,7 @@ import java.util.Map;
  * mandated when (a) the account holds at least one elevated role / permission, or (b) at
  * least one matching {@code required = true} policy row exists for one of the account's
  * memberships. The richer freshness / grace-window resolver lives in the upcoming policy
- * engine work (concept §9).
+ * engine work.
  */
 @Singleton
 public class TwoFactorPolicyService {
@@ -123,7 +124,7 @@ public class TwoFactorPolicyService {
                             enrolled,
                             mandated);
                 })
-                .filter(s -> s != null)
+                .filter(Objects::nonNull)
                 .toList();
     }
 

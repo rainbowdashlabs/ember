@@ -25,7 +25,7 @@ import java.util.UUID;
 /**
  * Public anonymous-internet endpoints backing the QUIZ_TEASER cell. The cell picks one
  * random question from the requested catalogs and reveals the answer on click — same shape
- * as the internal training view (concept §3.15 / §4.7).
+ * as the internal training view.
  */
 @Singleton
 public class PublicQuizRoutes implements Routes {

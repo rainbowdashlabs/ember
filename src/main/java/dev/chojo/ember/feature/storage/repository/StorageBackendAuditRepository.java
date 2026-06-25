@@ -114,8 +114,8 @@ public class StorageBackendAuditRepository {
     public List<StorageAuditEntry> findAll(Optional<Instant> before, Optional<Integer> stationId, int limit) {
         return query("""
                 SELECT %s FROM storage_backend_audit
-                WHERE ( :before IS NULL OR ts < :before )
-                  AND ( :station_id IS NULL OR station_id = :station_id )
+                WHERE ( :before::TIMESTAMPTZ IS NULL OR ts < :before::TIMESTAMPTZ )
+                  AND ( :station_id::INTEGER IS NULL OR station_id = :station_id::INTEGER )
                 ORDER BY ts DESC, id DESC
                 LIMIT :limit;
                 """, SELECT_COLS)

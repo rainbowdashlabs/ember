@@ -73,7 +73,7 @@ public class QuizCatalogRepository {
 
     /**
      * Flips the {@code public_render} flag — opts the catalog into (or out of) being eligible
-     * for the public QUIZ_TEASER random endpoint (concept §3.15 / §4.7).
+     * for the public QUIZ_TEASER random endpoint.
      */
     public boolean setPublicRender(int id, boolean publicRender) {
         return query("""
@@ -87,7 +87,7 @@ public class QuizCatalogRepository {
 
     /**
      * Returns catalogs of the given station whose {@code public_render} flag is on. Backs the
-     * editor's catalog picker and the public quiz random endpoint (concept §3.15 / §4.7).
+     * editor's catalog picker and the public quiz random endpoint.
      */
     public List<QuizCatalog> findPublicByStation(int stationId) {
         return query("""

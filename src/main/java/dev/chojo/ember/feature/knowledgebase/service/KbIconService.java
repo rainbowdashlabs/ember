@@ -17,7 +17,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Per-domain wrapper for knowledge-base folder icons (concept §11.3). Keyed by
+ * Per-domain wrapper for knowledge-base folder icons. Keyed by
  * {@code folder-<folderId>} under the owning station's scope:
  * {@code station/<stationUid>/images/kb-icons/folder-<folderId>/...}.
  */

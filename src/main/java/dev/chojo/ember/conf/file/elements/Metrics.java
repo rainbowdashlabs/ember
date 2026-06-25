@@ -53,7 +53,7 @@ public class Metrics {
     /**
      * Cadence at which the {@code StationTrafficRecorder} flushes its in-memory bucket map
      * to the database via UPSERT. Shorter intervals reduce data loss on a crash but raise
-     * the number of write operations; the default of 30 s matches the concept document.
+     * the number of write operations.
      */
     @Overwrite(env = @Env)
     private int trafficFlushIntervalSeconds = 30;
@@ -70,7 +70,7 @@ public class Metrics {
     /**
      * How many days of pre-aggregated {@code page_hit_hourly} rows to keep. The table is
      * small (hours × pages × countries × referer domains × 2) so the default keeps a year of
-     * visibility, which is what the concept document specifies.
+     * visibility.
      */
     @Overwrite(env = @Env)
     private int webStatsRetentionDays = 365;

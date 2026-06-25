@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * Station-scoped public-page analytics endpoints (concept §7.7). All routes are gated on
+ * Station-scoped public-page analytics endpoints. All routes are gated on
  * {@link StationPermission#STATION_ADMINISTRATOR}; managers see only their own station's
  * pages, never another station's.
  *

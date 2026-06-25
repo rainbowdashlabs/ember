@@ -8,7 +8,7 @@ import type {StationPage} from './pageManage'
 
 export interface PublicPageSummary {
     id: number
-    /** Stable opaque public identifier — referenced by PAGE_LINK cells (concept §2.3). */
+    /** Stable opaque public identifier — referenced by PAGE_LINK cells. */
     publicUid: string
     parentId: number | null
     title: string

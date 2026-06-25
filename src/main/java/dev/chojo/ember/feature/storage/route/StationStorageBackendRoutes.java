@@ -96,11 +96,13 @@ public class StationStorageBackendRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/station/storage/backend", this::get, StationPermission.STATION_ADMINISTRATOR);
-        routes.put(prefix + "/station/storage/backend", this::upsert, StationPermission.STATION_ADMINISTRATOR);
-        routes.delete(prefix + "/station/storage/backend", this::delete, StationPermission.STATION_ADMINISTRATOR);
         routes.post(prefix + "/station/storage/backend/probe", this::probe, StationPermission.STATION_ADMINISTRATOR);
+        routes.post(
+                prefix + "/station/storage/backend/probe-config",
+                this::probeConfig,
+                StationPermission.STATION_ADMINISTRATOR);
+        routes.post(prefix + "/station/storage/backend/apply", this::apply, StationPermission.STATION_ADMINISTRATOR);
         routes.get(prefix + "/station/storage/audit", this::listAudit, StationPermission.STATION_ADMINISTRATOR);
-        routes.post(prefix + "/station/storage/migrate", this::migrate, StationPermission.STATION_ADMINISTRATOR);
     }
 
     private void get(Context ctx) {
@@ -111,47 +113,44 @@ public class StationStorageBackendRoutes implements Routes {
         ctx.json(new BackendOverrideResponse(instanceDefault, override.orElse(null)));
     }
 
-    private void upsert(Context ctx) {
+    /**
+     * Unified entry point for "save and apply": probes the target backend, migrates every
+     * station-scoped movable category from the currently-resolved source backend onto it, and
+     * atomically swaps the {@code station_storage_config} row when the migration succeeds. A
+     * {@link LocalRequest} target means "drop the override and move bytes back to the instance
+     * default". For an empty source the copy phase is a no-op, so this path is also the
+     * green-field setup flow — no separate save endpoint is needed.
+     */
+    private void apply(Context ctx) {
         Actor actor = actor(ctx);
         int stationId = sessionStationId(ctx);
         BackendOverrideRequest request = ctx.bodyAsClass(BackendOverrideRequest.class);
-        StationStorageBackendConfig config = toEntity(request);
-        try (StorageBackend probe = factory.buildForStation(config)) {
-            HealthStatus status = probe.probe();
-            if (!status.healthy()) {
-                String error = status.error().orElse("unknown error");
-                auditService.recordRejected(actor, stationId, Optional.of(config), "Probe failed: " + error);
-                throw new BadRequestResponse("Probe failed: " + error);
-            }
-        } catch (BadRequestResponse e) {
-            throw e;
-        } catch (Exception e) {
-            auditService.recordRejected(actor, stationId, Optional.of(config), "Probe failed: " + e.getMessage());
-            throw new BadRequestResponse("Probe failed: " + e.getMessage());
-        }
         Optional<StationStorageBackendConfig> existing =
                 repository.findOne(stationId).map(StationStorageConfigRepository.Row::config);
-        repository.upsert(stationId, config);
-        resolver.invalidateStation(stationId);
-        auditService.recordConfigChange(
-                actor,
-                stationId,
-                existing.isPresent() ? StorageAuditAction.UPDATED : StorageAuditAction.CREATED,
-                existing.orElse(null),
-                config);
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
+        StationStorageBackendConfig target = request instanceof LocalRequest ? null : toEntity(request);
 
-    private void delete(Context ctx) {
-        Actor actor = actor(ctx);
-        int stationId = sessionStationId(ctx);
-        Optional<StationStorageBackendConfig> existing =
-                repository.findOne(stationId).map(StationStorageConfigRepository.Row::config);
-        repository.delete(stationId);
-        resolver.invalidateStation(stationId);
-        existing.ifPresent(
-                cfg -> auditService.recordConfigChange(actor, stationId, StorageAuditAction.DELETED, cfg, null));
-        ctx.status(HttpStatus.NO_CONTENT);
+        auditService.recordMigration(
+                actor, stationId, StorageAuditAction.MIGRATION_STARTED, existing.orElse(null), target, null);
+        StorageMigrationService.MigrationResult result;
+        try {
+            result = target == null
+                    ? migrationService.migrateToInstanceDefault(stationId)
+                    : migrationService.migrate(stationId, target);
+        } catch (MigrationException e) {
+            auditService.recordMigration(
+                    actor,
+                    stationId,
+                    StorageAuditAction.MIGRATION_FAILED,
+                    existing.orElse(null),
+                    target,
+                    e.getMessage());
+            throw new BadRequestResponse("Apply failed: " + e.getMessage());
+        }
+        auditService.recordMigration(
+                actor, stationId, StorageAuditAction.MIGRATION_COMPLETED, existing.orElse(null), target, null);
+        ctx.status(HttpStatus.OK)
+                .json(new MigrationResponse(
+                        result.totalKeys(), result.copied(), result.skipped(), result.deleted(), result.copiedBytes()));
     }
 
     private void probe(Context ctx) {
@@ -178,36 +177,38 @@ public class StationStorageBackendRoutes implements Routes {
         ctx.json(new ProbeResult(healthy, errorOrNull, checkedAt.toString()));
     }
 
-    private void migrate(Context ctx) {
-        Actor actor = actor(ctx);
-        int stationId = sessionStationId(ctx);
+    /**
+     * Dry-run probe against an unsaved form payload — accepts a {@link BackendOverrideRequest},
+     * builds a transient backend, runs {@link StorageBackend#probe()} and returns the result
+     * without touching the repository or the audit log. The UI calls this from the
+     * "Verbindung testen" button so admins can validate credentials before clicking Save.
+     */
+    private void probeConfig(Context ctx) {
+        sessionStationId(ctx);
         BackendOverrideRequest request = ctx.bodyAsClass(BackendOverrideRequest.class);
-        StationStorageBackendConfig target = toEntity(request);
-        StationStorageBackendConfig existing = repository
-                .findOne(stationId)
-                .map(StationStorageConfigRepository.Row::config)
-                .orElse(null);
-
-        auditService.recordMigration(actor, stationId, StorageAuditAction.MIGRATION_STARTED, existing, target, null);
-        try {
-            var result = migrationService.migrate(stationId, target);
-            auditService.recordMigration(
-                    actor, stationId, StorageAuditAction.MIGRATION_COMPLETED, existing, target, null);
-            ctx.json(new MigrationResponse(
-                    result.totalKeys(), result.copied(), result.skipped(), result.deleted(), result.copiedBytes()));
-        } catch (MigrationException e) {
-            auditService.recordMigration(
-                    actor, stationId, StorageAuditAction.MIGRATION_FAILED, existing, target, e.getMessage());
-            throw new BadRequestResponse("Migration failed: " + e.getMessage());
+        StationStorageBackendConfig config = toEntity(request);
+        boolean healthy;
+        String errorOrNull;
+        java.time.Instant checkedAt;
+        try (StorageBackend backend = factory.buildForStation(config)) {
+            HealthStatus status = backend.probe();
+            healthy = status.healthy();
+            errorOrNull = status.error().orElse(null);
+            checkedAt = status.checkedAt();
+        } catch (Exception e) {
+            healthy = false;
+            errorOrNull = e.getMessage();
+            checkedAt = java.time.Instant.now();
         }
+        ctx.status(HttpStatus.OK).json(new ProbeResult(healthy, errorOrNull, checkedAt.toString()));
     }
 
     private void listAudit(Context ctx) {
         int stationId = sessionStationId(ctx);
         Optional<java.time.Instant> before =
                 Optional.ofNullable(ctx.queryParam("before")).map(java.time.Instant::parse);
-        int limit = Math.max(
-                1, Math.min(ctx.queryParamAsClass("limit", Integer.class).getOrDefault(50), 200));
+        int limit = Math.clamp(ctx.queryParamAsClass("limit", Integer.class).getOrDefault(50),
+                1, 200);
         List<AuditEntryResponse> entries = auditRepository.findByStation(stationId, before, limit).stream()
                 .map(StationStorageBackendRoutes::toResponse)
                 .toList();
@@ -250,6 +251,8 @@ public class StationStorageBackendRoutes implements Routes {
             case SftpRequest r ->
                 new StationStorageBackendConfig.SftpVariant(
                         r.host(), r.port(), r.username(), r.knownHostsFingerprint(), r.basePath(), encryptSftp(r));
+            case LocalRequest ignored ->
+                throw new IllegalStateException("LOCAL has no entity; the apply handler must dispatch separately");
         };
     }
 
@@ -302,19 +305,30 @@ public class StationStorageBackendRoutes implements Routes {
         };
     }
 
-    public sealed interface BackendOverrideSummary {
-        StorageBackendType type();
-    }
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes({
+        @JsonSubTypes.Type(value = S3Summary.class, name = "S3"),
+        @JsonSubTypes.Type(value = SmbSummary.class, name = "SMB"),
+        @JsonSubTypes.Type(value = SftpSummary.class, name = "SFTP")
+    })
+    public sealed interface BackendOverrideSummary {}
 
     // -- Response shapes --
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
     @JsonSubTypes({
+        @JsonSubTypes.Type(value = LocalRequest.class, name = "LOCAL"),
         @JsonSubTypes.Type(value = S3Request.class, name = "S3"),
         @JsonSubTypes.Type(value = SmbRequest.class, name = "SMB"),
         @JsonSubTypes.Type(value = SftpRequest.class, name = "SFTP")
     })
     public sealed interface BackendOverrideRequest {}
+
+    /**
+     * Drops the override and migrates bytes back to the instance default. Has no fields —
+     * the {@code type} discriminator is enough to identify the intent.
+     */
+    public record LocalRequest() implements BackendOverrideRequest {}
 
     public record AuditEntryResponse(
             long id,
@@ -333,29 +347,14 @@ public class StationStorageBackendRoutes implements Routes {
 
     public record S3Summary(
             String endpoint, String region, String bucket, boolean pathStyle, String sseAlgorithm, String basePath)
-            implements BackendOverrideSummary {
-        @Override
-        public StorageBackendType type() {
-            return StorageBackendType.S3;
-        }
-    }
+            implements BackendOverrideSummary {}
 
     public record SmbSummary(
             String host, int port, String share, String domain, String basePath, boolean seal, boolean dfs)
-            implements BackendOverrideSummary {
-        @Override
-        public StorageBackendType type() {
-            return StorageBackendType.SMB;
-        }
-    }
+            implements BackendOverrideSummary {}
 
     public record SftpSummary(String host, int port, String username, boolean knownHostsPinned, String basePath)
-            implements BackendOverrideSummary {
-        @Override
-        public StorageBackendType type() {
-            return StorageBackendType.SFTP;
-        }
-    }
+            implements BackendOverrideSummary {}
 
     public record ProbeResult(boolean healthy, String error, String checkedAt) {}
 

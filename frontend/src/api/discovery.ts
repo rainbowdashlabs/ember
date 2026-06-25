@@ -59,7 +59,6 @@ export async function generateInvite(stationUid: string): Promise<string> {
 
 // ---------------------------------------------------------------------------
 // Discovery chain — cross-instance gossip + public station catalog.
-// See .concept/discovery.md
 // ---------------------------------------------------------------------------
 
 export type DiscoveryPeerSource = 'BOOTSTRAP' | 'GOSSIP' | 'MANUAL'

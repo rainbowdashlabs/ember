@@ -15,6 +15,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.repository.AccountRepository.PickerAccount;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorAuditEntry;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorPolicy;
@@ -93,7 +94,7 @@ public class TwoFactorAdminRoutes implements Routes {
 
     private static Integer actorMemberId(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        return session.memberOpt().map(m -> m.id()).orElse(null);
+        return session.memberOpt().map(StationMember::id).orElse(null);
     }
 
     private static PolicyDto toDto(TwoFactorPolicy p) {

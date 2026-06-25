@@ -80,8 +80,8 @@ class TwoFactorRepositoryTest extends RepositoryTestBase {
         assertEquals(2, unused.size());
 
         // Markback by id with IPv4 (CIDR column requires a CIDR-shaped string)
-        assertTrue(twoFactorRepo.markBackupCodeUsed(unused.get(0).id(), "203.0.113.7"));
-        assertFalse(twoFactorRepo.markBackupCodeUsed(unused.get(0).id(), "203.0.113.7"), "second markUsed is a no-op");
+        assertTrue(twoFactorRepo.markBackupCodeUsed(unused.getFirst().id(), "203.0.113.7"));
+        assertFalse(twoFactorRepo.markBackupCodeUsed(unused.getFirst().id(), "203.0.113.7"), "second markUsed is a no-op");
         assertEquals(1, twoFactorRepo.countUnusedBackupCodes(factor.id()));
 
         // markAll wipes the remaining row

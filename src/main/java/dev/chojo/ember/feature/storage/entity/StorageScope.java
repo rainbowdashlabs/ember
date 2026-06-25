@@ -12,7 +12,7 @@ import java.util.UUID;
  * every {@link StorageCategory} fixes the kind of scope it expects.
  *
  * <p>The scope contributes the first path segment of the backend key
- * ({@code inst/}, {@code station/<uid>/}, {@code account/<uid>/}). See concept §4.2.
+ * ({@code inst/}, {@code station/<uid>/}, {@code account/<uid>/}).
  */
 public sealed interface StorageScope {
 

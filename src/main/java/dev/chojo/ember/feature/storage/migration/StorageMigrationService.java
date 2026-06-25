@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Moves bytes between backends for one station. Drives the steps in concept §12: probe the
+ * Moves bytes between backends for one station: probe the
  * target, hold an in-process lock on the station, walk every station-scoped movable category,
  * copy + verify every key, flip the override row, sample-verify, delete the source, release
  * the lock.
@@ -115,6 +115,104 @@ public class StorageMigrationService {
         } finally {
             locks.release(stationId);
         }
+    }
+
+    /**
+     * Inverse of {@link #migrate}: moves every key currently sitting on the station's remote
+     * override backend back to the instance default, then drops the {@code station_storage_config}
+     * row so the station resolves to the instance default again. No-op when the station has no
+     * override.
+     */
+    public MigrationResult migrateToInstanceDefault(int stationId) {
+        if (!locks.tryAcquire(stationId)) {
+            throw new MigrationException("A migration is already in flight for station " + stationId);
+        }
+
+        UUID stationUid = stationRepository.resolveUid(stationId);
+        if (stationUid == null) {
+            locks.release(stationId);
+            throw new MigrationException("Cannot resolve station UUID for " + stationId);
+        }
+        StorageScope.Station scope = new StorageScope.Station(stationId, stationUid);
+
+        try {
+            if (configRepository.findOne(stationId).isEmpty()) {
+                return new MigrationResult(0, 0, 0, 0, 0L);
+            }
+            StorageBackend target = factory.instanceDefault();
+            HealthStatus probe = target.probe();
+            if (!probe.healthy()) {
+                throw new MigrationException(
+                        "Instance-default probe failed: " + probe.error().orElse("unknown error"));
+            }
+            return runToInstanceDefault(scope, target);
+        } catch (MigrationException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new MigrationException("Migration failed: " + e.getMessage(), e);
+        } finally {
+            locks.release(stationId);
+        }
+    }
+
+    private MigrationResult runToInstanceDefault(StorageScope.Station scope, StorageBackend target) {
+        int totalKeys = 0;
+        int copiedCount = 0;
+        int skippedCount = 0;
+        long copiedBytes = 0;
+        var allCopiedKeys = new ArrayList<KeyOnBackend>();
+        var perCategoryKeys = new ArrayList<CategoryKeys>();
+
+        for (StorageCategory category : StorageCategory.values()) {
+            if (category.isLocalPinned()) continue;
+            if (category.scopeKind() != StorageScope.Kind.STATION) continue;
+
+            StorageBackend source = resolver.forScope(scope, category);
+            if (source == target) continue;
+
+            String prefix = scope.prefix() + "/" + category.prefix();
+            List<String> keys = source.listByPrefix(prefix);
+            if (keys.isEmpty()) continue;
+            log.info(
+                    "Migrating {} keys under {} back to instance default (station {}, category {})",
+                    keys.size(),
+                    prefix,
+                    scope.stationId(),
+                    category);
+
+            for (String key : keys) {
+                totalKeys++;
+                if (target.exists(key) && hashesMatch(target, source, key)) {
+                    skippedCount++;
+                    allCopiedKeys.add(new KeyOnBackend(source, key));
+                    continue;
+                }
+                copiedBytes += copyOne(source, target, key);
+                copiedCount++;
+                allCopiedKeys.add(new KeyOnBackend(source, key));
+            }
+            perCategoryKeys.add(new CategoryKeys(source, keys));
+        }
+
+        configRepository.delete(scope.stationId());
+        resolver.invalidateStation(scope.stationId());
+
+        int sampleSize = Math.max(1, allCopiedKeys.size() / SAMPLE_DENOMINATOR);
+        sampleVerify(target, allCopiedKeys, sampleSize);
+
+        int deletedCount = 0;
+        for (CategoryKeys cat : perCategoryKeys) {
+            for (String key : cat.keys()) {
+                try {
+                    cat.source().delete(key);
+                    deletedCount++;
+                } catch (Exception e) {
+                    log.warn("Failed to delete migrated source key {}", key, e);
+                }
+            }
+        }
+
+        return new MigrationResult(totalKeys, copiedCount, skippedCount, deletedCount, copiedBytes);
     }
 
     private MigrationResult run(

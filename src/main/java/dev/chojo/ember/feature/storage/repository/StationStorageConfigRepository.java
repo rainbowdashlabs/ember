@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.storage.repository;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import jakarta.inject.Singleton;
 
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -29,12 +30,10 @@ public class StationStorageConfigRepository {
      * the instance default.
      */
     public Set<Integer> findAllStationIds() {
-        return query("SELECT station_id FROM station_storage_config;")
+        return new HashSet<>(query("SELECT station_id FROM station_storage_config;")
                 .single()
                 .map(row -> row.getInt("station_id"))
-                .all()
-                .stream()
-                .collect(Collectors.toSet());
+                .all());
     }
 
     /**

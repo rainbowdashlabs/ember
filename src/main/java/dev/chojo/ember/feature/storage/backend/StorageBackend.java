@@ -22,8 +22,6 @@ import java.util.Set;
  * genuinely needs to buffer (image resize, gzip, hash) — and even there the buffered bytes
  * are handed to {@link #store(String, InputStream, long, ObjectMetadata)} as a wrapped
  * {@link java.io.ByteArrayInputStream}.
- *
- * <p>Concept §5.1.
  */
 public interface StorageBackend extends AutoCloseable {
 

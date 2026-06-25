@@ -901,7 +901,7 @@ public class KnowledgeBaseService {
 
     /**
      * Routes a freshly-uploaded blob through the at-rest compressors registered in
-     * {@code feature/storage/service} (concept §11.3). Office archives and PDFs are
+     * {@code feature/storage/service}. Office archives and PDFs are
      * recompressed losslessly; everything else is returned untouched. Failures fall back to
      * the original bytes — compression is opportunistic, never a hard requirement.
      */

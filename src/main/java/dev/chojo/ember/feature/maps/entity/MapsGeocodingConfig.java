@@ -9,8 +9,8 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Geocoding configuration persisted as JSON under {@code application_setting.maps_geocoding}.
- * See {@code .concept/geolocation.md} §4.4. Disabled by default; the slot exists so v2 can
- * wire in a forward-geocoding UI without a schema change.
+ * Disabled by default; the slot exists so v2 can wire in a forward-geocoding UI without a
+ * schema change.
  */
 public record MapsGeocodingConfig(GeocodingProvider provider, String apiKey, String contactEmail) {
 

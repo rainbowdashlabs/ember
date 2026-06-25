@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Contract test for {@link SmbStorageBackend} against a real Samba server. Mirrors the cases
- * covered by the {@link LocalStorageBackend} test surface (store / read / delete / exists /
+ * covered by the {@link dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend} test surface (store / read / delete / exists /
  * listByPrefix / probe / metadata round-trip) so behavior parity is asserted at the same
  * surface every other backend will be tested against.
  */

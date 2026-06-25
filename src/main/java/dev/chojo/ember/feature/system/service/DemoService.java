@@ -303,6 +303,7 @@ public class DemoService {
 
         // -- Admin --
         var admin = accountRepository.create("admin@ember.local", "Admin", "Demo", true);
+        accountRepository.setUid(admin.id(), DemoUids.account("admin@ember.local"));
         accountRepository.createCredential(admin.id(), hash);
         accountRepository.setInstanceUserType(admin.id(), InstanceUserType.ADMINISTRATOR);
 

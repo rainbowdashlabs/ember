@@ -144,7 +144,7 @@ public class StationTransferAssetRoutes implements Routes {
         }
         int endIndex = Math.min(startIndex + limit, sorted.size());
         List<String> page = sorted.subList(startIndex, endIndex);
-        String next = endIndex < sorted.size() ? page.get(page.size() - 1) : null;
+        String next = endIndex < sorted.size() ? page.getLast() : null;
         ctx.json(new ListKeysResponse(List.copyOf(page), next));
     }
 
@@ -244,9 +244,6 @@ public class StationTransferAssetRoutes implements Routes {
         }
         if (!category.isMovable()) {
             throw new BadRequestResponse("Category " + category + " is not movable");
-        }
-        if (StorageCategory.LEGACY_CATEGORIES.contains(category)) {
-            throw new BadRequestResponse("Category " + category + " is a legacy rollup and not transferable");
         }
         return category;
     }

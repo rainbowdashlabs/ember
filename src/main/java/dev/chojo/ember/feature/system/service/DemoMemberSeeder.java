@@ -587,8 +587,10 @@ public class DemoMemberSeeder {
             String firstName, String lastName, String hash, int stationId, int loginRoleId, int memberRoleId) {
         String email = firstName.toLowerCase() + "@" + lastName.toLowerCase() + ".local";
         var account = accountRepository.create(email, firstName, lastName, true);
+        accountRepository.setUid(account.id(), DemoUids.account(email));
         accountRepository.createCredential(account.id(), hash);
         var member = stationMemberRepository.create(stationId, account.id());
+        stationMemberRepository.setUid(member.id(), DemoUids.member(email, stationId));
         stationMemberRepository.setUserType(member.id(), StationUserType.MEMBER);
         stationMemberRepository.grantPermission(member.id(), loginRoleId);
         stationMemberRepository.grantPermission(member.id(), memberRoleId);
@@ -599,8 +601,10 @@ public class DemoMemberSeeder {
             String firstName, String lastName, String hash, int stationId, int loginRoleId) {
         String email = firstName.toLowerCase() + "@" + lastName.toLowerCase() + ".local";
         var account = accountRepository.create(email, firstName, lastName, true);
+        accountRepository.setUid(account.id(), DemoUids.account(email));
         accountRepository.createCredential(account.id(), hash);
         var member = stationMemberRepository.create(stationId, account.id());
+        stationMemberRepository.setUid(member.id(), DemoUids.member(email, stationId));
         stationMemberRepository.setUserType(member.id(), StationUserType.TEAM);
         stationMemberRepository.grantPermission(member.id(), loginRoleId);
         return member;
@@ -610,8 +614,10 @@ public class DemoMemberSeeder {
             String firstName, String lastName, String hash, int stationId, int loginRoleId, int guardianRoleId) {
         String email = firstName.toLowerCase() + "@" + lastName.toLowerCase() + ".local";
         var account = accountRepository.create(email, firstName, lastName, true);
+        accountRepository.setUid(account.id(), DemoUids.account(email));
         accountRepository.createCredential(account.id(), hash);
         var member = stationMemberRepository.create(stationId, account.id());
+        stationMemberRepository.setUid(member.id(), DemoUids.member(email, stationId));
         stationMemberRepository.setUserType(member.id(), StationUserType.GUARDIAN);
         stationMemberRepository.grantPermission(member.id(), loginRoleId);
         stationMemberRepository.grantPermission(member.id(), guardianRoleId);

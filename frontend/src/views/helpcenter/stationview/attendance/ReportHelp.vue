@@ -27,7 +27,7 @@ const userTypeOptions = [
   { value: 'TEAM', label: 'Team' },
 ]
 const groupOptions = [
-  { value: '1', label: 'Anfaenger' },
+  { value: '1', label: 'Anfänger' },
   { value: '2', label: 'Fortgeschrittene' },
 ]
 </script>

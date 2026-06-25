@@ -35,7 +35,7 @@ import java.util.Set;
 /**
  * Walks every {@code (scope, category)} whose resolver outcome is the instance default and
  * copies the bytes from that backend onto an operator-supplied target. Drives the byte-copy
- * primitive used by the instance-wide backend swap described in concept §19.6.
+ * primitive used by the instance-wide backend swap.
  *
  * <p>Lock + read-only flag are held for the duration of the copy; the actual YAML flip,
  * cached-backend invalidation, and audit emission are layered on top by the route handler
@@ -210,15 +210,13 @@ public class InstanceStorageMigrationService {
     private static boolean isInstanceDefaultStationCategory(StorageCategory category) {
         if (category.isLocalPinned()) return false;
         if (category.scopeKind() != StorageScope.Kind.STATION) return false;
-        if (!category.isMovable()) return false;
-        return !StorageCategory.LEGACY_CATEGORIES.contains(category);
+        return category.isMovable();
     }
 
     private static boolean isInstanceDefaultInstanceCategory(StorageCategory category) {
         if (category.isLocalPinned()) return false;
         if (category.scopeKind() != StorageScope.Kind.INSTANCE) return false;
-        if (!category.isMovable()) return false;
-        return !StorageCategory.LEGACY_CATEGORIES.contains(category);
+        return category.isMovable();
     }
 
     private long copyOne(StorageBackend source, StorageBackend target, String key) {

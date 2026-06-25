@@ -64,7 +64,7 @@ const { t } = useI18n()
           <SectionLabel>1. {{ t('quiz.questionTypes.MULTIPLE_CHOICE') }}</SectionLabel>
           <DeleteButton disabled />
         </div>
-        <TextInput model-value="Was ist kein Loeschmittel?" disabled />
+        <TextInput model-value="Was ist kein Löschmittel?" disabled />
         <div class="space-y-1 opacity-60 text-sm">
           <label class="flex items-center gap-2"><ToggleInput :model-value="false" disabled /> Wasser</label>
           <label class="flex items-center gap-2"><ToggleInput :model-value="true" disabled /> Benzin</label>

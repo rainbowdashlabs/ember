@@ -96,6 +96,10 @@ export interface BackendOverrideResponse {
     override: BackendOverrideSummary | null
 }
 
+export interface LocalRequest {
+    type: 'LOCAL'
+}
+
 export interface S3Request {
     type: 'S3'
     endpoint: string
@@ -133,6 +137,8 @@ export interface SftpRequest {
 }
 
 export type StationBackendRequest = S3Request | SmbRequest | SftpRequest
+
+export type StationApplyRequest = LocalRequest | S3Request | SmbRequest | SftpRequest
 
 export interface InstanceBackendLocalRequest {
     type: 'LOCAL'
@@ -203,21 +209,18 @@ export async function getStationBackend(): Promise<BackendOverrideResponse> {
     return data
 }
 
-export async function upsertStationBackend(request: StationBackendRequest): Promise<void> {
-    await client.put('/station/storage/backend', request)
-}
-
-export async function deleteStationBackend(): Promise<void> {
-    await client.delete('/station/storage/backend')
-}
-
 export async function probeStationBackend(): Promise<ProbeResult> {
     const {data} = await client.post<ProbeResult>('/station/storage/backend/probe')
     return data
 }
 
-export async function migrateStationBackend(request: StationBackendRequest): Promise<MigrationResultResponse> {
-    const {data} = await client.post<MigrationResultResponse>('/station/storage/migrate', request)
+export async function probeStationBackendConfig(request: StationBackendRequest): Promise<ProbeResult> {
+    const {data} = await client.post<ProbeResult>('/station/storage/backend/probe-config', request)
+    return data
+}
+
+export async function applyStationBackend(request: StationApplyRequest): Promise<MigrationResultResponse> {
+    const {data} = await client.post<MigrationResultResponse>('/station/storage/backend/apply', request)
     return data
 }
 
@@ -233,22 +236,23 @@ export async function getInstanceBackend(): Promise<InstanceBackendSummary> {
     return data
 }
 
-export async function updateInstanceBackend(request: InstanceBackendRequest): Promise<void> {
-    await client.put('/admin/storage/backend', request)
-}
-
 export async function probeInstanceBackend(): Promise<ProbeResult> {
     const {data} = await client.post<ProbeResult>('/admin/storage/backend/probe')
     return data
 }
 
-export async function migrateInstanceBackend(request: InstanceMigrateRequest): Promise<MigrationResultResponse> {
-    const {data} = await client.post<MigrationResultResponse>('/admin/storage/migrate', request)
+export async function probeInstanceBackendConfig(request: InstanceBackendRequest): Promise<ProbeResult> {
+    const {data} = await client.post<ProbeResult>('/admin/storage/backend/probe-config', request)
+    return data
+}
+
+export async function applyInstanceBackend(request: InstanceMigrateRequest): Promise<MigrationResultResponse> {
+    const {data} = await client.post<MigrationResultResponse>('/admin/storage/backend/apply', request)
     return data
 }
 
 export async function getInstanceMigrationStatus(): Promise<InstanceMigrationStatusResponse> {
-    const {data} = await client.get<InstanceMigrationStatusResponse>('/admin/storage/migrate/status')
+    const {data} = await client.get<InstanceMigrationStatusResponse>('/admin/storage/backend/apply/status')
     return data
 }
 

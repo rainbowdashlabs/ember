@@ -79,9 +79,18 @@ function categoryLabel(cat: string): string {
   const labels: Record<string, string> = {
     KB_FILES: t('storageMonitoring.categories.kbFiles'),
     BOARD_ATTACHMENTS: t('storageMonitoring.categories.boardAttachments'),
-    PAGE_IMAGES: t('storageMonitoring.categories.pageImages'),
-    AVATARS: t('storageMonitoring.categories.avatars'),
-    IMAGES: t('storageMonitoring.categories.images'),
+    PAGE_FILES: t('storageMonitoring.categories.pageFiles'),
+    PAGE_IMAGES: t('storageMonitoring.categories.pageFiles'),
+    IMAGE_AVATAR: t('storageMonitoring.categories.avatars'),
+    IMAGE_LOST_AND_FOUND: t('storageMonitoring.categories.lostAndFound'),
+    IMAGE_LOGO_FRAGMENT: t('storageMonitoring.categories.logoFragment'),
+    IMAGE_QUIZ_QUESTION: t('storageMonitoring.categories.quizQuestion'),
+    IMAGE_KB_ICON: t('storageMonitoring.categories.kbIcon'),
+    IMAGE_KB_IMAGE: t('storageMonitoring.categories.kbImage'),
+    DOCUMENT: t('storageMonitoring.categories.document'),
+    DISCOVERY_KEY: t('storageMonitoring.categories.discoveryKey'),
+    MAP_TILE_CACHE: t('storageMonitoring.categories.mapTileCache'),
+    DEMO_AVATAR: t('storageMonitoring.categories.demoAvatar'),
   }
   return labels[cat] || cat
 }
@@ -122,11 +131,20 @@ const categoryPieChart = computed(() => {
   const catTotals: Record<string, number> = {}
   for (const station of stations.value) {
     for (const cat of station.categories) {
-      if (cat.category === 'AVATARS') continue
+      if (cat.category === 'IMAGE_AVATAR') continue
       catTotals[cat.category] = (catTotals[cat.category] || 0) + cat.totalBytes
     }
   }
-  const colors: Record<string, string> = {KB_FILES: '#3694FF', BOARD_ATTACHMENTS: '#FF6421', PAGE_IMAGES: '#00C507', IMAGES: '#73CEFF'}
+  const colors: Record<string, string> = {
+    KB_FILES: '#3694FF',
+    BOARD_ATTACHMENTS: '#FF6421',
+    PAGE_FILES: '#00C507',
+    IMAGE_LOST_AND_FOUND: '#73CEFF',
+    IMAGE_QUIZ_QUESTION: '#FFDD1B',
+    IMAGE_KB_ICON: '#C71100',
+    IMAGE_KB_IMAGE: '#3694FF',
+    IMAGE_LOGO_FRAGMENT: '#9333EA',
+  }
   return {
     tooltip: {trigger: 'item', formatter: (p: any) => `${p.name}: ${formatBytes(p.value)} (${p.percent}%)`},
     legend: {bottom: 0, textStyle: {color: textColor.value}},

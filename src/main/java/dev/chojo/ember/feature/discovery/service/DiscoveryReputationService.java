@@ -13,8 +13,6 @@ import jakarta.inject.Singleton;
  * Tracks the soft reputation score of every peer. Deltas are applied directly via
  * {@link DiscoveryPeerRepository#addReputation}; values are pulled toward zero by
  * {@link DiscoveryPeerRepository#decayReputation} on a daily cadence.
- *
- * <p>Numbers match {@code .concept/discovery.md} §7.
  */
 @Singleton
 public class DiscoveryReputationService {

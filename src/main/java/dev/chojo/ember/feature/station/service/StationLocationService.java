@@ -16,7 +16,7 @@ import java.util.regex.Pattern;
 
 /**
  * Geolocation read/write for stations. Validation rules live here; the route layer is a
- * thin delegate. See {@code .concept/geolocation.md} for the design.
+ * thin delegate.
  */
 @Singleton
 public class StationLocationService {

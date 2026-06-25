@@ -24,8 +24,8 @@ import java.util.List;
  * {@code station_traffic_hourly}. Permission: {@link InstancePermission#ADMINISTRATOR}.
  *
  * <p>The endpoint deliberately exposes the underlying bucket shape directly — the frontend
- * does its own grouping / stacking depending on the chart it wants to render. Phase 2 of
- * the concept will add a station-scoped sibling.
+ * does its own grouping / stacking depending on the chart it wants to render. Phase 2 will
+ * add a station-scoped sibling.
  */
 @Singleton
 public class AdminTrafficRoutes implements Routes {

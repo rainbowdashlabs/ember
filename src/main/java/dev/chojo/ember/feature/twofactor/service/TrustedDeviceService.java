@@ -59,7 +59,7 @@ public class TrustedDeviceService {
      * {@code [1, maxDays]}; values ≤ 0 are rejected by the caller.
      */
     public Issued issue(int accountId, int requestedDays, String userAgent) {
-        int days = Math.min(Math.max(requestedDays, 1), settings.trustedDeviceMaxDays());
+        int days = Math.clamp(requestedDays, 1, settings.trustedDeviceMaxDays());
         String token = newToken();
         Instant trustedUntil = Instant.now().plus(Duration.ofDays(days));
         var device = repository.createTrustedDevice(accountId, tokenHasher.hash(token), userAgent, trustedUntil);

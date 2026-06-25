@@ -347,7 +347,7 @@ public class ApiServer {
                 }
             });
 
-            // Per-station traffic counters (concept §2-5). Recorded after the response is
+            // Per-station traffic counters. Recorded after the response is
             // committed so Jetty has populated content-length on the response side.
             config.routes.after(ctx -> {
                 if (ctx.method() == HandlerType.OPTIONS) return;
@@ -357,7 +357,7 @@ public class ApiServer {
                         stationResolver.resolve(ctx).orElse(null), authClassifier.classify(ctx), ingress, egress);
             });
 
-            // Per-public-page hit counters (concept §7). Only fires when a public page
+            // Per-public-page hit counters. Only fires when a public page
             // handler has resolved the page row and stashed its id on the context — file
             // serves, partner lookups, and 404s are excluded by construction.
             config.routes.after(ctx -> {
@@ -779,8 +779,8 @@ public class ApiServer {
     }
 
     /**
-     * Installs a gzip-only compression strategy on the Javalin HTTP config. Concept §11.3:
-     * universal gzip, brotli explicitly out of scope. The default Javalin {@code excludedMimeTypes}
+     * Installs a gzip-only compression strategy on the Javalin HTTP config. Universal gzip,
+     * brotli explicitly out of scope. The default Javalin {@code excludedMimeTypes}
      * already covers the binary types we want to skip (already-compressed media), so the
      * level + threshold are the only knobs we expose.
      */
@@ -802,7 +802,7 @@ public class ApiServer {
 
         String path = ctx.path();
 
-        // Content-hashed page files — concept §11.4. The hash makes the URL
+        // Content-hashed page files. The hash makes the URL
         // content-addressed, so a year-long immutable cache is safe; repeat visits drop to
         // 304 / cache hits with zero body bytes. Must come before the generic /public/
         // branch so the long max-age sticks.

@@ -55,6 +55,11 @@ services:
   # SFTP target for testing the SFTP backend variant.
   # Login from the host: ssh -p 2222 ember@localhost (password: ember), files land
   # under /home/ember/upload inside the container.
+  #
+  # init.sh chowns the volume to the ember user on every container start. atmoz/sftp
+  # only chowns the upload directory the first time the named volume is created; after
+  # a restart the existing root-owned volume is mounted as-is, leaving the user without
+  # write permission. The init script is idempotent and survives compose down/up cycles.
   sftp:
     image: atmoz/sftp:latest
     container_name: ember_dev_sftp
@@ -62,6 +67,8 @@ services:
       - "2222:22"
     volumes:
       - ember-dev-sftp:/home/ember/upload
+      - ./sftp-init.sh:/etc/sftp.d/chown-upload.sh:ro
+      - ./test-ssh/ember_ed25519.pub:/home/ember/.ssh/keys/ember_ed25519.pub:ro
     command: "ember:ember:1001::upload"
 
   # SMB / Samba share for testing the SMB backend variant.

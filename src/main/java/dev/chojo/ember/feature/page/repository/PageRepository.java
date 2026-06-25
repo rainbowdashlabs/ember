@@ -104,7 +104,7 @@ public class PageRepository {
     }
 
     /**
-     * Editor's PAGE_LINK picker (concept §4.5). Returns a compact shape — {@code publicUid},
+     * Editor's PAGE_LINK picker. Returns a compact shape — {@code publicUid},
      * {@code title}, {@code slug}, {@code updatedAt} — for the published pages of the supplied
      * station, optionally filtered by case-insensitive title substring. Empty {@code search}
      * returns the most recently updated pages so the picker has something on first focus.
@@ -372,7 +372,7 @@ public class PageRepository {
 
     /**
      * Lightweight picker result row for the page picker. Exposes only the public UUID — never the
-     * internal integer id (concept §2.3).
+     * internal integer id.
      */
     public record PickerPage(UUID pageUid, String title, String slug, Instant updatedAt) {}
 }

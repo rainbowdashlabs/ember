@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * {@link StorageService} can consult it without introducing a circular dependency with the
  * migration service (which itself depends on {@code StorageService} to walk and write bytes).
  * A JVM restart clears the flag — correct because no migration is actively running and the
- * previous backend remains authoritative (concept §19.4).
+ * previous backend remains authoritative.
  */
 @Singleton
 public class InstanceStorageReadOnlyState {

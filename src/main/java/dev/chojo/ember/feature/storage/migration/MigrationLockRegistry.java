@@ -14,9 +14,9 @@ import java.util.Set;
  * Migration mutex that brokers two flavours of work against the same lock space:
  * per-station migrations and instance-wide migrations. Per-station migrations remain
  * independent of each other so two stations may still migrate in parallel, but an
- * instance-wide swap (concept §19.A) is mutually exclusive with every per-station migration —
- * concept §19.A spells out the rule that no instance migration can start while any station
- * lock is held, and no station migration can start while the instance lock is held.
+ * instance-wide swap is mutually exclusive with every per-station migration —
+ * no instance migration can start while any station lock is held, and no station migration
+ * can start while the instance lock is held.
  *
  * <p>The registry is in-memory by design — restarting Ember drops every lock. A re-run after
  * a restart walks the source again, skips keys already present on the target via

@@ -101,7 +101,7 @@ class TwoFactorServiceTest extends RepositoryTestBase {
         assertFalse(service.verifyTotp(newAccount(), "123456"));
 
         // Backup code verify: a valid code passes once, then fails
-        String backup = enrollment.recoveryCodes().get(0);
+        String backup = enrollment.recoveryCodes().getFirst();
         var result = service.verifyBackupCode(accountId, backup, "203.0.113.1");
         assertTrue(result.valid());
         assertEquals(9, result.remainingCodes());

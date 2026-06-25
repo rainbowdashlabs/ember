@@ -229,8 +229,7 @@ public class StationMemberRepository {
     /**
      * Page-editor picker: case-insensitive substring search on the resolved display name with a
      * small cap. Empty {@code search} returns the most recently joined active members so the
-     * picker has something to show on first focus. Used by the §3.10 / §3.11 search pickers
-     * (concept §4.5). Returns active members only (former excluded).
+     * picker has something to show on first focus. Returns active members only (former excluded).
      */
     public List<PickerMember> searchForPicker(int stationId, String search, int limit) {
         boolean hasSearch = search != null && !search.isBlank();
@@ -392,6 +391,18 @@ public class StationMemberRepository {
                 .map(StationMember.map())
                 .first()
                 .orElseThrow();
+    }
+
+    /**
+     * Replaces the {@code uid} column for the member. Used by the demo seeder to pin
+     * deterministic UUIDs so demo media does not accumulate on disk across restarts.
+     */
+    public void setUid(int id, UUID uid) {
+        query("UPDATE station_member SET uid = :uid::uuid WHERE id = :id;")
+                .single(call().bind("uid", uid, StandardValueConverter.UUID_STRING)
+                        .bind("id", id))
+                .update();
+        invalidateMemberCache(id);
     }
 
     public boolean delete(int id) {

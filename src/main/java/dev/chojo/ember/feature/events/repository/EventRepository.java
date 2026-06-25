@@ -65,7 +65,7 @@ public class EventRepository {
     /**
      * Bulk-resolves the public UUIDs for a set of event ids belonging to a single station. Used by
      * the public-events list endpoint to expose the {@code public_uid} column without bloating
-     * every {@code new StationEvent(...)} call site (concept §2.3).
+     * every {@code new StationEvent(...)} call site.
      */
     public Map<Integer, UUID> findPublicUidsByIds(int stationId, Collection<Integer> ids) {
         if (ids.isEmpty()) return Map.of();
@@ -99,7 +99,7 @@ public class EventRepository {
     }
 
     /**
-     * Editor's event picker (concept §4.5). Returns a compact public shape — UUID, name, start
+     * Editor's event picker. Returns a compact public shape — UUID, name, start
      * time, category name — for the supplied station's events. {@code mode} filters by start time
      * (FUTURE/PAST/ALL). {@code search} is a case-insensitive substring match on the event name.
      * Only events that resolve as public are returned (per-event {@code public = TRUE} or
@@ -1219,8 +1219,7 @@ public class EventRepository {
     }
 
     /**
-     * Lightweight picker result row. Exposes only the public UUID — never the internal id
-     * (concept §2.3).
+     * Lightweight picker result row. Exposes only the public UUID — never the internal id.
      */
     public record PickerEvent(UUID eventUid, String name, Instant startTime, String categoryName) {}
 

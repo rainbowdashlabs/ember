@@ -38,7 +38,7 @@ import java.util.Set;
  * Ed25519 point). The matching {@code instance_id} fingerprint is derived deterministically
  * from the public key.
  *
- * <p>Per the concept doc, keys are <em>never rotated</em> in v1 — if compromised, the
+ * <p>Keys are <em>never rotated</em> in v1 — if compromised, the
  * instance identity is treated as ephemeral and the admin re-creates it manually by deleting
  * the files.
  */
