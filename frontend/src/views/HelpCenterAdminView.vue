@@ -23,7 +23,7 @@ const pageTitle = computed(() => {
 </script>
 
 <template>
-  <SidebarLayout :subtitle="t('helpCenter.title')" :title="pageTitle" :station-name="t('helpCenter.adminHelp')">
+  <SidebarLayout :subtitle="t('helpCenter.title')" :title="pageTitle" :station-name="t('helpCenter.adminHelp')" :collapsible="false">
     <template #sidebar="{ close }">
       <SidebarGroup :icon="['fas', 'gauge']" :label="t('sidebar.dashboard')" prefix="/helpcenter/admin/dashboard">
         <SidebarLink :icon="['fas', 'house']" name="help-admin-module-overview"

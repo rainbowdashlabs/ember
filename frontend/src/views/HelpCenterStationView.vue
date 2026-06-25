@@ -51,7 +51,7 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
 </script>
 
 <template>
-  <SidebarLayout :subtitle="pageSubtitle" :title="pageTitle" :station-name="t('helpCenter.title')">
+  <SidebarLayout :subtitle="pageSubtitle" :title="pageTitle" :station-name="t('helpCenter.title')" :collapsible="false">
     <template #sidebar="{ close }">
       <div class="px-2 pb-3">
         <SearchInput v-model="searchQuery" :placeholder="t('helpCenter.search')"/>

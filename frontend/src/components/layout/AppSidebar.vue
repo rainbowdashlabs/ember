@@ -4,23 +4,28 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed} from 'vue'
+import {computed, provide, toRef} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrideText from '@/components/display/PrideText.vue'
 import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
 import {usePride} from '@/composables/usePride'
 import {emberLogo} from '@/composables/useEmberLogo'
-import {useSidebarCollapse} from '@/composables/useSidebarCollapse'
+import {SIDEBAR_COLLAPSIBLE, useSidebarCollapse} from '@/composables/useSidebarCollapse'
 
-defineProps<{
+const props = withDefaults(defineProps<{
   open: boolean
   stationName?: string
   stationLogoUrl?: string | null
-}>()
+  collapsible?: boolean
+}>(), {
+  collapsible: true,
+})
 
 defineEmits<{
   close: []
 }>()
+
+provide(SIDEBAR_COLLAPSIBLE, toRef(props, 'collapsible'))
 
 const {t} = useI18n()
 const {prideActive, prideVariant} = usePride()
@@ -61,6 +66,7 @@ const desktopWidthClass = computed(() => collapsed.value ? 'lg:w-16' : 'lg:w-64'
         </div>
       </router-link>
       <button
+          v-if="collapsible"
           type="button"
           :title="collapsed ? t('sidebar.expand') : t('sidebar.collapse')"
           :aria-label="collapsed ? t('sidebar.expand') : t('sidebar.collapse')"
@@ -73,7 +79,7 @@ const desktopWidthClass = computed(() => collapsed.value ? 'lg:w-16' : 'lg:w-64'
     </div>
 
     <button
-        v-if="collapsed"
+        v-if="collapsible && collapsed"
         type="button"
         :title="t('sidebar.expand')"
         :aria-label="t('sidebar.expand')"
