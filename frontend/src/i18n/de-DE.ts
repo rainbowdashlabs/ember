@@ -5329,6 +5329,10 @@ volumes:
             title: 'Behälter-Prüfung',
             intro: 'Den Inhalt eines Lagerbehälters per Scan oder Liste abgleichen.',
             placeholder: 'Dieser Bereich wird in einem nachfolgenden Schritt aktiviert.',
+            workflowPending: 'Der eigentliche Prüfungslauf folgt mit dem nächsten Update. Aktuell kannst du die Behälter und ihren Inhalt einsehen.',
+            searchPlaceholder: 'Behälter suchen…',
+            loadError: 'Behälter konnten nicht geladen werden.',
+            noContainers: 'Noch keine Behälter zum Prüfen verfügbar.',
         },
         fields: {
             title: 'Benutzerdefinierte Felder',
