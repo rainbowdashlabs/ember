@@ -10,6 +10,7 @@
     "lint:helpcenter": "node scripts/lint-helpcenter.mjs",
     "lint:icons": "node scripts/lint-icons.mjs",
     "lint:locales": "node scripts/lint-locales.mjs",
+    "lint:structure": "node scripts/lint-component-size.mjs",
     "refactor": "python3 scripts/refactor.py",
     "refactor:scan": "python3 scripts/refactor.py scan",
     "build": "node scripts/build.mjs",
