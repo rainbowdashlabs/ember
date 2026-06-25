@@ -18,10 +18,10 @@ import ScanButton from '@/components/scanner/ScanButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import type {InventoryItem, InventorySize} from '@/api/types'
 import {inventory, inventoryContainers, inventoryFields} from '@/api'
-import FieldValueInput from './FieldValueInput.vue'
+import CustomFieldsSection from './CustomFieldsSection.vue'
+import {parseItemMetadata, serializeItemMetadata} from './itemMetadata'
 import type {InventoryContainer} from '@/api/inventoryContainers'
-import type {FieldTypeName, InventoryFieldDefinition} from '@/api/inventoryFields'
-import {FieldType} from '@/api/inventoryFields'
+import type {InventoryFieldDefinition} from '@/api/inventoryFields'
 
 const props = defineProps<{
   item: InventoryItem | null
@@ -48,36 +48,6 @@ const containers = ref<InventoryContainer[]>([])
 const owned = ref(false)
 
 const sortedContainers = computed(() => [...containers.value].sort((a, b) => a.name.localeCompare(b.name)))
-const sortedFields = computed(() =>
-    [...fieldDefs.value].sort((a, b) => a.sortOrder - b.sortOrder || a.key.localeCompare(b.key)))
-
-interface ParsedMetadata {
-  owned: boolean
-  fields: Record<string, {kind: FieldTypeName; value: unknown}>
-}
-
-function parseMetadata(raw: string | undefined): ParsedMetadata {
-  if (!raw) return {owned: false, fields: {}}
-  try {
-    const parsed = JSON.parse(raw)
-    return {
-      owned: !!parsed?.owned,
-      fields: parsed?.fields ?? {},
-    }
-  } catch {
-    return {owned: false, fields: {}}
-  }
-}
-
-function serializeMetadata(): string {
-  const fields: Record<string, {kind: FieldTypeName; value: unknown}> = {}
-  for (const def of fieldDefs.value) {
-    const v = fieldValues.value[def.key]
-    if (v === undefined || v === null || v === '') continue
-    fields[def.key] = {kind: def.fieldType, value: v}
-  }
-  return JSON.stringify({owned: owned.value, fields})
-}
 
 async function loadForInventory(inventoryId: number) {
   try {
@@ -99,7 +69,7 @@ watch(() => props.item, async (item) => {
   internalId.value = item.internalId ?? ''
   sizeId.value = item.sizeId != null ? String(item.sizeId) : ''
   containerId.value = item.containerId ?? null
-  const parsed = parseMetadata(item.metadata)
+  const parsed = parseItemMetadata(item.metadata)
   owned.value = parsed.owned
   await loadForInventory(item.inventoryId)
   const values: Record<string, any> = {}
@@ -121,7 +91,7 @@ async function save() {
       name: itemName.value,
       internalId: normalisedInternalId || undefined,
       sizeId: sizeId.value ? Number(sizeId.value) : undefined,
-      metadata: serializeMetadata(),
+      metadata: serializeItemMetadata(fieldDefs.value, fieldValues.value, owned.value),
     })
     if (containerId.value !== (props.item.containerId ?? null)) {
       await inventoryContainers.setItemContainer(props.item.id, containerId.value)
@@ -164,15 +134,9 @@ async function save() {
           <option v-for="c in sortedContainers" :key="c.id" :value="c.id">{{ c.name }}</option>
         </SelectInput>
       </div>
-      <div v-if="sortedFields.length > 0" class="space-y-2 pt-2">
+      <div v-if="fieldDefs.length > 0" class="space-y-2 pt-2">
         <SubHeader>{{ t('inventory.fields.title') }}</SubHeader>
-        <div v-for="def in sortedFields" :key="def.id" class="space-y-1">
-          <FieldLabel>
-            {{ def.label }}
-            <span v-if="def.required" class="text-error">*</span>
-          </FieldLabel>
-          <FieldValueInput :field="def" v-model="fieldValues[def.key]" />
-        </div>
+        <CustomFieldsSection :defs="fieldDefs" v-model="fieldValues" />
       </div>
       <div class="flex justify-end gap-3">
         <SecondaryButton @click="show = false">{{ t('common.cancel') }}</SecondaryButton>

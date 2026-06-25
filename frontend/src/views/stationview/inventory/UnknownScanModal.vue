@@ -17,11 +17,12 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import FieldValueInput from '@/views/stationview/inventory/detailview/FieldValueInput.vue'
+import CustomFieldsSection from '@/views/stationview/inventory/detailview/CustomFieldsSection.vue'
+import {serializeItemMetadata} from '@/views/stationview/inventory/detailview/itemMetadata'
 import {inventory, inventoryFields} from '@/api'
 import type {Inventory, InventoryItem, InventorySize} from '@/api/types'
 import {InventoryTypes, ItemSource} from '@/api/types'
-import type {FieldTypeName, InventoryFieldDefinition} from '@/api/inventoryFields'
+import type {InventoryFieldDefinition} from '@/api/inventoryFields'
 
 const props = defineProps<{
   scannedCode: string
@@ -140,14 +141,10 @@ function removeNewSizeRow(index: number) {
 }
 
 function buildMetadata(): string | undefined {
-  const out: Record<string, {kind: FieldTypeName; value: unknown}> = {}
-  for (const def of fieldDefs.value) {
-    const v = fieldValues.value[def.key]
-    if (v === undefined || v === null || v === '') continue
-    out[def.key] = {kind: def.fieldType, value: v}
-  }
-  if (Object.keys(out).length === 0) return undefined
-  return JSON.stringify({owned: false, fields: out})
+  if (fieldDefs.value.length === 0) return undefined
+  const serialised = serializeItemMetadata(fieldDefs.value, fieldValues.value, false)
+  const parsed = JSON.parse(serialised) as {owned: boolean; fields: Record<string, unknown>}
+  return Object.keys(parsed.fields).length === 0 ? undefined : serialised
 }
 
 function validate(): string | null {
@@ -328,15 +325,9 @@ load()
         </SelectInput>
       </div>
 
-      <template v-if="sortedFieldDefs.length > 0">
+      <template v-if="fieldDefs.length > 0">
         <SubHeader class="pt-2">{{ t('inventory.fields.title') }}</SubHeader>
-        <div v-for="def in sortedFieldDefs" :key="def.id" class="space-y-1">
-          <FieldLabel>
-            {{ def.label }}
-            <span v-if="def.required" class="text-error">*</span>
-          </FieldLabel>
-          <FieldValueInput :field="def" v-model="fieldValues[def.key]" />
-        </div>
+        <CustomFieldsSection :defs="fieldDefs" v-model="fieldValues" />
       </template>
     </div>
 
