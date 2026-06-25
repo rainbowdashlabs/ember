@@ -3,31 +3,14 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import { ref, readonly } from 'vue'
+import {dismissToast, getToasts, showToast, type Toast} from '@/util/toast'
 
-export interface Toast {
-    id: number
-    message: string
-    variant: 'info' | 'success' | 'error'
-}
-
-let nextId = 0
-const toasts = ref<Toast[]>([])
+export type {Toast}
 
 export function useToast() {
-    function show(message: string, variant: Toast['variant'] = 'info', durationMs = 5000) {
-        const id = nextId++
-        toasts.value.push({ id, message, variant })
-        setTimeout(() => dismiss(id), durationMs)
-    }
-
-    function dismiss(id: number) {
-        toasts.value = toasts.value.filter(t => t.id !== id)
-    }
-
     return {
-        toasts: readonly(toasts),
-        show,
-        dismiss,
+        toasts: getToasts(),
+        show: showToast,
+        dismiss: dismissToast,
     }
 }

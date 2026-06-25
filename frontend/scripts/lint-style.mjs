@@ -90,13 +90,10 @@ for (const file of walk(SRC, '.vue')) {
     for (let i = 0; i < templateLines.length; i++) {
         const line = templateLines[i]
         if (!/\bv-for=/.test(line)) continue
-        let combined = line
-        let j = i + 1
-        while (j < templateLines.length && !/>/.test(combined)) {
-            combined += ' ' + templateLines[j]
-            j++
-        }
-        if (!/(:key|v-bind:key)=/.test(combined)) {
+        const window = templateLines.slice(Math.max(0, i - 2), i + 12).join('\n')
+        const elementEnd = findElementEnd(window, window.indexOf('v-for='))
+        const elementText = elementEnd === -1 ? window : window.slice(0, elementEnd + 1)
+        if (!/(:key|v-bind:key)\s*=/.test(elementText)) {
             error(file, lineOffset + i + 1, 'v-for missing :key — Vue will mis-update siblings on re-render.', CAT_KEY)
         }
     }
@@ -118,6 +115,12 @@ function measureFunction(text, startIdx) {
     return -1
 }
 
+function isComposableWrapper(file, name) {
+    if (!name.startsWith('use')) return false
+    if (file.includes(`${sep}composables${sep}`)) return true
+    return /\buse[A-Z]\w*\.(?:ts|vue)$/.test(file)
+}
+
 function scanFunctions(file, text, scanStart, scanEnd) {
     const body = text.slice(scanStart, scanEnd)
     for (const re of [FN_OPEN, ARROW_FN_OPEN]) {
@@ -128,6 +131,7 @@ function scanFunctions(file, text, scanStart, scanEnd) {
             const openLine = text.slice(0, openIdx).split('\n').length
             const closeLine = text.slice(0, close).split('\n').length
             const span = closeLine - openLine + 1
+            if (isComposableWrapper(file, m[1])) continue
             if (span >= FN_ERROR) {
                 error(file, openLine, `function ${m[1]} spans ${span} lines (>= ${FN_ERROR}). Extract helpers.`, CAT_FN)
             } else if (span >= FN_WARN) {
@@ -149,6 +153,23 @@ for (const file of tsAndVueFiles) {
             scanFunctions(file, text, scriptOpen, scriptEnd)
         }
     }
+}
+
+function findElementEnd(text, startIdx) {
+    if (startIdx < 0) return -1
+    let i = startIdx
+    let quote = null
+    while (i < text.length) {
+        const ch = text[i]
+        if (quote) {
+            if (ch === quote) quote = null
+        } else {
+            if (ch === '"' || ch === '\'' || ch === '`') quote = ch
+            else if (ch === '>') return i
+        }
+        i++
+    }
+    return -1
 }
 
 console.log(`\n\x1b[1mStyle Check\x1b[0m (fn warn >= ${FN_WARN} / error >= ${FN_ERROR})`)

@@ -125,6 +125,82 @@ const federationPartnerIds = ref<number[]>([])
 const allPartners = ref<PartnerResponse[]>([])
 const fieldDefaults = ref<Map<number, { source: string; value: string }>>(new Map())
 
+async function loadExistingEvent(id: number) {
+  const [ev, restrictions, defaults, fields] = await Promise.all([
+    events.getEvent(id),
+    events.getRestrictions(id),
+    events.getFieldDefaults(id),
+    events.getEventFields(id),
+  ])
+
+  eventCustomFields.value = fields.map(f => ({
+    name: f.name ?? '',
+    fieldType: f.fieldType ?? 'STRING',
+    config: f.config ?? {},
+    value: f.value ?? '',
+    overview: f.overview ?? false,
+    attendanceFieldId: f.attendanceFieldId ?? null,
+  }))
+
+  eventName.value = ev.name ?? ''
+  eventDescription.value = ev.description ?? ''
+  eventType.value = ev.eventType ?? EventTypes.RECURRING
+  eventDayOfWeek.value = ev.dayOfWeek != null ? String(ev.dayOfWeek) : '1'
+  eventStartTime.value = ev.startTime ? toLocalDateTime(ev.startTime) : ''
+  eventEndTime.value = ev.endTime ? toLocalDateTime(ev.endTime) : ''
+  eventTemplateId.value = ev.templateId != null ? String(ev.templateId) : ''
+  eventCategoryId.value = ev.categoryId != null ? String(ev.categoryId) : ''
+  eventRequiresRegistration.value = ev.requiresRegistration ?? false
+  eventHasDeadline.value = !!ev.registrationDeadline
+  eventRegistrationDeadline.value = ev.registrationDeadline ? toLocalDateTime(ev.registrationDeadline) : ''
+  eventRequiresConfirmation.value = ev.requiresConfirmation ?? false
+  eventRegistrationLimit.value = ev.registrationLimit ?? undefined
+  eventMinRegistrations.value = ev.minRegistrations ?? undefined
+  eventHasThreshold.value = !!ev.thresholdDate
+  eventThresholdDate.value = ev.thresholdDate ? toLocalDateTime(ev.thresholdDate) : ''
+  eventRegistrationCloseDays.value = ev.registrationCloseDays ?? undefined
+
+  eventUserTypes.value = restrictions.userTypes ?? []
+  eventGroupIds.value = restrictions.groupIds ?? []
+  eventTagIds.value = restrictions.tagIds ?? []
+  selectedUserTypes.value = [...eventUserTypes.value]
+  selectedGroupIds.value = [...eventGroupIds.value]
+  selectedTagIds.value = [...eventTagIds.value]
+  restrictionMode.value = (restrictions.mode as 'AND' | 'OR') ?? 'AND'
+
+  try {
+    eventReminders.value = await events.getEventReminders(id)
+  } catch { eventReminders.value = [] }
+
+  const fdMap = new Map<number, { source: string; value: string }>()
+  for (const fd of defaults) {
+    fdMap.set(fd.fieldId, {source: fd.source, value: fd.value ?? ''})
+  }
+  fieldDefaults.value = fdMap
+  eventFieldDefaults.value = defaults
+
+  await loadFederationShare(id)
+}
+
+async function loadFederationShare(id: number) {
+  try {
+    allPartners.value = await federation.listPartners()
+  } catch {
+    /* no federation permission */
+  }
+  if (!canFederate.value) return
+  try {
+    const fedShare = await events.getFederationShare(id)
+    federationShared.value = fedShare.shared
+    if (fedShare.shared) {
+      federationScope.value = fedShare.scope ?? 'ALL_PARTNERS'
+      federationPartnerIds.value = fedShare.partnerIds ?? []
+    }
+  } catch {
+    /* no federation permission */
+  }
+}
+
 function toLocalDateTime(iso: string): string {
   const d = new Date(iso)
   const pad = (n: number) => String(n).padStart(2, '0')
@@ -162,72 +238,7 @@ async function loadData() {
     allTemplateFields.value = fieldResults.flat()
 
     if (isEdit.value) {
-      const [ev, restrictions, defaults, fields] = await Promise.all([
-        events.getEvent(eventId.value!),
-        events.getRestrictions(eventId.value!),
-        events.getFieldDefaults(eventId.value!),
-        events.getEventFields(eventId.value!),
-      ])
-
-      eventCustomFields.value = fields.map(f => ({
-        name: f.name ?? '',
-        fieldType: f.fieldType ?? 'STRING',
-        config: f.config ?? {},
-        value: f.value ?? '',
-        overview: f.overview ?? false,
-        attendanceFieldId: f.attendanceFieldId ?? null,
-      }))
-
-      eventName.value = ev.name ?? ''
-      eventDescription.value = ev.description ?? ''
-      eventType.value = ev.eventType ?? EventTypes.RECURRING
-      eventDayOfWeek.value = ev.dayOfWeek != null ? String(ev.dayOfWeek) : '1'
-      eventStartTime.value = ev.startTime ? toLocalDateTime(ev.startTime) : ''
-      eventEndTime.value = ev.endTime ? toLocalDateTime(ev.endTime) : ''
-      eventTemplateId.value = ev.templateId != null ? String(ev.templateId) : ''
-      eventCategoryId.value = ev.categoryId != null ? String(ev.categoryId) : ''
-      eventRequiresRegistration.value = ev.requiresRegistration ?? false
-      eventHasDeadline.value = !!ev.registrationDeadline
-      eventRegistrationDeadline.value = ev.registrationDeadline ? toLocalDateTime(ev.registrationDeadline) : ''
-      eventRequiresConfirmation.value = ev.requiresConfirmation ?? false
-      eventRegistrationLimit.value = ev.registrationLimit ?? undefined
-      eventMinRegistrations.value = ev.minRegistrations ?? undefined
-      eventHasThreshold.value = !!ev.thresholdDate
-      eventThresholdDate.value = ev.thresholdDate ? toLocalDateTime(ev.thresholdDate) : ''
-      eventRegistrationCloseDays.value = ev.registrationCloseDays ?? undefined
-
-      eventUserTypes.value = restrictions.userTypes ?? []
-      eventGroupIds.value = restrictions.groupIds ?? []
-      eventTagIds.value = restrictions.tagIds ?? []
-      selectedUserTypes.value = [...eventUserTypes.value]
-      selectedGroupIds.value = [...eventGroupIds.value]
-      selectedTagIds.value = [...eventTagIds.value]
-      restrictionMode.value = (restrictions.mode as 'AND' | 'OR') ?? 'AND'
-
-      try {
-        eventReminders.value = await events.getEventReminders(eventId.value!)
-      } catch { eventReminders.value = [] }
-
-      const fdMap = new Map<number, { source: string; value: string }>()
-      for (const fd of defaults) {
-        fdMap.set(fd.fieldId, {source: fd.source, value: fd.value ?? ''})
-      }
-      fieldDefaults.value = fdMap
-      eventFieldDefaults.value = defaults
-
-      try {
-        allPartners.value = await federation.listPartners()
-      } catch { /* no federation permission */ }
-      if (canFederate.value && eventId.value) {
-        try {
-          const fedShare = await events.getFederationShare(eventId.value)
-          federationShared.value = fedShare.shared
-          if (fedShare.shared) {
-            federationScope.value = fedShare.scope ?? 'ALL_PARTNERS'
-            federationPartnerIds.value = fedShare.partnerIds ?? []
-          }
-        } catch { /* no federation permission */ }
-      }
+      await loadExistingEvent(eventId.value!)
     }
   } catch (e) {
     reportCaughtError(e, 'EventEditView.loadData')

@@ -262,80 +262,84 @@ async function handleSubmit() {
   error.value = ''
   try {
     if (isEditMode.value) {
-      const pid = editId.value!
-      await procedures.updateProcedure(pid, {
-        name: name.value.trim(),
-        description: description.value || undefined,
-        dueAt: dueAt.value || null,
-        isPublic: isPublic.value,
-      })
-
-      // Sync assignees
-      const currentAssignees = (await procedures.getProcedure(pid)).assigneeIds
-      const toAdd = selectedAssigneeIds.value.filter(id => !currentAssignees.includes(id))
-      const toRemove = currentAssignees.filter(id => !selectedAssigneeIds.value.includes(id))
-      if (toAdd.length) await procedures.addAssignees(pid, toAdd)
-      for (const id of toRemove) await procedures.removeAssignee(pid, id)
-
-      // Sync items: delete removed, update existing, add new
-      const currentItemIds = new Set(items.value.filter(i => i.id).map(i => i.id!))
-      for (const oldId of existingItemIds.value) {
-        if (!currentItemIds.has(oldId)) await procedures.deleteItem(pid, oldId)
-      }
-      const tempToReal = new Map<number, number>()
-      for (let i = 0; i < items.value.length; i++) {
-        const item = items.value[i]
-        if (item.id) {
-          await procedures.editItem(pid, item.id, {
-            title: item.title, description: item.description || undefined,
-            isPublic: item.isPublic, userAssigned: item.userAssigned, position: i,
-          })
-          tempToReal.set(item.tempId, item.id)
-        } else {
-          const created = await procedures.addItem(pid, {
-            title: item.title, description: item.description || undefined,
-            isPublic: item.isPublic, userAssigned: item.userAssigned, position: i,
-          })
-          tempToReal.set(item.tempId, created.id)
-        }
-      }
-
-      // Save dependencies
-      const deps = buildDependencies(tempToReal)
-      await procedures.setProcedureDependencies(pid, deps)
-
-      router.push({name: 'procedure-detail', params: {id: pid}})
+      await submitEdit(editId.value!)
     } else {
-      // Create mode
-      const created = await procedures.createProcedure({
-        name: name.value.trim(),
-        description: description.value || undefined,
-        dueAt: dueAt.value || undefined,
-        isPublic: isPublic.value,
-        assigneeIds: selectedAssigneeIds.value,
-      })
-
-      const tempToReal = new Map<number, number>()
-      for (let i = 0; i < items.value.length; i++) {
-        const item = items.value[i]
-        const createdItem = await procedures.addItem(created.id, {
-          title: item.title, description: item.description || undefined,
-          isPublic: item.isPublic, userAssigned: item.userAssigned, position: i,
-        })
-        tempToReal.set(item.tempId, createdItem.id)
-      }
-
-      // Save dependencies
-      const deps = buildDependencies(tempToReal)
-      if (deps.length) await procedures.setProcedureDependencies(created.id, deps)
-
-      router.push({name: 'procedure-detail', params: {id: created.id}})
+      await submitCreate()
     }
   } catch {
     error.value = t('common.error')
   } finally {
     saving.value = false
   }
+}
+
+async function submitEdit(pid: number) {
+  await procedures.updateProcedure(pid, {
+    name: name.value.trim(),
+    description: description.value || undefined,
+    dueAt: dueAt.value || null,
+    isPublic: isPublic.value,
+  })
+  await syncAssignees(pid)
+  const tempToReal = await syncItems(pid)
+  const deps = buildDependencies(tempToReal)
+  await procedures.setProcedureDependencies(pid, deps)
+  router.push({name: 'procedure-detail', params: {id: pid}})
+}
+
+async function submitCreate() {
+  const created = await procedures.createProcedure({
+    name: name.value.trim(),
+    description: description.value || undefined,
+    dueAt: dueAt.value || undefined,
+    isPublic: isPublic.value,
+    assigneeIds: selectedAssigneeIds.value,
+  })
+  const tempToReal = new Map<number, number>()
+  for (let i = 0; i < items.value.length; i++) {
+    const item = items.value[i]
+    const createdItem = await procedures.addItem(created.id, {
+      title: item.title, description: item.description || undefined,
+      isPublic: item.isPublic, userAssigned: item.userAssigned, position: i,
+    })
+    tempToReal.set(item.tempId, createdItem.id)
+  }
+  const deps = buildDependencies(tempToReal)
+  if (deps.length) await procedures.setProcedureDependencies(created.id, deps)
+  router.push({name: 'procedure-detail', params: {id: created.id}})
+}
+
+async function syncAssignees(pid: number) {
+  const currentAssignees = (await procedures.getProcedure(pid)).assigneeIds
+  const toAdd = selectedAssigneeIds.value.filter(id => !currentAssignees.includes(id))
+  const toRemove = currentAssignees.filter(id => !selectedAssigneeIds.value.includes(id))
+  if (toAdd.length) await procedures.addAssignees(pid, toAdd)
+  for (const id of toRemove) await procedures.removeAssignee(pid, id)
+}
+
+async function syncItems(pid: number): Promise<Map<number, number>> {
+  const currentItemIds = new Set(items.value.filter(i => i.id).map(i => i.id!))
+  for (const oldId of existingItemIds.value) {
+    if (!currentItemIds.has(oldId)) await procedures.deleteItem(pid, oldId)
+  }
+  const tempToReal = new Map<number, number>()
+  for (let i = 0; i < items.value.length; i++) {
+    const item = items.value[i]
+    if (item.id) {
+      await procedures.editItem(pid, item.id, {
+        title: item.title, description: item.description || undefined,
+        isPublic: item.isPublic, userAssigned: item.userAssigned, position: i,
+      })
+      tempToReal.set(item.tempId, item.id)
+    } else {
+      const created = await procedures.addItem(pid, {
+        title: item.title, description: item.description || undefined,
+        isPublic: item.isPublic, userAssigned: item.userAssigned, position: i,
+      })
+      tempToReal.set(item.tempId, created.id)
+    }
+  }
+  return tempToReal
 }
 
 function toIdentity(m: MemberCompletion): MemberIdentity {
