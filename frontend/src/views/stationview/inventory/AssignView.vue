@@ -22,6 +22,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import {inventory, stationMembers} from '@/api'
 import type {InventoryItem, StationMember} from '@/api/types'
+import UnknownScanModal from '@/views/stationview/inventory/UnknownScanModal.vue'
 
 interface AssignmentEvent {
   id: number
@@ -46,6 +47,7 @@ const success = ref('')
 const recent = ref<AssignmentEvent[]>([])
 const recentCounter = ref(1)
 const loading = ref(true)
+const unknownScanCode = ref<string | null>(null)
 
 const sortedMembers = computed(() => {
   return [...members.value].sort((a, b) =>
@@ -92,7 +94,7 @@ async function handleScan() {
   try {
     const item = await inventory.findByInternalId(term)
     if (!item) {
-      flashError(t('inventory.assign.errors.notFound', {scan: term}))
+      unknownScanCode.value = term
       return
     }
     if (item.assignedTo === memberId.value) {
@@ -158,6 +160,24 @@ async function undoLast() {
   }
 }
 
+async function onUnknownScanCreated(item: InventoryItem) {
+  unknownScanCode.value = null
+  if (!memberId.value) {
+    flashError(t('inventory.assign.errors.pickMember'))
+    return
+  }
+  try {
+    const assigned = await inventory.assignItem(item.id, {
+      memberId: memberId.value,
+      memberName: selectedMember.value ? memberDisplay(selectedMember.value) : '',
+    })
+    pushRecent('ASSIGN', assigned, selectedMember.value)
+    flashSuccess(t('inventory.assign.assigned', {name: item.name ?? ''}))
+  } catch (e: any) {
+    flashError(e?.response?.data?.message ?? t('inventory.assign.errors.failed'))
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -202,6 +222,14 @@ onMounted(load)
         </label>
         <p v-if="bulkMode" class="text-xs text-(--text-muted) mt-1">{{ t('inventory.assign.bulkModeHint') }}</p>
       </NeutralContainer>
+
+      <UnknownScanModal
+          v-if="unknownScanCode"
+          :scanned-code="unknownScanCode"
+          context="member"
+          @created="onUnknownScanCreated"
+          @close="unknownScanCode = null"
+      />
 
       <SectionHeader>{{ t('inventory.assign.recent') }}</SectionHeader>
       <NeutralContainer>

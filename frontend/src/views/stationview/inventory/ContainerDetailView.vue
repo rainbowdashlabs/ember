@@ -24,9 +24,11 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import ContainerNewModal from '@/views/stationview/inventory/storageview/ContainerNewModal.vue'
+import UnknownScanModal from '@/views/stationview/inventory/UnknownScanModal.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import {inventory, inventoryContainers} from '@/api'
+import type {InventoryItem} from '@/api/types'
 import type {
   ContainerDetail,
   ContainerContents,
@@ -72,6 +74,7 @@ interface ScanEvent {
 
 const scanHistory = ref<ScanEvent[]>([])
 let scanCounter = 0
+const unknownScanCode = ref<string | null>(null)
 
 function flashScanError(msg: string) {
   scanError.value = msg
@@ -145,9 +148,28 @@ async function handleScanAdd() {
       await loadContents()
       return
     }
-    flashScanError(t('inventory.storage.scan.notFound', {scan: term}))
+    unknownScanCode.value = term
   } finally {
     scanBusy.value = false
+  }
+}
+
+async function onUnknownScanCreated(item: InventoryItem) {
+  unknownScanCode.value = null
+  if (!detail.value) return
+  try {
+    await inventoryContainers.setItemContainer(item.id, detail.value.container.id)
+    scanHistory.value.unshift({
+      id: ++scanCounter,
+      kind: 'item',
+      name: item.name ?? '',
+      internalId: item.internalId,
+      ts: new Date().toISOString(),
+    })
+    flashScanSuccess(t('inventory.storage.scan.itemCreatedAndPlaced', {name: item.name ?? ''}))
+    await loadContents()
+  } catch (e: any) {
+    flashScanError(e?.response?.data?.message ?? t('inventory.storage.scan.itemFailed'))
   }
 }
 
@@ -450,6 +472,14 @@ onMounted(load)
           :default-parent-id="detail.container.id"
           @created="onChildCreated"
           @close="showNewChildModal = false"
+      />
+
+      <UnknownScanModal
+          v-if="unknownScanCode"
+          :scanned-code="unknownScanCode"
+          context="container"
+          @created="onUnknownScanCreated"
+          @close="unknownScanCode = null"
       />
     </template>
     <Alert v-else variant="error">{{ error }}</Alert>

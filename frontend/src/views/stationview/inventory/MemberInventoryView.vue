@@ -21,13 +21,14 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import InventoryItemCard from './InventoryItemCard.vue'
 import {inventory, exchanges, stationMembers} from '@/api'
-import type {ExchangeRequestEntry, InventorySize, StationMember} from '@/api/types'
+import type {ExchangeRequestEntry, InventoryItem, InventorySize, StationMember} from '@/api/types'
 import {ExchangeStatus, StationPermission} from '@/api/types'
 import type {MyInventoryItem} from '@/api/inventory'
 import {useSession} from '@/composables/useSession'
 import MutedText from '@/components/typography/MutedText.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import UnknownScanModal from '@/views/stationview/inventory/UnknownScanModal.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -41,6 +42,7 @@ const scanValue = ref('')
 const scanError = ref('')
 const scanSuccess = ref('')
 const scanBusy = ref(false)
+const unknownScanCode = ref<string | null>(null)
 
 function flashScanError(msg: string) {
   scanError.value = msg
@@ -52,6 +54,17 @@ function flashScanSuccess(msg: string) {
   setTimeout(() => (scanSuccess.value = ''), 2500)
 }
 
+async function assignToCurrentMember(item: InventoryItem | {id: number; name?: string}) {
+  await inventory.assignItem(item.id, {
+    memberId: memberId.value,
+    memberName: member.value
+        ? `${member.value.firstName ?? ''} ${member.value.lastName ?? ''}`.trim()
+        : '',
+  })
+  flashScanSuccess(t('inventory.assign.assigned', {name: item.name ?? ''}))
+  items.value = await inventory.memberItems(memberId.value)
+}
+
 async function handleScanAssign() {
   const term = scanValue.value.trim()
   if (!term) return
@@ -60,25 +73,27 @@ async function handleScanAssign() {
   try {
     const item = await inventory.findByInternalId(term)
     if (!item) {
-      flashScanError(t('inventory.assign.errors.notFound', {scan: term}))
+      unknownScanCode.value = term
       return
     }
     if (item.assignedTo === memberId.value) {
       flashScanSuccess(t('inventory.memberInventory.alreadyHere', {name: item.name ?? ''}))
       return
     }
-    await inventory.assignItem(item.id, {
-      memberId: memberId.value,
-      memberName: member.value
-          ? `${member.value.firstName ?? ''} ${member.value.lastName ?? ''}`.trim()
-          : '',
-    })
-    flashScanSuccess(t('inventory.assign.assigned', {name: item.name ?? ''}))
-    items.value = await inventory.memberItems(memberId.value)
+    await assignToCurrentMember(item)
   } catch (e: any) {
     flashScanError(e?.response?.data?.message ?? t('inventory.assign.errors.failed'))
   } finally {
     scanBusy.value = false
+  }
+}
+
+async function onUnknownScanCreated(item: InventoryItem) {
+  unknownScanCode.value = null
+  try {
+    await assignToCurrentMember(item)
+  } catch (e: any) {
+    flashScanError(e?.response?.data?.message ?? t('inventory.assign.errors.failed'))
   }
 }
 
@@ -256,6 +271,14 @@ watch(memberId, loadData)
           </div>
         </div>
       </template>
+
+      <UnknownScanModal
+          v-if="unknownScanCode"
+          :scanned-code="unknownScanCode"
+          context="member"
+          @created="onUnknownScanCreated"
+          @close="unknownScanCode = null"
+      />
 
       <!-- Exchange modal -->
       <Modal v-model="showExchangeModal">
