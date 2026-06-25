@@ -416,6 +416,11 @@ const router = createRouter({
                     component: () => import('@/views/stationview/inventory/StorageView.vue'),
                 },
                 {
+                    path: 'inventory/assign',
+                    name: 'inventory-assign',
+                    component: () => import('@/views/stationview/inventory/AssignView.vue'),
+                },
+                {
                     path: 'inventory/storage/:id',
                     name: 'inventory-container-detail',
                     component: () => import('@/views/stationview/inventory/ContainerDetailView.vue'),
@@ -1428,6 +1433,11 @@ const router = createRouter({
                     path: 'inventory/storage',
                     name: 'help-inventory-storage',
                     component: () => import('@/views/helpcenter/stationview/inventory/StorageHelp.vue')
+                },
+                {
+                    path: 'inventory/assign',
+                    name: 'help-inventory-assign',
+                    component: () => import('@/views/helpcenter/stationview/inventory/AssignHelp.vue')
                 },
                 {
                     path: 'inventory/storage/:id',

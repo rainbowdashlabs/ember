@@ -9,6 +9,8 @@
 - **Storage containers.** Every room, shelf, drawer and box is a container that can hold items and other containers, nested as deeply as the operator needs. Containers are reached from a new Station → Inventar → Lager entry, can be searched and resolved by scan, and each item carries its container path as a clickable breadcrumb on the item detail page.
 - **Custom fields per inventory.** Each inventory now defines its own extra fields with one of five types — date, dropdown, text, number with optional unit, or yes/no. Managers add and reorder them in the inventory editor; the inputs then show up on the item form and the values are persisted alongside the item.
 - **Container check workflow.** A new Station → Inventar → Prüfung → Behälter-Prüfung flow walks the items expected in a chosen container, scan by scan. Items are confirmed, marked missing, or flagged lost; items the operator finds but the system did not expect for the container are collected separately. A toggle extends the walk to every nested container.
+- **Dedicated assign-and-return page.** A new Station → Inventar → Zuweisen page lets a station member with the new "Inventar zuweisen" permission pick a recipient and then scan items in sequence — each scan assigns the item, scanning an already-assigned item with the same recipient selected returns it. The permission is off by default for every role; the station owner grants it explicitly to whoever runs equipment handover.
+- **An item is either with a member or in storage, never both.** Assigning an item to a member clears any container it was placed in; placing an item in a container ends the open assignment. The database enforces the same invariant so no path can leave an item in a halfway state.
 
 #### Pluggable Storage Backends
 

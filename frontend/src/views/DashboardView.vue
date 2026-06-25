@@ -205,6 +205,10 @@ const manageDefaultRoute = computed(() => {
                      @navigate="close">
           {{ t('sidebar.inventoryStorage') }}
         </SidebarLink>
+        <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_ASSIGN)" :icon="['fas', 'user-plus']" name="inventory-assign" to="/station/inventory/assign"
+                     @navigate="close">
+          {{ t('sidebar.inventoryAssign') }}
+        </SidebarLink>
         <SidebarSubGroup v-if="hasPermission(StationPermission.INVENTORY_CHECK)" :icon="['fas', 'clipboard-check']" :label="t('sidebar.inventoryCheck')" prefix="/station/inventory/checks">
           <SidebarLink :icon="['fas', 'user-check']" name="inventory-check-member-overview" to="/station/inventory/checks/member"
                        @navigate="close">

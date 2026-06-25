@@ -111,7 +111,11 @@ public class InventoryRoutes implements Routes {
                 prefix + "/inventory-items/by-internal-id", this::findByInternalId, StationPermission.INVENTORY_READ);
         routes.get(prefix + "/inventory-items/{id}", this::getItem, StationPermission.INVENTORY_READ);
         routes.put(prefix + "/inventory-items/{id}", this::updateItem, StationPermission.INVENTORY_EDIT);
-        routes.put(prefix + "/inventory-items/{id}/assign", this::assignItem, StationPermission.INVENTORY_EDIT);
+        routes.put(
+                prefix + "/inventory-items/{id}/assign",
+                this::assignItem,
+                StationPermission.INVENTORY_EDIT,
+                StationPermission.INVENTORY_ASSIGN);
         routes.get(prefix + "/inventory-items/{id}/location", this::getItemLocation, StationPermission.INVENTORY_READ);
         routes.put(
                 prefix + "/inventory-items/{id}/container",
