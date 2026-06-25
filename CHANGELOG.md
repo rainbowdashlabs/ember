@@ -15,6 +15,10 @@
 - **Help articles for the new flows.** Help center entries cover the instance-wide backend swap, the per-station backend picker, and how to read the audit log.
 - **New operator config** — `storage.credentialEncryptionKey` (env `STORAGE_CREDENTIAL_ENCRYPTION_KEY`), the AES-256 key used to encrypt station-supplied remote-backend credentials before they hit the database. Required once any station opts into self-service remote storage; auto-generated on first boot in a fresh install.
 
+### Changes
+
+- **Flyout menus on the collapsed sidebar.** With the desktop sidebar collapsed to its icon rail, hovering or keyboard-focusing a group icon now opens a floating menu showing the group's label and every nested entry, so all destinations stay reachable without first expanding the rail. Nested subgroups chain into further flyouts and badges stay visible on the rail when the menu is closed.
+
 ## v26.9.1
 
 ### Changes
