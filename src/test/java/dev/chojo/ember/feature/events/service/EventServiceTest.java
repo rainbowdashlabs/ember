@@ -1691,9 +1691,23 @@ class EventServiceTest extends RepositoryTestBase {
     @Order(200)
     void updateEventNotFound() {
         var result = service.update(
-                999999, "ghost", "ghost", StationEvent.EventType.ONE_TIME, null,
-                Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null,
-                false, null, false, categoryId, false, null, null, null, null);
+                999999,
+                "ghost",
+                "ghost",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now(),
+                Instant.now().plus(1, ChronoUnit.HOURS),
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                false,
+                null,
+                null,
+                null,
+                null);
         assertTrue(result.isEmpty());
     }
 
@@ -1721,8 +1735,22 @@ class EventServiceTest extends RepositoryTestBase {
         var start = Instant.now().plus(30, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
         var event = service.create(
-                station.id(), "Cancellable", "desc", StationEvent.EventType.ONE_TIME, null,
-                start, end, null, false, null, false, categoryId, null, null, null, null);
+                station.id(),
+                "Cancellable",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                end,
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                null,
+                null,
+                null,
+                null);
         assertTrue(service.cancelEvent(station.id(), event.id(), "first"));
         // Second cancel hits the "already cancelled" log.warn branch.
         assertFalse(service.cancelEvent(station.id(), event.id(), "second"));

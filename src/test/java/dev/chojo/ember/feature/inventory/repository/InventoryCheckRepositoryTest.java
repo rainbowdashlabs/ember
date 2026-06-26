@@ -244,8 +244,7 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
         // member1's prior MEMBER-scope check is already on `item`. Add a CONTAINER-scope check
         // touching the same item so the history join surfaces the container name and both scopes.
         var container = containerRepo.create(station.id(), null, null, "HistoryRoom", null, "", null);
-        var containerCheck =
-                inventoryCheckRepo.createContainerCheck(station.id(), container.id(), member2.id(), false);
+        var containerCheck = inventoryCheckRepo.createContainerCheck(station.id(), container.id(), member2.id(), false);
         inventoryCheckRepo.createCheckItem(
                 containerCheck.id(), item.id(), item.inventoryId(), CheckResult.NOT_IN_POSSESSION, "left at home");
 

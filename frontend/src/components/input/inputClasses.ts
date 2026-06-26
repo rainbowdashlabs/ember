@@ -3,7 +3,6 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-
 /**
  * Canonical class list for the standard bordered text-style field
  * (text input, password, number, date/time, select, textarea, …).
