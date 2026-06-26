@@ -12,6 +12,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import MemberListHeader from './memberlistview/MemberListHeader.vue'
 import MemberListBody from './memberlistview/MemberListBody.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
 import { inventory, stationMembers, memberGroups, profileFields, userTags } from '@/api'
 import type { Inventory, InventoryItem, MemberGroup, ProfileField, StationMember, UserTag } from '@/api/types'
 import { useMemberFilter } from '@/composables/useMemberFilter'
@@ -44,6 +45,7 @@ const selectedForExport = ref<Set<number>>(new Set())
 const selectedExportFields = ref<Set<number>>(new Set())
 const allFields = ref<ProfileField[]>([])
 const exporting = ref(false)
+const filterText = ref('')
 
 const memberItemMap = computed(() => {
   const map = new Map<number, Map<number, InventoryItem[]>>()
@@ -76,6 +78,12 @@ const filteredMembers = computed(() => {
   let result = applyMemberFilter(members.value)
   if (!showEmpty.value) {
     result = result.filter(m => memberItemMap.value.has(m.id))
+  }
+  const q = filterText.value.toLowerCase().trim()
+  if (q) {
+    result = result.filter(m =>
+        memberDisplayName(m).toLowerCase().includes(q)
+        || (m.email ?? '').toLowerCase().includes(q))
   }
   return result.sort((a, b) => memberDisplayName(a).localeCompare(memberDisplayName(b)))
 })
@@ -280,6 +288,8 @@ function goToMember(memberId: number) {
 
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
+
+      <SearchInput v-if="!loading" v-model="filterText" :placeholder="t('membersList.filter')" autofocus />
 
       <MemberListBody
         v-if="!loading"

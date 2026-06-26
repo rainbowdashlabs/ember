@@ -4,16 +4,33 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {nextTick, onMounted, ref} from 'vue'
+
 const model = defineModel<string>()
 
-defineProps<{
+const props = withDefaults(defineProps<{
   placeholder?: string
   disabled?: boolean
-}>()
+  autofocus?: boolean
+}>(), {
+  autofocus: false,
+})
+
+const inputEl = ref<HTMLInputElement | null>(null)
+
+function focus() {
+  inputEl.value?.focus()
+}
 
 function clear() {
   model.value = ''
 }
+
+onMounted(() => {
+  if (props.autofocus) nextTick(focus)
+})
+
+defineExpose({focus})
 </script>
 
 <template>
@@ -22,6 +39,7 @@ function clear() {
       <font-awesome-icon :icon="['fas', 'magnifying-glass']" class="h-4 w-4"/>
     </span>
     <input
+        ref="inputEl"
         v-model="model"
         :disabled="disabled"
         :placeholder="placeholder"

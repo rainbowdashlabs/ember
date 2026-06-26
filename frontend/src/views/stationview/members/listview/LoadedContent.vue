@@ -71,13 +71,14 @@ defineEmits<{
 </script>
 
 <template>
-  <TabBar
-    :model-value="activeTab"
-    :tabs="tabs"
-    @update:model-value="$emit('update:activeTab', $event)"
-  />
+  <div class="space-y-4">
+    <TabBar
+      :model-value="activeTab"
+      :tabs="tabs"
+      @update:model-value="$emit('update:activeTab', $event)"
+    />
 
-  <MemberFilterBar
+    <MemberFilterBar
     :filter-text="filterText"
     :saved-filters="savedFilters"
     :overview-fields="tabOverviewFields"
@@ -126,4 +127,5 @@ defineEmits<{
     @toggle-select="$emit('toggle-select', $event)"
     @toggle-select-all="$emit('toggle-select-all')"
   />
+  </div>
 </template>

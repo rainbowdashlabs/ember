@@ -14,7 +14,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import ContainerNewModal from '@/views/stationview/inventory/storageview/ContainerNewModal.vue'
@@ -151,7 +151,7 @@ onMounted(load)
     <NeutralContainer class="mb-4">
       <div class="flex flex-wrap items-center gap-3">
         <div class="flex-1 min-w-48">
-          <TextInput v-model="search" :placeholder="t('inventory.storage.searchPlaceholder')" />
+          <SearchInput v-model="search" :placeholder="t('inventory.storage.searchPlaceholder')" />
         </div>
         <ScanButton @decoded="onScanDecoded" />
         <PrimaryButton @click="showNewModal = true">

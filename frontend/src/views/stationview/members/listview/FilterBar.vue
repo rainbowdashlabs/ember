@@ -4,9 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -65,11 +66,6 @@ const emit = defineEmits<{
   filter: [criteria: FilterCriteria]
 }>()
 
-interface SearchInputRef {
-  $el: HTMLInputElement
-}
-
-const searchInput = ref<SearchInputRef | null>(null)
 const showColumnPicker = ref(false)
 const showSaveFilter = ref(false)
 const filterPresetName = ref('')
@@ -108,13 +104,6 @@ function onModeChange(mode: 'AND' | 'OR') {
   emitFilter()
 }
 
-onMounted(() => {
-  nextTick(() => {
-    const el = searchInput.value?.$el
-    if (el instanceof HTMLInputElement) el.focus()
-  })
-})
-
 function submitSaveFilter() {
   if (!filterPresetName.value.trim()) return
   emit('saveFilter', filterPresetName.value.trim())
@@ -152,7 +141,7 @@ function submitSaveFilter() {
   />
 
   <div class="space-y-2">
-    <TextInput ref="searchInput" v-model="filterText" :placeholder="t('membersList.filter')" class="w-full" />
+    <SearchInput v-model="filterText" :placeholder="t('membersList.filter')" autofocus />
     <div class="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-2">
       <div class="relative">
         <SecondaryButton :icon="['fas', 'table-columns']" :full-width="isMobile" @click="showColumnPicker = !showColumnPicker">

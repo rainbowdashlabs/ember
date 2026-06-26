@@ -12,7 +12,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
 import ContainerTree from '@/views/stationview/inventory/storageview/ContainerTree.vue'
 import {inventoryContainers} from '@/api'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
@@ -77,7 +77,7 @@ onMounted(load)
 <template>
   <ViewContent>
     <NeutralContainer class="mb-4">
-      <TextInput v-model="search" :placeholder="t('inventory.checkContainer.searchPlaceholder')" />
+      <SearchInput v-model="search" :placeholder="t('inventory.checkContainer.searchPlaceholder')" />
     </NeutralContainer>
 
     <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>

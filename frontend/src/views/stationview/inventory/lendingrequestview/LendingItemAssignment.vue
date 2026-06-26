@@ -10,7 +10,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
@@ -64,7 +64,7 @@ function onAssignmentScan(value: string) {
   <NeutralContainer v-else-if="availableItems.length > 0" class="mb-4">
     <p class="text-sm text-[var(--text-muted)] mb-3">{{ t('lending.selectItemsToLend') }}</p>
     <div class="flex items-center gap-2 mb-3">
-      <TextInput v-model="itemFilter" :placeholder="t('inventory.manage.scanPlaceholder')" class="flex-1"/>
+      <SearchInput v-model="itemFilter" :placeholder="t('inventory.manage.scanPlaceholder')" class="flex-1"/>
       <ScanButton @decoded="onAssignmentScan"/>
     </div>
     <template v-for="[groupName, items] in groupedAvailableItems" :key="groupName">

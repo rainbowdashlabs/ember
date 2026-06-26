@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import TextInput from '@/components/input/text/TextInput.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
 import FileUploadButton from '@/components/button/FileUploadButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 
@@ -30,7 +30,7 @@ const {t} = useI18n()
 
 <template>
   <div class="flex flex-col sm:flex-row gap-2">
-    <TextInput
+    <SearchInput
         v-model="search"
         :placeholder="t('stationPages.editor.browseFilesSearch')"
         class="flex-1"

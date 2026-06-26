@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import TextInput from '@/components/input/text/TextInput.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
 import {usePageClipboard} from '@/composables/usePageClipboard'
 import {CHOOSER_CATEGORIES} from './cellChoosers'
 
@@ -40,7 +40,7 @@ const filteredCategories = computed(() => {
 <template>
     <div class="@container flex flex-col gap-3 py-4 px-3 border-2 border-dashed border-(--border) rounded-theme">
         <p class="text-sm text-(--text-muted) text-center">{{ t('stationPages.editor.emptyCellHint') }}</p>
-        <TextInput v-model="search" :placeholder="t('stationPages.editor.chooserSearch')" class="w-full"/>
+        <SearchInput v-model="search" :placeholder="t('stationPages.editor.chooserSearch')" class="w-full"/>
         <div class="max-h-96 overflow-y-auto -mx-1 px-1 space-y-3">
             <button
                 v-if="hasClipboard && clipboardType === 'cell'"

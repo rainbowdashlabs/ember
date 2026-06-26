@@ -8,7 +8,7 @@ import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -152,7 +152,7 @@ onMounted(loadDescendants)
     <Alert v-if="error" variant="error" class="mb-3">{{ error }}</Alert>
 
     <div class="flex items-center gap-2 mb-3">
-      <TextInput v-model="search" :placeholder="t('inventory.storage.addExisting.searchPlaceholder')" class="flex-1" />
+      <SearchInput v-model="search" :placeholder="t('inventory.storage.addExisting.searchPlaceholder')" class="flex-1" />
       <ScanButton @decoded="onScan" />
     </div>
 

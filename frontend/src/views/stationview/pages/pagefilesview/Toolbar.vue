@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
 import FileUploadButton from '@/components/button/FileUploadButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
@@ -31,8 +31,8 @@ const {t} = useI18n()
 
 <template>
   <NeutralContainer class="flex flex-wrap items-center gap-2">
-    <TextInput v-model="search" :placeholder="t('stationPages.editor.browseFilesSearch')"
-               class="flex-1 min-w-[200px]"/>
+    <SearchInput v-model="search" :placeholder="t('stationPages.editor.browseFilesSearch')"
+                 class="flex-1 min-w-[200px]"/>
     <div class="flex flex-wrap items-center gap-2">
       <IconButton :icon="['fas', props.multiSelect ? 'square-check' : 'square']"
                   :label="props.multiSelect ? t('stationPages.editor.multiSelectDisable') : t('stationPages.editor.multiSelectEnable')"

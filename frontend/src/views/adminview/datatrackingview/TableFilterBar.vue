@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
 
 type FilterContext = 'all' | 'transfer' | 'gdprExport' | 'gdprDeletion'
 type FilterStatus = 'all' | 'TRACKED' | 'IGNORED' | 'UNVERIFIED' | 'NEEDS_REVIEW'
@@ -23,7 +23,7 @@ const statusOptions: FilterStatus[] = ['all', 'TRACKED', 'IGNORED', 'UNVERIFIED'
 
 <template>
   <div class="flex flex-wrap items-center gap-2 mb-3">
-    <TextInput
+    <SearchInput
         v-model="search"
         :placeholder="t('adminDataTracking.searchPlaceholder')"
         class="max-w-xs"
