@@ -10,6 +10,9 @@ services:
       - "5432:5432"
     volumes:
       - ember-dev-data:/var/lib/postgresql/data
+    profiles:
+      - storage
+      - full
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ember"]
       interval: 5s
@@ -34,12 +37,18 @@ services:
       RUSTFS_CONSOLE_ADDRESS: ":9001"
     volumes:
       - ember-dev-rustfs:/data
+    profiles:
+      - storage
+      - full
 
   # Creates the "ember" bucket on the rustfs instance, then exits. Polls until rustfs
   # answers; the mb call is idempotent so re-running compose-up is safe.
   rustfs-init:
     image: minio/mc:latest
     container_name: ember_dev_rustfs_init
+    profiles:
+      - storage
+      - full
     depends_on:
       - rustfs
     entrypoint: ["/bin/sh", "-c"]
@@ -70,6 +79,9 @@ services:
       - ./sftp-init.sh:/etc/sftp.d/chown-upload.sh:ro
       - ./test-ssh/ember_ed25519.pub:/home/ember/.ssh/keys/ember_ed25519.pub:ro
     command: "ember:ember:1001::upload"
+    profiles:
+      - storage
+      - full
 
   # SMB / Samba share for testing the SMB backend variant.
   # Reach the share from the host on smb://localhost/ember (user: ember, password: ember).
@@ -90,6 +102,9 @@ services:
       -u "ember;ember"
       -s "ember;/share;yes;no;no;ember;ember"
       -w "WORKGROUP"
+    profiles:
+      - storage
+      - full
 
   # Dev backend: bind-mounts the project so source edits land in the container
   # straight away, with named volumes for the Gradle home and the project's
@@ -123,6 +138,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    profiles:
+      - full
 
   # Dev frontend: Nuxt dev server with HMR. Bind-mounts the source, isolates
   # node_modules in a named volume so the host's install does not shadow it.
@@ -143,6 +160,8 @@ services:
       - ember-dev-node-modules:/build/node_modules
     depends_on:
       - ember
+    profiles:
+      - full
 
 volumes:
   ember-dev-data:
