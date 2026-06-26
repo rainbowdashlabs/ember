@@ -24,6 +24,8 @@ import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -42,6 +44,7 @@ import java.util.stream.Collectors;
  */
 @Singleton
 public class AttendanceService {
+    private static final Logger log = LoggerFactory.getLogger(AttendanceService.class);
     private static final ObjectMapper JSON = JsonMapper.builder().build();
     private final AttendanceRepository attendanceRepository;
     private final EventRepository eventRepository;
@@ -93,18 +96,27 @@ public class AttendanceService {
     }
 
     public AttendanceTemplate createTemplate(int stationId, String name) {
-        return attendanceRepository.createTemplate(stationId, name);
+        var template = attendanceRepository.createTemplate(stationId, name);
+        log.info("Created attendance template {} for station {}", template.id(), stationId);
+        return template;
     }
 
     public Optional<AttendanceTemplate> updateTemplate(int id, String name) {
         if (attendanceRepository.updateTemplate(id, name)) {
+            log.info("Updated attendance template {}", id);
             return attendanceRepository.findTemplateById(id);
         }
+        log.warn("Cannot update attendance template: template {} not found", id);
         return Optional.empty();
     }
 
     public boolean deleteTemplate(int id) {
-        return attendanceRepository.deleteTemplate(id);
+        if (attendanceRepository.deleteTemplate(id)) {
+            log.info("Deleted attendance template {}", id);
+            return true;
+        }
+        log.warn("Cannot delete attendance template: template {} not found", id);
+        return false;
     }
 
     // -- Template Groups --
@@ -115,6 +127,7 @@ public class AttendanceService {
 
     public void setTemplateGroups(int templateId, List<TemplateGroup> groups) {
         attendanceRepository.setTemplateGroups(templateId, groups);
+        log.info("Set {} template groups for attendance template {}", groups.size(), templateId);
     }
 
     // -- Template Fields --
@@ -122,6 +135,7 @@ public class AttendanceService {
     public List<AttendanceTemplateField> createTemplateField(
             int templateId, String name, AttendanceFieldType fieldType, AttendanceFieldConfig config, int position) {
         attendanceRepository.createTemplateField(templateId, name, fieldType, config, position);
+        log.info("Created attendance template field for template {} (type {})", templateId, fieldType);
         return attendanceRepository.findTemplateFields(templateId);
     }
 
@@ -133,15 +147,19 @@ public class AttendanceService {
             AttendanceFieldConfig config,
             int position) {
         if (attendanceRepository.updateTemplateField(fieldId, name, fieldType, config, position)) {
+            log.info("Updated attendance template field {} for template {}", fieldId, templateId);
             return Optional.of(attendanceRepository.findTemplateFields(templateId));
         }
+        log.warn("Cannot update attendance template field: field {} not found", fieldId);
         return Optional.empty();
     }
 
     public Optional<List<AttendanceTemplateField>> deleteTemplateField(int templateId, int fieldId) {
         if (attendanceRepository.deleteTemplateField(fieldId)) {
+            log.info("Deleted attendance template field {} from template {}", fieldId, templateId);
             return Optional.of(attendanceRepository.findTemplateFields(templateId));
         }
+        log.warn("Cannot delete attendance template field: field {} not found", fieldId);
         return Optional.empty();
     }
 
@@ -206,6 +224,7 @@ public class AttendanceService {
 
         var session =
                 attendanceRepository.createSession(templateId, resolvedStart, resolvedEnd, eventId, resolvedTitle);
+        log.info("Created attendance session {} for template {} (event {})", session.id(), templateId, eventId);
         // Auto-populate field defaults from template field config
         var templateFields = attendanceRepository.findTemplateFields(templateId);
         for (var field : templateFields) {
@@ -276,13 +295,20 @@ public class AttendanceService {
 
     public Optional<AttendanceSession> updateSession(int id, Instant startTime, Instant endTime, String title) {
         if (attendanceRepository.updateSession(id, startTime, endTime, title)) {
+            log.info("Updated attendance session {}", id);
             return attendanceRepository.findSessionById(id);
         }
+        log.warn("Cannot update attendance session: session {} not found", id);
         return Optional.empty();
     }
 
     public boolean deleteSession(int id) {
-        return attendanceRepository.deleteSession(id);
+        if (attendanceRepository.deleteSession(id)) {
+            log.info("Deleted attendance session {}", id);
+            return true;
+        }
+        log.warn("Cannot delete attendance session: session {} not found", id);
+        return false;
     }
 
     // -- Session Fields (batch) --
@@ -291,6 +317,7 @@ public class AttendanceService {
         for (var field : fields) {
             attendanceRepository.setSessionField(sessionId, field.fieldId(), field.value());
         }
+        log.info("Set {} session field values for attendance session {}", fields.size(), sessionId);
         return attendanceRepository.findSessionFields(sessionId);
     }
 
@@ -306,15 +333,31 @@ public class AttendanceService {
             status = AttendanceEntry.AttendanceStatus.UNCONFIRMED;
         }
         attendanceRepository.createEntry(sessionId, memberId, status, source);
+        log.info(
+                "Created attendance entry for member {} in session {} (status {}, source {})",
+                memberId,
+                sessionId,
+                status,
+                source);
         return attendanceRepository.findEntries(sessionId);
     }
 
     public boolean updateEntryStatus(int entryId, AttendanceEntry.AttendanceStatus status) {
-        return attendanceRepository.updateEntryStatus(entryId, status);
+        if (attendanceRepository.updateEntryStatus(entryId, status)) {
+            log.info("Updated attendance entry {} status to {}", entryId, status);
+            return true;
+        }
+        log.warn("Cannot update attendance entry status: entry {} not found", entryId);
+        return false;
     }
 
     public boolean resetTimes(int entryId) {
-        return attendanceRepository.resetTimes(entryId);
+        if (attendanceRepository.resetTimes(entryId)) {
+            log.info("Reset check-in/out times for attendance entry {}", entryId);
+            return true;
+        }
+        log.warn("Cannot reset attendance entry times: entry {} not found", entryId);
+        return false;
     }
 
     /**
@@ -326,7 +369,10 @@ public class AttendanceService {
      */
     public List<AttendanceEntry> syncFromEvent(int sessionId) {
         var session = attendanceRepository.findSessionById(sessionId);
-        if (session.isEmpty()) return attendanceRepository.findEntries(sessionId);
+        if (session.isEmpty()) {
+            log.warn("Cannot sync attendance from event: session {} not found", sessionId);
+            return attendanceRepository.findEntries(sessionId);
+        }
 
         var existingEntries = attendanceRepository.findEntries(sessionId);
         var existingMemberIds =
@@ -406,24 +452,42 @@ public class AttendanceService {
             }
         }
 
+        log.info("Synced attendance entries from event for session {}", sessionId);
         return attendanceRepository.findEntries(sessionId);
     }
 
     public boolean checkIn(int entryId, Instant time) {
-        return attendanceRepository.checkIn(entryId, time);
+        if (attendanceRepository.checkIn(entryId, time)) {
+            log.info("Checked in attendance entry {} at {}", entryId, time);
+            return true;
+        }
+        log.warn("Cannot check in attendance entry: entry {} not found", entryId);
+        return false;
     }
 
     public boolean checkOut(int entryId, Instant time) {
-        return attendanceRepository.checkOut(entryId, time);
+        if (attendanceRepository.checkOut(entryId, time)) {
+            log.info("Checked out attendance entry {} at {}", entryId, time);
+            return true;
+        }
+        log.warn("Cannot check out attendance entry: entry {} not found", entryId);
+        return false;
     }
 
     public boolean deleteEntry(int id) {
-        return attendanceRepository.deleteEntry(id);
+        if (attendanceRepository.deleteEntry(id)) {
+            log.info("Deleted attendance entry {}", id);
+            return true;
+        }
+        log.warn("Cannot delete attendance entry: entry {} not found", id);
+        return false;
     }
 
     public MemberAbsence createAbsence(
             int memberId, LocalDate absentFrom, LocalDate absentUntil, String reason, Integer createdBy) {
-        return attendanceRepository.createAbsence(memberId, absentFrom, absentUntil, reason, createdBy);
+        var absence = attendanceRepository.createAbsence(memberId, absentFrom, absentUntil, reason, createdBy);
+        log.info("Created absence {} for member {} ({} - {})", absence.id(), memberId, absentFrom, absentUntil);
+        return absence;
     }
 
     public Optional<MemberAbsence> findAbsenceById(int id) {
@@ -445,7 +509,12 @@ public class AttendanceService {
     }
 
     public boolean deleteAbsence(int id) {
-        return attendanceRepository.deleteAbsence(id);
+        if (attendanceRepository.deleteAbsence(id)) {
+            log.info("Deleted absence {}", id);
+            return true;
+        }
+        log.warn("Cannot delete absence: absence {} not found", id);
+        return false;
     }
 
     /**

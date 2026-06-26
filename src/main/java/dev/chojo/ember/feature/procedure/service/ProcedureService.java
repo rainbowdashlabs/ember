@@ -18,6 +18,8 @@ import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
 import dev.chojo.ember.feature.procedure.repository.ProcedureRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -29,6 +31,8 @@ import java.util.stream.Collectors;
 
 @Singleton
 public class ProcedureService {
+    private static final Logger log = LoggerFactory.getLogger(ProcedureService.class);
+
     private final ProcedureRepository repository;
     private final DomainEventBus eventBus;
 
@@ -49,18 +53,28 @@ public class ProcedureService {
     }
 
     public ProcedureTemplate createTemplate(int stationId, String name, String description, int createdBy) {
-        return repository.createTemplate(stationId, name, description, createdBy);
+        var template = repository.createTemplate(stationId, name, description, createdBy);
+        log.info("Created procedure template {} on station {} by member {}", template.id(), stationId, createdBy);
+        return template;
     }
 
     public Optional<ProcedureTemplate> updateTemplate(int id, String name, String description) {
         if (repository.updateTemplate(id, name, description)) {
+            log.info("Updated procedure template {}", id);
             return repository.findTemplateById(id);
         }
+        log.warn("Update for procedure template {} affected zero rows", id);
         return Optional.empty();
     }
 
     public boolean archiveTemplate(int id) {
-        return repository.archiveTemplate(id);
+        boolean archived = repository.archiveTemplate(id);
+        if (archived) {
+            log.info("Archived procedure template {}", id);
+        } else {
+            log.warn("Archive for procedure template {} affected zero rows", id);
+        }
+        return archived;
     }
 
     public List<ProcedureTemplateItem> findTemplateItems(int templateId) {
@@ -69,16 +83,30 @@ public class ProcedureService {
 
     public ProcedureTemplateItem createTemplateItem(
             int templateId, String title, String description, boolean isPublic, boolean userAssigned, int position) {
-        return repository.createTemplateItem(templateId, title, description, isPublic, userAssigned, position);
+        var item = repository.createTemplateItem(templateId, title, description, isPublic, userAssigned, position);
+        log.info("Created procedure template item {} on template {}", item.id(), templateId);
+        return item;
     }
 
     public boolean updateTemplateItem(
             int id, String title, String description, boolean isPublic, boolean userAssigned, int position) {
-        return repository.updateTemplateItem(id, title, description, isPublic, userAssigned, position);
+        boolean updated = repository.updateTemplateItem(id, title, description, isPublic, userAssigned, position);
+        if (updated) {
+            log.info("Updated procedure template item {}", id);
+        } else {
+            log.warn("Update for procedure template item {} affected zero rows", id);
+        }
+        return updated;
     }
 
     public boolean deleteTemplateItem(int id) {
-        return repository.deleteTemplateItem(id);
+        boolean deleted = repository.deleteTemplateItem(id);
+        if (deleted) {
+            log.info("Deleted procedure template item {}", id);
+        } else {
+            log.warn("Delete for procedure template item {} affected zero rows", id);
+        }
+        return deleted;
     }
 
     public List<int[]> findTemplateItemDependencies(int templateId) {
@@ -130,37 +158,69 @@ public class ProcedureService {
             eventBus.publish(new ProcedureAssigned(stationId, procedure.id(), name, assigneeIds, assignedBy));
         }
 
+        log.info(
+                "Created procedure {} on station {} (template {}, assignees {})",
+                procedure.id(),
+                stationId,
+                templateId,
+                assigneeIds.size());
         return procedure;
     }
 
     public boolean updateProcedure(int id, String name, String description, boolean isPublic, Instant dueAt) {
-        return repository.updateProcedure(id, name, description, isPublic, dueAt);
+        boolean updated = repository.updateProcedure(id, name, description, isPublic, dueAt);
+        if (updated) {
+            log.info("Updated procedure {}", id);
+        } else {
+            log.warn("Update for procedure {} affected zero rows", id);
+        }
+        return updated;
     }
 
     public boolean resolveProcedure(int id, int resolvedByMemberId) {
         var procedure = repository.findProcedureById(id);
-        if (procedure.isEmpty()) return false;
-        if (!repository.resolveProcedure(id)) return false;
+        if (procedure.isEmpty()) {
+            log.warn("Resolve for procedure {} skipped: not found", id);
+            return false;
+        }
+        if (!repository.resolveProcedure(id)) {
+            log.warn("Resolve for procedure {} affected zero rows", id);
+            return false;
+        }
 
         var assigneeIds = repository.findAssigneeIds(id);
         eventBus.publish(new ProcedureResolved(
                 procedure.get().stationId(), id, procedure.get().name(), assigneeIds, resolvedByMemberId));
+        log.info("Resolved procedure {} by member {}", id, resolvedByMemberId);
         return true;
     }
 
     public boolean reopenProcedure(int id, int reopenedByMemberId) {
         var procedure = repository.findProcedureById(id);
-        if (procedure.isEmpty()) return false;
-        if (!repository.reopenProcedure(id)) return false;
+        if (procedure.isEmpty()) {
+            log.warn("Reopen for procedure {} skipped: not found", id);
+            return false;
+        }
+        if (!repository.reopenProcedure(id)) {
+            log.warn("Reopen for procedure {} affected zero rows", id);
+            return false;
+        }
 
         var assigneeIds = repository.findAssigneeIds(id);
         eventBus.publish(new ProcedureReopened(
                 procedure.get().stationId(), id, procedure.get().name(), assigneeIds, reopenedByMemberId));
+        log.info("Reopened procedure {} by member {}", id, reopenedByMemberId);
         return true;
     }
 
     public boolean deleteProcedure(int id) {
-        return repository.deleteProcedure(id);
+        boolean deleted = repository.deleteProcedure(id);
+        if (deleted) {
+            log.info("Deleted procedure {}", id);
+        } else {
+            log.warn("Delete for procedure {} affected zero rows", id);
+        }
+        return deleted;
     }
 
     public List<Integer> findAssigneeIds(int procedureId) {
@@ -171,7 +231,10 @@ public class ProcedureService {
 
     public void addAssignees(int procedureId, List<Integer> memberIds, int assignedByMemberId) {
         var procedure = repository.findProcedureById(procedureId);
-        if (procedure.isEmpty()) return;
+        if (procedure.isEmpty()) {
+            log.warn("Add assignees to procedure {} skipped: not found", procedureId);
+            return;
+        }
 
         var existing = Set.copyOf(repository.findAssigneeIds(procedureId));
         var newIds = memberIds.stream().filter(id -> !existing.contains(id)).toList();
@@ -182,11 +245,18 @@ public class ProcedureService {
         if (!newIds.isEmpty()) {
             eventBus.publish(new ProcedureAssigned(
                     procedure.get().stationId(), procedureId, procedure.get().name(), newIds, assignedByMemberId));
+            log.info("Assigned {} new member(s) to procedure {}", newIds.size(), procedureId);
         }
     }
 
     public boolean removeAssignee(int procedureId, int memberId) {
-        return repository.removeAssignee(procedureId, memberId);
+        boolean removed = repository.removeAssignee(procedureId, memberId);
+        if (removed) {
+            log.info("Removed assignee {} from procedure {}", memberId, procedureId);
+        } else {
+            log.warn("Remove of assignee {} from procedure {} affected zero rows", memberId, procedureId);
+        }
+        return removed;
     }
 
     public Optional<ProcedureItem> findItemById(int itemId) {
@@ -201,21 +271,38 @@ public class ProcedureService {
 
     public ProcedureItem createItem(
             int procedureId, String title, String description, boolean isPublic, boolean userAssigned, int position) {
-        return repository.createItem(procedureId, title, description, isPublic, userAssigned, position);
+        var item = repository.createItem(procedureId, title, description, isPublic, userAssigned, position);
+        log.info("Created procedure item {} on procedure {}", item.id(), procedureId);
+        return item;
     }
 
     public boolean updateItem(
             int id, String title, String description, boolean isPublic, boolean userAssigned, int position) {
-        return repository.updateItem(id, title, description, isPublic, userAssigned, position);
+        boolean updated = repository.updateItem(id, title, description, isPublic, userAssigned, position);
+        if (updated) {
+            log.info("Updated procedure item {}", id);
+        } else {
+            log.warn("Update for procedure item {} affected zero rows", id);
+        }
+        return updated;
     }
 
     public boolean deleteItem(int id) {
-        return repository.deleteItem(id);
+        boolean deleted = repository.deleteItem(id);
+        if (deleted) {
+            log.info("Deleted procedure item {}", id);
+        } else {
+            log.warn("Delete for procedure item {} affected zero rows", id);
+        }
+        return deleted;
     }
 
     public boolean checkItem(int itemId, int checkedByMemberId) {
         var item = repository.findItemById(itemId);
-        if (item.isEmpty()) return false;
+        if (item.isEmpty()) {
+            log.warn("Check for procedure item {} skipped: not found", itemId);
+            return false;
+        }
 
         // Validate dependencies are met
         var deps = repository.findItemDependencies(item.get().procedureId());
@@ -227,11 +314,15 @@ public class ProcedureService {
 
         for (int[] dep : deps) {
             if (dep[0] == itemId && !checkedIds.contains(dep[1])) {
-                return false; // Dependency not met
+                log.warn("Check for procedure item {} blocked: dependency {} not yet checked", itemId, dep[1]);
+                return false;
             }
         }
 
-        if (!repository.checkItem(itemId, checkedByMemberId)) return false;
+        if (!repository.checkItem(itemId, checkedByMemberId)) {
+            log.warn("Check for procedure item {} affected zero rows", itemId);
+            return false;
+        }
 
         var procedure = repository.findProcedureById(item.get().procedureId());
         if (procedure.isPresent()) {
@@ -245,15 +336,28 @@ public class ProcedureService {
                     assigneeIds,
                     checkedByMemberId));
         }
+        log.info("Checked procedure item {} by member {}", itemId, checkedByMemberId);
         return true;
     }
 
     public boolean uncheckItem(int itemId) {
-        return repository.uncheckItem(itemId);
+        boolean unchecked = repository.uncheckItem(itemId);
+        if (unchecked) {
+            log.info("Unchecked procedure item {}", itemId);
+        } else {
+            log.warn("Uncheck for procedure item {} affected zero rows", itemId);
+        }
+        return unchecked;
     }
 
     public boolean updateItemNote(int itemId, String note) {
-        return repository.updateItemNote(itemId, note);
+        boolean updated = repository.updateItemNote(itemId, note);
+        if (updated) {
+            log.info("Updated procedure item note {}", itemId);
+        } else {
+            log.warn("Update note for procedure item {} affected zero rows", itemId);
+        }
+        return updated;
     }
 
     public List<int[]> findItemDependencies(int procedureId) {

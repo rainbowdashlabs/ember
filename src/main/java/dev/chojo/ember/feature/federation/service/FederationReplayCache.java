@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.federation.service;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.UUID;
@@ -23,6 +25,7 @@ import java.util.UUID;
  */
 @Singleton
 public class FederationReplayCache {
+    private static final Logger log = LoggerFactory.getLogger(FederationReplayCache.class);
     private static final Duration TTL = Duration.ofMinutes(10);
     private static final long MAX_ENTRIES = 100_000L;
 
@@ -37,9 +40,11 @@ public class FederationReplayCache {
     public boolean checkAndRemember(int partnerId, UUID nonce) {
         var key = new NonceKey(partnerId, nonce);
         if (seen.getIfPresent(key) != null) {
+            log.warn("Rejected replayed federation nonce {} from partner {}", nonce, partnerId);
             return false;
         }
         seen.put(key, Boolean.TRUE);
+        log.debug("Recorded federation nonce {} for partner {}", nonce, partnerId);
         return true;
     }
 

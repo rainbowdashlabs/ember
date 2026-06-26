@@ -9,6 +9,8 @@ import dev.chojo.ember.feature.members.entity.RegistrationCode;
 import dev.chojo.ember.feature.members.repository.RegistrationCodeRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,6 +21,8 @@ import java.util.Optional;
  */
 @Singleton
 public class RegistrationCodeService {
+    private static final Logger log = LoggerFactory.getLogger(RegistrationCodeService.class);
+
     private final RegistrationCodeRepository codeRepository;
 
     @Inject
@@ -35,11 +39,19 @@ public class RegistrationCodeService {
     }
 
     public RegistrationCode create(int stationId, String code, int maxUses) {
-        return codeRepository.create(stationId, code, maxUses);
+        var created = codeRepository.create(stationId, code, maxUses);
+        log.info("Registration code created: id={}, station={}, maxUses={}", created.id(), stationId, maxUses);
+        return created;
     }
 
     public boolean delete(int id) {
-        return codeRepository.delete(id);
+        boolean deleted = codeRepository.delete(id);
+        if (deleted) {
+            log.info("Registration code deleted: id={}", id);
+        } else {
+            log.warn("Registration code delete affected no rows: id={}", id);
+        }
+        return deleted;
     }
 
     // -- Code-Group assignments --
@@ -62,6 +74,7 @@ public class RegistrationCodeService {
             }
         }
 
+        log.info("Registration code groups updated: code={}, groups={}", codeId, desiredGroupIds);
         return codeRepository.findGroupIds(codeId);
     }
 }

@@ -14,6 +14,8 @@ import dev.chojo.ember.feature.board.entity.FederationBoardShareTarget;
 import dev.chojo.ember.feature.board.repository.FederatedBoardRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +28,8 @@ import java.util.UUID;
  */
 @Singleton
 public class FederatedBoardService {
+    private static final Logger log = LoggerFactory.getLogger(FederatedBoardService.class);
+
     private final FederatedBoardRepository repository;
 
     @Inject
@@ -45,10 +49,12 @@ public class FederatedBoardService {
                     config.shareMode(),
                     config.requiredUserType() != null ? config.requiredUserType() : StationUserType.MEMBER);
         }
+        log.info("Shared board {} with {} partners", boardId, partnerConfigs.size());
     }
 
     public void unshareBoard(int boardId) {
         repository.deleteShare(boardId);
+        log.info("Unshared board {}", boardId);
     }
 
     public Optional<FederationBoardShare> findShare(int boardId) {
@@ -100,6 +106,7 @@ public class FederatedBoardService {
 
     public void setFederatedEditUserTypes(int boardId, List<StationUserType> userTypes) {
         repository.setFederatedEditUserTypes(boardId, userTypes);
+        log.info("Updated federated edit user types for board {} ({} entries)", boardId, userTypes.size());
     }
 
     public List<StationUserType> findFederatedEditUserTypes(int boardId) {
@@ -113,18 +120,26 @@ public class FederatedBoardService {
             String remoteBoardName,
             String remoteBoardShortKey,
             BoardShareMode shareMode) {
-        return repository.createBookmark(
+        var bookmark = repository.createBookmark(
                 memberId, partnerId, remoteBoardUid, remoteBoardName, remoteBoardShortKey, shareMode);
+        log.info("Created board bookmark {} for member {} (partner {})", bookmark.id(), memberId, partnerId);
+        return bookmark;
     }
 
     // -- Bookmarks --
 
     public void deleteBookmark(int bookmarkId) {
         repository.deleteBookmark(bookmarkId);
+        log.info("Deleted board bookmark {}", bookmarkId);
     }
 
     public void deleteBookmarkByBoard(int memberId, int partnerId, UUID remoteBoardUid) {
         repository.deleteBookmarkByBoard(memberId, partnerId, remoteBoardUid);
+        log.info(
+                "Deleted board bookmark for member {} (partner {}, remote board {})",
+                memberId,
+                partnerId,
+                remoteBoardUid);
     }
 
     public List<FederationBoardBookmark> findBookmarks(int memberId) {
@@ -133,24 +148,33 @@ public class FederatedBoardService {
 
     public void updateBookmarkName(int partnerId, UUID remoteBoardUid, String newName, String newShortKey) {
         repository.updateBookmarkName(partnerId, remoteBoardUid, newName, newShortKey);
+        log.info("Updated bookmark name for partner {} (remote board {})", partnerId, remoteBoardUid);
     }
 
     public void deleteBookmarksByBoard(int partnerId, UUID remoteBoardUid) {
         repository.deleteBookmarksByBoard(partnerId, remoteBoardUid);
+        log.info("Deleted bookmarks for partner {} (remote board {})", partnerId, remoteBoardUid);
     }
 
     public void updateBookmarkShareMode(int partnerId, UUID remoteBoardUid, BoardShareMode shareMode) {
         repository.updateBookmarkShareMode(partnerId, remoteBoardUid, shareMode);
+        log.info(
+                "Updated bookmark share mode for partner {} (remote board {}) to {}",
+                partnerId,
+                remoteBoardUid,
+                shareMode);
     }
 
     public void setLocalViewOverride(int partnerId, UUID remoteBoardUid, AccessData access) {
         repository.setLocalViewOverride(partnerId, remoteBoardUid, access);
+        log.info("Updated local view override for partner {} (remote board {})", partnerId, remoteBoardUid);
     }
 
     // -- Local Overrides --
 
     public void setLocalEditOverride(int partnerId, UUID remoteBoardUid, AccessData access) {
         repository.setLocalEditOverride(partnerId, remoteBoardUid, access);
+        log.info("Updated local edit override for partner {} (remote board {})", partnerId, remoteBoardUid);
     }
 
     public AccessData getLocalViewOverride(int partnerId, UUID remoteBoardUid) {

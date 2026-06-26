@@ -11,6 +11,8 @@ import dev.chojo.ember.feature.twofactor.entity.TrustedDevice;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -27,6 +29,7 @@ import java.util.Optional;
 @Singleton
 public class TrustedDeviceService {
     public static final String COOKIE_NAME = "ember_2fa_trust";
+    private static final Logger log = LoggerFactory.getLogger(TrustedDeviceService.class);
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final int TOKEN_BYTES = 32;
 
@@ -63,6 +66,7 @@ public class TrustedDeviceService {
         String token = newToken();
         Instant trustedUntil = Instant.now().plus(Duration.ofDays(days));
         var device = repository.createTrustedDevice(accountId, tokenHasher.hash(token), userAgent, trustedUntil);
+        log.info("Trusted device issued for account {} (device {}, {} days)", accountId, device.id(), days);
         return new Issued(token, device);
     }
 
@@ -83,11 +87,18 @@ public class TrustedDeviceService {
     }
 
     public boolean revoke(int deviceId, int accountId) {
-        return repository.revokeTrustedDevice(deviceId, accountId);
+        boolean revoked = repository.revokeTrustedDevice(deviceId, accountId);
+        if (revoked) {
+            log.info("Trusted device {} revoked for account {}", deviceId, accountId);
+        } else {
+            log.warn("Trusted device revoke missed: device {} for account {}", deviceId, accountId);
+        }
+        return revoked;
     }
 
     public void revokeAll(int accountId) {
         repository.revokeAllTrustedDevices(accountId);
+        log.info("All trusted devices revoked for account {}", accountId);
     }
 
     public record Issued(String token, TrustedDevice device) {}

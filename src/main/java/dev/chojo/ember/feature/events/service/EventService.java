@@ -29,6 +29,8 @@ import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -50,6 +52,8 @@ import java.util.UUID;
  */
 @Singleton
 public class EventService {
+    private static final Logger log = LoggerFactory.getLogger(EventService.class);
+
     private final EventRepository eventRepository;
     private final RestrictionRepository restrictionRepository;
     private final DomainEventBus eventBus;
@@ -216,7 +220,7 @@ public class EventService {
             Integer minRegistrations,
             Instant thresholdDate,
             Integer registrationCloseDays) {
-        return eventRepository.create(
+        var event = eventRepository.create(
                 stationId,
                 name,
                 description,
@@ -233,6 +237,8 @@ public class EventService {
                 minRegistrations,
                 thresholdDate,
                 registrationCloseDays);
+        log.info("Created event {} for station {} ({}, type={})", event.id(), stationId, name, eventType);
+        return event;
     }
 
     /**
@@ -288,8 +294,10 @@ public class EventService {
                 minRegistrations,
                 thresholdDate,
                 registrationCloseDays)) {
+            log.info("Updated event {}", id);
             return eventRepository.findById(id);
         }
+        log.warn("Cannot update event: event {} not found", id);
         return Optional.empty();
     }
 
@@ -301,11 +309,16 @@ public class EventService {
      */
     public boolean delete(int id) {
         var event = eventRepository.findById(id).orElse(null);
-        if (event == null) return false;
+        if (event == null) {
+            log.warn("Cannot delete event: event {} not found", id);
+            return false;
+        }
         if (eventRepository.delete(id)) {
+            log.info("Deleted event {} for station {}", id, event.stationId());
             eventBus.publish(new EventDeleted(event.stationId(), id, event.name()));
             return true;
         }
+        log.warn("Failed to delete event {}", id);
         return false;
     }
 
@@ -319,12 +332,21 @@ public class EventService {
      */
     public boolean cancelEvent(int stationId, int eventId, String reason) {
         var event = eventRepository.findById(eventId).orElse(null);
-        if (event == null || event.stationId() != stationId) return false;
-        if (event.cancelled()) return false;
+        if (event == null || event.stationId() != stationId) {
+            log.warn("Cannot cancel event: event {} not found for station {}", eventId, stationId);
+            return false;
+        }
+        if (event.cancelled()) {
+            log.warn("Cannot cancel event: event {} already cancelled", eventId);
+            return false;
+        }
 
         boolean cancelled = eventRepository.cancelEvent(eventId, reason);
         if (cancelled) {
+            log.info("Cancelled event {} for station {}", eventId, stationId);
             eventBus.publish(new EventCancelled(stationId, eventId, event.name(), reason));
+        } else {
+            log.warn("Failed to cancel event {}", eventId);
         }
         return cancelled;
     }
@@ -476,7 +498,9 @@ public class EventService {
      * @return the created category
      */
     public EventCategory createCategory(int stationId, String name, int position, String color) {
-        return eventRepository.createCategory(stationId, name, position, color);
+        var category = eventRepository.createCategory(stationId, name, position, color);
+        log.info("Created event category {} for station {}", category.id(), stationId);
+        return category;
     }
 
     /**
@@ -490,7 +514,12 @@ public class EventService {
      */
     public boolean updateCategory(
             int id, String name, int position, Integer maxShownEvents, boolean isPublic, String color) {
-        return eventRepository.updateCategory(id, name, position, maxShownEvents, isPublic, color);
+        if (eventRepository.updateCategory(id, name, position, maxShownEvents, isPublic, color)) {
+            log.info("Updated event category {}", id);
+            return true;
+        }
+        log.warn("Cannot update event category: category {} not found", id);
+        return false;
     }
 
     /**
@@ -500,11 +529,17 @@ public class EventService {
      * @return true if the category was deleted
      */
     public boolean deleteCategory(int id) {
-        return eventRepository.deleteCategory(id);
+        if (eventRepository.deleteCategory(id)) {
+            log.info("Deleted event category {}", id);
+            return true;
+        }
+        log.warn("Cannot delete event category: category {} not found", id);
+        return false;
     }
 
     public void reorderCategories(List<Integer> orderedIds) {
         eventRepository.reorderCategories(orderedIds);
+        log.info("Reordered {} event categories", orderedIds.size());
     }
 
     // -- Breaks --
@@ -539,7 +574,9 @@ public class EventService {
      * @return the created break
      */
     public EventBreak createBreak(int stationId, String name, LocalDate startDate, LocalDate endDate) {
-        return eventRepository.createBreak(stationId, name, startDate, endDate);
+        var eventBreak = eventRepository.createBreak(stationId, name, startDate, endDate);
+        log.info("Created event break {} for station {}", eventBreak.id(), stationId);
+        return eventBreak;
     }
 
     /**
@@ -553,8 +590,10 @@ public class EventService {
      */
     public Optional<EventBreak> updateBreak(int id, String name, LocalDate startDate, LocalDate endDate) {
         if (eventRepository.updateBreak(id, name, startDate, endDate)) {
+            log.info("Updated event break {}", id);
             return eventRepository.findBreakById(id);
         }
+        log.warn("Cannot update event break: break {} not found", id);
         return Optional.empty();
     }
 
@@ -565,7 +604,12 @@ public class EventService {
      * @return true if the break was deleted
      */
     public boolean deleteBreak(int id) {
-        return eventRepository.deleteBreak(id);
+        if (eventRepository.deleteBreak(id)) {
+            log.info("Deleted event break {}", id);
+            return true;
+        }
+        log.warn("Cannot delete event break: break {} not found", id);
+        return false;
     }
 
     // -- Restrictions --
@@ -606,6 +650,7 @@ public class EventService {
                 groupIds != null ? groupIds : List.of(),
                 tagIds != null ? tagIds : List.of(),
                 memberIds != null ? memberIds : List.of());
+        log.info("Set restrictions for event {}", eventId);
     }
 
     /**
@@ -616,6 +661,7 @@ public class EventService {
      */
     public void updateRestrictionMode(int eventId, RestrictionMode mode) {
         eventRepository.updateRestrictionMode(eventId, mode);
+        log.info("Updated restriction mode for event {} to {}", eventId, mode);
     }
 
     /**
@@ -649,6 +695,7 @@ public class EventService {
      */
     public void setFieldDefaults(int eventId, List<EventFieldDefault> defaults) {
         eventRepository.setFieldDefaults(eventId, defaults);
+        log.info("Set field defaults for event {} ({} defaults)", eventId, defaults.size());
     }
 
     /**
@@ -759,6 +806,12 @@ public class EventService {
             int eventId, int memberId, LocalDate eventDate, boolean autoAccept, Integer createdBy) {
         var registration =
                 eventRepository.createRegistration(eventId, memberId, eventDate, RegistrationStatus.PENDING, createdBy);
+        log.info(
+                "Registered member {} for event {} on {} (status={})",
+                memberId,
+                eventId,
+                eventDate,
+                autoAccept ? RegistrationStatus.ACCEPTED : RegistrationStatus.PENDING);
         if (autoAccept) {
             eventRepository.updateRegistrationStatus(registration.id(), RegistrationStatus.ACCEPTED);
             return eventRepository.findRegistrationById(registration.id()).orElse(registration);
@@ -777,7 +830,11 @@ public class EventService {
     }
 
     public boolean updateRegistrationStatus(int id, RegistrationStatus status) {
-        if (!eventRepository.updateRegistrationStatus(id, status)) return false;
+        if (!eventRepository.updateRegistrationStatus(id, status)) {
+            log.warn("Cannot update registration status: registration {} not found", id);
+            return false;
+        }
+        log.info("Updated registration {} status to {}", id, status);
         eventRepository.findRegistrationById(id).ifPresent(registration -> eventRepository
                 .findById(registration.eventId())
                 .ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
@@ -787,7 +844,11 @@ public class EventService {
 
     public boolean withdrawRegistration(int id) {
         var registration = eventRepository.findRegistrationById(id).orElse(null);
-        if (!eventRepository.deleteRegistration(id)) return false;
+        if (!eventRepository.deleteRegistration(id)) {
+            log.warn("Cannot withdraw registration: registration {} not found", id);
+            return false;
+        }
+        log.info("Withdrew registration {}", id);
         if (registration != null && registration.status() == RegistrationStatus.ACCEPTED) {
             eventRepository
                     .findById(registration.eventId())
@@ -802,13 +863,13 @@ public class EventService {
     }
 
     public EventRegistration decline(int eventId, int memberId, LocalDate eventDate, Integer createdBy) {
-        // Check if the member had an accepted registration before declining
         var existing = eventRepository.findRegistrations(eventId, eventDate).stream()
                 .filter(r -> r.memberId() == memberId)
                 .findFirst()
                 .orElse(null);
         var result = eventRepository.createRegistration(
                 eventId, memberId, eventDate, RegistrationStatus.DECLINED, createdBy);
+        log.info("Declined registration for member {} on event {} ({})", memberId, eventId, eventDate);
         if (existing != null && existing.status() == RegistrationStatus.ACCEPTED) {
             eventRepository
                     .findById(eventId)
@@ -838,5 +899,6 @@ public class EventService {
 
     public void setReminders(int eventId, List<Integer> daysBefore) {
         eventRepository.replaceReminders(eventId, daysBefore);
+        log.info("Set reminders for event {} ({} days)", eventId, daysBefore.size());
     }
 }

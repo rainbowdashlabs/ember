@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.storage.service;
 
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -22,6 +24,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @Singleton
 public class InstanceStorageReadOnlyState {
+    private static final Logger log = LoggerFactory.getLogger(InstanceStorageReadOnlyState.class);
+
     private final AtomicBoolean readOnly = new AtomicBoolean(false);
 
     /**
@@ -29,7 +33,13 @@ public class InstanceStorageReadOnlyState {
      * call returns {@code false} so the caller can fail fast.
      */
     public boolean lock() {
-        return readOnly.compareAndSet(false, true);
+        boolean acquired = readOnly.compareAndSet(false, true);
+        if (acquired) {
+            log.info("Instance storage locked read-only for migration");
+        } else {
+            log.warn("Instance storage already locked read-only; lock acquisition refused");
+        }
+        return acquired;
     }
 
     /**
@@ -37,6 +47,7 @@ public class InstanceStorageReadOnlyState {
      */
     public void unlock() {
         readOnly.set(false);
+        log.info("Instance storage read-only lock cleared");
     }
 
     /**

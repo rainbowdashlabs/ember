@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.discovery.service;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Tracks the soft reputation score of every peer. Deltas are applied directly via
@@ -16,6 +18,7 @@ import jakarta.inject.Singleton;
  */
 @Singleton
 public class DiscoveryReputationService {
+    private static final Logger log = LoggerFactory.getLogger(DiscoveryReputationService.class);
 
     public static final int DELTA_SUCCESSFUL_CALLBACK = 1;
     public static final int DELTA_SUCCESSFUL_FETCH = 1;
@@ -42,6 +45,10 @@ public class DiscoveryReputationService {
 
     public void recordSignatureFailure(String publicKey) {
         repository.addReputation(publicKey, DELTA_SIGNATURE_FAILURE);
+        log.warn(
+                "Discovery peer signature failure recorded for key {}: applied delta {}",
+                publicKey,
+                DELTA_SIGNATURE_FAILURE);
     }
 
     public void recordTimeout(String publicKey) {
@@ -50,13 +57,19 @@ public class DiscoveryReputationService {
 
     public void recordInvalidAnnouncement(String publicKey) {
         repository.addReputation(publicKey, DELTA_INVALID_ANNOUNCEMENT);
+        log.warn(
+                "Discovery peer invalid announcement recorded for key {}: applied delta {}",
+                publicKey,
+                DELTA_INVALID_ANNOUNCEMENT);
     }
 
     public void upvote(String publicKey) {
         repository.addReputation(publicKey, DELTA_ADMIN_UPVOTE);
+        log.info("Discovery peer upvoted by admin: key {}, delta {}", publicKey, DELTA_ADMIN_UPVOTE);
     }
 
     public void downvote(String publicKey) {
         repository.addReputation(publicKey, DELTA_ADMIN_DOWNVOTE);
+        log.info("Discovery peer downvoted by admin: key {}, delta {}", publicKey, DELTA_ADMIN_DOWNVOTE);
     }
 }

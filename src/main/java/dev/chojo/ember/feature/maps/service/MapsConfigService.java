@@ -12,6 +12,8 @@ import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Reads/writes the instance-wide maps configuration. Defaults to OSM raw tiles and no
@@ -20,6 +22,8 @@ import jakarta.inject.Singleton;
  */
 @Singleton
 public class MapsConfigService {
+
+    private static final Logger log = LoggerFactory.getLogger(MapsConfigService.class);
 
     public static final int DEFAULT_TILE_CACHE_MB = 500;
     public static final int MAX_TILE_CACHE_MB = 10_000;
@@ -72,6 +76,7 @@ public class MapsConfigService {
     public void updateTilesConfig(MapsTilesConfig config) {
         validate(config);
         settings.set(KEY_TILES, config.toJson());
+        log.info("Updated maps tiles config: provider {}", config.provider());
     }
 
     public void updateGeocodingConfig(MapsGeocodingConfig config) {
@@ -79,6 +84,7 @@ public class MapsConfigService {
             throw new BadRequestResponse("provider required");
         }
         settings.set(KEY_GEOCODING, config.toJson());
+        log.info("Updated maps geocoding config: provider {}", config.provider());
     }
 
     public void updateTileCacheMaxMb(int maxMb) {
@@ -86,5 +92,6 @@ public class MapsConfigService {
             throw new BadRequestResponse("max cache size must be between 0 and " + MAX_TILE_CACHE_MB + " MB");
         }
         settings.set(KEY_CACHE_MB, Integer.toString(maxMb));
+        log.info("Updated maps tile cache size: {} MB", maxMb);
     }
 }

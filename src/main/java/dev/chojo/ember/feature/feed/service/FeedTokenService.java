@@ -9,6 +9,8 @@ import dev.chojo.ember.feature.feed.entity.FeedToken;
 import dev.chojo.ember.feature.feed.repository.FeedTokenRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -16,6 +18,7 @@ import java.util.Optional;
 
 @Singleton
 public class FeedTokenService {
+    private static final Logger log = LoggerFactory.getLogger(FeedTokenService.class);
     private static final SecureRandom RANDOM = new SecureRandom();
     private final FeedTokenRepository tokenRepository;
 
@@ -36,16 +39,20 @@ public class FeedTokenService {
      * Gets or creates a feed token for the given member.
      */
     public FeedToken getOrCreate(int memberId) {
-        return tokenRepository
-                .findByMember(memberId)
-                .orElseGet(() -> tokenRepository.create(memberId, generateToken()));
+        return tokenRepository.findByMember(memberId).orElseGet(() -> {
+            var created = tokenRepository.create(memberId, generateToken());
+            log.info("Created feed token for member {}", memberId);
+            return created;
+        });
     }
 
     /**
      * Regenerates the feed token for the given member, invalidating the old one.
      */
     public FeedToken regenerate(int memberId) {
-        return tokenRepository.create(memberId, generateToken());
+        var token = tokenRepository.create(memberId, generateToken());
+        log.info("Regenerated feed token for member {}", memberId);
+        return token;
     }
 
     /**
@@ -66,7 +73,13 @@ public class FeedTokenService {
      * Deletes the feed token for the given member.
      */
     public boolean revoke(int memberId) {
-        return tokenRepository.delete(memberId);
+        boolean revoked = tokenRepository.delete(memberId);
+        if (revoked) {
+            log.info("Revoked feed token for member {}", memberId);
+        } else {
+            log.warn("Feed token revoke affected zero rows for member {}", memberId);
+        }
+        return revoked;
     }
 
     private String generateToken() {

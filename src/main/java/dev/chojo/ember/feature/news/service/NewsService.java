@@ -29,6 +29,8 @@ import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
@@ -41,6 +43,7 @@ import java.util.regex.Pattern;
  */
 @Singleton
 public class NewsService {
+    private static final Logger log = LoggerFactory.getLogger(NewsService.class);
     private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[([^/]+)/([^:]+):([^\\]]+)]");
     private static final Pattern MENTION_PATTERN_LEGACY = Pattern.compile("@\\[(\\d+):([^\\]]+)]");
     private static final Pattern BULK_MENTION_PATTERN =
@@ -133,6 +136,7 @@ public class NewsService {
         setRestrictions(news.id(), userTypes, groupIds, tagIds, memberIds);
         String authorName = resolveAuthorName(stationId, author);
         eventBus.publish(new NewsCreated(stationId, news.id(), title, authorName, previewOf(contentMarkdown)));
+        log.info("Created news {} on station {}", news.id(), stationId);
         return news;
     }
 
@@ -192,8 +196,10 @@ public class NewsService {
             List<Integer> memberIds) {
         if (newsRepository.update(id, title, contentMarkdown, contentHtml)) {
             setRestrictions(id, userTypes, groupIds, tagIds, memberIds);
+            log.info("Updated news {}", id);
             return newsRepository.findById(id);
         }
+        log.warn("Update for news {} affected zero rows", id);
         return Optional.empty();
     }
 
@@ -204,6 +210,7 @@ public class NewsService {
      */
     public void updatePublicBlog(int id, boolean publicBlog) {
         newsRepository.updatePublicBlog(id, publicBlog);
+        log.info("Updated news {} publicBlog={}", id, publicBlog);
     }
 
     public List<News> findPublicBlogEntries(int stationId, int offset, int limit) {
@@ -232,11 +239,16 @@ public class NewsService {
 
     public boolean delete(int id) {
         var news = newsRepository.findById(id).orElse(null);
-        if (news == null) return false;
+        if (news == null) {
+            log.warn("Delete for news {} skipped: not found", id);
+            return false;
+        }
         if (newsRepository.delete(id)) {
             eventBus.publish(new NewsDeleted(news.stationId(), id, news.title()));
+            log.info("Deleted news {} on station {}", id, news.stationId());
             return true;
         }
+        log.warn("Delete for news {} affected zero rows", id);
         return false;
     }
 
@@ -324,6 +336,7 @@ public class NewsService {
     public NewsComment createComment(
             int stationId, int newsId, Integer parentId, MemberIdentity author, String authorName, String content) {
         var comment = newsRepository.createComment(newsId, parentId, author, content);
+        log.info("Created news comment {} on news {} (station {})", comment.id(), newsId, stationId);
         var news = newsRepository.findById(newsId).orElse(null);
         if (news != null) {
             String preview = content.length() > 100 ? content.substring(0, 100) + "..." : content;
@@ -439,7 +452,13 @@ public class NewsService {
      * @return {@code true} if the comment was updated
      */
     public boolean updateComment(int id, String content) {
-        return newsRepository.updateComment(id, content);
+        boolean updated = newsRepository.updateComment(id, content);
+        if (updated) {
+            log.info("Updated news comment {}", id);
+        } else {
+            log.warn("Update for news comment {} affected zero rows", id);
+        }
+        return updated;
     }
 
     /**
@@ -450,13 +469,18 @@ public class NewsService {
      */
     public boolean deleteComment(int stationId, int id) {
         var comment = newsRepository.findCommentById(id).orElse(null);
-        if (comment == null) return false;
+        if (comment == null) {
+            log.warn("Delete for news comment {} skipped: not found", id);
+            return false;
+        }
         if (newsRepository.deleteComment(id)) {
             String preview =
                     comment.content().length() > 100 ? comment.content().substring(0, 100) + "..." : comment.content();
             eventBus.publish(new CommentDeleted(stationId, id, preview));
+            log.info("Deleted news comment {} on station {}", id, stationId);
             return true;
         }
+        log.warn("Delete for news comment {} affected zero rows", id);
         return false;
     }
 

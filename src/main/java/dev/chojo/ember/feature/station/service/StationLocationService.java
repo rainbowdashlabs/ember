@@ -9,6 +9,8 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -20,6 +22,7 @@ import java.util.regex.Pattern;
  */
 @Singleton
 public class StationLocationService {
+    private static final Logger log = LoggerFactory.getLogger(StationLocationService.class);
     private static final int MAX_TEXT_LEN = 200;
     private static final Pattern COUNTRY_RX = Pattern.compile("^[A-Z]{2}$");
     private static final BigDecimal LAT_MIN = BigDecimal.valueOf(-90);
@@ -110,6 +113,12 @@ public class StationLocationService {
                 trimToNull(update.country()),
                 update.latitude(),
                 update.longitude());
+        log.info(
+                "Station location updated: station={}, city={}, country={}, hasCoords={}",
+                stationId,
+                update.city(),
+                update.country(),
+                update.latitude() != null && update.longitude() != null);
     }
 
     /**
@@ -117,6 +126,7 @@ public class StationLocationService {
      */
     public void clear(int stationId) {
         repository.updateLocation(stationId, null, null, null, null, null, null);
+        log.info("Station location cleared: station={}", stationId);
     }
 
     /**

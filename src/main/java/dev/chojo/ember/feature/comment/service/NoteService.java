@@ -12,6 +12,8 @@ import dev.chojo.ember.feature.comment.repository.NoteRepository;
 import dev.chojo.ember.util.TextDiff;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
@@ -21,6 +23,8 @@ import java.util.Optional;
  */
 @Singleton
 public class NoteService {
+    private static final Logger log = LoggerFactory.getLogger(NoteService.class);
+
     private final NoteRepository noteRepository;
 
     @Inject
@@ -63,6 +67,9 @@ public class NoteService {
             if (!patch.isEmpty()) {
                 noteRepository.createVersion(note.id(), patch, authorId);
             }
+            log.info("Updated note {} on {} {} by member {}", note.id(), entityType, entityId, authorId);
+        } else {
+            log.info("Created note {} on {} {} by member {}", note.id(), entityType, entityId, authorId);
         }
 
         return note;
