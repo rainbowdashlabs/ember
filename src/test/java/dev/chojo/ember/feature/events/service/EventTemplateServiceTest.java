@@ -186,6 +186,31 @@ class EventTemplateServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(40)
+    void updateNotFound() {
+        boolean updated = service.update(
+                999999,
+                "Nope",
+                "Nope",
+                "Nope",
+                null,
+                StationEvent.EventType.ONE_TIME,
+                false,
+                null,
+                false,
+                RestrictionMode.AND,
+                null,
+                null);
+        assertFalse(updated);
+    }
+
+    @Test
+    @Order(41)
+    void deleteNotFound() {
+        assertFalse(service.delete(999999));
+    }
+
+    @Test
     @Order(99)
     void deleteTemplate() {
         assertTrue(service.delete(templateId));

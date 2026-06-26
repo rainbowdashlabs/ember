@@ -95,4 +95,22 @@ class ProcurementServiceTest extends RepositoryTestBase {
         assertTrue(service.delete(proc2.id()));
         assertTrue(service.findById(proc2.id()).isEmpty());
     }
+
+    @Test
+    @Order(30)
+    void findByStation() {
+        assertFalse(service.findByStation(station.id()).isEmpty());
+    }
+
+    @Test
+    @Order(31)
+    void fulfillMissing() {
+        assertFalse(service.fulfill(999999));
+    }
+
+    @Test
+    @Order(32)
+    void deleteMissing() {
+        assertFalse(service.delete(999999));
+    }
 }

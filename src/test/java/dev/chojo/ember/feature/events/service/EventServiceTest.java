@@ -1684,4 +1684,59 @@ class EventServiceTest extends RepositoryTestBase {
         var today = service.findTodayEvents(station.id());
         assertTrue(today.stream().anyMatch(e -> e.id() == event.id()));
     }
+
+    // -- Not-found / negative branches --
+
+    @Test
+    @Order(200)
+    void updateEventNotFound() {
+        var result = service.update(
+                999999, "ghost", "ghost", StationEvent.EventType.ONE_TIME, null,
+                Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null,
+                false, null, false, categoryId, false, null, null, null, null);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    @Order(201)
+    void updateCategoryNotFound() {
+        assertFalse(service.updateCategory(999999, "ghost", 0, null, false, null));
+    }
+
+    @Test
+    @Order(202)
+    void deleteCategoryNotFound() {
+        assertFalse(service.deleteCategory(999999));
+    }
+
+    @Test
+    @Order(203)
+    void cancelEventNotFound() {
+        assertFalse(service.cancelEvent(station.id(), 999999, "ghost"));
+    }
+
+    @Test
+    @Order(204)
+    void cancelEventAlreadyCancelled() {
+        var start = Instant.now().plus(30, ChronoUnit.DAYS);
+        var end = start.plus(2, ChronoUnit.HOURS);
+        var event = service.create(
+                station.id(), "Cancellable", "desc", StationEvent.EventType.ONE_TIME, null,
+                start, end, null, false, null, false, categoryId, null, null, null, null);
+        assertTrue(service.cancelEvent(station.id(), event.id(), "first"));
+        // Second cancel hits the "already cancelled" log.warn branch.
+        assertFalse(service.cancelEvent(station.id(), event.id(), "second"));
+    }
+
+    @Test
+    @Order(205)
+    void deleteBreakNotFound() {
+        assertFalse(service.deleteBreak(999999));
+    }
+
+    @Test
+    @Order(206)
+    void withdrawRegistrationNotFound() {
+        assertFalse(service.withdrawRegistration(999999));
+    }
 }

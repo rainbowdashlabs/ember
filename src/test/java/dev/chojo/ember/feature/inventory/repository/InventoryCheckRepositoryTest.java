@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.repository;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
@@ -200,5 +201,94 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
         assertTrue(inventoryCheckRepo.latestCheckForContainer(987654321).isEmpty());
 
         containerRepo.delete(container.id());
+    }
+
+    @Test
+    @Order(50)
+    void latestCheckDetail() {
+        // Builds on the member1 check from the earlier order (member1 was checked by member2 with one item).
+        var detail = inventoryCheckRepo.latestCheckDetail(member1.id());
+        assertTrue(detail.isPresent());
+        assertEquals(checkId, detail.get().check().id());
+        assertEquals("Check", detail.get().checkerFirstName());
+        assertEquals("Checker", detail.get().checkerLastName());
+        assertEquals(1, detail.get().items().size());
+        assertEquals(CheckResult.CONFIRMED, detail.get().items().getFirst().result());
+    }
+
+    @Test
+    @Order(51)
+    void latestCheckDetailMissing() {
+        assertTrue(inventoryCheckRepo.latestCheckDetail(member2.id()).isEmpty());
+    }
+
+    @Test
+    @Order(60)
+    void latestCheckPerItemEmpty() {
+        assertTrue(inventoryCheckRepo.latestCheckPerItem(java.util.List.of()).isEmpty());
+    }
+
+    @Test
+    @Order(61)
+    void latestCheckPerItem() {
+        var results = inventoryCheckRepo.latestCheckPerItem(java.util.List.of(item.id()));
+        assertEquals(1, results.size());
+        assertEquals(item.id(), results.getFirst().itemId());
+        assertEquals(CheckResult.CONFIRMED, results.getFirst().result());
+        assertEquals("Check Checker", results.getFirst().checkerName());
+    }
+
+    @Test
+    @Order(70)
+    void findCheckHistoryForItem() {
+        // member1's prior MEMBER-scope check is already on `item`. Add a CONTAINER-scope check
+        // touching the same item so the history join surfaces the container name and both scopes.
+        var container = containerRepo.create(station.id(), null, null, "HistoryRoom", null, "", null);
+        var containerCheck =
+                inventoryCheckRepo.createContainerCheck(station.id(), container.id(), member2.id(), false);
+        inventoryCheckRepo.createCheckItem(
+                containerCheck.id(), item.id(), item.inventoryId(), CheckResult.NOT_IN_POSSESSION, "left at home");
+
+        var history = inventoryCheckRepo.findCheckHistoryForItem(item.id());
+        assertEquals(2, history.size());
+        // Newest first → the container check we just added.
+        assertEquals(containerCheck.id(), history.get(0).checkId());
+        assertEquals(CheckResult.NOT_IN_POSSESSION, history.get(0).result());
+        assertEquals("CONTAINER", history.get(0).scope());
+        assertEquals("HistoryRoom", history.get(0).containerName());
+        assertEquals("left at home", history.get(0).note());
+        // Member-scope check is older.
+        assertEquals("MEMBER", history.get(1).scope());
+        assertNull(history.get(1).containerName());
+
+        containerRepo.delete(container.id());
+    }
+
+    @Test
+    @Order(80)
+    void releaseExpiredLocks() {
+        // No exception even when nothing matches the age filter.
+        inventoryCheckRepo.acquireLock(station.id(), member1.id(), member2.id());
+        inventoryCheckRepo.releaseExpiredLocks(60);
+        assertTrue(inventoryCheckRepo.findLock(member1.id()).isPresent());
+        // A zero-minute window expires everything, dropping the lock.
+        inventoryCheckRepo.releaseExpiredLocks(0);
+        assertTrue(inventoryCheckRepo.findLock(member1.id()).isEmpty());
+    }
+
+    @Test
+    @Order(81)
+    void nextUncheckedMemberTeamOnly() {
+        // Both demo members are user_type=MEMBER, so the team filter must skip them.
+        assertTrue(inventoryCheckRepo
+                .nextUncheckedMember(station.id(), member1.id(), true)
+                .isEmpty());
+
+        // Promote member2 to TEAM and try again — it should now be picked up.
+        stationMemberRepo.setUserType(member2.id(), StationUserType.TEAM);
+        var picked = inventoryCheckRepo.nextUncheckedMember(station.id(), member1.id(), true);
+        assertTrue(picked.isPresent());
+        assertEquals(member2.id(), picked.get());
+        stationMemberRepo.setUserType(member2.id(), StationUserType.MEMBER);
     }
 }
