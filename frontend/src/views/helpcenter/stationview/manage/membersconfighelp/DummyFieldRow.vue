@@ -9,6 +9,9 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import TRow from '@/components/table/TRow.vue'
 import Td from '@/components/table/Td.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 defineProps<{
   name: string

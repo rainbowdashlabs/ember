@@ -8,6 +8,9 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import DummyToolbarFormatting from '@/views/helpcenter/stationview/knowledge/editorhelp/DummyToolbarFormatting.vue'
 import DummyToolbarStructure from '@/views/helpcenter/stationview/knowledge/editorhelp/DummyToolbarStructure.vue'
 import DummyToolbarMedia from '@/views/helpcenter/stationview/knowledge/editorhelp/DummyToolbarMedia.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 </script>
 
 <template>

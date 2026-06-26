@@ -7,34 +7,32 @@
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 </script>
 
 <template>
-  <HelpArticle title="Items zuweisen" subtitle="Items an Mitglieder ausgeben und wieder zurücknehmen.">
-    <HelpSection title="Wer kann zuweisen?">
+  <HelpArticle :title="t('helpCenter.inventoryAssignHelp.title')" :subtitle="t('helpCenter.inventoryAssignHelp.subtitle')">
+    <HelpSection :title="t('helpCenter.inventoryAssignHelp.whoCanAssignTitle')">
       <p>
-        Die Zuweisungs-Seite ist nur für Mitglieder mit der Berechtigung
-        <em>Inventar zuweisen</em> sichtbar. Diese Berechtigung ist standardmäßig für alle
-        Rollen aus, damit die Verantwortung explizit beim Stationsbesitzer liegt.
+        {{ t('helpCenter.inventoryAssignHelp.whoCanAssignPart1') }}
+        <em>{{ t('helpCenter.inventoryAssignHelp.whoCanAssignEm') }}</em>
+        {{ t('helpCenter.inventoryAssignHelp.whoCanAssignPart2') }}
       </p>
     </HelpSection>
 
-    <HelpSection title="Ablauf">
+    <HelpSection :title="t('helpCenter.inventoryAssignHelp.flowTitle')">
       <p>
-        Wähle ein Mitglied aus, dann scanne das Item, das du übergibst — die Zuweisung wird
-        direkt gespeichert. Scannst du das gleiche Item erneut mit dem gleichen Mitglied
-        ausgewählt, wird es zurückgenommen.
+        {{ t('helpCenter.inventoryAssignHelp.flowPart1') }}
       </p>
       <p>
-        Ein Item kann gleichzeitig nur an einem Ort sein: Sobald du es einem Mitglied gibst,
-        verliert es seine Lagerplatz-Zuordnung. Stellst du es zurück ins Lager, wird die
-        Zuweisung beim Mitglied beendet.
+        {{ t('helpCenter.inventoryAssignHelp.flowPart2') }}
       </p>
     </HelpSection>
 
     <HelpTip>
-      Der Schnellmodus ist für Schichten mit vielen Items in Folge gedacht — du gibst immer nur
-      ein Mitglied an, scannst danach mehrere Items hintereinander.
+      {{ t('helpCenter.inventoryAssignHelp.tip') }}
     </HelpTip>
   </HelpArticle>
 </template>

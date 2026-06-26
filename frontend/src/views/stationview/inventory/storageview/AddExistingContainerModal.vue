@@ -13,6 +13,9 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
+import ScanButton from '@/components/scanner/ScanButton.vue'
+import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
+import {mapContainerError} from '@/views/stationview/inventory/storageview/containerErrors'
 import {inventoryContainers} from '@/api'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
 
@@ -43,10 +46,23 @@ const kindById = computed(() => {
   return map
 })
 
+const ancestorIds = computed(() => {
+  const set = new Set<number>()
+  const byId = new Map<number, InventoryContainer>()
+  for (const c of props.containers) byId.set(c.id, c)
+  let cursor = byId.get(props.targetContainerId)?.parentId ?? null
+  while (cursor != null && !set.has(cursor)) {
+    set.add(cursor)
+    cursor = byId.get(cursor)?.parentId ?? null
+  }
+  return set
+})
+
 const eligibleContainers = computed(() => {
   return props.containers.filter(c =>
       c.id !== props.targetContainerId
       && !descendantIds.value.has(c.id)
+      && !ancestorIds.value.has(c.id)
       && c.parentId !== props.targetContainerId)
 })
 
@@ -83,10 +99,41 @@ async function moveHere(c: InventoryContainer) {
     movedIds.value.add(c.id)
     emit('moved')
   } catch (e: any) {
-    error.value = e?.response?.data?.message ?? t('inventory.storage.addExisting.moveFailed')
+    error.value = mapContainerError(t, e, 'inventory.storage.addExisting.moveFailed')
   } finally {
     submitting.value = false
   }
+}
+
+function isEligible(c: InventoryContainer): boolean {
+  return c.id !== props.targetContainerId
+      && !descendantIds.value.has(c.id)
+      && !ancestorIds.value.has(c.id)
+      && c.parentId !== props.targetContainerId
+}
+
+async function onScan(value: string) {
+  const term = normaliseScannedPayload(value).trim()
+  if (!term || submitting.value) return
+  error.value = ''
+  const container = await inventoryContainers.resolveContainerByScan(term)
+  if (!container) {
+    error.value = t('inventory.storage.addExisting.scanNotFound', {scan: term})
+    return
+  }
+  if (container.id === props.targetContainerId) {
+    error.value = t('inventory.storage.scan.selfTarget')
+    return
+  }
+  if (container.parentId === props.targetContainerId) {
+    error.value = t('inventory.storage.scan.containerAlreadyHere', {name: container.name})
+    return
+  }
+  if (!isEligible(container)) {
+    error.value = t('inventory.storage.addExisting.scanIneligible', {name: container.name})
+    return
+  }
+  await moveHere(container)
 }
 
 function onClose() {
@@ -104,7 +151,10 @@ onMounted(loadDescendants)
 
     <Alert v-if="error" variant="error" class="mb-3">{{ error }}</Alert>
 
-    <TextInput v-model="search" :placeholder="t('inventory.storage.addExisting.searchPlaceholder')" class="mb-3" />
+    <div class="flex items-center gap-2 mb-3">
+      <TextInput v-model="search" :placeholder="t('inventory.storage.addExisting.searchPlaceholder')" class="flex-1" />
+      <ScanButton @decoded="onScan" />
+    </div>
 
     <EmptyState v-if="filtered.length === 0" :message="t('inventory.storage.addExisting.empty')" />
     <ul v-else class="divide-y divide-(--bg-accent) max-h-96 overflow-y-auto">

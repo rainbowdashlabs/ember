@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useI18n} from 'vue-i18n'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import InfoButton from '@/components/button/InfoButton.vue'
@@ -17,6 +18,8 @@ const props = defineProps<{
   checkIn?: string
   checkOut?: string
 }>()
+
+const {t} = useI18n()
 
 const borderClass = {
   present: 'border-success bg-success/5',

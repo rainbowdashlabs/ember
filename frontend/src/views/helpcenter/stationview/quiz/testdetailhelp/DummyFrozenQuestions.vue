@@ -7,20 +7,23 @@
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DummyFrozenQuestion from '@/views/helpcenter/stationview/quiz/testdetailhelp/DummyFrozenQuestion.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 </script>
 
 <template>
   <NeutralContainer>
     <div class="space-y-3">
       <div class="flex items-center justify-between mb-2">
-        <span class="font-semibold text-sm">Testfragen (3)</span>
+        <span class="font-semibold text-sm">{{ t('helpCenter.quizTestDetailFrozenQuestions.heading') }}</span>
         <SecondaryButton :icon="['fas', 'rotate']" disabled>
-          Fragen generieren
+          {{ t('helpCenter.quizTestDetailFrozenQuestions.generateButton') }}
         </SecondaryButton>
       </div>
-      <DummyFrozenQuestion :index="1" text="Was ist die Hauptaufgabe der Feuerwehr?" type="Multiple Choice" points="2 Punkte" />
-      <DummyFrozenQuestion :index="2" text="Ordne die Schläuche dem Durchmesser zu." type="Zuordnung" points="4 Punkte" />
-      <DummyFrozenQuestion :index="3" text="Die Feuerwehr ist nur für Brände zuständig." type="Wahr/Falsch" points="1 Punkt" />
+      <DummyFrozenQuestion :index="1" :text="t('helpCenter.quizTestDetailFrozenQuestions.question1Text')" :type="t('helpCenter.quizTestDetailFrozenQuestions.question1Type')" :points="t('helpCenter.quizTestDetailFrozenQuestions.question1Points')" />
+      <DummyFrozenQuestion :index="2" :text="t('helpCenter.quizTestDetailFrozenQuestions.question2Text')" :type="t('helpCenter.quizTestDetailFrozenQuestions.question2Type')" :points="t('helpCenter.quizTestDetailFrozenQuestions.question2Points')" />
+      <DummyFrozenQuestion :index="3" :text="t('helpCenter.quizTestDetailFrozenQuestions.question3Text')" :type="t('helpCenter.quizTestDetailFrozenQuestions.question3Type')" :points="t('helpCenter.quizTestDetailFrozenQuestions.question3Points')" />
     </div>
   </NeutralContainer>
 </template>

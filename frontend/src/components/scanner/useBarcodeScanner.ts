@@ -165,6 +165,35 @@ export function useBarcodeScanner() {
             options.onError?.(e as Error)
             throw e
         }
+        await waitForFreshFrame(options.videoEl)
+    }
+
+    function waitForFreshFrame(videoEl: HTMLVideoElement): Promise<void> {
+        const rvfc = (videoEl as unknown as {
+            requestVideoFrameCallback?: (cb: () => void) => number
+        }).requestVideoFrameCallback
+        return new Promise(resolve => {
+            let done = false
+            const finish = () => {
+                if (done) return
+                done = true
+                resolve()
+            }
+            const timer = setTimeout(finish, 1000)
+            const wrap = () => {
+                clearTimeout(timer)
+                finish()
+            }
+            if (typeof rvfc === 'function') {
+                rvfc.call(videoEl, wrap)
+                return
+            }
+            if (videoEl.readyState >= 2) {
+                wrap()
+                return
+            }
+            videoEl.addEventListener('loadeddata', wrap, {once: true})
+        })
     }
 
     function makeSession(stream: MediaStream, options: StartScanOptions) {
@@ -185,6 +214,7 @@ export function useBarcodeScanner() {
             }
             stream.getTracks().forEach(t => t.stop())
             options.videoEl.srcObject = null
+            try { options.videoEl.load() } catch { /* ignore */ }
         }
 
         function runNative(formats: BarcodeFormat[], emit: (raw: string) => void) {

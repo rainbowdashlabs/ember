@@ -4,11 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useI18n} from 'vue-i18n'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import ProblemsToolbar from './ProblemsToolbar.vue'
 import ProblemEntry from './ProblemEntry.vue'
 import ProblemStacktrace from './ProblemStacktrace.vue'
+
+const {t} = useI18n()
 
 const stacktrace = `MailService.send(MailService.java:42)
 SmtpTransport.connect(SmtpTransport.java:118)

@@ -9,6 +9,9 @@ import TRow from '@/components/table/TRow.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 defineProps<{
   name: string

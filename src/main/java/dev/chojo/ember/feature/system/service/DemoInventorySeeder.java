@@ -314,8 +314,6 @@ public class DemoInventorySeeder {
             dev.chojo.ember.feature.inventory.entity.Inventory parka,
             dev.chojo.ember.feature.inventory.entity.Inventory latzhose) {
         containerService.seedDefaultKinds(stationId);
-        containerService.createKind(stationId, "tour_case", "Tour Case", "suitcase", 80, true);
-        containerService.createKind(stationId, "workshop_bench", "Werkbank", "warehouse", 90, true);
 
         var kinds = containerService.listKinds(stationId);
         java.util.function.Function<String, Integer> kindIdOf = key -> kinds.stream()
@@ -324,33 +322,81 @@ public class DemoInventorySeeder {
                 .map(InventoryContainerKind::id)
                 .orElse(null);
 
-        InventoryContainer lagerA = containerService.create(
-                stationId, null, "STO-A", "Lager A", kindIdOf.apply("room"), "Hauptlager", null);
-        InventoryContainer regal1 = containerService.create(
-                stationId, lagerA.id(), "STO-A-R1", "Regal 1", kindIdOf.apply("shelf"), "Helme & Kopfschutz", null);
-        InventoryContainer regal2 = containerService.create(
-                stationId, lagerA.id(), "STO-A-R2", "Regal 2", kindIdOf.apply("shelf"), "Stiefel & Schuhe", null);
-        InventoryContainer kiste1 = containerService.create(
-                stationId, regal1.id(), "STO-A-R1-B1", "Kiste 1", kindIdOf.apply("box"), "Helme", null);
-        InventoryContainer kiste2 = containerService.create(
-                stationId, regal1.id(), "STO-A-R1-B2", "Kiste 2", kindIdOf.apply("box"), "Helme Ersatz", null);
-        InventoryContainer kiste3 = containerService.create(
-                stationId, regal2.id(), "STO-A-R2-B1", "Kiste 3", kindIdOf.apply("box"), "Stiefel", null);
+        InventoryContainer geraeteraum = containerService.create(
+                stationId,
+                null,
+                "GR-1",
+                "Geräteraum",
+                kindIdOf.apply("equipment_room"),
+                "Hauptgeräteraum der Wache",
+                null);
+        InventoryContainer helmregal = containerService.create(
+                stationId,
+                geraeteraum.id(),
+                "GR-1-H",
+                "Helmregal",
+                kindIdOf.apply("shelf"),
+                "Einsatzhelme & Kopfschutz",
+                null);
+        InventoryContainer stiefelregal = containerService.create(
+                stationId,
+                geraeteraum.id(),
+                "GR-1-S",
+                "Stiefelregal",
+                kindIdOf.apply("shelf"),
+                "Einsatzstiefel der Mannschaft",
+                null);
+        InventoryContainer helmkisteEinsatz = containerService.create(
+                stationId,
+                helmregal.id(),
+                "GR-1-H-K1",
+                "Helmkiste Einsatz",
+                kindIdOf.apply("gear_box"),
+                "Tagesbestand",
+                null);
+        InventoryContainer helmkisteReserve = containerService.create(
+                stationId,
+                helmregal.id(),
+                "GR-1-H-K2",
+                "Helmkiste Reserve",
+                kindIdOf.apply("gear_box"),
+                "Reservebestand",
+                null);
+        InventoryContainer stiefelkiste = containerService.create(
+                stationId,
+                stiefelregal.id(),
+                "GR-1-S-K1",
+                "Stiefelkiste",
+                kindIdOf.apply("gear_box"),
+                "Einsatzstiefel",
+                null);
 
-        InventoryContainer backstage = containerService.create(
-                stationId, null, "STO-B", "Backstage", kindIdOf.apply("area"), "Hinter der Bühne", null);
-        InventoryContainer schrank = containerService.create(
-                stationId, backstage.id(), "STO-B-S1", "Schrank", kindIdOf.apply("drawer"), "Kleidung", null);
-        InventoryContainer kiste4 = containerService.create(
-                stationId, schrank.id(), "STO-B-S1-B1", "Kiste 4", kindIdOf.apply("box"), "Blousons & Parkas", null);
+        InventoryContainer umkleide = containerService.create(
+                stationId,
+                null,
+                "UM-1",
+                "Umkleide Mannschaft",
+                kindIdOf.apply("equipment_room"),
+                "Einsatzumkleide",
+                null);
+        InventoryContainer spind = containerService.create(
+                stationId, umkleide.id(), "UM-1-SP", "Spind 1", kindIdOf.apply("drawer"), "Einsatzbekleidung", null);
+        InventoryContainer jackenkiste = containerService.create(
+                stationId,
+                spind.id(),
+                "UM-1-SP-K1",
+                "Jackenkiste",
+                kindIdOf.apply("gear_box"),
+                "Einsatzjacken & Wetterschutz",
+                null);
 
-        placeItemsInto(helm.id(), kiste1.id(), 6);
-        placeItemsInto(helm.id(), kiste2.id(), 3);
-        placeItemsInto(stiefel.id(), kiste3.id(), 8);
-        placeItemsInto(sporttasche.id(), backstage.id(), 4);
-        placeItemsInto(blouson.id(), kiste4.id(), 5);
-        placeItemsInto(parka.id(), kiste4.id(), 4);
-        placeItemsInto(latzhose.id(), schrank.id(), 6);
+        placeItemsInto(helm.id(), helmkisteEinsatz.id(), 6);
+        placeItemsInto(helm.id(), helmkisteReserve.id(), 3);
+        placeItemsInto(stiefel.id(), stiefelkiste.id(), 8);
+        placeItemsInto(sporttasche.id(), umkleide.id(), 4);
+        placeItemsInto(blouson.id(), jackenkiste.id(), 5);
+        placeItemsInto(parka.id(), jackenkiste.id(), 4);
+        placeItemsInto(latzhose.id(), spind.id(), 6);
     }
 
     private void placeItemsInto(int inventoryId, int containerId, int count) {

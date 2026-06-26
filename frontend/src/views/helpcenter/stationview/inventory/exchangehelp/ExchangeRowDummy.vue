@@ -8,6 +8,9 @@ import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 defineProps<{
   managerView: boolean

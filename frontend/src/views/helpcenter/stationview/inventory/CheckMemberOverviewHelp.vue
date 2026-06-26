@@ -6,22 +6,22 @@
 <script lang="ts" setup>
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 </script>
 
 <template>
-  <HelpArticle title="Mitglieder-Prüfung" subtitle="Mitglieder zur Inventur auswählen.">
-    <HelpSection title="Übersicht">
+  <HelpArticle :title="t('helpCenter.inventoryCheckMemberOverviewHelp.title')" :subtitle="t('helpCenter.inventoryCheckMemberOverviewHelp.subtitle')">
+    <HelpSection :title="t('helpCenter.inventoryCheckMemberOverviewHelp.overviewTitle')">
       <p>
-        Hier siehst du eine Liste aller Mitglieder, mit der Anzahl an aktuell zugewiesenen Items
-        und dem Datum der letzten Prüfung. Wähle ein Mitglied aus, um die Prüfung zu starten.
+        {{ t('helpCenter.inventoryCheckMemberOverviewHelp.overviewText') }}
       </p>
     </HelpSection>
 
-    <HelpSection title="Ablauf einer Prüfung">
+    <HelpSection :title="t('helpCenter.inventoryCheckMemberOverviewHelp.flowTitle')">
       <p>
-        Beim Start der Prüfung wird das Mitglied für die Dauer gesperrt, damit niemand sonst
-        seine Items zur gleichen Zeit verändert. Du scannst die Items ein, das System markiert sie
-        als bestätigt. Fehlende oder zusätzliche Items werden im Ergebnis sichtbar.
+        {{ t('helpCenter.inventoryCheckMemberOverviewHelp.flowText') }}
       </p>
     </HelpSection>
   </HelpArticle>

@@ -4,9 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useI18n} from 'vue-i18n'
 import DummyLaneOpen from '@/views/helpcenter/stationview/boards/boardviewhelp/DummyLaneOpen.vue'
 import DummyLaneInProgress from '@/views/helpcenter/stationview/boards/boardviewhelp/DummyLaneInProgress.vue'
 import DummyLaneDone from '@/views/helpcenter/stationview/boards/boardviewhelp/DummyLaneDone.vue'
+
+const {t} = useI18n()
 </script>
 
 <template>

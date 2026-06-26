@@ -17,6 +17,7 @@ import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import ContainerNewModal from '@/views/stationview/inventory/storageview/ContainerNewModal.vue'
 import ContainerEditPanel from '@/views/stationview/inventory/storageview/ContainerEditPanel.vue'
 import AddExistingContainerModal from '@/views/stationview/inventory/storageview/AddExistingContainerModal.vue'
+import {mapContainerError} from '@/views/stationview/inventory/storageview/containerErrors'
 import AddChildChoiceModal from '@/views/stationview/inventory/storageview/AddChildChoiceModal.vue'
 import UnknownScanModal from '@/views/stationview/inventory/UnknownScanModal.vue'
 import ContainerHeader from '@/views/stationview/inventory/containerdetailview/ContainerHeader.vue'
@@ -97,7 +98,7 @@ async function onCameraScan(value: string) {
           description: container.description ?? '',
         })
       } catch (e: any) {
-        flashScanError(e?.response?.data?.message ?? t('inventory.storage.scan.containerFailed'))
+        flashScanError(mapContainerError(t, e, 'inventory.storage.scan.containerFailed'))
         return
       }
       flashScanSuccess(t('inventory.storage.scan.containerMoved', {name: container.name}))
@@ -190,7 +191,7 @@ async function confirmDelete() {
     await inventoryContainers.deleteContainer(detail.value.container.id)
     router.push({name: 'inventory-storage'})
   } catch (e: any) {
-    error.value = e?.response?.data?.message ?? t('inventory.storage.errors.deleteFailed')
+    error.value = mapContainerError(t, e, 'inventory.storage.errors.deleteFailed')
     submitting.value = false
     showDeleteConfirm.value = false
   }

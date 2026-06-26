@@ -9,19 +9,22 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 </script>
 
 <template>
   <NeutralContainer class="space-y-3">
     <div class="flex items-center justify-between gap-2">
-      <SubHeader>Helme</SubHeader>
+      <SubHeader>{{ t('helpCenter.inventoryCheckMemberConfirmed.groupName') }}</SubHeader>
       <span class="text-sm text-(--text-muted) shrink-0">1 / 1</span>
     </div>
 
     <div class="rounded border border-bg-light-accent/50 dark:border-bg-dark-accent/50 p-3 space-y-2 ring-2 ring-success bg-success/10">
       <div class="flex flex-col sm:flex-row sm:items-center gap-2">
         <div class="flex-1 min-w-0">
-          <div class="font-medium text-sm">Helm <span class="font-normal text-(--text-muted)">[M]</span></div>
+          <div class="font-medium text-sm">{{ t('helpCenter.inventoryCheckMemberConfirmed.itemName') }} <span class="font-normal text-(--text-muted)">[M]</span></div>
           <div class="text-xs text-(--text-muted)">INV-0001</div>
         </div>
         <div class="flex gap-1 shrink-0">

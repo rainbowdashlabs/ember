@@ -7,25 +7,24 @@
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 </script>
 
 <template>
-  <HelpArticle title="Behälter-Prüfung" subtitle="Prüfen, was sich tatsächlich in einem Behälter befindet.">
-    <HelpSection title="Wozu ist das gut?">
+  <HelpArticle :title="t('helpCenter.inventoryCheckContainerHelp.title')" :subtitle="t('helpCenter.inventoryCheckContainerHelp.subtitle')">
+    <HelpSection :title="t('helpCenter.inventoryCheckContainerHelp.purposeTitle')">
       <p>
-        Bei einer Behälter-Prüfung wählst du einen Lagerbehälter aus und scannst alle Items, die
-        tatsächlich darin liegen. Fehlt etwas oder taucht etwas auf, das laut System anderswo
-        sein sollte, wird das im Ergebnis markiert.
+        {{ t('helpCenter.inventoryCheckContainerHelp.purposePart1') }}
       </p>
       <p>
-        Enthält der Behälter weitere Behälter, kannst du die Prüfung wahlweise nur auf die
-        direkte Ebene beschränken oder den gesamten Behälter samt Unterbehältern abdecken.
+        {{ t('helpCenter.inventoryCheckContainerHelp.purposePart2') }}
       </p>
     </HelpSection>
 
     <HelpTip>
-      Behälter-Prüfungen werden aktuell vorbereitet und stehen mit einem nachfolgenden Update zur
-      Verfügung. Die Mitglieder-Prüfung steht jetzt schon zur Verfügung.
+      {{ t('helpCenter.inventoryCheckContainerHelp.tip') }}
     </HelpTip>
   </HelpArticle>
 </template>

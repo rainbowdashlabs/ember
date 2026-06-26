@@ -14,8 +14,12 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
+import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
+import ScanButton from '@/components/scanner/ScanButton.vue'
+import { normaliseScannedPayload } from '@/components/scanner/useBarcodeScanner'
+import { inventory } from '@/api'
 import type { StationMember, Inventory, InventoryItem } from '@/api/types'
 import type { InventorySize } from '@/api/types'
 import type { MyInventoryItem } from '@/api/inventory'
@@ -60,6 +64,8 @@ const showDeleteConfirm = ref(false)
 const showAssignModal = ref(false)
 const assignInventoryId = ref('')
 const assignItemId = ref('')
+const assignScan = ref('')
+const assignScanError = ref('')
 
 // Reassign modal
 const showReassignModal = ref(false)
@@ -88,7 +94,45 @@ function openAssignModal() {
   showAssignModal.value = true
   assignInventoryId.value = ''
   assignItemId.value = ''
+  assignScan.value = ''
+  assignScanError.value = ''
   emit('loadInventories')
+}
+
+async function handleAssignScan(value: string) {
+  const term = normaliseScannedPayload(value).trim()
+  assignScan.value = ''
+  if (!term) return
+  assignScanError.value = ''
+  let item: InventoryItem | null = null
+  try {
+    item = await inventory.findByInternalId(term)
+  } catch {
+    item = null
+  }
+  if (!item) {
+    assignScanError.value = t('memberDetail.scanNotFound', { scan: term })
+    return
+  }
+  if (item.assignedTo === props.memberId) {
+    assignScanError.value = t('memberDetail.scanAlreadyHere', { name: item.name ?? item.internalId ?? `#${item.id}` })
+    return
+  }
+  if (item.assignedTo != null) {
+    assignScanError.value = t('memberDetail.scanAlreadyAssigned', { name: item.name ?? item.internalId ?? `#${item.id}` })
+    return
+  }
+  emit('assignItem', item.id)
+  showAssignModal.value = false
+}
+
+function onScanDecoded(value: string) {
+  handleAssignScan(value)
+}
+
+function onScanEnter() {
+  if (!assignScan.value.trim()) return
+  handleAssignScan(assignScan.value)
 }
 
 function onAssignInventoryChange(invId: string | undefined) {
@@ -206,7 +250,20 @@ defineExpose({
     <div class="space-y-4">
       <SectionHeader>{{ t('memberDetail.assignItem') }}</SectionHeader>
       <div class="space-y-1">
-        <FieldLabel>{{ t('memberDetail.selectInventory') }}</FieldLabel>
+        <FieldLabel>{{ t('memberDetail.scanLabel') }}</FieldLabel>
+        <div class="flex items-center gap-2">
+          <TextInput
+              v-model="assignScan"
+              class="flex-1"
+              :placeholder="t('memberDetail.scanPlaceholder')"
+              @keydown.enter="onScanEnter"
+          />
+          <ScanButton mode="continuous" @decoded="onScanDecoded" />
+        </div>
+        <Alert v-if="assignScanError" variant="error">{{ assignScanError }}</Alert>
+      </div>
+      <div class="space-y-1">
+        <FieldLabel>{{ t('memberDetail.scanOrPick') }}</FieldLabel>
         <SelectInput :model-value="assignInventoryId" @update:model-value="onAssignInventoryChange">
           <option value="" disabled>{{ t('memberDetail.selectInventoryPlaceholder') }}</option>
           <option v-for="inv in inventories" :key="inv.id" :value="String(inv.id)">{{ inv.name }}</option>

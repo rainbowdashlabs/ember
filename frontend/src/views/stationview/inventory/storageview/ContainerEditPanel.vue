@@ -10,11 +10,12 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import ContainerKindPicker from '@/views/stationview/inventory/storageview/ContainerKindPicker.vue'
+import ContainerParentPicker from '@/views/stationview/inventory/storageview/ContainerParentPicker.vue'
+import {mapContainerError} from '@/views/stationview/inventory/storageview/containerErrors'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import {inventoryContainers} from '@/api'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
@@ -62,7 +63,7 @@ async function save() {
     })
     emit('saved')
   } catch (e: any) {
-    emit('error', e?.message ?? e?.response?.data?.message ?? t('inventory.storage.errors.updateFailed'))
+    emit('error', mapContainerError(t, e, 'inventory.storage.errors.updateFailed'))
   } finally {
     submitting.value = false
   }
@@ -77,17 +78,15 @@ async function save() {
         <span>{{ t('inventory.storage.fields.name') }}</span>
         <TextInput v-model="name" />
       </label>
-      <label class="flex flex-col gap-1 text-sm">
+      <div class="flex flex-col gap-1 text-sm">
         <span>{{ t('inventory.storage.fields.parent') }}</span>
-        <SelectInput v-model="parentId">
-          <option :value="null">{{ t('inventory.storage.fields.parentNone') }}</option>
-          <option
-              v-for="c in containers.filter(c => c.id !== container.id)"
-              :key="c.id"
-              :value="c.id"
-          >{{ c.name }}</option>
-        </SelectInput>
-      </label>
+        <ContainerParentPicker
+            v-model="parentId"
+            :containers="containers"
+            :kinds="kinds"
+            :exclude-id="container.id"
+        />
+      </div>
       <div class="flex flex-col gap-1 text-sm">
         <span>{{ t('inventory.storage.fields.kind') }}</span>
         <ContainerKindPicker ref="kindPicker" :kinds="kinds" v-model="kindId" />

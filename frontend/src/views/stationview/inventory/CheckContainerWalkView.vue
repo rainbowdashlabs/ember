@@ -17,7 +17,6 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
@@ -27,7 +26,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import {inventory, inventoryContainers} from '@/api'
-import type {ContainerDetail, ContainerCheckItemResult, ItemLastCheck} from '@/api/inventoryContainers'
+import type {ContainerDetail, ContainerCheckItemResult, ItemLastCheck, InventoryContainer} from '@/api/inventoryContainers'
 import type {InventoryItem} from '@/api/types'
 import {formatDate} from '@/util/format'
 
@@ -47,6 +46,7 @@ const router = useRouter()
 
 const containerId = computed(() => Number(route.params.id))
 const detail = ref<ContainerDetail | null>(null)
+const allContainers = ref<InventoryContainer[]>([])
 const expectedRows = ref<ExpectedRow[]>([])
 const extraRows = ref<ExtraRow[]>([])
 const deep = ref(false)
@@ -55,6 +55,76 @@ const error = ref('')
 const scanValue = ref('')
 const submitting = ref(false)
 const finishedCheck = ref<unknown | null>(null)
+const scanFlash = ref('')
+const walkIdx = ref(0)
+
+const containerById = computed(() => {
+  const m = new Map<number, InventoryContainer>()
+  for (const c of allContainers.value) m.set(c.id, c)
+  return m
+})
+
+const childrenByParent = computed(() => {
+  const m = new Map<number, InventoryContainer[]>()
+  for (const c of allContainers.value) {
+    if (c.parentId == null) continue
+    const list = m.get(c.parentId) ?? []
+    list.push(c)
+    m.set(c.parentId, list)
+  }
+  for (const list of m.values()) list.sort((a, b) => a.name.localeCompare(b.name))
+  return m
+})
+
+const expectedRowsByContainer = computed(() => {
+  const m = new Map<number, ExpectedRow[]>()
+  for (const row of expectedRows.value) {
+    const cid = row.item.containerId ?? null
+    if (cid == null) continue
+    const list = m.get(cid) ?? []
+    list.push(row)
+    m.set(cid, list)
+  }
+  return m
+})
+
+const walkOrder = computed<InventoryContainer[]>(() => {
+  if (!detail.value) return []
+  const root = containerById.value.get(detail.value.container.id) ?? detail.value.container
+  if (!deep.value) return [root]
+  const out: InventoryContainer[] = []
+  const stack: InventoryContainer[] = [root]
+  while (stack.length > 0) {
+    const node = stack.pop()!
+    out.push(node)
+    const children = childrenByParent.value.get(node.id) ?? []
+    for (let i = children.length - 1; i >= 0; i--) stack.push(children[i])
+  }
+  return out.filter(c => (expectedRowsByContainer.value.get(c.id)?.length ?? 0) > 0)
+})
+
+const hasWalk = computed(() => deep.value && walkOrder.value.length > 1)
+
+const currentContainer = computed<InventoryContainer | null>(() => walkOrder.value[walkIdx.value] ?? null)
+
+const currentRows = computed<ExpectedRow[]>(() => {
+  if (!currentContainer.value) return expectedRows.value
+  return expectedRowsByContainer.value.get(currentContainer.value.id) ?? []
+})
+
+function pathFor(c: InventoryContainer): string {
+  const segments: string[] = []
+  let cursor: number | null | undefined = c.id
+  const seen = new Set<number>()
+  while (cursor != null && !seen.has(cursor)) {
+    seen.add(cursor)
+    const node = containerById.value.get(cursor)
+    if (!node) break
+    segments.unshift(node.name)
+    cursor = node.parentId ?? null
+  }
+  return segments.join(' / ')
+}
 
 const counts = computed(() => {
   let confirmed = 0
@@ -72,16 +142,19 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const [d, items, lastResults] = await Promise.all([
+    const [d, items, lastResults, all] = await Promise.all([
       inventoryContainers.getContainer(containerId.value),
       inventoryContainers.listExpectedItemsInContainer(containerId.value, deep.value),
       inventoryContainers.listLastCheckResults(containerId.value, deep.value),
+      inventoryContainers.listContainers(),
     ])
     detail.value = d
+    allContainers.value = all
     const lastByItem = new Map<number, ItemLastCheck>()
     for (const r of lastResults) lastByItem.set(r.itemId, r)
     expectedRows.value = items.map(i => ({item: i, result: 'PENDING', lastCheck: lastByItem.get(i.id)}))
     extraRows.value = []
+    walkIdx.value = 0
   } catch (e: any) {
     error.value = e?.response?.data?.message ?? t('inventory.checkContainer.loadError')
   } finally {
@@ -98,6 +171,11 @@ async function onCameraScan(value: string) {
   await handleScan()
 }
 
+function flashScan(msg: string) {
+  scanFlash.value = msg
+  setTimeout(() => (scanFlash.value = ''), 2500)
+}
+
 async function handleScan() {
   const term = scanValue.value.trim()
   if (!term) return
@@ -105,6 +183,12 @@ async function handleScan() {
   const row = expectedRows.value.find(r => r.item.internalId === term)
   if (row) {
     row.result = 'CONFIRMED'
+    const rowContainerId = row.item.containerId ?? null
+    if (hasWalk.value && currentContainer.value && rowContainerId !== currentContainer.value.id) {
+      const c = rowContainerId != null ? containerById.value.get(rowContainerId) : null
+      const path = c ? pathFor(c) : ''
+      flashScan(t('inventory.checkContainer.walkConfirmedElsewhere', {name: row.item.name ?? '', path}))
+    }
     return
   }
   try {
@@ -136,6 +220,14 @@ function reset(row: ExpectedRow) {
 
 function removeExtra(itemId: number) {
   extraRows.value = extraRows.value.filter(r => r.item.id !== itemId)
+}
+
+function nextContainer() {
+  if (walkIdx.value < walkOrder.value.length - 1) walkIdx.value++
+}
+
+function prevContainer() {
+  if (walkIdx.value > 0) walkIdx.value--
 }
 
 async function finishCheck() {
@@ -175,6 +267,8 @@ async function finishCheck() {
 function backToOverview() {
   router.push({name: 'inventory-check-container-overview'})
 }
+
+const isLast = computed(() => walkIdx.value >= walkOrder.value.length - 1)
 
 onMounted(load)
 </script>
@@ -223,7 +317,8 @@ onMounted(load)
             />
             <ScanButton mode="continuous" @decoded="onCameraScan" />
           </div>
-          <div class="flex gap-4 text-sm mt-3">
+          <Alert v-if="scanFlash" variant="info" class="mt-3">{{ scanFlash }}</Alert>
+          <div class="flex flex-wrap gap-2 text-sm mt-3">
             <SuccessBadge>{{ t('inventory.checkContainer.statusConfirmed') }}: {{ counts.confirmed }}</SuccessBadge>
             <InfoBadge>{{ t('inventory.checkContainer.statusPending') }}: {{ counts.pending }}</InfoBadge>
             <ErrorBadge>{{ t('inventory.checkContainer.statusMissing') }}: {{ counts.missing }}</ErrorBadge>
@@ -231,11 +326,46 @@ onMounted(load)
           </div>
         </NeutralContainer>
 
+        <template v-if="hasWalk && currentContainer">
+          <NeutralContainer class="mb-4">
+            <div class="flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <SubHeader>{{ currentContainer.name }}</SubHeader>
+                <div class="text-xs text-(--text-muted) mt-0.5">
+                  <font-awesome-icon :icon="['fas', 'location-dot']" class="mr-1.5" />
+                  {{ pathFor(currentContainer) }}
+                </div>
+                <div class="text-xs text-(--text-muted) mt-1">
+                  {{ t('inventory.checkContainer.walkPosition', {current: walkIdx + 1, total: walkOrder.length}) }}
+                </div>
+              </div>
+              <div class="flex gap-2">
+                <SecondaryButton :disabled="walkIdx === 0" @click="prevContainer">
+                  <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-2" />
+                  {{ t('inventory.checkContainer.walkPrev') }}
+                </SecondaryButton>
+                <PrimaryButton v-if="!isLast" @click="nextContainer">
+                  {{ t('inventory.checkContainer.walkNext') }}
+                  <font-awesome-icon :icon="['fas', 'chevron-right']" class="ml-2" />
+                </PrimaryButton>
+              </div>
+            </div>
+            <div v-if="isLast" class="mt-3 text-sm text-(--text-muted)">
+              {{ t('inventory.checkContainer.walkFinishHint') }}
+            </div>
+          </NeutralContainer>
+        </template>
+
         <SectionHeader>{{ t('inventory.checkContainer.expected') }}</SectionHeader>
         <NeutralContainer class="mb-4">
-          <EmptyState v-if="expectedRows.length === 0" :message="t('inventory.checkContainer.expectedEmpty')" />
+          <EmptyState
+              v-if="currentRows.length === 0"
+              :message="hasWalk
+                  ? t('inventory.checkContainer.walkEmptySubtree')
+                  : t('inventory.checkContainer.expectedEmpty')"
+          />
           <ul v-else class="divide-y divide-(--bg-accent)">
-            <li v-for="row in expectedRows" :key="row.item.id" class="py-2 flex items-center gap-3">
+            <li v-for="row in currentRows" :key="row.item.id" class="py-2 flex items-center gap-3">
               <span class="flex-1">
                 <span class="font-medium">{{ row.item.name }}</span>
                 <span v-if="row.item.internalId" class="text-xs text-(--text-muted) ml-2">{{ row.item.internalId }}</span>
@@ -283,7 +413,7 @@ onMounted(load)
 
         <div class="flex justify-end gap-2">
           <SecondaryButton @click="backToOverview">{{ t('common.cancel') }}</SecondaryButton>
-          <SuccessButton :disabled="submitting" @click="finishCheck">
+          <SuccessButton v-if="!hasWalk || isLast" :disabled="submitting" @click="finishCheck">
             <font-awesome-icon :icon="['fas', 'check-double']" class="mr-2" />
             {{ submitting ? t('common.saving') : t('inventory.checkContainer.finish') }}
           </SuccessButton>

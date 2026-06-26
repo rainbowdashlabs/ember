@@ -8,6 +8,9 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 defineProps<{
   index: number
@@ -29,8 +32,8 @@ defineProps<{
         </div>
       </div>
       <div class="flex gap-1 shrink-0">
-        <IconButton :icon="['fas', 'shuffle']" label="Zufällig" class="text-(--text-muted)" />
-        <IconButton :icon="['fas', 'arrow-right-arrow-left']" label="Auswählen" class="text-(--text-muted)" />
+        <IconButton :icon="['fas', 'shuffle']" :label="t('helpCenter.quizTestDetailFrozenQuestion.shuffleLabel')" class="text-(--text-muted)" />
+        <IconButton :icon="['fas', 'arrow-right-arrow-left']" :label="t('helpCenter.quizTestDetailFrozenQuestion.pickLabel')" class="text-(--text-muted)" />
       </div>
     </div>
   </NeutralContainer>

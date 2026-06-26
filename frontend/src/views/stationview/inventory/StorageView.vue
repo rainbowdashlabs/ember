@@ -40,6 +40,27 @@ const kindById = computed(() => {
   return map
 })
 
+const containerById = computed(() => {
+  const map = new Map<number, InventoryContainer>()
+  for (const c of containers.value) map.set(c.id, c)
+  return map
+})
+
+function pathFor(containerId: number | null | undefined): string {
+  if (containerId == null) return ''
+  const segments: string[] = []
+  let cursor: number | null | undefined = containerId
+  const seen = new Set<number>()
+  while (cursor != null && !seen.has(cursor)) {
+    seen.add(cursor)
+    const node = containerById.value.get(cursor)
+    if (!node) break
+    segments.unshift(node.name)
+    cursor = node.parentId ?? null
+  }
+  return segments.join(' / ')
+}
+
 const containerMatches = computed(() => {
   const term = search.value.trim().toLowerCase()
   if (!term) return []
@@ -180,13 +201,25 @@ onMounted(load)
             <li
                 v-for="i in itemMatches"
                 :key="`i-${i.id}`"
-                class="py-2 flex items-center gap-3 cursor-pointer hover:bg-(--bg-accent) rounded-theme px-2"
+                class="py-2 flex flex-col gap-1 cursor-pointer hover:bg-(--bg-accent) rounded-theme px-2"
                 @click="openItem(i)"
             >
-              <font-awesome-icon :icon="['fas', 'cube']" class="w-4 text-(--text-muted)" />
-              <span class="font-medium">{{ i.name ?? '' }}</span>
-              <span v-if="i.internalId" class="text-xs text-(--text-muted)">{{ i.internalId }}</span>
-              <span class="ml-auto text-xs text-(--text-muted)">{{ t('inventory.storage.searchKindItem') }}</span>
+              <div class="flex items-center gap-3">
+                <font-awesome-icon :icon="['fas', 'cube']" class="w-4 text-(--text-muted)" />
+                <span class="font-medium">{{ i.name ?? '' }}</span>
+                <span v-if="i.internalId" class="text-xs text-(--text-muted)">{{ i.internalId }}</span>
+                <span class="ml-auto text-xs text-(--text-muted)">{{ t('inventory.storage.searchKindItem') }}</span>
+              </div>
+              <div class="pl-7 text-xs text-(--text-muted) truncate">
+                <template v-if="i.containerId">
+                  <font-awesome-icon :icon="['fas', 'location-dot']" class="mr-1.5" />
+                  {{ pathFor(i.containerId) }}
+                </template>
+                <template v-else>
+                  <font-awesome-icon :icon="['fas', 'circle-question']" class="mr-1.5" />
+                  {{ t('inventory.storage.itemPathUnassigned') }}
+                </template>
+              </div>
             </li>
           </ul>
         </NeutralContainer>
