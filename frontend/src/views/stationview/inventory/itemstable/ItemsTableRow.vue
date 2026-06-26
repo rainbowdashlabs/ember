@@ -30,6 +30,7 @@ defineProps<{
   sizeLabel: string
   memberIdentity?: MemberIdentity
   formattedLostAt: string
+  locationLabel?: string
 }>()
 
 const emit = defineEmits<InventoryItemActionEmits>()
@@ -63,6 +64,10 @@ const router = useRouter()
     </Td>
     <Td>
       <SecondaryButton v-if="item.assignedTo" class="!bg-transparent !p-0 text-primary font-medium hover:underline" @click.stop="router.push({ name: 'inventory-member', params: { memberId: item.assignedTo } })"><MemberName :identity="memberIdentity"/></SecondaryButton>
+      <span v-else-if="locationLabel" class="inline-flex items-center gap-1 text-(--text-muted)">
+        <font-awesome-icon :icon="['fas', 'box']" class="h-3 w-3"/>
+        {{ locationLabel }}
+      </span>
       <span v-else class="text-(--text-muted)">–</span>
     </Td>
     <Td v-if="showActions || showHistory" align="right">

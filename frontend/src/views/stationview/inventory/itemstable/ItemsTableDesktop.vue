@@ -12,17 +12,23 @@ import type { InventoryItem, MemberIdentity } from '@/api/types'
 import type { InventoryItemActionEmits } from '../itemEmits'
 import ItemsTableRow from './ItemsTableRow.vue'
 
-defineProps<{
+const props = defineProps<{
   items: InventoryItem[]
   hasSizes: boolean
   isMixed: boolean
   showActions: boolean
   showHistory: boolean
   lentItemMap?: Map<number, string>
+  containerPathById?: Map<number, string>
   getSizeLabel: (sizeId: number | null | undefined) => string
   getMemberIdentity: (memberId: number | null | undefined) => MemberIdentity | undefined
   formatDate: (iso: string | null | undefined) => string
 }>()
+
+function locationLabel(containerId: number | null | undefined): string {
+  if (!containerId) return ''
+  return props.containerPathById?.get(containerId) ?? ''
+}
 
 const emit = defineEmits<InventoryItemActionEmits>()
 
@@ -51,6 +57,7 @@ const { t } = useI18n()
                        :size-label="getSizeLabel(item.sizeId)"
                        :member-identity="getMemberIdentity(item.assignedTo)"
                        :formatted-lost-at="formatDate(item.lostAt)"
+                       :location-label="locationLabel(item.containerId)"
                        @assign="emit('assign', $event)"
                        @unassign="emit('unassign', $event)"
                        @edit="emit('edit', $event)"

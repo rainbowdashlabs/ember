@@ -52,6 +52,7 @@ defineProps<{
   openProcurement: ProcurementEntry[]
   lentOutItems: LentOutItem[]
   lentItemStationMap: Map<number, string>
+  containerPathById: Map<number, string>
   counts: Counts
   allSizeStats: SizeStat[]
   permissions: Permissions
@@ -111,6 +112,7 @@ const { t } = useI18n()
     :inventory-type="detail.inventoryType ?? InventoryTypes.INTERNAL"
     :lent-out-items="lentOutItems"
     :lent-item-map="lentItemStationMap"
+    :container-path-by-id="containerPathById"
     @assign="$emit('assign', $event)"
     @unassign="$emit('unassign', $event)"
     @edit="$emit('edit', $event)"
@@ -124,6 +126,7 @@ const { t } = useI18n()
     v-if="permissions.canEdit"
     :items="freeItems"
     :sizes="detail.sizes"
+    :container-path-by-id="containerPathById"
     @assign="$emit('assignFree', $event)"
   />
 

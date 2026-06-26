@@ -38,11 +38,17 @@ const props = withDefaults(defineProps<{
   inventoryType?: string
   lentOutItems?: LentOutItem[]
   lentItemMap?: Map<number, string>
+  containerPathById?: Map<number, string>
 }>(), {
   showActions: false,
   showHistory: false,
   inventoryType: InventoryTypes.INTERNAL,
 })
+
+function locationLabel(containerId: number | null | undefined): string {
+  if (!containerId) return ''
+  return props.containerPathById?.get(containerId) ?? ''
+}
 
 function isLentOut(itemId: number): boolean {
   return props.lentItemMap?.has(itemId) ?? false
@@ -99,6 +105,10 @@ function getMemberIdentity(memberId: number | null | undefined) {
             <MemberName :identity="getMemberIdentity(item.assignedTo)"/>
           </SecondaryButton>
         </div>
+        <div v-else-if="locationLabel(item.containerId)" class="text-(--text-muted) flex items-center gap-1">
+          <font-awesome-icon :icon="['fas', 'box']" class="h-3 w-3"/>
+          {{ locationLabel(item.containerId) }}
+        </div>
       </div>
       <div v-if="showActions || showHistory" class="flex items-center gap-0.5 pt-1 border-t border-bg-light-accent/50 dark:border-bg-dark-accent/50">
         <ItemActions :item="item" :show-actions="showActions" :lent-out="isLentOut(item.id)"
@@ -117,6 +127,7 @@ function getMemberIdentity(memberId: number | null | undefined) {
                      :items="items" :has-sizes="hasSizes" :is-mixed="isMixed"
                      :show-actions="showActions" :show-history="showHistory"
                      :lent-item-map="lentItemMap"
+                     :container-path-by-id="containerPathById"
                      :get-size-label="getSizeLabel"
                      :get-member-identity="getMemberIdentity"
                      :format-date="formatDate"

@@ -11,7 +11,8 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type { InventoryDetail, InventoryItem, InventorySize, StationMember, ProcurementEntry } from '@/api/types'
 import { InventoryTypes, StationPermission } from '@/api/types'
-import { inventory, stationMembers, procurement } from '@/api'
+import { inventory, inventoryContainers, stationMembers, procurement } from '@/api'
+import type { InventoryContainer } from '@/api/inventoryContainers'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { getLentOutByInventory, type LentOutItem } from '@/api/lending'
@@ -31,7 +32,28 @@ const items = ref<InventoryItem[]>([])
 const memberMap = ref<Map<number, StationMember>>(new Map())
 const openProcurement = ref<ProcurementEntry[]>([])
 const lentOutItems = ref<LentOutItem[]>([])
+const containers = ref<InventoryContainer[]>([])
 const modals = ref<InstanceType<typeof DetailViewModals> | null>(null)
+
+const containerPathById = computed(() => {
+  const byId = new Map<number, InventoryContainer>()
+  for (const c of containers.value) byId.set(c.id, c)
+  const cache = new Map<number, string>()
+  function pathOf(id: number, seen: Set<number>): string {
+    if (cache.has(id)) return cache.get(id)!
+    const c = byId.get(id)
+    if (!c) return ''
+    if (seen.has(id)) return c.name
+    seen.add(id)
+    const parent = c.parentId ? pathOf(c.parentId, seen) : ''
+    const path = parent ? `${parent} / ${c.name}` : c.name
+    cache.set(id, path)
+    return path
+  }
+  const out = new Map<number, string>()
+  for (const c of containers.value) out.set(c.id, pathOf(c.id, new Set()))
+  return out
+})
 
 const canEdit = computed(() => hasPermission(StationPermission.INVENTORY_EDIT))
 const canProcure = computed(() => hasPermission(StationPermission.INVENTORY_PROCUREMENT))
@@ -113,13 +135,15 @@ const noSizeItems = computed(() => {
 const allSizeStats = computed(() => [...sizeDistribution.value, ...noSizeItems.value])
 
 const {loading, error, reload: loadData} = useAsyncLoader(async () => {
-  const [inv, allItems, members] = await Promise.all([
+  const [inv, allItems, members, allContainers] = await Promise.all([
     inventory.getInventory(inventoryId.value),
     inventory.listItems(inventoryId.value),
     currentStationId.value ? stationMembers.listMembers() : Promise.resolve([]),
+    inventoryContainers.listContainers().catch(() => [] as InventoryContainer[]),
   ])
   detail.value = inv
   items.value = allItems
+  containers.value = allContainers
   const map = new Map<number, StationMember>()
   for (const m of members) map.set(m.id, m)
   memberMap.value = map
@@ -158,6 +182,7 @@ function goBack() { router.push({ name: 'inventory-manage' }) }
         :open-procurement="openProcurement"
         :lent-out-items="lentOutItems"
         :lent-item-station-map="lentItemStationMap"
+        :container-path-by-id="containerPathById"
         :counts="counts"
         :all-size-stats="allSizeStats"
         :permissions="permissions"
