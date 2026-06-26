@@ -11,19 +11,14 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {PartnerResponse} from '@/api/federation'
 
+const shared = defineModel<boolean>('shared', {required: true})
+const scope = defineModel<string>('scope', {required: true})
+const partnerIds = defineModel<number[]>('partnerIds', {required: true})
+
 const props = defineProps<{
-  shared: boolean
-  scope: string
-  partnerIds: number[]
   partners: PartnerResponse[]
   disabled?: boolean
   noPermissionHint?: string
-}>()
-
-const emit = defineEmits<{
-  'update:shared': [value: boolean]
-  'update:scope': [value: string]
-  'update:partnerIds': [value: number[]]
 }>()
 
 const {t} = useI18n()
@@ -34,9 +29,9 @@ const activePartners = computed(() =>
 
 function togglePartner(id: number, checked: boolean) {
   if (checked) {
-    emit('update:partnerIds', [...props.partnerIds, id])
+    partnerIds.value = [...partnerIds.value, id]
   } else {
-    emit('update:partnerIds', props.partnerIds.filter(pid => pid !== id))
+    partnerIds.value = partnerIds.value.filter(pid => pid !== id)
   }
 }
 </script>
@@ -44,7 +39,7 @@ function togglePartner(id: number, checked: boolean) {
 <template>
   <div class="space-y-2">
     <label class="flex items-center gap-3">
-      <ToggleInput :model-value="shared" :disabled="disabled" @update:model-value="emit('update:shared', $event)"/>
+      <ToggleInput v-model="shared" :disabled="disabled"/>
       <span class="text-sm">{{ t('federationShare.enable') }}</span>
     </label>
 
@@ -53,7 +48,7 @@ function togglePartner(id: number, checked: boolean) {
     <template v-if="shared && !disabled">
       <div class="space-y-1">
         <FieldLabel>{{ t('federationShare.scope') }}</FieldLabel>
-        <SelectInput :model-value="scope" @update:model-value="emit('update:scope', $event ?? 'ALL_PARTNERS')">
+        <SelectInput :model-value="scope" @update:model-value="scope = $event ?? 'ALL_PARTNERS'">
           <option value="ALL_PARTNERS">{{ t('federationShare.scopeAll') }}</option>
           <option value="SPECIFIC_PARTNERS">{{ t('federationShare.scopeSpecific') }}</option>
         </SelectInput>

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted, ref, watch} from 'vue'
+import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -20,29 +20,23 @@ import MutedText from '@/components/typography/MutedText.vue'
 import EventFormPanel from './eventshared/EventFormPanel.vue'
 import BatchScheduleStep from './batchcreateview/BatchScheduleStep.vue'
 import BatchEditTable from './batchcreateview/BatchEditTable.vue'
-import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, EventLayout, LayoutFieldEntry, MemberGroup, UserTag} from '@/api/types'
+import type {AttendanceTemplateField, EventFieldEntry, LayoutFieldEntry} from '@/api/types'
 import type {BatchRow} from '@/api/events'
-import {attendance, events, memberGroups as memberGroupsApi, userTags as userTagsApi} from '@/api'
+import {attendance, events} from '@/api'
 import {useSession} from '@/composables/useSession'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useEventEditDeps} from '@/composables/useEventEditDeps'
 
 const {t} = useI18n()
 const router = useRouter()
 const {loaded} = useSession()
 
-// State
 const step = ref(1)
-const loading = ref(true)
 const saving = ref(false)
-const error = ref('')
 const success = ref('')
 
-// Data
-const layouts = ref<EventLayout[]>([])
-const categories = ref<EventCategory[]>([])
-const templates = ref<AttendanceTemplate[]>([])
+const {layouts, categories, templates, groups, tags, reload: reloadDeps} = useEventEditDeps({autoLoad: false})
 const attendanceFields = ref<AttendanceTemplateField[]>([])
-const groups = ref<MemberGroup[]>([])
-const tags = ref<UserTag[]>([])
 
 // Step 1: Layout
 const selectedLayoutId = ref<number | null>(null)
@@ -63,38 +57,18 @@ const selectedTagIds = ref<number[]>([])
 // Step 3: Table
 const rows = ref<BatchRow[]>([])
 
-async function loadData() {
-  loading.value = true
-  try {
-    const [layoutList, catList, tplList, groupList, tagList] = await Promise.all([
-      events.listLayouts(),
-      events.listCategories(),
-      attendance.listTemplates(),
-      memberGroupsApi.listGroups(),
-      userTagsApi.listTags(),
-    ])
-    layouts.value = layoutList
-    categories.value = catList
-    templates.value = tplList
-    groups.value = groupList
-    tags.value = tagList
-    const allFields: AttendanceTemplateField[] = []
-    for (const tmpl of tplList) {
-      const fields = await attendance.listTemplateFields(tmpl.id)
-      allFields.push(...fields)
-    }
-    attendanceFields.value = allFields
-  } finally {
-    loading.value = false
+const {loading, error, reload} = useAsyncLoader(async () => {
+  await reloadDeps()
+  const allFields: AttendanceTemplateField[] = []
+  for (const tmpl of templates.value) {
+    const fields = await attendance.listTemplateFields(tmpl.id)
+    allFields.push(...fields)
   }
-}
-
-onMounted(() => {
-  if (loaded.value) loadData()
-})
+  attendanceFields.value = allFields
+}, {autoLoad: loaded.value})
 
 watch(loaded, (isLoaded) => {
-  if (isLoaded && loading.value) loadData()
+  if (isLoaded) reload()
 })
 
 async function loadLayoutFields() {
@@ -218,7 +192,7 @@ async function createBatch() {
 
       <!-- Step 3: Table -->
       <template v-if="step === 3">
-        <BatchEditTable :field-defs="fieldDefs" :rows="rows" @update:rows="rows = $event"/>
+        <BatchEditTable v-model:rows="rows" :field-defs="fieldDefs"/>
 
         <div class="flex justify-between mt-4">
           <MutedText tag="span" size="sm">

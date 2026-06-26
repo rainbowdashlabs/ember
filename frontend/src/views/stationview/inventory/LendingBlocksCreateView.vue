@@ -8,37 +8,19 @@ import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import MutedText from '@/components/typography/MutedText.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
-import DateInput from '@/components/input/datetime/DateInput.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import BlockFormBody from './lendingblockscreateview/BlockFormBody.vue'
+import type {BlockEntry} from './lendingblockscreateview/types'
 import * as lending from '@/api/lending'
 import {inventory} from '@/api'
-import type {Inventory, InventoryItem} from '@/api/types'
+import type {Inventory} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
 const router = useRouter()
 const {loaded} = useSession()
-
-interface BlockEntry {
-  inventoryId: number
-  inventoryName: string
-  allItems: boolean
-  items: InventoryItem[]
-  selectedItemIds: Set<number>
-  loadingItems: boolean
-}
 
 const inventories = ref<Inventory[]>([])
 const loadingInventories = ref(true)
@@ -60,7 +42,9 @@ async function loadInventories() {
   loadingInventories.value = true
   try {
     inventories.value = await inventory.listInventories()
-  } catch { /* ignore */ } finally {
+  } catch {
+    void 0
+  } finally {
     loadingInventories.value = false
   }
 }
@@ -84,10 +68,11 @@ async function addEntry() {
 
   try {
     const items = await inventory.listItems(invId)
-    // Filter to unassigned items (available for blocking)
     const available = items.filter(item => !item.assignedTo && !item.lostAt)
     entry.items = available
-  } catch { /* ignore */ } finally {
+  } catch {
+    void 0
+  } finally {
     entry.loadingItems = false
   }
 }
@@ -149,16 +134,22 @@ async function handleCreate() {
       }
     }
     router.push({name: 'inventory-lending-blocks'})
-  } catch { /* ignore */ } finally {
+  } catch {
+    void 0
+  } finally {
     saving.value = false
   }
+}
+
+function goBack() {
+  router.push({name: 'inventory-lending-blocks'})
 }
 </script>
 
 <template>
   <ViewContent>
     <div class="flex items-center gap-3 mb-6">
-      <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({name: 'inventory-lending-blocks'})">
+      <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">
         {{ t('common.back') }}
       </SecondaryButton>
       <SectionHeader>{{ t('lending.addBlock') }}</SectionHeader>
@@ -166,82 +157,21 @@ async function handleCreate() {
 
     <Spinner v-if="loadingInventories"/>
 
-    <div v-else class="space-y-5 max-w-2xl">
-      <!-- Date range -->
-      <NeutralContainer class="space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <FieldLabel class="mb-1">{{ t('lending.blockFrom') }}</FieldLabel>
-            <DateInput v-model="blockFrom"/>
-          </div>
-          <div>
-            <FieldLabel class="mb-1">{{ t('lending.blockTo') }}</FieldLabel>
-            <DateInput v-model="blockTo"/>
-          </div>
-        </div>
-        <div>
-          <FieldLabel class="mb-1">{{ t('lending.blockReason') }}</FieldLabel>
-          <TextInput v-model="reason" :placeholder="t('lending.blockReasonPlaceholder')"/>
-        </div>
-      </NeutralContainer>
-
-      <!-- Scope -->
-      <div>
-        <FieldLabel class="mb-2">{{ t('lending.blockScope') }}</FieldLabel>
-        <MutedText v-if="entries.length === 0" tag="div" size="sm" class="mb-3">{{ t('lending.blockScopeHint') }}</MutedText>
-
-        <!-- Inventory tiles -->
-        <div v-if="entries.length > 0" class="space-y-3 mb-3">
-          <NeutralContainer v-for="entry in entries" :key="entry.inventoryId">
-            <div class="flex items-center justify-between mb-2">
-              <SubHeader>{{ entry.inventoryName }}</SubHeader>
-              <DeleteButton @click="removeEntry(entry.inventoryId)"/>
-            </div>
-
-            <FieldLabel inline class="cursor-pointer">
-              <ToggleInput :model-value="entry.allItems" @update:model-value="toggleAllItems(entry, $event)"/>
-              {{ t('lending.blockItemAll') }}
-            </FieldLabel>
-
-            <!-- Item list (when allItems is false) -->
-            <div v-if="!entry.allItems" class="mt-3">
-              <Spinner v-if="entry.loadingItems" size="sm"/>
-              <div v-else-if="entry.items.length === 0">
-                <MutedText size="sm">{{ t('lending.noAvailableItems') }}</MutedText>
-              </div>
-              <div v-else class="flex flex-wrap gap-2">
-                <FieldLabel v-for="item in entry.items" :key="item.id" inline class="cursor-pointer">
-                  <CheckboxInput :model-value="entry.selectedItemIds.has(item.id)" @update:model-value="toggleItem(entry, item.id)"/>
-                  {{ item.name }}{{ item.internalId ? ` (${item.internalId})` : '' }}
-                </FieldLabel>
-              </div>
-            </div>
-          </NeutralContainer>
-        </div>
-
-        <!-- Add inventory -->
-        <div class="flex gap-2 items-end">
-          <div class="flex-1">
-            <SelectInput v-model="addInventoryId">
-              <option value="">{{ t('lending.selectInventory') }}</option>
-              <option v-for="inv in availableInventories" :key="inv.id" :value="String(inv.id)">
-                {{ inv.name }}
-              </option>
-            </SelectInput>
-          </div>
-          <SecondaryButton :icon="['fas', 'plus']" :disabled="!addInventoryId" @click="addEntry">
-            {{ t('lending.addInventory') }}
-          </SecondaryButton>
-        </div>
-      </div>
-
-      <!-- Actions -->
-      <div class="flex justify-end gap-2">
-        <SecondaryButton @click="router.push({name: 'inventory-lending-blocks'})">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton :disabled="saving || !blockFrom || !blockTo" @click="handleCreate">
-          {{ t('common.save') }}
-        </PrimaryButton>
-      </div>
-    </div>
+    <BlockFormBody
+        v-else
+        v-model:block-from="blockFrom"
+        v-model:block-to="blockTo"
+        v-model:reason="reason"
+        v-model:add-inventory-id="addInventoryId"
+        :entries="entries"
+        :available-inventories="availableInventories"
+        :saving="saving"
+        @add="addEntry"
+        @remove="removeEntry"
+        @toggle-all="toggleAllItems"
+        @toggle-item="toggleItem"
+        @cancel="goBack"
+        @create="handleCreate"
+    />
   </ViewContent>
 </template>

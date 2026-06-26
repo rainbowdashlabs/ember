@@ -14,12 +14,16 @@ import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
 
 @Singleton
 public class EventTemplateService {
+    private static final Logger log = LoggerFactory.getLogger(EventTemplateService.class);
+
     private final EventTemplateRepository repository;
 
     @Inject
@@ -36,7 +40,9 @@ public class EventTemplateService {
     }
 
     public EventTemplate create(int stationId, String name) {
-        return repository.create(stationId, name);
+        var template = repository.create(stationId, name);
+        log.info("Created event template {} for station {}", template.id(), stationId);
+        return template;
     }
 
     public boolean update(
@@ -52,7 +58,7 @@ public class EventTemplateService {
             RestrictionMode restrictionMode,
             Integer attendanceTemplateId,
             Integer registrationLimit) {
-        return repository.update(
+        if (repository.update(
                 id,
                 name,
                 title,
@@ -64,11 +70,21 @@ public class EventTemplateService {
                 requiresConfirmation,
                 restrictionMode,
                 attendanceTemplateId,
-                registrationLimit);
+                registrationLimit)) {
+            log.info("Updated event template {}", id);
+            return true;
+        }
+        log.warn("Cannot update event template: template {} not found", id);
+        return false;
     }
 
     public boolean delete(int id) {
-        return repository.delete(id);
+        if (repository.delete(id)) {
+            log.info("Deleted event template {}", id);
+            return true;
+        }
+        log.warn("Cannot delete event template: template {} not found", id);
+        return false;
     }
 
     public List<EventTemplateField> findFields(int templateId) {
@@ -77,6 +93,7 @@ public class EventTemplateService {
 
     public void replaceFields(int templateId, List<EventTemplateFieldData> fields) {
         repository.replaceFields(templateId, fields);
+        log.info("Replaced fields for event template {} ({} fields)", templateId, fields.size());
     }
 
     public List<String> findRestrictions(int templateId) {
@@ -85,6 +102,7 @@ public class EventTemplateService {
 
     public void setRestrictions(int templateId, List<StationUserType> userTypes) {
         repository.setRestrictions(templateId, userTypes);
+        log.info("Set restrictions for event template {} ({} user types)", templateId, userTypes.size());
     }
 
     public List<Integer> findReminderDays(int templateId) {
@@ -93,5 +111,6 @@ public class EventTemplateService {
 
     public void setReminders(int templateId, List<Integer> daysBefore) {
         repository.replaceReminders(templateId, daysBefore);
+        log.info("Set reminders for event template {} ({} days)", templateId, daysBefore.size());
     }
 }

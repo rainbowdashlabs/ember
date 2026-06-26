@@ -4,7 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -16,36 +15,18 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import { adminSettings } from '@/api'
 import type { BackupCodesConfig } from '@/api/adminSettings'
+import { useConfigPanel } from '@/composables/useConfigPanel'
 
 const { t } = useI18n()
 
-const loading = ref(true)
-const error = ref('')
-const config = ref<BackupCodesConfig>({ count: 10 })
-
-async function load() {
-  loading.value = true
-  error.value = ''
-  try {
-    config.value = await adminSettings.getBackupCodesConfig()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const { config, loading, error, runWith } = useConfigPanel<BackupCodesConfig>({
+  initial: { count: 10 },
+  fetch: () => adminSettings.getBackupCodesConfig(),
+})
 
 async function save() {
-  error.value = ''
-  try {
-    config.value = await adminSettings.updateBackupCodesConfig(config.value)
-  } catch (e) {
-    error.value = t('common.error')
-    throw e
-  }
+  await runWith(() => adminSettings.updateBackupCodesConfig(config.value), { rethrow: true })
 }
-
-onMounted(load)
 </script>
 
 <template>

@@ -4,16 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import { ref } from 'vue'
-import { useI18n } from 'vue-i18n'
+import {ref} from 'vue'
+import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
-import KeyBadge from '@/components/display/KeyBadge.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
+import DummyToolbar from '@/views/helpcenter/stationview/knowledge/editorhelp/DummyToolbar.vue'
 
-const { t } = useI18n()
+const {t} = useI18n()
 
 const demoContent = ref(`# Willkommen zum Texteditor
 
@@ -42,7 +41,6 @@ Und eine nummerierte Liste:
 Inline-Code sieht so aus: \`const x = 42\`
 
 \`\`\`
-// Ein Codeblock
 function hallo() {
   console.log("Hallo Welt!")
 }
@@ -79,64 +77,8 @@ Normaler Absatztext darunter.`)
 
     <HelpSection :title="t('helpCenter.kb.editor.toolbarTitle')">
       <p>{{ t('helpCenter.kb.editor.toolbarText') }}</p>
+      <DummyToolbar class="mt-3" />
     </HelpSection>
-
-    <!-- Toolbar demo icons -->
-    <NeutralContainer>
-      <div class="space-y-2 text-sm">
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="font-medium w-28">Formatierung:</span>
-          <KeyBadge>
-            <font-awesome-icon :icon="['fas', 'bold']" class="w-3 h-3" /> Fett
-          </KeyBadge>
-          <KeyBadge>
-            <font-awesome-icon :icon="['fas', 'italic']" class="w-3 h-3" /> Kursiv
-          </KeyBadge>
-          <KeyBadge>
-            <font-awesome-icon :icon="['fas', 'underline']" class="w-3 h-3" /> Unterstrichen
-          </KeyBadge>
-          <KeyBadge>
-            <font-awesome-icon :icon="['fas', 'strikethrough']" class="w-3 h-3" /> Durchgestrichen
-          </KeyBadge>
-          <KeyBadge>
-            <font-awesome-icon :icon="['fas', 'code']" class="w-3 h-3" /> Code
-          </KeyBadge>
-        </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="font-medium w-28">Struktur:</span>
-          <KeyBadge>
-            <font-awesome-icon :icon="['fas', 'heading']" class="w-3 h-3" /><span class="text-[10px] font-bold">1</span>
-          </KeyBadge> <span class="text-[10px] font-bold">2</span> <span class="text-[10px] font-bold">3</span> Überschriften
-          <KeyBadge>
-            <font-awesome-icon :icon="['fas', 'list-ul']" class="w-3 h-3" /> Aufzählung
-          </KeyBadge>
-          <KeyBadge>
-            <font-awesome-icon :icon="['fas', 'list-ol']" class="w-3 h-3" /> Nummeriert
-          </KeyBadge>
-          <KeyBadge>
-            <font-awesome-icon :icon="['fas', 'quote-left']" class="w-3 h-3" /> Zitat
-          </KeyBadge>
-        </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="font-medium w-28">Medien:</span>
-          <KeyBadge>
-            <font-awesome-icon :icon="['fas', 'link']" class="w-3 h-3" /> Link
-          </KeyBadge>
-          <KeyBadge>
-            <font-awesome-icon :icon="['fas', 'table-columns']" class="w-3 h-3" /> Tabelle
-          </KeyBadge>
-          <KeyBadge>
-            <font-awesome-icon :icon="['fas', 'highlighter']" class="w-3 h-3" /> Hervorhebung
-          </KeyBadge>
-          <KeyBadge>
-            <font-awesome-icon :icon="['fab', 'youtube']" class="w-3 h-3" /> YouTube
-          </KeyBadge>
-          <KeyBadge>
-            <font-awesome-icon :icon="['fas', 'image']" class="w-3 h-3" /> Bild
-          </KeyBadge>
-        </div>
-      </div>
-    </NeutralContainer>
 
     <HelpSection :title="t('helpCenter.kb.editor.formattingTitle')">
       <p>{{ t('helpCenter.kb.editor.formattingText') }}</p>
@@ -166,12 +108,10 @@ Normaler Absatztext darunter.`)
       <p>{{ t('helpCenter.kb.editor.rawText') }}</p>
     </HelpSection>
 
-    <!-- Live demo editor -->
     <HelpSection :title="t('helpCenter.kb.editor.demoTitle')">
       <p class="mb-3 text-sm text-[var(--text-muted)]">Probiere den Editor direkt hier aus — du kannst den Text bearbeiten, formatieren und die Werkzeugleiste testen.</p>
+      <MarkdownEditor v-model="demoContent" placeholder="Schreibe etwas..." />
     </HelpSection>
-
-    <MarkdownEditor v-model="demoContent" placeholder="Schreibe etwas..." />
 
     <HelpTip>{{ t('helpCenter.kb.editor.tip') }}</HelpTip>
   </HelpArticle>

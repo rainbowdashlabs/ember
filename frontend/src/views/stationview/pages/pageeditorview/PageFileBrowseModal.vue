@@ -8,16 +8,11 @@ import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import FileUploadButton from '@/components/button/FileUploadButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import BaseButton from '@/components/button/BaseButton.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
+import SearchToolbar from './pagefilebrowsemodal/SearchToolbar.vue'
+import FilterBar from './pagefilebrowsemodal/FilterBar.vue'
+import FilesGrid from './pagefilebrowsemodal/FilesGrid.vue'
+import EditMetaModal from './pagefilebrowsemodal/EditMetaModal.vue'
 import {
     listPageFolders,
     listPageTags,
@@ -218,109 +213,40 @@ function formatSize(bytes: number): string {
     <Modal v-model="open" size="xl">
         <div class="space-y-3 flex flex-col h-[80vh]">
             <SectionHeader>{{ t('stationPages.editor.browseFiles') }}</SectionHeader>
-            <div class="flex flex-col sm:flex-row gap-2">
-                <TextInput
-                    v-model="search"
-                    :placeholder="t('stationPages.editor.browseFilesSearch')"
-                    class="flex-1"
-                />
-                <FileUploadButton
-                    :accept="acceptAttr"
-                    :disabled="uploading"
-                    :multiple="multiple"
-                    @select="onUpload"
-                    @select-many="onUploadMany"
-                >
-                    {{ uploading ? t('common.loading') : t('stationPages.editor.uploadNewFile') }}
-                </FileUploadButton>
-                <ErrorButton :disabled="pruning || unusedCount === 0" @click="runPrune">
-                    <font-awesome-icon :icon="['fas', 'broom']" class="mr-1"/>
-                    {{ pruning ? t('common.loading') : t('stationPages.editor.pruneUnused', {count: unusedCount}) }}
-                </ErrorButton>
-            </div>
+            <SearchToolbar
+                v-model:search="search"
+                :accept-attr="acceptAttr"
+                :uploading="uploading"
+                :pruning="pruning"
+                :unused-count="unusedCount"
+                :multiple="multiple"
+                @upload="onUpload"
+                @upload-many="onUploadMany"
+                @prune="runPrune"
+            />
             <Alert v-if="uploadError" variant="error">{{ uploadError }}</Alert>
-            <div class="flex flex-wrap items-center gap-2 text-xs">
-                <SelectInput :model-value="activeFolder === null ? '' : String(activeFolder)"
-                             class="!px-2 !py-1"
-                             @update:model-value="(v: string) => activeFolder = v ? +v : null">
-                    <option value="">{{ t('stationPages.editor.allFiles') }}</option>
-                    <option v-for="f in folders" :key="f.id" :value="f.id">{{ f.name }}</option>
-                </SelectInput>
-                <BaseButton compact class="!rounded-full !border !font-normal"
-                            :class="activeTagFilter === null ? '!border-primary !text-primary' : '!border-(--border) !text-(--text-muted)'"
-                            @click="activeTagFilter = null">{{ t('stationPages.editor.allTags') }}</BaseButton>
-                <BaseButton v-for="tag in tags" :key="tag.id" compact
-                            class="!rounded-full !border !font-normal"
-                            :style="activeTagFilter === tag.id ? {borderColor: tag.color ?? 'var(--primary)', color: tag.color ?? 'var(--primary)'} : {}"
-                            :class="activeTagFilter === tag.id ? '' : '!border-(--border) !text-(--text-muted)'"
-                            @click="activeTagFilter = activeTagFilter === tag.id ? null : tag.id">
-                    <span class="inline-block w-2 h-2 rounded-full mr-1" :style="{background: tag.color ?? '#888'}"/>
-                    {{ tag.name }}
-                </BaseButton>
-            </div>
-            <div class="flex-1 min-h-0 overflow-y-auto">
-                <div v-if="loading" class="flex items-center justify-center py-8">
-                    <Spinner size="md"/>
-                </div>
-                <p v-else-if="filtered.length === 0" class="text-sm text-(--text-muted) text-center py-8">
-                    {{ t('stationPages.editor.browseFilesEmpty') }}
-                </p>
-                <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                    <div
-                        v-for="e in filtered" :key="e.file.id"
-                        class="group relative flex flex-col rounded-theme border overflow-hidden text-left"
-                        :class="e.inUse ? 'border-(--border)' : 'border-error/50 bg-error/5'"
-                    >
-                        <button
-                            type="button"
-                            class="flex-1 text-left hover:bg-primary/5 transition-colors"
-                            @click="pick(e.file)"
-                        >
-                            <div class="aspect-square w-full bg-(--bg-accent) flex items-center justify-center overflow-hidden">
-                                <img
-                                    v-if="isImage(e.file)"
-                                    :src="urlFor(e.file)"
-                                    :alt="e.file.defaultAltText ?? e.file.fileName"
-                                    loading="lazy"
-                                    class="w-full h-full object-cover"
-                                />
-                                <font-awesome-icon v-else :icon="['fas', 'file']" class="text-3xl text-(--text-muted)"/>
-                            </div>
-                            <div class="p-2 text-xs space-y-0.5 min-w-0">
-                                <p class="truncate font-medium" :title="e.file.fileName">{{ e.file.fileName }}</p>
-                                <p class="text-(--text-muted)">{{ formatSize(e.file.fileSize) }}</p>
-                                <p v-if="e.file.defaultAltText" class="truncate italic" :title="e.file.defaultAltText">
-                                    {{ e.file.defaultAltText }}
-                                </p>
-                            </div>
-                        </button>
-                        <div class="absolute top-1 right-1 flex items-center gap-1">
-                            <span v-if="!e.inUse"
-                                  class="text-[10px] uppercase tracking-wider bg-error text-white rounded px-1.5 py-0.5">
-                                {{ t('stationPages.editor.unusedBadge') }}
-                            </span>
-                            <IconButton
-                                :icon="['fas', 'pen']"
-                                :label="t('stationPages.editor.editFileMeta')"
-                                class="bg-(--bg)/90 backdrop-blur-sm rounded-full !p-1 text-xs"
-                                @click="startEdit(e.file)"
-                            />
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <FilterBar
+                v-model:active-folder="activeFolder"
+                v-model:active-tag-filter="activeTagFilter"
+                :folders="folders"
+                :tags="tags"
+            />
+            <FilesGrid
+                :loading="loading"
+                :filtered="filtered"
+                :is-image="isImage"
+                :url-for="urlFor"
+                :format-size="formatSize"
+                @pick="pick"
+                @edit="startEdit"
+            />
         </div>
-        <Modal v-if="editing != null" :model-value="editing != null" size="md"
-               @update:model-value="(v: boolean) => { if (!v) cancelEdit() }">
-            <div class="space-y-3">
-                <SectionHeader>{{ t('stationPages.editor.editFileMeta') }}</SectionHeader>
-                <TextInput v-model="editAlt" :placeholder="t('stationPages.editor.altText')"/>
-                <TextInput v-model="editDesc" :placeholder="t('stationPages.editor.imageDescription')"/>
-                <div class="flex justify-end gap-2">
-                    <SecondaryButton @click="cancelEdit">{{ t('common.cancel') }}</SecondaryButton>
-                    <PrimaryButton @click="saveEdit">{{ t('common.save') }}</PrimaryButton>
-                </div>
-            </div>
-        </Modal>
+        <EditMetaModal
+            v-model:editing="editing"
+            v-model:edit-alt="editAlt"
+            v-model:edit-desc="editDesc"
+            @save="saveEdit"
+            @cancel="cancelEdit"
+        />
     </Modal>
 </template>

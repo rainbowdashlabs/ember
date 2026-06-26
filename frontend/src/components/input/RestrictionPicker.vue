@@ -10,7 +10,7 @@ import ToggleSwitch from '@/components/input/toggle/ToggleSwitch.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
 import type {MemberGroup, StationMember, UserTag} from '@/api/types'
-import {StationUserType} from '@/api/types'
+import {StationUserType, StationUserTypeLabels} from '@/api/types'
 
 const {t} = useI18n()
 
@@ -18,45 +18,27 @@ const props = withDefaults(defineProps<{
   groups?: MemberGroup[]
   tags?: UserTag[]
   members?: StationMember[]
-  selectedUserTypes?: string[]
-  selectedGroupIds: number[]
-  selectedTagIds: number[]
-  selectedMemberIds?: number[]
-  mode?: 'AND' | 'OR'
   showUserTypes?: boolean
   showGroups?: boolean
   showTags?: boolean
   showMembers?: boolean
   showMode?: boolean
 }>(), {
-  selectedUserTypes: () => [],
-  selectedMemberIds: () => [],
   showUserTypes: true,
   showGroups: true,
   showTags: true,
   showMembers: false,
   showMode: true,
-  mode: 'AND',
 })
 
-const emit = defineEmits<{
-  'update:selectedUserTypes': [types: string[]]
-  'update:selectedGroupIds': [ids: number[]]
-  'update:selectedTagIds': [ids: number[]]
-  'update:selectedMemberIds': [ids: number[]]
-  'update:mode': [mode: 'AND' | 'OR']
-}>()
-
-const USER_TYPE_OPTIONS = [
-  {value: StationUserType.TRIAL, label: 'Probe'},
-  {value: StationUserType.MEMBER, label: 'Mitglied'},
-  {value: StationUserType.GUARDIAN, label: 'Erziehungsberechtigter'},
-  {value: StationUserType.TEAM, label: 'Team'},
-  {value: StationUserType.MANAGER, label: 'Manager'},
-]
+const selectedUserTypes = defineModel<string[]>('selectedUserTypes', {default: () => []})
+const selectedGroupIds = defineModel<number[]>('selectedGroupIds', {required: true})
+const selectedTagIds = defineModel<number[]>('selectedTagIds', {required: true})
+const selectedMemberIds = defineModel<number[]>('selectedMemberIds', {default: () => []})
+const mode = defineModel<'AND' | 'OR'>('mode', {default: 'AND'})
 
 const userTypeOptions = computed(() =>
-    USER_TYPE_OPTIONS.map(o => ({value: o.value, label: o.label}))
+    Object.values(StationUserType).map(ut => ({value: ut, label: StationUserTypeLabels[ut] ?? ut}))
 )
 
 const groupOptions = computed(() =>
@@ -71,66 +53,57 @@ const memberOptions = computed(() =>
     (props.members ?? []).map(m => ({value: String(m.id), label: m.name ?? m.email ?? `#${m.id}`}))
 )
 
-const selectedUserTypeValues = computed(() => props.selectedUserTypes)
-const selectedGroupValues = computed(() => props.selectedGroupIds.map(String))
-const selectedTagValues = computed(() => props.selectedTagIds.map(String))
-const selectedMemberValues = computed(() => props.selectedMemberIds.map(String))
+const selectedGroupValues = computed(() => selectedGroupIds.value.map(String))
+const selectedTagValues = computed(() => selectedTagIds.value.map(String))
+const selectedMemberValues = computed(() => selectedMemberIds.value.map(String))
 
 function onUserTypesChange(values: string[]) {
-  emit('update:selectedUserTypes', values)
+  selectedUserTypes.value = values
 }
 
 function onGroupsChange(values: string[]) {
-  emit('update:selectedGroupIds', values.map(Number))
+  selectedGroupIds.value = values.map(Number)
 }
 
 function onTagsChange(values: string[]) {
-  emit('update:selectedTagIds', values.map(Number))
+  selectedTagIds.value = values.map(Number)
 }
 
 function onMembersChange(values: string[]) {
-  emit('update:selectedMemberIds', values.map(Number))
+  selectedMemberIds.value = values.map(Number)
 }
 
-const modeModel = computed<'AND' | 'OR'>({
-  get: () => props.mode ?? 'AND',
-  set: (value) => emit('update:mode', value),
-})
-
 const hasActiveSelection = computed(() =>
-    props.selectedUserTypes.length > 0 || props.selectedGroupIds.length > 0 || props.selectedTagIds.length > 0 || props.selectedMemberIds.length > 0
+    selectedUserTypes.value.length > 0 || selectedGroupIds.value.length > 0 || selectedTagIds.value.length > 0 || selectedMemberIds.value.length > 0
 )
 
 function reset() {
-  emit('update:selectedUserTypes', [])
-  emit('update:selectedGroupIds', [])
-  emit('update:selectedTagIds', [])
-  emit('update:selectedMemberIds', [])
+  selectedUserTypes.value = []
+  selectedGroupIds.value = []
+  selectedTagIds.value = []
+  selectedMemberIds.value = []
 }
 </script>
 
 <template>
   <div class="flex flex-wrap items-center gap-3">
-    <!-- AND/OR toggle (only between groups and tags — user types are always OR). -->
     <ToggleSwitch
         v-if="showMode && (showGroups || showTags)"
-        v-model="modeModel"
+        v-model="mode"
         option-a="AND"
         option-b="OR"
         :label-a="t('restriction.and')"
         :label-b="t('restriction.or')"
     />
 
-    <!-- User types dropdown (always OR-connected) -->
     <MultiSelectDropdown
         v-if="showUserTypes"
         :options="userTypeOptions"
-        :model-value="selectedUserTypeValues"
+        :model-value="selectedUserTypes"
         :placeholder="t('restriction.userTypes')"
         @update:model-value="onUserTypesChange"
     />
 
-    <!-- Groups dropdown -->
     <MultiSelectDropdown
         v-if="showGroups && groupOptions.length > 0"
         :options="groupOptions"
@@ -139,7 +112,6 @@ function reset() {
         @update:model-value="onGroupsChange"
     />
 
-    <!-- Tags dropdown -->
     <MultiSelectDropdown
         v-if="showTags && tagOptions.length > 0"
         :options="tagOptions"
@@ -148,7 +120,6 @@ function reset() {
         @update:model-value="onTagsChange"
     />
 
-    <!-- Members dropdown -->
     <MultiSelectDropdown
         v-if="showMembers && memberOptions.length > 0"
         :options="memberOptions"
@@ -157,7 +128,6 @@ function reset() {
         @update:model-value="onMembersChange"
     />
 
-    <!-- Reset button -->
     <ErrorButton
         v-if="hasActiveSelection"
         @click="reset"
@@ -166,7 +136,6 @@ function reset() {
       {{ t('restriction.reset') }}
     </ErrorButton>
 
-    <!-- Empty hint -->
     <span v-if="!hasActiveSelection" class="text-xs text-(--text-muted) italic">
       {{ t('restriction.noRestrictions') }}
     </span>

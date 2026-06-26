@@ -4,25 +4,20 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import AttendanceGroupsEditor from './attendanceconfigedit/GroupsEditor.vue'
-import AttendanceFieldsList from './attendanceconfigedit/FieldsList.vue'
 import AttendanceFieldModal from './attendanceconfigedit/FieldModal.vue'
+import EditContent from './attendanceconfigedit/EditContent.vue'
 import type {AttendanceTemplateField, MemberGroup, TemplateGroupEntry} from '@/api/types'
 import {attendance, memberGroups} from '@/api'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -38,8 +33,6 @@ const name = ref('')
 const fields = ref<AttendanceTemplateField[]>([])
 const templateGroups = ref<TemplateGroupEntry[]>([])
 const availableGroups = ref<MemberGroup[]>([])
-const loading = ref(false)
-const error = ref('')
 
 // Field modal state
 const showFieldModal = ref(false)
@@ -50,25 +43,17 @@ const fieldSaving = ref(false)
 const showDeleteFieldModal = ref(false)
 const deleteFieldTarget = ref<AttendanceTemplateField | null>(null)
 
-async function loadTemplate() {
+const {loading, error} = useAsyncLoader(async () => {
   if (!templateId.value) return
-  loading.value = true
-  error.value = ''
-  try {
-    const [detail, groups] = await Promise.all([
-      attendance.getTemplate(templateId.value),
-      memberGroups.listGroups(),
-    ])
-    name.value = detail.name ?? ''
-    fields.value = detail.fields ?? []
-    templateGroups.value = detail.groups ?? []
-    availableGroups.value = groups
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+  const [detail, groups] = await Promise.all([
+    attendance.getTemplate(templateId.value),
+    memberGroups.listGroups(),
+  ])
+  name.value = detail.name ?? ''
+  fields.value = detail.fields ?? []
+  templateGroups.value = detail.groups ?? []
+  availableGroups.value = groups
+})
 
 async function saveTemplate() {
   error.value = ''
@@ -197,7 +182,6 @@ function goBack() {
   router.push({name: 'station-attendance-config'})
 }
 
-onMounted(loadTemplate)
 </script>
 
 <template>
@@ -211,44 +195,23 @@ onMounted(loadTemplate)
 
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
-      <div v-if="!loading" class="space-y-6">
-        <!-- Template name -->
-        <NeutralContainer class="space-y-4">
-          <SectionHeader>{{
-              isEdit ? t('attendanceConfig.editTitle') : t('attendanceConfig.createTitle')
-            }}
-          </SectionHeader>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('attendanceConfig.name') }}</FieldLabel>
-            <TextInput v-model="name" :placeholder="t('attendanceConfig.namePlaceholder')"/>
-          </div>
-          <SaveButton :disabled="!name" :action="saveTemplate">
-            {{ isEdit ? t('attendanceConfig.save') : t('attendanceConfig.createSubmit') }}
-          </SaveButton>
-        </NeutralContainer>
-
-        <!-- Groups -->
-        <AttendanceGroupsEditor
-            v-if="isEdit"
-            :available-groups="availableGroups"
-            :groups="templateGroups"
-            @add="addGroup"
-            @remove="removeGroup"
-            @move-up="moveGroupUp"
-            @move-down="moveGroupDown"
-        />
-
-        <!-- Fields -->
-        <AttendanceFieldsList
-            v-if="isEdit"
-            :available-groups="availableGroups"
-            :fields="fields"
-            @add="openAddField"
-            @delete="requestDeleteField"
-            @edit="openEditField"
-            @reorder="reorderFields"
-        />
-      </div>
+      <EditContent
+          v-if="!loading"
+          v-model:name="name"
+          :is-edit="isEdit"
+          :fields="fields"
+          :template-groups="templateGroups"
+          :available-groups="availableGroups"
+          :save-template="saveTemplate"
+          @add-group="addGroup"
+          @remove-group="removeGroup"
+          @move-group-up="moveGroupUp"
+          @move-group-down="moveGroupDown"
+          @add-field="openAddField"
+          @edit-field="openEditField"
+          @delete-field="requestDeleteField"
+          @reorder-fields="reorderFields"
+      />
 
       <!-- Field modal -->
       <AttendanceFieldModal

@@ -8,11 +8,10 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import ImportHeader from './importview/ImportHeader.vue'
+import ModeSelector from './importview/ModeSelector.vue'
 import UploadStep from './importview/UploadStep.vue'
 import MappingStep from './importview/MappingStep.vue'
 import type { ColumnMapping } from './importview/MappingStep.vue'
@@ -206,71 +205,32 @@ watch(loaded, async (isLoaded) => {
 <template>
   <ViewContent>
     <div class="space-y-6">
-      <div class="flex items-center justify-between">
-        <SectionHeader>{{ t('memberImport.title') }}</SectionHeader>
-        <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: 'members-create' })">
-          {{ t('common.back') }}
-        </SecondaryButton>
-      </div>
-
-      <!-- Import type selector -->
-      <div v-if="step === 'upload'" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <NeutralContainer class="space-y-2 border-primary ring-2 ring-primary/30">
-          <div class="flex items-center gap-2">
-            <font-awesome-icon :icon="['fas', 'users']" class="text-primary" />
-            <span class="font-semibold">{{ t('memberImport.modeMembers') }}</span>
-          </div>
-          <p class="text-sm text-(--text-muted)">{{ t('memberImport.modeMembersHint') }}</p>
-        </NeutralContainer>
-        <NeutralContainer clickable class="space-y-2" @click="router.push({ name: 'members-import-team' })">
-          <div class="flex items-center gap-2">
-            <font-awesome-icon :icon="['fas', 'user-shield']" class="text-primary" />
-            <span class="font-semibold">{{ t('teamImport.modeTeam') }}</span>
-          </div>
-          <p class="text-sm text-(--text-muted)">{{ t('teamImport.modeTeamHint') }}</p>
-        </NeutralContainer>
-      </div>
-
+      <ImportHeader />
+      <ModeSelector v-if="step === 'upload'" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
-
       <UploadStep
         v-if="step === 'upload'"
-        :file-name="fileName"
-        :csv-text="csvText"
-        :separator="separator"
-        :manager-count="managerCount"
-        :loading="loading"
+        v-model:separator="separator"
+        v-model:manager-count="managerCount"
+        :file-name="fileName" :csv-text="csvText" :loading="loading"
         @file-upload="handleFileUpload"
-        @update:separator="separator = $event"
-        @update:manager-count="managerCount = $event"
         @parse="parseCsv"
       />
-
       <MappingStep
         v-if="step === 'mapping'"
-        :mappings="mappings"
-        :headers="headers"
-        :sample-rows="sampleRows"
-        :target-options="targetOptions"
-        :field-scope-groups="fieldScopeGroups"
-        :manager-count="managerCount"
-        :loading="loading"
-        :needs-value-map-fn="needsValueMap"
-        @update:mappings="mappings = $event"
+        v-model:mappings="mappings"
+        :headers="headers" :sample-rows="sampleRows"
+        :target-options="targetOptions" :field-scope-groups="fieldScopeGroups"
+        :manager-count="managerCount" :loading="loading" :needs-value-map-fn="needsValueMap"
         @back="step = 'upload'"
         @preview="loadPreview"
       />
-
       <Spinner v-if="loading" size="lg" />
-
       <PreviewStep
         v-if="step === 'preview' && preview"
-        :preview="preview"
-        :loading="loading"
-        @back="step = 'mapping'"
-        @import="doImport"
+        :preview="preview" :loading="loading"
+        @back="step = 'mapping'" @import="doImport"
       />
-
       <DoneStep
         v-if="step === 'done' && result"
         :result="result"

@@ -20,6 +20,7 @@ import type {AttendanceTemplate, EventCategory, EventField, StationEvent} from '
 import {EventTypes, isRecurringEvent} from '@/api/types'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import EventFieldValue from '@/components/display/EventFieldValue.vue'
+import {formatDate, formatTime} from '@/util/format'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -76,24 +77,12 @@ function templateName(id: number | null | undefined, templates: AttendanceTempla
   return templates.find(t => t.id === id)?.name ?? ''
 }
 
-function formatTime(iso?: string): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
 function eventTypeLabel(eventType?: string): string {
   if (eventType === EventTypes.RECURRING) return t('events.typeRecurring')
   if (eventType === EventTypes.MONTHLY_FIRST) return t('events.typeMonthlyFirst')
   if (eventType === EventTypes.QUARTERLY) return t('events.typeQuarterly')
   if (eventType === EventTypes.YEARLY) return t('events.typeYearly')
   return t('events.typeOneTime')
-}
-
-function formatDate(iso?: string): string {
-  if (!iso) return ''
-  return new Date(iso).toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric'})
 }
 
 /**

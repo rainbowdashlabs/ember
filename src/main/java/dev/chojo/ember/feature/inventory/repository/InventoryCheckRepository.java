@@ -5,15 +5,20 @@
  */
 package dev.chojo.ember.feature.inventory.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.inventory.entity.CheckDetail;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheck;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheckItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheckLock;
+import dev.chojo.ember.feature.inventory.entity.ItemCheckHistoryEntry;
+import dev.chojo.ember.feature.inventory.entity.ItemLastCheck;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,15 +44,52 @@ public class InventoryCheckRepository {
      */
     public InventoryCheck createCheck(int stationId, int memberId, int checkedBy) {
         return query("""
-                INSERT INTO inventory_check(station_id, member_id, checked_by)
-                VALUES (:station_id, :member_id, :checked_by)
-                RETURNING id, station_id, member_id, checked_by, checked_at;""")
+                INSERT INTO inventory_check(station_id, member_id, checked_by, scope)
+                VALUES (:station_id, :member_id, :checked_by, 'MEMBER')
+                RETURNING id, station_id, member_id, checked_by, checked_at, scope, container_id, deep;""")
                 .single(call().bind("station_id", stationId)
                         .bind("member_id", memberId)
                         .bind("checked_by", checkedBy))
                 .map(InventoryCheck.map())
                 .first()
                 .orElseThrow();
+    }
+
+    /**
+     * Creates a new container-scoped check.
+     *
+     * @param stationId   the station ID
+     * @param containerId the target container
+     * @param checkedBy   the member performing the check
+     * @param deep        whether descendant containers are included in the walk
+     * @return the created check
+     */
+    public InventoryCheck createContainerCheck(int stationId, int containerId, int checkedBy, boolean deep) {
+        return query("""
+                INSERT INTO inventory_check(station_id, container_id, checked_by, scope, deep)
+                VALUES (:station_id, :container_id, :checked_by, 'CONTAINER', :deep)
+                RETURNING id, station_id, member_id, checked_by, checked_at, scope, container_id, deep;""")
+                .single(call().bind("station_id", stationId)
+                        .bind("container_id", containerId)
+                        .bind("checked_by", checkedBy)
+                        .bind("deep", deep))
+                .map(InventoryCheck.map())
+                .first()
+                .orElseThrow();
+    }
+
+    /**
+     * Returns the most recent container-scope check for the given container, if any.
+     */
+    public Optional<InventoryCheck> latestCheckForContainer(int containerId) {
+        return query("""
+                SELECT id, station_id, member_id, checked_by, checked_at, scope, container_id, deep
+                FROM inventory_check
+                WHERE container_id = :container_id AND scope = 'CONTAINER'
+                ORDER BY checked_at DESC LIMIT 1;""")
+                .single(call().bind("container_id", containerId))
+                .map(InventoryCheck.map())
+                .first();
     }
 
     /**
@@ -58,7 +100,7 @@ public class InventoryCheckRepository {
      */
     public Optional<InventoryCheck> latestCheckForMember(int memberId) {
         return query(
-                        "SELECT id, station_id, member_id, checked_by, checked_at FROM inventory_check WHERE member_id = :member_id ORDER BY checked_at DESC LIMIT 1;")
+                        "SELECT id, station_id, member_id, checked_by, checked_at, scope, container_id, deep FROM inventory_check WHERE member_id = :member_id ORDER BY checked_at DESC LIMIT 1;")
                 .single(call().bind("member_id", memberId))
                 .map(InventoryCheck.map())
                 .first();
@@ -178,6 +220,83 @@ public class InventoryCheckRepository {
                 .map(InventoryCheckItem.map())
                 .first()
                 .orElseThrow();
+    }
+
+    /**
+     * Returns the most recent check result for each supplied item. Items that have never been
+     * included in a check are absent from the result list, so the caller can treat their entry
+     * as "never checked".
+     *
+     * @param itemIds the items to look up
+     * @return one entry per item that has at least one prior check, ordered by most-recent-first
+     */
+    public List<ItemLastCheck> latestCheckPerItem(Collection<Integer> itemIds) {
+        if (itemIds == null || itemIds.isEmpty()) return Collections.emptyList();
+        return query("""
+                SELECT DISTINCT ON (ci.item_id)
+                    ci.item_id,
+                    ci.result,
+                    c.checked_at,
+                    a.first_name,
+                    a.last_name
+                FROM inventory_check_item ci
+                    JOIN inventory_check c ON c.id = ci.check_id
+                    LEFT JOIN station_member sm ON sm.id = c.checked_by
+                    LEFT JOIN account a ON a.id = sm.account_id
+                WHERE ci.item_id = ANY(:item_ids)
+                ORDER BY ci.item_id, c.checked_at DESC;""")
+                .single(call().bind("item_ids", List.copyOf(itemIds), PostgreSqlTypes.INTEGER))
+                .map(row -> {
+                    String first = row.getString("first_name");
+                    String last = row.getString("last_name");
+                    String checkerName = ((first == null ? "" : first) + " " + (last == null ? "" : last)).trim();
+                    return new ItemLastCheck(
+                            row.getInt("item_id"),
+                            row.getEnum("result", CheckResult.class),
+                            row.get("checked_at", INSTANT_TIMESTAMP),
+                            checkerName);
+                })
+                .all();
+    }
+
+    /**
+     * Returns every recorded check for a single item, newest-first, with the checker's name and
+     * the container's name (when the check was container-scoped) joined in for display.
+     */
+    public List<ItemCheckHistoryEntry> findCheckHistoryForItem(int itemId) {
+        return query("""
+                SELECT
+                    c.id            AS check_id,
+                    ci.result,
+                    c.checked_at,
+                    c.scope,
+                    ci.note,
+                    a.first_name,
+                    a.last_name,
+                    co.name         AS container_name
+                FROM inventory_check_item ci
+                    JOIN inventory_check c ON c.id = ci.check_id
+                    LEFT JOIN station_member sm ON sm.id = c.checked_by
+                    LEFT JOIN account a ON a.id = sm.account_id
+                    LEFT JOIN inventory_container co ON co.id = c.container_id
+                WHERE ci.item_id = :item_id
+                ORDER BY c.checked_at DESC;""")
+                .single(call().bind("item_id", itemId))
+                .map(row -> {
+                    String first = row.getString("first_name");
+                    String last = row.getString("last_name");
+                    String checkerName = ((first == null ? "" : first) + " " + (last == null ? "" : last)).trim();
+                    String note = row.getString("note");
+                    return new ItemCheckHistoryEntry(
+                            row.getInt("check_id"),
+                            row.getEnum("result", CheckResult.class),
+                            row.get("checked_at", INSTANT_TIMESTAMP),
+                            checkerName,
+                            row.getString("container_name"),
+                            row.getString("scope"),
+                            note == null ? "" : note);
+                })
+                .all();
     }
 
     /**

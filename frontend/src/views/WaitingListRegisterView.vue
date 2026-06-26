@@ -4,29 +4,19 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import NumberInput from '@/components/input/number/NumberInput.vue'
-import DateInput from '@/components/input/datetime/DateInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import PublicConsentCheckbox from '@/components/public/PublicConsentCheckbox.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import InviteHeader from './waitinglistregisterview/InviteHeader.vue'
+import RegisterForm from './waitinglistregisterview/RegisterForm.vue'
+import RegisterSuccess from './waitinglistregisterview/RegisterSuccess.vue'
 import type { GuardianInput, WaitingListInviteInfo } from '@/api/types'
-import { parseFieldConfig } from '@/api/types'
 import { waitingList } from '@/api'
+import { getFieldValue as readFieldValue, setFieldValue as writeFieldValue } from '@/util/profileFields'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -39,7 +29,6 @@ const submitting = ref(false)
 const submitted = ref(false)
 const accessToken = ref('')
 
-// Form fields
 const firstname = ref('')
 const lastname = ref('')
 const guardians = ref<GuardianInput[]>([{ firstname: '', lastname: '', email: '', phone: '' }])
@@ -51,30 +40,11 @@ const privacyVersion = ref('')
 const tosVersion = ref('')
 
 function getFieldValue(fieldId: number): string {
-  return fieldValues.value.get(fieldId) ?? ''
+  return readFieldValue(fieldValues, fieldId)
 }
 
-function setFieldValue(fieldId: number, value: string | undefined) {
-  const newMap = new Map(fieldValues.value)
-  newMap.set(fieldId, value ?? '')
-  fieldValues.value = newMap
-}
-
-function getFieldValueAsNumber(fieldId: number): number {
-  const val = getFieldValue(fieldId)
-  return val ? Number(val) : 0
-}
-
-function setFieldValueFromNumber(fieldId: number, value: number | undefined) {
-  setFieldValue(fieldId, String(value ?? 0))
-}
-
-function getFieldValueAsBoolean(fieldId: number): boolean {
-  return getFieldValue(fieldId) === 'true'
-}
-
-function setFieldValueFromBoolean(fieldId: number, value: boolean) {
-  setFieldValue(fieldId, String(value))
+function setFieldValue(fieldId: number, value: string) {
+  writeFieldValue(fieldValues, fieldId, value)
 }
 
 async function loadInviteInfo() {
@@ -111,7 +81,6 @@ async function submit() {
     return
   }
 
-  // Validate required custom fields
   if (inviteInfo.value) {
     for (const field of inviteInfo.value.fields) {
       if (field.required && !getFieldValue(field.id).trim()) {
@@ -150,13 +119,7 @@ async function submit() {
   }
 }
 
-function statusLink(): string {
-  return `${window.location.origin}/waiting-list/status?token=${accessToken.value}`
-}
-
-async function copyStatusLink() {
-  await navigator.clipboard.writeText(statusLink())
-}
+const statusLink = computed(() => `${window.location.origin}/waiting-list/status?token=${accessToken.value}`)
 
 onMounted(loadInviteInfo)
 </script>
@@ -172,116 +135,31 @@ onMounted(loadInviteInfo)
       <Spinner v-if="loading" size="md" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
-      <!-- Invite info header -->
       <template v-if="!loading && inviteInfo && !submitted">
-        <NeutralContainer class="text-center space-y-2">
-          <SectionHeader class="text-lg font-semibold">{{ inviteInfo.listName }}</SectionHeader>
-          <p v-if="inviteInfo.listDescription" class="text-sm text-(--text-muted)">{{ inviteInfo.listDescription }}</p>
-        </NeutralContainer>
-
-        <form class="space-y-4" @submit.prevent="submit">
-          <div class="space-y-1">
-            <FieldLabel>{{ t('waitingList.firstname') }} <span class="text-error">*</span></FieldLabel>
-            <TextInput v-model="firstname" :placeholder="t('waitingList.register.firstnamePlaceholder')" />
-          </div>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('waitingList.lastname') }}</FieldLabel>
-            <TextInput v-model="lastname" :placeholder="t('waitingList.register.lastnamePlaceholder')" />
-          </div>
-          <div class="space-y-3">
-            <FieldLabel>{{ t('waitingList.guardians') }} <span class="text-error">*</span></FieldLabel>
-            <div v-for="(g, i) in guardians" :key="i" class="space-y-2 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent p-3">
-              <div class="flex items-center justify-between">
-                <span class="text-sm font-medium">{{ t('waitingList.guardian') }} {{ i + 1 }}</span>
-                <DeleteButton v-if="guardians.length > 1" @click="removeGuardian(i)" />
-              </div>
-              <TextInput v-model="g.firstname" :placeholder="t('waitingList.firstnamePlaceholder')" />
-              <TextInput v-model="g.lastname" :placeholder="t('waitingList.lastnamePlaceholder')" />
-              <TextInput v-model="g.email" :placeholder="t('waitingList.guardianEmailPlaceholder')" />
-              <TextInput v-model="g.phone" :placeholder="t('waitingList.guardianPhonePlaceholder')" />
-            </div>
-            <SecondaryButton :icon="['fas', 'plus']" @click="addGuardian">{{ t('waitingList.addGuardian') }}</SecondaryButton>
-          </div>
-
-          <!-- Dynamic fields -->
-          <div v-for="field in inviteInfo.fields" :key="field.id" class="space-y-1">
-            <FieldLabel>
-              {{ field.name }}
-              <span v-if="field.required" class="text-error">*</span>
-            </FieldLabel>
-
-            <TextInput
-              v-if="field.fieldType === 'TEXT'"
-              :model-value="getFieldValue(field.id)"
-              @update:model-value="setFieldValue(field.id, $event)"
-            />
-            <NumberInput
-              v-else-if="field.fieldType === 'NUMBER'"
-              :model-value="getFieldValueAsNumber(field.id)"
-              @update:model-value="setFieldValueFromNumber(field.id, $event)"
-            />
-            <DateInput
-              v-else-if="field.fieldType === 'DATE'"
-              :model-value="getFieldValue(field.id)"
-              @update:model-value="setFieldValue(field.id, $event)"
-            />
-            <div v-else-if="field.fieldType === 'BOOLEAN'" class="flex items-center gap-2 pt-1">
-              <ToggleInput
-                :model-value="getFieldValueAsBoolean(field.id)"
-                @update:model-value="setFieldValueFromBoolean(field.id, $event)"
-              />
-            </div>
-            <SelectInput
-              v-else-if="field.fieldType === 'ENUM'"
-              class="w-full"
-              :model-value="getFieldValue(field.id)"
-              @update:model-value="setFieldValue(field.id, $event)"
-            >
-              <option value="" disabled>{{ t('waitingList.selectOption') }}</option>
-              <option
-                v-for="opt in (parseFieldConfig(field.config).options as string[] ?? [])"
-                :key="opt"
-                :value="opt"
-              >{{ opt }}</option>
-            </SelectInput>
-          </div>
-
-          <div class="space-y-1">
-            <FieldLabel>{{ t('waitingList.notes') }}</FieldLabel>
-            <TextAreaInput v-model="notes" :placeholder="t('waitingList.register.notesPlaceholder')" />
-          </div>
-
-          <NeutralContainer>
-            <PublicConsentCheckbox
-                v-model:accepted="consentAccepted"
-                v-model:consent-version="consentVersion"
-                v-model:privacy-version="privacyVersion"
-                v-model:tos-version="tosVersion"/>
-          </NeutralContainer>
-
-          <PrimaryButton :disabled="submitting || !consentAccepted" class="w-full" type="submit">
-            {{ submitting ? t('common.loading') : t('waitingList.register.submit') }}
-          </PrimaryButton>
-        </form>
+        <InviteHeader :invite-info="inviteInfo" />
+        <RegisterForm
+          :invite-info="inviteInfo"
+          v-model:firstname="firstname"
+          v-model:lastname="lastname"
+          :guardians="guardians"
+          v-model:notes="notes"
+          v-model:consent-accepted="consentAccepted"
+          v-model:consent-version="consentVersion"
+          v-model:privacy-version="privacyVersion"
+          v-model:tos-version="tosVersion"
+          :submitting="submitting"
+          :field-value-of="getFieldValue"
+          @add-guardian="addGuardian"
+          @remove-guardian="removeGuardian"
+          @set-field-value="setFieldValue"
+          @submit="submit"
+        />
       </template>
 
-      <!-- Success state -->
       <template v-if="submitted">
-        <Alert variant="success">{{ t('waitingList.register.success') }}</Alert>
-
-        <NeutralContainer class="space-y-3">
-          <p class="text-sm font-medium">{{ t('waitingList.register.saveLink') }}</p>
-          <p class="text-xs text-(--text-muted)">{{ t('waitingList.register.saveLinkHint') }}</p>
-          <div class="flex items-center gap-2">
-            <code class="flex-1 text-xs font-mono bg-bg-light-accent dark:bg-bg-dark-accent px-3 py-2 rounded break-all select-all">{{ statusLink() }}</code>
-            <PrimaryButton @click="copyStatusLink">
-              <font-awesome-icon :icon="['fas', 'copy']" />
-            </PrimaryButton>
-          </div>
-        </NeutralContainer>
+        <RegisterSuccess :status-link="statusLink" />
       </template>
 
-      <!-- Invalid code state -->
       <template v-if="!loading && !inviteInfo && !submitted">
         <div class="text-center">
           <router-link class="text-sm text-primary hover:underline" to="/login">{{ t('waitingList.register.backToLogin') }}</router-link>

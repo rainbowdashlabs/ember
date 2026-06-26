@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, computed, onMounted} from 'vue'
+import {ref, computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -22,7 +22,9 @@ import type {ProfileField, StationMember, PermissionGrant, MemberGroup, UserTag}
 import {StationPermission, StationUserType} from '@/api/types'
 import {profileFields, stationMembers, memberGroups, userTags, inventory} from '@/api'
 import type {MyInventoryItem} from '@/api/inventory'
+import {decodeProfileValues} from '@/util/profileFields'
 import {useSession} from '@/composables/useSession'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {t} = useI18n()
 const {hasPermission} = useSession()
@@ -43,8 +45,6 @@ const editTagIds = ref<Set<number>>(new Set())
 const typeGrantedPermissions = ref<Set<string>>(new Set())
 const editUserType = ref('')
 const memberInventory = ref<MyInventoryItem[]>([])
-const loading = ref(true)
-const error = ref('')
 const activeTab = ref('profile')
 
 const allMembers = ref<StationMember[]>([])
@@ -75,54 +75,33 @@ async function onUserTypeChanged(userType: string) {
   fields.value = await profileFields.getMemberFields(memberId.value)
 }
 
-async function loadData() {
-  loading.value = true
-  error.value = ''
-  try {
-    const [allFields, allMembers_, roles, memberData, memberPermissions, profileValues, groups, tags, mGroups, mTags] = await Promise.all([
-      profileFields.getMemberFields(memberId.value),
-      stationMembers.listMembers(),
-      stationMembers.listAllPermissions(),
-      stationMembers.getMember(memberId.value),
-      stationMembers.getPermissions(memberId.value),
-      profileFields.getValues(memberId.value),
-      memberGroups.listGroups(),
-      userTags.listTags(),
-      memberGroups.getMemberGroups(memberId.value),
-      userTags.getMemberTags(memberId.value),
-    ])
-    fields.value = allFields
-    allMembers.value = allMembers_
-    allRoles.value = roles
-    allGroups.value = groups
-    allTags.value = tags
-    editGroupIds.value = new Set(mGroups.map(g => g.id))
-    editTagIds.value = new Set(mTags.map(t => t.id))
-    member.value = allMembers_.find(m => m.id === memberId.value) ?? null
-    editUserType.value = memberData.userType ?? StationUserType.MEMBER
-    editRoleIds.value = new Set(memberPermissions.map(r => r.id))
-    await loadTypePermissions(editUserType.value)
+const {loading, error} = useAsyncLoader(async () => {
+  const [allFields, allMembers_, roles, memberData, memberPermissions, profileValues, groups, tags, mGroups, mTags] = await Promise.all([
+    profileFields.getMemberFields(memberId.value),
+    stationMembers.listMembers(),
+    stationMembers.listAllPermissions(),
+    stationMembers.getMember(memberId.value),
+    stationMembers.getPermissions(memberId.value),
+    profileFields.getValues(memberId.value),
+    memberGroups.listGroups(),
+    userTags.listTags(),
+    memberGroups.getMemberGroups(memberId.value),
+    userTags.getMemberTags(memberId.value),
+  ])
+  fields.value = allFields
+  allMembers.value = allMembers_
+  allRoles.value = roles
+  allGroups.value = groups
+  allTags.value = tags
+  editGroupIds.value = new Set(mGroups.map(g => g.id))
+  editTagIds.value = new Set(mTags.map(t => t.id))
+  member.value = allMembers_.find(m => m.id === memberId.value) ?? null
+  editUserType.value = memberData.userType ?? StationUserType.MEMBER
+  editRoleIds.value = new Set(memberPermissions.map(r => r.id))
+  await loadTypePermissions(editUserType.value)
 
-    const map = new Map<number, string>()
-    for (const v of profileValues) {
-      let val = v.value ?? ''
-      try { val = JSON.parse(val) } catch { /* use as-is */ }
-      map.set(v.fieldId, typeof val === 'string' ? val : String(val))
-    }
-    editValues.value = map
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+  editValues.value = decodeProfileValues(profileValues)
 
-function goBack() {
-  router.push({name: 'members-list'})
-}
-
-onMounted(async () => {
-  await loadData()
   if (!hasPermission(StationPermission.INVENTORY_READ)) return
   try {
     memberInventory.value = await inventory.memberItems(memberId.value)
@@ -130,6 +109,10 @@ onMounted(async () => {
     memberInventory.value = []
   }
 })
+
+function goBack() {
+  router.push({name: 'members-list'})
+}
 </script>
 
 <template>

@@ -6,15 +6,15 @@
 <script lang="ts" setup>
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import NumberInput from '@/components/input/number/NumberInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
+import BasicFields from './fieldmodal/BasicFields.vue'
+import GroupSelector from './fieldmodal/GroupSelector.vue'
+import EnumOptionsField from './fieldmodal/EnumOptionsField.vue'
+import DefaultValueSection from './fieldmodal/DefaultValueSection.vue'
+import BehaviorToggles from './fieldmodal/BehaviorToggles.vue'
+import PositionField from './fieldmodal/PositionField.vue'
+import ModalActions from './fieldmodal/ModalActions.vue'
 import type {AttendanceTemplateField, MemberGroup} from '@/api/types'
 
 const props = defineProps<{
@@ -33,30 +33,6 @@ const {t} = useI18n()
 
 const open = defineModel<boolean>({default: false})
 
-const fieldTypeOptions = [
-  {value: 'STRING', label: 'Text'},
-  {value: 'TIME', label: 'Uhrzeit'},
-  {value: 'DATE', label: 'Datum'},
-  {value: 'BOOLEAN', label: 'Ja/Nein'},
-  {value: 'ENUM', label: 'Auswahl'},
-  {value: 'MEMBER', label: 'Mitglied'},
-  {value: 'MEMBER_LIST', label: 'Mitgliederliste'},
-  {value: 'MEMBER_OF_GROUP', label: 'Mitglied aus Gruppe'},
-  {value: 'MEMBER_LIST_OF_GROUP', label: 'Mitgliederliste aus Gruppe'},
-]
-
-const fieldTypeDescriptions: Record<string, string> = {
-  STRING: 'Ein einfaches Textfeld zur freien Eingabe.',
-  TIME: 'Eingabefeld für eine Uhrzeit.',
-  DATE: 'Eingabefeld für ein Datum.',
-  BOOLEAN: 'Ein Ja/Nein-Schalter.',
-  ENUM: 'Auswahl aus vordefinierten Optionen.',
-  MEMBER: 'Auswahl eines einzelnen Mitglieds aus allen Mitgliedern der Wache.',
-  MEMBER_LIST: 'Auswahl mehrerer Mitglieder aus allen Mitgliedern der Wache.',
-  MEMBER_OF_GROUP: 'Auswahl eines einzelnen Mitglieds aus einer bestimmten Gruppe.',
-  MEMBER_LIST_OF_GROUP: 'Auswahl mehrerer Mitglieder aus einer bestimmten Gruppe.',
-}
-
 const fieldName = ref('')
 const fieldType = ref('STRING')
 const fieldConfigGroupId = ref('')
@@ -70,8 +46,6 @@ const fieldDefaultToday = ref(false)
 const fieldPosition = ref(0)
 
 const isEditing = computed(() => props.field !== null)
-
-const fieldTypeDescription = computed(() => fieldTypeDescriptions[fieldType.value] ?? '')
 
 function fieldTypeNeedsGroup(type: string): boolean {
   return ['MEMBER_OF_GROUP', 'MEMBER_LIST_OF_GROUP'].includes(type)
@@ -161,91 +135,26 @@ function handleSave() {
   <Modal v-model="open">
     <div class="space-y-4">
       <SectionHeader>{{ isEditing ? t('attendanceConfig.editField') : t('attendanceConfig.addField') }}</SectionHeader>
-
-      <div class="space-y-1">
-        <FieldLabel>{{ t('attendanceConfig.fieldName') }}</FieldLabel>
-        <TextInput v-model="fieldName" :placeholder="t('attendanceConfig.fieldNamePlaceholder')"/>
-      </div>
-
-      <div class="space-y-1">
-        <FieldLabel>{{ t('attendanceConfig.fieldType') }}</FieldLabel>
-        <SelectInput v-model="fieldType">
-          <option v-for="ft in fieldTypeOptions" :key="ft.value" :value="ft.value">{{ ft.label }}</option>
-        </SelectInput>
-        <p class="text-xs text-(--text-muted)">{{ fieldTypeDescription }}</p>
-      </div>
-
-      <!-- Group selector for group-based types -->
-      <div v-if="fieldTypeNeedsGroup(fieldType)" class="space-y-1">
-        <FieldLabel>{{ t('attendanceConfig.fieldGroup') }}</FieldLabel>
-        <SelectInput v-model="fieldConfigGroupId">
-          <option disabled value="">{{ t('attendanceConfig.fieldGroupPlaceholder') }}</option>
-          <option v-for="group in availableGroups" :key="group.id" :value="String(group.id)">{{ group.name }}</option>
-        </SelectInput>
-      </div>
-
-      <!-- Enum options -->
-      <div v-if="fieldType === 'ENUM'" class="space-y-1">
-        <FieldLabel>{{ t('attendanceConfig.fieldEnumOptions') }}</FieldLabel>
-        <TextInput v-model="fieldEnumOptions" :placeholder="t('attendanceConfig.fieldEnumOptionsPlaceholder')"/>
-        <p class="text-xs text-(--text-muted)">{{ t('attendanceConfig.fieldEnumOptionsHint') }}</p>
-      </div>
-
-      <!-- Default value -->
-      <div v-if="fieldTypeCanHaveDefault(fieldType)" class="space-y-2">
-        <div class="flex items-center justify-between">
-          <label class="text-sm font-medium">{{ t('attendanceConfig.fieldHasDefault') }}</label>
-          <ToggleInput v-model="fieldHasDefault"/>
-        </div>
-        <template v-if="fieldHasDefault">
-          <template v-if="fieldType === 'BOOLEAN'">
-            <ToggleInput v-model="fieldDefaultBool"/>
-          </template>
-          <template v-else-if="fieldType === 'DATE'">
-            <ToggleInput v-model="fieldDefaultToday"/>
-            <p class="text-xs text-(--text-muted)">{{ t('attendanceConfig.fieldDefaultDateHint') }}</p>
-          </template>
-          <template v-else-if="fieldType === 'ENUM'">
-            <SelectInput v-model="fieldDefaultValue">
-              <option value="">—</option>
-              <option v-for="opt in fieldEnumOptions.split('\n').map(o => o.trim()).filter(o => o)" :key="opt"
-                      :value="opt">{{ opt }}
-              </option>
-            </SelectInput>
-          </template>
-          <template v-else>
-            <TextInput v-model="fieldDefaultValue" :placeholder="t('attendanceConfig.fieldDefaultValuePlaceholder')"/>
-          </template>
-          <p class="text-xs text-(--text-muted)">{{ t('attendanceConfig.fieldDefaultValueHint') }}</p>
-        </template>
-      </div>
-
-      <!-- Required toggle -->
-      <div class="flex items-center justify-between">
-        <label class="text-sm font-medium">{{ t('attendanceConfig.fieldRequired') }}</label>
-        <ToggleInput v-model="fieldConfigRequired"/>
-      </div>
-
-      <!-- Auto-attend toggle for member-type fields -->
-      <div v-if="fieldTypeCanAutoAttend(fieldType)" class="space-y-1">
-        <div class="flex items-center justify-between">
-          <label class="text-sm font-medium">{{ t('attendanceConfig.fieldAutoAttend') }}</label>
-          <ToggleInput v-model="fieldConfigAutoAttend"/>
-        </div>
-        <p class="text-xs text-(--text-muted)">{{ t('attendanceConfig.fieldAutoAttendHint') }}</p>
-      </div>
-
-      <div class="space-y-1">
-        <FieldLabel>{{ t('attendanceConfig.fieldPosition') }}</FieldLabel>
-        <NumberInput v-model="fieldPosition"/>
-      </div>
-
-      <div class="flex justify-end gap-3">
-        <SecondaryButton @click="open = false">{{ t('attendanceConfig.cancel') }}</SecondaryButton>
-        <PrimaryButton :disabled="saving || !fieldName" @click="handleSave">
-          {{ saving ? t('common.loading') : t('attendanceConfig.save') }}
-        </PrimaryButton>
-      </div>
+      <BasicFields v-model:name="fieldName" v-model:field-type="fieldType"/>
+      <GroupSelector v-if="fieldTypeNeedsGroup(fieldType)" v-model="fieldConfigGroupId"
+                     :available-groups="availableGroups"/>
+      <EnumOptionsField v-if="fieldType === 'ENUM'" v-model="fieldEnumOptions"/>
+      <DefaultValueSection
+        v-if="fieldTypeCanHaveDefault(fieldType)"
+        v-model:has-default="fieldHasDefault"
+        v-model:default-value="fieldDefaultValue"
+        v-model:default-bool="fieldDefaultBool"
+        v-model:default-today="fieldDefaultToday"
+        :field-type="fieldType"
+        :enum-options="fieldEnumOptions"
+      />
+      <BehaviorToggles
+        v-model:required="fieldConfigRequired"
+        v-model:auto-attend="fieldConfigAutoAttend"
+        :show-auto-attend="fieldTypeCanAutoAttend(fieldType)"
+      />
+      <PositionField v-model="fieldPosition"/>
+      <ModalActions :saving="saving" :disabled="!fieldName" @cancel="open = false" @submit="handleSave"/>
     </div>
   </Modal>
 </template>

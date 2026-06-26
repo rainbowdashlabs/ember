@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.storage.service;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Single entry point for background writers (schedulers, federation remote handlers, mail
@@ -21,6 +23,7 @@ import jakarta.inject.Singleton;
  */
 @Singleton
 public class StationReadOnlyGuard {
+    private static final Logger log = LoggerFactory.getLogger(StationReadOnlyGuard.class);
 
     private final StationRepository stationRepository;
 
@@ -35,6 +38,7 @@ public class StationReadOnlyGuard {
      */
     public void requireWritable(int stationId) {
         if (stationRepository.isReadOnlyForTransfer(stationId)) {
+            log.warn("Refused write on station {}: station is read-only for transfer", stationId);
             throw new StationReadOnlyForTransferException(stationId);
         }
     }

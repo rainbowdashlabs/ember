@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./views/homeview/landing-shared.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -428,6 +429,43 @@ a:not(:has(button)):hover {
 .markdown-content--compact p {
     margin-top: 0.25rem;
     margin-bottom: 0.25rem;
+}
+
+/* Landing page typography (shared across HomeView and homeview/* sections) */
+.landing-display-h1 {
+    font-family: 'Bitter', Georgia, 'Times New Roman', serif;
+    font-weight: 700;
+    font-size: clamp(2.25rem, 5vw, 3.5rem);
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    margin: 0 0 1.25rem;
+}
+.landing-display-h2 {
+    font-family: 'Bitter', Georgia, serif;
+    font-size: clamp(1.85rem, 3.6vw, 2.5rem);
+    line-height: 1.1;
+    letter-spacing: -0.005em;
+    margin: 0 0 1.25rem;
+}
+.landing-display-h2--tight {
+    margin: 0 0 1.5rem;
+}
+.landing-lede-lg {
+    font-size: 1.125rem;
+    line-height: 1.55;
+    max-width: 34rem;
+    opacity: 0.78;
+    margin: 0 0 2rem;
+}
+.landing-lede {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    opacity: 0.78;
+    margin: 0 0 1.75rem;
+    max-width: 32rem;
+}
+.landing-lede--flush {
+    margin: 0;
 }
 
 /* Search snippet highlight */

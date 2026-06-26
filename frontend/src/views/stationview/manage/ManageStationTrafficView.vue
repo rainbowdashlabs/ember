@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted, ref, watch} from 'vue'
+import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
@@ -18,18 +18,17 @@ import type {AuthBucketName, HourlyTrafficRow} from '@/api/traffic'
 import TrafficChart from '@/views/adminview/admintrafficview/TrafficChart.vue'
 import TrafficTotals from '@/views/adminview/admintrafficview/TrafficTotals.vue'
 import TrafficWindowSelector from '@/views/adminview/admintrafficview/TrafficWindowSelector.vue'
+import {useConfigPanel} from '@/composables/useConfigPanel'
 
 const {t} = useI18n()
 
 const windowHours = ref(72)
 const metric = ref<'ingressBytes' | 'egressBytes' | 'requests' | 'inout'>('egressBytes')
 const authFilter = ref<AuthBucketName | ''>('')
-const rows = ref<HourlyTrafficRow[]>([])
-const loading = ref(false)
 
-async function load() {
-  loading.value = true
-  try {
+const {config: rows, loading, reload: load} = useConfigPanel<HourlyTrafficRow[]>({
+  initial: [],
+  fetch: async () => {
     const to = new Date()
     const from = new Date(to.getTime() - windowHours.value * 3600_000)
     const res = await traffic.getStationHourly({
@@ -37,13 +36,11 @@ async function load() {
       to: to.toISOString(),
       auth: authFilter.value === '' ? undefined : authFilter.value,
     })
-    rows.value = res.rows
-  } finally {
-    loading.value = false
-  }
-}
+    return res.rows
+  },
+  formatError: () => '',
+})
 
-onMounted(load)
 watch([windowHours, authFilter], load)
 </script>
 

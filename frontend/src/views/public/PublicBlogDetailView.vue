@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onMounted, ref, computed} from 'vue'
+import {ref, computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -15,6 +15,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {PublicBlogEntry} from '@/api/types'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import {news} from '@/api'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -22,21 +23,11 @@ const router = useRouter()
 const stationUid = computed(() => route.params.stationUid as string)
 const blogId = computed(() => Number(route.params.blogId))
 
-const loading = ref(true)
-const error = ref('')
 const entry = ref<PublicBlogEntry | null>(null)
 
-async function load() {
-  loading.value = true
-  error.value = ''
-  try {
-    entry.value = await news.getPublicBlogEntry(stationUid.value, blogId.value)
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, error} = useAsyncLoader(async () => {
+  entry.value = await news.getPublicBlogEntry(stationUid.value, blogId.value)
+})
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('de-DE', {year: 'numeric', month: 'long', day: 'numeric'})
@@ -45,8 +36,6 @@ function formatDate(dateStr: string): string {
 function goBack() {
   router.push({name: 'public-blog', params: {stationUid: stationUid.value}})
 }
-
-onMounted(load)
 </script>
 
 <template>

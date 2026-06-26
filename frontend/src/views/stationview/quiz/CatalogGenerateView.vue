@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -15,6 +15,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type { QuizCatalogDetail } from '@/api/types'
 import { quiz, ai as aiApi } from '@/api'
 import { useSession } from '@/composables/useSession'
+import { useConfigPanel } from '@/composables/useConfigPanel'
 import AiSettingsPanel from './cataloggenerateview/AiSettingsPanel.vue'
 import GenerationConfigForm from './cataloggenerateview/GenerationConfigForm.vue'
 import GenerationReviewPanel from './cataloggenerateview/GenerationReviewPanel.vue'
@@ -28,11 +29,12 @@ const { loaded } = useSession()
 
 const catalogId = computed(() => Number(route.params.id))
 
-const catalog = ref<QuizCatalogDetail | null>(null)
-const loading = ref(true)
-const error = ref('')
+const { config: catalog, loading, error, reload: loadData } = useConfigPanel<QuizCatalogDetail | null>({
+  initial: null,
+  fetch: () => quiz.getCatalog(catalogId.value),
+  immediate: false,
+})
 
-// AI question generation
 const genGenerating = ref(false)
 const genResult = ref('')
 const genPhase = ref<'config' | 'review'>('config')
@@ -41,20 +43,6 @@ const genRegenerating = ref<number | null>(null)
 const genPreviews = ref<GenPreview[]>([])
 
 const aiSettingsRef = ref<InstanceType<typeof AiSettingsPanel> | null>(null)
-
-// --- Data Loading ---
-
-async function loadData() {
-  loading.value = true
-  error.value = ''
-  try {
-    catalog.value = await quiz.getCatalog(catalogId.value)
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
 
 // --- AI Question Generation ---
 
@@ -160,17 +148,9 @@ function resetGeneration() {
   genResult.value = ''
 }
 
-onMounted(() => {
-  if (loaded.value) {
-    loadData()
-  }
-})
-
 watch(loaded, (isLoaded) => {
-  if (isLoaded) {
-    loadData()
-  }
-})
+  if (isLoaded) loadData()
+}, { immediate: true })
 </script>
 
 <template>

@@ -8,22 +8,16 @@ import {useI18n} from 'vue-i18n'
 import LinkSearchInput from '@/components/input/text/LinkSearchInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import {useConfigPatch} from '@/composables/useConfigPatch'
+import type {CellEditorEmits, CellEditorStationProps} from '../cellTypes'
 
-const props = defineProps<{
-    config: Record<string, unknown>
-    stationUid: string
-}>()
-
-const emit = defineEmits<{
-    'update:config': [value: Record<string, unknown>]
-}>()
+const props = defineProps<CellEditorStationProps>()
+const emit = defineEmits<CellEditorEmits>()
 
 const {t} = useI18n()
 const TS = (k: string) => t(`stationPages.editor.${k}`)
 
-function patch(partial: Record<string, unknown>) {
-    emit('update:config', {...props.config, ...partial})
-}
+const patch = useConfigPatch(() => props.config, emit)
 </script>
 
 <template>

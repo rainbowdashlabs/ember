@@ -27,20 +27,11 @@ const emit = defineEmits<{
   reorder: [fromIndex: number, toIndex: number]
 }>()
 
-const {t} = useI18n()
-
-const fieldTypeOptions: Record<string, string> = {
-  string: 'Text',
-  time: 'Uhrzeit',
-  date: 'Datum',
-  member: 'Mitglied',
-  member_list: 'Mitgliederliste',
-  member_of_group: 'Mitglied aus Gruppe',
-  member_list_of_group: 'Mitgliederliste aus Gruppe',
-}
+const {t, te} = useI18n()
 
 function fieldTypeLabel(value: string): string {
-  return fieldTypeOptions[value] ?? value
+  const key = `attendanceConfig.fieldTypeOptions.${value}`
+  return te(key) ? t(key) : value
 }
 
 function parseConfig(configStr: string | Record<string, unknown> | undefined): { groupId?: number; required?: boolean; autoAttend?: boolean } {

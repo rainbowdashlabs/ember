@@ -15,31 +15,24 @@ import MemberName from '@/components/avatar/MemberName.vue'
 import {news as newsApi} from '@/api'
 import type {NewsViewsResponse} from '@/api/news'
 
+const open = defineModel<boolean>({required: true})
+
 const props = defineProps<{
-  modelValue: boolean
   newsId: number | null
   newsTitle?: string
 }>()
 
-const emit = defineEmits<{
-  'update:modelValue': [value: boolean]
-}>()
-
 const {t} = useI18n()
 
-const open = ref(props.modelValue)
 const data = ref<NewsViewsResponse | null>(null)
 const loading = ref(false)
 const error = ref('')
 
-watch(() => props.modelValue, async (v) => {
-  open.value = v
+watch(open, async (v) => {
   if (v && props.newsId != null) {
     await load(props.newsId)
   }
 })
-
-watch(open, (v) => emit('update:modelValue', v))
 
 async function load(newsId: number) {
   loading.value = true

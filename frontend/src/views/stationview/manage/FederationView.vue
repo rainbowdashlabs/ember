@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -27,6 +27,7 @@ import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import { federation } from '@/api'
 import type { PartnerResponse, PairRequest } from '@/api/federation'
 import { resolveFederationVersion } from '@/util/federationVersion'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -36,8 +37,6 @@ const { refresh: refreshSidebarCounts } = useSidebarCounts()
 const partners = ref<PartnerResponse[]>([])
 const pairRequests = ref<PairRequest[]>([])
 const localVersion = ref('')
-const loading = ref(true)
-const error = ref('')
 const success = ref('')
 
 // Invite modal
@@ -45,28 +44,23 @@ const showInviteModal = ref(false)
 const generatedCode = ref('')
 const acceptCode = ref('')
 
-async function loadData() {
-  loading.value = true
-  try {
-    const [p, r, info] = await Promise.all([
-      federation.listPartners(),
-      federation.listPairRequests(),
-      federation.getFederationInfo(),
-    ])
-    partners.value = p
-    pairRequests.value = r
-    localVersion.value = info.federationVersion
-  }
-  catch { error.value = t('common.error') }
-  finally { loading.value = false }
-}
+const {loading, error, reload} = useAsyncLoader(async () => {
+  const [p, r, info] = await Promise.all([
+    federation.listPartners(),
+    federation.listPairRequests(),
+    federation.getFederationInfo(),
+  ])
+  partners.value = p
+  pairRequests.value = r
+  localVersion.value = info.federationVersion
+}, {autoLoad: false})
 
 async function handleAcceptRequest(id: number) {
   try {
     await federation.acceptPairRequest(id)
     success.value = t('federation.connected')
     setTimeout(() => { success.value = '' }, 3000)
-    await loadData()
+    await reload()
     refreshSidebarCounts()
   } catch { error.value = t('common.error') }
 }
@@ -74,7 +68,7 @@ async function handleAcceptRequest(id: number) {
 async function handleDeclineRequest(id: number) {
   try {
     await federation.declinePairRequest(id)
-    await loadData()
+    await reload()
     refreshSidebarCounts()
   } catch { error.value = t('common.error') }
 }
@@ -95,12 +89,11 @@ async function handleAccept() {
     generatedCode.value = ''
     success.value = result.status === 'ACTIVE' ? t('federation.connected') : t('federation.requestSent')
     setTimeout(() => { success.value = '' }, 3000)
-    await loadData()
+    await reload()
   } catch { error.value = t('federation.invalidCode') }
 }
 
-watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
-onMounted(() => { if (loaded.value) loadData() })
+watch(loaded, (v) => { if (v) reload() }, { immediate: true })
 </script>
 
 <template>

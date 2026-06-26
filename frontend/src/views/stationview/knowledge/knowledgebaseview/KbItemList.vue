@@ -14,6 +14,8 @@ import {KbFileType} from '@/api/knowledgeBase'
 import {knowledgeBase} from '@/api'
 import AuthImage from '@/components/display/AuthImage.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
+import {fileIcon} from '@/util/kbFileIcon'
+import {formatDate} from '@/util/format'
 
 const {t} = useI18n()
 
@@ -39,24 +41,6 @@ const emit = defineEmits<{
     navigateToFavourites: []
 }>()
 
-function fileIcon(file: KbFile): string[] {
-    switch (file.fileType) {
-        case KbFileType.MARKDOWN:
-        case KbFileType.TEXT:
-            return ['fas', 'file-lines']
-        case KbFileType.PDF:
-            return ['fas', 'file-pdf']
-        case KbFileType.IMAGE:
-            return ['fas', 'image']
-        case KbFileType.YOUTUBE:
-            return ['fab', 'youtube']
-        case KbFileType.LINK:
-            return ['fas', 'link']
-        default:
-            return ['fas', 'file']
-    }
-}
-
 function fileTypeLabel(file: KbFile): string {
     switch (file.fileType) {
         case KbFileType.MARKDOWN:
@@ -76,13 +60,6 @@ function fileTypeLabel(file: KbFile): string {
     }
 }
 
-function formatDate(dateStr: string): string {
-    return new Date(dateStr).toLocaleDateString('de-DE', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-    })
-}
 </script>
 
 <template>

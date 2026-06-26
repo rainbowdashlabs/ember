@@ -14,11 +14,12 @@ import type {AttendanceEntry, AttendanceStatus, MemberGroup, StationMember} from
 
 const {t} = useI18n()
 
+const selectedMemberId = defineModel<string>('selectedMemberId', {required: true})
+
 const props = defineProps<{
   entries: AttendanceEntry[]
   allMembers: StationMember[]
   memberSections: { group: MemberGroup | null; members: StationMember[] }[]
-  selectedMemberId: string
   readonly?: boolean
 }>()
 
@@ -28,7 +29,6 @@ const emit = defineEmits<{
   checkOut: [entryId: number, time: string]
   resetTimes: [entryId: number]
   addMember: []
-  'update:selectedMemberId': [value: string]
 }>()
 
 const membersNotInSession = computed(() => {
@@ -68,7 +68,7 @@ function getEntry(memberId: number): AttendanceEntry | undefined {
 
   <!-- Add member -->
   <div v-if="!readonly && membersNotInSession.length > 0" class="flex items-center gap-2">
-    <SelectInput :model-value="selectedMemberId" class="flex-1" @update:model-value="emit('update:selectedMemberId', $event ?? '')">
+    <SelectInput v-model="selectedMemberId" class="flex-1">
       <option disabled value="">{{ t('attendanceSession.addMember') }}</option>
       <option v-for="m in membersNotInSession" :key="m.id" :value="String(m.id)">
         {{ m.name ?? m.email }}

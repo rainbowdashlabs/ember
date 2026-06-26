@@ -10,23 +10,20 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 
-const props = defineProps<{
+const modelValue = defineModel<string>({required: true})
+
+defineProps<{
   fieldType: string
-  modelValue: string
   options?: string[]
   disabled?: boolean
 }>()
 
-const emit = defineEmits<{
-  'update:modelValue': [value: string]
-}>()
-
 function getBool(): boolean {
-  return props.modelValue === 'true'
+  return modelValue.value === 'true'
 }
 
 function setBool(val: boolean) {
-  emit('update:modelValue', String(val))
+  modelValue.value = String(val)
 }
 </script>
 
@@ -36,21 +33,21 @@ function setBool(val: boolean) {
   </template>
   <template v-else-if="fieldType === 'DATE'">
     <DateInput :disabled="disabled" :model-value="modelValue"
-               @update:model-value="emit('update:modelValue', $event ?? '')"/>
+               @update:model-value="modelValue = $event ?? ''"/>
   </template>
   <template v-else-if="fieldType === 'NUMBER' || fieldType === 'AGE'">
     <NumberInput :disabled="disabled" :model-value="Number(modelValue) || 0"
-                 @update:model-value="emit('update:modelValue', String($event ?? 0))"/>
+                 @update:model-value="modelValue = String($event ?? 0)"/>
   </template>
   <template v-else-if="fieldType === 'ENUM'">
     <SelectInput :disabled="disabled" :model-value="modelValue"
-                 @update:model-value="emit('update:modelValue', $event ?? '')">
+                 @update:model-value="modelValue = $event ?? ''">
       <option value="">—</option>
       <option v-for="opt in options ?? []" :key="opt" :value="opt">{{ opt }}</option>
     </SelectInput>
   </template>
   <template v-else>
     <TextInput :disabled="disabled" :model-value="modelValue"
-               @update:model-value="emit('update:modelValue', $event ?? '')"/>
+               @update:model-value="modelValue = $event ?? ''"/>
   </template>
 </template>

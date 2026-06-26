@@ -4,36 +4,28 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
-import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
 import QuestionEditor from './builderview/QuestionEditor.vue'
+import FormMetadataEditor from './builderview/FormMetadataEditor.vue'
+import FormRestrictionsEditor from './builderview/FormRestrictionsEditor.vue'
 import type { QuestionDraft } from './builderview/types'
 import type { FormPurposeName, FormQuestionRequest, QuestionType, MemberGroup, StationMember, UserTag } from '@/api/types'
 import { FormPurpose, QuestionTypes, QUESTION_TYPES_BY_PURPOSE } from '@/api/types'
 import { forms, memberGroups, userTags, stationMembers } from '@/api'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
 const formId = computed(() => route.params.id ? Number(route.params.id) : null)
-
-const loading = ref(false)
-const error = ref('')
 
 /**
  * The form's purpose. Loaded from the form when editing, derived from the
@@ -48,7 +40,6 @@ const returnRouteName = computed(() => {
   return 'forms-list'
 })
 
-// Form metadata
 const title = ref('')
 const description = ref('')
 const shuffleQuestions = ref(false)
@@ -57,7 +48,6 @@ const forced = ref(false)
 const startAt = ref('')
 const endAt = ref('')
 
-// Restrictions
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
 const allMembers = ref<StationMember[]>([])
@@ -66,7 +56,6 @@ const selectedGroupIds = ref<number[]>([])
 const selectedTagIds = ref<number[]>([])
 const selectedMemberIds = ref<number[]>([])
 
-// Questions
 const questions = ref<QuestionDraft[]>([])
 let nextTempId = 1
 
@@ -108,61 +97,53 @@ function moveQuestion(index: number, direction: -1 | 1) {
   questions.value[newIndex] = temp
 }
 
-async function loadForm() {
-  loading.value = true
-  try {
-    const [groups, tags, members] = await Promise.all([
-      memberGroups.listGroups(),
-      userTags.listTags(),
-      stationMembers.listMembers(),
-    ])
-    allGroups.value = groups
-    allTags.value = tags
-    allMembers.value = members
+const { loading, error } = useAsyncLoader(async () => {
+  const [groups, tags, members] = await Promise.all([
+    memberGroups.listGroups(),
+    userTags.listTags(),
+    stationMembers.listMembers(),
+  ])
+  allGroups.value = groups
+  allTags.value = tags
+  allMembers.value = members
 
-    if (!formId.value) {
-      const queryPurpose = typeof route.query.purpose === 'string' ? route.query.purpose : null
-      if (queryPurpose && queryPurpose in FormPurpose) {
-        purpose.value = queryPurpose as FormPurposeName
-      }
-      loading.value = false
-      return
+  if (!formId.value) {
+    const queryPurpose = typeof route.query.purpose === 'string' ? route.query.purpose : null
+    if (queryPurpose && queryPurpose in FormPurpose) {
+      purpose.value = queryPurpose as FormPurposeName
     }
-
-    const [form, qs, restrictions] = await Promise.all([
-      forms.getForm(formId.value),
-      forms.getQuestions(formId.value),
-      forms.getRestrictions(formId.value),
-    ])
-    title.value = form.title
-    description.value = form.description
-    shuffleQuestions.value = form.shuffleQuestions
-    allowEdit.value = form.allowEdit
-    forced.value = form.forced ?? false
-    startAt.value = form.startAt ? form.startAt.slice(0, 16) : ''
-    endAt.value = form.endAt ? form.endAt.slice(0, 16) : ''
-    purpose.value = form.purpose
-
-    selectedUserTypes.value = restrictions.userTypes ?? []
-    selectedGroupIds.value = restrictions.groupIds ?? []
-    selectedTagIds.value = restrictions.tagIds ?? []
-    selectedMemberIds.value = restrictions.memberIds ?? []
-
-    questions.value = qs.map(q => ({
-      id: `existing-${q.id}`,
-      questionType: q.formQuestionType,
-      title: q.title,
-      description: q.description,
-      required: q.required,
-      shuffle: q.shuffle,
-      config: typeof q.config === 'object' ? { ...q.config } : {},
-    }))
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
+    return
   }
-}
+
+  const [form, qs, restrictions] = await Promise.all([
+    forms.getForm(formId.value),
+    forms.getQuestions(formId.value),
+    forms.getRestrictions(formId.value),
+  ])
+  title.value = form.title
+  description.value = form.description
+  shuffleQuestions.value = form.shuffleQuestions
+  allowEdit.value = form.allowEdit
+  forced.value = form.forced ?? false
+  startAt.value = form.startAt ? form.startAt.slice(0, 16) : ''
+  endAt.value = form.endAt ? form.endAt.slice(0, 16) : ''
+  purpose.value = form.purpose
+
+  selectedUserTypes.value = restrictions.userTypes ?? []
+  selectedGroupIds.value = restrictions.groupIds ?? []
+  selectedTagIds.value = restrictions.tagIds ?? []
+  selectedMemberIds.value = restrictions.memberIds ?? []
+
+  questions.value = qs.map(q => ({
+    id: `existing-${q.id}`,
+    questionType: q.formQuestionType,
+    title: q.title,
+    description: q.description,
+    required: q.required,
+    shuffle: q.shuffle,
+    config: typeof q.config === 'object' ? { ...q.config } : {},
+  }))
+})
 
 async function save() {
   error.value = ''
@@ -209,8 +190,6 @@ async function save() {
     throw e
   }
 }
-
-onMounted(loadForm)
 </script>
 
 <template>
@@ -220,74 +199,38 @@ onMounted(loadForm)
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
-        <!-- Form Metadata -->
-        <NeutralContainer>
-          <div class="space-y-4">
-            <TextInput v-model="title" :placeholder="t('forms.title')" />
-            <TextAreaInput v-model="description" :placeholder="t('forms.description')" />
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <FieldLabel hint class="mb-1">{{ t('forms.startAt') }}</FieldLabel>
-                <DateTimeInput v-model="startAt" />
-              </div>
-              <div>
-                <FieldLabel hint class="mb-1">{{ t('forms.endAt') }}</FieldLabel>
-                <DateTimeInput v-model="endAt" />
-              </div>
-            </div>
-            <div class="flex gap-6 flex-wrap">
-              <FieldLabel inline>
-                <ToggleInput v-model="shuffleQuestions" />
-                {{ t('forms.shuffleQuestions') }}
-              </FieldLabel>
-              <FieldLabel inline>
-                <ToggleInput v-model="allowEdit" />
-                {{ t('forms.allowEdit') }}
-              </FieldLabel>
-              <FieldLabel inline>
-                <ToggleInput v-model="forced" />
-                {{ t('forms.forced') }}
-              </FieldLabel>
-            </div>
-          </div>
-        </NeutralContainer>
+        <FormMetadataEditor
+          v-model:title="title"
+          v-model:description="description"
+          v-model:start-at="startAt"
+          v-model:end-at="endAt"
+          v-model:shuffle-questions="shuffleQuestions"
+          v-model:allow-edit="allowEdit"
+          v-model:forced="forced"
+        />
 
-        <!-- Restrictions -->
-        <NeutralContainer>
-          <div class="space-y-4">
-            <SubHeader>{{ t('forms.restrictions.title') }}</SubHeader>
-            <RestrictionPicker
-              :groups="allGroups"
-              :tags="allTags"
-              :members="allMembers"
-              :selected-user-types="selectedUserTypes"
-              :selected-group-ids="selectedGroupIds"
-              :selected-tag-ids="selectedTagIds"
-              :selected-member-ids="selectedMemberIds"
-              show-members
-              @update:selected-user-types="selectedUserTypes = $event"
-              @update:selected-group-ids="selectedGroupIds = $event"
-              @update:selected-tag-ids="selectedTagIds = $event"
-              @update:selected-member-ids="selectedMemberIds = $event"
-            />
-          </div>
-        </NeutralContainer>
+        <FormRestrictionsEditor
+          :groups="allGroups"
+          :tags="allTags"
+          :members="allMembers"
+          v-model:selected-user-types="selectedUserTypes"
+          v-model:selected-group-ids="selectedGroupIds"
+          v-model:selected-tag-ids="selectedTagIds"
+          v-model:selected-member-ids="selectedMemberIds"
+        />
 
-        <!-- Questions -->
         <div class="space-y-3">
           <QuestionEditor v-for="(q, idx) in questions" :key="q.id"
               :question="q" :index="idx" :total-questions="questions.length"
               @move="moveQuestion" @remove="removeQuestion" />
         </div>
 
-        <!-- Add Question -->
         <div class="flex flex-wrap gap-2">
           <SecondaryButton :icon="['fas', 'plus']" v-for="type in questionTypes" :key="type" @click="addQuestion(type)">
             {{ t(`forms.questionTypes.${type}`) }}
           </SecondaryButton>
         </div>
 
-        <!-- Actions -->
         <div class="flex justify-end gap-3">
           <SecondaryButton @click="router.push({ name: returnRouteName })">{{ t('common.cancel') }}</SecondaryButton>
           <SaveButton :action="save"/>

@@ -4,7 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -18,44 +17,26 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import { adminSettings } from '@/api'
 import type { TotpConfig } from '@/api/adminSettings'
+import { useConfigPanel } from '@/composables/useConfigPanel'
 
 const { t } = useI18n()
 
 const TOTP_ALGORITHMS = ['SHA1', 'SHA256', 'SHA512'] as const
 
-const loading = ref(true)
-const error = ref('')
-const config = ref<TotpConfig>({
-  digits: 6,
-  periodSeconds: 30,
-  algorithm: 'SHA1',
-  driftWindow: 1,
-  issuer: 'Ember',
+const { config, loading, error, runWith } = useConfigPanel<TotpConfig>({
+  initial: {
+    digits: 6,
+    periodSeconds: 30,
+    algorithm: 'SHA1',
+    driftWindow: 1,
+    issuer: 'Ember',
+  },
+  fetch: () => adminSettings.getTotpConfig(),
 })
 
-async function load() {
-  loading.value = true
-  error.value = ''
-  try {
-    config.value = await adminSettings.getTotpConfig()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
-
 async function save() {
-  error.value = ''
-  try {
-    config.value = await adminSettings.updateTotpConfig(config.value)
-  } catch (e) {
-    error.value = t('common.error')
-    throw e
-  }
+  await runWith(() => adminSettings.updateTotpConfig(config.value), { rethrow: true })
 }
-
-onMounted(load)
 </script>
 
 <template>

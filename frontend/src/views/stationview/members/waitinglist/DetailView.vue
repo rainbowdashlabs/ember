@@ -4,26 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
-import PendingSection from './detailview/PendingSection.vue'
-import NumberInput from '@/components/input/number/NumberInput.vue'
-import DateInput from '@/components/input/datetime/DateInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import OverviewSection from './detailview/OverviewSection.vue'
-import WaitingSection from './detailview/WaitingSection.vue'
-import TestingSection from './detailview/TestingSection.vue'
-import FinishedSection from './detailview/FinishedSection.vue'
-import InvitesSection from './detailview/InvitesSection.vue'
+import DetailHeader from './detailview/DetailHeader.vue'
+import LoadedSections from './detailview/LoadedSections.vue'
+import DetailModals from './detailview/DetailModals.vue'
 import type {
   WaitingList,
   WaitingListEntryWithScore,
@@ -36,6 +25,8 @@ import { StationPermission } from '@/api/types'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import { useSession } from '@/composables/useSession'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useConfirmAction } from '@/composables/useConfirmAction'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -56,27 +47,16 @@ const entries = ref<WaitingListEntryWithScore[]>([])
 const invites = ref<WaitingListInvite[]>([])
 const fields = ref<WaitingListField[]>([])
 const groups = ref<MemberGroup[]>([])
-const loading = ref(true)
-const error = ref('')
 const success = ref('')
 
-// Invite creation
 const showInviteModal = ref(false)
 const inviteMaxUses = ref<number | undefined>(undefined)
 const inviteExpiresAt = ref('')
 const creatingInvite = ref(false)
 
-
-// Delete list
 const showDeleteModal = ref(false)
 const deletingList = ref(false)
 
-// Delete entry
-const showDeleteEntryModal = ref(false)
-const deleteEntryTarget = ref<WaitingListEntryWithScore | null>(null)
-const deletingEntry = ref(false)
-
-// State transition confirmation
 type TransitionKind = 'invite' | 'testing' | 'join' | 'approve' | 'reject' | 'withdraw'
 
 interface PendingTransition {
@@ -87,7 +67,6 @@ interface PendingTransition {
 const pendingTransition = ref<PendingTransition | null>(null)
 const runningTransition = ref(false)
 
-// Computed entry groups
 const sortedEntries = computed(() =>
   [...entries.value].sort((a, b) => b.score - a.score),
 )
@@ -106,33 +85,56 @@ const finishedEntries = computed(() =>
 
 const visibleFieldIds = computed(() => new Set(list.value?.visibleFields ?? []))
 const showFieldToggle = ref(false)
-function entryFullName(item: WaitingListEntryWithScore): string {
-  const e = item.entry
-  return e.lastname ? `${e.firstname} ${e.lastname}` : e.firstname
-}
 
-async function loadData() {
-  loading.value = true
-  error.value = ''
-  try {
-    const [listData, entryData, inviteData, fieldData, groupData] = await Promise.all([
-      waitingList.getById(listId.value),
-      waitingList.listEntries(listId.value),
-      waitingList.listInvites(listId.value),
-      waitingList.listFields(listId.value),
-      memberGroups.listGroups(),
-    ])
-    list.value = listData
-    entries.value = entryData
-    invites.value = inviteData
-    fields.value = fieldData
-    groups.value = groupData
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const entryGroups = computed(() => ({
+  pending: pendingEntries.value,
+  waiting: waitingEntries.value,
+  testing: testingEntries.value,
+  finished: finishedEntries.value,
+}))
+
+const permissions = computed(() => ({
+  canManage: canManage.value,
+  canEdit: canEdit.value,
+  canAdd: canAdd.value,
+  canReadMembers: canReadMembers.value,
+}))
+
+const sectionActions = computed(() => ({
+  onListUpdated: handleListUpdated,
+  onError: showErrorMessage,
+  onSuccess: showSuccessMessage,
+  onApprove: doApproveEntry,
+  onReject: doRejectEntry,
+  onInvite: doInviteEntry,
+  onMoveToTesting: doMoveToTesting,
+  onMoveToJoined: doMoveToJoined,
+  onWithdraw: doWithdrawEntry,
+  onNavigateToEntry: navigateToEntry,
+  onNavigateToMember: navigateToMember,
+  onDeleteEntry: requestDeleteEntry,
+  onToggleField: toggleFieldVisibility,
+  onToggleFieldMenu: () => { showFieldToggle.value = !showFieldToggle.value },
+  onAddEntry: navigateToCreateEntry,
+  onCreateInvite: openInviteModal,
+  onDeleteInvite: deleteInvite,
+  onCopyLink: copyInviteLink,
+}))
+
+const {loading, error} = useAsyncLoader(async () => {
+  const [listData, entryData, inviteData, fieldData, groupData] = await Promise.all([
+    waitingList.getById(listId.value),
+    waitingList.listEntries(listId.value),
+    waitingList.listInvites(listId.value),
+    waitingList.listFields(listId.value),
+    memberGroups.listGroups(),
+  ])
+  list.value = listData
+  entries.value = entryData
+  invites.value = inviteData
+  fields.value = fieldData
+  groups.value = groupData
+})
 
 async function toggleFieldVisibility(fieldId: number) {
   if (!list.value) return
@@ -146,7 +148,6 @@ async function toggleFieldVisibility(fieldId: number) {
   }
 }
 
-// Invites
 function openInviteModal() {
   inviteMaxUses.value = undefined
   inviteExpiresAt.value = ''
@@ -187,12 +188,10 @@ async function copyInviteLink(code: string) {
   setTimeout(() => { success.value = '' }, 3000)
 }
 
-// Entries
 function navigateToCreateEntry() {
   router.push({ name: 'waiting-list-create-entry', params: { id: listId.value } })
 }
 
-// State transitions — open a confirmation modal first, run on confirm.
 function requestTransition(entryId: number, kind: TransitionKind) {
   const entry = entries.value.find(e => e.entry.id === entryId)
   if (!entry) return
@@ -204,15 +203,6 @@ const doMoveToJoined = (id: number) => requestTransition(id, 'join')
 const doApproveEntry = (id: number) => requestTransition(id, 'approve')
 const doRejectEntry = (id: number) => requestTransition(id, 'reject')
 const doWithdrawEntry = (id: number) => requestTransition(id, 'withdraw')
-
-const transitionTextKey: Record<TransitionKind, string> = {
-  invite: 'waitingList.transitionInviteText',
-  testing: 'waitingList.transitionTestingText',
-  join: 'waitingList.transitionJoinText',
-  approve: 'waitingList.transitionApproveText',
-  reject: 'waitingList.transitionRejectText',
-  withdraw: 'waitingList.transitionWithdrawText',
-}
 
 async function confirmTransition() {
   if (!pendingTransition.value || runningTransition.value) return
@@ -250,27 +240,19 @@ async function confirmTransition() {
   }
 }
 
-function requestDeleteEntry(entry: WaitingListEntryWithScore) {
-  deleteEntryTarget.value = entry
-  showDeleteEntryModal.value = true
-}
-
-async function confirmDeleteEntry() {
-  if (!deleteEntryTarget.value) return
-  deletingEntry.value = true
-  error.value = ''
-  try {
-    await waitingList.deleteEntry(listId.value, deleteEntryTarget.value.entry.id)
+const {
+  show: showDeleteEntryModal,
+  target: deleteEntryTarget,
+  request: requestDeleteEntry,
+  confirm: confirmDeleteEntry,
+} = useConfirmAction<WaitingListEntryWithScore>({
+  onConfirm: e => waitingList.deleteEntry(listId.value, e.entry.id),
+  onSuccess: async () => {
     entries.value = await waitingList.listEntries(listId.value)
-    showDeleteEntryModal.value = false
-    deleteEntryTarget.value = null
     refreshSidebarCounts()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    deletingEntry.value = false
-  }
-}
+  },
+  error,
+})
 
 function navigateToEntry(entryId: number) {
   router.push({ name: 'waiting-list-entry', params: { id: listId.value, entryId } })
@@ -314,156 +296,56 @@ function showErrorMessage(msg: string) {
   error.value = msg
 }
 
-onMounted(loadData)
 </script>
 
 <template>
   <ViewContent>
     <div class="space-y-6">
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">
-          {{ t('waitingList.back') }}
-        </SecondaryButton>
-        <div v-if="canManage" class="flex items-center gap-2 w-full sm:w-auto">
-          <SecondaryButton :icon="['fas', 'sliders']" :full-width="isMobile" class="flex-1 sm:flex-initial" @click="navigateToFields">
-            {{ t('waitingList.manageFields') }}
-          </SecondaryButton>
-          <ErrorButton :icon="['fas', 'trash']" :full-width="isMobile" class="flex-1 sm:flex-initial" @click="showDeleteModal = true">
-            {{ t('waitingList.deleteList') }}
-          </ErrorButton>
-        </div>
-      </div>
+      <DetailHeader
+        :can-manage="canManage"
+        :is-mobile="isMobile"
+        @back="goBack"
+        @manage-fields="navigateToFields"
+        @delete-list="showDeleteModal = true"
+      />
 
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
 
-      <template v-if="!loading && list">
-        <OverviewSection
-          :list="list"
-          :list-id="listId"
-          :fields="fields"
-          :groups="groups"
-          :readonly="!canManage"
-          @updated="handleListUpdated"
-          @error="showErrorMessage"
-          @success="showSuccessMessage"
-        />
+      <LoadedSections
+        v-if="!loading && list"
+        :list="list"
+        :list-id="listId"
+        :fields="fields"
+        :groups="groups"
+        :invites="invites"
+        :entry-groups="entryGroups"
+        :visible-field-ids="visibleFieldIds"
+        :is-mobile="isMobile"
+        :show-field-toggle="showFieldToggle"
+        :permissions="permissions"
+        :actions="sectionActions"
+      />
 
-        <PendingSection
-          :entries="pendingEntries"
-          :fields="fields"
-          :readonly="!canEdit"
-          @approve="doApproveEntry"
-          @reject="doRejectEntry"
-        />
-
-        <WaitingSection
-          :entries="waitingEntries"
-          :fields="fields"
-          :visible-field-ids="visibleFieldIds"
-          :is-mobile="isMobile"
-          :show-field-toggle="showFieldToggle"
-          :readonly="!canEdit"
-          :can-add="canAdd"
-          @invite="doInviteEntry"
-          @move-to-testing="doMoveToTesting"
-          @navigate-to-entry="navigateToEntry"
-          @delete-entry="requestDeleteEntry"
-          @toggle-field="toggleFieldVisibility"
-          @toggle-field-menu="showFieldToggle = !showFieldToggle"
-          @add-entry="navigateToCreateEntry"
-        />
-
-        <TestingSection
-          :entries="testingEntries"
-          :attendance-threshold="list.attendanceThreshold ?? 5"
-          :readonly="!canEdit"
-          @move-to-joined="doMoveToJoined"
-          @withdraw="doWithdrawEntry"
-          @navigate-to-entry="navigateToEntry"
-        />
-
-        <FinishedSection
-          :entries="finishedEntries"
-          :can-link-member="canReadMembers"
-          @navigate-to-entry="navigateToEntry"
-          @navigate-to-member="navigateToMember"
-        />
-
-        <InvitesSection
-          v-if="canManage"
-          :invites="invites"
-          @create-invite="openInviteModal"
-          @delete-invite="deleteInvite"
-          @copy-link="copyInviteLink"
-        />
-      </template>
-
-      <!-- Create invite modal -->
-      <Modal v-model="showInviteModal">
-        <div class="space-y-4">
-          <SectionHeader>{{ t('waitingList.createInvite') }}</SectionHeader>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('waitingList.maxUses') }}</FieldLabel>
-            <NumberInput v-model="inviteMaxUses" :placeholder="t('waitingList.maxUsesPlaceholder')" />
-            <p class="text-xs text-(--text-muted)">{{ t('waitingList.maxUsesHint') }}</p>
-          </div>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('waitingList.expiresAt') }}</FieldLabel>
-            <DateInput v-model="inviteExpiresAt" />
-            <p class="text-xs text-(--text-muted)">{{ t('waitingList.expiresAtHint') }}</p>
-          </div>
-          <div class="flex justify-end gap-2">
-            <SecondaryButton @click="showInviteModal = false">{{ t('common.cancel') }}</SecondaryButton>
-            <PrimaryButton :disabled="creatingInvite" @click="createInvite">
-              {{ creatingInvite ? t('common.loading') : t('waitingList.createInvite') }}
-            </PrimaryButton>
-          </div>
-        </div>
-      </Modal>
-
-      <!-- Delete list modal -->
-      <Modal v-model="showDeleteModal">
-        <div class="space-y-4">
-          <SectionHeader>{{ t('waitingList.deleteListTitle') }}</SectionHeader>
-          <p class="text-sm">{{ t('waitingList.deleteListConfirm', { name: list?.name }) }}</p>
-          <div class="flex justify-end gap-2">
-            <SecondaryButton @click="showDeleteModal = false">{{ t('common.cancel') }}</SecondaryButton>
-            <ErrorButton :disabled="deletingList" @click="confirmDeleteList">
-              {{ deletingList ? t('common.loading') : t('waitingList.deleteList') }}
-            </ErrorButton>
-          </div>
-        </div>
-      </Modal>
-
-      <!-- State transition confirmation modal -->
-      <Modal :model-value="pendingTransition !== null" @update:model-value="(v: boolean) => { if (!v) pendingTransition = null }">
-        <div v-if="pendingTransition" class="space-y-4">
-          <SectionHeader>{{ t('waitingList.transitionConfirmTitle') }}</SectionHeader>
-          <p class="text-sm">{{ t(transitionTextKey[pendingTransition.kind], { name: entryFullName(pendingTransition.entry) }) }}</p>
-          <div class="flex justify-end gap-2">
-            <SecondaryButton @click="pendingTransition = null">{{ t('common.cancel') }}</SecondaryButton>
-            <PrimaryButton :disabled="runningTransition" @click="confirmTransition">
-              {{ runningTransition ? t('common.loading') : t('waitingList.transitionConfirmAction') }}
-            </PrimaryButton>
-          </div>
-        </div>
-      </Modal>
-
-      <!-- Delete entry modal -->
-      <Modal v-model="showDeleteEntryModal">
-        <div class="space-y-4">
-          <SectionHeader>{{ t('waitingList.deleteEntryTitle') }}</SectionHeader>
-          <p class="text-sm">{{ t('waitingList.deleteEntryConfirm', { name: deleteEntryTarget ? entryFullName(deleteEntryTarget) : '' }) }}</p>
-          <div class="flex justify-end gap-2">
-            <SecondaryButton @click="showDeleteEntryModal = false">{{ t('common.cancel') }}</SecondaryButton>
-            <ErrorButton :disabled="deletingEntry" @click="confirmDeleteEntry">
-              {{ deletingEntry ? t('common.loading') : t('common.delete') }}
-            </ErrorButton>
-          </div>
-        </div>
-      </Modal>
+      <DetailModals
+        v-model:show-invite="showInviteModal"
+        v-model:invite-max-uses="inviteMaxUses"
+        v-model:invite-expires-at="inviteExpiresAt"
+        :creating-invite="creatingInvite"
+        v-model:show-delete="showDeleteModal"
+        :list-name="list?.name"
+        :deleting-list="deletingList"
+        :pending-transition="pendingTransition"
+        :running-transition="runningTransition"
+        v-model:show-delete-entry="showDeleteEntryModal"
+        :delete-entry-target="deleteEntryTarget"
+        @submit-invite="createInvite"
+        @confirm-delete-list="confirmDeleteList"
+        @cancel-transition="pendingTransition = null"
+        @confirm-transition="confirmTransition"
+        @confirm-delete-entry="confirmDeleteEntry"
+      />
     </div>
   </ViewContent>
 </template>

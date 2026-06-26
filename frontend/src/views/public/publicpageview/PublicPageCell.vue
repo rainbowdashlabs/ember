@@ -12,6 +12,7 @@ import {publicPageImageUrl} from '@/api/publicPages'
 import CellLayoutRender from '@/views/stationview/pages/pageeditorview/CellLayoutRender.vue'
 import CellImagePreview from '@/views/stationview/pages/pageeditorview/CellImagePreview.vue'
 import {enhancePageMarkdownImages} from '@/util/pageMarkdownImages'
+import {isYoutubeUrl, youtubeEmbedUrl as toYoutubeEmbedUrl} from '@/util/youtube'
 
 const props = defineProps<{
     cell: PageCell
@@ -32,25 +33,11 @@ const nestedRows = computed<NestedRow[]>(() => {
 })
 
 function isYouTube(url: string): boolean {
-    return /youtube\.com|youtu\.be/.test(url)
-}
-
-function extractYoutubeId(url: string): string | null {
-    const patterns = [
-        /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
-        /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-        /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
-    ]
-    for (const pattern of patterns) {
-        const match = url.match(pattern)
-        if (match) return match[1]
-    }
-    return null
+    return isYoutubeUrl(url)
 }
 
 function youtubeEmbedUrl(url: string): string | null {
-    const id = extractYoutubeId(url)
-    return id ? `https://www.youtube-nocookie.com/embed/${id}` : null
+    return toYoutubeEmbedUrl(url)
 }
 
 function imageConfig(cell: PageCell): ImageConfig {

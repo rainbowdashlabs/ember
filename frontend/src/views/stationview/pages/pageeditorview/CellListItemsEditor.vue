@@ -22,8 +22,9 @@ export interface ItemFieldDef {
     span?: 1 | 2 | 3
 }
 
+const items = defineModel<T[] | undefined | null>('items')
+
 const props = withDefaults(defineProps<{
-    items: T[] | undefined | null
     fields: ItemFieldDef[]
     addLabel?: string
     /** Columns in the per-item grid (defaults to the widest field span sum, capped at 2). */
@@ -32,26 +33,21 @@ const props = withDefaults(defineProps<{
     gridCols: 2,
 })
 
-const emit = defineEmits<{
-    'update:items': [value: T[]]
-}>()
-
 const {t} = useI18n()
 
-const safeItems = computed<T[]>(() => Array.isArray(props.items) ? props.items : [])
+const safeItems = computed<T[]>(() => Array.isArray(items.value) ? items.value : [])
 
 function setField(itemIndex: number, key: string, value: unknown) {
-    const next = safeItems.value.map((it, i) => i === itemIndex ? {...it, [key]: value} : it)
-    emit('update:items', next)
+    items.value = safeItems.value.map((it, i) => i === itemIndex ? {...it, [key]: value} : it)
 }
 
 function addItem() {
     const empty = Object.fromEntries(props.fields.map(f => [f.key, f.type === 'number' ? null : ''])) as T
-    emit('update:items', [...safeItems.value, empty])
+    items.value = [...safeItems.value, empty]
 }
 
 function removeItem(index: number) {
-    emit('update:items', safeItems.value.filter((_, i) => i !== index))
+    items.value = safeItems.value.filter((_, i) => i !== index)
 }
 
 function moveItem(index: number, delta: number) {
@@ -60,7 +56,7 @@ function moveItem(index: number, delta: number) {
     if (target < 0 || target >= next.length) return
     const [moved] = next.splice(index, 1)
     next.splice(target, 0, moved)
-    emit('update:items', next)
+    items.value = next
 }
 
 const gridClass = computed(() => `grid-cols-1 sm:grid-cols-${props.gridCols}`)

@@ -16,6 +16,8 @@ import dev.chojo.ember.feature.twofactor.entity.TwoFactorPolicy;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
@@ -34,6 +36,7 @@ import java.util.Objects;
  */
 @Singleton
 public class TwoFactorPolicyService {
+    private static final Logger log = LoggerFactory.getLogger(TwoFactorPolicyService.class);
     private static final List<StationUserType> ASSIGNABLE_USER_TYPES =
             List.of(StationUserType.MEMBER, StationUserType.GUARDIAN, StationUserType.TEAM, StationUserType.MANAGER);
 
@@ -78,18 +81,39 @@ public class TwoFactorPolicyService {
 
     public TwoFactorPolicy setInstancePolicy(
             StationUserType userType, boolean required, short graceDays, Integer createdBy) {
-        return repository.upsertPolicy(
+        var policy = repository.upsertPolicy(
                 TwoFactorPolicy.Scope.INSTANCE, null, userType, required, clampGrace(graceDays), createdBy);
+        log.info(
+                "2FA instance policy set: userType={}, required={}, graceDays={}, by actor {}",
+                userType,
+                required,
+                clampGrace(graceDays),
+                createdBy);
+        return policy;
     }
 
     public TwoFactorPolicy setStationPolicy(
             int stationId, StationUserType userType, boolean required, short graceDays, Integer createdBy) {
-        return repository.upsertPolicy(
+        var policy = repository.upsertPolicy(
                 TwoFactorPolicy.Scope.STATION, stationId, userType, required, clampGrace(graceDays), createdBy);
+        log.info(
+                "2FA station policy set for station {}: userType={}, required={}, graceDays={}, by actor {}",
+                stationId,
+                userType,
+                required,
+                clampGrace(graceDays),
+                createdBy);
+        return policy;
     }
 
     public boolean deletePolicy(int policyId) {
-        return repository.deletePolicy(policyId);
+        boolean deleted = repository.deletePolicy(policyId);
+        if (deleted) {
+            log.info("2FA policy {} deleted", policyId);
+        } else {
+            log.warn("2FA policy delete missed: id {}", policyId);
+        }
+        return deleted;
     }
 
     /**

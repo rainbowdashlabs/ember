@@ -4,9 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -27,8 +28,9 @@ interface SavedFilter {
   multiFilters: Record<string, string[]>
 }
 
+const filterText = defineModel<string>('filterText', {required: true})
+
 const props = defineProps<{
-  filterText: string
   savedFilters: SavedFilter[]
   overviewFields: ProfileField[]
   nonOverviewFields: ProfileField[]
@@ -54,7 +56,6 @@ function isColumnVisible(fieldId: number): boolean {
 }
 
 const emit = defineEmits<{
-  'update:filterText': [value: string]
   clearFilters: []
   applyFilter: [preset: SavedFilter]
   deleteFilter: [index: number]
@@ -65,11 +66,6 @@ const emit = defineEmits<{
   filter: [criteria: FilterCriteria]
 }>()
 
-interface SearchInputRef {
-  $el: HTMLInputElement
-}
-
-const searchInput = ref<SearchInputRef | null>(null)
 const showColumnPicker = ref(false)
 const showSaveFilter = ref(false)
 const filterPresetName = ref('')
@@ -108,13 +104,6 @@ function onModeChange(mode: 'AND' | 'OR') {
   emitFilter()
 }
 
-onMounted(() => {
-  nextTick(() => {
-    const el = searchInput.value?.$el
-    if (el instanceof HTMLInputElement) el.focus()
-  })
-})
-
 function submitSaveFilter() {
   if (!filterPresetName.value.trim()) return
   emit('saveFilter', filterPresetName.value.trim())
@@ -152,7 +141,7 @@ function submitSaveFilter() {
   />
 
   <div class="space-y-2">
-    <TextInput ref="searchInput" :model-value="filterText" :placeholder="t('membersList.filter')" class="w-full" @update:model-value="(v: string | undefined) => emit('update:filterText', v ?? '')" />
+    <SearchInput v-model="filterText" :placeholder="t('membersList.filter')" autofocus />
     <div class="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-2">
       <div class="relative">
         <SecondaryButton :icon="['fas', 'table-columns']" :full-width="isMobile" @click="showColumnPicker = !showColumnPicker">

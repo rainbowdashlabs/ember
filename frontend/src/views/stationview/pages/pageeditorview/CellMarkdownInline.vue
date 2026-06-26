@@ -17,28 +17,22 @@ import CellMarkdownEditor from './CellMarkdownEditor.vue'
  * Owns the modal/draft state so the parent only needs to provide the current content and react to
  * updates.
  */
-const props = defineProps<{
-    content: string
-}>()
-
-const emit = defineEmits<{
-    'update:content': [value: string]
-}>()
+const content = defineModel<string>('content', {required: true})
 
 const {t} = useI18n()
 
 const showModal = ref(false)
 const draft = ref('')
 
-const renderedHtml = computed(() => props.content ? (marked.parse(props.content) as string) : '')
+const renderedHtml = computed(() => content.value ? (marked.parse(content.value) as string) : '')
 
 function openEditor() {
-    draft.value = props.content
+    draft.value = content.value
     showModal.value = true
 }
 
 function apply() {
-    emit('update:content', draft.value)
+    content.value = draft.value
     showModal.value = false
 }
 </script>
@@ -57,9 +51,8 @@ function apply() {
         <div class="space-y-3 flex flex-col h-[80vh]">
             <SectionHeader>{{ t('stationPages.editor.editMarkdown') }}</SectionHeader>
             <CellMarkdownEditor
+                v-model:content="draft"
                 class="flex-1 flex flex-col min-h-0"
-                :content="draft"
-                @update:content="draft = $event"
             />
             <div class="flex justify-end">
                 <PrimaryButton @click="apply">{{ t('common.save') }}</PrimaryButton>

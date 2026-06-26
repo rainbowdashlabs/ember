@@ -1,0 +1,58 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+<script setup lang="ts">
+import {useI18n} from 'vue-i18n'
+import TextInput from '@/components/input/text/TextInput.vue'
+import PasswordInput from '@/components/input/text/PasswordInput.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import Alert from '@/components/feedback/Alert.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+
+const props = defineProps<{
+  error: string
+  loading: boolean
+  registrationEnabled: boolean
+}>()
+
+const emit = defineEmits<{
+  (e: 'submit'): void
+}>()
+
+const email = defineModel<string>('email', {required: true})
+const password = defineModel<string>('password', {required: true})
+
+const {t} = useI18n()
+</script>
+
+<template>
+  <form class="space-y-4" @submit.prevent="emit('submit')">
+    <Alert v-if="props.error" variant="error">{{ props.error }}</Alert>
+
+    <div class="space-y-1">
+      <FieldLabel>{{ t('login.email') }}</FieldLabel>
+      <TextInput v-model="email"
+                 :disabled="props.loading" :placeholder="t('login.email')"/>
+    </div>
+
+    <div class="space-y-1">
+      <FieldLabel>{{ t('login.password') }}</FieldLabel>
+      <PasswordInput v-model="password"
+                     :disabled="props.loading" :placeholder="t('login.password')"/>
+    </div>
+
+    <PrimaryButton :disabled="props.loading || !email || !password" class="w-full" @click="emit('submit')">
+      {{ props.loading ? t('common.loading') : t('login.submit') }}
+    </PrimaryButton>
+
+    <router-link class="block w-full text-center text-sm text-(--text-muted) hover:text-(--text) transition-colors"
+                 to="/forgot-password">
+      {{ t('login.forgotPassword') }}
+    </router-link>
+    <router-link v-if="props.registrationEnabled" class="block w-full text-center text-sm text-primary hover:underline" to="/apply">
+      {{ t('login.applyForStation') }}
+    </router-link>
+  </form>
+</template>

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -18,6 +18,7 @@ import CsvImportDialog from './CsvImportDialog.vue'
 import type { QuizCatalogDetail, QuizQuestion } from '@/api/types'
 import { quiz, federation, storage } from '@/api'
 import { useSession } from '@/composables/useSession'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -41,35 +42,20 @@ const readonly = computed(() => isFederated.value || !canEdit.value)
 
 const catalog = ref<QuizCatalogDetail | null>(null)
 const questions = ref<QuizQuestion[]>([])
-const loading = ref(true)
-const error = ref('')
 
-// CSV import
 const showCsvImport = ref(false)
 
 const catalogHeaderRef = ref<InstanceType<typeof CatalogHeader> | null>(null)
 
-// --- Data Loading ---
-
-async function loadData() {
-  loading.value = true
-  error.value = ''
-  try {
-    const [catalogData, questionsData] = await Promise.all([
-      quiz.getCatalog(catalogId.value),
-      quiz.listQuestions(catalogId.value),
-    ])
-    catalog.value = catalogData
-    questions.value = questionsData
-    catalogHeaderRef.value?.resetForm()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
-
-// --- Catalog Update ---
+const { loading, error, reload: loadData } = useAsyncLoader(async () => {
+  const [catalogData, questionsData] = await Promise.all([
+    quiz.getCatalog(catalogId.value),
+    quiz.listQuestions(catalogId.value),
+  ])
+  catalog.value = catalogData
+  questions.value = questionsData
+  catalogHeaderRef.value?.resetForm()
+}, { autoLoad: false })
 
 async function saveCatalog(payload: { name: string; description: string; trainingEnabled: boolean }) {
   error.value = ''
@@ -100,13 +86,7 @@ function onError(message: string) {
   error.value = message
 }
 
-onMounted(() => {
-  if (loaded.value) loadData()
-})
-
-watch(loaded, (isLoaded) => {
-  if (isLoaded && loading.value) loadData()
-})
+watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 </script>
 
 <template>
@@ -149,10 +129,9 @@ watch(loaded, (isLoaded) => {
       <!-- CSV Import Dialog -->
       <CsvImportDialog
         v-if="!readonly"
-        :show="showCsvImport"
+        v-model:show="showCsvImport"
         :catalog-id="catalogId"
         :categories="catalog?.categories ?? []"
-        @update:show="showCsvImport = $event"
         @imported="onCsvImported"
       />
     </div>

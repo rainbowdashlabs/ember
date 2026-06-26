@@ -18,9 +18,9 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import TimeShortInput from '@/components/input/datetime/TimeShortInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import MemberAttendanceRow from './sessionhelp/MemberAttendanceRow.vue'
 
 const {t} = useI18n()
 </script>
@@ -76,70 +76,9 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.attendanceSession.memberEntryText') }}</p>
       <SubHeader>Anfänger</SubHeader>
       <div class="space-y-1">
-        <div class="rounded-lg px-4 py-3 border-l-4 transition-all border-success bg-success/5">
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div class="flex items-center gap-2 min-w-0">
-              <font-awesome-icon :icon="['fas', 'check']" class="h-4 w-4 text-success shrink-0"/>
-              <span class="font-medium text-sm">Max Mustermann</span>
-            </div>
-            <div class="flex flex-col sm:flex-row sm:items-center gap-2">
-              <div class="flex items-center gap-2">
-                <SuccessButton class="opacity-40" disabled>
-                  <font-awesome-icon :icon="['fas', 'check']"/>
-                </SuccessButton>
-                <ErrorButton disabled>
-                  <font-awesome-icon :icon="['fas', 'xmark']"/>
-                </ErrorButton>
-                <InfoButton disabled>
-                  <font-awesome-icon :icon="['fas', 'ban']"/>
-                </InfoButton>
-              </div>
-              <div class="flex items-center gap-1 text-xs">
-                <TimeShortInput :model-value="'18:00'" class="w-20 text-xs" disabled />
-                <span class="text-(--text-muted)">–</span>
-                <TimeShortInput :model-value="'20:15'" class="w-20 text-xs" disabled />
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="rounded-lg px-4 py-3 border-l-4 transition-all border-error bg-error/5">
-          <div class="flex items-center justify-between flex-wrap gap-2">
-            <div class="flex items-center gap-2 min-w-0">
-              <font-awesome-icon :icon="['fas', 'xmark']" class="h-4 w-4 text-error shrink-0"/>
-              <span class="font-medium text-sm">Erika Muster</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <SuccessButton disabled>
-                <font-awesome-icon :icon="['fas', 'check']"/>
-              </SuccessButton>
-              <ErrorButton class="opacity-40" disabled>
-                <font-awesome-icon :icon="['fas', 'xmark']"/>
-              </ErrorButton>
-              <InfoButton disabled>
-                <font-awesome-icon :icon="['fas', 'ban']"/>
-              </InfoButton>
-            </div>
-          </div>
-        </div>
-        <div class="rounded-lg px-4 py-3 border-l-4 transition-all border-bg-light-accent dark:border-bg-dark-accent bg-bg-light-accent/20 dark:bg-bg-dark-accent/20">
-          <div class="flex items-center justify-between flex-wrap gap-2">
-            <div class="flex items-center gap-2 min-w-0">
-              <font-awesome-icon :icon="['fas', 'asterisk']" class="h-4 w-4 text-(--text-muted) shrink-0"/>
-              <span class="font-medium text-sm">Anna Schmidt</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <SuccessButton disabled>
-                <font-awesome-icon :icon="['fas', 'check']"/>
-              </SuccessButton>
-              <ErrorButton disabled>
-                <font-awesome-icon :icon="['fas', 'xmark']"/>
-              </ErrorButton>
-              <InfoButton disabled>
-                <font-awesome-icon :icon="['fas', 'ban']"/>
-              </InfoButton>
-            </div>
-          </div>
-        </div>
+        <MemberAttendanceRow name="Max Mustermann" status="present" check-in="18:00" check-out="20:15"/>
+        <MemberAttendanceRow name="Erika Muster" status="absent"/>
+        <MemberAttendanceRow name="Anna Schmidt" status="open"/>
       </div>
     </HelpSection>
 

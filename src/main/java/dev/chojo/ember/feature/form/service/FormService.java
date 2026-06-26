@@ -33,6 +33,8 @@ import dev.chojo.ember.feature.system.service.RequirementsService;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -48,6 +50,7 @@ import java.util.stream.Collectors;
  */
 @Singleton
 public class FormService {
+    private static final Logger log = LoggerFactory.getLogger(FormService.class);
     private final FormRepository repository;
     private final StationMemberService memberService;
     private final MemberGroupService groupService;
@@ -108,6 +111,7 @@ public class FormService {
      */
     public void updateRestrictionMode(int formId, RestrictionMode mode) {
         repository.updateRestrictionMode(formId, mode);
+        log.info("Updated form {} restriction mode to {}", formId, mode);
     }
 
     // -- Forms --
@@ -193,8 +197,10 @@ public class FormService {
             Instant endAt,
             int createdBy,
             FormPurpose purpose) {
-        return repository.create(
+        var form = repository.create(
                 stationId, title, description, shuffleQuestions, allowEdit, startAt, endAt, createdBy, purpose);
+        log.info("Created form {} (station {}, purpose {}, createdBy {})", form.id(), stationId, purpose, createdBy);
+        return form;
     }
 
     /**
@@ -217,7 +223,13 @@ public class FormService {
             boolean allowEdit,
             Instant startAt,
             Instant endAt) {
-        return repository.update(id, title, description, shuffleQuestions, allowEdit, startAt, endAt);
+        boolean updated = repository.update(id, title, description, shuffleQuestions, allowEdit, startAt, endAt);
+        if (updated) {
+            log.info("Updated form {}", id);
+        } else {
+            log.warn("Form update affected zero rows for form {}", id);
+        }
+        return updated;
     }
 
     /**
@@ -231,6 +243,9 @@ public class FormService {
         boolean deleted = repository.delete(id);
         if (deleted && form != null) {
             eventBus.publish(new FormDeleted(form.stationId(), id));
+            log.info("Deleted form {} (station {})", id, form.stationId());
+        } else if (!deleted) {
+            log.warn("Form delete affected zero rows for form {}", id);
         }
         return deleted;
     }
@@ -246,6 +261,9 @@ public class FormService {
         boolean updated = repository.updateStatus(id, Form.FormStatus.OPEN);
         if (updated && form != null) {
             eventBus.publish(new FormPublished(form.stationId(), id, form.title()));
+            log.info("Published form {} (station {})", id, form.stationId());
+        } else if (!updated) {
+            log.warn("Form publish affected zero rows for form {}", id);
         }
         return updated;
     }
@@ -257,7 +275,13 @@ public class FormService {
      * @return {@code true} if the status was updated
      */
     public boolean close(int id) {
-        return repository.updateStatus(id, Form.FormStatus.CLOSED);
+        boolean updated = repository.updateStatus(id, Form.FormStatus.CLOSED);
+        if (updated) {
+            log.info("Closed form {}", id);
+        } else {
+            log.warn("Form close affected zero rows for form {}", id);
+        }
+        return updated;
     }
 
     /**
@@ -308,8 +332,10 @@ public class FormService {
             boolean required,
             boolean shuffle,
             FormQuestionConfig config) {
-        return repository.createQuestion(
+        var question = repository.createQuestion(
                 formId, position, formQuestionType, title, description, required, shuffle, config);
+        log.info("Created question {} on form {} (type {})", question.id(), formId, formQuestionType);
+        return question;
     }
 
     /**
@@ -320,7 +346,13 @@ public class FormService {
      */
     // Individual CRUD — routes use replaceQuestions() instead, kept for programmatic use
     public boolean deleteQuestion(int id) {
-        return repository.deleteQuestion(id);
+        boolean deleted = repository.deleteQuestion(id);
+        if (deleted) {
+            log.info("Deleted question {}", id);
+        } else {
+            log.warn("Question delete affected zero rows for question {}", id);
+        }
+        return deleted;
     }
 
     /**
@@ -336,6 +368,7 @@ public class FormService {
             repository.createQuestion(
                     formId, i, q.formQuestionType(), q.title(), q.description(), q.required(), q.shuffle(), q.config());
         }
+        log.info("Replaced questions on form {} ({} questions)", formId, questions.size());
     }
 
     // -- Responses --
@@ -374,6 +407,7 @@ public class FormService {
      */
     public void acknowledgeResponse(int responseId, int acknowledgerMemberId) {
         repository.acknowledgeResponse(responseId, acknowledgerMemberId);
+        log.info("Acknowledged form response {} by member {}", responseId, acknowledgerMemberId);
     }
 
     /**
@@ -414,6 +448,12 @@ public class FormService {
         for (var entry : answers.entrySet()) {
             repository.upsertAnswer(response.id(), entry.getKey(), entry.getValue());
         }
+        log.info(
+                "Submitted form response {} for form {} (member {}, submittedBy {})",
+                response.id(),
+                formId,
+                memberId,
+                submittedBy);
         return response;
     }
 
@@ -436,6 +476,7 @@ public class FormService {
         for (var entry : answers.entrySet()) {
             repository.upsertAnswer(response.id(), entry.getKey(), entry.getValue());
         }
+        log.info("Submitted anonymous form response {} for form {}", response.id(), formId);
         return response;
     }
 
@@ -492,6 +533,7 @@ public class FormService {
                 groupIds != null ? groupIds : List.of(),
                 tagIds != null ? tagIds : List.of(),
                 memberIds != null ? memberIds : List.of());
+        log.info("Updated access restrictions for form {}", formId);
     }
 
     // -- Restrictions --

@@ -16,8 +16,9 @@ import EventFieldValueInput from '@/components/input/EventFieldValueInput.vue'
 import type {AttendanceTemplateField, EventFieldEntry, MemberGroup, StationMember} from '@/api/types'
 import {EventFieldTypes} from '@/api/types'
 
+const modelValue = defineModel<EventFieldEntry>({required: true})
+
 const props = defineProps<{
-  modelValue: EventFieldEntry
   attendanceFields?: AttendanceTemplateField[]
   showValue?: boolean
   allMembers?: StationMember[]
@@ -26,7 +27,6 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  'update:modelValue': [value: EventFieldEntry]
   remove: []
 }>()
 
@@ -48,17 +48,17 @@ const fieldTypeOptions = [
   {value: EventFieldTypes.MEMBER_LIST_OF_GROUP, label: t('eventFields.typeMemberListOfGroup')},
 ]
 
-const name = ref(props.modelValue.name ?? '')
-const fieldType = ref(props.modelValue.fieldType ?? 'STRING')
-const fieldValue = ref(props.modelValue.value ?? '')
-const overview = ref(props.modelValue.overview ?? false)
-const isPublic = ref(props.modelValue.isPublic ?? false)
-const attendanceFieldId = ref<number | null>(props.modelValue.attendanceFieldId ?? null)
+const name = ref(modelValue.value.name ?? '')
+const fieldType = ref(modelValue.value.fieldType ?? 'STRING')
+const fieldValue = ref(modelValue.value.value ?? '')
+const overview = ref(modelValue.value.overview ?? false)
+const isPublic = ref(modelValue.value.isPublic ?? false)
+const attendanceFieldId = ref<number | null>(modelValue.value.attendanceFieldId ?? null)
 const enumOptions = ref('')
 const groupId = ref<string>('')
 
 function parseConfig(): Record<string, unknown> {
-  return props.modelValue.config ?? {}
+  return modelValue.value.config ?? {}
 }
 
 // Initialize from config
@@ -101,7 +101,7 @@ const entry = computed<EventFieldEntry>(() => ({
   attendanceFieldId: attendanceFieldId.value,
 }))
 
-watch(entry, val => emit('update:modelValue', val), {deep: true})
+watch(entry, val => { modelValue.value = val }, {deep: true})
 </script>
 
 <template>

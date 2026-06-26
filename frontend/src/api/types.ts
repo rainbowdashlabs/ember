@@ -14,6 +14,19 @@ export const StationUserType = {
 } as const
 export type StationUserTypeName = (typeof StationUserType)[keyof typeof StationUserType]
 
+/**
+ * Human-readable German labels for each station user type. Single source of truth
+ * for any picker, badge, filter, or summary that needs to render a user type name
+ * without going through i18n.
+ */
+export const StationUserTypeLabels: Record<StationUserTypeName, string> = {
+    TRIAL: 'Probe',
+    MEMBER: 'Mitglied',
+    GUARDIAN: 'Erziehungsberechtigter',
+    TEAM: 'Team',
+    MANAGER: 'Manager',
+}
+
 // -- Station Permissions --
 
 export const StationPermission = {
@@ -34,6 +47,8 @@ export const StationPermission = {
     INVENTORY_CHECK: 'INVENTORY_CHECK',
     INVENTORY_LENDING_REQUEST: 'INVENTORY_LENDING_REQUEST',
     INVENTORY_LENDING_MANAGER: 'INVENTORY_LENDING_MANAGER',
+    INVENTORY_ASSIGN: 'INVENTORY_ASSIGN',
+    INVENTORY_STORAGE: 'INVENTORY_STORAGE',
     INVENTORY_MANAGER: 'INVENTORY_MANAGER',
     EVENT_MANAGE_TEMPLATE: 'EVENT_MANAGE_TEMPLATE',
     EVENT_MANAGE_CATEGORY: 'EVENT_MANAGE_CATEGORY',
@@ -1046,13 +1061,19 @@ export interface InventoryItem {
     assignedTo?: number | null
     lostAt?: string | null
     itemSource?: string | null
+    containerId?: number | null
+}
+
+export interface ItemMetadata {
+    owned: boolean
+    fields: Record<string, {kind: string; value: unknown}>
 }
 
 export interface ItemRequest {
     internalId?: string
     name?: string
     sizeId?: number
-    metadata?: string
+    metadata?: ItemMetadata
     itemSource?: string
 }
 

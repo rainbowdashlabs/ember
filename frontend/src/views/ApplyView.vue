@@ -6,15 +6,13 @@
 <script lang="ts" setup>
 import {ref, onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import {stationApplications, adminSettings} from '@/api'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
+import ApplyForm from '@/views/applyview/ApplyForm.vue'
+import BackToLoginLink from '@/views/applyview/BackToLoginLink.vue'
 
 const {t} = useI18n()
 
@@ -33,7 +31,7 @@ onMounted(async () => {
   try {
     registrationEnabled.value = await adminSettings.isRegistrationEnabled()
   } catch {
-    // default to enabled if check fails
+    registrationEnabled.value = true
   } finally {
     loading.value = false
   }
@@ -75,63 +73,21 @@ async function submit() {
 
       <template v-if="!loading && !registrationEnabled">
         <Alert variant="info">{{ t('apply.disabled') }}</Alert>
-        <div class="text-center">
-          <router-link class="text-sm text-primary hover:underline" to="/login">{{
-              t('apply.backToLogin')
-            }}
-          </router-link>
-        </div>
+        <BackToLoginLink/>
       </template>
 
       <template v-if="!loading && registrationEnabled && !submitted">
         <p class="text-sm text-(--text-muted)">{{ t('apply.hint') }}</p>
-
         <Alert v-if="error" variant="error">{{ error }}</Alert>
-
-        <form class="space-y-4" @submit.prevent="submit">
-          <div class="space-y-1">
-            <FieldLabel>{{ t('apply.firstName') }}</FieldLabel>
-            <TextInput v-model="firstName" :placeholder="t('apply.firstNamePlaceholder')"/>
-          </div>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('apply.lastName') }}</FieldLabel>
-            <TextInput v-model="lastName" :placeholder="t('apply.lastNamePlaceholder')"/>
-          </div>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('apply.email') }}</FieldLabel>
-            <TextInput v-model="email" :placeholder="t('apply.emailPlaceholder')"/>
-            <p class="text-xs text-(--text-muted)">{{ t('apply.emailHint') }}</p>
-          </div>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('apply.stationName') }}</FieldLabel>
-            <TextInput v-model="stationName" :placeholder="t('apply.stationNamePlaceholder')"/>
-          </div>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('apply.introduction') }}</FieldLabel>
-            <TextAreaInput v-model="introduction" :placeholder="t('apply.introductionPlaceholder')"/>
-            <p class="text-xs text-(--text-muted)">{{ t('apply.introductionHint') }}</p>
-          </div>
-          <PrimaryButton :disabled="submitting" class="w-full" type="submit">
-            {{ submitting ? t('common.loading') : t('apply.submit') }}
-          </PrimaryButton>
-        </form>
-
-        <div class="text-center">
-          <router-link class="text-sm text-primary hover:underline" to="/login">{{
-              t('apply.backToLogin')
-            }}
-          </router-link>
-        </div>
+        <ApplyForm v-model:first-name="firstName" v-model:last-name="lastName" v-model:email="email"
+                   v-model:station-name="stationName" v-model:introduction="introduction"
+                   :submitting="submitting" @submit="submit"/>
+        <BackToLoginLink/>
       </template>
 
       <template v-else>
         <Alert variant="success">{{ t('apply.success') }}</Alert>
-        <div class="text-center">
-          <router-link class="text-sm text-primary hover:underline" to="/login">{{
-              t('apply.backToLogin')
-            }}
-          </router-link>
-        </div>
+        <BackToLoginLink/>
       </template>
     </div>
   </div>

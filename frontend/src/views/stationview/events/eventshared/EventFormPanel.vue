@@ -14,7 +14,7 @@ import ToggleSwitch from '@/components/input/toggle/ToggleSwitch.vue'
 import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
+import RestrictionsField from '@/components/input/RestrictionsField.vue'
 import EventFieldList from './EventFieldList.vue'
 import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, MemberGroup, StationMember, UserTag} from '@/api/types'
 import {EventTypes, needsDayOfWeek} from '@/api/types'
@@ -52,9 +52,9 @@ const hasThreshold = defineModel<boolean>('hasThreshold')
 const thresholdDate = defineModel<string>('thresholdDate')
 const registrationCloseDays = defineModel<number>('registrationCloseDays')
 
-const selectedUserTypes = defineModel<string[]>('selectedUserTypes')
-const selectedGroupIds = defineModel<number[]>('selectedGroupIds')
-const selectedTagIds = defineModel<number[]>('selectedTagIds')
+const selectedUserTypes = defineModel<string[]>('selectedUserTypes', {default: () => []})
+const selectedGroupIds = defineModel<number[]>('selectedGroupIds', {default: () => []})
+const selectedTagIds = defineModel<number[]>('selectedTagIds', {default: () => []})
 
 const {t} = useI18n()
 </script>
@@ -197,32 +197,28 @@ const {t} = useI18n()
     </template>
 
     <!-- Restrictions -->
-    <template v-if="groups && tags && selectedUserTypes !== undefined">
+    <template v-if="groups && tags">
       <hr class="border-(--border)"/>
       <SubHeader>{{ t('events.restrictions') }}</SubHeader>
       <p class="text-xs text-(--text-muted)">{{ t('events.restrictToRolesHint') }}</p>
-      <RestrictionPicker
+      <RestrictionsField
           :groups="groups"
           :tags="tags"
-          :selected-user-types="selectedUserTypes ?? []"
-          :selected-group-ids="selectedGroupIds ?? []"
-          :selected-tag-ids="selectedTagIds ?? []"
-          @update:selected-user-types="selectedUserTypes = $event"
-          @update:selected-group-ids="selectedGroupIds = $event"
-          @update:selected-tag-ids="selectedTagIds = $event"
+          v-model:selected-user-types="selectedUserTypes"
+          v-model:selected-group-ids="selectedGroupIds"
+          v-model:selected-tag-ids="selectedTagIds"
       />
     </template>
 
     <!-- Event Fields -->
     <hr class="border-(--border)"/>
     <EventFieldList
-        :fields="fields"
+        v-model:fields="fields"
         :attendance-fields="attendanceFields"
         :show-value="showValue"
         :all-members="allMembers"
         :groups="groups"
         :group-members="groupMembers"
-        @update:fields="fields = $event"
     />
   </div>
 </template>

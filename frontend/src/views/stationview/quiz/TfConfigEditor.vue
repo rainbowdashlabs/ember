@@ -10,16 +10,10 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const { t } = useI18n()
 
-const props = defineProps<{
-  config: Record<string, unknown>
-}>()
-
-const emit = defineEmits<{
-  'update:config': [value: Record<string, unknown>]
-}>()
+const config = defineModel<Record<string, unknown>>('config', {required: true})
 
 function updateConfig(patch: Record<string, unknown>) {
-  emit('update:config', { ...props.config, ...patch })
+  config.value = { ...config.value, ...patch }
 }
 </script>
 

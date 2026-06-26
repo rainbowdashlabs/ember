@@ -28,16 +28,15 @@ const props = defineProps<{
     lanes: BoardLane[]
     members: MemberCompletion[]
     priorityOptions: { value: string; label: string; icon: string[]; color?: string }[]
-    showAddLink: boolean
-    showAddWeblink: boolean
     readonly?: boolean
     partnerUid?: string
 }>()
 
+const showAddLink = defineModel<boolean>('showAddLink', {required: true})
+const showAddWeblink = defineModel<boolean>('showAddWeblink', {required: true})
+
 const emit = defineEmits<{
     reload: []
-    'update:showAddLink': [value: boolean]
-    'update:showAddWeblink': [value: boolean]
     addFile: []
 }>()
 const { t } = useI18n()
@@ -107,13 +106,13 @@ function laneName(laneId: number) { return props.lanes.find(l => l.id === laneId
 
 async function addLink(linkedTicketId: number, linkedTicketNumber: number) {
     await api.createLink(linkedTicketId, linkedTicketNumber, linkType.value)
-    emit('update:showAddLink', false); linkSearchQuery.value = ''; emit('reload')
+    showAddLink.value = false; linkSearchQuery.value = ''; emit('reload')
 }
 async function removeLink(linkedTicketId: number, linkedTicketNumber: number) { await api.deleteLink(linkedTicketId, linkedTicketNumber); emit('reload') }
 async function handleAddWeblink() {
     if (!newWeblinkUrl.value.trim()) return
     await boards.addWeblink(props.boardKey, props.ticketNumber, { url: newWeblinkUrl.value.trim(), title: newWeblinkTitle.value.trim() || undefined })
-    newWeblinkUrl.value = ''; newWeblinkTitle.value = ''; emit('update:showAddWeblink', false); emit('reload')
+    newWeblinkUrl.value = ''; newWeblinkTitle.value = ''; showAddWeblink.value = false; emit('reload')
 }
 async function removeWeblink(id: number) { await boards.deleteWeblink(props.boardKey, props.ticketNumber, id); emit('reload') }
 async function removeAttachment(id: number) { await boards.deleteAttachment(props.boardKey, props.ticketNumber, id); emit('reload') }
@@ -185,7 +184,7 @@ function formatFileSize(bytes: number): string {
     return (bytes / 1048576).toFixed(1) + ' MB'
 }
 
-const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.length > 0 || props.attachments.length > 0 || props.showAddLink || props.showAddWeblink)
+const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.length > 0 || props.attachments.length > 0 || showAddLink.value || showAddWeblink.value)
 </script>
 
 <template>
@@ -194,7 +193,7 @@ const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.le
         <div v-if="links.length > 0 || showAddLink">
             <div class="flex items-center justify-between mb-2">
                 <SubHeader class="text-sm">{{ t('boards.linkedTickets') }}</SubHeader>
-                <IconButton v-if="!showAddLink && !readonly" :icon="['fas', 'plus']" :label="t('boards.addLink')" class="text-(--text-muted) text-xs" @click="emit('update:showAddLink', true)" />
+                <IconButton v-if="!showAddLink && !readonly" :icon="['fas', 'plus']" :label="t('boards.addLink')" class="text-(--text-muted) text-xs" @click="showAddLink = true" />
             </div>
             <div v-for="(items, type) in groupedLinks" :key="type" class="mb-2">
                 <div class="text-xs font-semibold text-(--text-muted) uppercase tracking-wide mb-1">{{ linkTypeLabel(type as string) }}</div>
@@ -225,7 +224,7 @@ const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.le
                             <option :value="LinkType.CAUSED_BY">{{ t('boards.linkCausedBy') }}</option>
                         </SelectInput>
                     </div>
-                    <IconButton :icon="['fas', 'xmark']" label="Cancel" class="text-(--text-muted)" @click="emit('update:showAddLink', false); linkSearchQuery = ''" />
+                    <IconButton :icon="['fas', 'xmark']" label="Cancel" class="text-(--text-muted)" @click="showAddLink = false; linkSearchQuery = ''" />
                 </div>
                 <div v-if="linkSearchResults.length > 0" class="border border-(--border) rounded-theme divide-y divide-(--border)">
                     <div v-for="(result, i) in linkSearchResults" :key="result.id" class="px-3 py-1.5 text-sm cursor-pointer flex items-center gap-2" :class="i === selectedIndex ? 'bg-primary/10' : 'hover:bg-primary/5'" @click="addLink(result.id, result.ticketNumber)" @mouseenter="selectedIndex = i">
@@ -250,7 +249,7 @@ const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.le
                 <TextInput v-model="newWeblinkUrl" placeholder="https://..." class="flex-1" />
                 <TextInput v-model="newWeblinkTitle" :placeholder="t('boards.weblinkTitle')" class="w-32" />
                 <IconButton :icon="['fas', 'check']" label="Add" @click="handleAddWeblink" />
-                <IconButton :icon="['fas', 'xmark']" label="Cancel" class="text-(--text-muted)" @click="emit('update:showAddWeblink', false)" />
+                <IconButton :icon="['fas', 'xmark']" label="Cancel" class="text-(--text-muted)" @click="showAddWeblink = false" />
             </div>
         </div>
 

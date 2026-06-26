@@ -8,13 +8,8 @@ import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import EditButton from '@/components/button/EditButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import IconButton from '@/components/button/IconButton.vue'
+import DummyTagsList from './tagshelp/DummyTagsList.vue'
+import DummyTagMembersPanel from './tagshelp/DummyTagMembersPanel.vue'
 
 const {t} = useI18n()
 </script>
@@ -29,66 +24,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.membersTags.differenceText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Tags list + panel -->
     <HelpSection :title="t('helpCenter.membersTags.exampleTitle')">
       <div class="grid gap-6 lg:grid-cols-2">
-        <!-- Tags list -->
-        <div class="space-y-4">
-          <div class="flex items-center justify-between">
-            <SectionHeader>{{ t('userTags.title') }}</SectionHeader>
-            <PrimaryButton :icon="['fas', 'plus']">
-              {{ t('userTags.create') }}
-            </PrimaryButton>
-          </div>
-          <div class="space-y-2">
-            <NeutralContainer class="flex items-center justify-between gap-2 flex-wrap cursor-pointer border-primary">
-              <span class="flex items-center gap-2">
-                <span class="inline-block h-3 w-3 rounded-full" style="background-color: #ec2929"></span>
-                <span class="font-medium">Ersthelfer</span>
-                <font-awesome-icon :icon="['fas', 'eye']" class="text-xs text-(--text-muted)"/>
-              </span>
-              <div class="flex items-center gap-2">
-                <IconButton :icon="['fas', 'people-group']" :label="t('userTags.convertToGroup')" class="text-(--text-muted) hover:text-primary"/>
-                <EditButton/>
-                <DeleteButton/>
-              </div>
-            </NeutralContainer>
-            <NeutralContainer class="flex items-center justify-between gap-2 flex-wrap cursor-pointer hover:border-primary">
-              <span class="flex items-center gap-2">
-                <span class="inline-block h-3 w-3 rounded-full" style="background-color: #3694FF"></span>
-                <span class="font-medium">Fahrer</span>
-              </span>
-              <div class="flex items-center gap-2">
-                <IconButton :icon="['fas', 'people-group']" :label="t('userTags.convertToGroup')" class="text-(--text-muted) hover:text-primary"/>
-                <EditButton/>
-                <DeleteButton/>
-              </div>
-            </NeutralContainer>
-          </div>
-        </div>
-
-        <!-- Tag members panel -->
-        <div class="space-y-4">
-          <SectionHeader>Ersthelfer</SectionHeader>
-          <div class="space-y-1">
-            <FieldLabel class="text-(--text-muted)">{{ t('userTags.currentMembers') }}</FieldLabel>
-            <div class="space-y-1">
-              <div class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
-                <span class="text-sm font-medium">Max Mustermann</span>
-                <IconButton :icon="['fas', 'xmark']" :label="t('userTags.removeMember')" class="text-error hover:text-error/80" />
-              </div>
-            </div>
-          </div>
-          <div class="space-y-1">
-            <FieldLabel class="text-(--text-muted)">{{ t('userTags.addMembers') }}</FieldLabel>
-            <div class="space-y-1">
-              <div class="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent cursor-pointer">
-                <span class="text-sm font-medium">Anna Schmidt</span>
-                <font-awesome-icon :icon="['fas', 'plus']" class="text-primary text-sm"/>
-              </div>
-            </div>
-          </div>
-        </div>
+        <DummyTagsList/>
+        <DummyTagMembersPanel/>
       </div>
     </HelpSection>
 

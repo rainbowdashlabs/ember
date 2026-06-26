@@ -11,8 +11,8 @@ import StationBadge from '@/components/badge/StationBadge.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {KbFile} from '@/api/knowledgeBase'
-import {KbFileType} from '@/api/knowledgeBase'
 import type {SearchResult} from '@/api/knowledgeBase'
+import {fileIcon} from '@/util/kbFileIcon'
 
 const {t} = useI18n()
 
@@ -27,23 +27,6 @@ const emit = defineEmits<{
     copySharedFile: [id: number]
 }>()
 
-function fileIcon(file: KbFile): string[] {
-    switch (file.fileType) {
-        case KbFileType.MARKDOWN:
-        case KbFileType.TEXT:
-            return ['fas', 'file-lines']
-        case KbFileType.PDF:
-            return ['fas', 'file-pdf']
-        case KbFileType.IMAGE:
-            return ['fas', 'image']
-        case KbFileType.YOUTUBE:
-            return ['fab', 'youtube']
-        case KbFileType.LINK:
-            return ['fas', 'link']
-        default:
-            return ['fas', 'file']
-    }
-}
 </script>
 
 <template>

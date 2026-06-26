@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -24,6 +24,7 @@ import * as lending from '@/api/lending'
 import {inventory} from '@/api'
 import type {Inventory, InventoryItem} from '@/api/types'
 import {useSession} from '@/composables/useSession'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -32,8 +33,6 @@ const {loaded} = useSession()
 const blocks = ref<InventoryBlock[]>([])
 const inventories = ref<Inventory[]>([])
 const itemsMap = ref<Map<number, InventoryItem[]>>(new Map())
-const loading = ref(true)
-const error = ref('')
 
 interface BlockInventory {
   inventoryId: number
@@ -101,26 +100,18 @@ const groupedBlocks = computed<GroupedBlock[]>(() => {
   return [...groups.values()].sort((a, b) => a.blockFrom.localeCompare(b.blockFrom))
 })
 
-async function loadBlocks() {
-  loading.value = true
-  error.value = ''
-  try {
-    const [b, invs] = await Promise.all([lending.listBlocks(), inventory.listInventories()])
-    blocks.value = b
-    inventories.value = invs
+const {loading, error, reload: loadBlocks} = useAsyncLoader(async () => {
+  if (!loaded.value) return
+  const [b, invs] = await Promise.all([lending.listBlocks(), inventory.listInventories()])
+  blocks.value = b
+  inventories.value = invs
 
-    // Load items for inventories that have item-level blocks
-    const invIdsWithItems = new Set(b.filter(bl => bl.itemId && bl.inventoryId).map(bl => bl.inventoryId!))
-    const itemResults = await Promise.all(
-        [...invIdsWithItems].map(async id => ({id, items: await inventory.listItems(id)}))
-    )
-    itemsMap.value = new Map(itemResults.map(r => [r.id, r.items]))
-  } catch {
-    error.value = t('lending.loadError')
-  } finally {
-    loading.value = false
-  }
-}
+  const invIdsWithItems = new Set(b.filter(bl => bl.itemId && bl.inventoryId).map(bl => bl.inventoryId!))
+  const itemResults = await Promise.all(
+      [...invIdsWithItems].map(async id => ({id, items: await inventory.listItems(id)}))
+  )
+  itemsMap.value = new Map(itemResults.map(r => [r.id, r.items]))
+}, {errorMessageKey: 'lending.loadError'})
 
 function getInventoryName(id: number): string {
   return inventories.value.find(i => i.id === id)?.name ?? `#${id}`
@@ -131,10 +122,6 @@ function getItemName(invId: number, itemId: number): { name: string | null; inte
   const item = items?.find(i => i.id === itemId)
   return {name: item?.name ?? null, internalId: item?.internalId ?? null}
 }
-
-onMounted(() => {
-  if (loaded.value) loadBlocks()
-})
 
 watch(loaded, (v) => {
   if (v) loadBlocks()

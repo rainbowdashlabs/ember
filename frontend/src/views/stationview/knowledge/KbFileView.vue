@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, onMounted, watch, computed} from 'vue'
+import {ref, watch, computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter, useRoute} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -15,7 +15,7 @@ import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
-import PageHeader from '@/components/typography/PageHeader.vue'
+import KbFileHeaderBar from '@/views/stationview/knowledge/kbfileview/KbFileHeaderBar.vue'
 import KbTagsSection from '@/views/stationview/knowledge/kbfileview/KbTagsSection.vue'
 import KbRelatedFilesSection from '@/views/stationview/knowledge/kbfileview/KbRelatedFilesSection.vue'
 import KbCommentSection from '@/components/comment/KbCommentSection.vue'
@@ -23,11 +23,13 @@ import PresentationViewer from '@/views/stationview/knowledge/kbfileview/Present
 import KbFileContent from '@/views/stationview/knowledge/kbfileview/KbFileContent.vue'
 import KbEditFileModal from '@/views/stationview/knowledge/knowledgebaseview/KbEditFileModal.vue'
 import {useSession} from '@/composables/useSession'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {knowledgeBase} from '@/api'
 import type {KbFile, KbTag, MarkdownHtmlResponse} from '@/api/knowledgeBase'
 import {KbFileType} from '@/api/knowledgeBase'
 import {getItem} from '@/api/storage'
 import {downloadAuthed} from '@/util/downloadAuthed'
+import {youtubeEmbedUrl as toYoutubeEmbedUrl} from '@/util/youtube'
 import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
@@ -37,8 +39,6 @@ const {canEditKnowledge, loaded, isKbPublic} = useSession()
 
 const file = ref<KbFile | null>(null)
 const lastEditedByName = ref<string | null>(null)
-const loading = ref(true)
-const error = ref('')
 const markdownData = ref<MarkdownHtmlResponse | null>(null)
 const editing = ref(false)
 const editContent = ref('')
@@ -75,23 +75,9 @@ async function copyToStation() {
 
 const renderedHtml = computed(() => markdownData.value?.html ?? '')
 
-function extractYoutubeId(url: string): string | null {
-    const patterns = [
-        /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
-        /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-        /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
-    ]
-    for (const pattern of patterns) {
-        const match = url.match(pattern)
-        if (match) return match[1]
-    }
-    return null
-}
-
 const youtubeEmbedUrl = computed(() => {
     if (!file.value?.youtubeUrl) return null
-    const id = extractYoutubeId(file.value.youtubeUrl)
-    return id ? `https://www.youtube-nocookie.com/embed/${id}` : null
+    return toYoutubeEmbedUrl(file.value.youtubeUrl)
 })
 
 const contentUrl = computed(() => {
@@ -99,36 +85,28 @@ const contentUrl = computed(() => {
     return knowledgeBase.fileContentUrl(file.value.id)
 })
 
-async function loadData() {
-    loading.value = true
-    error.value = ''
-    try {
-        const fileRes = await knowledgeBase.getFile(fileId.value)
-        file.value = fileRes.file
-        lastEditedByName.value = fileRes.lastEditedByName
+const {loading, error, reload: loadData} = useAsyncLoader(async () => {
+    const fileRes = await knowledgeBase.getFile(fileId.value)
+    file.value = fileRes.file
+    lastEditedByName.value = fileRes.lastEditedByName
 
-        const [tags, stationTags, related] = await Promise.all([
-            knowledgeBase.getFileTags(file.value.id),
-            knowledgeBase.listTags(),
-            knowledgeBase.getRelatedFiles(file.value.id),
-        ])
-        fileTags.value = tags
-        allStationTags.value = stationTags
-        relatedFiles.value = related
+    const [tags, stationTags, related] = await Promise.all([
+        knowledgeBase.getFileTags(file.value.id),
+        knowledgeBase.listTags(),
+        knowledgeBase.getRelatedFiles(file.value.id),
+    ])
+    fileTags.value = tags
+    allStationTags.value = stationTags
+    relatedFiles.value = related
 
-        if (file.value.fileType === KbFileType.MARKDOWN) {
-            markdownData.value = await knowledgeBase.getMarkdownHtml(file.value.id)
-            editContent.value = markdownData.value.markdown
-        } else if (file.value.fileType === KbFileType.TEXT) {
-            textContent.value = await knowledgeBase.getTextContent(file.value.id)
-            editContent.value = textContent.value
-        }
-    } catch {
-        error.value = t('common.error')
-    } finally {
-        loading.value = false
+    if (file.value.fileType === KbFileType.MARKDOWN) {
+        markdownData.value = await knowledgeBase.getMarkdownHtml(file.value.id)
+        editContent.value = markdownData.value.markdown
+    } else if (file.value.fileType === KbFileType.TEXT) {
+        textContent.value = await knowledgeBase.getTextContent(file.value.id)
+        editContent.value = textContent.value
     }
-}
+}, {autoLoad: false})
 function toggleEdit() {
     editing.value = !editing.value
     if (editing.value) {
@@ -229,9 +207,6 @@ async function handleReuploadFile(uploadFile: File) {
 watch(loaded, (isLoaded) => {
     if (isLoaded) loadData()
 }, {immediate: true})
-onMounted(() => {
-    if (loaded.value) loadData()
-})
 </script>
 
 <template>
@@ -240,65 +215,22 @@ onMounted(() => {
         <Spinner v-if="loading"/>
 
         <template v-else-if="file">
-            <!-- Header -->
-            <div class="flex flex-wrap items-center gap-2 mb-4">
-                <SecondaryButton @click="goBack">
-                    <font-awesome-icon :icon="['fas', 'chevron-left']"/>
-                    {{ t('kb.backToBrowse') }}
-                </SecondaryButton>
-
-                <PageHeader class="flex-1 !mb-0">{{ file.name }}</PageHeader>
-
-                <IconButton
-                    v-if="isKbPublic()"
-                    :icon="['fas', shareCopied ? 'check' : 'share-nodes']"
-                    :label="t('kb.shareLink')"
-                    :class="shareCopied ? '!text-green-500' : '!text-[var(--text-muted)]'"
-                    @click="copyShareLink"
-                />
-
-                <PrimaryButton v-if="isFederated" @click="copyToStation">
-                    <font-awesome-icon :icon="['fas', 'copy']"/>
-                    {{ t('federation.copyToStation') }}
-                </PrimaryButton>
-                <template v-else>
-                    <SecondaryButton
-                        v-if="canEditKnowledge()"
-                        @click="showEditMetadataModal = true"
-                    >
-                        <font-awesome-icon :icon="['fas', 'gear']"/>
-                        {{ t('kb.editMetadata') }}
-                    </SecondaryButton>
-                    <PrimaryButton
-                        v-if="canEditKnowledge() && (file.fileType === KbFileType.MARKDOWN || file.fileType === KbFileType.TEXT)"
-                        @click="toggleEdit"
-                    >
-                        <font-awesome-icon :icon="['fas', editing ? 'eye' : 'pen']"/>
-                        {{ editing ? t('kb.preview') : t('kb.edit') }}
-                    </PrimaryButton>
-                    <SecondaryButton
-                        v-if="file.fileType === KbFileType.MARKDOWN"
-                        @click="router.push({name: 'kb-versions', params: {id: file.id}})"
-                    >
-                        <font-awesome-icon :icon="['fas', 'clock-rotate-left']"/>
-                        {{ t('kb.versions') }}
-                    </SecondaryButton>
-                    <SecondaryButton
-                        v-if="(file.fileType === KbFileType.PDF || (file.fileType === KbFileType.PRESENTATION && file.conversionStatus === 'SUCCESS'))"
-                        @click="showPresentation = true"
-                    >
-                        <font-awesome-icon :icon="['fas', 'display']"/>
-                        {{ t('kb.present') }}
-                    </SecondaryButton>
-                    <SecondaryButton
-                        v-if="file.fileType === KbFileType.PRESENTATION"
-                        @click="downloadOriginal"
-                    >
-                        <font-awesome-icon :icon="['fas', 'download']"/>
-                        {{ t('kb.downloadOriginal') }}
-                    </SecondaryButton>
-                </template>
-            </div>
+            <KbFileHeaderBar
+                :file="file"
+                :is-federated="isFederated"
+                :is-kb-public="isKbPublic()"
+                :share-copied="shareCopied"
+                :can-edit="canEditKnowledge()"
+                :editing="editing"
+                @back="goBack"
+                @copy-share-link="copyShareLink"
+                @copy-to-station="copyToStation"
+                @open-edit-metadata="showEditMetadataModal = true"
+                @toggle-edit="toggleEdit"
+                @open-versions="router.push({name: 'kb-versions', params: {id: file.id}})"
+                @open-presentation="showPresentation = true"
+                @download-original="downloadOriginal"
+            />
 
             <!-- Description -->
             <div v-if="editingDescription" class="flex items-center gap-2 mb-4">

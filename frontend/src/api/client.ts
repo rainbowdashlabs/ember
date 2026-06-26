@@ -5,9 +5,9 @@
  */
 import axios, {type AxiosError, type InternalAxiosRequestConfig} from 'axios'
 import {getItem, removeItem, setItem} from './storage'
-import {useToast} from '@/composables/useToast'
+import {showToast} from '@/util/toast'
 import {reportApiError} from '@/util/devErrorReporter'
-import {requestStepUp, type StepUpCategory} from '@/composables/useStepUp'
+import {requestStepUp, type StepUpCategory} from '@/util/stepUp'
 
 // -- Request history for problem reports --
 interface RequestHistoryEntry {
@@ -130,9 +130,8 @@ client.interceptors.response.use(
             }
         }
         if (error.response?.status === 403) {
-            const { show } = useToast()
             const message = error.response?.data?.message ?? 'Kein Zugriff auf diesen Inhalt.'
-            show(message, 'error')
+            showToast(message, 'error')
         }
         return Promise.reject(error)
     },

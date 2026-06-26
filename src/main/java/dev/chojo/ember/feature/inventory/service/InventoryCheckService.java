@@ -19,6 +19,8 @@ import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemCheckHistoryEntry;
+import dev.chojo.ember.feature.inventory.entity.ItemLastCheck;
 import dev.chojo.ember.feature.inventory.entity.RequiredInventoryItem;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository.MemberCheckSummary;
@@ -30,6 +32,8 @@ import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.ConflictResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,6 +48,8 @@ import java.util.Optional;
  */
 @Singleton
 public class InventoryCheckService {
+    private static final Logger log = LoggerFactory.getLogger(InventoryCheckService.class);
+
     /**
      * Maximum duration in minutes before a check lock expires automatically.
      */
@@ -55,6 +61,7 @@ public class InventoryCheckService {
     private final MemberGroupRepository memberGroupRepository;
     private final AccountRepository accountRepository;
     private final MemberIdentityFactory memberIdentityFactory;
+    private final InventoryContainerService containerService;
 
     @Inject
     public InventoryCheckService(
@@ -63,13 +70,15 @@ public class InventoryCheckService {
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
             AccountRepository accountRepository,
-            MemberIdentityFactory memberIdentityFactory) {
+            MemberIdentityFactory memberIdentityFactory,
+            InventoryContainerService containerService) {
         this.checkRepository = checkRepository;
         this.inventoryRepository = inventoryRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.accountRepository = accountRepository;
         this.memberIdentityFactory = memberIdentityFactory;
+        this.containerService = containerService;
     }
 
     /**
@@ -112,6 +121,7 @@ public class InventoryCheckService {
             if (lock.isEmpty()) {
                 throw new ConflictResponse("Member is already being checked by another user");
             }
+            log.info("Started check on member {} by member {} (station={})", memberId, lockedBy, stationId);
         }
 
         // Look up member name
@@ -155,6 +165,85 @@ public class InventoryCheckService {
         }
 
         checkRepository.releaseLock(memberId);
+        log.info(
+                "Completed check {} on member {} by member {} (station={}, results={})",
+                check.id(),
+                memberId,
+                checkedBy,
+                stationId,
+                results.size());
+        return check;
+    }
+
+    /**
+     * Returns the expected items for a container-scope check. With
+     * {@code deep = true} the walk includes every descendant container's
+     * items, depth-first; with {@code deep = false} only the direct items
+     * placed in the container are returned.
+     *
+     * @param containerId target container
+     * @param deep        whether the walk includes descendants
+     * @return the items the operator should find in the container
+     */
+    public List<InventoryItem> expectedContainerItems(int containerId, boolean deep) {
+        return deep
+                ? containerService.findItemsInSubtree(containerId)
+                : containerService.findItemsInContainer(containerId);
+    }
+
+    /**
+     * Returns the most recent check result for each item currently expected in the given
+     * container, so the walk UI can show "last checked at X, was Y" next to each expected row.
+     *
+     * @param containerId the container being walked
+     * @param deep        whether the walk covers descendants too
+     * @return one entry per item that has at least one prior check; never-checked items are
+     *         simply absent from the list
+     */
+    public List<ItemLastCheck> lastCheckForContainerItems(int containerId, boolean deep) {
+        List<InventoryItem> expected = expectedContainerItems(containerId, deep);
+        List<Integer> itemIds = new ArrayList<>(expected.size());
+        for (InventoryItem item : expected) itemIds.add(item.id());
+        return checkRepository.latestCheckPerItem(itemIds);
+    }
+
+    /**
+     * Returns every recorded check for an item, newest-first, for display on the item-detail page.
+     */
+    public List<ItemCheckHistoryEntry> findCheckHistoryForItem(int itemId) {
+        return checkRepository.findCheckHistoryForItem(itemId);
+    }
+
+    /**
+     * Completes a container-scope check by writing the {@code inventory_check}
+     * row plus per-item results, marking any LOST items, and returning the
+     * created check.
+     *
+     * @param stationId   the station ID
+     * @param containerId target container
+     * @param checkedBy   the member performing the check
+     * @param deep        whether the walk included descendants
+     * @param results     per-item results
+     * @return the created check
+     */
+    public InventoryCheck completeContainerCheck(
+            int stationId, int containerId, int checkedBy, boolean deep, List<CheckItemRequest> results) {
+        InventoryCheck check = checkRepository.createContainerCheck(stationId, containerId, checkedBy, deep);
+        for (CheckItemRequest result : results) {
+            checkRepository.createCheckItem(
+                    check.id(), result.itemId(), result.inventoryId(), result.result(), result.note());
+            if (result.result() == CheckResult.LOST && result.itemId() != null) {
+                inventoryRepository.markLost(result.itemId());
+            }
+        }
+        log.info(
+                "Completed container check {} on container {} by member {} (station={}, deep={}, results={})",
+                check.id(),
+                containerId,
+                checkedBy,
+                stationId,
+                deep,
+                results.size());
         return check;
     }
 
@@ -168,6 +257,9 @@ public class InventoryCheckService {
         var lock = checkRepository.findLock(memberId);
         if (lock.isPresent() && lock.get().lockedBy() == lockedBy) {
             checkRepository.releaseLock(memberId);
+            log.info("Cancelled check on member {} by member {}", memberId, lockedBy);
+        } else {
+            log.warn("Cancel skipped: no matching lock on member {} held by member {}", memberId, lockedBy);
         }
     }
 

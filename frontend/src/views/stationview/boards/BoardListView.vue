@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -25,12 +25,15 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import { boards } from '@/api'
 import type { Board, LanePresetName } from '@/api/boards'
 import { LanePreset } from '@/api/boards'
+import { useConfirmDelete } from '@/composables/useConfirmDelete'
+import { useConfigPanel } from '@/composables/useConfigPanel'
 const { t } = useI18n()
 const router = useRouter()
 
-const boardList = ref<Board[]>([])
-const loading = ref(true)
-const error = ref('')
+const { config: boardList, loading, error, reload: loadBoards } = useConfigPanel<Board[]>({
+    initial: [],
+    fetch: () => boards.listBoards(),
+})
 
 const showCreateModal = ref(false)
 const createName = ref('')
@@ -39,20 +42,16 @@ const createShortKey = ref('')
 const createPreset = ref<LanePresetName | ''>(LanePreset.SIMPLE)
 const createError = ref('')
 
-const showDeleteModal = ref(false)
-const deleteTarget = ref<Board | null>(null)
-
-async function loadBoards() {
-    loading.value = true
-    error.value = ''
-    try {
-        boardList.value = await boards.listBoards()
-    } catch {
-        error.value = t('common.error')
-    } finally {
-        loading.value = false
-    }
-}
+const {
+    show: showDeleteModal,
+    target: deleteTarget,
+    requestDelete: confirmDelete,
+    confirm: handleDelete,
+} = useConfirmDelete<Board>({
+    onDelete: b => boards.deleteBoard(b.shortKey),
+    onSuccess: () => loadBoards(),
+    error,
+})
 
 async function handleCreate() {
     createError.value = ''
@@ -78,24 +77,6 @@ async function handleCreate() {
     }
 }
 
-async function handleDelete() {
-    if (!deleteTarget.value) return
-    try {
-        await boards.deleteBoard(deleteTarget.value.shortKey)
-        showDeleteModal.value = false
-        deleteTarget.value = null
-        await loadBoards()
-    } catch {
-        error.value = t('common.error')
-    }
-}
-
-function confirmDelete(board: Board) {
-    deleteTarget.value = board
-    showDeleteModal.value = true
-}
-
-onMounted(loadBoards)
 </script>
 
 <template>

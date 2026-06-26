@@ -8,22 +8,9 @@ import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter, RouterLink} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import MutedText from '@/components/typography/MutedText.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Modal from '@/components/feedback/Modal.vue'
-import S3BackendForm from '@/components/storage/S3BackendForm.vue'
-import SmbBackendForm from '@/components/storage/SmbBackendForm.vue'
-import SftpBackendForm from '@/components/storage/SftpBackendForm.vue'
 import {useSession} from '@/composables/useSession'
 import {
     type InstanceBackendRequest,
@@ -39,6 +26,9 @@ import {
     probeInstanceBackend,
     probeInstanceBackendConfig,
 } from '@/api/storageBackend'
+import BackendSummaryCard from './adminstoragebackendview/BackendSummaryCard.vue'
+import BackendForm from './adminstoragebackendview/BackendForm.vue'
+import BackendApplyConfirmModal from './adminstoragebackendview/BackendApplyConfirmModal.vue'
 
 const {t} = useI18n()
 const {isAdmin, loaded} = useSession()
@@ -258,79 +248,31 @@ function newSftp(): SftpRequest {
             <Alert v-if="error" variant="error">{{ error }}</Alert>
             <Alert v-if="success" variant="success">{{ success }}</Alert>
 
-            <Spinner v-if="loading" size="lg" />
+            <Spinner v-if="loading" size="lg"/>
 
             <template v-else-if="backend">
-                <NeutralContainer class="space-y-3">
-                    <SubHeader>{{ t('adminStorageBackend.summary.title') }}</SubHeader>
-                    <MutedText tag="p" size="sm">{{ summaryLabel }}</MutedText>
-                    <div>
-                        <SecondaryButton :disabled="probingLive" @click="probeLive">
-                            {{ probingLive ? t('adminStorageBackend.actions.probing') : t('adminStorageBackend.actions.probeLive') }}
-                        </SecondaryButton>
-                    </div>
-                    <div v-if="probeOutcome" class="text-sm">
-                        <Alert v-if="probeOutcome.healthy" variant="success">
-                            {{ t('adminStorageBackend.probe.ok') }}
-                        </Alert>
-                        <Alert v-else variant="error">
-                            {{ t('adminStorageBackend.probe.failed', {reason: probeOutcome.error ?? ''}) }}
-                        </Alert>
-                    </div>
-                </NeutralContainer>
-
-                <NeutralContainer class="space-y-4">
-                    <SubHeader>{{ t('adminStorageBackend.form.title') }}</SubHeader>
-                    <MutedText tag="p" size="sm">{{ t('adminStorageBackend.form.hint') }}</MutedText>
-
-                    <div class="space-y-1">
-                        <FieldLabel>{{ t('adminStorageBackend.form.type') }}</FieldLabel>
-                        <SelectInput v-model="selectedType">
-                            <option value="LOCAL">{{ t('adminStorageBackend.form.types.local') }}</option>
-                            <option value="S3">{{ t('adminStorageBackend.form.types.s3') }}</option>
-                            <option value="SMB">{{ t('adminStorageBackend.form.types.smb') }}</option>
-                            <option value="SFTP">{{ t('adminStorageBackend.form.types.sftp') }}</option>
-                        </SelectInput>
-                    </div>
-
-                    <div v-if="selectedType === 'LOCAL'" class="space-y-1">
-                        <FieldLabel>{{ t('adminStorageBackend.form.local.root') }}</FieldLabel>
-                        <TextInput v-model="localRoot" placeholder="data" />
-                        <MutedText tag="p" size="sm">{{ t('adminStorageBackend.form.local.hint') }}</MutedText>
-                    </div>
-                    <S3BackendForm v-else-if="selectedType === 'S3'" v-model="s3" />
-                    <SmbBackendForm v-else-if="selectedType === 'SMB'" v-model="smb" />
-                    <SftpBackendForm v-else-if="selectedType === 'SFTP'" v-model="sftp" />
-
-                    <div class="flex flex-wrap items-center gap-3">
-                        <SecondaryButton :disabled="probingConfig || selectedType === 'LOCAL'" @click="probeConfig">
-                            {{ probingConfig ? t('adminStorageBackend.actions.probing') : t('adminStorageBackend.actions.probeConfig') }}
-                        </SecondaryButton>
-                        <PrimaryButton :disabled="saving" @click="confirmApply = true">
-                            {{ saving ? t('adminStorageBackend.actions.applying') : t('adminStorageBackend.actions.apply') }}
-                        </PrimaryButton>
-                    </div>
-                </NeutralContainer>
+                <BackendSummaryCard
+                    :summary-label="summaryLabel"
+                    :probing-live="probingLive"
+                    :probe-outcome="probeOutcome"
+                    @probe="probeLive"/>
+                <BackendForm
+                    v-model:selected-type="selectedType"
+                    v-model:local-root="localRoot"
+                    v-model:s3="s3"
+                    v-model:smb="smb"
+                    v-model:sftp="sftp"
+                    :probing-config="probingConfig"
+                    :saving="saving"
+                    @probe="probeConfig"
+                    @apply="confirmApply = true"/>
             </template>
         </div>
 
-        <Modal v-model="confirmApply" size="md">
-            <div class="space-y-4">
-                <SubHeader>{{ t('adminStorageBackend.confirm.title') }}</SubHeader>
-                <MutedText tag="p" size="sm">{{ t('adminStorageBackend.confirm.body') }}</MutedText>
-                <FieldLabel inline>
-                    <ToggleInput v-model="keepSource" />
-                    <span>{{ t('adminStorageBackend.confirm.keepSource') }}</span>
-                </FieldLabel>
-                <div class="flex justify-end gap-3">
-                    <SecondaryButton @click="confirmApply = false">
-                        {{ t('adminStorageBackend.confirm.cancel') }}
-                    </SecondaryButton>
-                    <PrimaryButton :disabled="saving" @click="runApply">
-                        {{ t('adminStorageBackend.confirm.confirm') }}
-                    </PrimaryButton>
-                </div>
-            </div>
-        </Modal>
+        <BackendApplyConfirmModal
+            v-model="confirmApply"
+            v-model:keep-source="keepSource"
+            :saving="saving"
+            @confirm="runApply"/>
     </ViewContent>
 </template>

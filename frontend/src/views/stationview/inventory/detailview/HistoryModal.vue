@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -14,6 +14,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import type { InventoryItem, InventoryItemHistory, StationMember } from '@/api/types'
 import { inventory } from '@/api'
+import { useConfigPanel } from '@/composables/useConfigPanel'
 
 const props = defineProps<{
   item: InventoryItem | null
@@ -24,17 +25,17 @@ const show = defineModel<boolean>({ default: false })
 
 const { t } = useI18n()
 
-const entries = ref<InventoryItemHistory[]>([])
-const loading = ref(false)
+const { config: entries, loading, reload: loadHistory } = useConfigPanel<InventoryItemHistory[]>({
+  initial: [],
+  fetch: async () => props.item ? await inventory.getItemHistory(props.item.id) : [],
+  immediate: false,
+  formatError: () => '',
+})
 
-watch(show, async (visible) => {
+watch(show, (visible) => {
   if (visible && props.item) {
-    loading.value = true
     entries.value = []
-    try {
-      entries.value = await inventory.getItemHistory(props.item.id)
-    } catch { /* ignore */ }
-    finally { loading.value = false }
+    loadHistory()
   }
 })
 

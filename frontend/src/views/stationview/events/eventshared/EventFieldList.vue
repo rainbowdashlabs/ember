@@ -12,17 +12,14 @@ import MutedText from '@/components/typography/MutedText.vue'
 import EventFieldEditor from '@/components/input/EventFieldEditor.vue'
 import type {AttendanceTemplateField, EventFieldEntry, MemberGroup, StationMember} from '@/api/types'
 
-const props = defineProps<{
-  fields: EventFieldEntry[]
+const fields = defineModel<EventFieldEntry[]>('fields', {required: true})
+
+defineProps<{
   attendanceFields?: AttendanceTemplateField[]
   showValue?: boolean
   allMembers?: StationMember[]
   groups?: MemberGroup[]
   groupMembers?: Map<number, StationMember[]>
-}>()
-
-const emit = defineEmits<{
-  'update:fields': [fields: EventFieldEntry[]]
 }>()
 
 const {t} = useI18n()
@@ -33,28 +30,28 @@ const quickFields = [
   {name: 'Thema', fieldType: 'STRING', overview: true, isPublic: false},
 ]
 
-const existingNames = computed(() => new Set(props.fields.map(f => f.name.toLowerCase())))
+const existingNames = computed(() => new Set(fields.value.map(f => f.name.toLowerCase())))
 
 function addQuickField(qf: typeof quickFields[number]) {
-  emit('update:fields', [...props.fields, {
+  fields.value = [...fields.value, {
     name: qf.name, fieldType: qf.fieldType, config: {}, value: '', overview: qf.overview, attendanceFieldId: null, isPublic: qf.isPublic,
-  }])
+  }]
 }
 
 function addField() {
-  emit('update:fields', [...props.fields, {name: '', fieldType: 'STRING', config: {}, value: '', overview: false, attendanceFieldId: null}])
+  fields.value = [...fields.value, {name: '', fieldType: 'STRING', config: {}, value: '', overview: false, attendanceFieldId: null}]
 }
 
 function removeField(index: number) {
-  const updated = [...props.fields]
+  const updated = [...fields.value]
   updated.splice(index, 1)
-  emit('update:fields', updated)
+  fields.value = updated
 }
 
 function updateField(index: number, field: EventFieldEntry) {
-  const updated = [...props.fields]
+  const updated = [...fields.value]
   updated[index] = field
-  emit('update:fields', updated)
+  fields.value = updated
 }
 </script>
 

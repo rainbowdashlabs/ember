@@ -10,6 +10,7 @@ import PrimaryContainer from '@/components/container/PrimaryContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {StationEvent} from '@/api/types'
 import MutedIcon from '@/components/display/MutedIcon.vue'
+import {formatTime} from '@/util/format'
 
 const {t} = useI18n()
 
@@ -21,12 +22,6 @@ const emit = defineEmits<{
   attendance: [event: StationEvent]
 }>()
 
-function formatTime(iso?: string): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
 </script>
 
 <template>

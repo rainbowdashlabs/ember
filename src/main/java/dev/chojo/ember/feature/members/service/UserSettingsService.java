@@ -12,6 +12,8 @@ import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.repository.NotificationSettingsRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
@@ -21,6 +23,8 @@ import java.util.Map;
  */
 @Singleton
 public class UserSettingsService {
+    private static final Logger log = LoggerFactory.getLogger(UserSettingsService.class);
+
     private final UserSettingsRepository settingsRepository;
     private final NotificationSettingsRepository notificationSettingsRepository;
 
@@ -40,10 +44,12 @@ public class UserSettingsService {
     }
 
     public UserSettings updateEmailEnabled(int memberId, boolean emailEnabled) {
+        log.info("User email-enabled updated: member={}, emailEnabled={}", memberId, emailEnabled);
         return settingsRepository.updateEmailEnabled(memberId, emailEnabled);
     }
 
     public UserSettings updateTheme(int memberId, String theme, String darkMode, String feel) {
+        log.info("User theme updated: member={}, theme={}, darkMode={}, feel={}", memberId, theme, darkMode, feel);
         return settingsRepository.updateTheme(memberId, theme, darkMode, feel);
     }
 
@@ -53,5 +59,6 @@ public class UserSettingsService {
 
     public void updateNotificationSettings(int memberId, Map<NotificationType, NotificationSetting> settings) {
         notificationSettingsRepository.upsertAll(memberId, settings);
+        log.info("Notification settings updated: member={}, count={}", memberId, settings.size());
     }
 }

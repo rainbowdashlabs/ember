@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.discovery.service;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Thin wrapper around {@link ApplicationSettingRepository} for discovery-specific knobs.
@@ -23,6 +25,7 @@ import jakarta.inject.Singleton;
  */
 @Singleton
 public class DiscoverySettingsService {
+    private static final Logger log = LoggerFactory.getLogger(DiscoverySettingsService.class);
 
     public static final int MAX_DEPTH = 10;
     public static final int DEFAULT_MAX_DEPTH = 2;
@@ -54,6 +57,7 @@ public class DiscoverySettingsService {
 
     public void setEnabled(boolean enabled) {
         settings.setBoolean(KEY_ENABLED, enabled);
+        log.info("Discovery enabled setting updated to {}", enabled);
     }
 
     public int maxDepth() {
@@ -62,7 +66,12 @@ public class DiscoverySettingsService {
     }
 
     public void setMaxDepth(int depth) {
-        settings.set(KEY_MAX_DEPTH, Integer.toString(clampDepth(depth)));
+        int clamped = clampDepth(depth);
+        settings.set(KEY_MAX_DEPTH, Integer.toString(clamped));
+        if (clamped != depth) {
+            log.warn("Discovery max depth requested as {}, clamped to {}", depth, clamped);
+        }
+        log.info("Discovery max depth updated to {}", clamped);
     }
 
     public int pingIntervalMinutes() {
@@ -71,6 +80,11 @@ public class DiscoverySettingsService {
     }
 
     public void setPingIntervalMinutes(int minutes) {
-        settings.set(KEY_PING_INTERVAL, Integer.toString(Math.max(MIN_PING_INTERVAL_MINUTES, minutes)));
+        int clamped = Math.max(MIN_PING_INTERVAL_MINUTES, minutes);
+        settings.set(KEY_PING_INTERVAL, Integer.toString(clamped));
+        if (clamped != minutes) {
+            log.warn("Discovery ping interval requested as {} minutes, clamped to {}", minutes, clamped);
+        }
+        log.info("Discovery ping interval updated to {} minutes", clamped);
     }
 }

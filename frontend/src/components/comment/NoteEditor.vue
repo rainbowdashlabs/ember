@@ -17,6 +17,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import DiffView from '@/components/display/DiffView.vue'
+import {formatDateTime as formatDate} from '@/util/format'
 
 const props = defineProps<{
   entityType: string
@@ -70,15 +71,6 @@ function toggleHistory() {
   showHistory.value = !showHistory.value
   if (showHistory.value) loadVersions()
 }
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString('de-DE', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  })
-}
-
-
 
 onMounted(loadNote)
 </script>

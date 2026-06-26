@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -25,6 +25,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import { useSession } from '@/composables/useSession'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { protocol, stationMembers, memberGroups, userTags } from '@/api'
 import type { TestProtocol, TestProtocolRun } from '@/api/protocol'
 import type { StationMember, MemberGroup, UserTag } from '@/api/types'
@@ -40,8 +41,6 @@ const protocols = ref<TestProtocol[]>([])
 const members = ref<StationMember[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
-const loading = ref(true)
-const error = ref('')
 
 // Create modal
 const showCreateModal = ref(false)
@@ -62,24 +61,20 @@ function onMembersChange(values: string[]) {
   selectedMemberIds.value = values.map(Number)
 }
 
-async function loadData() {
-  loading.value = true
-  try {
-    const [r, p, m, groups, tags] = await Promise.all([
-      protocol.listRuns(),
-      protocol.listProtocols(),
-      stationMembers.listMembers(),
-      memberGroups.listGroups(),
-      userTags.listTags(),
-    ])
-    runs.value = r
-    protocols.value = Array.isArray(p) ? p : (p.protocols ?? [])
-    members.value = m
-    allGroups.value = groups
-    allTags.value = tags
-  } catch { error.value = t('common.error') }
-  finally { loading.value = false }
-}
+const {loading, error, reload: loadData} = useAsyncLoader(async () => {
+  const [r, p, m, groups, tags] = await Promise.all([
+    protocol.listRuns(),
+    protocol.listProtocols(),
+    stationMembers.listMembers(),
+    memberGroups.listGroups(),
+    userTags.listTags(),
+  ])
+  runs.value = r
+  protocols.value = Array.isArray(p) ? p : (p.protocols ?? [])
+  members.value = m
+  allGroups.value = groups
+  allTags.value = tags
+}, {autoLoad: false})
 
 function protocolName(id: number) { return protocols.value.find(p => p.id === id)?.name ?? '?' }
 
@@ -110,7 +105,6 @@ function resetCreateModal() {
 }
 
 watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
-onMounted(() => { if (loaded.value) loadData() })
 </script>
 
 <template>
@@ -164,13 +158,10 @@ onMounted(() => { if (loaded.value) loadData() })
           <RestrictionPicker
             :groups="allGroups"
             :tags="allTags"
-            :selected-user-types="selectedUserTypes"
-            :selected-group-ids="selectedGroupIds"
-            :selected-tag-ids="selectedTagIds"
+            v-model:selected-user-types="selectedUserTypes"
+            v-model:selected-group-ids="selectedGroupIds"
+            v-model:selected-tag-ids="selectedTagIds"
             :show-mode="false"
-            @update:selected-user-types="selectedUserTypes = $event"
-            @update:selected-group-ids="selectedGroupIds = $event"
-            @update:selected-tag-ids="selectedTagIds = $event"
           />
         </div>
 

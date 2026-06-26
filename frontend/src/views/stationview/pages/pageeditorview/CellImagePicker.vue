@@ -7,31 +7,27 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
 import PageFileBrowseButton from './PageFileBrowseButton.vue'
+import CellImagePickerMultiItem from './cellimagepicker/CellImagePickerMultiItem.vue'
 import {pageImageUrl, type GalleryItem, type PageFile} from '@/api/pageManage'
+
+const itemsModel = defineModel<GalleryItem[] | null>('items')
+const imageHashModel = defineModel<string | null>('imageHash')
 
 const props = withDefaults(defineProps<{
     multi?: boolean
-    items?: GalleryItem[] | null
-    imageHash?: string | null
     pageId: number
     stationUid: string
 }>(), {
     multi: false,
 })
 
-const emit = defineEmits<{
-    'update:items': [value: GalleryItem[]]
-    'update:imageHash': [value: string | null]
-}>()
-
 const {t} = useI18n()
 const dragIndex = ref<number | null>(null)
 
 const items = computed<GalleryItem[]>(() => {
-    if (props.multi) return Array.isArray(props.items) ? props.items : []
-    return props.imageHash ? [{imageHash: props.imageHash}] : []
+    if (props.multi) return Array.isArray(itemsModel.value) ? itemsModel.value : []
+    return imageHashModel.value ? [{imageHash: imageHashModel.value}] : []
 })
 
 function newItemFromFile(f: PageFile): GalleryItem | null {
@@ -43,9 +39,9 @@ function pick(p: {file: PageFile}) {
     if (!p.file.contentHash) return
     if (props.multi) {
         const item = newItemFromFile(p.file)
-        if (item) emit('update:items', [...items.value, item])
+        if (item) itemsModel.value = [...items.value, item]
     } else {
-        emit('update:imageHash', p.file.contentHash)
+        imageHashModel.value = p.file.contentHash
     }
 }
 
@@ -56,12 +52,12 @@ function pickMany(payloads: Array<{file: PageFile}>) {
         const item = newItemFromFile(p.file)
         if (item) added.push(item)
     }
-    if (added.length > 0) emit('update:items', [...items.value, ...added])
+    if (added.length > 0) itemsModel.value = [...items.value, ...added]
 }
 
 function removeAt(i: number) {
-    if (props.multi) emit('update:items', items.value.filter((_, idx) => idx !== i))
-    else emit('update:imageHash', null)
+    if (props.multi) itemsModel.value = items.value.filter((_, idx) => idx !== i)
+    else imageHashModel.value = null
 }
 
 function moveAt(i: number, delta: number) {
@@ -71,21 +67,21 @@ function moveAt(i: number, delta: number) {
     if (target < 0 || target >= next.length) return
     const [moved] = next.splice(i, 1)
     next.splice(target, 0, moved)
-    emit('update:items', next)
+    itemsModel.value = next
 }
 
 function updateField(i: number, field: 'altText' | 'subtext', value: string) {
     if (!props.multi) return
-    emit('update:items', items.value.map((it, idx) => idx === i ? {...it, [field]: value} : it))
+    itemsModel.value = items.value.map((it, idx) => idx === i ? {...it, [field]: value} : it)
 }
 
 function swapAt(i: number, payload: {file: PageFile}) {
     if (!payload.file.contentHash) return
     if (props.multi) {
-        emit('update:items', items.value.map(
-            (it, idx) => idx === i ? {...it, imageHash: payload.file.contentHash!} : it))
+        itemsModel.value = items.value.map(
+            (it, idx) => idx === i ? {...it, imageHash: payload.file.contentHash!} : it)
     } else {
-        emit('update:imageHash', payload.file.contentHash)
+        imageHashModel.value = payload.file.contentHash
     }
 }
 
@@ -104,7 +100,7 @@ function onDrop(target: number) {
     const next = [...items.value]
     const [moved] = next.splice(dragIndex.value, 1)
     next.splice(target, 0, moved)
-    emit('update:items', next)
+    itemsModel.value = next
     dragIndex.value = null
 }
 </script>
@@ -117,50 +113,22 @@ function onDrop(target: number) {
             class="space-y-2 pr-1"
             :class="items.length > 5 ? 'max-h-96 overflow-y-auto' : ''"
         >
-            <div
+            <CellImagePickerMultiItem
                 v-for="(item, i) in items" :key="item.imageHash + '-' + i"
-                draggable="true"
-                class="flex items-stretch gap-2 rounded-theme border border-(--border) p-2 bg-bg-light dark:bg-bg-dark"
-                @dragstart="onDragStart(i, $event)"
-                @dragover="onDragOver"
+                :item="item"
+                :index="i"
+                :is-first="i === 0"
+                :is-last="i === items.length - 1"
+                :station-uid="stationUid"
+                @move-up="moveAt(i, -1)"
+                @move-down="moveAt(i, 1)"
+                @remove="removeAt(i)"
+                @update-field="(field, value) => updateField(i, field, value)"
+                @swap-image="swapAt(i, $event)"
+                @drag-start="onDragStart(i, $event)"
+                @drag-over="onDragOver"
                 @drop="onDrop(i)"
-            >
-                <div class="flex flex-col items-center justify-center gap-1 shrink-0">
-                    <IconButton
-                        :icon="['fas', 'angle-up']" :label="t('common.moveUp')"
-                        :disabled="i === 0" @click="moveAt(i, -1)"
-                    />
-                    <font-awesome-icon :icon="['fas', 'grip-vertical']" class="text-(--text-muted) cursor-move"/>
-                    <IconButton
-                        :icon="['fas', 'angle-down']" :label="t('common.moveDown')"
-                        :disabled="i === items.length - 1" @click="moveAt(i, 1)"
-                    />
-                </div>
-                <img :src="pageImageUrl(stationUid, item.imageHash)" alt=""
-                     class="w-24 h-24 object-cover rounded shrink-0"/>
-                <div class="flex-1 flex flex-col gap-1 min-w-0">
-                    <TextInput
-                        :model-value="item.altText ?? ''"
-                        :placeholder="t('stationPages.editor.altText')"
-                        @update:model-value="updateField(i, 'altText', $event)"
-                    />
-                    <TextInput
-                        :model-value="item.subtext ?? ''"
-                        :placeholder="t('stationPages.editor.imageDescription')"
-                        @update:model-value="updateField(i, 'subtext', $event)"
-                    />
-                </div>
-                <PageFileBrowseButton
-                    :station-uid="stationUid"
-                    mime-prefix="image/"
-                    :label="t('stationPages.editor.replaceImage')"
-                    @pick="swapAt(i, $event)"
-                />
-                <IconButton
-                    :icon="['fas', 'trash']" :label="t('common.delete')"
-                    class="text-error" @click="removeAt(i)"
-                />
-            </div>
+            />
         </div>
 
         <!-- Single-mode: one image preview -->

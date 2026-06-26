@@ -13,23 +13,20 @@ export interface SelectOption {
   group?: string
 }
 
+const modelValue = defineModel<string[]>({required: true})
+
 const props = defineProps<{
   options: SelectOption[]
-  modelValue: string[]
   placeholder?: string
   disabled?: boolean
   searchable?: boolean
-}>()
-
-const emit = defineEmits<{
-  'update:modelValue': [value: string[]]
 }>()
 
 const open = ref(false)
 const containerRef = ref<HTMLElement | null>(null)
 const searchQuery = ref('')
 
-const selectedSet = computed(() => new Set(props.modelValue))
+const selectedSet = computed(() => new Set(modelValue.value))
 
 const filteredOptions = computed(() => {
   if (!props.searchable || !searchQuery.value.trim()) return props.options
@@ -38,7 +35,7 @@ const filteredOptions = computed(() => {
 })
 
 const triggerLabel = computed(() => {
-  if (props.modelValue.length === 0) return props.placeholder ?? 'Auswahl'
+  if (modelValue.value.length === 0) return props.placeholder ?? 'Auswahl'
   const selectedLabels = props.options
       .filter(o => selectedSet.value.has(o.value))
       .map(o => o.label)
@@ -60,22 +57,22 @@ const groupedOptions = computed(() => {
   return Array.from(map.entries()).map(([group, options]) => ({group, options}))
 })
 
-const allSelected = computed(() => props.options.length > 0 && props.modelValue.length === props.options.length)
+const allSelected = computed(() => props.options.length > 0 && modelValue.value.length === props.options.length)
 
 function toggle(value: string) {
   if (selectedSet.value.has(value)) {
-    emit('update:modelValue', props.modelValue.filter(v => v !== value))
+    modelValue.value = modelValue.value.filter(v => v !== value)
   } else {
-    emit('update:modelValue', [...props.modelValue, value])
+    modelValue.value = [...modelValue.value, value]
   }
 }
 
 function selectAll() {
-  emit('update:modelValue', props.options.map(o => o.value))
+  modelValue.value = props.options.map(o => o.value)
 }
 
 function selectNone() {
-  emit('update:modelValue', [])
+  modelValue.value = []
 }
 
 function onClickOutside(e: MouseEvent) {
@@ -101,7 +98,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 
     <div
       v-if="open"
-      class="absolute z-20 mt-1 w-64 max-h-72 rounded-lg border border-bg-light-accent bg-bg-light shadow-lg dark:border-bg-dark-accent dark:bg-bg-dark flex flex-col"
+      class="absolute z-20 mt-1 w-64 max-h-72 rounded-theme border border-bg-light-accent bg-bg-light shadow-lg dark:border-bg-dark-accent dark:bg-bg-dark flex flex-col"
     >
       <!-- Select all / none -->
       <div class="flex gap-2 px-3 py-2 border-b border-bg-light-accent dark:border-bg-dark-accent text-xs">

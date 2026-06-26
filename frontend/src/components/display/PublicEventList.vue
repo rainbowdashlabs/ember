@@ -10,6 +10,7 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {PublicEvent} from '@/api/publicEvents'
 import {marked} from 'marked'
+import {formatTime} from '@/util/format'
 
 defineProps<{
   events: PublicEvent[]
@@ -22,12 +23,6 @@ const dayNames = ['', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag',
 function formatDate(iso?: string): string {
   if (!iso) return ''
   return new Date(iso).toLocaleDateString('de-DE', {weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric'})
-}
-
-function formatTime(iso?: string): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
 function isRecurring(eventType?: string): boolean {

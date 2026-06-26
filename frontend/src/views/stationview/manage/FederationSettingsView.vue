@@ -7,16 +7,17 @@
 import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import DiscoveryPanel from './federationsettingsview/DiscoveryPanel.vue'
+import PublicKbPanel from './federationsettingsview/PublicKbPanel.vue'
+import PublicCalendarPanel from './federationsettingsview/PublicCalendarPanel.vue'
+import PublicPagesPanel from './federationsettingsview/PublicPagesPanel.vue'
+import PublicWaitlistPanel from './federationsettingsview/PublicWaitlistPanel.vue'
+import PublicBlogPanel from './federationsettingsview/PublicBlogPanel.vue'
+import PublicSlugPanel from './federationsettingsview/PublicSlugPanel.vue'
 import {stationManage} from '@/api'
 import {useSession} from '@/composables/useSession'
 
@@ -40,7 +41,6 @@ const publicSlug = ref('')
 const stationId = ref('')
 const stationName = ref('')
 
-const publicKbEnabled = computed(() => publicKbMode.value !== 'OFF')
 const stationIdentifier = computed(() => publicSlug.value || stationId.value)
 const publicKbUrl = computed(() => {
   if (!stationIdentifier.value) return ''
@@ -54,10 +54,6 @@ const publicPagesUrl = computed(() => {
   if (!stationIdentifier.value) return ''
   return `${window.location.origin}/public/station/${stationIdentifier.value}/page`
 })
-
-function togglePublicKb() {
-  publicKbMode.value = publicKbEnabled.value ? 'OFF' : 'ALLOW_ALL'
-}
 
 async function loadSettings() {
   loading.value = true
@@ -153,100 +149,13 @@ watch(loaded, (v) => { if (v) loadSettings() })
 
     <template v-if="!loading">
       <div class="space-y-4 max-w-xl">
-        <NeutralContainer class="space-y-4">
-          <SubHeader>{{ t('discovery.settings.visibility') }}</SubHeader>
-          <SelectInput v-model="discoveryVisibility" class="w-full">
-            <option value="NONE">{{ t('discovery.settings.visibilityNone') }}</option>
-            <option value="INSTANCE">{{ t('discovery.settings.visibilityInstance') }}</option>
-            <option value="PUBLIC">{{ t('discovery.settings.visibilityPublic') }}</option>
-          </SelectInput>
-
-          <div v-if="discoveryVisibility !== 'NONE'" class="space-y-3">
-            <div class="space-y-1">
-              <FieldLabel>{{ t('discovery.settings.description') }}</FieldLabel>
-              <TextInput v-model="discoveryDescription" :placeholder="t('discovery.settings.descriptionPlaceholder')"/>
-            </div>
-          </div>
-        </NeutralContainer>
-
-        <NeutralContainer class="space-y-4">
-          <SubHeader>{{ t('stationManage.publicKb.title') }}</SubHeader>
-          <MutedText size="sm">{{ t('stationManage.publicKb.hint') }}</MutedText>
-          <div class="flex items-center justify-between">
-            <span class="text-sm font-medium">{{ t('stationManage.publicKb.enabled') }}</span>
-            <ToggleInput :model-value="publicKbEnabled" @update:model-value="togglePublicKb"/>
-          </div>
-          <div v-if="publicKbEnabled" class="space-y-3">
-            <div class="space-y-1">
-              <FieldLabel>{{ t('stationManage.publicKb.mode') }}</FieldLabel>
-              <SelectInput v-model="publicKbMode" class="w-full">
-                <option value="ALLOW_ALL">{{ t('stationManage.publicKb.modeAllowAll') }}</option>
-                <option value="DENY_ALL">{{ t('stationManage.publicKb.modeDenyAll') }}</option>
-              </SelectInput>
-            </div>
-            <div class="space-y-1">
-              <FieldLabel>{{ t('stationManage.publicKb.publicUrl') }}</FieldLabel>
-              <code class="block rounded bg-bg-light-accent dark:bg-bg-dark-accent px-3 py-2 text-sm break-all select-all">{{ publicKbUrl }}</code>
-            </div>
-          </div>
-        </NeutralContainer>
-
-        <NeutralContainer class="space-y-4">
-          <SubHeader>{{ t('stationManage.publicCalendar.title') }}</SubHeader>
-          <MutedText size="sm">{{ t('stationManage.publicCalendar.hint') }}</MutedText>
-          <div class="flex items-center justify-between">
-            <span class="text-sm font-medium">{{ t('stationManage.publicCalendar.enabled') }}</span>
-            <ToggleInput v-model="publicCalendarEnabled"/>
-          </div>
-          <div v-if="publicCalendarEnabled" class="space-y-1">
-            <FieldLabel>{{ t('stationManage.publicCalendar.publicUrl') }}</FieldLabel>
-            <code class="block rounded bg-bg-light-accent dark:bg-bg-dark-accent px-3 py-2 text-sm break-all select-all">{{ publicCalendarUrl }}</code>
-            <MutedText size="sm">{{ t('stationManage.publicCalendar.categoriesHint') }}</MutedText>
-          </div>
-        </NeutralContainer>
-
-        <NeutralContainer class="space-y-4">
-          <SubHeader>{{ t('stationManage.publicPages.title') }}</SubHeader>
-          <MutedText size="sm">{{ t('stationManage.publicPages.hint') }}</MutedText>
-          <div class="flex items-center justify-between">
-            <span class="text-sm font-medium">{{ t('stationManage.publicPages.enabled') }}</span>
-            <ToggleInput v-model="publicPagesEnabled"/>
-          </div>
-          <div v-if="publicPagesEnabled" class="space-y-1">
-            <FieldLabel>{{ t('stationManage.publicPages.publicUrl') }}</FieldLabel>
-            <code class="block rounded bg-bg-light-accent dark:bg-bg-dark-accent px-3 py-2 text-sm break-all select-all">{{ publicPagesUrl }}</code>
-          </div>
-        </NeutralContainer>
-
-        <NeutralContainer class="space-y-4">
-          <SubHeader>{{ t('helpCenter.federation.publicWaitlistTitle') }}</SubHeader>
-          <MutedText size="sm">{{ t('helpCenter.federation.publicWaitlistText') }}</MutedText>
-          <div class="flex items-center justify-between">
-            <span class="text-sm font-medium">{{ t('waitingList.isPublic') }}</span>
-            <ToggleInput v-model="publicWaitlistEnabled"/>
-          </div>
-        </NeutralContainer>
-
-        <NeutralContainer class="space-y-4">
-          <SubHeader>{{ t('helpCenter.federation.publicBlogTitle') }}</SubHeader>
-          <MutedText size="sm">{{ t('helpCenter.federation.publicBlogText') }}</MutedText>
-          <div class="flex items-center justify-between">
-            <span class="text-sm font-medium">{{ t('helpCenter.federation.publicBlogTitle') }}</span>
-            <ToggleInput v-model="publicBlogEnabled"/>
-          </div>
-        </NeutralContainer>
-
-        <NeutralContainer class="space-y-4">
-          <SubHeader>{{ t('stationManage.publicSlug.title') }}</SubHeader>
-          <MutedText size="sm">{{ t('stationManage.publicSlug.hint') }}</MutedText>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('stationManage.publicSlug.slug') }}</FieldLabel>
-            <TextInput v-model="publicSlug" :placeholder="t('stationManage.publicSlug.placeholder')"/>
-            <MutedText v-if="publicSlug" size="sm">
-              {{ `${window.location.origin}/public/station/${publicSlug}` }}
-            </MutedText>
-          </div>
-        </NeutralContainer>
+        <DiscoveryPanel v-model:visibility="discoveryVisibility" v-model:description="discoveryDescription"/>
+        <PublicKbPanel v-model:mode="publicKbMode" :public-url="publicKbUrl"/>
+        <PublicCalendarPanel v-model:enabled="publicCalendarEnabled" :public-url="publicCalendarUrl"/>
+        <PublicPagesPanel v-model:enabled="publicPagesEnabled" :public-url="publicPagesUrl"/>
+        <PublicWaitlistPanel v-model:enabled="publicWaitlistEnabled"/>
+        <PublicBlogPanel v-model:enabled="publicBlogEnabled"/>
+        <PublicSlugPanel v-model:slug="publicSlug"/>
       </div>
     </template>
   </ViewContent>

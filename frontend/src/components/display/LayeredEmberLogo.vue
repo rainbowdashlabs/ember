@@ -13,9 +13,10 @@ export interface LogoLayer {
 
 export type EyeDirection = 'left' | 'mid' | 'right'
 
+const activeLayers = defineModel<Set<string>>('activeLayers', {required: true})
+
 const props = withDefaults(defineProps<{
   layers: LogoLayer[]
-  activeLayers: Set<string>
   pixelSize?: number
   size?: string
   autoBlink?: boolean
@@ -30,10 +31,6 @@ const props = withDefaults(defineProps<{
   bounce: false,
   displayShake: false,
 })
-
-const emit = defineEmits<{
-  'update:activeLayers': [layers: Set<string>]
-}>()
 
 const allEyeLayers = new Set([
   'fire_eyes_left', 'fire_eyes_left_half', 'fire_blink_left',
@@ -85,10 +82,10 @@ function getCurrentDirection(): EyeDirection | null {
 }
 
 function setActiveEye(openLayerName: string) {
-  const next = new Set(props.activeLayers)
+  const next = new Set(activeLayers.value)
   for (const eye of allEyeLayers) next.delete(eye)
   next.add(openLayerName)
-  emit('update:activeLayers', next)
+  activeLayers.value = next
 }
 
 function sleep(ms: number): Promise<void> {
@@ -97,7 +94,7 @@ function sleep(ms: number): Promise<void> {
 
 // --- Sync from parent ---
 
-watch(() => [...props.activeLayers], (active) => {
+watch(() => [...activeLayers.value], (active) => {
   displayedLayers.value = new Set(active)
 }, { immediate: true })
 
@@ -148,7 +145,7 @@ function startBlink() {
 function stopBlink() {
   blinkRunning = false
   if (blinkTimeout) { clearTimeout(blinkTimeout); blinkTimeout = null }
-  displayedLayers.value = new Set(props.activeLayers)
+  displayedLayers.value = new Set(activeLayers.value)
 }
 
 watch(() => props.autoBlink, (enabled) => {
@@ -202,7 +199,7 @@ function startGaze() {
 function stopGaze() {
   gazeRunning = false
   if (gazeTimeout) { clearTimeout(gazeTimeout); gazeTimeout = null }
-  displayedLayers.value = new Set(props.activeLayers)
+  displayedLayers.value = new Set(activeLayers.value)
 }
 
 watch(() => [...props.gazePositions], (positions) => {

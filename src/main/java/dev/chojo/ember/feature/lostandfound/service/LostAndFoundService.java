@@ -14,6 +14,8 @@ import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -26,6 +28,7 @@ import java.util.Optional;
  */
 @Singleton
 public class LostAndFoundService {
+    private static final Logger log = LoggerFactory.getLogger(LostAndFoundService.class);
     private final LostAndFoundRepository repository;
     private final NotificationService notificationService;
 
@@ -90,12 +93,11 @@ public class LostAndFoundService {
         notificationService.notifyStation(
                 stationId,
                 NotificationType.LOST_AND_FOUND_NEW,
-                // Carry the item id in the link so the feed renderer can fetch the find date,
-                // and the token-scoped image URL has something to point at.
                 NotificationData.of(
                         new NotificationParams.LostAndFoundNew(description != null ? description : ""),
                         new NotificationLink("lost-and-found", Map.of("id", item.id()))),
                 createdBy);
+        log.info("Created lost-and-found item {} at station {} by member {}", item.id(), stationId, createdBy);
         return item;
     }
 
@@ -120,15 +122,15 @@ public class LostAndFoundService {
                     NotificationType.LOST_AND_FOUND_CLAIMED,
                     NotificationData.of(
                             new NotificationParams.LostAndFoundClaimed(claimerName, desc),
-                            // Carry the item id so the feed renderer can fetch claim date /
-                            // original find date for the body, mirroring the create() flow.
                             new NotificationLink("lost-and-found", Map.of("id", id))),
                     claimedBy);
-            // Remove "new lost item" notifications for this item
             notificationService.deleteByTypeContaining(
                     NotificationType.LOST_AND_FOUND_NEW,
                     NotificationData.of(new NotificationParams.LostAndFoundNew(desc))
                             .toJson());
+            log.info("Claimed lost-and-found item {} by member {} at station {}", id, claimedBy, stationId);
+        } else {
+            log.warn("Failed to claim lost-and-found item {} by member {} at station {}", id, claimedBy, stationId);
         }
         return success;
     }
@@ -140,6 +142,12 @@ public class LostAndFoundService {
      * @return true if the item was deleted
      */
     public boolean delete(int id) {
-        return repository.delete(id);
+        boolean deleted = repository.delete(id);
+        if (deleted) {
+            log.info("Deleted lost-and-found item {}", id);
+        } else {
+            log.warn("Failed to delete lost-and-found item {} (not found)", id);
+        }
+        return deleted;
     }
 }

@@ -26,6 +26,8 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import { useSession } from '@/composables/useSession'
+import { useConfirmAction } from '@/composables/useConfirmAction'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { procedures } from '@/api'
 import { StationPermission } from '@/api/types'
 import type { Procedure, ProcedureTemplate } from '@/api/procedures'
@@ -40,8 +42,6 @@ const canManage = computed(() => hasPermission(StationPermission.PROCEDURE_MANAG
 
 const items = ref<Procedure[]>([])
 const templates = ref<ProcedureTemplate[]>([])
-const loading = ref(true)
-const error = ref('')
 
 const searchQuery = ref('')
 const statusFilter = ref<string>(ProcedureStatus.OPEN)
@@ -55,9 +55,23 @@ const newDescription = ref('')
 const newDueAt = ref('')
 const newTemplateId = ref<number | null>(null)
 
-// Delete modal
-const showDeleteModal = ref(false)
-const deleteTarget = ref<Procedure | null>(null)
+const {loading, error, reload} = useAsyncLoader(async () => {
+  const params: { status?: string; assignee?: string } = {}
+  if (statusFilter.value) params.status = statusFilter.value
+  if (assigneeFilter.value === 'me') params.assignee = 'me'
+  items.value = await procedures.getProcedures(params)
+}, {autoLoad: false})
+
+const {
+  show: showDeleteModal,
+  target: deleteTarget,
+  request: requestDelete,
+  confirm: handleDelete,
+} = useConfirmAction<Procedure>({
+  onConfirm: p => procedures.deleteProcedure(p.id),
+  onSuccess: () => reload(),
+  error,
+})
 
 const filteredItems = computed(() => {
   let result = items.value
@@ -70,21 +84,6 @@ const filteredItems = computed(() => {
   }
   return result
 })
-
-async function loadData() {
-  loading.value = true
-  error.value = ''
-  try {
-    const params: { status?: string; assignee?: string } = {}
-    if (statusFilter.value) params.status = statusFilter.value
-    if (assigneeFilter.value === 'me') params.assignee = 'me'
-    items.value = await procedures.getProcedures(params)
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
 
 async function loadTemplates() {
   try {
@@ -122,25 +121,13 @@ async function handleCreate() {
   }
 }
 
-async function handleDelete() {
-  if (!deleteTarget.value) return
-  try {
-    await procedures.deleteProcedure(deleteTarget.value.id)
-    showDeleteModal.value = false
-    deleteTarget.value = null
-    await loadData()
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return ''
   return new Date(dateStr).toLocaleDateString('de-DE')
 }
 
-watch([statusFilter, assigneeFilter], () => loadData())
-watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
+watch([statusFilter, assigneeFilter], () => reload())
+watch(loaded, (v) => { if (v) reload() }, { immediate: true })
 </script>
 
 <template>
@@ -201,7 +188,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
           </span>
         </div>
         <div v-if="canEdit" class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <DeleteButton :label="t('common.delete')" @click.stop="deleteTarget = p; showDeleteModal = true" />
+          <DeleteButton :label="t('common.delete')" @click.stop="requestDelete(p)" />
         </div>
       </NeutralContainer>
     </div>

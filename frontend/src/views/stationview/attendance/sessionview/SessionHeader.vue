@@ -11,6 +11,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TimeShortInput from '@/components/input/datetime/TimeShortInput.vue'
 import type {AttendanceSession} from '@/api/types'
+import {formatTime} from '@/util/format'
 
 const {t} = useI18n()
 
@@ -25,12 +26,6 @@ const emit = defineEmits<{
   updateEndTime: [time: string]
 }>()
 
-function formatTime(iso?: string): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
 </script>
 
 <template>

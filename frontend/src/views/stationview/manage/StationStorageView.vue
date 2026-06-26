@@ -17,7 +17,9 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import {type StationUsageResponse, formatBytes, getStationUsage} from '@/api/storageMonitoring'
+import {type StationUsageResponse, getStationUsage} from '@/api/storageMonitoring'
+import {buildStorageCategoryLabeler, formatBytes} from '@/util/storage'
+import {useConfigPanel} from '@/composables/useConfigPanel'
 
 use([CanvasRenderer, BarChart, TitleComponent, TooltipComponent, GridComponent])
 
@@ -26,9 +28,12 @@ const {t} = useI18n()
 const isDark = ref(document.documentElement.classList.contains('dark'))
 let observer: MutationObserver | null = null
 
-const loading = ref(true)
-const error = ref('')
-const usage = ref<StationUsageResponse | null>(null)
+const {config: usage, loading, error, reload: loadData} = useConfigPanel<StationUsageResponse | null>({
+  initial: null,
+  fetch: getStationUsage,
+  immediate: false,
+  formatError: (e: any) => e?.message || 'Failed to load storage data',
+})
 
 onMounted(() => {
   observer = new MutationObserver(() => {
@@ -42,18 +47,6 @@ onUnmounted(() => {
   observer?.disconnect()
 })
 
-async function loadData() {
-  loading.value = true
-  error.value = ''
-  try {
-    usage.value = await getStationUsage()
-  } catch (e: any) {
-    error.value = e.message || 'Failed to load storage data'
-  } finally {
-    loading.value = false
-  }
-}
-
 const textColor = computed(() => isDark.value ? '#e0e0e0' : '#333333')
 
 function barColor(percent: number) {
@@ -62,25 +55,7 @@ function barColor(percent: number) {
   return 'bg-green-500'
 }
 
-function categoryLabel(cat: string): string {
-  const labels: Record<string, string> = {
-    KB_FILES: t('storageMonitoring.categories.kbFiles'),
-    BOARD_ATTACHMENTS: t('storageMonitoring.categories.boardAttachments'),
-    PAGE_FILES: t('storageMonitoring.categories.pageFiles'),
-    PAGE_IMAGES: t('storageMonitoring.categories.pageFiles'),
-    IMAGE_AVATAR: t('storageMonitoring.categories.avatars'),
-    IMAGE_LOST_AND_FOUND: t('storageMonitoring.categories.lostAndFound'),
-    IMAGE_LOGO_FRAGMENT: t('storageMonitoring.categories.logoFragment'),
-    IMAGE_QUIZ_QUESTION: t('storageMonitoring.categories.quizQuestion'),
-    IMAGE_KB_ICON: t('storageMonitoring.categories.kbIcon'),
-    IMAGE_KB_IMAGE: t('storageMonitoring.categories.kbImage'),
-    DOCUMENT: t('storageMonitoring.categories.document'),
-    DISCOVERY_KEY: t('storageMonitoring.categories.discoveryKey'),
-    MAP_TILE_CACHE: t('storageMonitoring.categories.mapTileCache'),
-    DEMO_AVATAR: t('storageMonitoring.categories.demoAvatar'),
-  }
-  return labels[cat] || cat
-}
+const categoryLabel = buildStorageCategoryLabeler(t)
 
 const chartOption = computed(() => {
   if (!usage.value) return {}

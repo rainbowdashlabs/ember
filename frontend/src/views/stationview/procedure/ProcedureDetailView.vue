@@ -12,21 +12,19 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import MutedText from '@/components/typography/MutedText.vue'
+import ProcedureItemRow from './proceduredetailview/ProcedureItemRow.vue'
 import {useSession} from '@/composables/useSession'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {procedures} from '@/api'
 import {StationPermission} from '@/api/types'
 import type {ProcedureDetail, ProcedureItem} from '@/api/procedures'
@@ -40,8 +38,6 @@ const {hasPermission, loaded} = useSession()
 const canEdit = computed(() => hasPermission(StationPermission.PROCEDURE_EDIT))
 
 const detail = ref<ProcedureDetail | null>(null)
-const loading = ref(true)
-const error = ref('')
 
 const showResolveModal = ref(false)
 
@@ -109,35 +105,26 @@ const sortedItems = computed(() => {
   return result
 })
 
-async function loadData() {
-  loading.value = true
-  error.value = ''
-  try {
-    detail.value = await procedures.getProcedure(procedureId.value)
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, error, reload} = useAsyncLoader(async () => {
+  detail.value = await procedures.getProcedure(procedureId.value)
+}, {autoLoad: false})
 
 async function refreshSilently() {
   try {
     detail.value = await procedures.getProcedure(procedureId.value)
-  } catch { /* optimistic state is good enough */
+  } catch {
   }
 }
 
 function canCheckItem(item: ProcedureItem): boolean {
-  if (item.checked) return canEdit.value // only EDIT users can uncheck
+  if (item.checked) return canEdit.value
   if (!isDependencyMet(item)) return false
-  if (!item.userAssigned && !canEdit.value) return false // non-EDIT can only check userAssigned items
+  if (!item.userAssigned && !canEdit.value) return false
   return true
 }
 
 async function toggleItem(item: ProcedureItem) {
   if (!canCheckItem(item)) return
-  // Optimistic update
   if (detail.value) {
     detail.value = {
       ...detail.value,
@@ -171,7 +158,7 @@ async function handleResolve() {
       await procedures.reopenProcedure(procedureId.value)
     }
     showResolveModal.value = false
-    await loadData()
+    await reload()
   } catch {
     error.value = t('common.error')
   }
@@ -188,7 +175,7 @@ function formatDateTime(dateStr: string | null | undefined): string {
 }
 
 watch(loaded, (v) => {
-  if (v) loadData()
+  if (v) reload()
 }, {immediate: true})
 </script>
 
@@ -255,62 +242,17 @@ watch(loaded, (v) => {
       <SubHeader class="mb-3">{{ t('procedures.items') }}</SubHeader>
 
       <div class="space-y-2">
-        <component
-            :is="item.checked ? SuccessContainer : NeutralContainer"
+        <ProcedureItemRow
             v-for="item in sortedItems"
             :key="item.id"
-        >
-          <div class="flex items-start gap-3">
-            <!-- Checkbox -->
-            <div class="pt-0.5 shrink-0">
-              <IconButton
-                  v-if="canCheckItem(item)"
-                  :icon="item.checked ? ['fas', 'square-check'] : ['fas', 'square']"
-                  :label="item.checked ? t('procedures.uncheck') : t('procedures.check')"
-                  :class="item.checked ? 'text-[var(--success)]' : 'text-[var(--text-muted)]'"
-                  @click="toggleItem(item)"
-              />
-              <font-awesome-icon
-                  v-else-if="item.checked"
-                  :icon="['fas', 'square-check']"
-                  class="w-4 h-4 text-[var(--success)] mt-1 ml-2"
-              />
-              <font-awesome-icon
-                  v-else
-                  :icon="['fas', 'lock']"
-                  class="w-4 h-4 text-[var(--text-muted)] opacity-50 mt-1 ml-2"
-                  :title="!isDependencyMet(item) ? t('procedures.locked') + ': ' + getDependencyNames(item).join(', ') : t('procedures.editOnly')"
-              />
-            </div>
-
-            <!-- Content -->
-            <div class="flex-1 min-w-0">
-              <div class="font-medium" :class="{ 'line-through opacity-60': item.checked }">{{ item.title }}</div>
-              <div v-if="item.description" class="text-sm text-[var(--text-muted)]">{{ item.description }}</div>
-              <div v-if="!isDependencyMet(item) && !item.checked"
-                   class="text-xs text-[var(--text-muted)] mt-1 flex items-center gap-1">
-                <font-awesome-icon :icon="['fas', 'lock']" class="w-3 h-3"/>
-                {{ t('procedures.dependsOn') }}: {{ getDependencyNames(item).join(', ') }}
-              </div>
-              <div v-if="item.checkedAt" class="text-xs text-[var(--text-muted)] mt-1">
-                {{ t('procedures.checkedBy') }}: {{ formatDateTime(item.checkedAt) }}
-              </div>
-
-              <!-- Note -->
-              <div v-if="item.note || (!item.checked && canEdit)" class="mt-2">
-                <TextAreaInput
-                    v-if="!item.checked && canEdit"
-                    :model-value="item.note ?? ''"
-                    :placeholder="t('procedures.itemNote')"
-                    class="!text-xs !py-1 !min-h-0"
-                    :rows="1"
-                    @blur="(e: Event) => updateNote(item, (e.target as HTMLTextAreaElement).value)"
-                />
-                <p v-else-if="item.note" class="text-sm text-[var(--text-muted)] italic">{{ item.note }}</p>
-              </div>
-            </div>
-          </div>
-        </component>
+            :item="item"
+            :can-edit="canEdit"
+            :can-check="canCheckItem(item)"
+            :dependency-met="isDependencyMet(item)"
+            :dependency-names="getDependencyNames(item)"
+            @toggle="toggleItem(item)"
+            @update-note="(note) => updateNote(item, note)"
+        />
       </div>
 
       <div v-if="detail.items.length === 0" class="text-center text-[var(--text-muted)] py-8">

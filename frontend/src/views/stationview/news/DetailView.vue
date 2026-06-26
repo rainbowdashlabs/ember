@@ -4,9 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {nextTick, onMounted, ref, watch} from 'vue'
+import {nextTick, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -30,8 +31,6 @@ const router = useRouter()
 const {canManageNews} = useSession()
 
 const entry = ref<NewsEntry | null>(null)
-const loading = ref(true)
-const error = ref('')
 const showDeleteModal = ref(false)
 const highlightCommentId = ref<number | null>(null)
 interface ViewBadgeRef {
@@ -41,26 +40,15 @@ interface ViewBadgeRef {
 const viewBadge = ref<ViewBadgeRef | null>(null)
 const recordedViewIds = new Set<number>()
 
-async function loadData() {
-  loading.value = true
-  error.value = ''
-  try {
-    const id = Number(route.params.id)
-    entry.value = await news.getNews(id)
-    // Record a view on detail open. Idempotent on the server (ON CONFLICT DO NOTHING),
-    // and we also guard locally so re-entering the page in the same session doesn't spam.
-    // The badge fetches its own count on mount and refreshes here once the view is in.
-    if (entry.value && !recordedViewIds.has(id)) {
-      recordedViewIds.add(id)
-      news.recordNewsView(id).then(() => viewBadge.value?.refresh())
-        .catch(() => recordedViewIds.delete(id))
-    }
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
+const {loading, error, reload} = useAsyncLoader(async () => {
+  const id = Number(route.params.id)
+  entry.value = await news.getNews(id)
+  if (entry.value && !recordedViewIds.has(id)) {
+    recordedViewIds.add(id)
+    news.recordNewsView(id).then(() => viewBadge.value?.refresh())
+      .catch(() => recordedViewIds.delete(id))
   }
-}
+})
 
 function formatDate(dateStr?: string): string {
   if (!dateStr) return ''
@@ -95,8 +83,7 @@ function scrollToComment() {
   })
 }
 
-onMounted(loadData)
-watch(() => route.params.id, loadData)
+watch(() => route.params.id, reload)
 watch(loading, (isLoading) => {
   if (!isLoading) scrollToComment()
 })

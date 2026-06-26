@@ -10,15 +10,15 @@ import {use} from 'echarts/core'
 import {CanvasRenderer} from 'echarts/renderers'
 import {BarChart, LineChart, PieChart} from 'echarts/charts'
 import {GridComponent, LegendComponent, TitleComponent, TooltipComponent} from 'echarts/components'
-import VChart from 'vue-echarts'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import StatValue from '@/components/typography/StatValue.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import client from '@/api/client'
 import {useSession} from '@/composables/useSession'
+import {useConfigPanel} from '@/composables/useConfigPanel'
+import SummaryCards from '@/views/dashboardview/statisticsview/SummaryCards.vue'
+import ChartGrid from '@/views/dashboardview/statisticsview/ChartGrid.vue'
 
 use([CanvasRenderer, BarChart, PieChart, LineChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent])
 
@@ -52,22 +52,11 @@ interface StatsData {
   roleCounts: Record<string, number>
 }
 
-const stats = ref<StatsData | null>(null)
-const loading = ref(true)
-const error = ref('')
-
-async function loadStats() {
-  loading.value = true
-  error.value = ''
-  try {
-    const res = await client.get<StatsData>('/statistics')
-    stats.value = res.data
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const {config: stats, loading, error, reload: loadStats} = useConfigPanel<StatsData | null>({
+  initial: null,
+  fetch: async () => (await client.get<StatsData>('/statistics')).data,
+  immediate: false,
+})
 
 const groupPieOption = computed(() => {
   if (!stats.value) return {}
@@ -226,50 +215,15 @@ watch(loaded, (isLoaded) => {
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading && stats">
-        <!-- Summary cards -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <NeutralContainer class="text-center">
-            <StatValue>{{ stats.memberCount }}</StatValue>
-            <p class="text-sm text-(--text-muted)">{{ t('statistics.members') }}</p>
-          </NeutralContainer>
-          <NeutralContainer class="text-center">
-            <StatValue>{{ Object.keys(stats.groupCounts).length }}</StatValue>
-            <p class="text-sm text-(--text-muted)">{{ t('statistics.groups') }}</p>
-          </NeutralContainer>
-          <NeutralContainer class="text-center">
-            <StatValue>{{
-                stats.attendanceByMonth.reduce((s, a) => s + a.sessions, 0)
-              }}</StatValue>
-            <p class="text-sm text-(--text-muted)">{{ t('statistics.totalSessions') }}</p>
-          </NeutralContainer>
-          <NeutralContainer class="text-center">
-            <StatValue>{{ stats.inventoryStatus.reduce((s, i) => s + i.total, 0) }}</StatValue>
-            <p class="text-sm text-(--text-muted)">{{ t('statistics.totalItems') }}</p>
-          </NeutralContainer>
-        </div>
-
-        <!-- Charts -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <NeutralContainer>
-            <VChart :option="groupPieOption" autoresize style="height: 300px"/>
-          </NeutralContainer>
-
-          <NeutralContainer>
-            <VChart :option="sessionsLineOption" autoresize style="height: 300px"/>
-          </NeutralContainer>
-
-          <NeutralContainer class="lg:col-span-2">
-            <VChart :option="attendanceBarOption" autoresize style="height: 350px"/>
-          </NeutralContainer>
-
-          <NeutralContainer>
-            <VChart :option="inventoryBarOption" autoresize style="height: 300px"/>
-          </NeutralContainer>
-
-          <NeutralContainer v-if="stats.eventRegistrations.length > 0">
-            <VChart :option="registrationBarOption" autoresize style="height: 300px"/>
-          </NeutralContainer>
-        </div>
+        <SummaryCards :stats="stats"/>
+        <ChartGrid
+            :group-pie-option="groupPieOption"
+            :sessions-line-option="sessionsLineOption"
+            :attendance-bar-option="attendanceBarOption"
+            :inventory-bar-option="inventoryBarOption"
+            :registration-bar-option="registrationBarOption"
+            :show-registrations="stats.eventRegistrations.length > 0"
+        />
       </template>
     </div>
   </ViewContent>

@@ -8,28 +8,27 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import FieldHint from '@/components/typography/FieldHint.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
 import type { QuizCategory, QuizQuestionTypeName } from '@/api/types'
 import { QuizQuestionTypes } from '@/api/types'
 import { quiz } from '@/api'
 import type { CsvMappings } from '@/api/quiz'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
+import CsvFileUploadBar from '@/views/stationview/quiz/csvimportdialog/CsvFileUploadBar.vue'
+import CsvColumnMapping from '@/views/stationview/quiz/csvimportdialog/CsvColumnMapping.vue'
+import CsvPreviewTable from '@/views/stationview/quiz/csvimportdialog/CsvPreviewTable.vue'
 
 const { t } = useI18n()
 
+const show = defineModel<boolean>('show', {required: true})
+
 const props = defineProps<{
-  show: boolean
   catalogId: number
   categories: QuizCategory[]
 }>()
 
 const emit = defineEmits<{
-  'update:show': [value: boolean]
   imported: [count: number]
 }>()
 
@@ -41,7 +40,6 @@ const importing = ref(false)
 const successCount = ref<number | null>(null)
 const error = ref('')
 
-// Column mappings
 const questionColumn = ref('')
 const answerColumn = ref('')
 const categoryColumn = ref('')
@@ -131,15 +129,13 @@ async function doImport() {
 }
 
 function close() {
-  emit('update:show', false)
+  show.value = false
   csvFile.value = null
   headers.value = []
   rows.value = []
   successCount.value = null
   error.value = ''
 }
-
-const previewRows = computed(() => rows.value.slice(0, 5))
 </script>
 
 <template>
@@ -152,96 +148,25 @@ const previewRows = computed(() => rows.value.slice(0, 5))
       </Alert>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
-      <!-- File upload -->
-      <div class="flex items-center gap-2">
-        <label class="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg font-medium cursor-pointer bg-bg-light-accent dark:bg-bg-dark-accent hover:brightness-110 transition-all">
-          <font-awesome-icon :icon="['fas', 'upload']" />
-          {{ t('quiz.csv.selectFile') }}
-          <input type="file" accept=".csv,.tsv,.txt" class="hidden" @change="onFileSelected" />
-        </label>
-        <div class="flex items-center gap-2">
-          <FieldHint>{{ t('quiz.csv.separator') }}</FieldHint>
-          <SelectInput v-model="separator" class="w-24" @update:model-value="onSeparatorChange">
-            <option value=",">,</option>
-            <option value=";">;</option>
-            <option value="&#9">Tab</option>
-          </SelectInput>
-        </div>
-      </div>
+      <CsvFileUploadBar
+        v-model:separator="separator"
+        @file-selected="onFileSelected"
+        @separator-changed="onSeparatorChange"
+      />
 
       <template v-if="parsed">
-        <!-- Column mapping -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <FieldLabel hint class="mb-1">{{ t('quiz.csv.questionColumn') }}</FieldLabel>
-            <SelectInput v-model="questionColumn" class="w-full">
-              <option v-for="h in headers" :key="h" :value="h">{{ h }}</option>
-            </SelectInput>
-          </div>
-          <div>
-            <FieldLabel hint class="mb-1">{{ t('quiz.csv.answerColumn') }}</FieldLabel>
-            <SelectInput v-model="answerColumn" class="w-full">
-              <option value="">–</option>
-              <option v-for="h in headers" :key="h" :value="h">{{ h }}</option>
-            </SelectInput>
-          </div>
-          <div>
-            <FieldLabel hint class="mb-1">{{ t('quiz.csv.categoryColumn') }}</FieldLabel>
-            <SelectInput v-model="categoryColumn" class="w-full">
-              <option value="">–</option>
-              <option v-for="h in headers" :key="h" :value="h">{{ h }}</option>
-            </SelectInput>
-          </div>
-          <div>
-            <FieldLabel hint class="mb-1">{{ t('quiz.csv.typeColumn') }}</FieldLabel>
-            <SelectInput v-model="typeColumn" class="w-full">
-              <option value="">–</option>
-              <option v-for="h in headers" :key="h" :value="h">{{ h }}</option>
-            </SelectInput>
-          </div>
-          <div>
-            <FieldLabel hint class="mb-1">{{ t('quiz.csv.pointsColumn') }}</FieldLabel>
-            <SelectInput v-model="pointsColumn" class="w-full">
-              <option value="">–</option>
-              <option v-for="h in headers" :key="h" :value="h">{{ h }}</option>
-            </SelectInput>
-          </div>
-          <div>
-            <FieldLabel hint class="mb-1">{{ t('quiz.questions.type') }} ({{ t('quiz.csv.defaultType') }})</FieldLabel>
-            <SelectInput v-model="defaultType" class="w-full">
-              <option :value="QuizQuestionTypes.MULTIPLE_CHOICE">{{ t('quiz.questionTypes.MULTIPLE_CHOICE') }}</option>
-              <option :value="QuizQuestionTypes.FREE_ANSWER">{{ t('quiz.questionTypes.FREE_ANSWER') }}</option>
-              <option :value="QuizQuestionTypes.TRUE_FALSE">{{ t('quiz.questionTypes.TRUE_FALSE') }}</option>
-              <option :value="QuizQuestionTypes.FILL_IN_THE_BLANK">{{ t('quiz.questionTypes.FILL_IN_THE_BLANK') }}</option>
-              <option :value="QuizQuestionTypes.ORDERING">{{ t('quiz.questionTypes.ORDERING') }}</option>
-              <option :value="QuizQuestionTypes.CONNECT">{{ t('quiz.questionTypes.CONNECT') }}</option>
-            </SelectInput>
-          </div>
-        </div>
+        <CsvColumnMapping
+          v-model:question-column="questionColumn"
+          v-model:answer-column="answerColumn"
+          v-model:category-column="categoryColumn"
+          v-model:type-column="typeColumn"
+          v-model:points-column="pointsColumn"
+          v-model:default-type="defaultType"
+          v-model:answer-separator="answerSeparator"
+          :headers="headers"
+        />
 
-        <div class="flex items-center gap-2">
-          <FieldHint>{{ t('quiz.csv.answerSeparator') }}</FieldHint>
-          <TextInput v-model="answerSeparator" class="w-16" />
-        </div>
-
-        <!-- Preview -->
-        <div class="space-y-2">
-          <label class="text-xs text-(--text-muted) font-medium">{{ t('quiz.csv.preview') }} ({{ rows.length }} {{ t('quiz.csv.rows') }})</label>
-          <div class="overflow-x-auto">
-            <table class="text-xs w-full">
-              <thead>
-                <tr>
-                  <th v-for="h in headers" :key="h" class="text-left px-2 py-1 border-b border-bg-light-accent dark:border-bg-dark-accent">{{ h }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(row, ri) in previewRows" :key="ri">
-                  <td v-for="(cell, ci) in row" :key="ci" class="px-2 py-1 border-b border-bg-light-accent dark:border-bg-dark-accent truncate max-w-48">{{ cell }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <CsvPreviewTable :headers="headers" :rows="rows" />
 
         <div class="flex justify-end gap-3">
           <SecondaryButton @click="close">{{ t('common.cancel') }}</SecondaryButton>

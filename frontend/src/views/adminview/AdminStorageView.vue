@@ -24,11 +24,11 @@ import StorageStationTable from './adminstorageview/StorageStationTable.vue'
 import {
   type AdminStationUsage,
   type StorageQuotaPreset,
-  formatBytes,
   getAdminUsage,
   getPresets,
   recalculateAll,
 } from '@/api/storageMonitoring'
+import {STORAGE_CATEGORY_COLORS, buildStorageCategoryLabeler, formatBytes} from '@/util/storage'
 
 use([CanvasRenderer, BarChart, PieChart, TitleComponent, TooltipComponent, GridComponent, LegendComponent])
 
@@ -75,25 +75,7 @@ const stationsFull = computed(() => stations.value.filter(s => s.quotaUsedPercen
 
 const textColor = computed(() => isDark.value ? '#e0e0e0' : '#333333')
 
-function categoryLabel(cat: string): string {
-  const labels: Record<string, string> = {
-    KB_FILES: t('storageMonitoring.categories.kbFiles'),
-    BOARD_ATTACHMENTS: t('storageMonitoring.categories.boardAttachments'),
-    PAGE_FILES: t('storageMonitoring.categories.pageFiles'),
-    PAGE_IMAGES: t('storageMonitoring.categories.pageFiles'),
-    IMAGE_AVATAR: t('storageMonitoring.categories.avatars'),
-    IMAGE_LOST_AND_FOUND: t('storageMonitoring.categories.lostAndFound'),
-    IMAGE_LOGO_FRAGMENT: t('storageMonitoring.categories.logoFragment'),
-    IMAGE_QUIZ_QUESTION: t('storageMonitoring.categories.quizQuestion'),
-    IMAGE_KB_ICON: t('storageMonitoring.categories.kbIcon'),
-    IMAGE_KB_IMAGE: t('storageMonitoring.categories.kbImage'),
-    DOCUMENT: t('storageMonitoring.categories.document'),
-    DISCOVERY_KEY: t('storageMonitoring.categories.discoveryKey'),
-    MAP_TILE_CACHE: t('storageMonitoring.categories.mapTileCache'),
-    DEMO_AVATAR: t('storageMonitoring.categories.demoAvatar'),
-  }
-  return labels[cat] || cat
-}
+const categoryLabel = buildStorageCategoryLabeler(t)
 
 async function handleRecalculateAll() {
   reconciling.value = true
@@ -105,7 +87,6 @@ async function handleRecalculateAll() {
   }
 }
 
-// Chart: top stations by usage
 const topStationsChart = computed(() => {
   const top = [...stations.value].filter(s => s.totalBytes > 0).sort((a, b) => b.totalBytes - a.totalBytes).slice(0, 15)
   return {
@@ -126,7 +107,6 @@ const topStationsChart = computed(() => {
   }
 })
 
-// Chart: category distribution pie
 const categoryPieChart = computed(() => {
   const catTotals: Record<string, number> = {}
   for (const station of stations.value) {
@@ -135,16 +115,6 @@ const categoryPieChart = computed(() => {
       catTotals[cat.category] = (catTotals[cat.category] || 0) + cat.totalBytes
     }
   }
-  const colors: Record<string, string> = {
-    KB_FILES: '#3694FF',
-    BOARD_ATTACHMENTS: '#FF6421',
-    PAGE_FILES: '#00C507',
-    IMAGE_LOST_AND_FOUND: '#73CEFF',
-    IMAGE_QUIZ_QUESTION: '#FFDD1B',
-    IMAGE_KB_ICON: '#C71100',
-    IMAGE_KB_IMAGE: '#3694FF',
-    IMAGE_LOGO_FRAGMENT: '#9333EA',
-  }
   return {
     tooltip: {trigger: 'item', formatter: (p: any) => `${p.name}: ${formatBytes(p.value)} (${p.percent}%)`},
     legend: {bottom: 0, textStyle: {color: textColor.value}},
@@ -152,7 +122,7 @@ const categoryPieChart = computed(() => {
       type: 'pie',
       radius: ['40%', '70%'],
       center: ['50%', '45%'],
-      data: Object.entries(catTotals).filter(([, bytes]) => bytes > 0).map(([cat, bytes]) => ({name: categoryLabel(cat), value: bytes, itemStyle: {color: colors[cat] || '#9ca3af'}})),
+      data: Object.entries(catTotals).filter(([, bytes]) => bytes > 0).map(([cat, bytes]) => ({name: categoryLabel(cat), value: bytes, itemStyle: {color: STORAGE_CATEGORY_COLORS[cat] || '#9ca3af'}})),
       label: {color: textColor.value},
     }],
   }

@@ -12,17 +12,13 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import StorageBackendAuditTable from '@/components/storage/StorageBackendAuditTable.vue'
-import S3BackendForm from '@/components/storage/S3BackendForm.vue'
-import SmbBackendForm from '@/components/storage/SmbBackendForm.vue'
-import SftpBackendForm from '@/components/storage/SftpBackendForm.vue'
+import BackendForm from './stationstoragebackendview/BackendForm.vue'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {
@@ -280,48 +276,19 @@ function newSftp(): SftpRequest {
                     </MutedText>
                 </NeutralContainer>
 
-                <NeutralContainer class="space-y-4">
-                    <SubHeader>{{ t('stationStorageBackend.form.title') }}</SubHeader>
-                    <MutedText tag="p" size="sm">{{ t('stationStorageBackend.form.hint') }}</MutedText>
-
-                    <div class="space-y-1">
-                        <FieldLabel>{{ t('stationStorageBackend.form.type') }}</FieldLabel>
-                        <SelectInput v-model="selectedType">
-                            <option value="LOCAL">{{ t('stationStorageBackend.form.types.local') }}</option>
-                            <option value="S3">{{ t('stationStorageBackend.form.types.s3') }}</option>
-                            <option value="SMB">{{ t('stationStorageBackend.form.types.smb') }}</option>
-                            <option value="SFTP">{{ t('stationStorageBackend.form.types.sftp') }}</option>
-                        </SelectInput>
-                    </div>
-
-                    <MutedText v-if="selectedType === 'LOCAL'" tag="p" size="sm">
-                        {{ t('stationStorageBackend.form.localHint') }}
-                    </MutedText>
-                    <S3BackendForm v-else-if="selectedType === 'S3'" v-model="s3" />
-                    <SmbBackendForm v-else-if="selectedType === 'SMB'" v-model="smb" />
-                    <SftpBackendForm v-else-if="selectedType === 'SFTP'" v-model="sftp" />
-
-                    <div v-if="probeOutcome" class="text-sm">
-                        <Alert v-if="probeOutcome.healthy" variant="success">
-                            {{ t('stationStorageBackend.probe.ok') }}
-                        </Alert>
-                        <Alert v-else variant="error">
-                            {{ t('stationStorageBackend.probe.failed', {reason: probeOutcome.error ?? ''}) }}
-                        </Alert>
-                    </div>
-
-                    <div class="flex flex-wrap items-center gap-3">
-                        <SecondaryButton :disabled="probing || selectedType === 'LOCAL'" @click="probeConfig">
-                            {{ probing ? t('stationStorageBackend.actions.probing') : t('stationStorageBackend.actions.probeConfig') }}
-                        </SecondaryButton>
-                        <SecondaryButton :disabled="probing || !hasOverride" @click="probe">
-                            {{ probing ? t('stationStorageBackend.actions.probing') : t('stationStorageBackend.actions.probeLive') }}
-                        </SecondaryButton>
-                        <PrimaryButton :disabled="saving" @click="confirmApply = true">
-                            {{ saving ? t('stationStorageBackend.actions.applying') : t('stationStorageBackend.actions.apply') }}
-                        </PrimaryButton>
-                    </div>
-                </NeutralContainer>
+                <BackendForm
+                    v-model:selected-type="selectedType"
+                    v-model:s3="s3"
+                    v-model:smb="smb"
+                    v-model:sftp="sftp"
+                    :probing="probing"
+                    :saving="saving"
+                    :has-override="hasOverride"
+                    :probe-outcome="probeOutcome"
+                    @probe-config="probeConfig"
+                    @probe-live="probe"
+                    @apply="confirmApply = true"
+                />
 
                 <NeutralContainer class="space-y-3">
                     <SubHeader>{{ t('stationStorageBackend.audit.title') }}</SubHeader>

@@ -12,9 +12,9 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import DummyNotificationMatrix from './notificationshelp/DummyNotificationMatrix.vue'
 
 const {t} = useI18n()
 </script>
@@ -29,7 +29,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.notifications.typesText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Mail provider info -->
     <HelpSection :title="t('helpCenter.notifications.matrixTitle')">
       <p>{{ t('helpCenter.notifications.matrixText') }}</p>
     </HelpSection>
@@ -45,102 +44,8 @@ const {t} = useI18n()
       </p>
     </InfoContainer>
 
-    <!-- Dummy: Notification matrix table -->
-    <NeutralContainer class="space-y-4">
-      <SubHeader class="text-sm">{{ t('userSettings.notifications') }}</SubHeader>
-      <p class="text-xs text-(--text-muted)">{{ t('userSettings.notificationsHint') }}</p>
+    <DummyNotificationMatrix/>
 
-      <!-- Header row -->
-      <div class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center text-xs font-semibold text-(--text-muted) border-b border-(--border) pb-2">
-        <span></span>
-        <span class="w-12 text-center">{{ t('userSettings.columnApp') }}</span>
-        <span class="w-12 text-center">{{ t('userSettings.columnEmail') }}</span>
-        <span class="w-12 text-center">{{ t('userSettings.columnFeed') }}</span>
-      </div>
-
-      <!-- Notification rows -->
-      <div class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center py-1">
-        <div>
-          <span class="text-sm font-medium">{{ t('userSettings.notifyNews') }}</span>
-          <p class="text-xs text-(--text-muted)">{{ t('userSettings.notifyNewsHint') }}</p>
-        </div>
-        <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
-        <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
-        <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
-      </div>
-
-      <div class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center py-1">
-        <div>
-          <span class="text-sm font-medium">{{ t('userSettings.notifyComments') }}</span>
-          <p class="text-xs text-(--text-muted)">{{ t('userSettings.notifyCommentsHint') }}</p>
-        </div>
-        <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
-        <div class="w-12 flex justify-center"><ToggleInput :model-value="false" disabled/></div>
-        <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
-      </div>
-
-      <div class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center py-1">
-        <div>
-          <span class="text-sm font-medium">{{ t('userSettings.notifyEvents') }}</span>
-          <p class="text-xs text-(--text-muted)">{{ t('userSettings.notifyEventsHint') }}</p>
-        </div>
-        <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
-        <div class="w-12 flex justify-center"><ToggleInput :model-value="false" disabled/></div>
-        <div class="w-12 flex justify-center"><ToggleInput :model-value="false" disabled/></div>
-      </div>
-
-      <div class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center py-1">
-        <div>
-          <span class="text-sm font-medium">{{ t('userSettings.notifyEventStatus') }}</span>
-          <p class="text-xs text-(--text-muted)">{{ t('userSettings.notifyEventStatusHint') }}</p>
-        </div>
-        <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
-        <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
-        <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
-      </div>
-
-      <div class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center py-1">
-        <div>
-          <span class="text-sm font-medium">{{ t('userSettings.notifyExchanges') }}</span>
-          <p class="text-xs text-(--text-muted)">{{ t('userSettings.notifyExchangesHint') }}</p>
-        </div>
-        <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
-        <div class="w-12 flex justify-center"><ToggleInput :model-value="false" disabled/></div>
-        <div class="w-12 flex justify-center"><ToggleInput :model-value="false" disabled/></div>
-      </div>
-
-      <div class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center py-1">
-        <div>
-          <span class="text-sm font-medium">{{ t('userSettings.notifyGroups') }}</span>
-          <p class="text-xs text-(--text-muted)">{{ t('userSettings.notifyGroupsHint') }}</p>
-        </div>
-        <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
-        <div class="w-12 flex justify-center"><ToggleInput :model-value="false" disabled/></div>
-        <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
-      </div>
-
-      <div class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center py-1">
-        <div>
-          <span class="text-sm font-medium">{{ t('userSettings.notifyProfile') }}</span>
-          <p class="text-xs text-(--text-muted)">{{ t('userSettings.notifyProfileHint') }}</p>
-        </div>
-        <div class="w-12 flex justify-center"><ToggleInput :model-value="true" disabled/></div>
-        <div class="w-12 flex justify-center"><ToggleInput :model-value="false" disabled/></div>
-        <div class="w-12 flex justify-center"><ToggleInput :model-value="false" disabled/></div>
-      </div>
-
-      <div class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center py-1">
-        <div>
-          <span class="text-sm font-medium">{{ t('userSettings.notifyProcurement') }}</span>
-          <p class="text-xs text-(--text-muted)">{{ t('userSettings.notifyProcurementHint') }}</p>
-        </div>
-        <div class="w-12 flex justify-center"><ToggleInput :model-value="false" disabled/></div>
-        <div class="w-12 flex justify-center"><ToggleInput :model-value="false" disabled/></div>
-        <div class="w-12 flex justify-center"><ToggleInput :model-value="false" disabled/></div>
-      </div>
-    </NeutralContainer>
-
-    <!-- Dummy: Feed token section -->
     <HelpSection :title="t('helpCenter.notifications.feedsTitle')">
       <p>{{ t('helpCenter.notifications.feedsText') }}</p>
     </HelpSection>

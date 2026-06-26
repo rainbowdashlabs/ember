@@ -10,7 +10,7 @@ import {marked} from 'marked'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import CellMarkdownEditor from '@/views/stationview/pages/pageeditorview/CellMarkdownEditor.vue'
+import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
 
 const model = defineModel<string>()
 
@@ -51,10 +51,9 @@ function apply() {
     <Modal v-model="showModal" size="xl">
         <div class="space-y-3 flex flex-col h-[80vh]">
             <SectionHeader>{{ title ?? t('stationPages.editor.editMarkdown') }}</SectionHeader>
-            <CellMarkdownEditor
+            <MarkdownEditor
+                v-model="draft"
                 class="flex-1 flex flex-col min-h-0"
-                :content="draft"
-                @update:content="draft = $event"
             />
             <div class="flex justify-end">
                 <PrimaryButton @click="apply">{{ t('common.save') }}</PrimaryButton>

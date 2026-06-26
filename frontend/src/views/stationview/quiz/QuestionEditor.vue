@@ -28,29 +28,23 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const { t } = useI18n()
 
+const title = defineModel<string>('title', {required: true})
+const description = defineModel<string>('description', {required: true})
+const questionType = defineModel<QuizQuestionTypeName>('questionType', {required: true})
+const categoryId = defineModel<number | null>('categoryId', {required: true})
+const points = defineModel<number>('points', {required: true})
+const autoPoints = defineModel<boolean>('autoPoints', {required: true})
+const config = defineModel<Record<string, unknown>>('config', {required: true})
+
 const props = defineProps<{
-  title: string
-  description: string
-  questionType: QuizQuestionTypeName
-  categoryId: number | null
-  points: number
-  autoPoints: boolean
   imagePreview: string | null
   authImageSrc?: string | null
   hasImage: boolean
-  config: Record<string, unknown>
   categories: QuizCategory[]
   isEditing: boolean
 }>()
 
 const emit = defineEmits<{
-  'update:title': [value: string]
-  'update:description': [value: string]
-  'update:questionType': [value: QuizQuestionTypeName]
-  'update:categoryId': [value: number | null]
-  'update:points': [value: number]
-  'update:autoPoints': [value: boolean]
-  'update:config': [value: Record<string, unknown>]
   save: []
   cancel: []
   selectImage: [event: Event]
@@ -68,38 +62,38 @@ const allQuestionTypes: QuizQuestionTypeName[] = [
 ]
 
 const categoryIdStr = computed({
-  get: () => props.categoryId === null ? '' : String(props.categoryId),
-  set: (v: string | undefined) => emit('update:categoryId', v ? Number(v) : null),
+  get: () => categoryId.value === null ? '' : String(categoryId.value),
+  set: (v: string | undefined) => { categoryId.value = v ? Number(v) : null },
 })
 
 const calculatedPoints = computed(() => {
-  const config = props.config
-  const type = props.questionType
+  const cfg = config.value
+  const type = questionType.value
   switch (type) {
     case QuizQuestionTypes.MULTIPLE_CHOICE: {
-      const opts = (config.options as { text: string; correct: boolean }[]) || []
+      const opts = (cfg.options as { text: string; correct: boolean }[]) || []
       const correctCount = opts.filter(o => o.correct).length
-      const ppc = (config.pointsPerCorrect as number) || 1
+      const ppc = (cfg.pointsPerCorrect as number) || 1
       return correctCount * ppc
     }
     case QuizQuestionTypes.FILL_IN_THE_BLANK: {
-      const answers = (config.answers as string[]) || []
-      const ppcFill = (config.pointsPerCorrect as number) || 1
+      const answers = (cfg.answers as string[]) || []
+      const ppcFill = (cfg.pointsPerCorrect as number) || 1
       return (answers.length || 1) * ppcFill
     }
     case QuizQuestionTypes.FREE_ANSWER: {
-      const answers = (config.answers as string[]) || []
-      const ppcFree = (config.pointsPerCorrect as number) || 1
+      const answers = (cfg.answers as string[]) || []
+      const ppcFree = (cfg.pointsPerCorrect as number) || 1
       return (answers.length || 1) * ppcFree
     }
     case QuizQuestionTypes.CONNECT: {
-      const pairs = (config.pairs as { left: string; right: string }[]) || []
-      const ppcConn = (config.pointsPerCorrect as number) || 1
+      const pairs = (cfg.pairs as { left: string; right: string }[]) || []
+      const ppcConn = (cfg.pointsPerCorrect as number) || 1
       return (pairs.length || 1) * ppcConn
     }
     case QuizQuestionTypes.ORDERING: {
-      const items = (config.items as string[]) || []
-      const ppcOrd = (config.pointsPerCorrect as number) || 1
+      const items = (cfg.items as string[]) || []
+      const ppcOrd = (cfg.pointsPerCorrect as number) || 1
       return (items.length || 1) * ppcOrd
     }
     case QuizQuestionTypes.TRUE_FALSE:
@@ -111,23 +105,22 @@ const calculatedPoints = computed(() => {
   }
 })
 
-// Auto-update points when autoPoints is on and config/type changes
 watch(calculatedPoints, (val) => {
-  if (props.autoPoints) {
-    emit('update:points', val)
+  if (autoPoints.value) {
+    points.value = val
   }
 })
 
 function onTypeChange(val: QuizQuestionTypeName | string | undefined) {
   if (!val) return
-  emit('update:questionType', val as QuizQuestionTypeName)
+  questionType.value = val as QuizQuestionTypeName
 }
 </script>
 
 <template>
   <div class="space-y-3">
-    <TextInput :model-value="title" :placeholder="t('quiz.questions.questionTitle')" @update:model-value="(v: string | undefined) => emit('update:title', v ?? '')" />
-    <TextAreaInput :model-value="description" :placeholder="t('quiz.questions.description')" @update:model-value="(v: string | undefined) => emit('update:description', v ?? '')" />
+    <TextInput :model-value="title" :placeholder="t('quiz.questions.questionTitle')" @update:model-value="(v: string | undefined) => title = v ?? ''" />
+    <TextAreaInput :model-value="description" :placeholder="t('quiz.questions.description')" @update:model-value="(v: string | undefined) => description = v ?? ''" />
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div>
         <FieldLabel hint class="mb-1">{{ t('quiz.questions.type') }}</FieldLabel>
@@ -145,13 +138,13 @@ function onTypeChange(val: QuizQuestionTypeName | string | undefined) {
     </div>
     <div class="flex items-center gap-4 flex-wrap">
       <FieldLabel inline>
-        <ToggleInput :model-value="autoPoints" @update:model-value="(v: boolean) => emit('update:autoPoints', v)" />
+        <ToggleInput v-model="autoPoints" />
         {{ t('quiz.questions.autoPoints') }}
       </FieldLabel>
       <span v-if="autoPoints" class="text-sm text-(--text-muted)">= {{ calculatedPoints }} {{ t('quiz.points') }}</span>
       <div v-else class="flex items-center gap-2">
         <FieldHint>{{ t('quiz.questions.points') }}</FieldHint>
-        <NumberInput :model-value="points" class="w-20" @update:model-value="(v: number | undefined) => emit('update:points', v ?? 1)" />
+        <NumberInput :model-value="points" class="w-20" @update:model-value="(v: number | undefined) => points = v ?? 1" />
       </div>
     </div>
 
@@ -159,13 +152,13 @@ function onTypeChange(val: QuizQuestionTypeName | string | undefined) {
     <ImageUploadField v-if="questionType === QuizQuestionTypes.IMAGE_TEXT" :image-preview="imagePreview" :auth-src="authImageSrc" @select-image="(e: Event) => emit('selectImage', e)" @remove-image="emit('removeImage')" />
 
     <!-- Type-specific config editors -->
-    <McConfigEditor v-if="questionType === QuizQuestionTypes.MULTIPLE_CHOICE" :config="config" :question-title="title" @update:config="(v: Record<string, unknown>) => emit('update:config', v)" />
-    <FillBlankConfigEditor v-if="questionType === QuizQuestionTypes.FILL_IN_THE_BLANK" :config="config" @update:config="(v: Record<string, unknown>) => emit('update:config', v)" />
-    <FreeAnswerConfigEditor v-if="questionType === QuizQuestionTypes.FREE_ANSWER || questionType === QuizQuestionTypes.ENUMERATION" :config="config" @update:config="(v: Record<string, unknown>) => emit('update:config', v)" />
-    <ConnectConfigEditor v-if="questionType === QuizQuestionTypes.CONNECT" :config="config" @update:config="(v: Record<string, unknown>) => emit('update:config', v)" />
-    <ImageTextConfigEditor v-if="questionType === QuizQuestionTypes.IMAGE_TEXT" :config="config" @update:config="(v: Record<string, unknown>) => emit('update:config', v)" />
-    <TfConfigEditor v-if="questionType === QuizQuestionTypes.TRUE_FALSE" :config="config" @update:config="(v: Record<string, unknown>) => emit('update:config', v)" />
-    <OrderingConfigEditor v-if="questionType === QuizQuestionTypes.ORDERING" :config="config" @update:config="(v: Record<string, unknown>) => emit('update:config', v)" />
+    <McConfigEditor v-if="questionType === QuizQuestionTypes.MULTIPLE_CHOICE" v-model:config="config" :question-title="title" />
+    <FillBlankConfigEditor v-if="questionType === QuizQuestionTypes.FILL_IN_THE_BLANK" v-model:config="config" />
+    <FreeAnswerConfigEditor v-if="questionType === QuizQuestionTypes.FREE_ANSWER || questionType === QuizQuestionTypes.ENUMERATION" v-model:config="config" />
+    <ConnectConfigEditor v-if="questionType === QuizQuestionTypes.CONNECT" v-model:config="config" />
+    <ImageTextConfigEditor v-if="questionType === QuizQuestionTypes.IMAGE_TEXT" v-model:config="config" />
+    <TfConfigEditor v-if="questionType === QuizQuestionTypes.TRUE_FALSE" v-model:config="config" />
+    <OrderingConfigEditor v-if="questionType === QuizQuestionTypes.ORDERING" v-model:config="config" />
 
     <!-- Save / Cancel -->
     <div class="flex justify-end gap-3 pt-3 border-t border-bg-light-accent dark:border-bg-dark-accent">

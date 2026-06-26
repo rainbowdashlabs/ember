@@ -11,6 +11,8 @@ import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -22,6 +24,7 @@ import java.util.UUID;
  */
 @Singleton
 public class LostAndFoundImageService {
+    private static final Logger log = LoggerFactory.getLogger(LostAndFoundImageService.class);
     private final ImageVariantService variants;
     private final StationRepository stationRepository;
 
@@ -37,6 +40,7 @@ public class LostAndFoundImageService {
     public void store(int stationId, int itemId, byte[] data, String declaredMime, int maxBytes) throws IOException {
         variants.store(
                 scope(stationId), StorageCategory.IMAGE_LOST_AND_FOUND, key(itemId), data, declaredMime, maxBytes);
+        log.info("Stored lost-and-found image: station {}, item {} ({} bytes)", stationId, itemId, data.length);
     }
 
     /**
@@ -58,6 +62,7 @@ public class LostAndFoundImageService {
      */
     public void delete(int stationId, int itemId) {
         variants.delete(scope(stationId), StorageCategory.IMAGE_LOST_AND_FOUND, key(itemId));
+        log.info("Deleted lost-and-found image: station {}, item {}", stationId, itemId);
     }
 
     private StorageScope.Station scope(int stationId) {

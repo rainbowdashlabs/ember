@@ -9,16 +9,12 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 
 defineProps<{
-    currentPage: number
     totalPages: number
-    pageSize: number
     pageSizeOptions: readonly number[]
 }>()
 
-const emit = defineEmits<{
-    'update:currentPage': [value: number]
-    'update:pageSize': [value: number]
-}>()
+const currentPage = defineModel<number>('currentPage', {required: true})
+const pageSize = defineModel<number>('pageSize', {required: true})
 
 const {t} = useI18n()
 </script>
@@ -28,13 +24,13 @@ const {t} = useI18n()
         <div class="flex items-center gap-2">
             <span class="text-(--text-muted)">{{ t('stationPages.editor.perPage') }}</span>
             <SelectInput :model-value="String(pageSize)"
-                         @update:model-value="(v: string) => emit('update:pageSize', +v)">
+                         @update:model-value="(v: string) => pageSize = +v">
                 <option v-for="opt in pageSizeOptions" :key="opt" :value="String(opt)">{{ opt }}</option>
             </SelectInput>
         </div>
         <div class="flex items-center gap-2">
             <SecondaryButton :disabled="currentPage <= 1"
-                             @click="emit('update:currentPage', Math.max(1, currentPage - 1))">
+                             @click="currentPage = Math.max(1, currentPage - 1)">
                 <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-1"/>
                 {{ t('stationPages.editor.prevPage') }}
             </SecondaryButton>
@@ -42,7 +38,7 @@ const {t} = useI18n()
                 {{ t('stationPages.editor.pageOf', {current: currentPage, total: totalPages}) }}
             </span>
             <SecondaryButton :disabled="currentPage >= totalPages"
-                             @click="emit('update:currentPage', Math.min(totalPages, currentPage + 1))">
+                             @click="currentPage = Math.min(totalPages, currentPage + 1)">
                 {{ t('stationPages.editor.nextPage') }}
                 <font-awesome-icon :icon="['fas', 'chevron-right']" class="ml-1"/>
             </SecondaryButton>

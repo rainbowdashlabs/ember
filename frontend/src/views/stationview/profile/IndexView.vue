@@ -4,25 +4,21 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import SaveButton from '@/components/button/SaveButton.vue'
-import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import type { ProfileField } from '@/api/types'
 import { StationUserType, parseFieldConfig } from '@/api/types'
 import { profileFields } from '@/api'
+import { decodeProfileValues, getFieldValue, setFieldValue } from '@/util/profileFields'
 import { useSession } from '@/composables/useSession'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
-import MutedText from '@/components/typography/MutedText.vue'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import AccountCard from './indexview/AccountCard.vue'
+import IncompleteFieldsAlert from './indexview/IncompleteFieldsAlert.vue'
+import ProfileFieldsForm from './indexview/ProfileFieldsForm.vue'
 
 function getUserScopes(userType?: string): string[] {
   const scopes: string[] = []
@@ -45,8 +41,6 @@ const { refresh: refreshSidebarCounts } = useSidebarCounts()
 
 const fields = ref<ProfileField[]>([])
 const values = ref<Map<number, string>>(new Map())
-const loading = ref(true)
-const error = ref('')
 
 const memberId = computed(() => sessionInfo.value?.member?.id ?? null)
 
@@ -77,42 +71,22 @@ const incompleteFields = computed(() => {
 })
 
 function getValue(fieldId: number): string {
-  return values.value.get(fieldId) ?? ''
+  return getFieldValue(values, fieldId)
 }
 
 function setValue(fieldId: number, val: string) {
-  const newMap = new Map(values.value)
-  newMap.set(fieldId, val)
-  values.value = newMap
+  setFieldValue(values, fieldId, val)
 }
 
-
-async function loadProfile() {
-  if (!memberId.value) {
-    loading.value = false
-    return
-  }
-  loading.value = true
-  error.value = ''
-  try {
-    const [allFields, profileValues] = await Promise.all([
-      profileFields.listFields(),
-      profileFields.getValues(memberId.value),
-    ])
-    fields.value = allFields
-    const map = new Map<number, string>()
-    for (const v of profileValues) {
-      let val = v.value ?? ''
-      try { val = JSON.parse(val) } catch { /* use as-is */ }
-      map.set(v.fieldId, typeof val === 'string' ? val : String(val))
-    }
-    values.value = map
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const { loading, error, reload } = useAsyncLoader(async () => {
+  if (!memberId.value) return
+  const [allFields, profileValues] = await Promise.all([
+    profileFields.listFields(),
+    profileFields.getValues(memberId.value),
+  ])
+  fields.value = allFields
+  values.value = decodeProfileValues(profileValues)
+})
 
 async function saveProfile() {
   if (!memberId.value) return
@@ -130,10 +104,8 @@ async function saveProfile() {
 }
 
 watch(memberId, (newId) => {
-  if (newId) loadProfile()
+  if (newId) reload()
 })
-
-onMounted(loadProfile)
 </script>
 
 <template>
@@ -143,56 +115,20 @@ onMounted(loadProfile)
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading && memberId">
-        <NeutralContainer class="space-y-3">
-          <SectionHeader>{{ t('profile.accountTitle') }}</SectionHeader>
-          <div class="flex items-center gap-4">
-            <UserAvatar
-                :identity="sessionInfo?.account?.uid ? { accountUid: sessionInfo.account.uid } : undefined"
-                :name="fullName"
-                size="lg"
-            />
-            <div class="space-y-1">
-              <div class="font-medium">{{ fullName }}</div>
-              <div class="text-sm text-(--text-muted)">{{ accountEmail }}</div>
-            </div>
-          </div>
-          <MutedText size="sm">
-            {{ t('profile.manageInAccount') }}
-            <router-link :to="{ name: 'account' }" class="underline">{{ t('profile.manageInAccountLink') }}</router-link>
-          </MutedText>
-        </NeutralContainer>
+        <AccountCard
+            :account-uid="sessionInfo?.account?.uid"
+            :full-name="fullName"
+            :account-email="accountEmail"
+        />
 
-        <ErrorContainer v-if="incompleteFields.length > 0" class="space-y-2">
-          <p class="font-semibold text-sm">{{ t('profile.incompleteTitle') }}</p>
-          <p class="text-xs">{{ t('profile.incompleteHint') }}</p>
-          <ul class="list-disc list-inside text-sm space-y-0.5">
-            <li v-for="f in incompleteFields" :key="f.id">{{ f.name }}</li>
-          </ul>
-        </ErrorContainer>
+        <IncompleteFieldsAlert :incomplete-fields="incompleteFields" />
 
-        <NeutralContainer class="space-y-4">
-          <SectionHeader>{{ t('profile.title') }}</SectionHeader>
-
-          <EmptyState compact v-if="editableFields.length === 0">{{ t('profile.noFields') }}</EmptyState>
-
-          <div v-for="field in editableFields" :key="field.id" class="space-y-1">
-            <FieldLabel>
-              {{ field.name }}
-              <span v-if="parseFieldConfig(field.config).required" class="text-error">*</span>
-              <MutedText class="ml-1" v-if="parseFieldConfig(field.config).readonly">({{ t('profile.readonlyHint') }})</MutedText>
-            </FieldLabel>
-
-            <ProfileFieldInput
-              :field-type="field.fieldType ?? 'TEXT'"
-              :model-value="getValue(field.id)"
-              :options="(parseFieldConfig(field.config).options as string[]) ?? []"
-              :disabled="!!parseFieldConfig(field.config).readonly"
-              @update:model-value="setValue(field.id, $event)"
-            />
-          </div>
-
-          <SaveButton :action="saveProfile"/>
-        </NeutralContainer>
+        <ProfileFieldsForm
+            :editable-fields="editableFields"
+            :get-value="getValue"
+            :save-action="saveProfile"
+            @update="setValue"
+        />
       </template>
     </div>
   </ViewContent>

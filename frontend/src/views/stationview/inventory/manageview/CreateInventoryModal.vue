@@ -1,0 +1,98 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+<script setup lang="ts">
+import {ref, watch} from 'vue'
+import {useI18n} from 'vue-i18n'
+import Modal from '@/components/feedback/Modal.vue'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
+import CreateInventoryBasicStep from './CreateInventoryBasicStep.vue'
+import CreateInventorySizesStep from './CreateInventorySizesStep.vue'
+import {InventoryTypes, type InventoryTypeName} from '@/api/types'
+import {inventory} from '@/api'
+
+const show = defineModel<boolean>({default: false})
+
+const emit = defineEmits<{
+  created: []
+  error: []
+}>()
+
+const {t} = useI18n()
+
+const step = ref<'basic' | 'sizes'>('basic')
+const name = ref('')
+const type = ref<InventoryTypeName>(InventoryTypes.INTERNAL)
+const hasSizes = ref(false)
+const sizes = ref<string[]>([])
+const saving = ref(false)
+
+function reset() {
+  step.value = 'basic'
+  name.value = ''
+  type.value = InventoryTypes.INTERNAL
+  hasSizes.value = false
+  sizes.value = []
+}
+
+watch(show, (visible) => {
+  if (visible) reset()
+})
+
+function nextStep() {
+  if (hasSizes.value) {
+    step.value = 'sizes'
+  } else {
+    submit()
+  }
+}
+
+async function submit() {
+  saving.value = true
+  try {
+    const inv = await inventory.createInventory({
+      name: name.value,
+      inventoryType: type.value,
+      hasSizes: hasSizes.value,
+    })
+    if (hasSizes.value && sizes.value.length > 0) {
+      for (let i = 0; i < sizes.value.length; i++) {
+        await inventory.createSize(inv.id, {label: sizes.value[i], position: i})
+      }
+    }
+    show.value = false
+    emit('created')
+  } catch {
+    emit('error')
+  } finally {
+    saving.value = false
+  }
+}
+</script>
+
+<template>
+  <Modal v-model="show">
+    <div class="space-y-4">
+      <SectionHeader>{{ t('inventory.manage.create') }}</SectionHeader>
+
+      <CreateInventoryBasicStep
+        v-if="step === 'basic'"
+        v-model:name="name"
+        v-model:type="type"
+        v-model:hasSizes="hasSizes"
+        @cancel="show = false"
+        @next="nextStep"
+      />
+
+      <CreateInventorySizesStep
+        v-if="step === 'sizes'"
+        v-model:sizes="sizes"
+        :saving="saving"
+        @back="step = 'basic'"
+        @submit="submit"
+      />
+    </div>
+  </Modal>
+</template>

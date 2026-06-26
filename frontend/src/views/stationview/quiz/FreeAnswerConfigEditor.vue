@@ -15,33 +15,26 @@ import FieldHint from '@/components/typography/FieldHint.vue'
 
 const { t } = useI18n()
 
-const props = defineProps<{
-  config: Record<string, unknown>
-}>()
-
-const emit = defineEmits<{
-  'update:config': [value: Record<string, unknown>]
-}>()
+const config = defineModel<Record<string, unknown>>('config', {required: true})
 
 function updateConfig(patch: Record<string, unknown>) {
-  emit('update:config', { ...props.config, ...patch })
+  config.value = { ...config.value, ...patch }
 }
 
-// --- Free answer helpers ---
 function addFreeAnswerItem() {
-  const answers = [...((props.config.answers as string[]) || [])]
+  const answers = [...((config.value.answers as string[]) || [])]
   answers.push('')
   updateConfig({ answers })
 }
 
 function removeFreeAnswerItem(idx: number) {
-  const answers = [...((props.config.answers as string[]) || [])]
+  const answers = [...((config.value.answers as string[]) || [])]
   answers.splice(idx, 1)
   updateConfig({ answers })
 }
 
 function updateFreeAnswerItem(idx: number, value: string) {
-  const answers = [...((props.config.answers as string[]) || [])]
+  const answers = [...((config.value.answers as string[]) || [])]
   answers[idx] = value
   updateConfig({ answers })
 }

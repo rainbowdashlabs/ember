@@ -4,30 +4,24 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import SearchInput from '@/components/input/text/SearchInput.vue'
-import NumberInput from '@/components/input/number/NumberInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
-import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import StationMap from '@/components/map/StationMap.vue'
+import DiscoveryFilterBar from '@/views/stationview/discovery/indexview/DiscoveryFilterBar.vue'
+import DiscoveryStationCard from '@/views/stationview/discovery/indexview/DiscoveryStationCard.vue'
 import {discovery, stationManage} from '@/api'
 import type {DiscoveredStation} from '@/api/discovery'
 import type {MapStation} from '@/components/map/StationMap.vue'
 
 const {t} = useI18n()
 
-const loading = ref(true)
-const error = ref('')
 const tab = ref<'list' | 'map'>('list')
 
 const query = ref('')
@@ -112,33 +106,23 @@ const mapStations = computed<MapStation[]>(() => filtered.value
     }),
 )
 
-async function loadAll() {
-  loading.value = true
-  error.value = ''
-  try {
-    const [list, location] = await Promise.all([
-      discovery.listDiscoveredStations(),
-      stationManage.getStationLocation().catch(() => null),
-    ])
-    stations.value = list
-    if (location && location.latitude != null && location.longitude != null) {
-      localCoords.value = {lat: location.latitude, lon: location.longitude}
-    } else {
-      localCoords.value = null
-    }
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
+const {loading, error} = useAsyncLoader(async () => {
+  const [list, location] = await Promise.all([
+    discovery.listDiscoveredStations(),
+    stationManage.getStationLocation().catch(() => null),
+  ])
+  stations.value = list
+  if (location && location.latitude != null && location.longitude != null) {
+    localCoords.value = {lat: location.latitude, lon: location.longitude}
+  } else {
+    localCoords.value = null
   }
-}
+})
 
 function focusStation(uid: string) {
   tab.value = 'map'
   setTimeout(() => stationMap.value?.focus(uid), 100)
 }
-
-onMounted(loadAll)
 </script>
 
 <template>
@@ -153,38 +137,13 @@ onMounted(loadAll)
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
-        <NeutralContainer class="space-y-3">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div class="md:col-span-2">
-              <SearchInput v-model="query" :placeholder="t('stationDiscovery.searchPlaceholder')"/>
-            </div>
-            <div class="space-y-1">
-              <FieldLabel>{{ t('stationDiscovery.radiusLabel') }}</FieldLabel>
-              <NumberInput v-model="radius" :min="1" :max="2000" :disabled="!localCoords"/>
-            </div>
-          </div>
-
-          <div class="flex items-center justify-between gap-3">
-            <div class="flex items-center gap-2">
-              <ToggleInput v-model="nearMeOnly" :disabled="!localCoords"/>
-              <span class="text-sm">{{ t('stationDiscovery.nearMeOnly') }}</span>
-            </div>
-            <div class="flex gap-1">
-              <SelectionToggleButton :selected="tab === 'list'" @toggle="tab = 'list'">
-                <font-awesome-icon :icon="['fas', 'list']" class="mr-1"/>
-                {{ t('stationDiscovery.listTab') }}
-              </SelectionToggleButton>
-              <SelectionToggleButton :selected="tab === 'map'" @toggle="tab = 'map'">
-                <font-awesome-icon :icon="['fas', 'map-location-dot']" class="mr-1"/>
-                {{ t('stationDiscovery.mapTab') }}
-              </SelectionToggleButton>
-            </div>
-          </div>
-
-          <Alert v-if="!localCoords" variant="info">
-            {{ t('stationDiscovery.noCoordinatesForFilter') }}
-          </Alert>
-        </NeutralContainer>
+        <DiscoveryFilterBar
+            v-model:query="query"
+            v-model:radius="radius"
+            v-model:near-me-only="nearMeOnly"
+            v-model:tab="tab"
+            :has-local-coords="!!localCoords"
+        />
 
         <EmptyState v-if="filtered.length === 0">
           {{ t('stationDiscovery.empty') }}
@@ -195,28 +154,12 @@ onMounted(loadAll)
         </NeutralContainer>
 
         <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <NeutralContainer
+          <DiscoveryStationCard
               v-for="station in filtered"
               :key="station.stationUid"
-              class="space-y-2 cursor-pointer"
-              @click="focusStation(station.stationUid)"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0 space-y-1">
-                <p class="font-medium truncate">{{ station.name }}</p>
-                <p v-if="station.slogan" class="text-xs text-(--text-muted) line-clamp-2">{{ station.slogan }}</p>
-              </div>
-              <div class="flex flex-col items-end gap-1 shrink-0">
-                <PrimaryBadge v-if="station.distance != null">
-                  {{ t('lendingDistance.distanceKm', {distance: station.distance.toFixed(1)}) }}
-                </PrimaryBadge>
-                <SecondaryBadge>{{ station.memberCount }}</SecondaryBadge>
-              </div>
-            </div>
-            <p v-if="station.city || station.country" class="text-xs text-(--text-muted)">
-              {{ [station.city, station.country].filter(Boolean).join(', ') }}
-            </p>
-          </NeutralContainer>
+              :station="station"
+              @focus="focusStation(station.stationUid)"
+          />
         </div>
       </template>
     </div>

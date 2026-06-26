@@ -14,8 +14,9 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import UserTagBadge from '@/components/badge/UserTagBadge.vue'
+import WaitingListStatusBadge from '@/components/badge/WaitingListStatusBadge.vue'
 import ExchangeStatusBadge from '@/views/stationview/inventory/exchangeview/ExchangeStatusBadge.vue'
-import {ExchangeStatus} from '@/api/types'
+import {ExchangeStatus, WaitingListEntryStatus} from '@/api/types'
 </script>
 
 <template>
@@ -40,6 +41,15 @@ import {ExchangeStatus} from '@/api/types'
       <ExchangeStatusBadge :status="ExchangeStatus.SHIPPED"/>
       <ExchangeStatusBadge :status="ExchangeStatus.ARRIVED"/>
       <ExchangeStatusBadge :status="ExchangeStatus.DONE"/>
+    </div>
+    <SubHeader>Waiting List Status</SubHeader>
+    <div class="flex flex-wrap gap-2 items-center">
+      <WaitingListStatusBadge :status="WaitingListEntryStatus.PENDING"/>
+      <WaitingListStatusBadge :status="WaitingListEntryStatus.WAITING"/>
+      <WaitingListStatusBadge :status="WaitingListEntryStatus.INVITED"/>
+      <WaitingListStatusBadge :status="WaitingListEntryStatus.TESTING"/>
+      <WaitingListStatusBadge :status="WaitingListEntryStatus.JOINED"/>
+      <WaitingListStatusBadge :status="WaitingListEntryStatus.WITHDRAWN"/>
     </div>
   </section>
 </template>

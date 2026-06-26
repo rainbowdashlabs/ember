@@ -16,6 +16,8 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
 
 @Singleton
 public class TestProtocolPdfService {
+    private static final Logger log = LoggerFactory.getLogger(TestProtocolPdfService.class);
 
     private final TestProtocolRepository repository;
     private final StationMemberRepository memberRepository;
@@ -127,6 +130,7 @@ public class TestProtocolPdfService {
         try {
             return TypstCompiler.compile(sb.toString(), resources);
         } catch (Exception e) {
+            log.warn("PDF export failed for run {} member {}", runId, memberId, e);
             throw new RuntimeException("PDF export failed", e);
         }
     }
@@ -249,6 +253,7 @@ public class TestProtocolPdfService {
         try {
             return TypstCompiler.compile(sb.toString(), resources);
         } catch (Exception e) {
+            log.warn("Evaluation PDF export failed for run {}", runId, e);
             throw new RuntimeException("Evaluation PDF export failed", e);
         }
     }

@@ -96,7 +96,7 @@ function handleError(e: Error) {
   }
 }
 
-function close() {
+function resetState() {
   if (session) {
     session.stop()
     session = null
@@ -104,6 +104,12 @@ function close() {
   status.value = 'idle'
   confirmedAt.value = null
   lastPayload.value = null
+  lastPayloadAt.value = 0
+  errorKey.value = null
+}
+
+function close() {
+  resetState()
   open.value = false
   emit('close')
 }
@@ -112,9 +118,8 @@ watch(open, async (isOpen) => {
   if (isOpen) {
     await nextTick()
     await begin()
-  } else if (session) {
-    session.stop()
-    session = null
+  } else {
+    resetState()
   }
 })
 

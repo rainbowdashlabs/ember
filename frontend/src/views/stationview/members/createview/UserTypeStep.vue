@@ -13,12 +13,9 @@ import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 
-defineProps<{
-  modelValue: 'TRIAL' | 'MEMBER' | 'GUARDIAN' | 'TEAM'
-}>()
+const modelValue = defineModel<'TRIAL' | 'MEMBER' | 'GUARDIAN' | 'TEAM'>({required: true})
 
 const emit = defineEmits<{
-  'update:modelValue': [value: 'TRIAL' | 'MEMBER' | 'GUARDIAN' | 'TEAM']
   next: []
 }>()
 </script>
@@ -32,7 +29,7 @@ const emit = defineEmits<{
       <NeutralContainer
           :class="modelValue === StationUserType.TRIAL ? 'border-primary ring-2 ring-primary/30 bg-primary/10 scale-105' : 'hover:border-primary hover:scale-[1.02]'"
           class="cursor-pointer text-center py-6 transition-all"
-          @click="emit('update:modelValue', StationUserType.TRIAL)"
+          @click="modelValue = StationUserType.TRIAL"
       >
         <font-awesome-icon :icon="['fas', 'user-clock']" class="text-2xl mb-2"/>
         <div class="font-medium">{{ t('membersCreate.roleTrial') }}</div>
@@ -42,7 +39,7 @@ const emit = defineEmits<{
       <NeutralContainer
           :class="modelValue === StationUserType.MEMBER ? 'border-primary ring-2 ring-primary/30 bg-primary/10 scale-105' : 'hover:border-primary hover:scale-[1.02]'"
           class="cursor-pointer text-center py-6 transition-all"
-          @click="emit('update:modelValue', StationUserType.MEMBER)"
+          @click="modelValue = StationUserType.MEMBER"
       >
         <font-awesome-icon :icon="['fas', 'user']" class="text-2xl mb-2"/>
         <div class="font-medium">{{ t('membersCreate.roleMember') }}</div>
@@ -52,7 +49,7 @@ const emit = defineEmits<{
       <NeutralContainer
           :class="modelValue === StationUserType.GUARDIAN ? 'border-primary ring-2 ring-primary/30 bg-primary/10 scale-105' : 'hover:border-primary hover:scale-[1.02]'"
           class="cursor-pointer text-center py-6 transition-all"
-          @click="emit('update:modelValue', StationUserType.GUARDIAN)"
+          @click="modelValue = StationUserType.GUARDIAN"
       >
         <font-awesome-icon :icon="['fas', 'user-plus']" class="text-2xl mb-2"/>
         <div class="font-medium">{{ t('membersCreate.roleMemberManager') }}</div>
@@ -62,7 +59,7 @@ const emit = defineEmits<{
       <NeutralContainer
           :class="modelValue === StationUserType.TEAM ? 'border-primary ring-2 ring-primary/30 bg-primary/10 scale-105' : 'hover:border-primary hover:scale-[1.02]'"
           class="cursor-pointer text-center py-6 transition-all"
-          @click="emit('update:modelValue', StationUserType.TEAM)"
+          @click="modelValue = StationUserType.TEAM"
       >
         <font-awesome-icon :icon="['fas', 'users']" class="text-2xl mb-2"/>
         <div class="font-medium">{{ t('membersCreate.roleTeam') }}</div>

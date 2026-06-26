@@ -7,38 +7,23 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import FileUploadButton from '@/components/button/FileUploadButton.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import NumberInput from '@/components/input/number/NumberInput.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SuccessContainer from '@/components/container/SuccessContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import THead from '@/components/table/THead.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import client from '@/api/client'
 import { profileFields as profileFieldsApi } from '@/api'
 import type { ProfileField } from '@/api/types'
-import { useRouter } from 'vue-router'
 import { useSession } from '@/composables/useSession'
-import Th from '@/components/table/Th.vue'
-import Td from '@/components/table/Td.vue'
+import TeamImportHeader from './teamimportview/TeamImportHeader.vue'
+import UploadStep from './teamimportview/UploadStep.vue'
+import MappingStep from './teamimportview/MappingStep.vue'
+import type { ColumnMapping } from './teamimportview/MappingStep.vue'
+import PreviewStep from './teamimportview/PreviewStep.vue'
+import type { PreviewResult } from './teamimportview/PreviewStep.vue'
+import DoneStep from './teamimportview/DoneStep.vue'
+import type { TeamImportResult } from './teamimportview/DoneStep.vue'
 
 const { t } = useI18n()
-const router = useRouter()
 const { loaded } = useSession()
-
-interface ColumnMapping { csvColumn: string; target: string; mergeOrder: number; mergeSeparator: string; valueMap: Record<string, string>; splitChar: string; splitIndex: number }
-interface MemberPreview {
-  firstName: string; lastName: string; email: string; group: string
-  profileFields: Record<string, string>; contacts: unknown[]
-}
-interface PreviewResult { members: MemberPreview[]; warnings: string[] }
-interface TeamImportResult { membersCreated: number; groupsAssigned: number; profileFieldsSet: number; warnings: string[] }
 
 type Step = 'upload' | 'mapping' | 'preview' | 'done'
 
@@ -90,7 +75,7 @@ const fieldScopeGroups = computed(() => {
   return [...groups]
 })
 
-const MAX_CSV_SIZE = 2 * 1024 * 1024 // 2 MB
+const MAX_CSV_SIZE = 2 * 1024 * 1024
 
 async function handleFileUpload(file: File) {
   if (file.size > MAX_CSV_SIZE) {
@@ -100,36 +85,6 @@ async function handleFileUpload(file: File) {
   error.value = ''
   fileName.value = file.name
   csvText.value = await file.text()
-}
-
-async function parseCsv() {
-  loading.value = true
-  error.value = ''
-  try {
-    const [parseRes, fieldsRes] = await Promise.all([
-      client.post<{ headers: string[]; rows: string[][] }>('/members/import/parse', { csv: csvText.value, separator: separator.value }),
-      profileFieldsApi.listFields(),
-    ])
-    headers.value = parseRes.data.headers
-    sampleRows.value = parseRes.data.rows.slice(0, 3)
-    fields.value = fieldsRes
-
-    mappings.value = headers.value.map((h, idx) => ({
-      csvColumn: h,
-      target: guessTarget(h),
-      mergeOrder: idx,
-      mergeSeparator: ' ',
-      valueMap: {},
-      splitChar: '',
-      splitIndex: 0,
-    }))
-
-    step.value = 'mapping'
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
 }
 
 function guessTarget(header: string): string {
@@ -144,13 +99,27 @@ function guessTarget(header: string): string {
   return 'skip'
 }
 
-function getSampleValues(colIndex: number): string[] {
-  return sampleRows.value.map(row => row[colIndex] ?? '').filter(v => v)
-}
-
-function isMerged(target: string): boolean {
-  if (target === 'skip') return false
-  return mappings.value.filter(m => m.target === target).length > 1
+async function parseCsv() {
+  loading.value = true
+  error.value = ''
+  try {
+    const [parseRes, fieldsRes] = await Promise.all([
+      client.post<{ headers: string[]; rows: string[][] }>('/members/import/parse', { csv: csvText.value, separator: separator.value }),
+      profileFieldsApi.listFields(),
+    ])
+    headers.value = parseRes.data.headers
+    sampleRows.value = parseRes.data.rows.slice(0, 3)
+    fields.value = fieldsRes
+    mappings.value = headers.value.map((h, idx) => ({
+      csvColumn: h, target: guessTarget(h), mergeOrder: idx, mergeSeparator: ' ',
+      valueMap: {}, splitChar: '', splitIndex: 0,
+    }))
+    step.value = 'mapping'
+  } catch {
+    error.value = t('common.error')
+  } finally {
+    loading.value = false
+  }
 }
 
 async function loadPreview() {
@@ -209,157 +178,33 @@ watch(loaded, async (isLoaded) => {
 <template>
   <ViewContent>
     <div class="space-y-6">
-      <div class="flex items-center justify-between">
-        <SectionHeader>{{ t('teamImport.title') }}</SectionHeader>
-        <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: 'members-import' })">
-          {{ t('common.back') }}
-        </SecondaryButton>
-      </div>
-
+      <TeamImportHeader />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
-
-      <!-- Step 1: Upload -->
-      <template v-if="step === 'upload'">
-        <NeutralContainer class="space-y-4">
-          <SubHeader>{{ t('memberImport.upload') }}</SubHeader>
-          <div class="flex items-center gap-4 flex-wrap">
-            <FileUploadButton accept=".csv,.txt" @select="handleFileUpload">
-              {{ t('memberImport.chooseFile') }}
-            </FileUploadButton>
-            <span v-if="fileName" class="text-sm">
-              <font-awesome-icon :icon="['fas', 'check']" class="text-success mr-1" />
-              {{ fileName }} ({{ csvText.split('\n').length - 1 }} {{ t('memberImport.rows') }})
-            </span>
-          </div>
-          <div class="flex items-center gap-2">
-            <label class="text-sm font-medium">{{ t('memberImport.separator') }}</label>
-            <SelectInput v-model="separator" class="w-20">
-              <option value=";">;</option>
-              <option value=",">,</option>
-              <option value="&#9;">Tab</option>
-            </SelectInput>
-          </div>
-          <PrimaryButton :disabled="!csvText || loading" @click="parseCsv">
-            {{ loading ? t('common.loading') : t('memberImport.next') }}
-          </PrimaryButton>
-        </NeutralContainer>
-      </template>
-
-      <!-- Step 2: Column Mapping -->
-      <template v-if="step === 'mapping'">
-        <NeutralContainer class="space-y-4">
-          <SubHeader>{{ t('memberImport.mappingTitle') }}</SubHeader>
-          <p class="text-sm text-(--text-muted)">{{ t('memberImport.mappingHint') }}</p>
-
-          <div class="space-y-2">
-            <div v-for="(m, i) in mappings" :key="i"
-                 class="rounded-lg px-3 py-2"
-                 :class="m.target === 'skip' ? 'opacity-50' : 'bg-bg-light-accent/20 dark:bg-bg-dark-accent/20'">
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
-                <div>
-                  <span class="font-medium text-sm">{{ m.csvColumn }}</span>
-                  <div class="text-xs text-(--text-muted) truncate">
-                    {{ getSampleValues(headers.indexOf(m.csvColumn)).join(', ') || '—' }}
-                  </div>
-                </div>
-                <div class="sm:col-span-2">
-                  <SelectInput :model-value="m.target" class="flex-1" @update:model-value="mappings[i] = { ...m, target: $event as string }">
-                    <option value="skip">{{ t('memberImport.targetSkip') }}</option>
-                    <optgroup :label="t('teamImport.groupTeam')">
-                      <option v-for="opt in targetOptions.filter(o => o.group === t('teamImport.groupTeam'))" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                    </optgroup>
-                    <optgroup v-for="sg in fieldScopeGroups" :key="sg" :label="sg">
-                      <option v-for="opt in targetOptions.filter(o => o.group === sg)" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                    </optgroup>
-                  </SelectInput>
-                </div>
-              </div>
-              <div v-if="m.target !== 'skip' && isMerged(m.target)" class="flex items-center gap-2 mt-2 text-xs">
-                <span class="text-(--text-muted)">
-                  <font-awesome-icon :icon="['fas', 'link']" class="mr-1" />
-                  {{ t('memberImport.mergedWith') }}
-                </span>
-                <div class="flex items-center gap-1">
-                  <label class="text-(--text-muted)">{{ t('memberImport.order') }}:</label>
-                  <NumberInput :model-value="m.mergeOrder" class="!w-12 !px-1 !py-0.5 text-center text-xs"
-                    @update:model-value="mappings[i] = { ...m, mergeOrder: Number($event) }" />
-                </div>
-                <div class="flex items-center gap-1">
-                  <label class="text-(--text-muted)">{{ t('memberImport.sep') }}:</label>
-                  <TextInput :model-value="m.mergeSeparator" class="!w-10 !px-1 !py-0.5 text-center text-xs"
-                    @update:model-value="mappings[i] = { ...m, mergeSeparator: $event ?? '' }" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </NeutralContainer>
-
-        <div class="flex justify-between">
-          <SecondaryButton @click="step = 'upload'">{{ t('common.back') }}</SecondaryButton>
-          <PrimaryButton :icon="['fas', 'eye']" :disabled="loading" @click="loadPreview">
-            {{ loading ? t('common.loading') : t('memberImport.preview') }}
-          </PrimaryButton>
-        </div>
-      </template>
-
+      <UploadStep
+        v-if="step === 'upload'"
+        :file-name="fileName" :csv-text="csvText" :separator="separator" :loading="loading"
+        @file-upload="handleFileUpload"
+        @update:separator="separator = $event"
+        @parse="parseCsv"
+      />
+      <MappingStep
+        v-if="step === 'mapping'"
+        v-model:mappings="mappings"
+        :headers="headers" :sample-rows="sampleRows"
+        :target-options="targetOptions" :field-scope-groups="fieldScopeGroups" :loading="loading"
+        @back="step = 'upload'"
+        @preview="loadPreview"
+      />
       <Spinner v-if="loading" size="lg" />
-
-      <!-- Step 3: Preview -->
-      <template v-if="step === 'preview' && preview">
-        <Alert v-for="w in preview.warnings" :key="w" variant="info">{{ w }}</Alert>
-
-        <NeutralContainer class="space-y-3">
-          <SubHeader>{{ t('teamImport.previewTitle', { count: preview.members.length }) }}</SubHeader>
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <THead>
-                  <Th>{{ t('memberImport.name') }}</th>
-                  <Th>{{ t('memberImport.email') }}</th>
-                  <Th>{{ t('memberImport.group') }}</th>
-                  <Th>{{ t('memberImport.fields') }}</th>
-                </THead>
-              </thead>
-              <tbody>
-                <TRow v-for="(m, i) in preview.members" :key="i">
-                  <td class="py-2 px-2 font-medium">{{ m.firstName }} {{ m.lastName }}</td>
-                  <Td class="!px-2 text-xs">{{ m.email }}</td>
-                  <td class="py-2 px-2">{{ m.group }}</Td>
-                  <Td class="!px-2 text-xs">
-                    <span v-for="(v, k) in m.profileFields" :key="k" class="inline-block mr-2">
-                      <span class="text-(--text-muted)">{{ k }}:</span> {{ v }}
-                    </span>
-                  </Td>
-                </TRow>
-              </tbody>
-            </table>
-          </div>
-        </NeutralContainer>
-
-        <div class="flex justify-between">
-          <SecondaryButton @click="step = 'mapping'">{{ t('common.back') }}</SecondaryButton>
-          <PrimaryButton :icon="['fas', 'download']" :disabled="loading" @click="doImport">
-            {{ loading ? t('common.loading') : t('memberImport.import') }}
-          </PrimaryButton>
-        </div>
-      </template>
-
-      <!-- Step 4: Done -->
-      <template v-if="step === 'done' && result">
-        <SuccessContainer class="space-y-3">
-          <SubHeader>{{ t('memberImport.done') }}</SubHeader>
-          <div class="grid grid-cols-3 gap-3 text-center">
-            <div><p class="text-xl font-bold">{{ result.membersCreated }}</p><p class="text-xs text-(--text-muted)">{{ t('teamImport.membersCreated') }}</p></div>
-            <div><p class="text-xl font-bold">{{ result.groupsAssigned }}</p><p class="text-xs text-(--text-muted)">{{ t('memberImport.groupsAssigned') }}</p></div>
-            <div><p class="text-xl font-bold">{{ result.profileFieldsSet }}</p><p class="text-xs text-(--text-muted)">{{ t('memberImport.fieldsSet') }}</p></div>
-          </div>
-          <Alert v-for="w in result.warnings" :key="w" variant="info">{{ w }}</Alert>
-          <div class="flex gap-3">
-            <SecondaryButton @click="startOver">{{ t('memberImport.importAnother') }}</SecondaryButton>
-            <PrimaryButton @click="router.push({ name: 'members-list' })">{{ t('memberImport.toList') }}</PrimaryButton>
-          </div>
-        </SuccessContainer>
-      </template>
+      <PreviewStep
+        v-if="step === 'preview' && preview"
+        :preview="preview" :loading="loading"
+        @back="step = 'mapping'" @import="doImport"
+      />
+      <DoneStep
+        v-if="step === 'done' && result"
+        :result="result" @start-over="startOver"
+      />
     </div>
   </ViewContent>
 </template>

@@ -7,6 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import LandingEyebrow from '@/views/homeview/LandingEyebrow.vue'
 
 const {t, tm, rt} = useI18n()
 
@@ -26,12 +27,12 @@ const benefits = computed(() =>
 </script>
 
 <template>
-  <section class="federation">
-    <div class="grid">
+  <section class="landing-section">
+    <div class="landing-grid-2col">
       <div class="copy">
-        <div class="eyebrow">{{ t('landing.federation.eyebrow') }}</div>
-        <SectionHeader class="display">{{ t('landing.federation.headline') }}</SectionHeader>
-        <p class="lede">{{ t('landing.federation.lede') }}</p>
+        <LandingEyebrow>{{ t('landing.federation.eyebrow') }}</LandingEyebrow>
+        <SectionHeader class="landing-h2">{{ t('landing.federation.headline') }}</SectionHeader>
+        <p class="landing-lede">{{ t('landing.federation.lede') }}</p>
       </div>
       <ul class="list">
         <li v-for="b in benefits" :key="b.text" class="row">
@@ -44,46 +45,6 @@ const benefits = computed(() =>
 </template>
 
 <style scoped>
-.federation {
-  padding: 6rem 1.5rem;
-  max-width: 76rem;
-  margin: 0 auto;
-}
-.grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 3rem;
-  align-items: start;
-}
-@media (min-width: 900px) {
-  .grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 4rem;
-  }
-}
-.eyebrow {
-  font-family: 'Bitter', Georgia, serif;
-  font-size: 0.7rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  font-weight: 700;
-  opacity: 0.55;
-  margin-bottom: 0.75rem;
-}
-.display :deep(h2) {
-  font-family: 'Bitter', Georgia, serif;
-  font-size: clamp(1.85rem, 3.6vw, 2.5rem);
-  line-height: 1.1;
-  letter-spacing: -0.005em;
-  margin: 0 0 1.5rem;
-}
-.lede {
-  font-size: 1.05rem;
-  line-height: 1.6;
-  opacity: 0.78;
-  margin: 0;
-  max-width: 32rem;
-}
 .list {
   list-style: none;
   padding: 0;

@@ -57,7 +57,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
   <div ref="containerRef" class="relative">
     <button
         :disabled="disabled"
-        class="w-full px-3 py-2 rounded-lg border border-bg-light-accent bg-bg-light text-[var(--text)] text-left transition-colors duration-150 outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed dark:border-bg-dark-accent dark:bg-bg-dark"
+        class="w-full px-3 py-2 rounded-theme border border-bg-light-accent bg-bg-light text-(--text) text-left transition-colors duration-150 outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed dark:border-bg-dark-accent dark:bg-bg-dark"
         type="button"
         @click="openDropdown"
     >
@@ -66,13 +66,13 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 
     <div
         v-if="open"
-        class="absolute z-50 mt-1 w-full rounded-lg border border-bg-light-accent bg-bg-light shadow-lg dark:border-bg-dark-accent dark:bg-bg-dark max-h-60 flex flex-col"
+        class="absolute z-50 mt-1 w-full rounded-theme border border-bg-light-accent bg-bg-light shadow-lg dark:border-bg-dark-accent dark:bg-bg-dark max-h-60 flex flex-col"
     >
       <div class="p-2 border-b border-bg-light-accent dark:border-bg-dark-accent">
         <input
             v-model="search"
             :placeholder="placeholder ?? ''"
-            class="w-full px-2 py-1.5 rounded border border-bg-light-accent bg-bg-light text-[var(--text)] text-sm outline-none focus:border-primary dark:border-bg-dark-accent dark:bg-bg-dark"
+            class="w-full px-2 py-1.5 rounded-theme border border-bg-light-accent bg-bg-light text-(--text) text-sm outline-none focus:border-primary dark:border-bg-dark-accent dark:bg-bg-dark"
             type="text"
             @click.stop
         />

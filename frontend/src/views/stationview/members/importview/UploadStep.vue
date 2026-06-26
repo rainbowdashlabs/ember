@@ -13,18 +13,17 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 
 const { t } = useI18n()
 
-const props = defineProps<{
+const separator = defineModel<string>('separator', { required: true })
+const managerCount = defineModel<number>('managerCount', { required: true })
+
+defineProps<{
   fileName: string
   csvText: string
-  separator: string
-  managerCount: number
   loading: boolean
 }>()
 
 const emit = defineEmits<{
   fileUpload: [file: File]
-  'update:separator': [value: string]
-  'update:managerCount': [value: number]
   parse: []
 }>()
 </script>
@@ -44,7 +43,7 @@ const emit = defineEmits<{
     <div class="flex items-center gap-6 flex-wrap">
       <div class="flex items-center gap-2">
         <label class="text-sm font-medium">{{ t('memberImport.separator') }}</label>
-        <SelectInput :model-value="separator" class="w-20" @update:model-value="emit('update:separator', $event as string)">
+        <SelectInput v-model="separator" class="w-20">
           <option value=";">;</option>
           <option value=",">,</option>
           <option value="&#9;">Tab</option>
@@ -52,7 +51,7 @@ const emit = defineEmits<{
       </div>
       <div class="flex items-center gap-2">
         <label class="text-sm font-medium">{{ t('memberImport.managerCountLabel') }}</label>
-        <SelectInput :model-value="String(managerCount)" class="w-20" @update:model-value="emit('update:managerCount', Number($event))">
+        <SelectInput :model-value="String(managerCount)" class="w-20" @update:model-value="managerCount = Number($event)">
           <option value="0">0</option>
           <option value="1">1</option>
           <option value="2">2</option>

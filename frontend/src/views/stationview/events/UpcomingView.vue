@@ -4,45 +4,28 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import PrimaryContainer from '@/components/container/PrimaryContainer.vue'
-import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import InfoBadge from '@/components/badge/InfoBadge.vue'
-import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
-import EventFilterBar from './upcomingview/EventFilterBar.vue'
+import UpcomingBody from './upcomingview/UpcomingBody.vue'
 import type {EventBreak, EventCategory, EventField, StationEvent, StationMember} from '@/api/types'
 import {isRecurringEvent, RegistrationStatus} from '@/api/types'
 import type {RouteLocationRaw} from 'vue-router'
-import EventsCalendar from './upcomingview/EventsCalendar.vue'
 import {events, managedMembers as managedMembersApi} from '@/api'
 import type {EventRegistrationEntry, RegistrationCount, UpcomingEventOccurrence} from '@/api/events'
-import FederatedEventsSection from './upcomingview/FederatedEventsSection.vue'
-import EventRegistrationActions from './upcomingview/EventRegistrationActions.vue'
 import {useSession} from '@/composables/useSession'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
-import MutedText from '@/components/typography/MutedText.vue'
-import MutedIcon from '@/components/display/MutedIcon.vue'
-import EventFieldValue from '@/components/display/EventFieldValue.vue'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {formatTime} from '@/util/format'
 
 const {t} = useI18n()
 const router = useRouter()
 const {sessionInfo, loaded, isGuardian, canManageAttendance, canManageEvents} = useSession()
 const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
-// Calendar view rolls its own occurrences client-side from the full event list (one-time +
-// recurring templates), so it doesn't share the paginated `upcomingOccurrences` list. List
-// view stays paginated for snappy initial load on noisy stations.
 const VIEW_MODE_STORAGE_KEY = 'eventsUpcoming.viewMode'
 type ViewMode = 'list' | 'calendar'
 
@@ -53,7 +36,6 @@ function loadInitialViewMode(): ViewMode {
 }
 
 const viewMode = ref<ViewMode>(loadInitialViewMode())
-// Persist the choice — next time the user opens the page they land in the same view.
 watch(viewMode, (mode) => {
   if (typeof window !== 'undefined') {
     window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode)
@@ -67,7 +49,6 @@ const todayEvents = ref<StationEvent[]>([])
 const upcomingOccurrences = ref<UpcomingEventOccurrence[]>([])
 
 const myRegistrations = ref<EventRegistrationEntry[]>([])
-// eventId -> eligible memberIds (missing = all eligible)
 const eligibleMembers = ref<Record<number, number[]>>({})
 const managedMembers = ref<StationMember[]>([])
 const registrationCounts = ref<RegistrationCount[]>([])
@@ -76,21 +57,14 @@ const categories = ref<EventCategory[]>([])
 const selectedCategoryId = ref('')
 const searchQuery = ref('')
 const showNeedsAction = ref(false)
-const loading = ref(true)
 const loadingMore = ref(false)
 const hasMore = ref(true)
-const error = ref('')
 const registering = ref<string | null>(null)
 const PAGE_SIZE = 10
 const dayNames = ['', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
 const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
 
 const pad2 = (n: number) => String(n).padStart(2, '0')
-function formatTime(iso?: string): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`
-}
 
 function matchesTextSearch(ev: StationEvent): boolean {
   if (!searchQuery.value) return true
@@ -107,24 +81,14 @@ function dayLabel(dateStr: string): string {
   return dayNames[dow]
 }
 
-// For multi-day one-time events, returns the YYYY-MM-DD of the endTime if it differs from
-// the start date; otherwise null. Recurring events are NEVER multi-day per occurrence — their
-// `endTime` is the recurrence-series cut-off, not the occurrence's end. Treating that as a
-// multi-day span produced nonsense ranges like "Sat 2026-07-04 – Sun 2026-06-14".
 function multiDayEndDate(event: StationEvent, startDateStr: string): string | null {
   if (isRecurringEvent(event.eventType)) return null
   if (!event.endTime) return null
   const endStr = new Date(event.endTime).toISOString().slice(0, 10)
-  // Guard against series cut-offs that land before the start.
   if (endStr <= startDateStr) return null
   return endStr
 }
 
-// Upcoming list is server-filtered (category + needs-action + search). Frontend additionally:
-//  - deduplicates by event id, keeping the earliest occurrence per multi-day event so a single
-//    one-time event that spans multiple days never renders more than once;
-//  - hoists multi-day entries to the top (Google-calendar style) so they're easy to spot above
-//    the single-day list.
 const filteredUpcoming = computed(() => {
   const seenEventIds = new Set<number>()
   const deduped: UpcomingEventOccurrence[] = []
@@ -144,7 +108,6 @@ const filteredUpcoming = computed(() => {
 
 function getEligibleMembers(eventId: number): { id: number; name: string }[] {
   const eligible = eligibleMembers.value[eventId]
-  // No restriction = self + managed
   const ids = eligible ?? [currentMemberId.value, ...managedMembers.value.map(m => m.id)]
   const result: { id: number; name: string }[] = []
   for (const id of ids) {
@@ -189,6 +152,10 @@ function eventDetailRoute(ev: StationEvent, date: string): RouteLocationRaw {
   return {name: 'event-detail', params: {id: ev.id}}
 }
 
+function todayDetailRoute(ev: StationEvent): RouteLocationRaw {
+  return eventDetailRoute(ev, todayIsoDate())
+}
+
 function buildUpcomingParams(offset = 0) {
   const params: { categoryId?: number; requiresRegistration?: boolean; search?: string; limit: number; offset: number } = {
     limit: PAGE_SIZE, offset
@@ -199,50 +166,40 @@ function buildUpcomingParams(offset = 0) {
   return params
 }
 
-async function loadData() {
-  loading.value = true
-  error.value = ''
-  try {
-    const [upcoming, today, regs, elig, counts, ovFields, cats, allEv, brs] = await Promise.all([
-      events.listUpcomingOccurrences(buildUpcomingParams()),
-      events.listTodayEvents(),
-      events.listMyRegistrations(),
-      events.listEligibleMembers(),
-      events.listRegistrationCounts(),
-      events.getOverviewFields(),
-      events.listCategories(),
-      // Calendar view needs the full event list (one-time + recurring templates) to compute
-      // occurrences for any visible month. Cheap-bounded fetch — events are per-station.
-      events.listEvents(),
-      events.listBreaks().catch(() => []),
-    ])
-    upcomingOccurrences.value = upcoming
-    hasMore.value = upcoming.length >= PAGE_SIZE
-    todayEvents.value = today
-    myRegistrations.value = regs
-    eligibleMembers.value = elig
-    registrationCounts.value = counts
-    overviewFields.value = ovFields
-    categories.value = cats
-    allEvents.value = allEv
-    eventBreaks.value = brs
+const {loading, error, reload} = useAsyncLoader(async () => {
+  const [upcoming, today, regs, elig, counts, ovFields, cats, allEv, brs] = await Promise.all([
+    events.listUpcomingOccurrences(buildUpcomingParams()),
+    events.listTodayEvents(),
+    events.listMyRegistrations(),
+    events.listEligibleMembers(),
+    events.listRegistrationCounts(),
+    events.getOverviewFields(),
+    events.listCategories(),
+    events.listEvents(),
+    events.listBreaks().catch(() => []),
+  ])
+  upcomingOccurrences.value = upcoming
+  hasMore.value = upcoming.length >= PAGE_SIZE
+  todayEvents.value = today
+  myRegistrations.value = regs
+  eligibleMembers.value = elig
+  registrationCounts.value = counts
+  overviewFields.value = ovFields
+  categories.value = cats
+  allEvents.value = allEv
+  eventBreaks.value = brs
 
-    if (isGuardian()) {
-      const managed = await managedMembersApi.listManaged()
-      managedMembers.value = managed.map(m => ({
-        id: m.id,
-        stationId: m.stationId,
-        accountId: m.accountId,
-        name: m.name,
-        email: m.email
-      }))
-    }
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
+  if (isGuardian()) {
+    const managed = await managedMembersApi.listManaged()
+    managedMembers.value = managed.map(m => ({
+      id: m.id,
+      stationId: m.stationId,
+      accountId: m.accountId,
+      name: m.name,
+      email: m.email
+    }))
   }
-}
+}, {autoLoad: loaded.value})
 
 async function registerForEvent(ev: StationEvent, date: string, memberId: number) {
   const key = `${ev.id}-${date}-${memberId}`
@@ -335,22 +292,15 @@ async function loadMore() {
 watch(selectedCategoryId, () => reloadUpcoming())
 watch(showNeedsAction, () => reloadUpcoming())
 
-// Search hits the backend now (debounced so each keystroke doesn't fire a request).
 let searchDebounce: ReturnType<typeof setTimeout> | null = null
 watch(searchQuery, () => {
   if (searchDebounce) clearTimeout(searchDebounce)
   searchDebounce = setTimeout(() => reloadUpcoming(), 250)
 })
 
-onMounted(() => {
-  if (loaded.value) {
-    loadData()
-  }
-})
-
 watch(loaded, (isLoaded) => {
-  if (isLoaded && loading.value) {
-    loadData()
+  if (isLoaded) {
+    reload()
   }
 })
 </script>
@@ -360,134 +310,47 @@ watch(loaded, (isLoaded) => {
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
-
-      <template v-if="!loading">
-        <!-- Header row: create button (left, only for event managers) and view switcher
-             (right, list vs calendar). -->
-        <div class="flex items-center justify-between flex-wrap gap-2">
-          <div>
-            <PrimaryButton v-if="canManageEvents()" :icon="['fas', 'plus']" @click="openCreateEvent">
-              {{ t('events.addEvent') }}
-            </PrimaryButton>
-          </div>
-          <div class="flex gap-2">
-            <SelectionToggleButton :selected="viewMode === 'list'" @toggle="viewMode = 'list'">
-              <font-awesome-icon :icon="['fas', 'list']" class="mr-1"/>
-              {{ t('eventsUpcoming.viewList') }}
-            </SelectionToggleButton>
-            <SelectionToggleButton :selected="viewMode === 'calendar'" @toggle="viewMode = 'calendar'">
-              <font-awesome-icon :icon="['fas', 'calendar-days']" class="mr-1"/>
-              {{ t('eventsUpcoming.viewCalendar') }}
-            </SelectionToggleButton>
-          </div>
-        </div>
-
-        <!-- Filters (apply to both views) -->
-        <EventFilterBar
-            v-model:search="searchQuery"
-            v-model:category-id="selectedCategoryId"
-            v-model:needs-action="showNeedsAction"
-            :categories="categories"
-        />
-
-        <!-- Calendar view -->
-        <EventsCalendar
-            v-if="viewMode === 'calendar'"
-            :all-events="allEvents"
-            :event-breaks="eventBreaks"
-            :eligible-member-ids="eligibleMembers"
-            :current-member-id="currentMemberId"
-            :managed-member-ids="managedMembers.map(m => m.id)"
-            :selected-category-id="selectedCategoryId"
-            :search-query="searchQuery"
-            :categories="categories"
-        />
-
-        <!-- Today -->
-        <template v-if="viewMode === 'list'">
-        <div v-if="filteredTodayEvents.length > 0" class="space-y-3">
-          <SectionHeader>{{ t('eventsUpcoming.today') }}</SectionHeader>
-          <div class="grid gap-3 sm:grid-cols-2">
-            <PrimaryContainer v-for="ev in filteredTodayEvents" :key="ev.id" class="space-y-2">
-              <div class="flex items-center justify-between">
-                <router-link :to="eventDetailRoute(ev, todayIsoDate())" class="font-semibold text-primary hover:underline">{{ ev.name }}</router-link>
-                <MutedIcon v-if="ev.restricted" :icon="['fas', 'lock']" class="ml-1"/>
-                <span class="text-sm">{{ formatTime(ev.startTime) }} – {{ formatTime(ev.endTime) }}</span>
-              </div>
-              <p v-if="ev.description" class="text-sm text-(--text-muted)">{{ ev.description }}</p>
-              <div v-if="overviewFields[ev.id]?.length" class="flex flex-wrap gap-3 text-xs">
-                <span v-for="f in overviewFields[ev.id]" :key="f.id" class="text-(--text-muted)">
-                  <span class="font-medium">{{ f.name }}:</span>
-                  <EventFieldValue :field-type="f.fieldType" :value="f.value"/>
-                </span>
-              </div>
-              <div class="flex gap-2">
-                <PrimaryButton :icon="['fas', 'clipboard-user']" v-if="ev.templateId && canManageAttendance()"
-                               @click="goToAttendance(ev)">
-                  {{ t('eventsUpcoming.attendance') }}
-                </PrimaryButton>
-              </div>
-            </PrimaryContainer>
-          </div>
-        </div>
-
-        <EmptyState compact v-if="filteredTodayEvents.length === 0">{{ t('eventsUpcoming.noToday') }}</EmptyState>
-
-        <!-- Federated Events -->
-        <FederatedEventsSection/>
-
-        <!-- Upcoming -->
-        <div v-if="filteredUpcoming.length > 0" class="space-y-3">
-          <SectionHeader>{{ t('eventsUpcoming.upcoming') }}</SectionHeader>
-          <div class="space-y-2">
-            <NeutralContainer v-for="item in filteredUpcoming" :key="`${item.event.id}-${item.date}`"
-                              :class="['space-y-2', multiDayEndDate(item.event, item.date) ? 'border-l-4 border-(--accent)' : '']">
-              <div class="flex items-center justify-between flex-wrap gap-2">
-                <div>
-                  <span v-if="multiDayEndDate(item.event, item.date)" :title="t('eventsUpcoming.multiDay')" class="mr-1 inline-block">
-                    <MutedIcon :icon="['fas', 'calendar-days']"/>
-                  </span>
-                  <router-link :to="eventDetailRoute(item.event, item.date)" class="font-medium text-primary hover:underline">{{ item.event.name }}</router-link>
-                  <MutedIcon v-if="item.event.restricted" :icon="['fas', 'lock']" class="ml-1"/>
-                  <MutedText size="sm" class="ml-2">
-                    <template v-if="multiDayEndDate(item.event, item.date)">{{ dayLabel(item.date) }}, {{ item.date }} – {{ dayLabel(multiDayEndDate(item.event, item.date)!) }}, {{ multiDayEndDate(item.event, item.date) }}</template>
-                    <template v-else>{{ dayLabel(item.date) }}, {{ item.date }}</template>
-                  </MutedText>
-                  <MutedText class="ml-2">{{ formatTime(item.event.startTime) }} – {{ formatTime(item.event.endTime) }}</MutedText>
-                  <MutedText v-if="item.event.requiresRegistration && item.event.registrationDeadline" class="ml-2 text-xs text-(--text-muted)">({{ t('eventsUpcoming.deadline') }}: {{ formatDeadline(item.event.registrationDeadline) }})</MutedText>
-                  <p v-if="item.event.description" class="text-sm text-(--text-muted) mt-0.5">{{ item.event.description }}</p>
-                  <div v-if="overviewFields[item.event.id]?.length" class="flex flex-wrap gap-3 text-xs mt-1">
-                    <span v-for="f in overviewFields[item.event.id]" :key="f.id" class="text-(--text-muted)"><span class="font-medium">{{ f.name }}:</span> <EventFieldValue :field-type="f.fieldType" :value="f.value"/></span>
-                  </div>
-                </div>
-                <!-- Registration counts -->
-                <div v-if="getRegistrationSummary(item.event.id, item.date).total > 0" class="flex items-center gap-2 text-xs">
-                  <SuccessBadge v-if="getRegistrationSummary(item.event.id, item.date).accepted">{{ getRegistrationSummary(item.event.id, item.date).accepted }} {{ t('eventsUpcoming.accepted') }}</SuccessBadge>
-                  <InfoBadge v-if="getRegistrationSummary(item.event.id, item.date).pending">{{ getRegistrationSummary(item.event.id, item.date).pending }} {{ t('eventsUpcoming.pendingCount') }}</InfoBadge>
-                  <ErrorBadge v-if="getRegistrationSummary(item.event.id, item.date).declined">{{ getRegistrationSummary(item.event.id, item.date).declined }} {{ t('eventsUpcoming.declinedCount') }}</ErrorBadge>
-                </div>
-              </div>
-              <EventRegistrationActions
-                  :eligible-members="getEligibleMembers(item.event.id)"
-                  :registrations="myRegistrations.filter(r => r.eventId === item.event.id && r.eventDate === item.date)"
-                  :requires-registration="!!item.event.requiresRegistration"
-                  :has-managed-members="managedMembers.length > 0"
-                  :registering="registering != null"
-                  @register="registerForEvent(item.event, item.date, $event)"
-                  @decline="declineEvent(item.event, item.date, $event)"
-                  @withdraw="withdrawRegistration($event)"
-              />
-            </NeutralContainer>
-          </div>
-          <div v-if="hasMore" class="flex justify-center pt-2">
-            <SecondaryButton :disabled="loadingMore" @click="loadMore">
-              <Spinner v-if="loadingMore" size="sm" class="mr-2"/>
-              {{ t('eventsUpcoming.loadMore') }}
-            </SecondaryButton>
-          </div>
-        </div>
-        </template>
-      </template>
+      <UpcomingBody
+          v-if="!loading"
+          :view-mode="viewMode"
+          :can-create="canManageEvents()"
+          :can-manage-attendance="canManageAttendance()"
+          :search-query="searchQuery"
+          :selected-category-id="selectedCategoryId"
+          :show-needs-action="showNeedsAction"
+          :categories="categories"
+          :all-events="allEvents"
+          :event-breaks="eventBreaks"
+          :eligible-members="eligibleMembers"
+          :current-member-id="currentMemberId"
+          :managed-member-ids="managedMembers.map(m => m.id)"
+          :filtered-today-events="filteredTodayEvents"
+          :filtered-upcoming="filteredUpcoming"
+          :overview-fields="overviewFields"
+          :my-registrations="myRegistrations"
+          :managed-members-count="managedMembers.length"
+          :registering="registering != null"
+          :has-more="hasMore"
+          :loading-more="loadingMore"
+          :multi-day-end-date="multiDayEndDate"
+          :get-registration-summary="getRegistrationSummary"
+          :get-eligible-members="getEligibleMembers"
+          :today-detail-route="todayDetailRoute"
+          :event-detail-route="eventDetailRoute"
+          :day-label="dayLabel"
+          :format-time="formatTime"
+          :format-deadline="formatDeadline"
+          @update:view-mode="viewMode = $event"
+          @update:search="searchQuery = $event"
+          @update:category-id="selectedCategoryId = $event"
+          @update:needs-action="showNeedsAction = $event"
+          @create="openCreateEvent"
+          @attendance="goToAttendance"
+          @register="registerForEvent"
+          @decline="declineEvent"
+          @withdraw="withdrawRegistration"
+          @load-more="loadMore"
+      />
     </div>
   </ViewContent>
 </template>

@@ -10,23 +10,16 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import CellImagePicker from '../CellImagePicker.vue'
 import {GalleryAspectMode, type GalleryItem} from '@/api/pageManage'
+import {useConfigPatch} from '@/composables/useConfigPatch'
+import type {CellEditorEmits, CellEditorPageProps} from '../cellTypes'
 
-const props = defineProps<{
-    config: Record<string, unknown>
-    pageId: number
-    stationUid: string
-}>()
-
-const emit = defineEmits<{
-    'update:config': [value: Record<string, unknown>]
-}>()
+const props = defineProps<CellEditorPageProps>()
+const emit = defineEmits<CellEditorEmits>()
 
 const {t} = useI18n()
 const TS = (k: string) => t(`stationPages.editor.${k}`)
 
-function patch(partial: Record<string, unknown>) {
-    emit('update:config', {...props.config, ...partial})
-}
+const patch = useConfigPatch(() => props.config, emit)
 </script>
 
 <template>

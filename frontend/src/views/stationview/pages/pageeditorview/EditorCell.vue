@@ -6,9 +6,9 @@
 <script setup lang="ts">
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import IconButton from '@/components/button/IconButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import CellImageEditor from './CellImageEditor.vue'
+import EditorFloatButton from './EditorFloatButton.vue'
 import CellVideoEditor from './CellVideoEditor.vue'
 import CellLayoutEditors from './CellLayoutEditors.vue'
 import CellLayoutRender from './CellLayoutRender.vue'
@@ -39,8 +39,9 @@ export interface CellEditData {
     config: Record<string, unknown>
 }
 
+const cell = defineModel<CellEditData>('cell', {required: true})
+
 const props = defineProps<{
-    cell: CellEditData
     pageId: number
     stationUid: string
     preview: boolean
@@ -50,7 +51,6 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-    'update:cell': [cell: CellEditData]
     'update:width': [widthPercent: number]
     delete: []
 }>()
@@ -65,26 +65,26 @@ const showDepthWarning = computed(() => depth.value >= 4)
 const showWrapHandles = computed(() =>
     depth.value === 0
     && props.canResize
-    && props.cell.contentType !== CellContentType.EMPTY,
+    && cell.value.contentType !== CellContentType.EMPTY,
 )
 
 const nestedRows = computed<RowEditData[]>(() => {
-    const raw = (props.cell.config as {rows?: RowEditData[]}).rows
+    const raw = (cell.value.config as {rows?: RowEditData[]}).rows
     return Array.isArray(raw) ? raw : []
 })
 
 function updateField<K extends keyof CellEditData>(key: K, value: CellEditData[K]) {
-    emit('update:cell', {...props.cell, [key]: value})
+    cell.value = {...cell.value, [key]: value}
 }
 
 function onContentTypeChange(type: string) {
-    emit('update:cell', {...props.cell, contentType: type as CellContentTypeName, content: '', config: {}})
+    cell.value = {...cell.value, contentType: type as CellContentTypeName, content: '', config: {}}
 }
 
 function onPasteHere() {
     const data = pasteCell() as CellEditData | null
     if (!data) return
-    emit('update:cell', {...props.cell, contentType: data.contentType, content: data.content, config: data.config})
+    cell.value = {...cell.value, contentType: data.contentType, content: data.content, config: data.config}
 }
 
 function emptyChild(sortOrder: number, widthPercent: number): CellEditData {
@@ -94,7 +94,7 @@ function emptyChild(sortOrder: number, widthPercent: number): CellEditData {
 function selfAsChild(widthPercent: number): CellEditData {
     return {
         id: 0, sortOrder: 0, widthPercent,
-        contentType: props.cell.contentType, content: props.cell.content, config: props.cell.config,
+        contentType: cell.value.contentType, content: cell.value.content, config: cell.value.config,
     }
 }
 
@@ -107,7 +107,7 @@ function splitCell(columns: number) {
     const cells: CellEditData[] = [selfAsChild(widthPercent)]
     for (let i = 1; i < columns; i++) cells.push(emptyChild(i, widthPercent))
     const row: RowEditData = {id: 0, sortOrder: 0, cells}
-    emit('update:cell', {...props.cell, contentType: CellContentType.NESTED_ROWS, content: '', config: {rows: [row]}})
+    cell.value = {...cell.value, contentType: CellContentType.NESTED_ROWS, content: '', config: {rows: [row]}}
 }
 
 /**
@@ -118,7 +118,7 @@ function wrapAndAddSibling(position: 'above' | 'below') {
     const currentRow: RowEditData = {id: 0, sortOrder: 0, cells: [selfAsChild(100)]}
     const emptyRow: RowEditData = {id: 0, sortOrder: 1, cells: [emptyChild(0, 100)]}
     const rows = position === 'above' ? [emptyRow, currentRow] : [currentRow, emptyRow]
-    emit('update:cell', {...props.cell, contentType: CellContentType.NESTED_ROWS, content: '', config: {rows}})
+    cell.value = {...cell.value, contentType: CellContentType.NESTED_ROWS, content: '', config: {rows}}
 }
 </script>
 
@@ -136,7 +136,7 @@ function wrapAndAddSibling(position: 'above' | 'below') {
             @paste="onPasteHere"
             @delete="emit('delete')"
             @split="splitCell"
-            @update:width-percent="emit('update:width', $event)"
+            @update:width-percent="emit('update:width', $event ?? 0)"
         />
 
         <p v-if="showDepthWarning" class="text-[10px] text-error italic mb-2">
@@ -144,11 +144,11 @@ function wrapAndAddSibling(position: 'above' | 'below') {
             {{ t('stationPages.editor.depthWarning') }}
         </p>
 
-        <IconButton
+        <EditorFloatButton
             v-if="showWrapHandles"
             :icon="['fas', 'plus']"
             :label="t('stationPages.editor.addComponent')"
-            class="absolute -top-2 left-1/2 -translate-x-1/2 z-10 rounded-full bg-(--bg) border border-(--border) text-(--text-muted) hover:text-primary hover:border-primary p-1! text-xs shadow-sm"
+            class="absolute -top-2 left-1/2 -translate-x-1/2 z-10"
             @click="wrapAndAddSibling('above')"
         />
 
@@ -211,11 +211,11 @@ function wrapAndAddSibling(position: 'above' | 'below') {
             />
         </template>
 
-        <IconButton
+        <EditorFloatButton
             v-if="showWrapHandles"
             :icon="['fas', 'plus']"
             :label="t('stationPages.editor.addComponent')"
-            class="absolute -bottom-2 left-1/2 -translate-x-1/2 z-10 rounded-full bg-(--bg) border border-(--border) text-(--text-muted) hover:text-primary hover:border-primary p-1! text-xs shadow-sm"
+            class="absolute -bottom-2 left-1/2 -translate-x-1/2 z-10"
             @click="wrapAndAddSibling('below')"
         />
     </NeutralContainer>

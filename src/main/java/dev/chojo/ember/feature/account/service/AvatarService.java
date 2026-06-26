@@ -10,6 +10,8 @@ import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -22,6 +24,8 @@ import java.util.UUID;
  */
 @Singleton
 public class AvatarService {
+    private static final Logger log = LoggerFactory.getLogger(AvatarService.class);
+
     private final ImageVariantService variants;
 
     @Inject
@@ -34,6 +38,7 @@ public class AvatarService {
      */
     public void store(UUID accountUid, byte[] data, String declaredMime, int maxBytes) throws IOException {
         variants.store(scope(accountUid), StorageCategory.IMAGE_AVATAR, key(accountUid), data, declaredMime, maxBytes);
+        log.info("Avatar stored for account {} ({} bytes, mime={})", accountUid, data.length, declaredMime);
     }
 
     /**
@@ -65,6 +70,7 @@ public class AvatarService {
     public void delete(UUID accountUid) {
         if (accountUid == null) return;
         variants.delete(scope(accountUid), StorageCategory.IMAGE_AVATAR, key(accountUid));
+        log.info("Avatar deleted for account {}", accountUid);
     }
 
     private StorageScope.Account scope(UUID accountUid) {

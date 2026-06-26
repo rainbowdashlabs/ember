@@ -4,23 +4,20 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import UserTypeStep from './createview/UserTypeStep.vue'
-import IdentityStep from './createview/IdentityStep.vue'
-import FieldsStep from './createview/FieldsStep.vue'
-import GroupsStep from './createview/GroupsStep.vue'
-import ManagerStep from './createview/ManagerStep.vue'
-import DoneStep from './createview/DoneStep.vue'
+import StepDispatcher from './createview/StepDispatcher.vue'
 import type {MemberGroup, ProfileField, StationMember} from '@/api/types'
 import {StationUserType, parseFieldConfig} from '@/api/types'
 import {memberGroups, members, profileFields, stationMembers} from '@/api'
+import {setFieldValue as writeFieldValue} from '@/util/profileFields'
 import {useStations} from '@/composables/useStations'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -45,29 +42,20 @@ const createdManagers = ref<Array<{
   lastName: string;
   email: string
 }>>([])
-const loading = ref(true)
 const saving = ref(false)
-const error = ref('')
 
 const scopeFields = computed(() => allFields.value.filter(f => f.scope === selectedUserType.value))
 
-async function loadData() {
-  loading.value = true
-  try {
-    const [fields, groups, mems] = await Promise.all([
-      profileFields.listFields(),
-      memberGroups.listGroups(),
-      stationMembers.listMembers(),
-    ])
-    allFields.value = fields
-    allGroups.value = groups
-    allMembers.value = mems
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, error} = useAsyncLoader(async () => {
+  const [fields, groups, mems] = await Promise.all([
+    profileFields.listFields(),
+    memberGroups.listGroups(),
+    stationMembers.listMembers(),
+  ])
+  allFields.value = fields
+  allGroups.value = groups
+  allMembers.value = mems
+})
 
 function nextFromIdentity() {
   for (const field of scopeFields.value) {
@@ -84,9 +72,7 @@ function nextFromIdentity() {
 }
 
 function setFieldValue(fieldId: number, val: string) {
-  const newMap = new Map(fieldValues.value)
-  newMap.set(fieldId, val)
-  fieldValues.value = newMap
+  writeFieldValue(fieldValues, fieldId, val)
 }
 
 function nextFromGroups() {
@@ -201,7 +187,6 @@ function startOver() {
   error.value = ''
 }
 
-onMounted(loadData)
 </script>
 
 <template>
@@ -215,60 +200,32 @@ onMounted(loadData)
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
-      <template v-if="!loading">
-        <UserTypeStep
-            v-if="step === 'userType'"
-            v-model="selectedUserType"
-            @next="step = 'identity'"
-        />
-
-        <IdentityStep
-            v-if="step === 'identity'"
-            v-model:can-login="canLogin"
-            v-model:email="email"
-            v-model:first-name="firstName"
-            v-model:last-name="lastName"
-            @back="step = 'userType'"
-            @next="nextFromIdentity"
-        />
-
-        <FieldsStep
-            v-if="step === 'fields'"
-            :fields="scopeFields"
-            :values="fieldValues"
-            @back="step = 'identity'"
-            @next="step = 'groups'"
-            @set-value="setFieldValue"
-        />
-
-        <GroupsStep
-            v-if="step === 'groups'"
-            :groups="allGroups"
-            :selected-ids="selectedGroupIds"
-            :submit-label="selectedUserType === StationUserType.MEMBER ? t('membersCreate.next') : t('membersCreate.create')"
-            @back="step = 'fields'"
-            @next="nextFromGroups"
-            @toggle="toggleGroup"
-        />
-
-        <ManagerStep
-            v-if="step === 'manager'"
-            :created-managers="createdManagers"
-            :members="allMembers"
-            :saving="saving"
-            :selected-ids="selectedManagerIds"
-            @back="step = 'groups'"
-            @next="createAccount"
-            @toggle-manager="toggleManager"
-            @create-manager="createNewManager"
-        />
-
-        <DoneStep
-            v-if="step === 'done'"
-            @create-another="startOver"
-            @to-list="router.push({ name: 'members-list' })"
-        />
-      </template>
+      <StepDispatcher
+          v-if="!loading"
+          v-model:step="step"
+          v-model:selected-user-type="selectedUserType"
+          v-model:can-login="canLogin"
+          v-model:email="email"
+          v-model:first-name="firstName"
+          v-model:last-name="lastName"
+          :scope-fields="scopeFields"
+          :field-values="fieldValues"
+          :all-groups="allGroups"
+          :selected-group-ids="selectedGroupIds"
+          :all-members="allMembers"
+          :selected-manager-ids="selectedManagerIds"
+          :created-managers="createdManagers"
+          :saving="saving"
+          @next-from-identity="nextFromIdentity"
+          @next-from-groups="nextFromGroups"
+          @set-field-value="setFieldValue"
+          @toggle-group="toggleGroup"
+          @toggle-manager="toggleManager"
+          @create-manager="createNewManager"
+          @create-account="createAccount"
+          @start-over="startOver"
+          @to-list="router.push({ name: 'members-list' })"
+      />
     </div>
   </ViewContent>
 </template>

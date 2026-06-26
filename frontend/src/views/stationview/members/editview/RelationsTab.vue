@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
@@ -19,6 +19,7 @@ import InlineDetail from '@/components/typography/InlineDetail.vue'
 import type { StationMember } from '@/api/types'
 import { StationUserType } from '@/api/types'
 import { stationMembers } from '@/api'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
 
 const props = defineProps<{
   memberId: number
@@ -30,8 +31,6 @@ const { t } = useI18n()
 
 const managers = ref<StationMember[]>([])
 const managed = ref<StationMember[]>([])
-const loading = ref(true)
-const error = ref('')
 const success = ref('')
 const saving = ref(false)
 const selectedAddId = ref('')
@@ -58,22 +57,14 @@ function displayName(m: StationMember): string {
   return m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`
 }
 
-async function loadData() {
-  loading.value = true
-  error.value = ''
-  try {
-    const [mgrs, mgd] = await Promise.all([
-      stationMembers.getManagers(props.memberId),
-      stationMembers.getManaged(props.memberId),
-    ])
-    managers.value = mgrs
-    managed.value = mgd
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, error} = useAsyncLoader(async () => {
+  const [mgrs, mgd] = await Promise.all([
+    stationMembers.getManagers(props.memberId),
+    stationMembers.getManaged(props.memberId),
+  ])
+  managers.value = mgrs
+  managed.value = mgd
+})
 
 async function addRelation() {
   const id = Number(selectedAddId.value)
@@ -118,7 +109,6 @@ async function removeRelation(targetId: number) {
   }
 }
 
-onMounted(loadData)
 </script>
 
 <template>

@@ -4,32 +4,26 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
-import DateInput from '@/components/input/datetime/DateInput.vue'
-import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
-import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
-import LabelSelectInput from '@/components/input/select/LabelSelectInput.vue'
+import TicketCreateMainColumn from './ticketcreateview/TicketCreateMainColumn.vue'
+import TicketCreateRightColumn from './ticketcreateview/TicketCreateRightColumn.vue'
+import type { DraftChecklistItem } from './ticketcreateview/TicketChecklistDraft.vue'
+import type { DraftWeblink } from './ticketcreateview/TicketWeblinksDraft.vue'
+import type { DraftLink, TicketOption } from './ticketcreateview/TicketLinksDraft.vue'
 import { boards, stationMembers } from '@/api'
 import type { MemberCompletion } from '@/api/stationMembers'
 import type { Board, BoardLane, BoardLabel } from '@/api/boards'
 import { TicketPriority } from '@/api/boards'
 import type { TicketPriorityName, LinkTypeName } from '@/api/boards'
 import { LinkType } from '@/api/boards'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -42,18 +36,9 @@ const lanes = ref<BoardLane[]>([])
 const members = ref<MemberCompletion[]>([])
 const allLabels = ref<BoardLabel[]>([])
 
-interface TicketOption {
-  id: number
-  ticketNumber: number
-  title: string
-}
-
 const allTickets = ref<TicketOption[]>([])
-const loading = ref(true)
 const submitting = ref(false)
-const error = ref('')
 
-// -- Form state --
 const title = ref('')
 const description = ref('')
 const laneId = ref('')
@@ -61,8 +46,6 @@ const priority = ref<TicketPriorityName>(TicketPriority.MEDIUM)
 const assignee = ref('')
 const dueDate = ref('')
 
-// Checklist (local, created after ticket)
-interface DraftChecklistItem { key: number; title: string; checked: boolean }
 let nextKey = 0
 const checklistItems = ref<DraftChecklistItem[]>([])
 const newChecklistTitle = ref('')
@@ -82,7 +65,6 @@ function toggleChecklistItem(key: number) {
     if (item) item.checked = !item.checked
 }
 
-// Labels (selected ids, attached after ticket)
 const selectedLabelIds = ref<Set<number>>(new Set())
 const selectedLabels = computed(() => allLabels.value.filter(l => selectedLabelIds.value.has(l.id)))
 
@@ -99,11 +81,9 @@ async function createAndSelectLabel(name: string) {
         const next = new Set(selectedLabelIds.value)
         next.add(label.id)
         selectedLabelIds.value = next
-    } catch { /* ignore */ }
+    } catch { void 0 }
 }
 
-// Weblinks (local, created after ticket)
-interface DraftWeblink { key: number; url: string; title: string }
 const weblinks = ref<DraftWeblink[]>([])
 const newWeblinkUrl = ref('')
 const newWeblinkTitle = ref('')
@@ -119,8 +99,6 @@ function removeWeblink(key: number) {
     weblinks.value = weblinks.value.filter(w => w.key !== key)
 }
 
-// Links (local, created after ticket)
-interface DraftLink { key: number; linkedTicketId: number; linkType: LinkTypeName }
 const ticketLinks = ref<DraftLink[]>([])
 const newLinkTicketId = ref('')
 const newLinkType = ref<LinkTypeName>(LinkType.RELATES_TO)
@@ -138,12 +116,6 @@ function removeLink(key: number) {
     ticketLinks.value = ticketLinks.value.filter(l => l.key !== key)
 }
 
-function linkedTicketLabel(linkedTicketId: number): string {
-    const tk = allTickets.value.find(t => t.id === linkedTicketId)
-    return tk ? `${board.value?.shortKey}-${tk.ticketNumber} ${tk.title}` : String(linkedTicketId)
-}
-
-// Lane options: backlog + first visible lane
 const createLaneOptions = computed(() => {
     if (!board.value) return []
     const options: BoardLane[] = []
@@ -154,42 +126,34 @@ const createLaneOptions = computed(() => {
     return options
 })
 
-async function loadData() {
-    loading.value = true
-    try {
-        const [b, l, m, lb, tks] = await Promise.all([
-            boards.getBoard(boardKey.value),
-            boards.getLanes(boardKey.value),
-            stationMembers.listCompletions(),
-            boards.getLabels(boardKey.value),
-            boards.listTickets(boardKey.value),
-        ])
-        board.value = b
-        lanes.value = l
-        members.value = m
-        allLabels.value = lb
-        allTickets.value = tks.map(tk => ({ id: tk.id, ticketNumber: tk.ticketNumber, title: tk.title }))
+const {loading, error} = useAsyncLoader(async () => {
+    const [b, l, m, lb, tks] = await Promise.all([
+        boards.getBoard(boardKey.value),
+        boards.getLanes(boardKey.value),
+        stationMembers.listCompletions(),
+        boards.getLabels(boardKey.value),
+        boards.listTickets(boardKey.value),
+    ])
+    board.value = b
+    lanes.value = l
+    members.value = m
+    allLabels.value = lb
+    allTickets.value = tks.map(tk => ({ id: tk.id, ticketNumber: tk.ticketNumber, title: tk.title }))
 
-        // Apply query params (carried over from quick-create modal)
-        const q = route.query
-        if (q.title) title.value = String(q.title)
-        if (q.description) description.value = String(q.description)
-        if (q.priority) priority.value = String(q.priority) as TicketPriorityName
-        if (q.assignee) assignee.value = String(q.assignee)
-        if (q.dueDate) dueDate.value = String(q.dueDate)
+    const q = route.query
+    if (q.title) title.value = String(q.title)
+    if (q.description) description.value = String(q.description)
+    if (q.priority) priority.value = String(q.priority) as TicketPriorityName
+    if (q.assignee) assignee.value = String(q.assignee)
+    if (q.dueDate) dueDate.value = String(q.dueDate)
 
-        if (q.laneId) {
-            laneId.value = String(q.laneId)
-        } else {
-            const firstAllowed = b.backlogLaneId ?? l.find(la => la.id !== b.backlogLaneId)?.id
-            if (firstAllowed) laneId.value = String(firstAllowed)
-        }
-    } catch {
-        error.value = t('common.error')
-    } finally {
-        loading.value = false
+    if (q.laneId) {
+        laneId.value = String(q.laneId)
+    } else {
+        const firstAllowed = b.backlogLaneId ?? l.find(la => la.id !== b.backlogLaneId)?.id
+        if (firstAllowed) laneId.value = String(firstAllowed)
     }
-}
+})
 
 async function handleSubmit() {
     if (!title.value.trim()) {
@@ -209,9 +173,7 @@ async function handleSubmit() {
         })
         const ticketNumber = created.ticketNumber
 
-        // Create all extras in parallel where possible
         const ops: Promise<unknown>[] = []
-
         for (const item of checklistItems.value) {
             ops.push(boards.addChecklistItem(boardKey.value, ticketNumber, { title: item.title }))
         }
@@ -234,7 +196,10 @@ async function handleSubmit() {
     }
 }
 
-onMounted(loadData)
+function goBack() {
+    if (board.value) router.push(`/station/boards/${board.value.shortKey}`)
+}
+
 </script>
 
 <template>
@@ -243,125 +208,49 @@ onMounted(loadData)
         <Alert v-else-if="error && !board" variant="error">{{ error }}</Alert>
         <template v-else-if="board">
             <div class="flex items-center gap-3 mb-6">
-                <IconButton :icon="['fas', 'chevron-left']" label="Back" @click="router.push(`/station/boards/${board.shortKey}`)" />
+                <IconButton :icon="['fas', 'chevron-left']" label="Back" @click="goBack" />
                 <SectionHeader>{{ t('boards.createTicket') }}</SectionHeader>
                 <span class="text-xs font-mono text-(--text-muted) bg-(--bg-accent) px-1.5 py-0.5 rounded">{{ board.shortKey }}</span>
             </div>
-
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Main column -->
-                <div class="lg:col-span-2 space-y-4">
-                    <div>
-                        <FieldLabel class="mb-1">{{ t('boards.ticketTitle') }} *</FieldLabel>
-                        <TextInput v-model="title" />
-                    </div>
-
-                    <div>
-                        <FieldLabel class="mb-1">{{ t('boards.ticketDescription') }}</FieldLabel>
-                        <MarkdownEditor v-model="description" :placeholder="t('boards.ticketDescription')" />
-                    </div>
-
-                    <!-- Checklist -->
-                    <NeutralContainer>
-                        <SubHeader class="mb-2">{{ t('boards.checklist') }}</SubHeader>
-                        <div v-for="item in checklistItems" :key="item.key" class="flex items-center gap-2 py-0.5">
-                            <CheckboxInput :model-value="item.checked" @update:model-value="toggleChecklistItem(item.key)" />
-                            <span class="flex-1 text-sm" :class="{ 'line-through text-(--text-muted)': item.checked }">{{ item.title }}</span>
-                            <IconButton :icon="['fas', 'xmark']" label="Remove" class="text-xs" @click="removeChecklistItem(item.key)" />
-                        </div>
-                        <div class="flex gap-2 mt-2 items-center">
-                            <TextInput v-model="newChecklistTitle" :placeholder="t('boards.addChecklistItem')" class="flex-1 text-sm" @keydown.enter="addChecklistItem" />
-                            <IconButton :icon="['fas', 'plus']" :label="t('common.add')" class="text-(--text-muted)" @click="addChecklistItem" />
-                        </div>
-                    </NeutralContainer>
-
-                    <!-- Weblinks -->
-                    <NeutralContainer>
-                        <SubHeader class="mb-2">{{ t('boards.weblinks') }}</SubHeader>
-                        <div v-for="wl in weblinks" :key="wl.key" class="flex items-center gap-2 py-0.5 group">
-                            <font-awesome-icon :icon="['fas', 'globe']" class="text-(--text-muted) text-xs shrink-0" />
-                            <span class="text-sm truncate flex-1">{{ wl.title || wl.url }}</span>
-                            <IconButton :icon="['fas', 'xmark']" label="Remove" class="text-xs sm:opacity-0 sm:group-hover:opacity-100" @click="removeWeblink(wl.key)" />
-                        </div>
-                        <div class="flex gap-2 mt-2 items-center">
-                            <TextInput v-model="newWeblinkUrl" placeholder="https://..." class="flex-1 text-sm" />
-                            <TextInput v-model="newWeblinkTitle" :placeholder="t('boards.weblinkTitle')" class="flex-1 text-sm" @keydown.enter="addWeblink" />
-                            <IconButton :icon="['fas', 'plus']" :label="t('common.add')" class="text-(--text-muted)" @click="addWeblink" />
-                        </div>
-                    </NeutralContainer>
-
-                    <!-- Ticket links -->
-                    <NeutralContainer>
-                        <SubHeader class="mb-2">{{ t('boards.links') }}</SubHeader>
-                        <div v-for="link in ticketLinks" :key="link.key" class="flex items-center gap-2 py-0.5 group">
-                            <font-awesome-icon :icon="['fas', 'link']" class="text-(--text-muted) text-xs shrink-0" />
-                            <span class="text-xs text-(--text-muted)">{{ t('boards.link' + link.linkType.charAt(0) + link.linkType.slice(1).toLowerCase().replace(/_./g, m => m[1].toUpperCase())) }}</span>
-                            <span class="text-sm truncate flex-1">{{ linkedTicketLabel(link.linkedTicketId) }}</span>
-                            <IconButton :icon="['fas', 'xmark']" label="Remove" class="text-xs sm:opacity-0 sm:group-hover:opacity-100" @click="removeLink(link.key)" />
-                        </div>
-                        <div class="flex gap-2 mt-2 items-center flex-wrap">
-                            <SelectInput v-model="newLinkType" class="w-40">
-                                <option :value="LinkType.RELATES_TO">{{ t('boards.linkRelatesTo') }}</option>
-                                <option :value="LinkType.BLOCKS">{{ t('boards.linkBlocks') }}</option>
-                                <option :value="LinkType.BLOCKED_BY">{{ t('boards.linkBlockedBy') }}</option>
-                                <option :value="LinkType.CAUSES">{{ t('boards.linkCauses') }}</option>
-                                <option :value="LinkType.CAUSED_BY">{{ t('boards.linkCausedBy') }}</option>
-                            </SelectInput>
-                            <SelectInput v-model="newLinkTicketId" class="flex-1 min-w-0">
-                                <option value="">{{ t('boards.linkedTickets') }}...</option>
-                                <option v-for="tk in allTickets" :key="tk.id" :value="tk.id">{{ board.shortKey }}-{{ tk.ticketNumber }} {{ tk.title }}</option>
-                            </SelectInput>
-                            <IconButton :icon="['fas', 'plus']" :label="t('common.add')" class="text-(--text-muted)" @click="addLink" />
-                        </div>
-                    </NeutralContainer>
-                </div>
-
-                <!-- Right column -->
-                <div class="space-y-4">
-                    <div>
-                        <FieldLabel class="mb-1">{{ t('boards.lanes') }}</FieldLabel>
-                        <SelectInput v-model="laneId" class="w-full">
-                            <option v-for="lane in createLaneOptions" :key="lane.id" :value="lane.id">{{ lane.name }}</option>
-                        </SelectInput>
-                    </div>
-
-                    <div>
-                        <FieldLabel class="mb-1">{{ t('boards.priority') }}</FieldLabel>
-                        <SelectInput v-model="priority" class="w-full">
-                            <option :value="TicketPriority.LOWEST">{{ t('boards.priorityLowest') }}</option>
-                            <option :value="TicketPriority.LOW">{{ t('boards.priorityLow') }}</option>
-                            <option :value="TicketPriority.MEDIUM">{{ t('boards.priorityMedium') }}</option>
-                            <option :value="TicketPriority.HIGH">{{ t('boards.priorityHigh') }}</option>
-                            <option :value="TicketPriority.HIGHEST">{{ t('boards.priorityHighest') }}</option>
-                        </SelectInput>
-                    </div>
-
-                    <div>
-                        <FieldLabel class="mb-1">{{ t('boards.assignee') }}</FieldLabel>
-                        <MemberSelectInput v-model="assignee" :members="members" :placeholder="t('boards.unassigned')" />
-                    </div>
-
-                    <div>
-                        <FieldLabel class="mb-1">{{ t('boards.dueDate') }}</FieldLabel>
-                        <DateInput v-model="dueDate" />
-                    </div>
-
-                    <!-- Labels -->
-                    <div v-if="allLabels.length > 0">
-                        <FieldLabel class="mb-1">Labels</FieldLabel>
-                        <LabelSelectInput :labels="allLabels" :selected="selectedLabels" @toggle="toggleLabel" @create="createAndSelectLabel" />
-                    </div>
-
-                    <Alert v-if="error" variant="error">{{ error }}</Alert>
-
-                    <div class="flex gap-2">
-                        <SecondaryButton class="flex-1" @click="router.push(`/station/boards/${board.shortKey}`)">{{ t('common.cancel') }}</SecondaryButton>
-                        <PrimaryButton class="flex-1" :disabled="submitting" @click="handleSubmit">
-                            <Spinner v-if="submitting" size="sm" class="mr-1" />
-                            {{ t('common.create') }}
-                        </PrimaryButton>
-                    </div>
-                </div>
+                <TicketCreateMainColumn
+                    v-model:title="title"
+                    v-model:description="description"
+                    :checklist-items="checklistItems"
+                    v-model:new-checklist-title="newChecklistTitle"
+                    :weblinks="weblinks"
+                    v-model:new-weblink-url="newWeblinkUrl"
+                    v-model:new-weblink-title="newWeblinkTitle"
+                    :ticket-links="ticketLinks"
+                    v-model:new-link-ticket-id="newLinkTicketId"
+                    v-model:new-link-type="newLinkType"
+                    :all-tickets="allTickets"
+                    :short-key="board.shortKey"
+                    @add-checklist="addChecklistItem"
+                    @remove-checklist="removeChecklistItem"
+                    @toggle-checklist="toggleChecklistItem"
+                    @add-weblink="addWeblink"
+                    @remove-weblink="removeWeblink"
+                    @add-link="addLink"
+                    @remove-link="removeLink"
+                />
+                <TicketCreateRightColumn
+                    v-model:lane-id="laneId"
+                    v-model:priority="priority"
+                    v-model:assignee="assignee"
+                    v-model:due-date="dueDate"
+                    :create-lane-options="createLaneOptions"
+                    :members="members"
+                    :all-labels="allLabels"
+                    :selected-labels="selectedLabels"
+                    :error="error"
+                    :submitting="submitting"
+                    :cancel-to="`/station/boards/${board.shortKey}`"
+                    @toggle-label="toggleLabel"
+                    @create-label="createAndSelectLabel"
+                    @cancel="goBack"
+                    @submit="handleSubmit"
+                />
             </div>
         </template>
     </ViewContent>

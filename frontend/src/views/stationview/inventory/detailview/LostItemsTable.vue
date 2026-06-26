@@ -15,6 +15,7 @@ import Td from '@/components/table/Td.vue'
 import THead from '@/components/table/THead.vue'
 import TRow from '@/components/table/TRow.vue'
 import type { InventoryItem, InventorySize, StationMember } from '@/api/types'
+import { formatDate } from '@/util/format'
 
 const props = defineProps<{
   items: InventoryItem[]
@@ -36,10 +37,6 @@ function sizeName(sizeId: number | null | undefined): string {
   return props.sizes.find(s => s.id === sizeId)?.label ?? ''
 }
 
-function formatDate(dateStr?: string | null): string {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('de-DE')
-}
 </script>
 
 <template>

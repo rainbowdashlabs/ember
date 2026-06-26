@@ -10,17 +10,14 @@ import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.v
 import TimeShortInput from '@/components/input/datetime/TimeShortInput.vue'
 import type {StationMember} from '@/api/types'
 
+const modelValue = defineModel<string>({required: true})
+
 const props = defineProps<{
   fieldType: string
   config?: Record<string, unknown>
-  modelValue: string
   disabled?: boolean
   allMembers?: StationMember[]
   groupMembers?: Map<number, StationMember[]>
-}>()
-
-const emit = defineEmits<{
-  'update:modelValue': [value: string]
 }>()
 
 function parseConfig(): { options?: string[]; groupId?: number } {
@@ -47,22 +44,22 @@ function getMemberOptions(): { value: string; label: string }[] {
 }
 
 function getMemberIds(): string[] {
-  if (!props.modelValue) return []
+  if (!modelValue.value) return []
   try {
-    const parsed = JSON.parse(props.modelValue)
+    const parsed = JSON.parse(modelValue.value)
     if (Array.isArray(parsed)) return parsed.map(String)
     if (parsed) return [String(parsed)]
   } catch { /* ignore */ }
-  if (props.modelValue) return [props.modelValue]
+  if (modelValue.value) return [modelValue.value]
   return []
 }
 
 function setMemberIds(ids: string[]) {
-  emit('update:modelValue', JSON.stringify(ids.map(Number)))
+  modelValue.value = JSON.stringify(ids.map(Number))
 }
 
 function setSingleMember(id: string) {
-  emit('update:modelValue', id || '')
+  modelValue.value = id || ''
 }
 </script>
 
@@ -70,7 +67,7 @@ function setSingleMember(id: string) {
   <!-- Time -->
   <template v-if="fieldType === 'TIME'">
     <TimeShortInput :disabled="disabled" :model-value="modelValue"
-                    @update:model-value="emit('update:modelValue', $event ?? '')"/>
+                    @update:model-value="modelValue = $event ?? ''"/>
   </template>
 
   <!-- Member list fields -->
@@ -97,8 +94,7 @@ function setSingleMember(id: string) {
 
   <!-- Regular fields -->
   <template v-else>
-    <ProfileFieldInput :disabled="disabled" :field-type="fieldType" :model-value="modelValue"
-                       :options="parseConfig().options ?? []"
-                       @update:model-value="emit('update:modelValue', $event)"/>
+    <ProfileFieldInput v-model="modelValue" :disabled="disabled" :field-type="fieldType"
+                       :options="parseConfig().options ?? []"/>
   </template>
 </template>

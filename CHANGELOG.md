@@ -4,6 +4,14 @@
 
 ### New Features
 
+#### Inventory Storage and Custom Fields
+
+- **Storage containers.** Every room, shelf, drawer and box is a container that can hold items and other containers, nested as deeply as the operator needs. Containers are reached from a new Station → Inventar → Lager entry, can be searched and resolved by scan, and each item carries its container path as a clickable breadcrumb on the item detail page.
+- **Custom fields per inventory.** Each inventory now defines its own extra fields with one of five types — date, dropdown, text, number with optional unit, or yes/no. Managers add and reorder them in the inventory editor; the inputs then show up on the item form and the values are persisted alongside the item.
+- **Container check workflow.** A new Station → Inventar → Prüfung → Behälter-Prüfung flow walks the items expected in a chosen container, scan by scan. Items are confirmed, marked missing, or flagged lost; items the operator finds but the system did not expect for the container are collected separately. A toggle extends the walk to every nested container.
+- **Dedicated assign-and-return page.** A new Station → Inventar → Zuweisen page lets a station member with the new "Inventar zuweisen" permission pick a recipient and then scan items in sequence — each scan assigns the item, scanning an already-assigned item with the same recipient selected returns it. The permission is off by default for every role; the station owner grants it explicitly to whoever runs equipment handover.
+- **An item is either with a member or in storage, never both.** Assigning an item to a member clears any container it was placed in; placing an item in a container ends the open assignment. The database enforces the same invariant so no path can leave an item in a halfway state.
+
 #### Pluggable Storage Backends
 
 - **Choose where uploaded files live.** A new backend layer lets the instance keep stored files on local disk (the default) or push them to an SMB share, an SFTP server, or any S3-compatible object store (AWS S3, MinIO, Backblaze B2, Wasabi, Hetzner Object Storage, Cloudflare R2). Operators pick the instance-wide default from Admin → Monitoring → Storage → Backend; remote backends talk their protocol directly, with no kernel mount, FUSE, or container privileges required.
@@ -17,6 +25,8 @@
 
 ### Changes
 
+- **Inventar sidebar reorganised.** The Inventar group label itself now opens the inventory overview, Lager is a new top-level entry alongside it, Prüfung splits into Mitglieder-Prüfung and Behälter-Prüfung, and the existing Tausch, Beschaffung, Benötigt, Ausleihe and Inventare entries fold into a new Verwaltung subgroup so the group does not run long.
+- **Help center sidebar always expanded.** The help center sidebar no longer inherits a collapse preference from the dashboard. It stays full-width on desktop so articles remain reachable by title.
 - **Flyout menus on the collapsed sidebar.** With the desktop sidebar collapsed to its icon rail, hovering or keyboard-focusing a group icon now opens a floating menu showing the group's label and every nested entry, so all destinations stay reachable without first expanding the rail. Nested subgroups chain into further flyouts and badges stay visible on the rail when the menu is closed.
 
 ## v26.9.1

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, onMounted, computed} from 'vue'
+import {ref, computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -23,6 +23,7 @@ import {BarChart, LineChart} from 'echarts/charts'
 import {GridComponent, TooltipComponent, LegendComponent, DataZoomComponent} from 'echarts/components'
 import * as apiStatus from '@/api/apiStatus'
 import type {EndpointStats, HourlyStats, StatusBreakdown} from '@/api/apiStatus'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
 
@@ -32,7 +33,6 @@ const router = useRouter()
 const isDark = computed(() => document.documentElement.classList.contains('dark'))
 const textColor = computed(() => isDark.value ? '#ccc' : '#333')
 
-const loading = ref(true)
 const activeTab = ref<'overview' | 'slowest' | 'fastest' | 'failing'>('overview')
 
 const slowest = ref<EndpointStats[]>([])
@@ -41,27 +41,20 @@ const failing = ref<EndpointStats[]>([])
 const hourly = ref<HourlyStats[]>([])
 const statusData = ref<StatusBreakdown[]>([])
 
-async function loadData() {
-    loading.value = true
-    try {
-        const [s, fa, fl, h, st] = await Promise.all([
-            apiStatus.getSlowest(),
-            apiStatus.getFastest(),
-            apiStatus.getFailing(),
-            apiStatus.getHourlyStats(),
-            apiStatus.getStatusBreakdown(),
-        ])
-        slowest.value = s
-        fastest.value = fa
-        failing.value = fl
-        hourly.value = h
-        statusData.value = st
-    } catch {
-        // ignore
-    } finally {
-        loading.value = false
-    }
-}
+const {loading, reload} = useAsyncLoader(async () => {
+    const [s, fa, fl, h, st] = await Promise.all([
+        apiStatus.getSlowest(),
+        apiStatus.getFastest(),
+        apiStatus.getFailing(),
+        apiStatus.getHourlyStats(),
+        apiStatus.getStatusBreakdown(),
+    ])
+    slowest.value = s
+    fastest.value = fa
+    failing.value = fl
+    hourly.value = h
+    statusData.value = st
+})
 
 const totalRequests = computed(() => hourly.value.reduce((sum, h) => sum + h.requestCount, 0))
 const totalErrors = computed(() => hourly.value.reduce((sum, h) => sum + h.errorCount, 0))
@@ -155,8 +148,6 @@ function methodColor(method: string): string {
 function openDetail(ep: EndpointStats) {
     router.push({name: 'admin-api-status-detail', query: {method: ep.method, path: ep.path}})
 }
-
-onMounted(loadData)
 </script>
 
 <template>
@@ -166,7 +157,7 @@ onMounted(loadData)
                 <font-awesome-icon :icon="['fas', 'chart-line']" class="mr-2"/>
                 {{ t('apiStatus.title') }}
             </PageHeader>
-            <SecondaryButton :icon="['fas', 'rotate']" @click="loadData">
+            <SecondaryButton :icon="['fas', 'rotate']" @click="reload">
                 {{ t('common.refresh') }}
             </SecondaryButton>
         </div>

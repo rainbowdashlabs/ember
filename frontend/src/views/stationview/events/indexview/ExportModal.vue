@@ -9,16 +9,12 @@ import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
-import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {EventCategory} from '@/api/types'
 import {events} from '@/api'
-import MutedText from '@/components/typography/MutedText.vue'
+import TimeRangeSection from './exportmodal/TimeRangeSection.vue'
+import CategoriesSection from './exportmodal/CategoriesSection.vue'
+import ColumnsSection, {type ExportColumn} from './exportmodal/ColumnsSection.vue'
 
 const {t} = useI18n()
 
@@ -38,12 +34,6 @@ const exportYear = ref(String(new Date().getFullYear()))
 const exportMonth = ref(String(new Date().getMonth() + 1))
 const exportCategoryIds = ref<Set<number>>(new Set())
 const availableFieldNames = ref<string[]>([])
-
-interface ExportColumn {
-  key: string
-  label: string
-  isExtra?: boolean
-}
 
 const builtinColumns: ExportColumn[] = [
   {key: 'name', label: t('events.exportColName')},
@@ -111,7 +101,7 @@ watch(modelValue, (visible) => {
     exportCategoryIds.value = new Set(props.categories.map(c => c.id))
     events.listFieldNames().then(names => {
       availableFieldNames.value = names
-    }).catch(() => { /* ignore */ })
+    }).catch(() => {})
   }
 })
 
@@ -163,99 +153,28 @@ async function doExport() {
     <div class="space-y-5 p-4 max-h-[80vh] overflow-y-auto">
       <SubHeader>{{ t('events.exportPdf') }}</SubHeader>
 
-      <!-- Time range -->
-      <div class="space-y-2">
-        <FieldLabel>{{ t('events.exportPeriod') }}</FieldLabel>
-        <div class="flex items-center gap-2 flex-wrap">
-          <SelectInput v-model="exportMode" class="w-32">
-            <option value="year">{{ t('events.exportYear') }}</option>
-            <option value="month">{{ t('events.exportMonth') }}</option>
-          </SelectInput>
-          <TextInput v-model="exportYear" class="w-24"/>
-          <SelectInput v-if="exportMode === 'month'" v-model="exportMonth" class="w-32">
-            <option v-for="m in 12" :key="m" :value="String(m)">{{ new Date(2000, m - 1).toLocaleDateString('de-DE', { month: 'long' }) }}</option>
-          </SelectInput>
-        </div>
-      </div>
+      <TimeRangeSection
+          v-model:export-mode="exportMode"
+          v-model:export-year="exportYear"
+          v-model:export-month="exportMonth"
+      />
 
-      <!-- Categories -->
-      <div class="space-y-2">
-        <FieldLabel>{{ t('events.exportCategories') }}</FieldLabel>
-        <div class="flex flex-wrap gap-2">
-          <SelectionToggleButton
-              v-for="cat in categories"
-              :key="cat.id"
-              :selected="exportCategoryIds.has(cat.id)"
-              @toggle="toggleExportCategory(cat.id)"
-          >
-            {{ cat.name }}
-          </SelectionToggleButton>
-        </div>
-      </div>
+      <CategoriesSection
+          :categories="categories"
+          :selected-ids="exportCategoryIds"
+          @toggle="toggleExportCategory"
+      />
 
-      <!-- Columns (ordered) -->
-      <div class="space-y-3">
-        <FieldLabel>{{ t('events.exportColumns') }}</FieldLabel>
-
-        <!-- Selected columns in order -->
-        <MutedText tag="div" size="sm" class="py-2 text-center" v-if="selectedColumns.length === 0">
-          {{ t('events.exportNoColumns') }}
-        </MutedText>
-        <div class="space-y-1">
-          <div
-              v-for="(col, index) in selectedColumns"
-              :key="col.key"
-              class="flex items-center gap-2 rounded-lg px-3 py-2 bg-bg-light-accent/30 dark:bg-bg-dark-accent/30"
-          >
-            <span class="text-(--text-muted) text-xs w-5 text-center">{{ index + 1 }}</span>
-            <span class="flex-1 text-sm font-medium">{{ col.label }}</span>
-            <IconButton
-                :icon="['fas', 'chevron-up']"
-                label="Move up"
-                :disabled="index === 0"
-                class="text-(--text-muted) hover:text-(--text) h-6 w-6"
-                @click="moveColumnUp(index)"
-            />
-            <IconButton
-                :icon="['fas', 'chevron-down']"
-                label="Move down"
-                :disabled="index === selectedColumns.length - 1"
-                class="text-(--text-muted) hover:text-(--text) h-6 w-6"
-                @click="moveColumnDown(index)"
-            />
-            <DeleteButton @click="removeColumn(index)"/>
-          </div>
-        </div>
-
-        <!-- Add builtin columns -->
-        <div v-if="availableColumns.length > 0" class="flex flex-wrap gap-2">
-          <SecondaryButton
-              v-for="col in availableColumns"
-              :key="col.key"
-              class="!text-xs !border !border-dashed !border-bg-light-accent dark:!border-bg-dark-accent !text-(--text-muted) hover:!border-primary hover:!text-primary !bg-transparent"
-              @click="addColumn(col)"
-          >
-            <font-awesome-icon :icon="['fas', 'plus']" class="mr-1 h-3 w-3"/>
-            {{ col.label }}
-          </SecondaryButton>
-        </div>
-
-        <!-- Add event field columns -->
-        <div v-if="availableExtraFields.length > 0" class="space-y-1">
-          <span class="text-xs text-(--text-muted)">{{ t('events.exportExtraFields') }}</span>
-          <div class="flex flex-wrap gap-2">
-            <SecondaryButton
-                v-for="name in availableExtraFields"
-                :key="name"
-                class="!text-xs !border !border-dashed !border-secondary/50 !text-secondary hover:!border-secondary hover:!bg-secondary/10 !bg-transparent"
-                @click="addFieldColumn(name)"
-            >
-              <font-awesome-icon :icon="['fas', 'plus']" class="mr-1 h-3 w-3"/>
-              {{ name }}
-            </SecondaryButton>
-          </div>
-        </div>
-      </div>
+      <ColumnsSection
+          :selected-columns="selectedColumns"
+          :available-columns="availableColumns"
+          :available-extra-fields="availableExtraFields"
+          @add="addColumn"
+          @add-field="addFieldColumn"
+          @remove="removeColumn"
+          @move-up="moveColumnUp"
+          @move-down="moveColumnDown"
+      />
 
       <div class="flex justify-end gap-2 pt-2">
         <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>

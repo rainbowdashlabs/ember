@@ -11,14 +11,11 @@ interface FieldInfo {
   type?: string
 }
 
+const modelValue = defineModel<string>({required: true})
+
 const props = defineProps<{
-  modelValue: string
   placeholder?: string
   fields: FieldInfo[]
-}>()
-
-const emit = defineEmits<{
-  'update:modelValue': [value: string]
 }>()
 
 const inputRef = ref<HTMLInputElement | null>(null)
@@ -58,7 +55,7 @@ function onInput(event: Event) {
   const pos = input.selectionStart ?? 0
   cursorPos.value = pos
   currentPartial.value = extractPartial(input.value, pos)
-  emit('update:modelValue', input.value)
+  modelValue.value = input.value
   showSuggestions.value = currentPartial.value.length > 0
   selectedIndex.value = 0
 }
@@ -82,7 +79,7 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 function applySuggestion(suggestion: { label: string; wrap: 'bracket' | 'none' }) {
-  const text = props.modelValue
+  const text = modelValue.value
   const pos = cursorPos.value
   const bracketStart = text.lastIndexOf('[', pos - 1)
   if (bracketStart === -1) return
@@ -105,7 +102,7 @@ function applySuggestion(suggestion: { label: string; wrap: 'bracket' | 'none' }
     newPos = bracketStart + 1 + suggestion.label.length + (needsClose ? 1 : 0)
   }
 
-  emit('update:modelValue', newValue)
+  modelValue.value = newValue
   showSuggestions.value = false
   currentPartial.value = ''
   nextTick(() => {
@@ -136,7 +133,7 @@ function onBlur() {
       ref="inputRef"
       :value="modelValue"
       :placeholder="placeholder"
-      class="w-full rounded-lg border border-bg-light-accent dark:border-bg-dark-accent bg-bg-light dark:bg-bg-dark px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary/40 transition-all font-mono"
+      class="w-full rounded-theme border border-bg-light-accent dark:border-bg-dark-accent bg-bg-light dark:bg-bg-dark text-(--text) px-3 py-1.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed font-mono"
       type="text"
       @input="onInput"
       @keydown="onKeydown"
@@ -145,7 +142,7 @@ function onBlur() {
     />
     <div
       v-if="showSuggestions && filteredSuggestions.length > 0"
-      class="absolute left-0 right-0 top-full mt-1 z-20 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent bg-bg-light dark:bg-bg-dark shadow-lg max-h-48 overflow-y-auto"
+      class="absolute left-0 right-0 top-full mt-1 z-20 rounded-theme border border-bg-light-accent dark:border-bg-dark-accent bg-bg-light dark:bg-bg-dark shadow-lg max-h-48 overflow-y-auto"
     >
       <button
         v-for="(suggestion, i) in filteredSuggestions"

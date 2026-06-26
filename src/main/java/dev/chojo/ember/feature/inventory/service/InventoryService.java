@@ -17,6 +17,8 @@ import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +29,7 @@ import java.util.Optional;
  */
 @Singleton
 public class InventoryService {
+    private static final Logger log = LoggerFactory.getLogger(InventoryService.class);
     private final InventoryRepository inventoryRepository;
 
     @Inject
@@ -217,7 +220,15 @@ public class InventoryService {
      */
     public InventoryItem createItem(
             int inventoryId, String internalId, String name, Integer sizeId, InventoryItemMetadata metadata) {
-        return inventoryRepository.createItem(inventoryId, internalId, name, sizeId, metadata);
+        InventoryItem item = inventoryRepository.createItem(inventoryId, internalId, name, sizeId, metadata);
+        log.info(
+                "Created item {} (name='{}', internalId='{}', sizeId={}) in inventory {}",
+                item.id(),
+                name,
+                internalId,
+                sizeId,
+                inventoryId);
+        return item;
     }
 
     /**
@@ -238,7 +249,17 @@ public class InventoryService {
             Integer sizeId,
             InventoryItemMetadata metadata,
             InventoryItem.ItemSource itemSource) {
-        return inventoryRepository.createItem(inventoryId, internalId, name, sizeId, metadata, itemSource);
+        InventoryItem item =
+                inventoryRepository.createItem(inventoryId, internalId, name, sizeId, metadata, itemSource);
+        log.info(
+                "Created item {} (name='{}', internalId='{}', sizeId={}, source={}) in inventory {}",
+                item.id(),
+                name,
+                internalId,
+                sizeId,
+                itemSource,
+                inventoryId);
+        return item;
     }
 
     /**
@@ -254,8 +275,10 @@ public class InventoryService {
     public Optional<InventoryItem> updateItem(
             int id, String internalId, String name, Integer sizeId, InventoryItemMetadata metadata) {
         if (inventoryRepository.updateItem(id, internalId, name, sizeId, metadata)) {
+            log.info("Updated item {} (name='{}', internalId='{}', sizeId={})", id, name, internalId, sizeId);
             return inventoryRepository.findItemById(id);
         }
+        log.warn("Update of item {} did not find a row to change", id);
         return Optional.empty();
     }
 
@@ -270,23 +293,27 @@ public class InventoryService {
      * @return the updated item, or empty if the item was not found
      */
     public Optional<InventoryItem> assignItem(int itemId, Integer memberId, String memberName) {
-        // If previously assigned, close that history entry
         var item = inventoryRepository.findItemById(itemId);
-        if (item.isEmpty()) return Optional.empty();
+        if (item.isEmpty()) {
+            log.warn("Assign skipped: item {} not found", itemId);
+            return Optional.empty();
+        }
 
         var current = item.get();
         if (current.assignedTo() != null) {
             inventoryRepository.returnHistory(itemId, current.assignedTo());
         }
 
-        // Assign new member
         if (inventoryRepository.assignItem(itemId, memberId)) {
-            // Create history entry for new assignment
             if (memberId != null) {
                 inventoryRepository.createHistory(itemId, memberId, memberName != null ? memberName : "");
+                log.info("Assigned item {} to member {} ('{}')", itemId, memberId, memberName);
+            } else {
+                log.info("Unassigned item {} (was assigned to member {})", itemId, current.assignedTo());
             }
             return inventoryRepository.findItemById(itemId);
         }
+        log.warn("Assign of item {} to member {} did not change any row", itemId, memberId);
         return Optional.empty();
     }
 
@@ -298,8 +325,10 @@ public class InventoryService {
      */
     public Optional<InventoryItem> markLost(int id) {
         if (inventoryRepository.markLost(id)) {
+            log.info("Marked item {} as lost", id);
             return inventoryRepository.findItemById(id);
         }
+        log.warn("Mark-lost of item {} did not change any row", id);
         return Optional.empty();
     }
 
@@ -311,8 +340,10 @@ public class InventoryService {
      */
     public Optional<InventoryItem> markFound(int id) {
         if (inventoryRepository.markFound(id)) {
+            log.info("Marked item {} as found", id);
             return inventoryRepository.findItemById(id);
         }
+        log.warn("Mark-found of item {} did not change any row", id);
         return Optional.empty();
     }
 
@@ -323,7 +354,10 @@ public class InventoryService {
      * @return {@code true} if deleted
      */
     public boolean deleteItem(int id) {
-        return inventoryRepository.deleteItem(id);
+        boolean deleted = inventoryRepository.deleteItem(id);
+        if (deleted) log.info("Deleted item {}", id);
+        else log.warn("Delete skipped: item {} not found", id);
+        return deleted;
     }
 
     // -- History --

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -13,9 +13,11 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type {InventoryDetail, InventoryItem, StationMember} from '@/api/types'
 import {inventory, stationMembers} from '@/api'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import SettingsSection from './editview/SettingsSection.vue'
 import SizesSection from './editview/SizesSection.vue'
 import ItemListSection from './editview/ItemListSection.vue'
+import FieldDefinitionsSection from './editview/FieldDefinitionsSection.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -26,28 +28,18 @@ const inventoryId = computed(() => Number(route.params.id))
 const detail = ref<InventoryDetail | null>(null)
 const items = ref<InventoryItem[]>([])
 const members = ref<StationMember[]>([])
-const loading = ref(true)
-const error = ref('')
 const success = ref('')
 
-async function loadData() {
-  loading.value = true
-  error.value = ''
-  try {
-    const [inv, allItems, allMembers] = await Promise.all([
-      inventory.getInventory(inventoryId.value),
-      inventory.listItems(inventoryId.value),
-      stationMembers.listMembers(),
-    ])
-    detail.value = inv
-    items.value = allItems
-    members.value = allMembers
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, error} = useAsyncLoader(async () => {
+  const [inv, allItems, allMembers] = await Promise.all([
+    inventory.getInventory(inventoryId.value),
+    inventory.listItems(inventoryId.value),
+    stationMembers.listMembers(),
+  ])
+  detail.value = inv
+  items.value = allItems
+  members.value = allMembers
+})
 
 async function onSettingsSaved() {
   success.value = t('inventory.edit.settingsSaved')
@@ -65,8 +57,6 @@ async function onItemsChanged() {
 function onError(message: string) {
   error.value = message
 }
-
-onMounted(loadData)
 </script>
 
 <template>
@@ -85,6 +75,8 @@ onMounted(loadData)
 
         <SizesSection v-if="detail.hasSizes" :inventory-id="inventoryId" :sizes="detail.sizes ?? []"
                       @updated="onSizesUpdated" @error="onError"/>
+
+        <FieldDefinitionsSection :inventory-id="inventoryId"/>
 
         <ItemListSection :detail="detail" :items="items" :members="members"
                          @items-changed="onItemsChanged" @error="onError"/>

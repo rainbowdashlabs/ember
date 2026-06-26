@@ -6,23 +6,23 @@
 <script lang="ts" setup>
 import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import NumberInput from '@/components/input/number/NumberInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
+import BasicFields from './fieldmodal/BasicFields.vue'
+import EnumOptionsField from './fieldmodal/EnumOptionsField.vue'
+import AgeFields from './fieldmodal/AgeFields.vue'
+import DefaultValueSection from './fieldmodal/DefaultValueSection.vue'
+import BehaviorToggles from './fieldmodal/BehaviorToggles.vue'
+import PositionField from './fieldmodal/PositionField.vue'
+import ModalActions from './fieldmodal/ModalActions.vue'
 import type {ProfileField} from '@/api/types'
 import {FieldTypes, parseFieldConfig} from '@/api/types'
 
 const {t} = useI18n()
 
+const modelValue = defineModel<boolean>({required: true})
+
 const props = defineProps<{
-  modelValue: boolean
   field: ProfileField | null
   scope: string
   groupId?: string
@@ -30,18 +30,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  'update:modelValue': [value: boolean]
   save: [data: { name: string; fieldType: string; config: string; position: number; scope: string; keepOnArchive: boolean }]
 }>()
-
-const fieldTypeOptions = [
-  {value: FieldTypes.TEXT, label: 'Text'},
-  {value: FieldTypes.NUMBER, label: 'Zahl'},
-  {value: FieldTypes.DATE, label: 'Datum'},
-  {value: FieldTypes.BOOLEAN, label: 'Ja/Nein'},
-  {value: FieldTypes.ENUM, label: 'Auswahl'},
-  {value: FieldTypes.AGE, label: 'Alter (berechnet)'},
-]
 
 const fieldName = ref('')
 const fieldType = ref<string>(FieldTypes.TEXT)
@@ -61,7 +51,7 @@ const fieldPosition = ref(0)
 const fieldKeepOnArchive = ref(false)
 const saving = ref(false)
 
-watch(() => props.modelValue, (open) => {
+watch(modelValue, (open) => {
   if (!open) return
   const f = props.field
   if (f) {
@@ -152,123 +142,31 @@ function submit() {
 </script>
 
 <template>
-  <Modal :model-value="modelValue" @update:model-value="emit('update:modelValue', $event)">
+  <Modal v-model="modelValue">
     <div class="space-y-4">
       <SectionHeader>{{ field ? t('membersConfig.editField') : t('membersConfig.addField') }}</SectionHeader>
-
-      <div class="space-y-1">
-        <FieldLabel>{{ t('membersConfig.fieldName') }}</FieldLabel>
-        <TextInput v-model="fieldName" :placeholder="t('membersConfig.fieldNamePlaceholder')"/>
-      </div>
-
-      <div class="space-y-1">
-        <FieldLabel>{{ t('membersConfig.fieldType') }}</FieldLabel>
-        <SelectInput v-model="fieldType">
-          <option v-for="ft in fieldTypeOptions.filter(o => o.value !== 'AGE' || scope === 'MEMBER')" :key="ft.value"
-                  :value="ft.value">{{ ft.label }}
-          </option>
-        </SelectInput>
-      </div>
-
-      <div v-if="fieldType === 'ENUM'" class="space-y-1">
-        <FieldLabel>{{ t('membersConfig.fieldEnumOptions') }}</FieldLabel>
-        <TextAreaInput v-model="fieldEnumOptions" :placeholder="t('membersConfig.fieldEnumOptionsPlaceholder')"/>
-        <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldEnumOptionsHint') }}</p>
-      </div>
-
-      <div v-if="fieldType === 'AGE'" class="space-y-3">
-        <div class="space-y-1">
-          <FieldLabel>{{ t('membersConfig.fieldAgeSource') }}</FieldLabel>
-          <SelectInput v-model="fieldAgeSource">
-            <option disabled value="">{{ t('membersConfig.fieldAgeSourcePlaceholder') }}</option>
-            <option v-for="f in dateFields" :key="f.id" :value="f.name">{{ f.name }}</option>
-          </SelectInput>
-          <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldAgeSourceHint') }}</p>
-        </div>
-        <div class="space-y-1">
-          <FieldLabel>{{ t('membersConfig.fieldAgeMode') }}</FieldLabel>
-          <SelectInput v-model="fieldAgeMode">
-            <option value="now">{{ t('membersConfig.fieldAgeModeNow') }}</option>
-            <option value="end_of_year">{{ t('membersConfig.fieldAgeModeEndOfYear') }}</option>
-          </SelectInput>
-        </div>
-      </div>
-
-      <div class="space-y-2">
-        <div class="flex items-center justify-between">
-          <label class="text-sm font-medium">{{ t('membersConfig.fieldDefault') }}</label>
-          <ToggleInput v-model="fieldHasDefault"/>
-        </div>
-        <template v-if="fieldHasDefault">
-          <template v-if="fieldType === 'BOOLEAN'">
-            <ToggleInput v-model="fieldDefaultBool"/>
-          </template>
-          <template v-else-if="fieldType === 'DATE'">
-            <ToggleInput v-model="fieldDefaultToday"/>
-            <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldDefaultDateHint') }}</p>
-          </template>
-          <template v-else-if="fieldType === 'NUMBER'">
-            <NumberInput v-model="fieldDefaultNumber"/>
-          </template>
-          <template v-else-if="fieldType === 'ENUM'">
-            <SelectInput v-model="fieldDefaultValue">
-              <option value="">{{ t('membersConfig.fieldDefaultPlaceholder') }}</option>
-              <option v-for="opt in fieldEnumOptions.split('\n').map(o => o.trim()).filter(o => o)" :key="opt"
-                      :value="opt">{{ opt }}
-              </option>
-            </SelectInput>
-          </template>
-          <template v-else>
-            <TextInput v-model="fieldDefaultValue" :placeholder="t('membersConfig.fieldDefaultPlaceholder')"/>
-          </template>
-        </template>
-      </div>
-
-      <div class="flex items-center justify-between">
-        <label class="text-sm font-medium" :class="{ 'opacity-50': fieldReadonly }">{{ t('membersConfig.fieldRequired') }}</label>
-        <ToggleInput v-model="fieldRequired" :disabled="fieldReadonly"/>
-      </div>
-
-      <div class="space-y-1">
-        <div class="flex items-center justify-between">
-          <label class="text-sm font-medium">{{ t('membersConfig.fieldReadonly') }}</label>
-          <ToggleInput v-model="fieldReadonly" @update:model-value="(v: boolean) => { if (v) fieldRequired = false }"/>
-        </div>
-        <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldReadonlyHint') }}</p>
-      </div>
-
-      <div class="space-y-1">
-        <div class="flex items-center justify-between">
-          <label class="text-sm font-medium">{{ t('membersConfig.fieldNotifyOnChange') }}</label>
-          <ToggleInput v-model="fieldNotifyOnChange"/>
-        </div>
-        <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldNotifyOnChangeHint') }}</p>
-      </div>
-
-      <div class="flex items-center justify-between">
-        <label class="text-sm font-medium">{{ t('membersConfig.fieldOverview') }}</label>
-        <ToggleInput v-model="fieldOverview"/>
-      </div>
-
-      <div class="flex items-center justify-between">
-        <div>
-          <label class="text-sm font-medium">{{ t('membersConfig.fieldKeepOnArchive') }}</label>
-          <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldKeepOnArchiveHint') }}</p>
-        </div>
-        <ToggleInput v-model="fieldKeepOnArchive"/>
-      </div>
-
-      <div class="space-y-1">
-        <FieldLabel>{{ t('membersConfig.fieldPosition') }}</FieldLabel>
-        <NumberInput v-model="fieldPosition"/>
-      </div>
-
-      <div class="flex justify-end gap-3">
-        <SecondaryButton @click="emit('update:modelValue', false)">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton :disabled="saving || !fieldName" @click="submit">
-          {{ saving ? t('common.loading') : t('common.save') }}
-        </PrimaryButton>
-      </div>
+      <BasicFields v-model:name="fieldName" v-model:field-type="fieldType" :scope="scope"/>
+      <EnumOptionsField v-if="fieldType === 'ENUM'" v-model="fieldEnumOptions"/>
+      <AgeFields v-if="fieldType === 'AGE'" v-model:source="fieldAgeSource" v-model:mode="fieldAgeMode"
+                 :date-fields="dateFields"/>
+      <DefaultValueSection
+        v-model:has-default="fieldHasDefault"
+        v-model:default-value="fieldDefaultValue"
+        v-model:default-bool="fieldDefaultBool"
+        v-model:default-today="fieldDefaultToday"
+        v-model:default-number="fieldDefaultNumber"
+        :field-type="fieldType"
+        :enum-options="fieldEnumOptions"
+      />
+      <BehaviorToggles
+        v-model:required="fieldRequired"
+        v-model:readonly="fieldReadonly"
+        v-model:notify-on-change="fieldNotifyOnChange"
+        v-model:overview="fieldOverview"
+        v-model:keep-on-archive="fieldKeepOnArchive"
+      />
+      <PositionField v-model="fieldPosition"/>
+      <ModalActions :saving="saving" :disabled="!fieldName" @cancel="modelValue = false" @submit="submit"/>
     </div>
   </Modal>
 </template>

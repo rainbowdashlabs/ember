@@ -19,6 +19,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import { useSession } from '@/composables/useSession'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import type { QuizCategory, QuizQuestionTypeName } from '@/api/types'
 import { QuizQuestionTypes } from '@/api/types'
 import { quiz, ai, util } from '@/api'
@@ -36,7 +37,6 @@ const { loaded } = useSession()
 
 const catalogId = computed(() => Number(route.params.id))
 const categories = ref<QuizCategory[]>([])
-const loading = ref(true)
 const catalogName = ref('')
 
 // CSV parsing
@@ -68,7 +68,6 @@ const importing = ref(false)
 const importProgress = ref(0)
 const importDone = ref(false)
 const importCount = ref(0)
-const error = ref('')
 
 const parsed = computed(() => rows.value.length > 0)
 
@@ -88,18 +87,11 @@ const splitPresets = [
   { label: '\u2423', value: ' ' },
 ]
 
-async function loadData() {
-  loading.value = true
-  try {
-    const detail = await quiz.getCatalog(catalogId.value)
-    catalogName.value = detail.name
-    categories.value = detail.categories
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const { loading, error, reload: loadData } = useAsyncLoader(async () => {
+  const detail = await quiz.getCatalog(catalogId.value)
+  catalogName.value = detail.name
+  categories.value = detail.categories
+}, { autoLoad: false })
 
 const parsing = ref(false)
 
@@ -345,9 +337,7 @@ function onSeparatorChange(value: string) {
   if (csvFile.value) parseCsvFromBackend()
 }
 
-watch(loaded, (isLoaded) => {
-  if (isLoaded) loadData()
-}, { immediate: true })
+watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 </script>
 
 <template>
@@ -378,22 +368,15 @@ watch(loaded, (isLoaded) => {
       <!-- Step 2: Column Mapping -->
       <CsvColumnMapping
         :headers="headers"
-        :question-col="questionCol"
-        :answer-col="answerCol"
-        :category-col="categoryCol"
-        :type-col="typeCol"
-        :points-col="pointsCol"
-        :answer-separator="answerSeparator"
-        :default-type="defaultType"
+        v-model:question-col="questionCol"
+        v-model:answer-col="answerCol"
+        v-model:category-col="categoryCol"
+        v-model:type-col="typeCol"
+        v-model:points-col="pointsCol"
+        v-model:answer-separator="answerSeparator"
+        v-model:default-type="defaultType"
         :type-options="typeOptions"
         :split-presets="splitPresets"
-        @update:question-col="questionCol = $event"
-        @update:answer-col="answerCol = $event"
-        @update:category-col="categoryCol = $event"
-        @update:type-col="typeCol = $event"
-        @update:points-col="pointsCol = $event"
-        @update:answer-separator="answerSeparator = $event"
-        @update:default-type="defaultType = $event"
         @resplit-all="resplitAll"
       />
 

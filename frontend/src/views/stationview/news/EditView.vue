@@ -4,28 +4,24 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import { marked } from 'marked'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import type { MemberGroup, UserTag } from '@/api/types'
 import type { PartnerResponse } from '@/api/federation'
 import { news, memberGroups, userTags, federation } from '@/api'
-import FederationSharePicker from '@/components/input/FederationSharePicker.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import ContentPanel from './editview/ContentPanel.vue'
+import PublicBlogPanel from './editview/PublicBlogPanel.vue'
+import RestrictionsPanel from './editview/RestrictionsPanel.vue'
+import FederationPanel from './editview/FederationPanel.vue'
 import { useSession } from '@/composables/useSession'
 
 const { t } = useI18n()
@@ -45,8 +41,6 @@ const selectedGroupIds = ref<number[]>([])
 const selectedTagIds = ref<number[]>([])
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
-const loading = ref(true)
-const error = ref('')
 
 const publicBlog = ref(false)
 
@@ -65,44 +59,37 @@ const contentHtml = computed(() => {
   }
 })
 
-async function loadData() {
-  loading.value = true
-  try {
-    const [groupList, tagList] = await Promise.all([
-      memberGroups.listGroups(),
-      userTags.listTags(),
-    ])
-    groups.value = groupList
-    tags.value = tagList
+const { loading, error, reload } = useAsyncLoader(async () => {
+  const [groupList, tagList] = await Promise.all([
+    memberGroups.listGroups(),
+    userTags.listTags(),
+  ])
+  groups.value = groupList
+  tags.value = tagList
+  if (canFederateNews()) {
+    partners.value = (await federation.listPartners()).filter(p => p.partner.status === 'ACTIVE')
+  }
+
+  if (newsId.value) {
+    const entry = await news.getNews(newsId.value)
+    title.value = entry.title
+    contentMarkdown.value = entry.contentMarkdown
+    selectedUserTypes.value = entry.userTypes ?? []
+    selectedGroupIds.value = entry.groupIds ?? []
+    selectedTagIds.value = entry.tagIds ?? []
+    publicBlog.value = entry.publicBlog ?? false
+
     if (canFederateNews()) {
-      partners.value = (await federation.listPartners()).filter(p => p.partner.status === 'ACTIVE')
-    }
-
-    if (newsId.value) {
-      const entry = await news.getNews(newsId.value)
-      title.value = entry.title
-      contentMarkdown.value = entry.contentMarkdown
-      selectedUserTypes.value = entry.userTypes ?? []
-      selectedGroupIds.value = entry.groupIds ?? []
-      selectedTagIds.value = entry.tagIds ?? []
-      publicBlog.value = entry.publicBlog ?? false
-
-      if (canFederateNews()) {
-        const fedShare = await news.getFederationShare(newsId.value)
-        federationShared.value = fedShare.shared
-        if (fedShare.shared) {
-          federationScope.value = fedShare.scope ?? 'ALL_PARTNERS'
-          federationVisibilityRole.value = fedShare.visibilityRole ?? 'MEMBER'
-          federationPartnerIds.value = fedShare.partnerIds ?? []
-        }
+      const fedShare = await news.getFederationShare(newsId.value)
+      federationShared.value = fedShare.shared
+      if (fedShare.shared) {
+        federationScope.value = fedShare.scope ?? 'ALL_PARTNERS'
+        federationVisibilityRole.value = fedShare.visibilityRole ?? 'MEMBER'
+        federationPartnerIds.value = fedShare.partnerIds ?? []
       }
     }
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
   }
-}
+}, {autoLoad: false})
 
 async function save() {
   if (!title.value.trim() || !contentMarkdown.value.trim()) return
@@ -143,13 +130,9 @@ async function save() {
   }
 }
 
-onMounted(() => {
-  if (loaded.value) loadData()
-})
-
 watch(loaded, (isLoaded) => {
-  if (isLoaded && loading.value) loadData()
-})
+  if (isLoaded) reload()
+}, {immediate: true})
 </script>
 
 <template>
@@ -166,68 +149,23 @@ watch(loaded, (isLoaded) => {
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
-        <NeutralContainer class="space-y-4">
-          <div class="space-y-1">
-            <FieldLabel>{{ t('news.titleField') }}</FieldLabel>
-            <TextInput v-model="title" :placeholder="t('news.titlePlaceholder')" />
-          </div>
-
-          <div class="space-y-1">
-            <FieldLabel>{{ t('news.content') }}</FieldLabel>
-            <MarkdownEditor v-model="contentMarkdown" :placeholder="t('news.contentPlaceholder')" />
-          </div>
-        </NeutralContainer>
-
-        <NeutralContainer class="space-y-3">
-          <div class="flex items-center justify-between">
-            <div>
-              <SubHeader>{{ t('news.publicBlog') }}</SubHeader>
-              <p class="text-xs text-(--text-muted)">{{ t('news.publicBlogHint') }}</p>
-            </div>
-            <ToggleInput v-model="publicBlog"/>
-          </div>
-        </NeutralContainer>
-
-        <NeutralContainer class="space-y-3">
-          <SubHeader>{{ t('news.restrictToGroups') }}</SubHeader>
-          <p class="text-xs text-(--text-muted)">{{ t('news.restrictHint') }}</p>
-          <RestrictionPicker
-              :groups="groups"
-              :tags="tags"
-              :selected-user-types="selectedUserTypes"
-              :selected-group-ids="selectedGroupIds"
-              :selected-tag-ids="selectedTagIds"
-              @update:selected-user-types="v => selectedUserTypes = v"
-              @update:selected-group-ids="v => selectedGroupIds = v"
-              @update:selected-tag-ids="v => selectedTagIds = v"
-          />
-        </NeutralContainer>
-
-        <NeutralContainer class="space-y-3">
-          <SubHeader>{{ t('news.federation') }}</SubHeader>
-          <p class="text-xs text-(--text-muted)">{{ t('news.federationShareHint') }}</p>
-          <FederationSharePicker
-              :shared="federationShared"
-              :scope="federationScope"
-              :partner-ids="federationPartnerIds"
-              :partners="partners"
-              :disabled="!canFederateNews()"
-              :no-permission-hint="t('news.federationNoPermission')"
-              @update:shared="federationShared = $event"
-              @update:scope="federationScope = $event"
-              @update:partner-ids="federationPartnerIds = $event"
-          />
-          <template v-if="federationShared && canFederateNews()">
-            <div class="space-y-1">
-              <FieldLabel>{{ t('news.federationVisibility') }}</FieldLabel>
-              <SelectInput v-model="federationVisibilityRole">
-                <option value="MEMBER">{{ t('news.visibilityAllMembers') }}</option>
-                <option value="TEAM">{{ t('news.visibilityTeam') }}</option>
-                <option value="MANAGER">{{ t('news.visibilityManager') }}</option>
-              </SelectInput>
-            </div>
-          </template>
-        </NeutralContainer>
+        <ContentPanel v-model:title="title" v-model:content-markdown="contentMarkdown"/>
+        <PublicBlogPanel v-model:public-blog="publicBlog"/>
+        <RestrictionsPanel
+            v-model:selected-user-types="selectedUserTypes"
+            v-model:selected-group-ids="selectedGroupIds"
+            v-model:selected-tag-ids="selectedTagIds"
+            :groups="groups"
+            :tags="tags"
+        />
+        <FederationPanel
+            v-model:shared="federationShared"
+            v-model:scope="federationScope"
+            v-model:partner-ids="federationPartnerIds"
+            v-model:visibility-role="federationVisibilityRole"
+            :partners="partners"
+            :can-federate="canFederateNews()"
+        />
 
         <div class="flex justify-end gap-3">
           <SecondaryButton @click="router.push({ name: 'news-list' })">{{ t('common.cancel') }}</SecondaryButton>

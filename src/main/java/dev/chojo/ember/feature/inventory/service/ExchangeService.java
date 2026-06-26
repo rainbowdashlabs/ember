@@ -18,6 +18,8 @@ import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +30,7 @@ import java.util.Optional;
  */
 @Singleton
 public class ExchangeService {
+    private static final Logger log = LoggerFactory.getLogger(ExchangeService.class);
     private final ExchangeRepository exchangeRepository;
     private final InventoryRepository inventoryRepository;
     private final InventoryService inventoryService;
@@ -74,6 +77,15 @@ public class ExchangeService {
                 inventoryRepository.findById(inventoryId).map(Inventory::name).orElse("?");
         eventBus.publish(new ExchangeRequested(
                 stationId, exchange.id(), memberId, memberName, inventoryId, inventoryName, reason));
+        log.info(
+                "Created exchange {} for member {} on inventory {} (itemId={}, oldSizeId={}, newSizeId={}, station={})",
+                exchange.id(),
+                memberId,
+                inventoryId,
+                itemId,
+                oldSizeId,
+                newSizeId,
+                stationId);
         return exchange;
     }
 
@@ -159,6 +171,14 @@ public class ExchangeService {
                 updated.inventoryId(),
                 inventoryName,
                 newStatus));
+        log.info(
+                "Updated exchange {} status {} -> {} by member {} (exchangedItemId={}, station={})",
+                id,
+                oldStatus,
+                newStatus,
+                changedBy,
+                exchangedItemId,
+                updated.stationId());
         return updated;
     }
 
@@ -179,7 +199,10 @@ public class ExchangeService {
      * @return {@code true} if the request was deleted
      */
     public boolean delete(int id) {
-        return exchangeRepository.delete(id);
+        boolean deleted = exchangeRepository.delete(id);
+        if (deleted) log.info("Deleted exchange request {}", id);
+        else log.warn("Delete of exchange request {} did not change any row", id);
+        return deleted;
     }
 
     public int countPendingByStation(int stationId) {

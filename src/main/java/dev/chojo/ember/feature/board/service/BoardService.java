@@ -22,6 +22,8 @@ import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +31,8 @@ import java.util.stream.Collectors;
 
 @Singleton
 public class BoardService {
+    private static final Logger log = LoggerFactory.getLogger(BoardService.class);
+
     private final BoardRepository repository;
     private final StationMemberService memberService;
     private final MemberGroupService groupService;
@@ -72,7 +76,9 @@ public class BoardService {
     }
 
     public Board create(int stationId, String name, String description, String shortKey) {
-        return repository.create(stationId, name, description, shortKey);
+        var board = repository.create(stationId, name, description, shortKey);
+        log.info("Created board {} ({}) for station {}", board.id(), shortKey, stationId);
+        return board;
     }
 
     public Board createWithPreset(int stationId, String name, String description, String shortKey, LanePreset preset) {
@@ -81,15 +87,33 @@ public class BoardService {
         for (int i = 0; i < laneNames.size(); i++) {
             repository.createLane(board.id(), laneNames.get(i), null, i);
         }
+        log.info(
+                "Created board {} ({}) for station {} with preset {} lanes",
+                board.id(),
+                shortKey,
+                stationId,
+                laneNames.size());
         return board;
     }
 
     public boolean update(int id, String name, String description, int hideDoneAfterDays) {
-        return repository.update(id, name, description, hideDoneAfterDays);
+        boolean updated = repository.update(id, name, description, hideDoneAfterDays);
+        if (updated) {
+            log.info("Updated board {}", id);
+        } else {
+            log.warn("Update for board {} affected zero rows", id);
+        }
+        return updated;
     }
 
     public boolean delete(int id) {
-        return repository.delete(id);
+        boolean deleted = repository.delete(id);
+        if (deleted) {
+            log.info("Deleted board {}", id);
+        } else {
+            log.warn("Delete for board {} affected zero rows", id);
+        }
+        return deleted;
     }
 
     // -- Lanes --
@@ -99,6 +123,7 @@ public class BoardService {
     }
 
     public void replaceLanes(int boardId, List<LaneData> lanes) {
+        log.info("Replacing lanes on board {} with {} incoming lanes", boardId, lanes.size());
         var board = repository.findById(boardId).orElseThrow();
         var existingLanes = repository.findLanes(boardId);
         var incomingIds = lanes.stream()
@@ -136,11 +161,14 @@ public class BoardService {
     }
 
     public BoardLane enableBacklog(int boardId) {
-        return repository.enableBacklog(boardId);
+        var lane = repository.enableBacklog(boardId);
+        log.info("Enabled backlog lane {} on board {}", lane.id(), boardId);
+        return lane;
     }
 
     public void disableBacklog(int boardId) {
         repository.disableBacklog(boardId);
+        log.info("Disabled backlog on board {}", boardId);
     }
 
     // -- Fields --
@@ -155,6 +183,7 @@ public class BoardService {
             var f = fields.get(i);
             repository.createField(boardId, f.name(), f.fieldType(), f.config(), i);
         }
+        log.info("Replaced fields on board {} with {} fields", boardId, fields.size());
     }
 
     // -- Labels --
@@ -164,15 +193,29 @@ public class BoardService {
     }
 
     public BoardLabel createLabel(int boardId, String name, String color) {
-        return repository.createLabel(boardId, name, color);
+        var label = repository.createLabel(boardId, name, color);
+        log.info("Created label {} on board {}", label.id(), boardId);
+        return label;
     }
 
     public boolean updateLabel(int id, String name, String color) {
-        return repository.updateLabel(id, name, color);
+        boolean updated = repository.updateLabel(id, name, color);
+        if (updated) {
+            log.info("Updated label {}", id);
+        } else {
+            log.warn("Update for label {} affected zero rows", id);
+        }
+        return updated;
     }
 
     public boolean deleteLabel(int id) {
-        return repository.deleteLabel(id);
+        boolean deleted = repository.deleteLabel(id);
+        if (deleted) {
+            log.info("Deleted label {}", id);
+        } else {
+            log.warn("Delete for label {} affected zero rows", id);
+        }
+        return deleted;
     }
 
     public List<BoardLabel> findLabelsForTicket(int ticketId) {
@@ -181,10 +224,17 @@ public class BoardService {
 
     public void addLabelToTicket(int ticketId, int labelId) {
         repository.addLabelToTicket(ticketId, labelId);
+        log.info("Added label {} to ticket {}", labelId, ticketId);
     }
 
     public boolean removeLabelFromTicket(int ticketId, int labelId) {
-        return repository.removeLabelFromTicket(ticketId, labelId);
+        boolean removed = repository.removeLabelFromTicket(ticketId, labelId);
+        if (removed) {
+            log.info("Removed label {} from ticket {}", labelId, ticketId);
+        } else {
+            log.warn("Remove of label {} from ticket {} affected zero rows", labelId, ticketId);
+        }
+        return removed;
     }
 
     public List<TicketLabelMapping> findAllTicketLabels(int boardId) {
@@ -238,11 +288,23 @@ public class BoardService {
     public void setViewAccess(
             int boardId, List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
         repository.setViewAccess(boardId, userTypes, groupIds, tagIds);
+        log.info(
+                "Updated view access for board {} ({} user types, {} groups, {} tags)",
+                boardId,
+                userTypes.size(),
+                groupIds.size(),
+                tagIds.size());
     }
 
     public void setEditAccess(
             int boardId, List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
         repository.setEditAccess(boardId, userTypes, groupIds, tagIds);
+        log.info(
+                "Updated edit access for board {} ({} user types, {} groups, {} tags)",
+                boardId,
+                userTypes.size(),
+                groupIds.size(),
+                tagIds.size());
     }
 
     private boolean matchesAccess(

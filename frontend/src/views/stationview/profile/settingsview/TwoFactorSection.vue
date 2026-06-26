@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted, ref} from 'vue'
+import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {TwoFactorStatus, TotpBeginResponse} from '@/api/twoFactor'
 import {getTwoFactorStatus, beginTotpSetup, confirmTotpSetup, removeTotp, regenerateBackupCodes} from '@/api/twoFactor'
@@ -21,14 +21,18 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import {useConfigPanel} from '@/composables/useConfigPanel'
 import WebAuthnSection from './twofactorsection/WebAuthnSection.vue'
 import TrustedDevicesSection from './twofactorsection/TrustedDevicesSection.vue'
 
 const {t} = useI18n()
 
-const status = ref<TwoFactorStatus | null>(null)
-const loading = ref(true)
-const error = ref('')
+const {config: status, loading, error, reload: loadStatus} = useConfigPanel<TwoFactorStatus | null>({
+  initial: null,
+  fetch: async () => {
+    try { return await getTwoFactorStatus() } catch { return null }
+  },
+})
 
 const setupStep = ref<'idle' | 'qr' | 'backup-display'>('idle')
 const setupData = ref<TotpBeginResponse | null>(null)
@@ -51,18 +55,6 @@ async function handleWebAuthnUpdated(codes: string[]) {
     showWebAuthnRecoveryCodes.value = true
   }
   await loadStatus()
-}
-
-onMounted(async () => {
-  await loadStatus()
-})
-
-async function loadStatus() {
-  loading.value = true
-  try {
-    status.value = await getTwoFactorStatus()
-  } catch { /* ignore */ }
-  loading.value = false
 }
 
 async function startSetup() {

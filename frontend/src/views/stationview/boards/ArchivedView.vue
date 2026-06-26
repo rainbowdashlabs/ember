@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -18,6 +18,7 @@ import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import { boards, stationMembers } from '@/api'
 import type { MemberCompletion } from '@/api/stationMembers'
 import type { Board, BoardTicket, BoardLabel } from '@/api/boards'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -30,30 +31,23 @@ const members = ref<MemberCompletion[]>([])
 const allLabels = ref<BoardLabel[]>([])
 const ticketLabelMap = ref<Map<number, number[]>>(new Map())
 const labelFilter = ref<Set<number>>(new Set())
-const loading = ref(true)
-const error = ref('')
 
-async function loadData() {
-    loading.value = true
-    try {
-        const [b, lns, tks, m, lb, tlm] = await Promise.all([
-            boards.getBoard(boardKey.value), boards.getLanes(boardKey.value), boards.listTickets(boardKey.value),
-            stationMembers.listCompletions(), boards.getLabels(boardKey.value), boards.getAllTicketLabels(boardKey.value),
-        ])
-        board.value = b; members.value = m; allLabels.value = lb
-        const map = new Map<number, number[]>()
-        for (const { ticketId, labelId } of tlm) { if (!map.has(ticketId)) map.set(ticketId, []); map.get(ticketId)!.push(labelId) }
-        ticketLabelMap.value = map
-        // Find last visible lane and filter for archived tickets
-        const visibleLanes = lns.filter(l => !b.backlogLaneId || l.id !== b.backlogLaneId)
-        const lastLane = visibleLanes.length > 0 ? visibleLanes[visibleLanes.length - 1] : null
-        if (lastLane && b.hideDoneAfterDays > 0) {
-            const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - b.hideDoneAfterDays)
-            tickets.value = tks.filter(tk => tk.laneId === lastLane.id && new Date(tk.laneEnteredAt) < cutoff)
-        }
-    } catch { error.value = t('common.error') }
-    finally { loading.value = false }
-}
+const {loading, error} = useAsyncLoader(async () => {
+    const [b, lns, tks, m, lb, tlm] = await Promise.all([
+        boards.getBoard(boardKey.value), boards.getLanes(boardKey.value), boards.listTickets(boardKey.value),
+        stationMembers.listCompletions(), boards.getLabels(boardKey.value), boards.getAllTicketLabels(boardKey.value),
+    ])
+    board.value = b; members.value = m; allLabels.value = lb
+    const map = new Map<number, number[]>()
+    for (const { ticketId, labelId } of tlm) { if (!map.has(ticketId)) map.set(ticketId, []); map.get(ticketId)!.push(labelId) }
+    ticketLabelMap.value = map
+    const visibleLanes = lns.filter(l => !b.backlogLaneId || l.id !== b.backlogLaneId)
+    const lastLane = visibleLanes.length > 0 ? visibleLanes[visibleLanes.length - 1] : null
+    if (lastLane && b.hideDoneAfterDays > 0) {
+        const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - b.hideDoneAfterDays)
+        tickets.value = tks.filter(tk => tk.laneId === lastLane.id && new Date(tk.laneEnteredAt) < cutoff)
+    }
+})
 
 const filteredTickets = computed(() => {
     if (labelFilter.value.size === 0) return tickets.value
@@ -64,9 +58,6 @@ function labelsForTicket(ticketId: number): BoardLabel[] { return allLabels.valu
 function toggleLabelFilter(id: number) { const n = new Set(labelFilter.value); if (n.has(id)) n.delete(id); else n.add(id); labelFilter.value = n }
 function priorityIcon(p: string) { return { HIGHEST: ['fas','angles-up'], HIGH: ['fas','angle-up'], MEDIUM: ['fas','equals'], LOW: ['fas','angle-down'], LOWEST: ['fas','angles-down'] }[p] ?? ['fas','minus'] }
 function priorityColor(p: string) { return { HIGHEST: 'text-red-500', HIGH: 'text-orange-500', MEDIUM: 'text-yellow-500', LOW: 'text-blue-400', LOWEST: 'text-gray-400' }[p] ?? 'text-gray-400' }
-
-
-onMounted(loadData)
 </script>
 
 <template>

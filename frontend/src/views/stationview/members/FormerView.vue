@@ -4,34 +4,27 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import Modal from '@/components/feedback/Modal.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import FormerMembersTable from './formerview/FormerMembersTable.vue'
+import ReactivateModal from './formerview/ReactivateModal.vue'
 import type { StationMember } from '@/api/types'
 import { stationMembers } from '@/api'
-import Th from '@/components/table/Th.vue'
-import Td from '@/components/table/Td.vue'
-import THead from '@/components/table/THead.vue'
-import TRow from '@/components/table/TRow.vue'
+import { useConfigPanel } from '@/composables/useConfigPanel'
+import { useConfirmAction } from '@/composables/useConfirmAction'
 
 const { t } = useI18n()
 
-const members = ref<StationMember[]>([])
-const loading = ref(true)
-const error = ref('')
+const { config: members, loading, error, reload: loadData } = useConfigPanel<StationMember[]>({
+  initial: [],
+  fetch: () => stationMembers.listFormerMembers(),
+})
 const success = ref('')
-
-const showReactivateModal = ref(false)
-const reactivateTarget = ref<StationMember | null>(null)
-const reactivating = ref(false)
 
 function memberDisplayName(m: StationMember): string {
   return m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`
@@ -42,40 +35,19 @@ function formatDate(dateStr?: string | null): string {
   return new Date(dateStr).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-async function loadData() {
-  loading.value = true
-  error.value = ''
-  try {
-    members.value = await stationMembers.listFormerMembers()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
-
-function openReactivate(member: StationMember) {
-  reactivateTarget.value = member
-  showReactivateModal.value = true
-}
-
-async function confirmReactivate() {
-  if (!reactivateTarget.value) return
-  reactivating.value = true
-  error.value = ''
-  try {
-    await stationMembers.reactivateMember(reactivateTarget.value.id)
-    showReactivateModal.value = false
+const {
+  show: showReactivateModal,
+  target: reactivateTarget,
+  request: openReactivate,
+  confirm: confirmReactivate,
+} = useConfirmAction<StationMember>({
+  onConfirm: m => stationMembers.reactivateMember(m.id),
+  onSuccess: async () => {
     success.value = t('formerMembers.reactivated')
     await loadData()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    reactivating.value = false
-  }
-}
-
-onMounted(loadData)
+  },
+  error,
+})
 </script>
 
 <template>
@@ -90,50 +62,24 @@ onMounted(loadData)
       <template v-if="!loading">
         <EmptyState v-if="members.length === 0">{{ t('formerMembers.empty') }}</EmptyState>
 
-        <NeutralContainer v-if="members.length > 0" class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <THead>
-                <Th>{{ t('membersList.colName') }}</Th>
-                <Th>{{ t('membersList.colEmail') }}</Th>
-                <Th>{{ t('formerMembers.colFormerAt') }}</Th>
-                <th class="px-3 py-2"></th>
-              </THead>
-            </thead>
-            <tbody>
-              <TRow v-for="member in members" :key="member.id">
-                <Td class="font-medium text-(--text-muted)">{{ memberDisplayName(member) }}</Td>
-                <Td muted>{{ member.email ?? '' }}</Td>
-                <Td muted>{{ formatDate(member.formerAt) }}</Td>
-                <Td align="right">
-                  <PrimaryButton :icon="['fas', 'user-check']" @click="openReactivate(member)">
-                    {{ t('formerMembers.reactivate') }}
-                  </PrimaryButton>
-                </Td>
-              </TRow>
-            </tbody>
-          </table>
-        </NeutralContainer>
+        <FormerMembersTable
+          v-if="members.length > 0"
+          :members="members"
+          :member-display-name="memberDisplayName"
+          :format-date="formatDate"
+          @reactivate="openReactivate"
+        />
 
         <p v-if="members.length > 0" class="text-xs text-(--text-muted)">
           {{ members.length }} {{ t('formerMembers.count') }}
         </p>
       </template>
 
-      <Modal v-model="showReactivateModal">
-        <div class="space-y-4">
-          <SectionHeader>{{ t('formerMembers.reactivateTitle') }}</SectionHeader>
-          <p class="text-sm">
-            {{ t('formerMembers.reactivateConfirm', { name: reactivateTarget ? memberDisplayName(reactivateTarget) : '' }) }}
-          </p>
-          <div class="flex justify-end gap-2">
-            <SecondaryButton @click="showReactivateModal = false">{{ t('common.cancel') }}</SecondaryButton>
-            <PrimaryButton :disabled="reactivating" @click="confirmReactivate">
-              {{ reactivating ? t('common.loading') : t('formerMembers.reactivate') }}
-            </PrimaryButton>
-          </div>
-        </div>
-      </Modal>
+      <ReactivateModal
+        v-model="showReactivateModal"
+        :target-name="reactivateTarget ? memberDisplayName(reactivateTarget) : ''"
+        @confirm="confirmReactivate"
+      />
     </div>
   </ViewContent>
 </template>

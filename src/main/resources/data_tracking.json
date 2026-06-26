@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:802bd3a1f57f1ac7eefa7826363d6ce06f91f90aa565bdcf8214fae3201c5c49",
-  "generatedAt" : "2026-06-23T12:24:03Z",
+  "schemaHash" : "sha256:f0514cf8bfe2bb5d075643b7c889dea00ebf359834a4a6c68c74803009c4b4ec",
+  "generatedAt" : "2026-06-25T13:45:05Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -6451,7 +6451,7 @@
     "inventory_check" : {
       "feature" : "inventory",
       "scope" : "STATION",
-      "tableHash" : "sha256:37a12381e827e4013b0172537e6e69737a247e3413636246402cd35e29d4854d",
+      "tableHash" : "sha256:1dfe5e8c52518563b9f8885a0a450592da9e9ccf06c83be4d9c11205d08914db",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -6467,7 +6467,7 @@
       }, {
         "name" : "member_id",
         "type" : "int4",
-        "nullable" : false,
+        "nullable" : true,
         "verified" : true,
         "description" : "Member being checked."
       }, {
@@ -6482,10 +6482,33 @@
         "nullable" : false,
         "verified" : true,
         "description" : "When the check was performed."
+      }, {
+        "name" : "scope",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Discriminator: MEMBER (default, legacy rows) means the check covers a single member's assigned items; CONTAINER means the check covers the items physically held inside a container."
+      }, {
+        "name" : "container_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Target container for a CONTAINER-scope check. NULL on MEMBER-scope checks."
+      }, {
+        "name" : "deep",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "On a CONTAINER-scope check, whether the walk includes all descendant containers (TRUE) or only the direct container (FALSE)."
       } ],
       "foreignKeys" : [ {
         "column" : "checked_by",
         "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "container_id",
+        "refTable" : "inventory_container",
         "refColumn" : "id",
         "onDelete" : "CASCADE"
       }, {
@@ -6654,10 +6677,283 @@
       },
       "description" : "Locks to prevent concurrent equipment checks on the same member."
     },
+    "inventory_container" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:2aa1d87538729aaeadb2bf64e92108415ae783549362a924de2a9affa3a3091d",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "parent_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Optional parent container. ON DELETE SET NULL on purpose: deleting a parent promotes its children to roots rather than cascading the delete."
+      }, {
+        "name" : "internal_id",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Scannable internal id, drawn from the same per-station namespace as inventory_item.internal_id. NULL is allowed for containers the operator has not labelled yet."
+      }, {
+        "name" : "name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "kind_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true
+      }, {
+        "name" : "description",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "created_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "created_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true
+      } ],
+      "foreignKeys" : [ {
+        "column" : "created_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "kind_id",
+        "refTable" : "inventory_container_kind",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "parent_id",
+        "refTable" : "inventory_container",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED"
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED"
+      },
+      "description" : "Station-scoped storage location. Every room, drawer, shelf, and box is one row; parent_id forms a forest. Cycles are prevented at the service layer."
+    },
+    "inventory_container_history" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:286f6e8b19175cd64669be215c0b4584c84b0062a5e21da21ab39c974a7d1af8",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "container_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true
+      }, {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "event_kind",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "event_ts",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "actor_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true
+      }, {
+        "name" : "details",
+        "type" : "jsonb",
+        "nullable" : false,
+        "verified" : true
+      } ],
+      "foreignKeys" : [ {
+        "column" : "actor_id",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "container_id",
+        "refTable" : "inventory_container",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED"
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED"
+      },
+      "description" : "Append-only ledger of container lifecycle events (CREATED, RENAMED, MOVED, DELETED). container_id uses ON DELETE SET NULL so a deletion event survives the deletion of its subject."
+    },
+    "inventory_container_kind" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:8e18260e4c24a78bbed087d518e701f4ab39120b205a2b45a3b99b81ef5ceae2",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "key",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "label",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "icon",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "sort_order",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "enabled",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true
+      } ],
+      "foreignKeys" : [ {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED"
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED"
+      },
+      "description" : "Station-defined container kinds (room, drawer, box, etc.). Seven defaults are seeded on first use; stations can rename, disable, or add custom kinds. Kinds are a display hint only — picking any kind on any container is allowed."
+    },
+    "inventory_field_definition" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:f0f9f8be7bd3086a04165b99d5eaa1a7b17136b1de4ba493043be37c45671eaa",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "inventory_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "key",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Stable machine identifier used in API responses and CSV exports. Renaming the key is not a UI action — the operator deletes and re-adds."
+      }, {
+        "name" : "label",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "field_type",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "One of DATE, ENUM, TEXT, NUMBER, BOOLEAN."
+      }, {
+        "name" : "required",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "sort_order",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "config",
+        "type" : "jsonb",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Typed config record per field_type (FieldConfig.Date, FieldConfig.Enum, FieldConfig.Text, FieldConfig.Number, FieldConfig.Boolean), parsed on read."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "inventory_id",
+        "refTable" : "inventory",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED"
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED"
+      },
+      "description" : "Per-inventory custom field schema. Items in the inventory carry one JSONB sub-object keyed by field key inside inventory_item.metadata.fields."
+    },
     "inventory_item" : {
       "feature" : "inventory",
       "scope" : "STATION",
-      "tableHash" : "sha256:1d89c072c4ba8c47fab2ce121d92ef7e35ff3840ff90a81379380c8d13122377",
+      "tableHash" : "sha256:6d56720e904d63cf3e1aebf87247c8004b2cce2b7eb0b1cf67913506d4ea8b63",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -6712,10 +7008,21 @@
         "nullable" : true,
         "verified" : true,
         "description" : "Where the item came from (e.g. purchased, donated)."
+      }, {
+        "name" : "container_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Optional reference to the container that physically holds this item. NULL means unlocated. ON DELETE SET NULL keeps the item even if the container is deleted."
       } ],
       "foreignKeys" : [ {
         "column" : "assigned_to",
         "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "container_id",
+        "refTable" : "inventory_container",
         "refColumn" : "id",
         "onDelete" : "SET NULL"
       }, {

@@ -21,6 +21,7 @@ import {RegistrationStatus, StationPermission} from '@/api/types'
 import type {StationEvent} from '@/api/types'
 import type {EventRegistrationEntry, MemberRegistrationStats} from '@/api/events'
 import {useSession} from '@/composables/useSession'
+import {formatDate} from '@/util/format'
 
 interface StatusGroup { status: string; entries: EventRegistrationEntry[] }
 
@@ -63,10 +64,6 @@ function statusLabel(status: string): string {
   return status
 }
 
-function formatDate(iso: string): string {
-  if (!iso) return ''
-  return new Date(iso).toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric'})
-}
 </script>
 
 <template>

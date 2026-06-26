@@ -31,14 +31,11 @@ import EditorImageDialog from './markdowneditor/EditorImageDialog.vue'
 import EditorVideoDialog from './markdowneditor/EditorVideoDialog.vue'
 import EditorBubbleMenu from './markdowneditor/EditorBubbleMenu.vue'
 
+const modelValue = defineModel<string>({required: true})
+
 const props = defineProps<{
-  modelValue: string
   placeholder?: string
   fileId?: number
-}>()
-
-const emit = defineEmits<{
-  'update:modelValue': [value: string]
 }>()
 
 // --- Turndown (HTML → Markdown) ---
@@ -165,7 +162,7 @@ const editor = useEditor({
   onTransaction: ({ editor: ed }) => { updateState(ed) },
   onUpdate: ({ editor: ed }) => {
     if (isUpdatingFromProp.value) return
-    emit('update:modelValue', turndown.turndown(ed.getHTML()))
+    modelValue.value = turndown.turndown(ed.getHTML())
   },
 })
 
@@ -187,9 +184,9 @@ async function setEditorContent(md: string) {
   isUpdatingFromProp.value = false
 }
 
-onMounted(async () => { await nextTick(); if (props.modelValue) await setEditorContent(props.modelValue) })
+onMounted(async () => { await nextTick(); if (modelValue.value) await setEditorContent(modelValue.value) })
 
-watch(() => props.modelValue, async (md, oldMd) => {
+watch(modelValue, async (md, oldMd) => {
   if (!editor.value || md === oldMd) return
   const cur = turndown.turndown(editor.value.getHTML())
   if (cur !== md) await setEditorContent(md)

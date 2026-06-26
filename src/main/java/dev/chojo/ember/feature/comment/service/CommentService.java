@@ -18,6 +18,8 @@ import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -31,6 +33,7 @@ import java.util.regex.Pattern;
  */
 @Singleton
 public class CommentService {
+    private static final Logger log = LoggerFactory.getLogger(CommentService.class);
     private static final Pattern MENTION_PATTERN_LEGACY = Pattern.compile("@\\[(\\d+):([^\\]]+)]");
     private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[([^/]+)/([^:]+):([^\\]]+)]");
     private static final Pattern BULK_MENTION_PATTERN =
@@ -104,6 +107,7 @@ public class CommentService {
             String entityTitle,
             LocalDate eventDate) {
         var comment = commentRepository.create(eventId, parentId, author, content, eventDate);
+        log.info("Created event comment {} on event {} (station {})", comment.id(), eventId, stationId);
 
         // Resolve author to local member ID (null if federated / not on this station)
         Integer authorMemberId = resolveLocalMemberId(stationId, author);
@@ -168,7 +172,13 @@ public class CommentService {
      * @return {@code true} if the comment was updated
      */
     public boolean update(int id, String content) {
-        return commentRepository.update(id, content);
+        boolean updated = commentRepository.update(id, content);
+        if (updated) {
+            log.info("Updated event comment {}", id);
+        } else {
+            log.warn("Update for event comment {} affected zero rows", id);
+        }
+        return updated;
     }
 
     /**
@@ -178,7 +188,13 @@ public class CommentService {
      * @return {@code true} if the comment was deleted
      */
     public boolean delete(int id) {
-        return commentRepository.delete(id);
+        boolean deleted = commentRepository.delete(id);
+        if (deleted) {
+            log.info("Deleted event comment {}", id);
+        } else {
+            log.warn("Delete for event comment {} affected zero rows", id);
+        }
+        return deleted;
     }
 
     /**

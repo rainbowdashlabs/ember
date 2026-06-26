@@ -4,19 +4,19 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
+import {computed, ref, watch} from 'vue'
+import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import SaveButton from '@/components/button/SaveButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import ScanButton from '@/components/scanner/ScanButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
-import type { InventoryItem, InventorySize } from '@/api/types'
-import { inventory } from '@/api'
+import type {InventoryItem, InventorySize} from '@/api/types'
+import {inventory, inventoryContainers, inventoryFields} from '@/api'
+import EditItemFields from './edititemmodal/EditItemFields.vue'
+import EditItemCustomFields from './edititemmodal/EditItemCustomFields.vue'
+import EditItemFooter from './edititemmodal/EditItemFooter.vue'
+import {parseItemMetadata, buildItemMetadata} from './itemMetadata'
+import type {InventoryContainer} from '@/api/inventoryContainers'
+import type {InventoryFieldDefinition} from '@/api/inventoryFields'
 
 const props = defineProps<{
   item: InventoryItem | null
@@ -24,25 +24,55 @@ const props = defineProps<{
   sizes: InventorySize[]
 }>()
 
-const show = defineModel<boolean>({ default: false })
+const show = defineModel<boolean>({default: false})
 
 const emit = defineEmits<{
   saved: []
 }>()
 
-const { t } = useI18n()
+const {t} = useI18n()
 
 const itemName = ref('')
 const internalId = ref('')
 const sizeId = ref('')
 const error = ref('')
+const containerId = ref<number | null>(null)
+const fieldDefs = ref<InventoryFieldDefinition[]>([])
+const fieldValues = ref<Record<string, any>>({})
+const containers = ref<InventoryContainer[]>([])
+const owned = ref(false)
 
-watch(() => props.item, (item) => {
-  if (item) {
-    itemName.value = item.name ?? ''
-    internalId.value = item.internalId ?? ''
-    sizeId.value = item.sizeId != null ? String(item.sizeId) : ''
+const sortedContainers = computed(() => [...containers.value].sort((a, b) => a.name.localeCompare(b.name)))
+
+async function loadForInventory(inventoryId: number) {
+  try {
+    const [defs, allContainers] = await Promise.all([
+      inventoryFields.listFields(inventoryId),
+      inventoryContainers.listContainers(),
+    ])
+    fieldDefs.value = defs
+    containers.value = allContainers
+  } catch {
+    fieldDefs.value = []
+    containers.value = []
   }
+}
+
+watch(() => props.item, async (item) => {
+  if (!item) return
+  itemName.value = item.name ?? ''
+  internalId.value = item.internalId ?? ''
+  sizeId.value = item.sizeId != null ? String(item.sizeId) : ''
+  containerId.value = item.containerId ?? null
+  const parsed = parseItemMetadata(item.metadata)
+  owned.value = parsed.owned
+  await loadForInventory(item.inventoryId)
+  const values: Record<string, any> = {}
+  for (const def of fieldDefs.value) {
+    const stored = parsed.fields[def.key]
+    values[def.key] = stored?.value ?? null
+  }
+  fieldValues.value = values
 })
 
 async function save() {
@@ -56,7 +86,11 @@ async function save() {
       name: itemName.value,
       internalId: normalisedInternalId || undefined,
       sizeId: sizeId.value ? Number(sizeId.value) : undefined,
+      metadata: buildItemMetadata(fieldDefs.value, fieldValues.value, owned.value),
     })
+    if (containerId.value !== (props.item.containerId ?? null)) {
+      await inventoryContainers.setItemContainer(props.item.id, containerId.value)
+    }
     show.value = false
     emit('saved')
   } catch (e) {
@@ -70,28 +104,21 @@ async function save() {
   <Modal v-model="show">
     <div class="space-y-4">
       <SectionHeader>{{ t('inventory.edit.editItem') }}</SectionHeader>
-      <div class="space-y-1">
-        <FieldLabel>{{ t('inventory.edit.itemName') }}</FieldLabel>
-        <TextInput v-model="itemName" :placeholder="t('inventory.edit.itemNamePlaceholder')" />
-      </div>
-      <div class="space-y-1">
-        <FieldLabel>{{ t('inventory.edit.itemInternalId') }}</FieldLabel>
-        <div class="flex items-center gap-2">
-          <TextInput v-model="internalId" class="flex-1" :placeholder="t('inventory.edit.itemInternalIdPlaceholder')" />
-          <ScanButton @decoded="internalId = $event"/>
-        </div>
-      </div>
-      <div v-if="props.hasSizes" class="space-y-1">
-        <FieldLabel>{{ t('inventory.edit.itemSize') }}</FieldLabel>
-        <SelectInput v-model="sizeId">
-          <option value="">&#x2013;</option>
-          <option v-for="size in props.sizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
-        </SelectInput>
-      </div>
-      <div class="flex justify-end gap-3">
-        <SecondaryButton @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
-        <SaveButton :disabled="!itemName.trim()" :action="save"/>
-      </div>
+      <EditItemFields
+          v-model:itemName="itemName"
+          v-model:internalId="internalId"
+          v-model:sizeId="sizeId"
+          v-model:containerId="containerId"
+          :hasSizes="props.hasSizes"
+          :sizes="props.sizes"
+          :containers="sortedContainers"
+      />
+      <EditItemCustomFields :defs="fieldDefs" v-model="fieldValues"/>
+      <EditItemFooter
+          :saveDisabled="!itemName.trim()"
+          :save="save"
+          @cancel="show = false"
+      />
     </div>
   </Modal>
 </template>

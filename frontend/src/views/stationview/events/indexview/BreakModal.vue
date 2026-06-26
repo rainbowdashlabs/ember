@@ -17,13 +17,13 @@ import type {EventBreak} from '@/api/types'
 
 const {t} = useI18n()
 
+const modelValue = defineModel<boolean>({required: true})
+
 const props = defineProps<{
-  modelValue: boolean
   eventBreak: EventBreak | null
 }>()
 
 const emit = defineEmits<{
-  'update:modelValue': [value: boolean]
   save: [data: { name: string; startDate: string; endDate: string }]
 }>()
 
@@ -32,7 +32,7 @@ const breakStartDate = ref('')
 const breakEndDate = ref('')
 const saving = ref(false)
 
-watch(() => props.modelValue, (open) => {
+watch(modelValue, (open) => {
   if (!open) return
   const br = props.eventBreak
   if (br) {
@@ -54,7 +54,7 @@ function submit() {
 </script>
 
 <template>
-  <Modal :model-value="modelValue" @update:model-value="emit('update:modelValue', $event)">
+  <Modal v-model="modelValue">
     <div class="space-y-4">
       <SectionHeader>{{ eventBreak ? t('events.editBreak') : t('events.addBreak') }}</SectionHeader>
 
@@ -75,7 +75,7 @@ function submit() {
       </div>
 
       <div class="flex justify-end gap-3">
-        <SecondaryButton @click="emit('update:modelValue', false)">{{ t('common.cancel') }}</SecondaryButton>
+        <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="saving || !breakName || !breakStartDate || !breakEndDate" @click="submit">
           {{ saving ? t('common.loading') : t('common.save') }}
         </PrimaryButton>

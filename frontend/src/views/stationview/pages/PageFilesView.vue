@@ -7,23 +7,7 @@
 import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import FileUploadButton from '@/components/button/FileUploadButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import BaseButton from '@/components/button/BaseButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
-import PageFilesSidebar from './pagefilesview/PageFilesSidebar.vue'
-import PageFilesGrid from './pagefilesview/PageFilesGrid.vue'
-import PageFilesPagination from './pagefilesview/PageFilesPagination.vue'
-import PageFilePreviewModal from './pagefilesview/PageFilePreviewModal.vue'
-import PageFilesBulkModals from './pagefilesview/PageFilesBulkModals.vue'
-import PageFileEditModal from './pagefilesview/PageFileEditModal.vue'
-import PageFilesFolderTagModals from './pagefilesview/PageFilesFolderTagModals.vue'
+import FilesView from './pagefilesview/FilesView.vue'
 import {useSession} from '@/composables/useSession'
 import {
     assignPageTag,
@@ -374,107 +358,63 @@ async function runBulkDelete() {
 
 <template>
     <ViewContent>
-        <div class="space-y-4">
-        <SectionHeader>{{ t('stationPages.editor.filesTitle') }}</SectionHeader>
-
-        <div class="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4">
-            <PageFilesSidebar :folder-tree="folderTree" :tags="tags"
-                              :active-folder="activeFolder" :active-tag-filter="activeTagFilter"
-                              @update:active-folder="(id: number | null) => activeFolder = id"
-                              @update:active-tag-filter="(id: number | null) => activeTagFilter = id"
-                              @new-folder="openFolderModal(null)"
-                              @edit-folder="openFolderEdit" @remove-folder="removeFolder"
-                              @new-tag="openTagModal"
-                              @edit-tag="openTagEdit" @remove-tag="removeTag"/>
-
-            <div class="space-y-4">
-                <NeutralContainer class="flex flex-wrap items-center gap-2">
-                    <TextInput v-model="search" :placeholder="t('stationPages.editor.browseFilesSearch')"
-                               class="flex-1 min-w-[200px]"/>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <IconButton :icon="['fas', multiSelect ? 'square-check' : 'square']"
-                                    :label="multiSelect ? t('stationPages.editor.multiSelectDisable') : t('stationPages.editor.multiSelectEnable')"
-                                    :class="multiSelect ? '!text-primary' : ''"
-                                    @click="toggleMultiSelect"/>
-                        <FileUploadButton :disabled="uploading" multiple
-                                          @select="(f: File) => uploadMany([f])"
-                                          @select-many="(fs: File[]) => uploadMany(fs)">
-                            {{ uploading ? t('common.loading') : t('stationPages.editor.uploadNewFile') }}
-                        </FileUploadButton>
-                        <ErrorButton :disabled="pruning || unusedCount === 0" @click="runPrune">
-                            <font-awesome-icon :icon="['fas', 'broom']" class="mr-1"/>
-                            {{ pruning ? t('common.loading') : t('stationPages.editor.pruneUnused', {count: unusedCount}) }}
-                        </ErrorButton>
-                    </div>
-                </NeutralContainer>
-
-                <nav class="flex items-center gap-1 text-sm flex-wrap">
-                    <BaseButton compact class="!font-normal hover:bg-(--bg-accent)"
-                                :class="activeFolder === null ? '!text-primary !font-medium' : '!text-(--text-muted)'"
-                                @click="activeFolder = null">
-                        <font-awesome-icon :icon="['fas', 'house']" class="mr-1"/>
-                        {{ t('stationPages.editor.root') }}
-                    </BaseButton>
-                    <template v-for="(b, i) in breadcrumbs" :key="b.id">
-                        <span class="text-(--text-muted)">/</span>
-                        <BaseButton compact class="!font-normal hover:bg-(--bg-accent)"
-                                    :class="i === breadcrumbs.length - 1 ? '!text-primary !font-medium' : '!text-(--text-muted)'"
-                                    @click="activeFolder = b.id">{{ b.name }}</BaseButton>
-                    </template>
-                </nav>
-
-                <NeutralContainer v-if="selectedIds.length > 0" class="flex flex-wrap items-center gap-2 !py-2">
-                    <span class="text-sm">{{ t('stationPages.editor.selectedCount', {count: selectedIds.length}) }}</span>
-                    <SecondaryButton @click="openBulkMove">
-                        <font-awesome-icon :icon="['fas', 'arrow-right-arrow-left']" class="mr-1"/>
-                        {{ t('stationPages.editor.moveSelected') }}
-                    </SecondaryButton>
-                    <ErrorButton @click="bulkDeleteOpen = true">
-                        <font-awesome-icon :icon="['fas', 'trash']" class="mr-1"/>
-                        {{ t('stationPages.editor.deleteSelected') }}
-                    </ErrorButton>
-                    <SecondaryButton @click="clearSelection">{{ t('stationPages.editor.clearSelection') }}</SecondaryButton>
-                </NeutralContainer>
-
-                <Alert v-if="uploadError" variant="error">{{ uploadError }}</Alert>
-
-                <div v-if="loading" class="flex justify-center py-8"><Spinner size="lg"/></div>
-                <p v-else-if="visibleFolders.length === 0 && filtered.length === 0" class="text-sm text-(--text-muted) text-center py-8">
-                    {{ t('stationPages.editor.browseFilesEmpty') }}
-                </p>
-                <template v-else>
-                    <PageFilesGrid :folders="visibleFolders" :files="pagedFiles" :tags="tags"
-                                   :selected-ids="selectedIds" :station-uid="stationUid"
-                                   :multi-select="multiSelect"
-                                   @open-folder="(id: number) => activeFolder = id"
-                                   @preview-file="openPreview"
-                                   @edit-file="startEdit"
-                                   @delete-file="deleteOne"
-                                   @toggle-select="toggleSelected"
-                                   @toggle-tag="toggleFileTag"/>
-
-                    <PageFilesPagination :current-page="currentPage" :total-pages="totalPages"
-                                        :page-size="pageSize" :page-size-options="PAGE_SIZE_OPTIONS"
-                                        @update:current-page="(v: number) => currentPage = v"
-                                        @update:page-size="(v: number) => pageSize = v"/>
-                </template>
-            </div>
-        </div>
-
-        <PageFileEditModal v-model="editing" @save="saveEdit"/>
-
-        <PageFilesFolderTagModals v-model:folder-open="folderModalOpen" v-model:folder-name="folderName"
-                                  v-model:folder-parent="folderParent" v-model:tag-open="tagModalOpen"
-                                  v-model:tag-name="tagName" v-model:tag-color="tagColor"
-                                  :folders="folders" :editing-folder="editingFolder" :editing-tag="editingTag"
-                                  @save-folder="saveFolder" @save-tag="saveTag"/>
-
-        <PageFilePreviewModal :file="previewFile" :station-uid="stationUid" @close="previewFile = null"/>
-
-        <PageFilesBulkModals v-model:move-open="bulkMoveOpen" v-model:delete-open="bulkDeleteOpen"
-                            v-model:move-target="bulkMoveTarget"
-                            :selected-count="selectedIds.length" :folders="folders"
-                            @move="runBulkMove" @delete="runBulkDelete"/>
-        </div>
+        <FilesView
+            v-model:search="search"
+            v-model:active-folder="activeFolder"
+            v-model:active-tag-filter="activeTagFilter"
+            v-model:editing="editing"
+            v-model:folder-open="folderModalOpen"
+            v-model:folder-name="folderName"
+            v-model:folder-parent="folderParent"
+            v-model:tag-open="tagModalOpen"
+            v-model:tag-name="tagName"
+            v-model:tag-color="tagColor"
+            v-model:move-open="bulkMoveOpen"
+            v-model:delete-open="bulkDeleteOpen"
+            v-model:move-target="bulkMoveTarget"
+            v-model:preview-file="previewFile"
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :folder-tree="folderTree"
+            :tags="tags"
+            :loading="loading"
+            :uploading="uploading"
+            :upload-error="uploadError"
+            :pruning="pruning"
+            :multi-select="multiSelect"
+            :unused-count="unusedCount"
+            :selected-ids="selectedIds"
+            :breadcrumbs="breadcrumbs"
+            :visible-folders="visibleFolders"
+            :filtered="filtered"
+            :paged-files="pagedFiles"
+            :station-uid="stationUid"
+            :total-pages="totalPages"
+            :page-size-options="PAGE_SIZE_OPTIONS"
+            :folders="folders"
+            :editing-folder="editingFolder"
+            :editing-tag="editingTag"
+            @new-folder="openFolderModal(null)"
+            @edit-folder="openFolderEdit"
+            @remove-folder="removeFolder"
+            @new-tag="openTagModal"
+            @edit-tag="openTagEdit"
+            @remove-tag="removeTag"
+            @toggle-multi-select="toggleMultiSelect"
+            @upload="uploadMany"
+            @prune="runPrune"
+            @open-bulk-move="openBulkMove"
+            @clear-selection="clearSelection"
+            @preview-file="openPreview"
+            @edit-file="startEdit"
+            @delete-file="deleteOne"
+            @toggle-select="toggleSelected"
+            @toggle-tag="toggleFileTag"
+            @save-edit="saveEdit"
+            @save-folder="saveFolder"
+            @save-tag="saveTag"
+            @bulk-move="runBulkMove"
+            @bulk-delete="runBulkDelete"
+        />
     </ViewContent>
 </template>

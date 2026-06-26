@@ -11,12 +11,13 @@ import QuestionInputCard from '../questioncard/QuestionInputCard.vue'
 import type { QuizQuestion } from '@/api/types'
 import { QuizQuestionTypes } from '@/api/types'
 
+const userTfAnswer = defineModel<boolean | null>('userTfAnswer', {required: true})
+const userAnswer = defineModel<string>('userAnswer', {required: true})
+
 const props = defineProps<{
   question: QuizQuestion
   showAnswer: boolean
-  userAnswer: string
   userMcSelections: Set<number>
-  userTfAnswer: boolean | null
   userOrderItems: number[]
   userConnectPairs: Record<string, string>
   userFillGaps: Record<string, string>
@@ -28,8 +29,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   toggleMcOption: [idx: number]
-  'update:userTfAnswer': [v: boolean]
-  'update:userAnswer': [v: string]
   reorderItems: [fromIndex: number, toIndex: number]
   moveOrderItem: [index: number, direction: -1 | 1]
   setConnectPair: [leftIndex: number, rightValue: string]
@@ -60,8 +59,8 @@ const correctPairs = computed<{ left: string; right: string }[]>(() => {
     :config="config"
     :disabled="showAnswer"
     :mc-selections="userMcSelections"
-    :tf-answer="userTfAnswer"
-    :free-answer="userAnswer"
+    v-model:tf-answer="userTfAnswer"
+    v-model:free-answer="userAnswer"
     :fill-gaps="userFillGaps"
     :order-items="userOrderItems"
     :connect-pairs="userConnectPairs"
@@ -69,8 +68,6 @@ const correctPairs = computed<{ left: string; right: string }[]>(() => {
     :connect-right-order="connectRightOrder"
     :direct-image-src="directImageSrc"
     @toggle-mc-option="(i: number) => emit('toggleMcOption', i)"
-    @update:tf-answer="(v: boolean) => emit('update:userTfAnswer', v)"
-    @update:free-answer="(v: string) => emit('update:userAnswer', v)"
     @set-fill-gap="(gi: number, v: string) => emit('setFillGap', gi, v)"
     @reorder-items="(from: number, to: number) => emit('reorderItems', from, to)"
     @move-order-item="(i: number, d: -1 | 1) => emit('moveOrderItem', i, d)"

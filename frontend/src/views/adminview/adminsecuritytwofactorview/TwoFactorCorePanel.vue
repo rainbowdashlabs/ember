@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -21,60 +21,37 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import { adminSettings } from '@/api'
 import type { TwoFactorCoreConfigResponse } from '@/api/adminSettings'
+import { useConfigPanel } from '@/composables/useConfigPanel'
 
 const { t } = useI18n()
 
-const loading = ref(true)
-const error = ref('')
 const generating = ref(false)
-const config = ref<TwoFactorCoreConfigResponse>({
-  enabled: true,
-  stepUpFreshnessSeconds: 300,
-  trustedDeviceMaxDays: 30,
-  enrollmentGraceDays: 7,
-  secretKeyConfigured: false,
+const { config, loading, error, runWith } = useConfigPanel<TwoFactorCoreConfigResponse>({
+  initial: {
+    enabled: true,
+    stepUpFreshnessSeconds: 300,
+    trustedDeviceMaxDays: 30,
+    enrollmentGraceDays: 7,
+    secretKeyConfigured: false,
+  },
+  fetch: () => adminSettings.getTwoFactorCoreConfig(),
 })
 
-async function load() {
-  loading.value = true
-  error.value = ''
-  try {
-    config.value = await adminSettings.getTwoFactorCoreConfig()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
-
 async function save() {
-  error.value = ''
-  try {
-    config.value = await adminSettings.updateTwoFactorCoreConfig({
+  await runWith(
+    () => adminSettings.updateTwoFactorCoreConfig({
       enabled: config.value.enabled,
       stepUpFreshnessSeconds: config.value.stepUpFreshnessSeconds,
       trustedDeviceMaxDays: config.value.trustedDeviceMaxDays,
       enrollmentGraceDays: config.value.enrollmentGraceDays,
-    })
-  } catch (e) {
-    error.value = t('common.error')
-    throw e
-  }
+    }),
+    { rethrow: true },
+  )
 }
 
 async function generateKey() {
-  error.value = ''
-  generating.value = true
-  try {
-    config.value = await adminSettings.generateTwoFactorSecretKey()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    generating.value = false
-  }
+  await runWith(() => adminSettings.generateTwoFactorSecretKey(), { busy: generating })
 }
-
-onMounted(load)
 </script>
 
 <template>

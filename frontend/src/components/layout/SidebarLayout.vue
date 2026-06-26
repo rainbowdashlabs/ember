@@ -9,12 +9,15 @@ import AppSidebar from './AppSidebar.vue'
 import AppHeader from './AppHeader.vue'
 import AppFooter from './AppFooter.vue'
 
-defineProps<{
+withDefaults(defineProps<{
   title?: string
   subtitle?: string
   stationName?: string
   stationLogoUrl?: string | null
-}>()
+  collapsible?: boolean
+}>(), {
+  collapsible: true,
+})
 
 const sidebarOpen = ref(false)
 </script>
@@ -22,6 +25,7 @@ const sidebarOpen = ref(false)
 <template>
   <div class="flex min-h-screen">
     <AppSidebar :open="sidebarOpen" :station-logo-url="stationLogoUrl" :station-name="stationName"
+                :collapsible="collapsible"
                 @close="sidebarOpen = false">
       <slot :close="() => sidebarOpen = false" name="sidebar"/>
     </AppSidebar>

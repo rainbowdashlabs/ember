@@ -4,7 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -19,44 +18,26 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import { adminSettings } from '@/api'
 import type { WebAuthnConfig } from '@/api/adminSettings'
+import { useConfigPanel } from '@/composables/useConfigPanel'
 
 const { t } = useI18n()
 
 const ATTESTATIONS = ['none', 'indirect', 'direct'] as const
 
-const loading = ref(true)
-const error = ref('')
-const config = ref<WebAuthnConfig>({
-  rpId: '',
-  rpName: '',
-  attestation: 'none',
-  timeoutSeconds: 60,
-  requireResidentKey: false,
+const { config, loading, error, runWith } = useConfigPanel<WebAuthnConfig>({
+  initial: {
+    rpId: '',
+    rpName: '',
+    attestation: 'none',
+    timeoutSeconds: 60,
+    requireResidentKey: false,
+  },
+  fetch: () => adminSettings.getWebAuthnConfig(),
 })
 
-async function load() {
-  loading.value = true
-  error.value = ''
-  try {
-    config.value = await adminSettings.getWebAuthnConfig()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
-
 async function save() {
-  error.value = ''
-  try {
-    config.value = await adminSettings.updateWebAuthnConfig(config.value)
-  } catch (e) {
-    error.value = t('common.error')
-    throw e
-  }
+  await runWith(() => adminSettings.updateWebAuthnConfig(config.value), { rethrow: true })
 }
-
-onMounted(load)
 </script>
 
 <template>

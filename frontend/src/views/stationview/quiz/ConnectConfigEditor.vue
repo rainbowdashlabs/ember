@@ -14,39 +14,32 @@ import FieldHint from '@/components/typography/FieldHint.vue'
 
 const { t } = useI18n()
 
-const props = defineProps<{
-  config: Record<string, unknown>
-}>()
-
-const emit = defineEmits<{
-  'update:config': [value: Record<string, unknown>]
-}>()
+const config = defineModel<Record<string, unknown>>('config', {required: true})
 
 function updateConfig(patch: Record<string, unknown>) {
-  emit('update:config', { ...props.config, ...patch })
+  config.value = { ...config.value, ...patch }
 }
 
-// --- Connect helpers ---
 function addConnectPair() {
-  const pairs = [...((props.config.pairs as { left: string; right: string }[]) || [])]
+  const pairs = [...((config.value.pairs as { left: string; right: string }[]) || [])]
   pairs.push({ left: '', right: '' })
   updateConfig({ pairs })
 }
 
 function removeConnectPair(idx: number) {
-  const pairs = [...((props.config.pairs as { left: string; right: string }[]) || [])]
+  const pairs = [...((config.value.pairs as { left: string; right: string }[]) || [])]
   pairs.splice(idx, 1)
   updateConfig({ pairs })
 }
 
 function updateConnectPairLeft(idx: number, value: string) {
-  const pairs = [...((props.config.pairs as { left: string; right: string }[]) || [])]
+  const pairs = [...((config.value.pairs as { left: string; right: string }[]) || [])]
   pairs[idx] = { ...pairs[idx], left: value }
   updateConfig({ pairs })
 }
 
 function updateConnectPairRight(idx: number, value: string) {
-  const pairs = [...((props.config.pairs as { left: string; right: string }[]) || [])]
+  const pairs = [...((config.value.pairs as { left: string; right: string }[]) || [])]
   pairs[idx] = { ...pairs[idx], right: value }
   updateConfig({ pairs })
 }

@@ -31,7 +31,7 @@ const { t } = useI18n()
     <!-- Dummy: Catalog list -->
     <div class="space-y-3">
       <div class="flex items-center justify-between">
-        <SubHeader>{{ t('quiz.catalogs') }}</SubHeader>
+        <SubHeader>{{ t('quiz.catalogs.title') }}</SubHeader>
         <PrimaryButton :icon="['fas', 'plus']" disabled>
           {{ t('quiz.createCatalog') }}
         </PrimaryButton>
@@ -44,7 +44,7 @@ const { t } = useI18n()
             <p class="text-xs text-(--text-muted)">Alles rund um den Brandschutz</p>
           </div>
           <div class="flex items-center gap-2">
-            <InfoBadge>12 {{ t('quiz.questions') }}</InfoBadge>
+            <InfoBadge>12 {{ t('quiz.questions.title') }}</InfoBadge>
             <SecondaryButton disabled>{{ t('common.open') }}</SecondaryButton>
           </div>
         </div>
@@ -57,7 +57,7 @@ const { t } = useI18n()
             <p class="text-xs text-(--text-muted)">Erste-Hilfe-Wissen abfragen</p>
           </div>
           <div class="flex items-center gap-2">
-            <InfoBadge>8 {{ t('quiz.questions') }}</InfoBadge>
+            <InfoBadge>8 {{ t('quiz.questions.title') }}</InfoBadge>
             <SecondaryButton disabled>{{ t('common.open') }}</SecondaryButton>
           </div>
         </div>

@@ -16,6 +16,8 @@ import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -27,6 +29,8 @@ import java.util.Map;
 
 @Singleton
 public class BatchEventService {
+    private static final Logger log = LoggerFactory.getLogger(BatchEventService.class);
+
     private final EventService eventService;
     private final EventFieldService eventFieldService;
     private final EventLayoutService eventLayoutService;
@@ -102,6 +106,9 @@ public class BatchEventService {
         }
         if (!created.isEmpty()) {
             eventBus.publish(new EventsBatchCreated(stationId, List.copyOf(created)));
+            log.info("Created batch of {} events for station {}", created.size(), stationId);
+        } else {
+            log.warn("Batch event creation for station {} produced no events", stationId);
         }
         return created;
     }
@@ -116,13 +123,15 @@ public class BatchEventService {
         LocalTime startOfDay = interval.startTime() != null ? interval.startTime() : LocalTime.of(0, 0);
         LocalTime endOfDay = interval.endTime() != null ? interval.endTime() : LocalTime.of(23, 59);
 
-        return dates.stream()
+        var rows = dates.stream()
                 .map(date -> new BatchRow(
                         null,
                         date.atTime(startOfDay).toInstant(ZoneOffset.UTC),
                         date.atTime(endOfDay).toInstant(ZoneOffset.UTC),
                         Map.of()))
                 .toList();
+        log.info("Generated {} batch date rows for station {}", rows.size(), stationId);
+        return rows;
     }
 
     private List<EventLayoutField> resolveFieldDefs(BatchRequest request) {

@@ -7,30 +7,27 @@
 import {computed, ref} from 'vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 
+const modelValue = defineModel<string[]>({required: true})
+
 const props = defineProps<{
-  modelValue: string[]
   options: { value: string; label: string }[]
   placeholder?: string
 }>()
 
-const emit = defineEmits<{
-  'update:modelValue': [value: string[]]
-}>()
-
 const open = ref(false)
 
-const selectedSet = computed(() => new Set(props.modelValue))
+const selectedSet = computed(() => new Set(modelValue.value))
 
 const availableOptions = computed(() =>
     props.options.filter(o => !selectedSet.value.has(o.value))
 )
 
 function add(value: string) {
-  emit('update:modelValue', [...props.modelValue, value])
+  modelValue.value = [...modelValue.value, value]
 }
 
 function remove(value: string) {
-  emit('update:modelValue', props.modelValue.filter(v => v !== value))
+  modelValue.value = modelValue.value.filter(v => v !== value)
 }
 
 function getLabel(value: string): string {
@@ -61,7 +58,7 @@ function getLabel(value: string): string {
       </SecondaryButton>
       <div
           v-if="open"
-          class="absolute z-10 mt-1 w-64 max-h-48 overflow-y-auto rounded-lg border border-bg-light-accent dark:border-bg-dark-accent bg-[var(--bg)] shadow-lg"
+          class="absolute z-10 mt-1 w-64 max-h-48 overflow-y-auto rounded-theme border border-bg-light-accent dark:border-bg-dark-accent bg-(--bg) shadow-lg"
       >
         <button
             v-for="opt in availableOptions"

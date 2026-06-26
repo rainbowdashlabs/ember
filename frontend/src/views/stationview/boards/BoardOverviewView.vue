@@ -4,7 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -16,27 +15,15 @@ import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import { boards } from '@/api'
 import type { Board } from '@/api/boards'
+import { useConfigPanel } from '@/composables/useConfigPanel'
 
 const { t } = useI18n()
 const router = useRouter()
 
-const boardList = ref<Board[]>([])
-const loading = ref(true)
-const error = ref('')
-
-async function loadBoards() {
-    loading.value = true
-    error.value = ''
-    try {
-        boardList.value = await boards.listBoards(true)
-    } catch {
-        error.value = t('common.error')
-    } finally {
-        loading.value = false
-    }
-}
-
-onMounted(loadBoards)
+const { config: boardList, loading, error } = useConfigPanel<Board[]>({
+    initial: [],
+    fetch: () => boards.listBoards(true),
+})
 </script>
 
 <template>

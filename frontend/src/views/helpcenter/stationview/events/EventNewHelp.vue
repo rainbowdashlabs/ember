@@ -4,8 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-// New-event and edit-event use the same form, so they share the same help body.
 import EventEditHelp from './EventEditHelp.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 </script>
 
 <template>

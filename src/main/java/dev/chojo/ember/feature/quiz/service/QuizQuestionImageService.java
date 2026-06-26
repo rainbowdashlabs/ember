@@ -11,6 +11,8 @@ import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -25,6 +27,7 @@ import java.util.UUID;
  */
 @Singleton
 public class QuizQuestionImageService {
+    private static final Logger log = LoggerFactory.getLogger(QuizQuestionImageService.class);
     private final ImageVariantService variants;
     private final StationRepository stationRepository;
 
@@ -41,6 +44,7 @@ public class QuizQuestionImageService {
             throws IOException {
         variants.store(
                 scope(stationId), StorageCategory.IMAGE_QUIZ_QUESTION, key(questionId), data, declaredMime, maxBytes);
+        log.info("Stored quiz question image: station {}, question {} ({} bytes)", stationId, questionId, data.length);
     }
 
     /**
@@ -62,6 +66,7 @@ public class QuizQuestionImageService {
      */
     public void delete(int stationId, int questionId) {
         variants.delete(scope(stationId), StorageCategory.IMAGE_QUIZ_QUESTION, key(questionId));
+        log.info("Deleted quiz question image: station {}, question {}", stationId, questionId);
     }
 
     private StorageScope.Station scope(int stationId) {

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -20,6 +20,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import { useSession } from '@/composables/useSession'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { federation } from '@/api'
 import type { PartnerResponse, FederationCapability } from '@/api/federation'
 import Td from '@/components/table/Td.vue'
@@ -35,8 +36,11 @@ const { loaded } = useSession()
 const partnerId = computed(() => Number(route.params.id))
 const partner = ref<PartnerResponse | null>(null)
 const capabilities = ref<FederationCapability[]>([])
-const loading = ref(true)
-const error = ref('')
+
+const {loading, error, reload: loadData} = useAsyncLoader(async () => {
+  partner.value = await federation.getPartner(partnerId.value)
+  capabilities.value = await federation.getCapabilities(partnerId.value)
+}, {autoLoad: false})
 
 interface CapRow {
   label: string
@@ -64,15 +68,6 @@ const capRows = computed<CapRow[]>(() => {
   }))
 })
 
-async function loadData() {
-  loading.value = true
-  try {
-    partner.value = await federation.getPartner(partnerId.value)
-    capabilities.value = await federation.getCapabilities(partnerId.value)
-  } catch { error.value = t('common.error') }
-  finally { loading.value = false }
-}
-
 async function toggleCap(capability: string, direction: string, currentEnabled: boolean) {
   try {
     capabilities.value = await federation.setCapabilities(partnerId.value, [
@@ -99,7 +94,6 @@ async function handleEnd() {
 }
 
 watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
-onMounted(() => { if (loaded.value) loadData() })
 </script>
 
 <template>

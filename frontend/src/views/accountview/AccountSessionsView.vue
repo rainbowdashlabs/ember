@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, onMounted} from 'vue'
+import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -18,14 +18,17 @@ import Modal from '@/components/feedback/Modal.vue'
 import {session as sessionApi} from '@/api'
 import type {ActiveSession} from '@/api/types'
 import SessionsSection from '@/views/stationview/profile/settingsview/SessionsSection.vue'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {t} = useI18n()
 const router = useRouter()
 
 const sessions = ref<ActiveSession[]>([])
-const loading = ref(true)
-const error = ref('')
 const showInvalidateAllModal = ref(false)
+
+const {loading, error} = useAsyncLoader(async () => {
+  sessions.value = await sessionApi.getActiveSessions()
+})
 
 async function invalidateSession(id: number) {
   error.value = ''
@@ -49,17 +52,6 @@ async function invalidateAll() {
     error.value = t('common.error')
   }
 }
-
-onMounted(async () => {
-  loading.value = true
-  try {
-    sessions.value = await sessionApi.getActiveSessions()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-})
 </script>
 
 <template>

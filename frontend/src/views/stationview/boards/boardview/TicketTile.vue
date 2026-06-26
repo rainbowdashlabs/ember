@@ -6,10 +6,10 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
 import type { BoardTicket, BoardLabel } from '@/api/boards'
-import { TicketPriority } from '@/api/boards'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import { contrastTextColor } from '@/theme/contrast'
 import type { MemberIdentity } from '@/api/types'
+import { priorityIcon as toPriorityIcon, priorityColor as toPriorityColor } from '@/util/ticketPriority'
 
 const props = defineProps<{
     ticket: BoardTicket
@@ -24,27 +24,9 @@ const emit = defineEmits<{
     click: [ticket: BoardTicket]
 }>()
 
-const priorityIcon = computed(() => {
-    switch (props.ticket.priority) {
-        case TicketPriority.HIGHEST: return ['fas', 'angles-up']
-        case TicketPriority.HIGH: return ['fas', 'angle-up']
-        case TicketPriority.MEDIUM: return ['fas', 'equals']
-        case TicketPriority.LOW: return ['fas', 'angle-down']
-        case TicketPriority.LOWEST: return ['fas', 'angles-down']
-        default: return ['fas', 'minus']
-    }
-})
+const priorityIcon = computed(() => toPriorityIcon(props.ticket.priority))
 
-const priorityColor = computed(() => {
-    switch (props.ticket.priority) {
-        case TicketPriority.HIGHEST: return 'text-red-500'
-        case TicketPriority.HIGH: return 'text-orange-500'
-        case TicketPriority.MEDIUM: return 'text-yellow-500'
-        case TicketPriority.LOW: return 'text-blue-400'
-        case TicketPriority.LOWEST: return 'text-gray-400'
-        default: return 'text-gray-400'
-    }
-})
+const priorityColor = computed(() => toPriorityColor(props.ticket.priority))
 
 const daysInLane = computed(() => {
     const entered = new Date(props.ticket.laneEnteredAt)

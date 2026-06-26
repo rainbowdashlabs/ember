@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onMounted, ref} from 'vue'
+import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -15,26 +15,28 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import HelpCenterHint from '@/components/help/HelpCenterHint.vue'
 import {feedToken} from '@/api'
 import type {FeedPreset, FeedTokenResponse} from '@/api/feedToken'
 import {buildFeedUrl} from '@/api/feedToken'
+import {useConfigPanel} from '@/composables/useConfigPanel'
+import FeedCard from './feedsection/FeedCard.vue'
+import RssFallback from './feedsection/RssFallback.vue'
 
 const {t} = useI18n()
 
-const token = ref<FeedTokenResponse | null>(null)
-const loading = ref(true)
-const error = ref('')
+const {config: token, loading, error, runWith} = useConfigPanel<FeedTokenResponse | null>({
+  initial: null,
+  fetch: async () => {
+    try { return await feedToken.getFeedToken() } catch { return null }
+  },
+})
+
 const copied = ref('')
 const regenerateConfirmOpen = ref(false)
 const revokeConfirmOpen = ref(false)
 
-// Preset selection persists across reloads via localStorage. No backend round-trip — the
-// preset only affects the URL we hand to the user; the backend honours the query params
-// (verbose / images) we encode in it.
 const PRESET_STORAGE_KEY = 'ember.feedPreset'
 const validPresets: FeedPreset[] = ['rich', 'compact', 'minimal']
 function loadStoredPreset(): FeedPreset {
@@ -48,36 +50,21 @@ function setPreset(p: FeedPreset) {
   if (typeof window !== 'undefined') window.localStorage.setItem(PRESET_STORAGE_KEY, p)
 }
 
-async function loadToken() {
-  loading.value = true
-  try {
-    token.value = await feedToken.getFeedToken()
-  } catch { /* ignore */ }
-  finally { loading.value = false }
-}
-
 async function createToken() {
-  error.value = ''
-  try {
-    token.value = await feedToken.createFeedToken()
-  } catch { error.value = t('common.error') }
+  await runWith(() => feedToken.createFeedToken())
 }
 
 async function confirmRegenerate() {
   regenerateConfirmOpen.value = false
-  error.value = ''
-  try {
-    token.value = await feedToken.regenerateFeedToken()
-  } catch { error.value = t('common.error') }
+  await runWith(() => feedToken.regenerateFeedToken())
 }
 
 async function confirmRevoke() {
   revokeConfirmOpen.value = false
-  error.value = ''
-  try {
+  await runWith(async () => {
     await feedToken.revokeFeedToken()
-    token.value = null
-  } catch { error.value = t('common.error') }
+    return null
+  })
 }
 
 async function copyUrl(url: string) {
@@ -85,8 +72,6 @@ async function copyUrl(url: string) {
   copied.value = url
   setTimeout(() => { copied.value = '' }, 2000)
 }
-
-onMounted(loadToken)
 </script>
 
 <template>
@@ -116,67 +101,34 @@ onMounted(loadToken)
           <MutedText tag="div" size="sm">{{ t('userSettings.feedPresetHint.' + preset) }}</MutedText>
         </div>
 
-        <!-- Two featured feeds, two different jobs:
-             - iCal feeds the calendar (events, deadlines, location).
-             - Atom feeds the notification stream (news, registrations, lending, …).
-             RSS is an emergency fallback for readers that don't speak Atom — collapsed. -->
         <div class="space-y-3">
-          <!-- iCal: featured (calendar integration). -->
-          <div class="space-y-1 rounded-theme border border-primary/40 bg-primary/5 p-3">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <div class="flex items-center gap-2">
-                <font-awesome-icon :icon="['fas', 'calendar-days']" class="text-primary"/>
-                <FieldLabel>{{ t('userSettings.feedIcal') }}</FieldLabel>
-              </div>
-              <HelpCenterHint :to="{name: 'help-profile-ical-feed'}">
-                {{ t('userSettings.feedHelp') }}
-              </HelpCenterHint>
-            </div>
-            <MutedText tag="div" size="sm">{{ t('userSettings.feedIcalHint') }}</MutedText>
-            <div class="flex items-center gap-2">
-              <code class="flex-1 rounded bg-bg-light dark:bg-bg-dark px-3 py-2 text-xs break-all select-all">{{ buildFeedUrl(token.token, 'ical', preset) }}</code>
-              <SecondaryButton @click="copyUrl(buildFeedUrl(token.token, 'ical', preset))">
-                <font-awesome-icon :icon="copied === buildFeedUrl(token.token, 'ical', preset) ? ['fas', 'check'] : ['fas', 'copy']"/>
-              </SecondaryButton>
-            </div>
-          </div>
-
-          <!-- Atom: featured (notification stream, recommended over RSS). -->
-          <div class="space-y-1 rounded-theme border border-primary/40 bg-primary/5 p-3">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <div class="flex items-center gap-2">
-                <font-awesome-icon :icon="['fas', 'rss']" class="text-primary"/>
-                <FieldLabel>{{ t('userSettings.feedAtom') }}</FieldLabel>
-                <PrimaryBadge>{{ t('userSettings.feedAtomRecommended') }}</PrimaryBadge>
-              </div>
-              <HelpCenterHint :to="{name: 'help-profile-rss-feed'}">
-                {{ t('userSettings.feedHelp') }}
-              </HelpCenterHint>
-            </div>
-            <MutedText tag="div" size="sm">{{ t('userSettings.feedAtomHint') }}</MutedText>
-            <div class="flex items-center gap-2">
-              <code class="flex-1 rounded bg-bg-light dark:bg-bg-dark px-3 py-2 text-xs break-all select-all">{{ buildFeedUrl(token.token, 'atom', preset) }}</code>
-              <SecondaryButton @click="copyUrl(buildFeedUrl(token.token, 'atom', preset))">
-                <font-awesome-icon :icon="copied === buildFeedUrl(token.token, 'atom', preset) ? ['fas', 'check'] : ['fas', 'copy']"/>
-              </SecondaryButton>
-            </div>
-          </div>
-
-          <!-- RSS fallback: collapsed by default. -->
-          <details class="space-y-1">
-            <summary class="cursor-pointer text-sm text-(--text-muted) hover:text-(--text) transition-colors">
-              {{ t('userSettings.feedRssFallback') }}
-            </summary>
-            <div class="space-y-1 pt-2">
-              <MutedText tag="div" size="sm">{{ t('userSettings.feedRssHint') }}</MutedText>
-              <div class="flex items-center gap-2">
-                <code class="flex-1 rounded bg-bg-light-accent dark:bg-bg-dark-accent px-3 py-2 text-xs break-all select-all">{{ buildFeedUrl(token.token, 'rss', preset) }}</code>
-                <SecondaryButton @click="copyUrl(buildFeedUrl(token.token, 'rss', preset))">
-                  <font-awesome-icon :icon="copied === buildFeedUrl(token.token, 'rss', preset) ? ['fas', 'check'] : ['fas', 'copy']"/>
-                </SecondaryButton>
-              </div>
-            </div>
-          </details>
+          <FeedCard
+            :icon="['fas', 'calendar-days']"
+            :title="t('userSettings.feedIcal')"
+            help-route-name="help-profile-ical-feed"
+            :hint="t('userSettings.feedIcalHint')"
+            :url="buildFeedUrl(token.token, 'ical', preset)"
+            :copied="copied"
+            @copy="copyUrl"
+          />
+          <FeedCard
+            :icon="['fas', 'rss']"
+            :title="t('userSettings.feedAtom')"
+            help-route-name="help-profile-rss-feed"
+            :hint="t('userSettings.feedAtomHint')"
+            :url="buildFeedUrl(token.token, 'atom', preset)"
+            :copied="copied"
+            recommended
+            :recommended-label="t('userSettings.feedAtomRecommended')"
+            @copy="copyUrl"
+          />
+          <RssFallback
+            :label="t('userSettings.feedRssFallback')"
+            :hint="t('userSettings.feedRssHint')"
+            :url="buildFeedUrl(token.token, 'rss', preset)"
+            :copied="copied"
+            @copy="copyUrl"
+          />
         </div>
 
         <div class="flex items-center gap-2">

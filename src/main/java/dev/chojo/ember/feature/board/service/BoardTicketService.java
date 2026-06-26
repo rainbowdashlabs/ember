@@ -32,6 +32,8 @@ import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.time.LocalDate;
@@ -45,6 +47,7 @@ import java.util.regex.Pattern;
 
 @Singleton
 public class BoardTicketService {
+    private static final Logger log = LoggerFactory.getLogger(BoardTicketService.class);
     private static final Pattern MENTION_PATTERN_LEGACY = Pattern.compile("@\\[(\\d+):([^\\]]+)]");
     private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[([^/]+)/([^:]+):([^\\]]+)]");
 
@@ -113,8 +116,10 @@ public class BoardTicketService {
             MemberIdentity creator) {
         int ticketNumber = boardRepository.nextTicketNumber(boardId);
         int position = ticketRepository.findByBoardAndLane(boardId, laneId).size();
-        return ticketRepository.createTicket(
+        var ticket = ticketRepository.createTicket(
                 boardId, laneId, ticketNumber, title, description, assignee, priority, dueDate, position, creator);
+        log.info("Created ticket {} on board {} in lane {}", ticket.id(), boardId, laneId);
+        return ticket;
     }
 
     public boolean updateTicket(
@@ -146,6 +151,9 @@ public class BoardTicketService {
                         (dueDate != null ? dueDate.toString() : "entfernt"),
                         actor);
             notifyWatchers(id, oldTicket.boardId(), "Ticket aktualisiert", null);
+            log.info("Updated ticket {}", id);
+        } else if (!updated) {
+            log.warn("Update for ticket {} affected zero rows", id);
         }
         return updated;
     }
@@ -207,12 +215,21 @@ public class BoardTicketService {
                     }
                 });
             }
+            log.info("Assigned ticket {} (actor member {})", ticketId, actorMemberId);
+        } else if (!updated) {
+            log.warn("Assign for ticket {} affected zero rows", ticketId);
         }
         return updated;
     }
 
     public boolean deleteTicket(int id) {
-        return ticketRepository.deleteTicket(id);
+        boolean deleted = ticketRepository.deleteTicket(id);
+        if (deleted) {
+            log.info("Deleted ticket {}", id);
+        } else {
+            log.warn("Delete for ticket {} affected zero rows", id);
+        }
+        return deleted;
     }
 
     public boolean moveTicket(int ticketId, int fromLaneId, int toLaneId, int position, MemberIdentity actor) {
@@ -247,6 +264,9 @@ public class BoardTicketService {
                     }
                 }
             }
+            log.info("Moved ticket {} from lane {} to lane {}", ticketId, fromLaneId, toLaneId);
+        } else if (!moved) {
+            log.warn("Move for ticket {} from lane {} to lane {} affected zero rows", ticketId, fromLaneId, toLaneId);
         }
         return moved;
     }
@@ -262,8 +282,12 @@ public class BoardTicketService {
     // -- Links --
 
     public void linkTickets(int ticketId, int linkedTicketId, LinkType linkType, MemberIdentity actor) {
-        if (ticketId == linkedTicketId) return;
+        if (ticketId == linkedTicketId) {
+            log.warn("Refusing to link ticket {} to itself", ticketId);
+            return;
+        }
         ticketRepository.createLink(ticketId, linkedTicketId, linkType);
+        log.info("Linked ticket {} to ticket {} ({})", ticketId, linkedTicketId, linkType);
         var ticket = ticketRepository.findById(ticketId).orElse(null);
         var linkedTicket = ticketRepository.findById(linkedTicketId).orElse(null);
         if (ticket != null && linkedTicket != null) {
@@ -287,6 +311,9 @@ public class BoardTicketService {
             String reverseKey = (linkedBoard != null ? linkedBoard.shortKey() : "?") + "-" + ticket.ticketNumber();
             ticketRepository.logHistory(ticketId, BoardTicketHistoryAction.LINK_REMOVED, key, actor);
             ticketRepository.logHistory(linkedTicketId, BoardTicketHistoryAction.LINK_REMOVED, reverseKey, actor);
+            log.info("Unlinked ticket {} from ticket {}", ticketId, linkedTicketId);
+        } else if (!deleted) {
+            log.warn("Unlink of ticket {} from ticket {} affected zero rows", ticketId, linkedTicketId);
         }
         return deleted;
     }
@@ -309,6 +336,7 @@ public class BoardTicketService {
         ticketRepository
                 .findById(ticketId)
                 .ifPresent(ticket -> notifyWatchers(ticketId, ticket.boardId(), "Checkliste geändert", actorMemberId));
+        log.info("Added checklist item {} on ticket {}", item.id(), ticketId);
         return item;
     }
 
@@ -319,6 +347,9 @@ public class BoardTicketService {
                     .findById(ticketId)
                     .ifPresent(
                             ticket -> notifyWatchers(ticketId, ticket.boardId(), "Checkliste geändert", actorMemberId));
+            log.info("Updated checklist item {} on ticket {} (checked={})", id, ticketId, checked);
+        } else {
+            log.warn("Update for checklist item {} on ticket {} affected zero rows", id, ticketId);
         }
         return updated;
     }
@@ -330,6 +361,9 @@ public class BoardTicketService {
                     .findById(ticketId)
                     .ifPresent(
                             ticket -> notifyWatchers(ticketId, ticket.boardId(), "Checkliste geändert", actorMemberId));
+            log.info("Deleted checklist item {} on ticket {}", id, ticketId);
+        } else {
+            log.warn("Delete for checklist item {} on ticket {} affected zero rows", id, ticketId);
         }
         return deleted;
     }
@@ -374,15 +408,28 @@ public class BoardTicketService {
                 }
             }
         }
+        log.info("Created comment {} on ticket {}", comment.id(), ticketId);
         return comment;
     }
 
     public boolean updateComment(int id, String content) {
-        return ticketRepository.updateComment(id, content);
+        boolean updated = ticketRepository.updateComment(id, content);
+        if (updated) {
+            log.info("Updated comment {}", id);
+        } else {
+            log.warn("Update for comment {} affected zero rows", id);
+        }
+        return updated;
     }
 
     public boolean deleteComment(int id) {
-        return ticketRepository.deleteComment(id);
+        boolean deleted = ticketRepository.deleteComment(id);
+        if (deleted) {
+            log.info("Deleted comment {}", id);
+        } else {
+            log.warn("Delete for comment {} affected zero rows", id);
+        }
+        return deleted;
     }
 
     public List<BoardWeblink> findWeblinks(int ticketId) {
@@ -391,13 +438,21 @@ public class BoardTicketService {
 
     public BoardWeblink addWeblink(int ticketId, String url, String title) {
         int position = ticketRepository.findWeblinks(ticketId).size();
-        return ticketRepository.createWeblink(ticketId, url, title, position);
+        var weblink = ticketRepository.createWeblink(ticketId, url, title, position);
+        log.info("Added weblink {} on ticket {}", weblink.id(), ticketId);
+        return weblink;
     }
 
     // -- Weblinks --
 
     public boolean deleteWeblink(int id) {
-        return ticketRepository.deleteWeblink(id);
+        boolean deleted = ticketRepository.deleteWeblink(id);
+        if (deleted) {
+            log.info("Deleted weblink {}", id);
+        } else {
+            log.warn("Delete for weblink {} affected zero rows", id);
+        }
+        return deleted;
     }
 
     public List<BoardTicketAttachment> findAttachments(int ticketId) {
@@ -419,14 +474,26 @@ public class BoardTicketService {
             MemberIdentity uploader) {
         String filename = attachmentService.newFilename(originalName);
         attachmentService.store(stationId, ticketId, filename, data, contentType);
-        return ticketRepository.createAttachment(ticketId, filename, originalName, contentType, data.length, uploader);
+        var attachment =
+                ticketRepository.createAttachment(ticketId, filename, originalName, contentType, data.length, uploader);
+        log.info("Uploaded attachment {} on ticket {} ({} bytes)", attachment.id(), ticketId, data.length);
+        return attachment;
     }
 
     public boolean deleteAttachment(int stationId, int id) {
         var att = ticketRepository.findAttachmentById(id).orElse(null);
-        if (att == null) return false;
+        if (att == null) {
+            log.warn("Delete for attachment {} skipped: not found", id);
+            return false;
+        }
         attachmentService.delete(stationId, att.ticketId(), att.filename());
-        return ticketRepository.deleteAttachment(id);
+        boolean deleted = ticketRepository.deleteAttachment(id);
+        if (deleted) {
+            log.info("Deleted attachment {} on ticket {}", id, att.ticketId());
+        } else {
+            log.warn("Delete for attachment {} affected zero rows", id);
+        }
+        return deleted;
     }
 
     public Path getAttachmentPath(int stationId, BoardTicketAttachment att) {

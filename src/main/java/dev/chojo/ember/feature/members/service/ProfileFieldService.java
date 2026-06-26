@@ -27,6 +27,8 @@ import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -43,6 +45,7 @@ import java.util.stream.Collectors;
  */
 @Singleton
 public class ProfileFieldService {
+    private static final Logger log = LoggerFactory.getLogger(ProfileFieldService.class);
     private static final Duration MERGE_WINDOW = Duration.ofMinutes(5);
 
     private final ProfileFieldRepository profileFieldRepository;
@@ -104,7 +107,15 @@ public class ProfileFieldService {
             ProfileFieldConfig config,
             int position,
             ProfileFieldScope scope) {
-        return profileFieldRepository.create(stationId, name, fieldType, config, position, scope);
+        var field = profileFieldRepository.create(stationId, name, fieldType, config, position, scope);
+        log.info(
+                "Profile field created: id={}, station={}, name='{}', type={}, scope={}",
+                field.id(),
+                stationId,
+                name,
+                fieldType,
+                scope);
+        return field;
     }
 
     public Optional<ProfileField> update(
@@ -115,13 +126,21 @@ public class ProfileFieldService {
             int position,
             boolean keepOnArchive) {
         if (profileFieldRepository.update(id, name, fieldType, config, position, keepOnArchive)) {
+            log.info("Profile field updated: id={}, name='{}', type={}", id, name, fieldType);
             return profileFieldRepository.findById(id);
         }
+        log.warn("Profile field update affected no rows: id={}", id);
         return Optional.empty();
     }
 
     public boolean delete(int id) {
-        return profileFieldRepository.delete(id);
+        boolean deleted = profileFieldRepository.delete(id);
+        if (deleted) {
+            log.info("Profile field deleted: id={}", id);
+        } else {
+            log.warn("Profile field delete affected no rows: id={}", id);
+        }
+        return deleted;
     }
 
     /**
@@ -188,13 +207,24 @@ public class ProfileFieldService {
 
         if (!changedFieldNames.isEmpty()) {
             notifyManagersOfChange(memberId, changedBy, changedFieldNames);
+            log.info(
+                    "Profile fields updated: member={}, changedBy={}, fields={}",
+                    memberId,
+                    changedBy,
+                    changedFieldNames);
         }
 
         return profileFieldRepository.findValues(memberId);
     }
 
     public boolean deleteValue(int memberId, int fieldId) {
-        return profileFieldRepository.deleteValue(memberId, fieldId);
+        boolean deleted = profileFieldRepository.deleteValue(memberId, fieldId);
+        if (deleted) {
+            log.info("Profile field value deleted: member={}, field={}", memberId, fieldId);
+        } else {
+            log.warn("Profile field value delete affected no rows: member={}, field={}", memberId, fieldId);
+        }
+        return deleted;
     }
 
     public List<ProfileFieldChangeRepository.MemberChangeSummary> findUnacknowledgedSummary(
@@ -266,7 +296,9 @@ public class ProfileFieldService {
     }
 
     public ProfileFieldChangeAcknowledgement acknowledge(int changeId, int acknowledgedBy, String comment) {
-        return changeRepository.acknowledge(changeId, acknowledgedBy, comment);
+        var ack = changeRepository.acknowledge(changeId, acknowledgedBy, comment);
+        log.info("Profile field change acknowledged: change={}, by={}", changeId, acknowledgedBy);
+        return ack;
     }
 
     // -- Change History --
@@ -277,6 +309,11 @@ public class ProfileFieldService {
         for (int changeId : unacknowledgedIds) {
             result.add(changeRepository.acknowledge(changeId, acknowledgedBy, comment));
         }
+        log.info(
+                "Profile field changes acknowledged in bulk: member={}, by={}, count={}",
+                memberId,
+                acknowledgedBy,
+                result.size());
         return result;
     }
 

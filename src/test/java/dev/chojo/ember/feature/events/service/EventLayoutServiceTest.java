@@ -132,6 +132,18 @@ class EventLayoutServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(50)
+    void updateNotFound() {
+        assertFalse(service.update(999999, "Ghost Layout"));
+    }
+
+    @Test
+    @Order(51)
+    void deleteNotFound() {
+        assertFalse(service.delete(999999));
+    }
+
+    @Test
     @Order(99)
     void deleteLayout() {
         assertTrue(service.delete(layoutId));

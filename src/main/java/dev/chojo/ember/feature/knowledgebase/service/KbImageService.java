@@ -11,6 +11,8 @@ import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -23,6 +25,7 @@ import java.util.UUID;
  */
 @Singleton
 public class KbImageService {
+    private static final Logger log = LoggerFactory.getLogger(KbImageService.class);
     private final ImageVariantService variants;
     private final StationRepository stationRepository;
 
@@ -38,6 +41,7 @@ public class KbImageService {
     public void store(int stationId, String imageId, byte[] data, String declaredMime, int maxBytes)
             throws IOException {
         variants.store(scope(stationId), StorageCategory.IMAGE_KB_IMAGE, imageId, data, declaredMime, maxBytes);
+        log.info("Stored KB inline image {} for station {} ({} bytes)", imageId, stationId, data.length);
     }
 
     /**
@@ -59,6 +63,7 @@ public class KbImageService {
      */
     public void delete(int stationId, String imageId) {
         variants.delete(scope(stationId), StorageCategory.IMAGE_KB_IMAGE, imageId);
+        log.info("Deleted KB inline image {} for station {}", imageId, stationId);
     }
 
     private StorageScope.Station scope(int stationId) {

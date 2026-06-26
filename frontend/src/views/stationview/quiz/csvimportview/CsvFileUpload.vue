@@ -11,14 +11,14 @@ import FieldHint from '@/components/typography/FieldHint.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FileUploadButton from '@/components/button/FileUploadButton.vue'
 
+const separator = defineModel<string>('separator', {required: true})
+
 defineProps<{
   fileName: string | null
-  separator: string
 }>()
 
 const emit = defineEmits<{
   fileSelected: [file: File]
-  'update:separator': [value: string]
 }>()
 
 const {t} = useI18n()
@@ -38,7 +38,7 @@ function onFileSelect(file: File) {
       <span v-if="fileName" class="text-sm text-(--text-muted)">{{ fileName }}</span>
       <div class="flex items-center gap-2">
         <FieldHint>{{ t('quiz.csv.separator') }}</FieldHint>
-        <SelectInput :model-value="separator" class="w-24" @update:model-value="emit('update:separator', $event ?? separator)">
+        <SelectInput :model-value="separator" class="w-24" @update:model-value="separator = $event ?? separator">
           <option value=",">,</option>
           <option value=";">;</option>
           <option value="&#9">Tab</option>

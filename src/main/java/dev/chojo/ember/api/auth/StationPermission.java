@@ -104,16 +104,30 @@ public enum StationPermission implements RouteRole {
     INVENTORY_EDIT(INVENTORY_CREATE),
 
     /**
+     * Allows assigning items to members and accepting returns. Off by default
+     * for every role; the station owner grants it explicitly.
+     */
+    INVENTORY_ASSIGN(INVENTORY_READ),
+
+    /**
+     * Allows creating, renaming, moving and deleting storage containers, and
+     * placing items into containers.
+     */
+    INVENTORY_STORAGE(INVENTORY_READ),
+
+    /**
      * Allows managing inventory items and lending requests.
      */
     INVENTORY_MANAGER(
+            INVENTORY_ASSIGN,
             INVENTORY_CHECK,
             INVENTORY_CREATE,
             INVENTORY_EDIT,
             INVENTORY_EXCHANGE,
             INVENTORY_LENDING_MANAGER,
             INVENTORY_PROCUREMENT,
-            INVENTORY_READ),
+            INVENTORY_READ,
+            INVENTORY_STORAGE),
 
     /**
      * Allows managing event templates
