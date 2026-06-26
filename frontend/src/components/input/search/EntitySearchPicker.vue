@@ -22,11 +22,15 @@ const props = defineProps<{
     isSelectableFn?: (item: T) => boolean
     /** Optional FontAwesome icon for each row, e.g. {@code ['fas', 'newspaper']}. */
     iconFn?: (item: T) => string[]
+    /** Optional Tailwind class string applied to the leading icon — lets consumers colour by state. */
+    iconClassFn?: (item: T) => string
     /**
      * Optional avatar/image URL for each row. When the function returns a non-empty string, the
      * row renders an {@code <img>} thumbnail instead of the FontAwesome {@link iconFn}.
      */
     avatarFn?: (item: T) => string | null | undefined
+    /** Optional right-aligned state badge. Returns {@code null} to omit. */
+    badgeFn?: (item: T) => { text: string; variant: 'success' | 'info' | 'error' | 'neutral' | 'warning' } | null
     /** Stable key for v-for; defaults to {@link displayFn}. */
     keyFn?: (item: T) => string | number
     /**
@@ -161,6 +165,7 @@ if (typeof document !== 'undefined') {
                 >
                     <DropdownMenuItem
                         :icon="avatarFn && avatarFn(item) ? undefined : (iconFn ? iconFn(item) : ['fas', 'circle'])"
+                        :icon-class="iconClassFn ? iconClassFn(item) : undefined"
                         @click="pickItem(item)"
                     >
                         <img
@@ -169,13 +174,24 @@ if (typeof document !== 'undefined') {
                             :alt="displayFn(item)"
                             class="w-6 h-6 rounded-full object-cover shrink-0"
                         />
-                        <span class="flex flex-col items-start text-left min-w-0">
+                        <span class="flex flex-col items-start text-left min-w-0 flex-1">
                             <span class="truncate font-medium">{{ displayFn(item) }}</span>
                             <span
                                 v-if="subtitleFn && subtitleFn(item)"
                                 class="text-xs text-(--text-muted) truncate"
                             >{{ subtitleFn(item) }}</span>
                         </span>
+                        <span
+                            v-if="badgeFn && badgeFn(item)"
+                            :class="[
+                                'shrink-0 rounded-full px-2 py-0.5 text-xs font-medium',
+                                badgeFn(item)?.variant === 'success' ? 'bg-success/15 text-success' : '',
+                                badgeFn(item)?.variant === 'info' ? 'bg-secondary/20 text-secondary-accent dark:text-secondary' : '',
+                                badgeFn(item)?.variant === 'error' ? 'bg-error/15 text-error' : '',
+                                badgeFn(item)?.variant === 'warning' ? 'bg-warning/15 text-warning' : '',
+                                badgeFn(item)?.variant === 'neutral' ? 'bg-(--bg-accent) text-(--text-muted)' : '',
+                            ]"
+                        >{{ badgeFn(item)?.text }}</span>
                     </DropdownMenuItem>
                 </div>
             </div>

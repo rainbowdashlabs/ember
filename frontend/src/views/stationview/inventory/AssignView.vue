@@ -17,15 +17,13 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import MemberSearchPicker from '@/components/input/search/MemberSearchPicker.vue'
+import ItemSearchPicker from '@/components/input/search/ItemSearchPicker.vue'
 import {inventory, stationMembers} from '@/api'
 import type {InventoryItem, StationMember} from '@/api/types'
 import type {MemberSearchResult} from '@/api/members'
 import UnknownScanModal from '@/views/stationview/inventory/UnknownScanModal.vue'
-import ScanButton from '@/components/scanner/ScanButton.vue'
-import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 
 interface AssignmentEvent {
   id: number
@@ -48,7 +46,7 @@ const {config: members, loading, error} = useConfigPanel<StationMember[]>({
 const memberId = ref<number | null>(null)
 const memberUid = ref<string | null>(null)
 const selectedDisplayName = ref<string | null>(null)
-const scanValue = ref('')
+const pickedItemId = ref<number | null>(null)
 const bulkMode = ref(false)
 const submitting = ref(false)
 const success = ref('')
@@ -93,27 +91,15 @@ function flashSuccess(msg: string) {
   setTimeout(() => (success.value = ''), 2500)
 }
 
-async function onCameraScan(value: string) {
-  if (submitting.value) return
-  scanValue.value = normaliseScannedPayload(value)
-  await handleScan()
-}
-
-async function handleScan() {
-  const term = scanValue.value.trim()
-  if (!term) return
-  scanValue.value = ''
+async function onItemPicked(item: InventoryItem) {
   if (!memberId.value) {
+    pickedItemId.value = null
     flashError(t('inventory.assign.errors.pickMember'))
     return
   }
+  if (submitting.value) return
   submitting.value = true
   try {
-    const item = await inventory.findByInternalId(term)
-    if (!item) {
-      unknownScanCode.value = term
-      return
-    }
     if (item.assignedTo === memberId.value) {
       const returned = await inventory.assignItem(item.id, {memberId: null})
       pushRecent('RETURN', returned, selectedMember.value)
@@ -138,6 +124,7 @@ async function handleScan() {
     flashError(e?.response?.data?.message ?? t('inventory.assign.errors.failed'))
   } finally {
     submitting.value = false
+    pickedItemId.value = null
   }
 }
 
@@ -218,16 +205,12 @@ async function onUnknownScanCreated(item: InventoryItem) {
 
       <NeutralContainer class="mb-4">
         <SubHeader class="mb-2">{{ t('inventory.assign.scanItem') }}</SubHeader>
-        <div class="flex gap-2 items-center">
-          <TextInput
-              v-model="scanValue"
-              :placeholder="t('inventory.assign.scanPlaceholder')"
-              @keydown.enter="handleScan"
-              class="flex-1"
-              :disabled="!memberId"
-          />
-          <ScanButton mode="continuous" :disabled="!memberId || submitting" @decoded="onCameraScan" />
-        </div>
+        <ItemSearchPicker
+            v-model="pickedItemId"
+            :disabled="!memberId || submitting"
+            @pick="onItemPicked"
+            @scan-not-found="(code) => unknownScanCode = code"
+        />
         <label class="flex items-center gap-2 text-sm mt-3">
           <ToggleInput v-model="bulkMode" />
           <span>{{ t('inventory.assign.bulkMode') }}</span>

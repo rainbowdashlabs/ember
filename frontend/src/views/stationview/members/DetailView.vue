@@ -13,7 +13,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import DetailModals from './detailview/DetailModals.vue'
 import DetailHeader from './detailview/DetailHeader.vue'
 import LoadedTabs from './detailview/LoadedTabs.vue'
-import type { ProfileField, ProfileFieldChange, StationMember, Inventory, InventoryItem } from '@/api/types'
+import type { ProfileField, ProfileFieldChange, StationMember } from '@/api/types'
 import { StationPermission, StationUserType, ExchangeStatus, StationModules } from '@/api/types'
 import type { MyInventoryItem } from '@/api/inventory'
 import type { ExchangeRequestEntry } from '@/api/types'
@@ -53,8 +53,6 @@ const deleteSuccess = ref(false)
 const markingFormer = ref(false)
 const deletingMember = ref(false)
 
-const inventories = ref<Inventory[]>([])
-const assignItems = ref<InventoryItem[]>([])
 const exchangeSizes = ref<import('@/api/types').InventorySize[]>([])
 
 const activeTab = ref('profile')
@@ -298,17 +296,6 @@ async function handleLoadExchangeSizes(inventoryId: number) {
   try { exchangeSizes.value = await inventory.listSizes(inventoryId) } catch { exchangeSizes.value = [] }
 }
 
-async function handleLoadInventories() {
-  try { inventories.value = await inventory.listInventories() } catch { /* ignore */ }
-}
-
-async function handleAssignInventoryChange(inventoryId: string) {
-  try {
-    const items = await inventory.listItems(Number(inventoryId))
-    assignItems.value = items.filter(i => !i.assignedTo)
-  } catch { assignItems.value = [] }
-}
-
 async function loadChanges() {
   try { changes.value = await profileFieldChanges.getChanges(memberId.value) } catch { /* ignore */ }
 }
@@ -351,8 +338,6 @@ const detailModalsProps = computed(() => ({
   allMembers: allMembers.value,
   memberId: memberId.value,
   memberDisplayNameFn: memberDisplayName,
-  inventories: inventories.value,
-  assignItems: assignItems.value,
   exchangeSizes: exchangeSizes.value,
 }))
 
@@ -393,11 +378,9 @@ const detailModalsProps = computed(() => ({
         @mark-former="handleMarkFormer"
         @delete-member="handleDeleteMember"
         @assign-item="handleAssignItem"
-        @assign-inventory-change="handleAssignInventoryChange"
         @reassign-item="handleReassignItem"
         @submit-exchange="handleSubmitExchange"
         @load-exchange-sizes="handleLoadExchangeSizes"
-        @load-inventories="handleLoadInventories"
       />
     </div>
   </ViewContent>
