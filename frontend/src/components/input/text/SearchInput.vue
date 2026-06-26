@@ -44,8 +44,8 @@ defineExpose({focus})
         :disabled="disabled"
         :placeholder="placeholder"
         type="search"
-        class="w-full pl-10 pr-9 py-2 rounded-theme border-2 border-primary bg-bg-light text-[var(--text)]
-               placeholder:text-[var(--text-muted)]
+        class="w-full pl-10 pr-9 py-2 rounded-theme border-2 border-primary bg-bg-light text-(--text)
+               placeholder:text-(--text-muted)
                transition-colors duration-150 outline-none
                focus:ring-2 focus:ring-primary/30
                disabled:opacity-50 disabled:cursor-not-allowed

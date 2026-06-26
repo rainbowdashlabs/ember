@@ -49,7 +49,7 @@ const percentage = computed(() =>
         :max="max"
         :min="min"
         :step="step"
-        class="w-16 shrink-0 px-2 py-1 text-sm text-center rounded-lg border border-bg-light-accent bg-bg-light text-[var(--text)] outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed dark:border-bg-dark-accent dark:bg-bg-dark scheme-light dark:scheme-dark"
+        class="w-16 shrink-0 px-2 py-1 text-sm text-center rounded-theme border border-bg-light-accent bg-bg-light text-(--text) outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed dark:border-bg-dark-accent dark:bg-bg-dark scheme-light dark:scheme-dark"
         type="number"
     />
   </div>

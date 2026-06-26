@@ -82,7 +82,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 
     <div
       v-if="open"
-      class="absolute z-20 mt-1 w-64 max-h-72 rounded-lg border border-bg-light-accent bg-bg-light shadow-lg dark:border-bg-dark-accent dark:bg-bg-dark flex flex-col"
+      class="absolute z-20 mt-1 w-64 max-h-72 rounded-theme border border-bg-light-accent bg-bg-light shadow-lg dark:border-bg-dark-accent dark:bg-bg-dark flex flex-col"
     >
       <!-- Clear option -->
       <button

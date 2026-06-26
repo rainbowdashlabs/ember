@@ -4,6 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {BORDERED_INPUT_CLASSES} from '../inputClasses'
+
 const model = defineModel<string>()
 
 defineProps<{
@@ -19,6 +21,6 @@ defineProps<{
       :disabled="disabled"
       :placeholder="placeholder"
       :rows="rows ?? 4"
-      class="w-full px-3 py-2 rounded-theme border border-bg-light-accent bg-bg-light text-[var(--text)] transition-colors duration-150 outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed dark:border-bg-dark-accent dark:bg-bg-dark resize-y"
+      :class="[BORDERED_INPUT_CLASSES, 'w-full resize-y']"
   />
 </template>

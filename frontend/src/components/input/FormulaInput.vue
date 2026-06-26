@@ -133,7 +133,7 @@ function onBlur() {
       ref="inputRef"
       :value="modelValue"
       :placeholder="placeholder"
-      class="w-full rounded-lg border border-bg-light-accent dark:border-bg-dark-accent bg-bg-light dark:bg-bg-dark px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary/40 transition-all font-mono"
+      class="w-full rounded-theme border border-bg-light-accent dark:border-bg-dark-accent bg-bg-light dark:bg-bg-dark text-(--text) px-3 py-1.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed font-mono"
       type="text"
       @input="onInput"
       @keydown="onKeydown"
@@ -142,7 +142,7 @@ function onBlur() {
     />
     <div
       v-if="showSuggestions && filteredSuggestions.length > 0"
-      class="absolute left-0 right-0 top-full mt-1 z-20 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent bg-bg-light dark:bg-bg-dark shadow-lg max-h-48 overflow-y-auto"
+      class="absolute left-0 right-0 top-full mt-1 z-20 rounded-theme border border-bg-light-accent dark:border-bg-dark-accent bg-bg-light dark:bg-bg-dark shadow-lg max-h-48 overflow-y-auto"
     >
       <button
         v-for="(suggestion, i) in filteredSuggestions"

@@ -58,7 +58,7 @@ function getLabel(value: string): string {
       </SecondaryButton>
       <div
           v-if="open"
-          class="absolute z-10 mt-1 w-64 max-h-48 overflow-y-auto rounded-lg border border-bg-light-accent dark:border-bg-dark-accent bg-[var(--bg)] shadow-lg"
+          class="absolute z-10 mt-1 w-64 max-h-48 overflow-y-auto rounded-theme border border-bg-light-accent dark:border-bg-dark-accent bg-(--bg) shadow-lg"
       >
         <button
             v-for="opt in availableOptions"
