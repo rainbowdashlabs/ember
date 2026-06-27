@@ -405,7 +405,13 @@ public class EmberModule extends AbstractModule {
     @Singleton
     QueryConfiguration queryConfiguration(DataSource dataSource, Database database, Demo demo)
             throws SQLException, IOException {
-        if (!demo.dev() && !demo.enabled()) {
+        // Skip the up-front migration only in full demo mode, where DemoService.resetAndSeed()
+        // drops the schema and re-runs the migration on every start. In every other mode —
+        // production, plain dev (DEMO_DEV=true without DEMO_ENABLED), and a fresh database under
+        // either — the schema must be in place before Guice provisions services whose
+        // constructors already query it (FederationService.backfillPartnerVersions is the first
+        // to hit the wire and was the canary that flagged this).
+        if (!demo.enabled()) {
             SqlUpdater.builder(dataSource, PostgreSql.get())
                     .setReplacements(new QueryReplacement("ember_schema", database.schema()))
                     .setSchemas(database.schema())
