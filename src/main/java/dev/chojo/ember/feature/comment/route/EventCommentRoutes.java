@@ -76,13 +76,11 @@ public class EventCommentRoutes implements Routes {
             queryParams = {
                 @OpenApiParam(
                         name = "date",
-                        type = String.class,
                         description =
                                 "ISO yyyy-MM-dd. When supplied, returns only comments for that occurrence of a recurring event. "
                                         + "Use 'none' to explicitly request whole-event comments (event_date IS NULL)."),
                 @OpenApiParam(
                         name = "scope",
-                        type = String.class,
                         description =
                                 "Either 'all' (default; date filter ignored) or 'date' (filters to the date param).")
             },

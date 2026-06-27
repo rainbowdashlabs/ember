@@ -199,7 +199,7 @@ class StorageServiceTest {
     }
 
     @Test
-    void singleByteStreamingDrivesDigest() throws Exception {
+    void singleByteStreamingDrivesDigest() {
         byte[] data = new byte[] {7};
         var stored = service.store(
                 stationScope(),
@@ -246,7 +246,7 @@ class StorageServiceTest {
     }
 
     @Test
-    void readWithVariantReturnsBytes() throws Exception {
+    void readWithVariantReturnsBytes() {
         service.store(
                 stationScope(),
                 StorageCategory.PAGE_FILES,

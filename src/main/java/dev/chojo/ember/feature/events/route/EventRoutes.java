@@ -348,7 +348,6 @@ public class EventRoutes implements Routes {
                         description = "Filter by registration requirement"),
                 @OpenApiParam(
                         name = "search",
-                        type = String.class,
                         description = "Free-text search over event name and description (case-insensitive)"),
                 @OpenApiParam(
                         name = "limit",
