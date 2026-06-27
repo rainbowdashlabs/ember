@@ -236,6 +236,39 @@ class StationRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(40)
+    void setupCompletedAtStartsNull() {
+        var station = stationRepo.findById(stationId).orElseThrow();
+        assertNull(station.setupCompletedAt());
+        assertTrue(stationRepo.findSetupCompletedAt(stationId).isEmpty());
+    }
+
+    @Test
+    @Order(41)
+    void markSetupCompleteStampsTimestamp() {
+        assertTrue(stationRepo.markSetupComplete(stationId));
+        var stamped = stationRepo.findSetupCompletedAt(stationId);
+        assertTrue(stamped.isPresent());
+        var station = stationRepo.findById(stationId).orElseThrow();
+        assertEquals(stamped.get(), station.setupCompletedAt());
+    }
+
+    @Test
+    @Order(42)
+    void markSetupCompleteIsIdempotent() {
+        var first = stationRepo.findSetupCompletedAt(stationId).orElseThrow();
+        assertFalse(stationRepo.markSetupComplete(stationId));
+        assertEquals(first, stationRepo.findSetupCompletedAt(stationId).orElseThrow());
+    }
+
+    @Test
+    @Order(43)
+    void markSetupCompleteOnUnknownStationDoesNothing() {
+        assertFalse(stationRepo.markSetupComplete(99999));
+        assertTrue(stationRepo.findSetupCompletedAt(99999).isEmpty());
+    }
+
+    @Test
     @Order(99)
     void delete() {
         assertTrue(stationRepo.delete(stationId));

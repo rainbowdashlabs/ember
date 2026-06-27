@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import jakarta.inject.Singleton;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -24,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
+import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
  * Repository for station CRUD operations, logo management, and module settings.
@@ -32,7 +34,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class StationRepository {
 
     private static final String STATION_COLUMNS =
-            "id, uid, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors, default_feel, allow_user_feel, public_kb_mode, federation_private_key, discovery_visibility, discovery_description, discovery_show_kb, public_calendar_enabled, landing_page_id, public_pages_enabled, public_slug, public_waitlist_enabled, public_blog_enabled, address_line, postal_code, city, country, latitude, longitude";
+            "id, uid, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors, default_feel, allow_user_feel, public_kb_mode, federation_private_key, discovery_visibility, discovery_description, discovery_show_kb, public_calendar_enabled, landing_page_id, public_pages_enabled, public_slug, public_waitlist_enabled, public_blog_enabled, address_line, postal_code, city, country, latitude, longitude, setup_completed_at";
 
     private final Cache<Integer, UUID> uidCache = Caffeine.newBuilder()
             .expireAfterAccess(5, TimeUnit.MINUTES)
@@ -362,6 +364,39 @@ public class StationRepository {
                 .single(call().bind("id", id))
                 .delete()
                 .changed();
+    }
+
+    /**
+     * Returns the setup wizard completion timestamp for a station, or empty while the wizard has
+     * not been finished yet.
+     *
+     * @param stationId the station ID
+     * @return the timestamp at which an administrator marked setup complete, or empty if still pending
+     */
+    public Optional<Instant> findSetupCompletedAt(int stationId) {
+        return query("SELECT setup_completed_at FROM station WHERE id = :id;")
+                .single(call().bind("id", stationId))
+                .map(row -> row.get("setup_completed_at", INSTANT_TIMESTAMP))
+                .first()
+                .flatMap(Optional::ofNullable);
+    }
+
+    /**
+     * Marks the station setup wizard as complete by stamping {@code setup_completed_at = now()}.
+     * Only updates rows where the column is still {@code NULL}, so calling twice does not overwrite
+     * the first completion timestamp.
+     *
+     * @param stationId the station ID
+     * @return {@code true} if a row was updated by this call, {@code false} if setup was already
+     *         marked complete previously (or no station matched)
+     */
+    public boolean markSetupComplete(int stationId) {
+        return query("""
+                UPDATE station
+                SET setup_completed_at = now()
+                WHERE id = :id
+                  AND setup_completed_at IS NULL;
+                """).single(call().bind("id", stationId)).update().changed();
     }
 
     /**

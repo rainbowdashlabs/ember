@@ -153,6 +153,7 @@ class UserFeedRoutesIntegrationTest {
                 null,
                 null,
                 null,
+                null,
                 null);
 
         when(tokenService.findByToken(TOKEN_VALUE)).thenReturn(Optional.of(token));

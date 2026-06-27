@@ -312,7 +312,7 @@ async function submit() {
       }
     }
 
-    router.push({name: 'events'})
+    leaveEditor()
   } catch (e) {
     reportCaughtError(e, 'EventEditView.submit')
     error.value = t('common.error')
@@ -321,8 +321,17 @@ async function submit() {
   }
 }
 
+function leaveEditor() {
+  const returnTo = typeof route.query.returnTo === 'string' ? route.query.returnTo : null
+  if (returnTo && returnTo.startsWith('/')) {
+    router.push(returnTo)
+  } else {
+    router.push({name: 'events'})
+  }
+}
+
 function goBack() {
-  router.push({name: 'events'})
+  leaveEditor()
 }
 
 onMounted(() => {

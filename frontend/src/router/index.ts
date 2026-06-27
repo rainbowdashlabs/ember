@@ -152,6 +152,81 @@ const router = createRouter({
             component: HomeView,
         },
         {
+            path: '/station/setup',
+            children: [
+                {
+                    path: '',
+                    name: 'station-setup',
+                    component: () => import('@/views/stationview/setup/SetupIndexView.vue'),
+                },
+                {
+                    path: 'welcome',
+                    name: 'station-setup-welcome',
+                    component: () => import('@/views/stationview/setup/steps/WelcomeStep.vue'),
+                },
+                {
+                    path: 'address',
+                    name: 'station-setup-address',
+                    component: () => import('@/views/stationview/setup/steps/AddressStep.vue'),
+                },
+                {
+                    path: 'modules',
+                    name: 'station-setup-modules',
+                    component: () => import('@/views/stationview/setup/steps/ModulesStep.vue'),
+                },
+                {
+                    path: 'member-types',
+                    name: 'station-setup-member-types',
+                    component: () => import('@/views/stationview/setup/steps/MemberTypesStep.vue'),
+                },
+                {
+                    path: 'groups',
+                    name: 'station-setup-groups',
+                    component: () => import('@/views/stationview/setup/steps/GroupsStep.vue'),
+                },
+                {
+                    path: 'mail',
+                    name: 'station-setup-mail',
+                    component: () => import('@/views/stationview/setup/steps/MailStep.vue'),
+                },
+                {
+                    path: 'branding',
+                    name: 'station-setup-branding',
+                    component: () => import('@/views/stationview/setup/steps/BrandingStep.vue'),
+                },
+                {
+                    path: 'first-event',
+                    name: 'station-setup-first-event',
+                    component: () => import('@/views/stationview/setup/steps/FirstEventStep.vue'),
+                },
+                {
+                    path: 'kb-seed',
+                    name: 'station-setup-kb-seed',
+                    component: () => import('@/views/stationview/setup/steps/KbSeedStep.vue'),
+                },
+                {
+                    path: 'federation',
+                    name: 'station-setup-federation',
+                    component: () => import('@/views/stationview/setup/steps/FederationStep.vue'),
+                },
+                {
+                    path: 'invites',
+                    name: 'station-setup-invites',
+                    component: () => import('@/views/stationview/setup/steps/InvitesStep.vue'),
+                },
+                {
+                    path: 'finish',
+                    name: 'station-setup-finish',
+                    component: () => import('@/views/stationview/setup/steps/FinishStep.vue'),
+                },
+            ],
+        },
+        {
+            path: '/invite/:token',
+            name: 'public-station-invite',
+            component: () => import('@/views/public/StationInviteView.vue'),
+        },
+        {
             path: '/station',
             component: DashboardView,
             children: [
@@ -1112,6 +1187,72 @@ const router = createRouter({
                     path: 'requirements',
                     name: 'help-station-requirements',
                     component: () => import('@/views/helpcenter/stationview/RequirementsHelp.vue')
+                },
+                // Setup wizard
+                {
+                    path: 'setup',
+                    name: 'help-station-setup-overview',
+                    component: () => import('@/views/helpcenter/stationview/setup/OverviewHelp.vue')
+                },
+                {
+                    path: 'welcome',
+                    name: 'help-station-setup-welcome',
+                    component: () => import('@/views/helpcenter/stationview/setup/WelcomeStepHelp.vue')
+                },
+                {
+                    path: 'address',
+                    name: 'help-station-setup-address',
+                    component: () => import('@/views/helpcenter/stationview/setup/AddressStepHelp.vue')
+                },
+                {
+                    path: 'modules',
+                    name: 'help-station-setup-modules',
+                    component: () => import('@/views/helpcenter/stationview/setup/ModulesStepHelp.vue')
+                },
+                {
+                    path: 'member-types',
+                    name: 'help-station-setup-member-types',
+                    component: () => import('@/views/helpcenter/stationview/setup/MemberTypesStepHelp.vue')
+                },
+                {
+                    path: 'groups',
+                    name: 'help-station-setup-groups',
+                    component: () => import('@/views/helpcenter/stationview/setup/GroupsStepHelp.vue')
+                },
+                {
+                    path: 'mail',
+                    name: 'help-station-setup-mail',
+                    component: () => import('@/views/helpcenter/stationview/setup/MailStepHelp.vue')
+                },
+                {
+                    path: 'branding',
+                    name: 'help-station-setup-branding',
+                    component: () => import('@/views/helpcenter/stationview/setup/BrandingStepHelp.vue')
+                },
+                {
+                    path: 'first-event',
+                    name: 'help-station-setup-first-event',
+                    component: () => import('@/views/helpcenter/stationview/setup/FirstEventStepHelp.vue')
+                },
+                {
+                    path: 'kb-seed',
+                    name: 'help-station-setup-kb-seed',
+                    component: () => import('@/views/helpcenter/stationview/setup/KbSeedStepHelp.vue')
+                },
+                {
+                    path: 'federation',
+                    name: 'help-station-setup-federation',
+                    component: () => import('@/views/helpcenter/stationview/setup/FederationStepHelp.vue')
+                },
+                {
+                    path: 'invites',
+                    name: 'help-station-setup-invites',
+                    component: () => import('@/views/helpcenter/stationview/setup/InvitesStepHelp.vue')
+                },
+                {
+                    path: 'finish',
+                    name: 'help-station-setup-finish',
+                    component: () => import('@/views/helpcenter/stationview/setup/FinishStepHelp.vue')
                 },
                 // News
                 {

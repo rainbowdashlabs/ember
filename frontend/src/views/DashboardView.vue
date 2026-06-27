@@ -29,6 +29,7 @@ import ReportProblemButton from '@/components/feedback/ReportProblemButton.vue'
 import DevToolsButton from '@/components/feedback/DevToolsButton.vue'
 import {useOnboardingTour} from '@/composables/useOnboardingTour'
 import InventorySidebarGroup from '@/views/dashboardview/InventorySidebarGroup.vue'
+import SetupSidebarGroup from '@/views/dashboardview/SetupSidebarGroup.vue'
 import QuickSearchPalette from '@/components/quicksearch/QuickSearchPalette.vue'
 import {useQuickSearch} from '@/composables/useQuickSearch'
 
@@ -124,6 +125,14 @@ watch(loaded, (isLoaded) => {
     }
     return
   }
+  if (
+      hasPermission(StationPermission.STATION_ADMINISTRATOR)
+      && sessionInfo.value?.setupCompletedAt == null
+      && !route.path.startsWith('/station/setup')
+  ) {
+    router.replace({name: 'station-setup'})
+    return
+  }
   refreshSidebarCounts()
   if (isModuleEnabled(StationModules.BOARDS) && hasPermission(StationPermission.BOARD_USE)) refreshBoards()
   if (isModuleEnabled(StationModules.BOARDS) && hasPermission(StationPermission.BOARD_USE) && canManageFederation()) refreshBookmarkedBoards()
@@ -165,6 +174,13 @@ const manageDefaultRoute = computed(() => {
   <SidebarLayout :station-logo-url="activeLogoUrl" :station-name="activeStation?.stationName" :subtitle="pageSubtitle"
                  :title="pageTitle">
     <template #sidebar="{ close }">
+      <SetupSidebarGroup
+          v-if="hasPermission(StationPermission.STATION_ADMINISTRATOR) && sessionInfo?.setupCompletedAt == null"
+          :is-desktop="isDesktop"
+          :open-group="openGroup"
+          @update:open-group="v => openGroup = v"
+          @navigate="close"/>
+
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" :badge="counts.notifications" :icon="['fas', 'gauge']" :label="t('sidebar.dashboard')" prefix="/station/dashboard" to="/station/dashboard/overview" name="dashboard-overview" @navigate="close">
         <SidebarLink v-if="hasPermission(StationPermission.STATION_STATISTICS)" :icon="['fas', 'chart-line']" name="dashboard-statistics"
                      to="/station/dashboard/statistics" @navigate="close">

@@ -15,6 +15,7 @@ const props = defineProps<{
   allRoles: PermissionGrant[]
   modelValue: Set<number>
   hiddenPermissions?: Set<string>
+  lockedPermissions?: Set<string>
 }>()
 
 const emit = defineEmits<{
@@ -99,12 +100,20 @@ const implicitlyGrantedBy = computed<Map<string, string>>(() => {
   return map
 })
 
+function isLocked(name: string): boolean {
+  return props.lockedPermissions?.has(name) ?? false
+}
+
 function isEffectivelyEnabled(name: string): boolean {
-  return isDirectlySelected(name) || implicitlyGrantedBy.value.has(name)
+  return isDirectlySelected(name) || implicitlyGrantedBy.value.has(name) || isLocked(name)
 }
 
 function isImplicit(name: string): boolean {
   return implicitlyGrantedBy.value.has(name)
+}
+
+function isDisabled(name: string): boolean {
+  return isImplicit(name) || isLocked(name)
 }
 
 function grantedByLabel(name: string): string {
@@ -123,7 +132,7 @@ function allChildNames(node: TreeNode): string[] {
 }
 
 function toggle(name: string, node: TreeNode) {
-  if (isImplicit(name)) return
+  if (isDisabled(name)) return
   const newSet = new Set(props.modelValue)
   const role = roleByName.value.get(name)
   if (!role) return
@@ -153,7 +162,7 @@ function toggle(name: string, node: TreeNode) {
 }
 
 function toggleLeaf(name: string) {
-  if (isImplicit(name)) return
+  if (isDisabled(name)) return
   const newSet = new Set(props.modelValue)
   const role = roleByName.value.get(name)
   if (!role) return
@@ -253,12 +262,12 @@ const GROUP_ICONS: Record<string, string[]> = {
         <!-- Top-level group header -->
         <div
             class="flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none transition-colors"
-            :class="[isEffectivelyEnabled(node.name) ? 'bg-primary/5' : 'hover:bg-bg-light-accent/40 dark:hover:bg-bg-dark-accent/40', isImplicit(node.name) ? 'opacity-60' : '']"
+            :class="[isEffectivelyEnabled(node.name) ? 'bg-primary/5' : 'hover:bg-bg-light-accent/40 dark:hover:bg-bg-dark-accent/40', isDisabled(node.name) ? 'opacity-60' : '']"
             @click="node.children.length > 0 && toggleExpand(node.name)"
         >
           <ToggleInput
               :model-value="isEffectivelyEnabled(node.name)"
-              :disabled="isImplicit(node.name)"
+              :disabled="isDisabled(node.name)"
               @update:model-value="toggle(node.name, node)"
               @click.stop
           />
@@ -272,6 +281,9 @@ const GROUP_ICONS: Record<string, string[]> = {
             <div class="text-xs text-(--text-muted) leading-tight">{{ t(`permissions.${node.name}.desc`) }}</div>
             <div v-if="isImplicit(node.name)" class="text-[10px] text-primary italic mt-0.5">
               {{ t('permissions.grantedBy', { name: grantedByLabel(node.name) }) }}
+            </div>
+            <div v-else-if="isLocked(node.name)" class="text-[10px] text-primary italic mt-0.5">
+              {{ t('permissions.lockedByUserType') }}
             </div>
           </div>
           <span
@@ -291,11 +303,11 @@ const GROUP_ICONS: Record<string, string[]> = {
               v-for="item in flattenDescendants(node)"
               :key="item.name"
               class="flex items-center gap-3 px-3 py-2 pl-10 transition-colors"
-              :class="isImplicit(item.name) ? 'opacity-60 bg-bg-light-accent/10 dark:bg-bg-dark-accent/10' : 'hover:bg-bg-light-accent/40 dark:hover:bg-bg-dark-accent/40'"
+              :class="isDisabled(item.name) ? 'opacity-60 bg-bg-light-accent/10 dark:bg-bg-dark-accent/10' : 'hover:bg-bg-light-accent/40 dark:hover:bg-bg-dark-accent/40'"
           >
             <ToggleInput
                 :model-value="isEffectivelyEnabled(item.name)"
-                :disabled="isImplicit(item.name)"
+                :disabled="isDisabled(item.name)"
                 @update:model-value="item.node.children.length > 0 ? toggle(item.name, item.node) : toggleLeaf(item.name)"
             />
             <div class="min-w-0">
@@ -303,6 +315,9 @@ const GROUP_ICONS: Record<string, string[]> = {
               <div class="text-xs text-(--text-muted) leading-tight">{{ t(`permissions.${item.name}.desc`) }}</div>
               <div v-if="isImplicit(item.name)" class="text-[10px] text-primary italic mt-0.5">
                 {{ t('permissions.grantedBy', { name: grantedByLabel(item.name) }) }}
+              </div>
+              <div v-else-if="isLocked(item.name)" class="text-[10px] text-primary italic mt-0.5">
+                {{ t('permissions.lockedByUserType') }}
               </div>
             </div>
           </div>

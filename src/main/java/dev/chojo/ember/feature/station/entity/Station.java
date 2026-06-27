@@ -10,7 +10,10 @@ import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.UUID;
+
+import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
  * Represents a station (organization unit) in the system.
@@ -24,6 +27,8 @@ import java.util.UUID;
  * @param discoveryVisibility  controls whether this station appears in federation discovery
  * @param discoveryDescription optional description shown in discovery
  * @param discoveryShowKb      whether to show a link to the public knowledge base in discovery
+ * @param setupCompletedAt     timestamp at which an administrator first marked the station setup wizard
+ *                             complete, or {@code null} while the wizard still runs for new administrators
  */
 public record Station(
         int id,
@@ -53,7 +58,8 @@ public record Station(
         String city,
         String country,
         BigDecimal latitude,
-        BigDecimal longitude) {
+        BigDecimal longitude,
+        Instant setupCompletedAt) {
     public static RowMapping<Station> map() {
         return row -> new Station(
                 row.getInt("id"),
@@ -83,6 +89,7 @@ public record Station(
                 row.getString("city"),
                 row.getString("country"),
                 row.getBigDecimal("latitude"),
-                row.getBigDecimal("longitude"));
+                row.getBigDecimal("longitude"),
+                row.get("setup_completed_at", INSTANT_TIMESTAMP));
     }
 }

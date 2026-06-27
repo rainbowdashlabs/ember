@@ -1,5 +1,20 @@
 # Changelog
 
+## v26.10.1
+
+### New Features
+
+#### Station setup walkthrough
+
+- **Setup wizard at /station/setup.** Administrators of a freshly-created station land on a guided walkthrough that covers the address and pin on the map, module selection, member-type permissions, optional member groups, the station's own outbound mail relay, branding, federation visibility (public by default), a first event, an initial knowledge-base page, and member invites. The standard sidebar shows the steps with check marks for what is already done.
+- **Pinned setup checklist on the dashboard.** While any step is still open, the dashboard shows a checklist with direct links into the wizard. It disappears once an administrator clicks the finish page to mark setup complete.
+- **Member invites by email.** Administrators can invite people by email from the wizard or from the regular members screen. Each recipient gets a single-use link, lands on /invite/<token>, sets a password, and joins the station without the administrator having to create an account first. Invites carry the recipient's name, member type, optional group, and optional guardians; pending invites can be revoked.
+- **Roster CSV import in the invite step.** The invite step hands off to the existing member-import screen with full column-mapping (name, email, groups, guardians, profile fields) and preview, then lands back in the wizard once the import is done.
+
+### Changes
+
+- **Waitlist emails go through the instance mail relay.** Verification, registration confirmation, confirm-reminder, and removal-warning emails for the public waiting list now route over the instance-wide mailbox just like account verification and password-reset emails. Stations no longer need their own mail relay set up for these to arrive, and the per-station daily and monthly send caps no longer apply to them.
+
 ## v26.10.0
 
 ### New Features

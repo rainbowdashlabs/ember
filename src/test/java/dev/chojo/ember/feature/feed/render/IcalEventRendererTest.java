@@ -94,6 +94,7 @@ class IcalEventRendererTest {
                 null,
                 null,
                 null,
+                null,
                 null);
     }
 

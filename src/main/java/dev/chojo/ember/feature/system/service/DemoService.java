@@ -567,8 +567,36 @@ public class DemoService {
         //    changes. Live-loaded body enrichment fires because the ids are real. --
         seedNotificationShowcase(station.id(), adminMember, members, news, events, lostAndFoundItem);
 
+        stationRepository.markSetupComplete(station.id());
+        log.info("Demo: Marked Musterstadt station setup complete");
+
+        seedUnSetupStation(hash);
+
         log.info("Demo: Created all user accounts (password: '{}')", PASSWORD);
         log.info("Demo: Admin login: admin@ember.local / {}", PASSWORD);
+    }
+
+    private void seedUnSetupStation(String passwordHash) {
+        var freshStation = stationRepository.create(
+                "Wache Neuhausen (Einrichtung)", UUID.fromString("00000000-0000-4000-a000-000000000002"));
+        stationRepository.updateTimezone(freshStation.id(), "Europe/Berlin");
+        stationRepository.updateLocale(freshStation.id(), "de-DE");
+
+        var freshAdminAccount = accountRepository.create("setup-admin@ember.local", "Setup", "Admin", true);
+        accountRepository.setUid(freshAdminAccount.id(), DemoUids.account("setup-admin@ember.local"));
+        accountRepository.createCredential(freshAdminAccount.id(), passwordHash);
+
+        var freshAdminMember = stationMemberRepository.create(freshStation.id(), freshAdminAccount.id());
+        stationMemberRepository.setUserType(freshAdminMember.id(), StationUserType.MANAGER);
+        var adminPerm = stationMemberRepository
+                .findPermissionByName(dev.chojo.ember.api.auth.StationPermission.STATION_ADMINISTRATOR)
+                .orElseThrow();
+        stationMemberRepository.grantPermission(freshAdminMember.id(), adminPerm.id());
+        stationRepository.setOwner(freshStation.id(), freshAdminMember.id());
+
+        log.info(
+                "Demo: Created un-setup demo station — login: setup-admin@ember.local / {} (will land on /station/setup)",
+                PASSWORD);
     }
 
     private void seedNotificationShowcase(

@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:f0514cf8bfe2bb5d075643b7c889dea00ebf359834a4a6c68c74803009c4b4ec",
-  "generatedAt" : "2026-06-25T13:45:05Z",
+  "schemaHash" : "sha256:fca934d8bd947426119a58cbe0cd868cffa0e948f268ad5ca62e28c7750f1756",
+  "generatedAt" : "2026-06-27T18:00:15Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -7013,7 +7013,7 @@
         "type" : "int4",
         "nullable" : true,
         "verified" : true,
-        "description" : "Optional reference to the container that physically holds this item. NULL means unlocated. ON DELETE SET NULL keeps the item even if the container is deleted."
+        "description" : "Optional reference to the container that physically holds this item. NULL means unlocated. An item with a container is not assigned to a member; the two states are mutually exclusive via the inventory_item_assigned_xor_in_container CHECK. ON DELETE SET NULL keeps the item even if the container is deleted."
       } ],
       "foreignKeys" : [ {
         "column" : "assigned_to",
@@ -11274,7 +11274,7 @@
     "station" : {
       "feature" : "station",
       "scope" : "STATION",
-      "tableHash" : "sha256:b3364ad7f745ad2cb926337f8617edaa2f83cec29c497347b3a73c3760a8b136",
+      "tableHash" : "sha256:d679343f780505317b7e8a4c30ca3cbc180c1f66a7bf98f9c2dddc585f7c155d",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -11513,6 +11513,12 @@
         "nullable" : false,
         "verified" : true,
         "description" : "Set by the source operator when a station export-transfer token is created. While the flag is on, StorageService.store refuses uploads with 503 so the destination instance does not race with new writes on the source mid-transfer. The flag clears when the source operator deletes the station (existing cascade) or calls POST /station/transfer/abort."
+      }, {
+        "name" : "setup_completed_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Timestamp when an administrator first marked the station setup wizard as complete. NULL means the wizard still runs for administrators logging in, and the dashboard setup checklist is shown."
       } ],
       "foreignKeys" : [ {
         "column" : "landing_page_id",
@@ -12234,6 +12240,141 @@
         } ]
       },
       "description" : "Membership of an account in a station. An account can be a member of multiple stations."
+    },
+    "station_member_invite" : {
+      "feature" : "members",
+      "scope" : "STATION",
+      "tableHash" : "sha256:2d19f424efc8368a15afde57ca13394a7ba29ea97339f298868d9d3621a84013",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "token",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "URL-safe Base64-encoded random token used in the public invite link. Plain (not hashed) — short-lived and single-use, matching the existing public registration token model."
+      }, {
+        "name" : "email",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "first_name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "last_name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "user_type",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Target StationUserType (MEMBER, GUARDIAN, TEAM, MANAGER) the new station_member row will be assigned on acceptance."
+      }, {
+        "name" : "group_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Optional member group the new station_member row will be added to on acceptance. ON DELETE SET NULL so deleting a group does not invalidate pending invites."
+      }, {
+        "name" : "guardian_of_invite_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When non-null, this invite is for a guardian whose managed member is the account that accepts the referenced invite. The guardian-of relation is wired on whichever side accepts last."
+      }, {
+        "name" : "invited_by_member_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "expires_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "accepted_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true
+      }, {
+        "name" : "accepted_account_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Account row created (or chosen) at acceptance time. NULL while pending."
+      }, {
+        "name" : "created_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true
+      } ],
+      "foreignKeys" : [ {
+        "column" : "accepted_account_id",
+        "refTable" : "account",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "group_id",
+        "refTable" : "member_group",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "guardian_of_invite_id",
+        "refTable" : "station_member_invite",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "invited_by_member_id",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Pending invites are short-lived operational state tied to a specific instance's mail relay and registration URLs. Admins re-invite on the new instance after migration."
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "ACCOUNT_ID",
+          "column" : "accepted_account_id"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "email",
+          "strategy" : "ANONYMIZE",
+          "reason" : "Recipient email is the personal identifier; replace with a tombstone on account deletion while keeping the audit trail of who invited whom."
+        }, {
+          "column" : "first_name",
+          "strategy" : "ANONYMIZE",
+          "reason" : "Replace with empty string on deletion."
+        }, {
+          "column" : "last_name",
+          "strategy" : "ANONYMIZE",
+          "reason" : "Replace with empty string on deletion."
+        } ]
+      },
+      "description" : "Single-use email invite a station administrator sends to bring a new member onto the station. The invitee follows the tokenised link, sets a password, and is created as an account + station_member in one step. Distinct from the public waiting-list invite, which is a shared link without a designated recipient."
     },
     "station_member_permission" : {
       "feature" : "station",

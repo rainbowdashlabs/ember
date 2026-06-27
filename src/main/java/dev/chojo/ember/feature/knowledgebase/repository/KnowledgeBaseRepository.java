@@ -28,6 +28,25 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class KnowledgeBaseRepository {
 
+    /**
+     * Returns {@code true} if the station has at least one knowledge-base file or folder. Used by
+     * the setup wizard's status endpoint to mark the optional "knowledge base seed" step complete.
+     */
+    public boolean existsForStation(int stationId) {
+        return query("""
+                SELECT 1
+                FROM (
+                    SELECT 1 FROM kb_folder WHERE station_id = :station_id
+                    UNION ALL
+                    SELECT 1 FROM kb_file WHERE station_id = :station_id
+                ) any_kb_entry
+                LIMIT 1;""")
+                .single(call().bind("station_id", stationId))
+                .map(row -> true)
+                .first()
+                .orElse(false);
+    }
+
     private static final String FOLDER_COLUMNS =
             "fo.id, fo.station_id, fo.parent_id, fo.name, fo.description, fo.icon_url, fo.position, fo.created_by, fo.created_at, fo.updated_at, fo.restriction_mode, EXISTS(SELECT 1 FROM kb_access_restriction r WHERE r.folder_id = fo.id) AS restricted";
     private static final String FOLDER_COLUMNS_BARE =

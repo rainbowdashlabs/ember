@@ -1,0 +1,56 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+<script setup lang="ts">
+import {ref} from 'vue'
+import {useI18n} from 'vue-i18n'
+import {useRouter} from 'vue-router'
+import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
+import LocationSection from '@/views/stationview/manage/stationview/LocationSection.vue'
+import Alert from '@/components/feedback/Alert.vue'
+import {useSetupStatus} from '@/composables/useSetupStatus'
+import {nextStep, stepRouteName} from '@/views/stationview/setup/steps'
+
+const {t} = useI18n()
+const router = useRouter()
+const {reload, requiredSteps} = useSetupStatus()
+
+const message = ref('')
+const messageVariant = ref<'success' | 'error'>('success')
+const saving = ref(false)
+
+function onSuccess(text: string) {
+  message.value = text
+  messageVariant.value = 'success'
+}
+
+function onError(text: string) {
+  message.value = text
+  messageVariant.value = 'error'
+}
+
+async function proceed() {
+  saving.value = true
+  try {
+    await reload()
+    const addressStep = requiredSteps.value.find((s) => s.id === 'address')
+    if (!addressStep?.complete) {
+      onError(t('setup.steps.address.incompleteHint'))
+      return
+    }
+    const next = nextStep('address')
+    if (next) router.push({name: stepRouteName(next)})
+  } finally {
+    saving.value = false
+  }
+}
+</script>
+
+<template>
+  <SetupLayout step-id="address" :saving="saving" @save="proceed">
+    <LocationSection @success="onSuccess" @error="onError"/>
+    <Alert v-if="message" :variant="messageVariant">{{ message }}</Alert>
+  </SetupLayout>
+</template>
