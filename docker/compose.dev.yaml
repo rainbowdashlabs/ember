@@ -13,6 +13,7 @@ services:
     profiles:
       - storage
       - full
+      - transfer
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ember"]
       interval: 5s
@@ -140,6 +141,7 @@ services:
         condition: service_healthy
     profiles:
       - full
+      - transfer
 
   # Dev frontend: Nuxt dev server with HMR. Bind-mounts the source, isolates
   # node_modules in a named volume so the host's install does not shadow it.
@@ -162,6 +164,93 @@ services:
       - ember
     profiles:
       - full
+      - transfer
+
+  # ----- Target stack for cross-instance station transfer testing -----
+  #
+  # The "transfer" profile spins up a second, isolated Ember stack (its own
+  # postgres + backend + frontend) alongside the main one so the cross-instance
+  # transfer flow can be exercised end to end. Both backends share the default
+  # compose network, so the target's import flow can reach the source over
+  # container DNS at http://ember:8080.
+  #
+  # Run with:
+  #   docker compose -f docker/compose.dev.yaml --profile transfer up
+  #
+  # Source (existing) stack:
+  #   UI  http://localhost:3000   API  http://localhost:8888
+  # Target (new) stack:
+  #   UI  http://localhost:3001   API  http://localhost:8889
+  #
+  # In the target's admin import screen, point at the source as
+  # `http://ember:8080` (NOT localhost — that would resolve inside the target
+  # container) and paste the token produced by the source's
+  # Station → Manage → Import/Export flow.
+  #
+  # Wipe both stacks (including volumes) with:
+  #   docker compose -f docker/compose.dev.yaml --profile transfer down -v
+
+  ember_target_db:
+    image: postgres:17-alpine
+    container_name: ember_dev_target_db
+    environment:
+      POSTGRES_DB: ember
+      POSTGRES_USER: ember
+      POSTGRES_PASSWORD: ember
+    volumes:
+      - ember-dev-target-data:/var/lib/postgresql/data
+    profiles:
+      - transfer
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ember"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  ember_target:
+    container_name: ember_dev_target
+    build:
+      context: ..
+      dockerfile: docker/backend.dev.Dockerfile
+    ports:
+      - "8889:8080"
+    environment:
+      DB_HOST: ember_target_db
+      DB_PORT: "5432"
+      DB_USER: ember
+      DB_PASSWORD: ember
+      DB_DATABASE: ember
+      DB_SCHEMA: ember_schema
+      DEMO_DEV: "true"
+    volumes:
+      - ..:/home/gradle/project
+      - ember-dev-target-gradle-cache:/home/gradle/.gradle
+      - ember-dev-target-gradle-build:/home/gradle/project/build
+      - ember-dev-target-project-gradle:/home/gradle/project/.gradle
+      - ./config:/home/gradle/project/config
+      - ember-dev-target-app-data:/home/gradle/project/data
+    depends_on:
+      ember_target_db:
+        condition: service_healthy
+    profiles:
+      - transfer
+
+  ember_target_frontend:
+    container_name: ember_dev_target_frontend
+    build:
+      context: ..
+      dockerfile: docker/frontend.dev.Dockerfile
+    ports:
+      - "3001:3000"
+    environment:
+      NUXT_BACKEND_URL: http://ember_target:8080
+    volumes:
+      - ../frontend:/build
+      - ember-dev-target-node-modules:/build/node_modules
+    depends_on:
+      - ember_target
+    profiles:
+      - transfer
 
 volumes:
   ember-dev-data:
@@ -172,3 +261,9 @@ volumes:
   ember-dev-gradle-build:
   ember-dev-project-gradle:
   ember-dev-node-modules:
+  ember-dev-target-data:
+  ember-dev-target-app-data:
+  ember-dev-target-gradle-cache:
+  ember-dev-target-gradle-build:
+  ember-dev-target-project-gradle:
+  ember-dev-target-node-modules:
