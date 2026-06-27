@@ -1082,6 +1082,11 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/basics/HostingHelp.vue')
                 },
                 {
+                    path: 'basics/hosting/configuration',
+                    name: 'help-basics-hosting-configuration',
+                    component: () => import('@/views/helpcenter/basics/ConfigurationHelp.vue')
+                },
+                {
                     path: 'basics/federation',
                     name: 'help-basics-federation',
                     component: () => import('@/views/helpcenter/basics/FederationHelp.vue')
