@@ -73,7 +73,23 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class DemoService {
     private static final Logger log = LoggerFactory.getLogger(DemoService.class);
     private static final String PASSWORD = "demo";
-    private static final Path SCHEMA_HASH_FILE = Path.of(".demo-schema-hash");
+    /**
+     * Location of the schema-fingerprint sentinel used to decide whether the demo seeder can
+     * skip re-running. Suffixed with the container hostname so two backends running off the
+     * same source tree (e.g. the {@code transfer} compose profile, which bind-mounts the
+     * project root into both containers) keep separate fingerprints instead of racing on a
+     * single shared file.
+     */
+    private static final Path SCHEMA_HASH_FILE = resolveSchemaHashFile();
+
+    private static Path resolveSchemaHashFile() {
+        String hostname = System.getenv("HOSTNAME");
+        if (hostname == null || hostname.isBlank()) {
+            return Path.of(".demo-schema-hash");
+        }
+        return Path.of(".demo-schema-hash." + hostname);
+    }
+
     private final Demo demoConfig;
     private final Database databaseConfig;
     private final DataSource dataSource;
