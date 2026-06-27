@@ -75,19 +75,26 @@ public class DemoService {
     private static final String PASSWORD = "demo";
     /**
      * Location of the schema-fingerprint sentinel used to decide whether the demo seeder can
-     * skip re-running. Suffixed with the container hostname so two backends running off the
-     * same source tree (e.g. the {@code transfer} compose profile, which bind-mounts the
+     * skip re-running. Suffixed with the {@code DB_HOST} env var so two backends running off
+     * the same source tree (e.g. the {@code transfer} compose profile, which bind-mounts the
      * project root into both containers) keep separate fingerprints instead of racing on a
-     * single shared file.
+     * single shared file. {@code DB_HOST} is preferred over {@code HOSTNAME} because the
+     * container hostname defaults to a random per-run docker container id and would orphan a
+     * fresh sentinel on every {@code compose up}; the configured database host is stable
+     * across restarts and unique per stack by construction.
      */
     private static final Path SCHEMA_HASH_FILE = resolveSchemaHashFile();
 
     private static Path resolveSchemaHashFile() {
-        String hostname = System.getenv("HOSTNAME");
-        if (hostname == null || hostname.isBlank()) {
+        String key = System.getenv("DB_HOST");
+        if (key == null || key.isBlank()) {
             return Path.of(".demo-schema-hash");
         }
-        return Path.of(".demo-schema-hash." + hostname);
+        return Path.of(".demo-schema-hash." + sanitizeForFilename(key));
+    }
+
+    private static String sanitizeForFilename(String value) {
+        return value.replaceAll("[^A-Za-z0-9._-]", "_");
     }
 
     private final Demo demoConfig;

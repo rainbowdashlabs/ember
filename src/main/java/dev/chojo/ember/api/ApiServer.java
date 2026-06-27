@@ -397,6 +397,15 @@ public class ApiServer {
                 pageHitRecorder.record(pageId, country, referer, isBot);
             });
 
+            // demoConfig.enabled() vs demoConfig.dev():
+            //   - enabled(): public demo mode — the instance is reset on an idle timer and
+            //     handed to anonymous visitors. handleDemoGuard runs to block destructive
+            //     and externally-effecting endpoints (account deletion, external probes,
+            //     real-mail tests, file uploads, AI calls, …). See DEMO_BLOCKED_PATHS.
+            //   - dev(): local-development flag. Enables /api/v1/dev/errors, relaxes secure-
+            //     cookie requirements over plain HTTP, and skips the eager admin bootstrap.
+            //     NO endpoints are blocked in dev mode — the demo guard is intentionally
+            //     not attached so transfer, uploads, probes and everything else are usable.
             if (demoConfig.enabled()) {
                 config.routes.before(this::handleDemoGuard);
             }
