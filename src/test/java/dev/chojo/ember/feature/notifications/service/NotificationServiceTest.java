@@ -696,21 +696,28 @@ class NotificationServiceTest extends RepositoryTestBase {
         // resolveNotificationUrl pre-dates the require-link guard. It still handles
         // legacy/malformed data that lacks a link — verify it short-circuits to null.
         var noLink = new NotificationData(new NotificationParams.MemberAddedToGroup("Alpha", null), null);
-        assertNull(service.resolveNotificationUrl("https://ember.example.com", noLink));
+        assertNull(service.resolveNotificationUrl("https://ember.example.com", null, noLink));
 
         var unknown = NotificationData.of(
                 new NotificationParams.MemberAddedToGroup("Alpha", null),
                 new NotificationData.NotificationLink("bogus-route"));
         assertEquals(
                 "https://ember.example.com/station/dashboard/overview",
-                service.resolveNotificationUrl("https://ember.example.com", unknown));
+                service.resolveNotificationUrl("https://ember.example.com", null, unknown));
 
         var known = NotificationData.of(
                 new NotificationParams.NewEvent("Probe", ""),
                 new NotificationData.NotificationLink("event-detail", Map.of("id", 42)));
         assertEquals(
                 "https://ember.example.com/station/events/42",
-                service.resolveNotificationUrl("https://ember.example.com", known));
+                service.resolveNotificationUrl("https://ember.example.com", null, known));
+
+        // With a station UUID, every station-scoped link gains ?station=<uid> so the recipient
+        // lands on the right station context after login when they belong to several stations.
+        var stationUid = java.util.UUID.fromString("00000000-0000-0000-0000-000000000042");
+        assertEquals(
+                "https://ember.example.com/station/events/42?station=" + stationUid,
+                service.resolveNotificationUrl("https://ember.example.com", stationUid, known));
     }
 
     @Test

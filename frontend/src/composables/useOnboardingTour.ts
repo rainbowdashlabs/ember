@@ -101,9 +101,13 @@ export function useOnboardingTour() {
     }
 
     function checkFirstLogin() {
-        if (!isTourCompleted()) {
-            startTour()
-        }
+        if (isTourCompleted()) return
+        // Auto-start the onboarding tour only when the user lands on the dashboard root.
+        // If they followed a deep link (an email/feed notification, a shared item URL, …)
+        // we honour where they intended to go and leave the tour for their next dashboard
+        // visit; otherwise the tour's first step would yank them off the deep link.
+        if (router.currentRoute.value.name !== 'dashboard-overview') return
+        startTour()
     }
 
     return {

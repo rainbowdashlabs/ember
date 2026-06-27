@@ -65,7 +65,8 @@ class QuizTestRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void createTest() {
-        var test = quizTestRepo.create(station.id(), "First Aid Test", "Basic first aid", 60, false, member.id());
+        var test =
+                quizTestRepo.create(station.id(), "First Aid Test", "Basic first aid", 60, false, false, member.id());
         assertNotNull(test);
         assertEquals("First Aid Test", test.title());
         assertEquals(TestStatus.DRAFT, test.status());
@@ -91,10 +92,11 @@ class QuizTestRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(4)
     void updateTest() {
-        assertTrue(quizTestRepo.update(testId, "Updated Test", "Updated desc", 90, true, null, null));
+        assertTrue(quizTestRepo.update(testId, "Updated Test", "Updated desc", 90, true, true, null, null));
         var found = quizTestRepo.findById(testId).orElseThrow();
         assertEquals("Updated Test", found.title());
         assertTrue(found.shuffle());
+        assertTrue(found.forced());
     }
 
     @Test

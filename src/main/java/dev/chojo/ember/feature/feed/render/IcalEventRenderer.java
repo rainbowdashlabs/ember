@@ -170,7 +170,8 @@ public class IcalEventRenderer {
             vevent.add(new Location(location));
         }
 
-        String deepLink = ctx.baseUrl() + "/station/events/" + event.id();
+        String deepLink = ctx.baseUrl() + "/station/events/" + event.id() + "?station="
+                + ctx.station().uid();
         vevent.add(new Url(URI.create(deepLink)));
 
         if (ctx.verbose()) {

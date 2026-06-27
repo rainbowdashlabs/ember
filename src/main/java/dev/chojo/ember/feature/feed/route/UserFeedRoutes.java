@@ -439,12 +439,12 @@ public class UserFeedRoutes implements Routes {
         feed.setTitle(localizedFeedTitle(locale, station));
         feed.setDescription(notificationService.resolveLocalized(locale, "feed", "description", null));
         feed.setLanguage(locale);
-        feed.setLink(baseUrl + "/station/dashboard/overview");
+        feed.setLink(baseUrl + "/station/dashboard/overview?station=" + station.uid());
         // Atom requires a stable self-identifying URI per-feed; harmless for RSS.
         if ("atom_1.0".equals(feedType)) {
             feed.setUri("urn:ember:notifications:" + member.id());
         }
-        var entries = buildSyndEntries(notifications, locale, baseUrl, token, verbose, images);
+        var entries = buildSyndEntries(notifications, locale, baseUrl, token, verbose, images, station.uid());
         feed.setEntries(entries);
 
         outputFeed(ctx, feed, contentType);
@@ -463,8 +463,9 @@ public class UserFeedRoutes implements Routes {
             String baseUrl,
             String feedToken,
             boolean verbose,
-            boolean images) {
-        var ctx = new NotificationFeedRenderer.RenderContext(locale, baseUrl, feedToken, verbose, images);
+            boolean images,
+            java.util.UUID stationUid) {
+        var ctx = new NotificationFeedRenderer.RenderContext(locale, baseUrl, feedToken, verbose, images, stationUid);
         var entries = new ArrayList<SyndEntry>(notifications.size());
         for (var n : notifications) {
             // Isolate each entry: a malformed notification must never tank the whole feed.

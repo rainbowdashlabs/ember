@@ -207,7 +207,7 @@ class IcalEventRendererTest {
         var location = ve.getProperty("LOCATION").map(Location.class::cast).orElseThrow();
         assertEquals("Marktplatz 1", location.getValue());
         var url = ve.getProperty("URL").map(Url.class::cast).orElseThrow();
-        assertTrue(url.getValue().endsWith("/station/events/10"));
+        assertTrue(url.getValue().contains("/station/events/10?station="));
         // Description omits the LOCATION field (it lives on its own property) but keeps the other.
         String description = ve.getProperty("DESCRIPTION").orElseThrow().getValue();
         assertFalse(description.contains("Ort: Marktplatz 1"));

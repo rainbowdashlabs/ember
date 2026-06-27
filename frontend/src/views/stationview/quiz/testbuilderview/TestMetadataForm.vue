@@ -18,6 +18,7 @@ const description = defineModel<string>('description', { required: true })
 const startAt = defineModel<string>('startAt', { required: true })
 const endAt = defineModel<string>('endAt', { required: true })
 const shuffle = defineModel<boolean>('shuffle', { required: true })
+const forced = defineModel<boolean>('forced', { required: true })
 const timeLimitEnabled = defineModel<boolean>('timeLimitEnabled', { required: true })
 const timeLimit = defineModel<number | undefined>('timeLimit')
 
@@ -45,6 +46,10 @@ const { t } = useI18n()
         <FieldLabel inline>
           <ToggleInput v-model="shuffle" />
           {{ t('quiz.tests.shuffle') }}
+        </FieldLabel>
+        <FieldLabel inline>
+          <ToggleInput v-model="forced" />
+          {{ t('quiz.tests.forced') }}
         </FieldLabel>
         <FieldLabel inline>
           <ToggleInput v-model="timeLimitEnabled" />

@@ -65,6 +65,7 @@ class FormAnalyticsAssemblerTest extends RepositoryTestBase {
                 "desc",
                 false,
                 true,
+                false,
                 null,
                 null,
                 guardianMember.id(),

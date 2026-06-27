@@ -193,12 +193,13 @@ public class FormService {
             String description,
             boolean shuffleQuestions,
             boolean allowEdit,
+            boolean forced,
             Instant startAt,
             Instant endAt,
             int createdBy,
             FormPurpose purpose) {
         var form = repository.create(
-                stationId, title, description, shuffleQuestions, allowEdit, startAt, endAt, createdBy, purpose);
+                stationId, title, description, shuffleQuestions, allowEdit, forced, startAt, endAt, createdBy, purpose);
         log.info("Created form {} (station {}, purpose {}, createdBy {})", form.id(), stationId, purpose, createdBy);
         return form;
     }
@@ -221,9 +222,11 @@ public class FormService {
             String description,
             boolean shuffleQuestions,
             boolean allowEdit,
+            boolean forced,
             Instant startAt,
             Instant endAt) {
-        boolean updated = repository.update(id, title, description, shuffleQuestions, allowEdit, startAt, endAt);
+        boolean updated =
+                repository.update(id, title, description, shuffleQuestions, allowEdit, forced, startAt, endAt);
         if (updated) {
             log.info("Updated form {}", id);
         } else {

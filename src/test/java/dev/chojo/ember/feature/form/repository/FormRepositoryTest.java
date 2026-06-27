@@ -65,7 +65,16 @@ class FormRepositoryTest extends RepositoryTestBase {
         Instant start = Instant.parse("2026-06-01T00:00:00Z");
         Instant end = Instant.parse("2026-07-01T00:00:00Z");
         Form form = formRepo.create(
-                station.id(), "Test Form", "A test form", false, true, start, end, member.id(), FormPurpose.INTERNAL);
+                station.id(),
+                "Test Form",
+                "A test form",
+                false,
+                true,
+                false,
+                start,
+                end,
+                member.id(),
+                FormPurpose.INTERNAL);
         assertNotNull(form);
         assertEquals("Test Form", form.title());
         assertEquals(Form.FormStatus.DRAFT, form.status());
@@ -112,7 +121,7 @@ class FormRepositoryTest extends RepositoryTestBase {
     void update() {
         Instant start = Instant.parse("2026-06-15T00:00:00Z");
         Instant end = Instant.parse("2026-08-01T00:00:00Z");
-        assertTrue(formRepo.update(formId, "Updated Form", "Updated desc", true, false, start, end));
+        assertTrue(formRepo.update(formId, "Updated Form", "Updated desc", true, false, false, start, end));
         Form updated = formRepo.findById(formId).orElseThrow();
         assertEquals("Updated Form", updated.title());
         assertTrue(updated.shuffleQuestions());
@@ -312,7 +321,7 @@ class FormRepositoryTest extends RepositoryTestBase {
     @Order(63)
     void deleteQuestionsByForm() {
         var separateForm = formRepo.create(
-                station.id(), "Bulk Delete", "x", false, true, null, null, member.id(), FormPurpose.INTERNAL);
+                station.id(), "Bulk Delete", "x", false, true, false, null, null, member.id(), FormPurpose.INTERNAL);
         try {
             formRepo.createQuestion(
                     separateForm.id(),

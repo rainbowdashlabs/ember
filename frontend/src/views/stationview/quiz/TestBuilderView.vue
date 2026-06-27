@@ -32,6 +32,7 @@ const description = ref('')
 const timeLimit = ref<number | undefined>(undefined)
 const timeLimitEnabled = ref(false)
 const shuffle = ref(false)
+const forced = ref(false)
 const startAt = ref('')
 const endAt = ref('')
 
@@ -139,6 +140,7 @@ const { loading, error } = useAsyncLoader(async () => {
     timeLimit.value = test.timeLimit ?? undefined
     timeLimitEnabled.value = test.timeLimit !== null
     shuffle.value = test.shuffle
+    forced.value = test.forced ?? false
     startAt.value = test.startAt ? test.startAt.slice(0, 16) : ''
     endAt.value = test.endAt ? test.endAt.slice(0, 16) : ''
 
@@ -179,6 +181,7 @@ async function save() {
       description: description.value,
       timeLimit: timeLimitEnabled.value && timeLimit.value ? timeLimit.value : null,
       shuffle: shuffle.value,
+      forced: forced.value,
       startAt: startAt.value ? new Date(startAt.value).toISOString() : null,
       endAt: endAt.value ? new Date(endAt.value).toISOString() : null,
     }
@@ -234,6 +237,7 @@ async function save() {
             v-model:start-at="startAt"
             v-model:end-at="endAt"
             v-model:shuffle="shuffle"
+            v-model:forced="forced"
             v-model:time-limit-enabled="timeLimitEnabled"
             v-model:time-limit="timeLimit"
         />

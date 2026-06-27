@@ -87,16 +87,23 @@ public class QuizTestRepository {
     }
 
     public QuizTest create(
-            int stationId, String title, String description, Integer timeLimit, boolean shuffle, int createdBy) {
+            int stationId,
+            String title,
+            String description,
+            Integer timeLimit,
+            boolean shuffle,
+            boolean forced,
+            int createdBy) {
         return query("""
-                INSERT INTO quiz_test(station_id, title, description, time_limit, shuffle, created_by)
-                VALUES (:station_id, :title, :description, :time_limit, :shuffle, :created_by)
+                INSERT INTO quiz_test(station_id, title, description, time_limit, shuffle, forced, created_by)
+                VALUES (:station_id, :title, :description, :time_limit, :shuffle, :forced, :created_by)
                 RETURNING %s;""", TEST_COLUMNS_BARE)
                 .single(call().bind("station_id", stationId)
                         .bind("title", title)
                         .bind("description", description)
                         .bind("time_limit", timeLimit)
                         .bind("shuffle", shuffle)
+                        .bind("forced", forced)
                         .bind("created_by", createdBy))
                 .map(QuizTest.map())
                 .first()
@@ -109,18 +116,21 @@ public class QuizTestRepository {
             String description,
             Integer timeLimit,
             boolean shuffle,
+            boolean forced,
             Instant startAt,
             Instant endAt) {
         return query("""
                 UPDATE quiz_test
                 SET title = :title, description = :description, time_limit = :time_limit,
-                    shuffle = :shuffle, start_at = :start_at, end_at = :end_at, updated_at = now()
+                    shuffle = :shuffle, forced = :forced, start_at = :start_at, end_at = :end_at,
+                    updated_at = now()
                 WHERE id = :id;""")
                 .single(call().bind("id", id)
                         .bind("title", title)
                         .bind("description", description)
                         .bind("time_limit", timeLimit)
                         .bind("shuffle", shuffle)
+                        .bind("forced", forced)
                         .bind("start_at", startAt, INSTANT_TIMESTAMP)
                         .bind("end_at", endAt, INSTANT_TIMESTAMP))
                 .update()

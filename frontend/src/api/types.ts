@@ -1792,6 +1792,7 @@ export interface QuizTest {
     status: QuizTestStatusName
     timeLimit: number | null
     shuffle: boolean
+    forced?: boolean
     startAt: string | null
     endAt: string | null
     createdBy: number

@@ -227,7 +227,7 @@ class QuizPdfExportTest {
                 7);
 
         // Create test with one section sourcing from the catalog
-        var test = testRepo.create(station.id(), "Showcase PDF Test", "", 20, false, 0);
+        var test = testRepo.create(station.id(), "Showcase PDF Test", "", 20, false, false, 0);
         var section = testRepo.createSection(test.id(), "Alle Fragetypen", "", 0);
         testRepo.createSource(section.id(), catalog.id(), category.id(), 8);
 

@@ -81,7 +81,11 @@ const roleGroups = computed(() => buildRoleGroups(demoAccounts.value))
 onMounted(async () => {
   const token = getItem('session_token')
   if (token) {
-    navigateTo('/station/dashboard/overview')
+    // Honor any pending deep link the router guard parked on /login — the
+    // user is already authed and we don't want a fresh tab refresh to lose
+    // their target.
+    const redirectPath = route.query.redirect as string | undefined
+    navigateTo(redirectPath && redirectPath.startsWith('/') ? redirectPath : '/station/dashboard/overview')
     return
   }
 

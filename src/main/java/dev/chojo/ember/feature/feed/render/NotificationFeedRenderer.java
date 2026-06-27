@@ -269,8 +269,10 @@ public class NotificationFeedRenderer {
 
         // Every entry gets a link. Falls back to the dashboard so readers always have a
         // navigable target even if a notification has no deep link metadata.
-        String link = notificationService.resolveNotificationUrl(ctx.baseUrl(), notification.data());
-        entry.setLink(link != null ? link : ctx.baseUrl() + "/station/dashboard/overview");
+        String link = notificationService.resolveNotificationUrl(ctx.baseUrl(), ctx.stationUid(), notification.data());
+        String fallback = ctx.baseUrl() + "/station/dashboard/overview";
+        if (ctx.stationUid() != null) fallback = fallback + "?station=" + ctx.stationUid();
+        entry.setLink(link != null ? link : fallback);
 
         // Author column in readers like Thunderbird.
         String author = resolveAuthor(notification);
@@ -877,14 +879,23 @@ public class NotificationFeedRenderer {
     /**
      * Per-render context. Shared across all entries in a single feed render.
      *
-     * @param locale    resolved feed locale ({@code de}/{@code en})
-     * @param baseUrl   public base URL of the deployment, used for deep links
-     * @param feedToken the feed token, used to construct token-scoped image URLs so readers
-     *                  can fetch them without authentication
-     * @param verbose   when {@code false} only the headline + deep link are rendered, no
-     *                  detail block — for compact feed presets
-     * @param images    when {@code false} {@code <img>} tags and MediaRSS thumbnails are
-     *                  suppressed (metered connections, screen reader minimisation)
+     * @param locale     resolved feed locale ({@code de}/{@code en})
+     * @param baseUrl    public base URL of the deployment, used for deep links
+     * @param feedToken  the feed token, used to construct token-scoped image URLs so readers
+     *                   can fetch them without authentication
+     * @param verbose    when {@code false} only the headline + deep link are rendered, no
+     *                   detail block — for compact feed presets
+     * @param images     when {@code false} {@code <img>} tags and MediaRSS thumbnails are
+     *                   suppressed (metered connections, screen reader minimisation)
+     * @param stationUid UUID of the station that owns this feed, appended to every deep link
+     *                   as {@code ?station=<uid>} so the recipient lands in the right station
+     *                   context after login even when they belong to several stations
      */
-    public record RenderContext(String locale, String baseUrl, String feedToken, boolean verbose, boolean images) {}
+    public record RenderContext(
+            String locale,
+            String baseUrl,
+            String feedToken,
+            boolean verbose,
+            boolean images,
+            java.util.UUID stationUid) {}
 }

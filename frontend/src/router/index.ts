@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {createRouter, createWebHistory} from 'vue-router'
-import {getItem} from '@/api/storage'
+import {getItem, setItem} from '@/api/storage'
 import {useConsentGuard} from '@/composables/useConsentGuard'
 import i18n from '@/i18n'
 
@@ -60,7 +60,11 @@ const router = createRouter({
         {
             path: '/requirements',
             name: 'requirements',
-            redirect: '/station/requirements',
+            // Functional redirect so the inactivity bounce's ?redirect=<deep-link>
+            // survives the alias hop. A plain {redirect: '/station/requirements'}
+            // form strips the query and the requirements view then falls back to
+            // the dashboard instead of returning the user to where they came from.
+            redirect: (to) => ({path: '/station/requirements', query: to.query, hash: to.hash}),
         },
         {
             path: '/forgot-password',
@@ -2130,6 +2134,20 @@ router.beforeEach((to) => {
     localStorage.setItem('ember_last_activity', String(now))
     if (lastActivity && now - Number(lastActivity) > 3600000 && to.name !== 'requirements') {
         return {name: 'requirements', query: {redirect: to.fullPath}}
+    }
+
+    // Station-scoped routes must run with a station context. Honor an explicit
+    // ?station=<uid> from a deep link (e.g. feed/email notifications); otherwise
+    // drop into the cross-station picker preserving the deep link so the choice
+    // survives the picker.
+    if (to.path.startsWith('/station/')) {
+        const queryStation = typeof to.query.station === 'string' ? to.query.station : null
+        const storedStation = getItem('station_id')
+        if (queryStation) {
+            if (queryStation !== storedStation) setItem('station_id', queryStation)
+        } else if (!storedStation) {
+            return {name: 'cross-station-dashboard', query: {redirect: to.fullPath}}
+        }
     }
 
     return true
