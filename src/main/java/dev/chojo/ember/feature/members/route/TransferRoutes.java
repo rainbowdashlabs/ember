@@ -27,8 +27,6 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -38,8 +36,6 @@ import java.util.List;
  */
 @Singleton
 public class TransferRoutes implements Routes {
-    private static final Logger log = LoggerFactory.getLogger(TransferRoutes.class);
-
     private final StationExportService exportService;
     private final StationImportService importService;
     private final StationRepository stationRepository;
@@ -92,11 +88,8 @@ public class TransferRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TokenResponse.class)))
     private void createToken(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        log.info("createToken: status on entry = {}", ctx.statusCode());
         String token = exportService.createTransferToken(session.stationId());
-        log.info("createToken: status before json() = {}", ctx.statusCode());
         ctx.json(new TokenResponse(token, exportService.getAppVersion()));
-        log.info("createToken: status after json() = {}", ctx.statusCode());
     }
 
     @OpenApi(

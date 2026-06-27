@@ -303,14 +303,14 @@ public class ApiServer {
                 for (String origin : apiConfig.allowedOrigins()) {
                     cors.addRule(rule -> rule.allowHost(origin));
                 }
-            });
-
-            config.routes.before(ctx -> {
-                if (ctx.path().endsWith("/transfer/create-token")) {
-                    log.info(
-                            "[debug] BEFORE-A (very first before): status={} servletStatus={}",
-                            ctx.statusCode(),
-                            ctx.res().getStatus());
+                // In dev mode also allow the Nuxt dev server origins the docker dev
+                // compose binds (source on :3000, transfer-profile target on :3001).
+                // Without this, the CORS plugin pre-stamps the response status with 400
+                // even though it lets the matched handler run — producing the deeply
+                // confusing 400-with-success-body that bit the transfer flow.
+                if (demoConfig.dev()) {
+                    cors.addRule(rule -> rule.allowHost("http://localhost:3000"));
+                    cors.addRule(rule -> rule.allowHost("http://localhost:3001"));
                 }
             });
 
@@ -356,11 +356,10 @@ public class ApiServer {
                     responseHeaders.put(h, ctx.res().getHeader(h));
                 }
                 log.trace(
-                        "Answered request on route: {} {}\nStatus: {} (raw code {})\nHeaders:\n{}\nBody:\n{}",
+                        "Answered request on route: {} {}\nStatus: {}\nHeaders:\n{}\nBody:\n{}",
                         ctx.method() + " " + LogRedaction.redactQueryString(ctx.url()),
                         LogRedaction.redactQueryString(requireNonNullElse(ctx.queryString(), "")),
                         ctx.status(),
-                        ctx.statusCode(),
                         LogRedaction.redactHeaders(responseHeaders).entrySet().stream()
                                 .map(h -> "   " + h.getKey() + ": " + h.getValue())
                                 .collect(Collectors.joining("\n")),
@@ -416,53 +415,12 @@ public class ApiServer {
             //     cookie requirements over plain HTTP, and skips the eager admin bootstrap.
             //     NO endpoints are blocked in dev mode — the demo guard is intentionally
             //     not attached so transfer, uploads, probes and everything else are usable.
-            log.info(
-                    "Demo config: enabled={} dev={} federationForceHttp={}",
-                    demoConfig.enabled(),
-                    demoConfig.dev(),
-                    demoConfig.federationForceHttp());
             if (demoConfig.enabled()) {
-                log.info("Demo guard ATTACHED (handleDemoGuard runs as before-handler)");
                 config.routes.before(this::handleDemoGuard);
-            } else {
-                log.info("Demo guard NOT attached (demo.enabled = false)");
             }
 
-            config.routes.before(ctx -> {
-                if (ctx.path().endsWith("/transfer/create-token")) {
-                    log.info(
-                            "[debug] BEFORE-Z (after all befores): status={} servletStatus={}",
-                            ctx.statusCode(),
-                            ctx.res().getStatus());
-                }
-            });
-
-            config.routes.beforeMatched(ctx -> {
-                if (ctx.path().endsWith("/transfer/create-token")) {
-                    log.info(
-                            "[debug] BEFOREMATCHED-A (first beforeMatched): status={} servletStatus={}",
-                            ctx.statusCode(),
-                            ctx.res().getStatus());
-                }
-            });
             config.routes.beforeMatched(this::handleAccess);
-            config.routes.beforeMatched(ctx -> {
-                if (ctx.path().endsWith("/transfer/create-token")) {
-                    log.info(
-                            "[debug] beforeMatched after handleAccess: status={} servletStatus={}",
-                            ctx.statusCode(),
-                            ctx.res().getStatus());
-                }
-            });
             config.routes.beforeMatched(this::handleStationReadOnly);
-            config.routes.beforeMatched(ctx -> {
-                if (ctx.path().endsWith("/transfer/create-token")) {
-                    log.info(
-                            "[debug] beforeMatched after handleStationReadOnly: status={} servletStatus={}",
-                            ctx.statusCode(),
-                            ctx.res().getStatus());
-                }
-            });
 
             setupExceptionHandlers(config.routes);
 
