@@ -1,3 +1,11 @@
+# Rename the implicit default network to a stable, project-independent name so
+# that re-running compose from a different working directory (or with -p)
+# doesn't orphan containers against the previous network ID. The "network not
+# found" failure that arises after a `down -v` + rename was caused by that.
+networks:
+  default:
+    name: ember_dev
+
 services:
   postgres:
     image: postgres:17-alpine
