@@ -347,10 +347,11 @@ public class ApiServer {
                     responseHeaders.put(h, ctx.res().getHeader(h));
                 }
                 log.trace(
-                        "Answered request on route: {} {}\nStatus: {}\nHeaders:\n{}\nBody:\n{}",
+                        "Answered request on route: {} {}\nStatus: {} (raw code {})\nHeaders:\n{}\nBody:\n{}",
                         ctx.method() + " " + LogRedaction.redactQueryString(ctx.url()),
                         LogRedaction.redactQueryString(requireNonNullElse(ctx.queryString(), "")),
                         ctx.status(),
+                        ctx.statusCode(),
                         LogRedaction.redactHeaders(responseHeaders).entrySet().stream()
                                 .map(h -> "   " + h.getKey() + ": " + h.getValue())
                                 .collect(Collectors.joining("\n")),
