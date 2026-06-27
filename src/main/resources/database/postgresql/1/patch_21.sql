@@ -38,3 +38,66 @@ COMMENT ON COLUMN ember_schema.station_member_invite.group_id IS
     'Optional member group the new station_member row will be added to on acceptance. ON DELETE SET NULL so deleting a group does not invalidate pending invites.';
 COMMENT ON COLUMN ember_schema.station_member_invite.accepted_account_id IS
     'Account row created (or chosen) at acceptance time. NULL while pending.';
+
+-- Fix audit-pointer foreign keys to station_member that blocked station deletion.
+-- Every "created_by" / "uploaded_by" / "checked_by" pointer to station_member was
+-- declared without ON DELETE, so a station delete -> cascading station_member delete
+-- aborted on the first referencing row. Switch them all to ON DELETE SET NULL and
+-- drop NOT NULL where it was set, so the audit trail survives the row going away
+-- but no longer blocks the cascade.
+
+ALTER TABLE ember_schema.kb_folder
+    DROP CONSTRAINT kb_folder_created_by_fkey,
+    ALTER COLUMN created_by DROP NOT NULL,
+    ADD CONSTRAINT kb_folder_created_by_fkey FOREIGN KEY (created_by)
+        REFERENCES ember_schema.station_member (id) ON DELETE SET NULL;
+
+ALTER TABLE ember_schema.kb_file
+    DROP CONSTRAINT kb_file_created_by_fkey,
+    ALTER COLUMN created_by DROP NOT NULL,
+    ADD CONSTRAINT kb_file_created_by_fkey FOREIGN KEY (created_by)
+        REFERENCES ember_schema.station_member (id) ON DELETE SET NULL;
+
+ALTER TABLE ember_schema.kb_file_version
+    DROP CONSTRAINT kb_file_version_created_by_fkey,
+    ALTER COLUMN created_by DROP NOT NULL,
+    ADD CONSTRAINT kb_file_version_created_by_fkey FOREIGN KEY (created_by)
+        REFERENCES ember_schema.station_member (id) ON DELETE SET NULL;
+
+ALTER TABLE ember_schema.test_protocol_run
+    DROP CONSTRAINT test_protocol_run_created_by_fkey,
+    ALTER COLUMN created_by DROP NOT NULL,
+    ADD CONSTRAINT test_protocol_run_created_by_fkey FOREIGN KEY (created_by)
+        REFERENCES ember_schema.station_member (id) ON DELETE SET NULL;
+
+ALTER TABLE ember_schema.test_protocol_run_member
+    DROP CONSTRAINT test_protocol_run_member_locked_by_fkey,
+    ADD CONSTRAINT test_protocol_run_member_locked_by_fkey FOREIGN KEY (locked_by)
+        REFERENCES ember_schema.station_member (id) ON DELETE SET NULL;
+
+ALTER TABLE ember_schema.test_protocol_run_section_done
+    DROP CONSTRAINT test_protocol_run_section_done_done_by_fkey,
+    ADD CONSTRAINT test_protocol_run_section_done_done_by_fkey FOREIGN KEY (done_by)
+        REFERENCES ember_schema.station_member (id) ON DELETE SET NULL;
+
+ALTER TABLE ember_schema.test_protocol_run_check
+    DROP CONSTRAINT test_protocol_run_check_checked_by_fkey,
+    ADD CONSTRAINT test_protocol_run_check_checked_by_fkey FOREIGN KEY (checked_by)
+        REFERENCES ember_schema.station_member (id) ON DELETE SET NULL;
+
+ALTER TABLE ember_schema.federation_lending_request
+    DROP CONSTRAINT federation_lending_request_created_by_fkey,
+    ALTER COLUMN created_by DROP NOT NULL,
+    ADD CONSTRAINT federation_lending_request_created_by_fkey FOREIGN KEY (created_by)
+        REFERENCES ember_schema.station_member (id) ON DELETE SET NULL;
+
+ALTER TABLE ember_schema.federation_lending_message
+    DROP CONSTRAINT federation_lending_message_sender_member_id_fkey,
+    ADD CONSTRAINT federation_lending_message_sender_member_id_fkey FOREIGN KEY (sender_member_id)
+        REFERENCES ember_schema.station_member (id) ON DELETE SET NULL;
+
+ALTER TABLE ember_schema.lost_and_found_item
+    DROP CONSTRAINT lost_and_found_item_created_by_fkey,
+    ALTER COLUMN created_by DROP NOT NULL,
+    ADD CONSTRAINT lost_and_found_item_created_by_fkey FOREIGN KEY (created_by)
+        REFERENCES ember_schema.station_member (id) ON DELETE SET NULL;

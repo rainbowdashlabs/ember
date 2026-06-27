@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:fca934d8bd947426119a58cbe0cd868cffa0e948f268ad5ca62e28c7750f1756",
-  "generatedAt" : "2026-06-27T18:00:15Z",
+  "schemaHash" : "sha256:ef9f8b5eb1b8a62f19b7a850ed38e4ee98accd039105eed38f4c140cd5fc24a1",
+  "generatedAt" : "2026-06-27T21:55:23Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -5067,7 +5067,7 @@
     "federation_lending_message" : {
       "feature" : "federation",
       "scope" : "STATION",
-      "tableHash" : "sha256:b0a0f02e87401494883c26a8202fc69f37971c29c5f3e0c50bded83fa63712a9",
+      "tableHash" : "sha256:7b894b3094ce3b9e1a7a06e7fc96c817a032f24025fadb72fe1746008e296a36",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -5120,7 +5120,7 @@
         "column" : "sender_member_id",
         "refTable" : "station_member",
         "refColumn" : "id",
-        "onDelete" : "NO ACTION"
+        "onDelete" : "SET NULL"
       }, {
         "column" : "sender_station_id",
         "refTable" : "station",
@@ -5147,7 +5147,7 @@
     "federation_lending_request" : {
       "feature" : "federation",
       "scope" : "STATION",
-      "tableHash" : "sha256:ff54e075169497111cd324cb60408dbf0e84363711efeb88930b8057c4942d24",
+      "tableHash" : "sha256:a2b6651aaddc5c15a435ffe808b58baa610a40d82127052838ae0b9b933480fb",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -5187,7 +5187,7 @@
       }, {
         "name" : "created_by",
         "type" : "int4",
-        "nullable" : false,
+        "nullable" : true,
         "verified" : true,
         "description" : "Member who created the request."
       }, {
@@ -5207,7 +5207,7 @@
         "column" : "created_by",
         "refTable" : "station_member",
         "refColumn" : "id",
-        "onDelete" : "NO ACTION"
+        "onDelete" : "SET NULL"
       }, {
         "column" : "owning_station_id",
         "refTable" : "station",
@@ -7466,7 +7466,7 @@
     "kb_file" : {
       "feature" : "knowledgebase",
       "scope" : "STATION",
-      "tableHash" : "sha256:c7d8b27dde40f9b45e26930d11d17cdd16db9edbe6ad3a1895f6915ad2009811",
+      "tableHash" : "sha256:b03f289837c04af7f88061c97d7b2a1252dc74ab0312408311f4e703d2885a75",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -7542,7 +7542,7 @@
       }, {
         "name" : "created_by",
         "type" : "int4",
-        "nullable" : false,
+        "nullable" : true,
         "verified" : true,
         "description" : "Member who created the file."
       }, {
@@ -7591,7 +7591,7 @@
         "column" : "created_by",
         "refTable" : "station_member",
         "refColumn" : "id",
-        "onDelete" : "NO ACTION"
+        "onDelete" : "SET NULL"
       }, {
         "column" : "folder_id",
         "refTable" : "kb_folder",
@@ -7703,7 +7703,7 @@
     "kb_file_version" : {
       "feature" : "knowledgebase",
       "scope" : "STATION",
-      "tableHash" : "sha256:bbaf18417c3a42c0429bcc75a723db2ae9a502dab569c0078cb4a8552b3d136d",
+      "tableHash" : "sha256:37e84c84c4f98f29f9eeeb0dea999ef7ff2ddbcb25030c614e4d234e3569ba6d",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -7737,7 +7737,7 @@
       }, {
         "name" : "created_by",
         "type" : "int4",
-        "nullable" : false,
+        "nullable" : true,
         "verified" : true,
         "description" : "Member who created this version."
       }, {
@@ -7751,7 +7751,7 @@
         "column" : "created_by",
         "refTable" : "station_member",
         "refColumn" : "id",
-        "onDelete" : "NO ACTION"
+        "onDelete" : "SET NULL"
       }, {
         "column" : "file_id",
         "refTable" : "kb_file",
@@ -7782,7 +7782,7 @@
     "kb_folder" : {
       "feature" : "knowledgebase",
       "scope" : "STATION",
-      "tableHash" : "sha256:10e0984de3f63632b408c2bb9ba161110c143b9a358c8f109fcfce39bb0039ff",
+      "tableHash" : "sha256:9da904dc4d38017e9c38fdbab5d6b2c58e790b16131130144ae6b719b66a9619",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -7828,7 +7828,7 @@
       }, {
         "name" : "created_by",
         "type" : "int4",
-        "nullable" : false,
+        "nullable" : true,
         "verified" : true,
         "description" : "Member who created the folder."
       }, {
@@ -7854,7 +7854,7 @@
         "column" : "created_by",
         "refTable" : "station_member",
         "refColumn" : "id",
-        "onDelete" : "NO ACTION"
+        "onDelete" : "SET NULL"
       }, {
         "column" : "parent_id",
         "refTable" : "kb_folder",
@@ -8109,7 +8109,7 @@
     "lost_and_found_item" : {
       "feature" : "lostandfound",
       "scope" : "STATION",
-      "tableHash" : "sha256:134212fa0fcbc3135bf5680d25318a66cbc1b9dbd01f76f9b22a7ec0c42bbd43",
+      "tableHash" : "sha256:83e5ef3dec41e1a7a3e3ccf2eac79b5c1de0b9459ffb7cd1f55e3a3fa60b8f01",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -8149,7 +8149,7 @@
       }, {
         "name" : "created_by",
         "type" : "int4",
-        "nullable" : false,
+        "nullable" : true,
         "verified" : true,
         "description" : "Member who registered the found item."
       }, {
@@ -8168,7 +8168,7 @@
         "column" : "created_by",
         "refTable" : "station_member",
         "refColumn" : "id",
-        "onDelete" : "NO ACTION"
+        "onDelete" : "SET NULL"
       }, {
         "column" : "station_id",
         "refTable" : "station",
@@ -13075,7 +13075,7 @@
     "test_protocol_run" : {
       "feature" : "protocol",
       "scope" : "STATION",
-      "tableHash" : "sha256:c0fc42e6130326f63e8306a41d897296e8baf9a457e2ca15b25784b2c65de995",
+      "tableHash" : "sha256:ad66fb72c1b5651f7a3c35a5cd698c7f23a4468299a7f347bd452687a7f7fd5a",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -13115,7 +13115,7 @@
       }, {
         "name" : "created_by",
         "type" : "int4",
-        "nullable" : false,
+        "nullable" : true,
         "verified" : true,
         "description" : "Member who created the run."
       }, {
@@ -13129,7 +13129,7 @@
         "column" : "created_by",
         "refTable" : "station_member",
         "refColumn" : "id",
-        "onDelete" : "NO ACTION"
+        "onDelete" : "SET NULL"
       }, {
         "column" : "protocol_id",
         "refTable" : "test_protocol",
@@ -13161,7 +13161,7 @@
     "test_protocol_run_check" : {
       "feature" : "protocol",
       "scope" : "STATION",
-      "tableHash" : "sha256:c009832498a108e59c9dc59f78bed994b5a69f56306b51febff3e7187c8e1cfb",
+      "tableHash" : "sha256:6fd4f6e8b6941fd321cc62a3a65238acc5564d2bcea99c5451703f4a34ebffa8",
       "columns" : [ {
         "name" : "run_member_id",
         "type" : "int4",
@@ -13197,7 +13197,7 @@
         "column" : "checked_by",
         "refTable" : "station_member",
         "refColumn" : "id",
-        "onDelete" : "NO ACTION"
+        "onDelete" : "SET NULL"
       }, {
         "column" : "item_id",
         "refTable" : "test_protocol_item",
@@ -13229,7 +13229,7 @@
     "test_protocol_run_member" : {
       "feature" : "protocol",
       "scope" : "STATION",
-      "tableHash" : "sha256:aefefbca05337aaea1990cebd160c9cb72dcbb3464bf9e2656c10b238ba33bef",
+      "tableHash" : "sha256:7c29951662132bc405af816d0e49398b20b9a8d16d61aa45337a177ecb9c910e",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -13277,7 +13277,7 @@
         "column" : "locked_by",
         "refTable" : "station_member",
         "refColumn" : "id",
-        "onDelete" : "NO ACTION"
+        "onDelete" : "SET NULL"
       }, {
         "column" : "member_id",
         "refTable" : "station_member",
@@ -13312,7 +13312,7 @@
     "test_protocol_run_section_done" : {
       "feature" : "protocol",
       "scope" : "STATION",
-      "tableHash" : "sha256:1049436f1d4407ab9f4c1a78c461f1df64576944bde50319f934a30232a775d9",
+      "tableHash" : "sha256:8e839c2d10bfe5818cd3b172077e55d05a69cb26a0ba32e87d76183b6af4d406",
       "columns" : [ {
         "name" : "run_member_id",
         "type" : "int4",
@@ -13342,7 +13342,7 @@
         "column" : "done_by",
         "refTable" : "station_member",
         "refColumn" : "id",
-        "onDelete" : "NO ACTION"
+        "onDelete" : "SET NULL"
       }, {
         "column" : "run_member_id",
         "refTable" : "test_protocol_run_member",
