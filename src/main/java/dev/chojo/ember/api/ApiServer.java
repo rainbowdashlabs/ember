@@ -93,6 +93,12 @@ public class ApiServer {
     public static final String ATTR_SESSION = "session";
     private static final Logger log = LoggerFactory.getLogger(ApiServer.class);
     private static final String API_PREFIX = "/api/v1";
+    // Note on the transfer endpoints: /station/transfer/create-token and
+    // /station/transfer/abort are NOT blocked here on purpose. They are mandatory for the
+    // cross-instance transfer test harness (the compose.dev.yaml "transfer" profile), and the
+    // import-side counterpart /admin/transfer/import is already gated by
+    // InstancePermission.ADMINISTRATOR which demo accounts do not hold — so the source can
+    // mint a token but a stranger on the demo cannot pull a station off of it.
     private static final Set<String> DEMO_BLOCKED_PATHS = Set.of(
             "/api/v1/auth/change-password",
             "/api/v1/auth/set-password",
@@ -113,8 +119,6 @@ public class ApiServer {
             "/api/v1/admin/storage/backend/probe",
             "/api/v1/admin/storage/backend/probe-config",
             "/api/v1/admin/storage/backend/apply",
-            "/api/v1/station/transfer/create-token",
-            "/api/v1/station/transfer/abort",
             "/api/v1/ai/generate",
             "/api/v1/ai/generate-questions");
 
