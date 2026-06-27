@@ -391,6 +391,8 @@ export default {
         pagesFiles: 'Dateien',
         pagesForms: 'Kontaktformulare',
         pagesPolls: 'Umfragen',
+        storageBackend: 'Speicher-Backend',
+        storageAudit: 'Speicher-Audit',
     },
     pages: {
         'profile': {
@@ -4507,6 +4509,20 @@ volumes:
         adminPanel: 'Admin Panel',
         stationPanel: 'Wach Panel',
         accountSettings: 'Einstellungen',
+    },
+    quickSearch: {
+        openLabel: 'Schnellsuche öffnen (Strg+K)',
+        placeholder: 'Seite, Mitglied, Termin oder Wiki suchen…',
+        startTyping: 'Tippe einen Suchbegriff, um Ergebnisse zu sehen.',
+        noResults: 'Keine Treffer.',
+        loading: 'Lädt…',
+        sectionPages: 'Seiten',
+        sectionMembers: 'Mitglieder',
+        sectionEvents: 'Termine',
+        sectionKnowledge: 'Wiki',
+        hintNavigate: 'Navigieren',
+        hintOpen: 'Öffnen',
+        hintClose: 'Schließen',
     },
     footer: {
         privacy: 'Datenschutz',

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref, watch} from 'vue'
+import {computed, onBeforeUnmount, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
@@ -12,6 +12,7 @@ import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
 import SidebarLink from '@/components/navigation/SidebarLink.vue'
 import StationSwitcher from '@/components/navigation/StationSwitcher.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import AccountMenuButton from '@/components/layout/AccountMenuButton.vue'
 import {boards} from '@/api'
 import type {Board} from '@/api/boards'
@@ -28,6 +29,8 @@ import ReportProblemButton from '@/components/feedback/ReportProblemButton.vue'
 import DevToolsButton from '@/components/feedback/DevToolsButton.vue'
 import {useOnboardingTour} from '@/composables/useOnboardingTour'
 import InventorySidebarGroup from '@/views/dashboardview/InventorySidebarGroup.vue'
+import QuickSearchPalette from '@/components/quicksearch/QuickSearchPalette.vue'
+import {useQuickSearch} from '@/composables/useQuickSearch'
 
 const {t, te} = useI18n()
 const route = useRoute()
@@ -58,10 +61,28 @@ const visibleBoards = ref<Board[]>([])
 const openGroup = ref<string | null>(null)
 const isDesktop = ref(window.matchMedia('(min-width: 1024px)').matches)
 
+const {open: openQuickSearch, close: closeQuickSearch, isOpen: quickSearchOpen} = useQuickSearch()
+
+function onGlobalKeydown(event: KeyboardEvent) {
+  const isCtrlK = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k'
+  if (!isCtrlK) return
+  event.preventDefault()
+  if (quickSearchOpen.value) {
+    closeQuickSearch()
+  } else {
+    openQuickSearch('station')
+  }
+}
+
 onMounted(() => {
   const mq = window.matchMedia('(min-width: 1024px)')
   const handler = (e: MediaQueryListEvent) => { isDesktop.value = e.matches }
   mq.addEventListener('change', handler)
+  window.addEventListener('keydown', onGlobalKeydown)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onGlobalKeydown)
 })
 
 const {checkFirstLogin} = useOnboardingTour()
@@ -351,6 +372,7 @@ const manageDefaultRoute = computed(() => {
 
     <template #header>
       <div class="hidden lg:flex"><StationSwitcher/></div>
+      <IconButton :icon="['fas', 'magnifying-glass']" :label="t('quickSearch.openLabel')" @click="openQuickSearch('station')"/>
       <HelpCenterLink/>
 
       <router-link v-if="isAdmin()" to="/admin/dashboard/overview">
@@ -374,5 +396,6 @@ const manageDefaultRoute = computed(() => {
     <OnboardingTour/>
     <ReportProblemButton/>
     <DevToolsButton/>
+    <QuickSearchPalette/>
   </SidebarLayout>
 </template>
