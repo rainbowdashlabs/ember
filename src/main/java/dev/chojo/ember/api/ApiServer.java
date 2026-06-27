@@ -98,13 +98,25 @@ public class ApiServer {
             "/api/v1/auth/set-password",
             "/api/v1/session/account",
             "/api/v1/session/gdpr-export",
+            "/api/v1/session/avatar",
             "/api/v1/station/manage/mail/test",
             "/api/v1/station/manage/request-delete",
             "/api/v1/station/manage/import",
+            "/api/v1/station/manage/logo",
             "/api/v1/station-applications",
             "/api/v1/pages/files",
             "/api/v1/kb/files/upload",
-            "/api/v1/kb/files/import-document");
+            "/api/v1/kb/files/import-document",
+            "/api/v1/station/storage/backend/probe",
+            "/api/v1/station/storage/backend/probe-config",
+            "/api/v1/station/storage/backend/apply",
+            "/api/v1/admin/storage/backend/probe",
+            "/api/v1/admin/storage/backend/probe-config",
+            "/api/v1/admin/storage/backend/apply",
+            "/api/v1/station/transfer/create-token",
+            "/api/v1/station/transfer/abort",
+            "/api/v1/ai/generate",
+            "/api/v1/ai/generate-questions");
 
     private final Set<Routes> routes;
     private final Api apiConfig;
@@ -472,6 +484,18 @@ public class ApiServer {
         if (method == HandlerType.POST
                 && (path.matches("/api/v1/kb/folders/\\d+/icon") || path.matches("/api/v1/kb/files/\\d+/images"))) {
             throw new BadRequestResponse("File uploads are disabled in demo mode");
+        }
+
+        if (method == HandlerType.POST && path.matches("/api/v1/admin/discovery/peers/probe")) {
+            throw new BadRequestResponse("External probes are disabled in demo mode");
+        }
+
+        if (method == HandlerType.POST && path.matches("/api/v1/lending/requests")) {
+            throw new BadRequestResponse("Cross-station lending is disabled in demo mode");
+        }
+
+        if (method == HandlerType.POST && path.matches("/api/v1/ai/providers/[^/]+/models")) {
+            throw new BadRequestResponse("External AI calls are disabled in demo mode");
         }
     }
 
