@@ -407,8 +407,16 @@ public class ApiServer {
             //     cookie requirements over plain HTTP, and skips the eager admin bootstrap.
             //     NO endpoints are blocked in dev mode — the demo guard is intentionally
             //     not attached so transfer, uploads, probes and everything else are usable.
+            log.info(
+                    "Demo config: enabled={} dev={} federationForceHttp={}",
+                    demoConfig.enabled(),
+                    demoConfig.dev(),
+                    demoConfig.federationForceHttp());
             if (demoConfig.enabled()) {
+                log.info("Demo guard ATTACHED (handleDemoGuard runs as before-handler)");
                 config.routes.before(this::handleDemoGuard);
+            } else {
+                log.info("Demo guard NOT attached (demo.enabled = false)");
             }
 
             config.routes.beforeMatched(this::handleAccess);
