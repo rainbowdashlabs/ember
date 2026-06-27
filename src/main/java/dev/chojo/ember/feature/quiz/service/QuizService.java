@@ -261,8 +261,14 @@ public class QuizService {
     }
 
     public QuizTest createTest(
-            int stationId, String title, String description, Integer timeLimit, boolean shuffle, int createdBy) {
-        return testRepository.create(stationId, title, description, timeLimit, shuffle, createdBy);
+            int stationId,
+            String title,
+            String description,
+            Integer timeLimit,
+            boolean shuffle,
+            boolean forced,
+            int createdBy) {
+        return testRepository.create(stationId, title, description, timeLimit, shuffle, forced, createdBy);
     }
 
     public boolean updateTest(
@@ -271,9 +277,10 @@ public class QuizService {
             String description,
             Integer timeLimit,
             boolean shuffle,
+            boolean forced,
             Instant startAt,
             Instant endAt) {
-        return testRepository.update(id, title, description, timeLimit, shuffle, startAt, endAt);
+        return testRepository.update(id, title, description, timeLimit, shuffle, forced, startAt, endAt);
     }
 
     public void generateFrozenQuestions(int testId) {

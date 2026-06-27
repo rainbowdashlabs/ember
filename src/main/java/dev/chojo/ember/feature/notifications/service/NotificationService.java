@@ -670,12 +670,22 @@ public class NotificationService {
     /**
      * Resolves the deep link URL for a notification's target entity, or {@code null} when the
      * notification has no associated link. Unknown routes fall back to the dashboard.
+     *
+     * <p>The owning station's UUID is appended as a {@code ?station=<uid>} query parameter for any
+     * station-scoped link. This survives the login redirect and the cross-station picker so the
+     * recipient lands directly on the right station context even when their account is a member of
+     * several stations.
+     *
+     * @param baseUrl    public base URL of the deployment
+     * @param stationUid UUID of the station that owns the notification, or {@code null} for none
+     * @param data       the notification's link metadata
+     * @return the resolved URL or {@code null} when the notification has no link
      */
-    public String resolveNotificationUrl(String baseUrl, NotificationData data) {
+    public String resolveNotificationUrl(String baseUrl, java.util.UUID stationUid, NotificationData data) {
         if (data.link() == null) return null;
         String route = data.link().route();
         String pathTemplate = ROUTE_PATHS.get(route);
-        if (pathTemplate == null) return baseUrl + "/station/dashboard/overview";
+        if (pathTemplate == null) return appendStation(baseUrl + "/station/dashboard/overview", stationUid);
 
         String path = pathTemplate;
         var routeParams = data.link().routeParams();
@@ -684,7 +694,20 @@ public class NotificationService {
                 path = path.replace("{" + entry.getKey() + "}", String.valueOf(entry.getValue()));
             }
         }
-        return baseUrl + path;
+        return appendStation(baseUrl + path, stationUid);
+    }
+
+    /**
+     * Appends {@code ?station=<uid>} (or {@code &station=<uid>}) to {@code url} when {@code uid}
+     * is non-null and the URL points at a station-scoped path. Leaves non-station paths untouched
+     * so help-center or admin URLs don't accidentally carry station context.
+     */
+    private static String appendStation(String url, java.util.UUID stationUid) {
+        if (stationUid == null) return url;
+        int pathStart = url.indexOf("/", url.indexOf("://") + 3);
+        if (pathStart < 0 || !url.substring(pathStart).startsWith("/station/")) return url;
+        char separator = url.contains("?") ? '&' : '?';
+        return url + separator + "station=" + stationUid;
     }
 
     private boolean isAppEnabled(int memberId, NotificationType type) {
@@ -778,7 +801,7 @@ public class NotificationService {
             var labels = LOCALIZER.get("notifications", locale, "category");
             String category = labels.getOrDefault(n.type().name(), n.type().name());
             String message = resolveMessage(locale, n);
-            String itemUrl = resolveNotificationUrl(baseUrl, n.data());
+            String itemUrl = resolveNotificationUrl(baseUrl, station.uid(), n.data());
 
             itemsHtml.append("<li class=\"notification-item\">");
             if (itemUrl != null) {

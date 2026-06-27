@@ -84,6 +84,7 @@ class FormServiceTest extends RepositoryTestBase {
                 "Annual survey",
                 false,
                 true,
+                false,
                 null,
                 null,
                 member.id(),
@@ -120,7 +121,7 @@ class FormServiceTest extends RepositoryTestBase {
     void update() {
         Instant start = Instant.parse("2020-01-01T00:00:00Z");
         Instant end = Instant.parse("2030-12-31T00:00:00Z");
-        assertTrue(service.update(formId, "Updated Survey", "Updated desc", true, false, start, end));
+        assertTrue(service.update(formId, "Updated Survey", "Updated desc", true, false, false, start, end));
         var found = service.findById(formId).orElseThrow();
         assertEquals("Updated Survey", found.title());
     }
@@ -153,11 +154,11 @@ class FormServiceTest extends RepositoryTestBase {
     void isAcceptingResponsesOutsideWindow() {
         // Set end time in the past
         Instant past = Instant.parse("2020-01-01T00:00:00Z");
-        service.update(formId, "Updated Survey", "", false, true, null, past);
+        service.update(formId, "Updated Survey", "", false, true, false, null, past);
         var form = service.findById(formId).orElseThrow();
         assertFalse(service.isAcceptingResponses(form));
         // Reset
-        service.update(formId, "Updated Survey", "", false, true, null, null);
+        service.update(formId, "Updated Survey", "", false, true, false, null, null);
     }
 
     // -- Questions --
@@ -307,7 +308,7 @@ class FormServiceTest extends RepositoryTestBase {
     void canMemberAccessWithRestrictions() {
         // Create a form with restrictions to exercise lines 72-80
         var form = service.create(
-                station.id(), "Restricted Form", "", false, true, null, null, member.id(), FormPurpose.INTERNAL);
+                station.id(), "Restricted Form", "", false, true, false, null, null, member.id(), FormPurpose.INTERNAL);
 
         // Set restrictions to specific member
         service.setRestrictions(form.id(), List.of(), List.of(), List.of(), List.of(member.id()));
@@ -364,10 +365,10 @@ class FormServiceTest extends RepositoryTestBase {
     void isAcceptingResponsesFutureStartAt() {
         // Form is OPEN but startAt is in the future — should not accept responses
         var form = service.create(
-                station.id(), "Future Form", "", false, true, null, null, member.id(), FormPurpose.INTERNAL);
+                station.id(), "Future Form", "", false, true, false, null, null, member.id(), FormPurpose.INTERNAL);
         service.publish(form.id());
         Instant future = Instant.now().plus(365, ChronoUnit.DAYS);
-        service.update(form.id(), "Future Form", "", false, true, future, null);
+        service.update(form.id(), "Future Form", "", false, true, false, future, null);
         var updated = service.findById(form.id()).orElseThrow();
         assertFalse(service.isAcceptingResponses(updated));
         service.delete(form.id());
@@ -377,7 +378,7 @@ class FormServiceTest extends RepositoryTestBase {
     @Order(36)
     void isAcceptingResponsesClosedStatus() {
         var form = service.create(
-                station.id(), "Closed Form", "", false, true, null, null, member.id(), FormPurpose.INTERNAL);
+                station.id(), "Closed Form", "", false, true, false, null, null, member.id(), FormPurpose.INTERNAL);
         service.publish(form.id());
         service.close(form.id());
         var closed = service.findById(form.id()).orElseThrow();
@@ -408,9 +409,9 @@ class FormServiceTest extends RepositoryTestBase {
     @Order(40)
     void findByStationAndPurpose() {
         var contactForm = service.create(
-                station.id(), "Contact Form", "", false, true, null, null, member.id(), FormPurpose.CONTACT);
-        var pollForm =
-                service.create(station.id(), "Poll Form", "", false, true, null, null, member.id(), FormPurpose.POLL);
+                station.id(), "Contact Form", "", false, true, false, null, null, member.id(), FormPurpose.CONTACT);
+        var pollForm = service.create(
+                station.id(), "Poll Form", "", false, true, false, null, null, member.id(), FormPurpose.POLL);
         try {
             assertEquals(
                     1,
@@ -430,7 +431,7 @@ class FormServiceTest extends RepositoryTestBase {
     @Order(41)
     void findByPublicUid() {
         var contactForm = service.create(
-                station.id(), "Lookup Form", "", false, true, null, null, member.id(), FormPurpose.CONTACT);
+                station.id(), "Lookup Form", "", false, true, false, null, null, member.id(), FormPurpose.CONTACT);
         try {
             var fetched = service.findByPublicUid(contactForm.publicUid());
             assertTrue(fetched.isPresent());
@@ -444,8 +445,8 @@ class FormServiceTest extends RepositoryTestBase {
     @Test
     @Order(42)
     void submitAnonymousResponseAndDedupCheck() {
-        var pollForm =
-                service.create(station.id(), "Anon Poll", "", false, true, null, null, member.id(), FormPurpose.POLL);
+        var pollForm = service.create(
+                station.id(), "Anon Poll", "", false, true, false, null, null, member.id(), FormPurpose.POLL);
         try {
             service.publish(pollForm.id());
             byte[] hash = new byte[32];
@@ -465,8 +466,8 @@ class FormServiceTest extends RepositoryTestBase {
     @Test
     @Order(43)
     void findResponseByIdAndAcknowledge() {
-        var contactForm =
-                service.create(station.id(), "Ack Form", "", false, true, null, null, member.id(), FormPurpose.CONTACT);
+        var contactForm = service.create(
+                station.id(), "Ack Form", "", false, true, false, null, null, member.id(), FormPurpose.CONTACT);
         try {
             service.publish(contactForm.id());
             byte[] hash = new byte[32];

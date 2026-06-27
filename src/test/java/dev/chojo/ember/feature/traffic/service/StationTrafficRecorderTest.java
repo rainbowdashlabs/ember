@@ -140,7 +140,7 @@ class StationTrafficRecorderTest extends RepositoryTestBase {
     }
 
     @Test
-    void pruneSwallowsRepositoryExceptions() throws Exception {
+    void pruneSwallowsRepositoryExceptions() {
         var failingRepo = Mockito.mock(StationTrafficRepository.class);
         Mockito.when(failingRepo.pruneBefore(Mockito.any())).thenThrow(new RuntimeException("simulated db outage"));
         var rec = new StationTrafficRecorder(failingRepo, metrics);

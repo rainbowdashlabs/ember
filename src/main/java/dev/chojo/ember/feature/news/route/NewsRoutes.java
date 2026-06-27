@@ -367,10 +367,7 @@ public class NewsRoutes implements Routes {
                     + " query returns the most recent entries so the picker has something to show"
                     + " on first focus.",
             tags = {"News"},
-            queryParams = {
-                @OpenApiParam(name = "q", type = String.class),
-                @OpenApiParam(name = "limit", type = Integer.class)
-            },
+            queryParams = {@OpenApiParam(name = "q"), @OpenApiParam(name = "limit", type = Integer.class)},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = NewsSearchResult[].class)))
     private void search(Context ctx) {
         UserSession session = UserSession.from(ctx);

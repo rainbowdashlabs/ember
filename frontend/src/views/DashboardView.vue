@@ -92,7 +92,14 @@ watch(loaded, (isLoaded) => {
     if (isAdmin()) {
       router.replace('/admin/dashboard/overview')
     } else {
-      router.replace('/cross-station')
+      // Preserve the current path as ?redirect so picking a station in the
+      // cross-station view resumes the deep link the user was trying to reach
+      // (e.g. an email/feed notification clicked while logged in but with no
+      // active station context).
+      router.replace({
+        name: 'cross-station-dashboard',
+        query: {redirect: route.fullPath},
+      })
     }
     return
   }

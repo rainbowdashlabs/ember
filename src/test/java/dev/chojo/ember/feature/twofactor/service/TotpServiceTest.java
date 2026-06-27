@@ -78,20 +78,20 @@ class TotpServiceTest {
     }
 
     @Test
-    void productionRefusesBlankKeyWhenEnabled() throws Exception {
+    void productionRefusesBlankKeyWhenEnabled() {
         assertThrows(
                 IllegalStateException.class, () -> new TotpService(settingsWithKey(true, ""), demoMode(false, false)));
     }
 
     @Test
-    void productionAcceptsBlankKeyWhenDisabled() throws Exception {
+    void productionAcceptsBlankKeyWhenDisabled() {
         // Service constructs without throwing even with a blank key when 2FA is disabled —
         // the dead zero key is never actually invoked.
         assertDoesNotThrow(() -> new TotpService(settingsWithKey(false, ""), demoMode(false, false)));
     }
 
     @Test
-    void rejectsWrongLengthKey() throws Exception {
+    void rejectsWrongLengthKey() {
         String tooShort = Base64.getEncoder().encodeToString(new byte[16]);
         assertThrows(
                 IllegalStateException.class,

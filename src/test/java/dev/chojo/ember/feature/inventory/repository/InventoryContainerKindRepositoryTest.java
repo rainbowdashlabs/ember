@@ -48,7 +48,7 @@ class InventoryContainerKindRepositoryTest extends RepositoryTestBase {
         InventoryContainerKind drawer = containerKindRepo.create(station.id(), "drawer", "Drawer", "inbox", 40, true);
         var all = containerKindRepo.findByStation(station.id());
         assertEquals(2, all.size());
-        assertEquals("room", all.get(0).key());
+        assertEquals("room", all.getFirst().key());
 
         assertTrue(containerKindRepo.update(drawer.id(), "Big Drawer", "box-archive", 50, false));
         InventoryContainerKind reloaded =

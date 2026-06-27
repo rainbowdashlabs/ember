@@ -91,7 +91,7 @@ class HibpClientTest {
     }
 
     @Test
-    void noMatchReturnsFalse() throws Exception {
+    void noMatchReturnsFalse() {
         bodyToServe.set("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:1\r\nBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB:7\r\n");
         assertFalse(newClient(true).isPwned("Some-fresh-passphrase-abc-456"));
     }

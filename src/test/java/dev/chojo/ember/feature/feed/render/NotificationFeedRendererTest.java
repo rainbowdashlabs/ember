@@ -115,7 +115,7 @@ class NotificationFeedRendererTest {
             return value;
         });
         // No deep link by default — renderer must fall back to the dashboard.
-        when(notificationService.resolveNotificationUrl(any(), any())).thenReturn(null);
+        when(notificationService.resolveNotificationUrl(any(), any(), any())).thenReturn(null);
         renderer = new NotificationFeedRenderer(
                 notificationService,
                 eventService,
@@ -129,7 +129,7 @@ class NotificationFeedRendererTest {
     }
 
     private NotificationFeedRenderer.RenderContext richCtx() {
-        return new NotificationFeedRenderer.RenderContext("de", "https://ember.example.com", "TOKEN", true, true);
+        return new NotificationFeedRenderer.RenderContext("de", "https://ember.example.com", "TOKEN", true, true, null);
     }
 
     @Test
@@ -166,7 +166,7 @@ class NotificationFeedRendererTest {
 
     @Test
     void resolvedDeepLinkOverridesDashboardFallback() {
-        when(notificationService.resolveNotificationUrl(any(), any()))
+        when(notificationService.resolveNotificationUrl(any(), any(), any()))
                 .thenReturn("https://ember.example.com/station/events/42");
         var n = notification(2, NotificationType.NEW_EVENT, new NotificationParams.NewEvent("Probe", "Konzert"));
         var entry = renderer.render(n, richCtx());
@@ -237,8 +237,8 @@ class NotificationFeedRendererTest {
                 NotificationType.LOST_AND_FOUND_NEW,
                 new NotificationParams.LostAndFoundNew("Blaue Jacke"),
                 new NotificationData.NotificationLink("lost-and-found", Map.of("id", 17)));
-        var noImages =
-                new NotificationFeedRenderer.RenderContext("de", "https://ember.example.com", "TOKEN", true, false);
+        var noImages = new NotificationFeedRenderer.RenderContext(
+                "de", "https://ember.example.com", "TOKEN", true, false, null);
         var entry = renderer.render(n, noImages);
         assertFalse(entry.getContents().getFirst().getValue().contains("<img"));
         assertTrue(entry.getModules() == null
@@ -251,8 +251,8 @@ class NotificationFeedRendererTest {
                 8,
                 NotificationType.EVENT_REGISTRATION_STATUS,
                 new NotificationParams.EventRegistrationStatus("Probe", RegistrationStatus.ACCEPTED, "Konzert"));
-        var compact =
-                new NotificationFeedRenderer.RenderContext("de", "https://ember.example.com", "TOKEN", false, true);
+        var compact = new NotificationFeedRenderer.RenderContext(
+                "de", "https://ember.example.com", "TOKEN", false, true, null);
         var entry = renderer.render(n, compact);
         var html = entry.getContents().getFirst().getValue();
         assertTrue(html.contains("MESSAGE"));

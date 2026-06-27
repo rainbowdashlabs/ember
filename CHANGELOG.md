@@ -28,6 +28,14 @@
 - **Inventar sidebar reorganised.** The Inventar group label itself now opens the inventory overview, Lager is a new top-level entry alongside it, Prüfung splits into Mitglieder-Prüfung and Behälter-Prüfung, and the existing Tausch, Beschaffung, Benötigt, Ausleihe and Inventare entries fold into a new Verwaltung subgroup so the group does not run long.
 - **Help center sidebar always expanded.** The help center sidebar no longer inherits a collapse preference from the dashboard. It stays full-width on desktop so articles remain reachable by title.
 - **Flyout menus on the collapsed sidebar.** With the desktop sidebar collapsed to its icon rail, hovering or keyboard-focusing a group icon now opens a floating menu showing the group's label and every nested entry, so all destinations stay reachable without first expanding the rail. Nested subgroups chain into further flyouts and badges stay visible on the rail when the menu is closed.
+- **Pflichttest toggle in the test builder.** Test managers can now flag a quiz as Pflichttest the same way forms have always offered Pflichtformular. A required test surfaces on the post-login requirements page until the member has submitted an attempt, and the "Starten" button drops them straight into the test runner.
+
+### Fixes
+
+- **Saving a Pflichtformular sticks.** Toggling Pflichtformular in the form builder and saving now persists the flag instead of failing the request.
+- **Required test button starts the test.** The button next to a required test on the requirements page opens the test runner directly; it previously dropped you on the test's read-only detail page.
+- **Deep links survive multi-station login.** A notification or shared link to a station-scoped page now routes through the cross-station picker when the account belongs to several stations: the original destination is preserved and the picker continues to it after a station is chosen. Notification and feed links also carry the owning station so a single-click sign-in lands directly on the right station.
+- **First-login onboarding leaves deep links alone.** Following a notification on first login no longer redirects to the dashboard halfway through; the onboarding tour waits for the next direct dashboard visit.
 
 ## v26.9.1
 

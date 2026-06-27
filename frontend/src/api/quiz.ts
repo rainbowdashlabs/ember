@@ -128,7 +128,7 @@ export async function getTest(id: number): Promise<QuizTestDetail> {
     return res.data
 }
 
-export async function createTest(data: { title: string; description?: string; timeLimit?: number | null; shuffle?: boolean }): Promise<QuizTest> {
+export async function createTest(data: { title: string; description?: string; timeLimit?: number | null; shuffle?: boolean; forced?: boolean }): Promise<QuizTest> {
     const res = await client.post<QuizTest>('/quiz/tests', data)
     return res.data
 }

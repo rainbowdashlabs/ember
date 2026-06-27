@@ -8289,6 +8289,7 @@ volumes:
             noTimeLimit: 'Kein Zeitlimit',
             timeLimitValue: '{minutes} Minuten',
             shuffle: 'Fragen mischen',
+            forced: 'Pflichttest',
             startAt: 'Startzeit',
             endAt: 'Endzeit',
             startedAt: 'Gestartet',

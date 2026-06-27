@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {useRoute} from 'vue-router'
 import type {CrossStationDashboard, CrossStationNotification} from '@/api/session'
 import {getCrossStationDashboard} from '@/api/session'
 import {useStations} from '@/composables/useStations'
@@ -20,6 +21,7 @@ import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
+const route = useRoute()
 const {setActiveStation, load: loadStations, getStationLogoUrl} = useStations()
 
 const dashboard = ref<CrossStationDashboard | null>(null)
@@ -33,9 +35,23 @@ onMounted(async () => {
   loading.value = false
 })
 
+function resolveRedirect(): string | null {
+  // Prefer the route query (Vue Router state) but fall back to the raw window URL
+  // — during SSR hydration the route can briefly lag behind the browser bar, and
+  // we never want to drop a deep link silently.
+  const fromRoute = typeof route.query.redirect === 'string' ? route.query.redirect : null
+  if (fromRoute && fromRoute.startsWith('/') && !fromRoute.startsWith('//')) return fromRoute
+  if (typeof window !== 'undefined') {
+    const fromUrl = new URLSearchParams(window.location.search).get('redirect')
+    if (fromUrl && fromUrl.startsWith('/') && !fromUrl.startsWith('//')) return fromUrl
+  }
+  return null
+}
+
 function selectStation(stationId: string) {
   setActiveStation(stationId)
-  window.location.href = '/station/dashboard/overview'
+  const redirect = resolveRedirect()
+  window.location.href = redirect ?? '/station/dashboard/overview'
 }
 
 function formatTime(iso: string): string {

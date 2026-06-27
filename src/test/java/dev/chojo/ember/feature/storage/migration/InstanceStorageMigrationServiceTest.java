@@ -178,7 +178,7 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
      * their bytes already live somewhere other than the instance default.
      */
     @Test
-    void stationsWithOverrideAreSkipped() throws Exception {
+    void stationsWithOverrideAreSkipped() {
         Station overridden = stationRepo.create("Overridden");
         Station inherited = stationRepo.create("Inherited");
         var overriddenScope = new StorageScope.Station(overridden.id(), overridden.uid());

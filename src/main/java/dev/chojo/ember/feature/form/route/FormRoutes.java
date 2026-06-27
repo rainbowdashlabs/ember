@@ -163,8 +163,8 @@ public class FormRoutes implements Routes {
                     + " most recent forms of the requested purpose.",
             tags = {"Forms"},
             queryParams = {
-                @OpenApiParam(name = "purpose", type = String.class, required = true),
-                @OpenApiParam(name = "q", type = String.class),
+                @OpenApiParam(name = "purpose", required = true),
+                @OpenApiParam(name = "q"),
                 @OpenApiParam(name = "limit", type = Integer.class)
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormSearchResult[].class)))
@@ -290,6 +290,7 @@ public class FormRoutes implements Routes {
                 req.description() != null ? req.description() : "",
                 req.shuffleQuestions() != null && req.shuffleQuestions(),
                 req.allowEdit() == null || req.allowEdit(),
+                req.forced() != null && req.forced(),
                 req.startAt(),
                 req.endAt(),
                 session.member().id(),
@@ -339,6 +340,7 @@ public class FormRoutes implements Routes {
                 req.description() != null ? req.description() : "",
                 req.shuffleQuestions() != null && req.shuffleQuestions(),
                 req.allowEdit() == null || req.allowEdit(),
+                req.forced() != null && req.forced(),
                 req.startAt(),
                 req.endAt())) {
             throw new NotFoundResponse();
@@ -771,6 +773,7 @@ public class FormRoutes implements Routes {
             String description,
             Boolean shuffleQuestions,
             Boolean allowEdit,
+            Boolean forced,
             Instant startAt,
             Instant endAt,
             FormPurpose purpose) {}

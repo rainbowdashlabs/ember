@@ -608,6 +608,7 @@ public class QuizRoutes implements Routes {
                 req.description() != null ? req.description() : "",
                 req.timeLimit(),
                 req.shuffle() != null && req.shuffle(),
+                req.forced() != null && req.forced(),
                 session.member().id());
         ctx.status(HttpStatus.CREATED).json(test);
     }
@@ -626,6 +627,7 @@ public class QuizRoutes implements Routes {
                 req.description() != null ? req.description() : "",
                 req.timeLimit(),
                 req.shuffle() != null && req.shuffle(),
+                req.forced() != null && req.forced(),
                 req.startAt(),
                 req.endAt())) {
             throw new NotFoundResponse();
@@ -1396,7 +1398,13 @@ public class QuizRoutes implements Routes {
     }
 
     public record TestRequest(
-            String title, String description, Integer timeLimit, Boolean shuffle, Instant startAt, Instant endAt) {}
+            String title,
+            String description,
+            Integer timeLimit,
+            Boolean shuffle,
+            Boolean forced,
+            Instant startAt,
+            Instant endAt) {}
 
     public record SectionRequest(String title, String description, List<SourceRequest> sources) {}
 

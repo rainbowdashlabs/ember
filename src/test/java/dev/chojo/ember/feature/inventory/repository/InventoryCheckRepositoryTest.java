@@ -251,9 +251,9 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
         var history = inventoryCheckRepo.findCheckHistoryForItem(item.id());
         assertEquals(2, history.size());
         // Newest first → the container check we just added.
-        assertEquals(containerCheck.id(), history.get(0).checkId());
-        assertEquals(CheckResult.NOT_IN_POSSESSION, history.get(0).result());
-        assertEquals("CONTAINER", history.get(0).scope());
+        assertEquals(containerCheck.id(), history.getFirst().checkId());
+        assertEquals(CheckResult.NOT_IN_POSSESSION, history.getFirst().result());
+        assertEquals("CONTAINER", history.getFirst().scope());
         assertEquals("HistoryRoom", history.get(0).containerName());
         assertEquals("left at home", history.get(0).note());
         // Member-scope check is older.

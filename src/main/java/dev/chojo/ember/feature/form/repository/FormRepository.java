@@ -171,19 +171,21 @@ public class FormRepository {
             String description,
             boolean shuffleQuestions,
             boolean allowEdit,
+            boolean forced,
             Instant startAt,
             Instant endAt,
             int createdBy,
             FormPurpose purpose) {
         return query("""
-                INSERT INTO form(station_id, title, description, shuffle_questions, allow_edit, start_at, end_at, created_by, purpose)
-                VALUES (:station_id, :title, :description, :shuffle_questions, :allow_edit, :start_at, :end_at, :created_by, :purpose)
+                INSERT INTO form(station_id, title, description, shuffle_questions, allow_edit, forced, start_at, end_at, created_by, purpose)
+                VALUES (:station_id, :title, :description, :shuffle_questions, :allow_edit, :forced, :start_at, :end_at, :created_by, :purpose)
                 RETURNING %s;""", FORM_COLUMNS_BARE)
                 .single(call().bind("station_id", stationId)
                         .bind("title", title)
                         .bind("description", description)
                         .bind("shuffle_questions", shuffleQuestions)
                         .bind("allow_edit", allowEdit)
+                        .bind("forced", forced)
                         .bind("start_at", startAt, INSTANT_TIMESTAMP)
                         .bind("end_at", endAt, INSTANT_TIMESTAMP)
                         .bind("created_by", createdBy)
@@ -211,12 +213,14 @@ public class FormRepository {
             String description,
             boolean shuffleQuestions,
             boolean allowEdit,
+            boolean forced,
             Instant startAt,
             Instant endAt) {
         return query("""
                 UPDATE form
                 SET title = :title, description = :description,
                     shuffle_questions = :shuffle_questions, allow_edit = :allow_edit,
+                    forced = :forced,
                     start_at = :start_at, end_at = :end_at, updated_at = now()
                 WHERE id = :id;""")
                 .single(call().bind("id", id)
@@ -224,6 +228,7 @@ public class FormRepository {
                         .bind("description", description)
                         .bind("shuffle_questions", shuffleQuestions)
                         .bind("allow_edit", allowEdit)
+                        .bind("forced", forced)
                         .bind("start_at", startAt, INSTANT_TIMESTAMP)
                         .bind("end_at", endAt, INSTANT_TIMESTAMP))
                 .update()

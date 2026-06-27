@@ -77,7 +77,7 @@ function skip() { router.push(defaultRedirect.value) }
                             <SubHeader>{{ quiz.title }}</SubHeader>
                             <p class="text-sm text-(--text-muted)">{{ t('requirements.quizText') }}</p>
                         </div>
-                        <PrimaryButton @click="router.push(`/station/quiz/tests/${quiz.id}`)">{{ t('requirements.startQuiz') }}</PrimaryButton>
+                        <PrimaryButton @click="router.push({name: 'quiz-test-take', params: {id: quiz.id}})">{{ t('requirements.startQuiz') }}</PrimaryButton>
                     </div>
                 </NeutralContainer>
             </div>

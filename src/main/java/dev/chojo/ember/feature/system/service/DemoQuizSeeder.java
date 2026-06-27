@@ -558,6 +558,7 @@ public class DemoQuizSeeder {
                 "Wissensprüfung mit Fragen für Anfänger und Fortgeschrittene",
                 45,
                 false,
+                false,
                 createdBy);
         // Section 1: Anfänger (20 questions from anfänger catalog)
         var section1 =
@@ -574,6 +575,7 @@ public class DemoQuizSeeder {
                 test.description(),
                 test.timeLimit(),
                 test.shuffle(),
+                test.forced(),
                 Instant.now().minus(7, ChronoUnit.DAYS),
                 Instant.now().plus(30, ChronoUnit.DAYS));
         quizService.activateTest(test.id());
@@ -585,6 +587,7 @@ public class DemoQuizSeeder {
                 "Übungstest zum Thema Brandlehre und Einsatztaktik (noch nicht freigegeben)",
                 30,
                 true,
+                false,
                 createdBy);
         var draftSection1 = quizTestRepository.createSection(draftTest.id(), "Brandlehre", "Fragen zur Brandlehre", 0);
         quizTestRepository.createSource(draftSection1.id(), fortCatalog.id(), catBrandlehre.id(), 5);
@@ -667,6 +670,7 @@ public class DemoQuizSeeder {
                 "Dieser Test zeigt alle verfügbaren Fragetypen",
                 20,
                 false,
+                false,
                 createdBy);
         var showcaseSection =
                 quizTestRepository.createSection(showcaseTest.id(), "Alle Typen", "Je eine Frage pro Fragetyp", 0);
@@ -677,6 +681,7 @@ public class DemoQuizSeeder {
                 showcaseTest.description(),
                 showcaseTest.timeLimit(),
                 showcaseTest.shuffle(),
+                showcaseTest.forced(),
                 Instant.now().minus(3, ChronoUnit.DAYS),
                 Instant.now().plus(60, ChronoUnit.DAYS));
         quizService.activateTest(showcaseTest.id());

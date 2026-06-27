@@ -155,7 +155,7 @@ class PageHitRecorderTest extends RepositoryTestBase {
     }
 
     @Test
-    void pruneSwallowsRepositoryExceptions() throws Exception {
+    void pruneSwallowsRepositoryExceptions() {
         var failing = Mockito.mock(PageHitRepository.class);
         Mockito.when(failing.pruneBefore(Mockito.any())).thenThrow(new RuntimeException("simulated outage"));
         var rec = new PageHitRecorder(failing, metrics);

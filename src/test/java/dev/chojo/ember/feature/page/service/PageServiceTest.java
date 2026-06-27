@@ -494,7 +494,7 @@ class PageServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(47)
-    void getPageRenderedMemberListSpotlightCell() throws Exception {
+    void getPageRenderedMemberListSpotlightCell() {
         var mapper = JsonMapper.builder().build();
         JsonNode src = mapper.readTree("{\"kind\":\"manual\",\"memberUids\":[]}");
         var memberListConfig = new CellConfig.MemberListConfig(

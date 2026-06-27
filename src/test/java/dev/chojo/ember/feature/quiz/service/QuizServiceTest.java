@@ -257,7 +257,7 @@ class QuizServiceTest extends RepositoryTestBase {
     @Test
     @Order(30)
     void createTest() {
-        var test = service.createTest(station.id(), "First Aid Test", "Basic first aid", 60, false, member.id());
+        var test = service.createTest(station.id(), "First Aid Test", "Basic first aid", 60, false, false, member.id());
         assertNotNull(test);
         assertEquals("First Aid Test", test.title());
         assertEquals(TestStatus.DRAFT, test.status());
@@ -287,7 +287,7 @@ class QuizServiceTest extends RepositoryTestBase {
     @Test
     @Order(34)
     void updateTest() {
-        assertTrue(service.updateTest(testId, "Updated Test", "Updated", 90, true, null, null));
+        assertTrue(service.updateTest(testId, "Updated Test", "Updated", 90, true, false, null, null));
     }
 
     @Test
@@ -390,7 +390,7 @@ class QuizServiceTest extends RepositoryTestBase {
     @Test
     @Order(52)
     void isTestAccessibleDraftNotAccessible() {
-        var draftTest = service.createTest(station.id(), "Draft", "", null, false, member.id());
+        var draftTest = service.createTest(station.id(), "Draft", "", null, false, false, member.id());
         var draft = service.findTest(draftTest.id()).orElseThrow();
         assertFalse(service.isTestAccessible(draft, member.id(), EnumSet.noneOf(StationPermission.class)));
         service.deleteTest(draftTest.id());
@@ -513,7 +513,7 @@ class QuizServiceTest extends RepositoryTestBase {
     @Order(92)
     void activateTestAutoGeneratesFrozen() {
         // Create a test with sections, don't generate frozen, then activate
-        var test2 = service.createTest(station.id(), "AutoFrozen", "", null, false, member.id());
+        var test2 = service.createTest(station.id(), "AutoFrozen", "", null, false, false, member.id());
         service.replaceSections(
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, categoryId, 1)))));
         // Don't call generateFrozenQuestions — activateTest should do it
@@ -526,7 +526,7 @@ class QuizServiceTest extends RepositoryTestBase {
     @Test
     @Order(93)
     void replaceWithRandomQuestion() {
-        var test2 = service.createTest(station.id(), "Random Replace", "", null, false, member.id());
+        var test2 = service.createTest(station.id(), "Random Replace", "", null, false, false, member.id());
         // Create two questions so there's an available replacement
         var q1 = quizCatalogRepo.createQuestion(
                 catalogId,
@@ -563,9 +563,10 @@ class QuizServiceTest extends RepositoryTestBase {
     @Test
     @Order(94)
     void isTestAccessibleWithTimeWindow() {
-        var test2 = service.createTest(station.id(), "Timed", "", null, false, member.id());
+        var test2 = service.createTest(station.id(), "Timed", "", null, false, false, member.id());
         // Set start_at in the future
-        service.updateTest(test2.id(), "Timed", "", null, false, Instant.now().plusSeconds(86400), null);
+        service.updateTest(
+                test2.id(), "Timed", "", null, false, false, Instant.now().plusSeconds(86400), null);
         service.replaceSections(
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, categoryId, 1)))));
         service.activateTest(test2.id());
@@ -578,12 +579,13 @@ class QuizServiceTest extends RepositoryTestBase {
     @Test
     @Order(95)
     void isTestAccessibleWithEndInPast() {
-        var test2 = service.createTest(station.id(), "Ended", "", null, false, member.id());
+        var test2 = service.createTest(station.id(), "Ended", "", null, false, false, member.id());
         service.updateTest(
                 test2.id(),
                 "Ended",
                 "",
                 null,
+                false,
                 false,
                 Instant.now().minusSeconds(86400),
                 Instant.now().minusSeconds(3600));
@@ -598,7 +600,7 @@ class QuizServiceTest extends RepositoryTestBase {
     @Test
     @Order(96)
     void isTestAccessibleGrantedMemberAccess() {
-        var test2 = service.createTest(station.id(), "MemberAccess", "", null, false, member.id());
+        var test2 = service.createTest(station.id(), "MemberAccess", "", null, false, false, member.id());
         service.replaceSections(
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, categoryId, 1)))));
         service.activateTest(test2.id());
@@ -625,7 +627,7 @@ class QuizServiceTest extends RepositoryTestBase {
                 false,
                 "{\"options\":[{\"text\":\"A\",\"correct\":true},{\"text\":\"B\",\"correct\":false},{\"text\":\"C\",\"correct\":true}],\"pointsPerCorrect\":1.0}",
                 10);
-        var test2 = service.createTest(station.id(), "MC Grade", "", null, false, member.id());
+        var test2 = service.createTest(station.id(), "MC Grade", "", null, false, false, member.id());
         service.replaceSections(
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, null, 0)))));
         service.generateFrozenQuestions(test2.id());
@@ -658,7 +660,7 @@ class QuizServiceTest extends RepositoryTestBase {
                 false,
                 "{\"correctAnswer\":true}",
                 11);
-        var test2 = service.createTest(station.id(), "TF Grade", "", null, false, member.id());
+        var test2 = service.createTest(station.id(), "TF Grade", "", null, false, false, member.id());
         service.replaceSections(
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, null, 0)))));
         service.generateFrozenQuestions(test2.id());
@@ -681,7 +683,7 @@ class QuizServiceTest extends RepositoryTestBase {
     void autoGradeFreeAnswerNotAutoGraded() {
         var q = service.createQuestion(
                 catalogId, null, QuizQuestionType.FREE_ANSWER, "Free Answer", "", null, 5.0, false, "{}", 12);
-        var test2 = service.createTest(station.id(), "FA Grade", "", null, false, member.id());
+        var test2 = service.createTest(station.id(), "FA Grade", "", null, false, false, member.id());
         service.replaceSections(
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, null, 0)))));
         service.generateFrozenQuestions(test2.id());
@@ -713,7 +715,7 @@ class QuizServiceTest extends RepositoryTestBase {
                 false,
                 "{\"items\":[\"A\",\"B\",\"C\"]}",
                 13);
-        var test2 = service.createTest(station.id(), "Ord Grade", "", null, false, member.id());
+        var test2 = service.createTest(station.id(), "Ord Grade", "", null, false, false, member.id());
         service.replaceSections(
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, null, 0)))));
         service.generateFrozenQuestions(test2.id());
@@ -746,7 +748,7 @@ class QuizServiceTest extends RepositoryTestBase {
                 false,
                 "{\"answers\":[\"Paris\"]}",
                 14);
-        var test2 = service.createTest(station.id(), "Fill Grade", "", null, false, member.id());
+        var test2 = service.createTest(station.id(), "Fill Grade", "", null, false, false, member.id());
         service.replaceSections(
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, null, 0)))));
         service.generateFrozenQuestions(test2.id());
@@ -777,7 +779,7 @@ class QuizServiceTest extends RepositoryTestBase {
                 false,
                 "{\"answers\":[\"red\",\"blue\",\"green\"],\"requiredCount\":3}",
                 15);
-        var test2 = service.createTest(station.id(), "Enum Grade", "", null, false, member.id());
+        var test2 = service.createTest(station.id(), "Enum Grade", "", null, false, false, member.id());
         service.replaceSections(
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, null, 0)))));
         service.generateFrozenQuestions(test2.id());
@@ -808,7 +810,7 @@ class QuizServiceTest extends RepositoryTestBase {
                 false,
                 "{\"pairs\":[{\"left\":\"A\",\"right\":\"1\"},{\"left\":\"B\",\"right\":\"2\"}]}",
                 16);
-        var test2 = service.createTest(station.id(), "Con Grade", "", null, false, member.id());
+        var test2 = service.createTest(station.id(), "Con Grade", "", null, false, false, member.id());
         service.replaceSections(
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, null, 0)))));
         service.generateFrozenQuestions(test2.id());
@@ -839,7 +841,7 @@ class QuizServiceTest extends RepositoryTestBase {
                 false,
                 "{\"options\":[{\"text\":\"A\",\"correct\":true},{\"text\":\"B\",\"correct\":false}],\"pointsPerCorrect\":1.0}",
                 18);
-        var test2 = service.createTest(station.id(), "MCW Grade", "", null, false, member.id());
+        var test2 = service.createTest(station.id(), "MCW Grade", "", null, false, false, member.id());
         service.replaceSections(
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, null, 0)))));
         service.generateFrozenQuestions(test2.id());
@@ -898,7 +900,7 @@ class QuizServiceTest extends RepositoryTestBase {
                 22);
 
         // Use a source WITHOUT categoryId but WITH count=2 to trigger pickBalancedFromCatalog
-        var test2 = service.createTest(station.id(), "Balanced", "", null, false, member.id());
+        var test2 = service.createTest(station.id(), "Balanced", "", null, false, false, member.id());
         service.replaceSections(
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, null, 2)))));
         service.generateFrozenQuestions(test2.id());
@@ -926,7 +928,7 @@ class QuizServiceTest extends RepositoryTestBase {
                 false,
                 "{\"answers\":[\"Paris\",\"Berlin\"]}",
                 17);
-        var test2 = service.createTest(station.id(), "FillGap", "", null, false, member.id());
+        var test2 = service.createTest(station.id(), "FillGap", "", null, false, false, member.id());
         service.replaceSections(
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, null, 0)))));
         service.generateFrozenQuestions(test2.id());
