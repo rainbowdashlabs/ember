@@ -306,6 +306,15 @@ public class ApiServer {
             });
 
             config.routes.before(ctx -> {
+                if (ctx.path().endsWith("/transfer/create-token")) {
+                    log.info(
+                            "[debug] BEFORE-A (very first before): status={} servletStatus={}",
+                            ctx.statusCode(),
+                            ctx.res().getStatus());
+                }
+            });
+
+            config.routes.before(ctx -> {
                 if (ctx.method() == HandlerType.OPTIONS) return;
                 String bodyLog;
                 if (ctx.path().contains("/ai/")
@@ -419,8 +428,41 @@ public class ApiServer {
                 log.info("Demo guard NOT attached (demo.enabled = false)");
             }
 
+            config.routes.before(ctx -> {
+                if (ctx.path().endsWith("/transfer/create-token")) {
+                    log.info(
+                            "[debug] BEFORE-Z (after all befores): status={} servletStatus={}",
+                            ctx.statusCode(),
+                            ctx.res().getStatus());
+                }
+            });
+
+            config.routes.beforeMatched(ctx -> {
+                if (ctx.path().endsWith("/transfer/create-token")) {
+                    log.info(
+                            "[debug] BEFOREMATCHED-A (first beforeMatched): status={} servletStatus={}",
+                            ctx.statusCode(),
+                            ctx.res().getStatus());
+                }
+            });
             config.routes.beforeMatched(this::handleAccess);
+            config.routes.beforeMatched(ctx -> {
+                if (ctx.path().endsWith("/transfer/create-token")) {
+                    log.info(
+                            "[debug] beforeMatched after handleAccess: status={} servletStatus={}",
+                            ctx.statusCode(),
+                            ctx.res().getStatus());
+                }
+            });
             config.routes.beforeMatched(this::handleStationReadOnly);
+            config.routes.beforeMatched(ctx -> {
+                if (ctx.path().endsWith("/transfer/create-token")) {
+                    log.info(
+                            "[debug] beforeMatched after handleStationReadOnly: status={} servletStatus={}",
+                            ctx.statusCode(),
+                            ctx.res().getStatus());
+                }
+            });
 
             setupExceptionHandlers(config.routes);
 
