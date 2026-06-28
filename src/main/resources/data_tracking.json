@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:80374ea9178a575a99b4deed4f3f44623e00c6ea24ec6a8fea9dd93928739ce9",
-  "generatedAt" : "2026-06-28T17:13:00Z",
+  "schemaHash" : "sha256:43f748ef5e6381731e828d083a59288cdd12dc8dd80c0ae2ebc7d9e7addd3dd1",
+  "generatedAt" : "2026-06-28T23:17:11Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -5437,7 +5437,7 @@
     "federation_partner" : {
       "feature" : "federation",
       "scope" : "STATION",
-      "tableHash" : "sha256:78101f9f711b2d9d46fb5d707d982f342ea7e76551ac166f0dc9b8afd089ef15",
+      "tableHash" : "sha256:2c70d3b838dd150f1e11e963f424f5d4bb487be92f38cd4fee3fdf18d30011b5",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -5520,8 +5520,7 @@
         "name" : "partner_station_name",
         "type" : "text",
         "nullable" : true,
-        "verified" : true,
-        "description" : "Display name of the partner station, captured at partnership creation time so cross-instance partnerships can show a name even when the partner is on a remote instance."
+        "verified" : true
       } ],
       "foreignKeys" : [ {
         "column" : "station_id",
