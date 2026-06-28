@@ -457,7 +457,7 @@ const manageDefaultRoute = computed(() => {
     <Alert v-if="isDemo" class="mb-4" variant="info">
       {{ t('demo.banner') }}
     </Alert>
-    <slot><RouterView/></slot>
+    <slot v-if="loaded && sessionInfo?.member"><RouterView/></slot>
     <OnboardingTour/>
     <ReportProblemButton/>
     <DevToolsButton/>
