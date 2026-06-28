@@ -199,6 +199,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 "1",
                 Instant.now(),
                 Instant.now(),
+                null,
                 null);
         when(federationService.findPartners(station1.id())).thenReturn(List.of(partner));
         when(federationService.hasCapability(partnerId, CapabilityType.BOARD_SHARE, Direction.IMPORT))
@@ -225,6 +226,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 "1",
                 Instant.now(),
                 Instant.now(),
+                null,
                 null);
         when(federationService.findPartners(station1.id())).thenReturn(List.of(partner));
 
@@ -246,6 +248,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 "1",
                 Instant.now(),
                 Instant.now(),
+                null,
                 null);
         when(federationService.findPartners(station1.id())).thenReturn(List.of(partner));
         when(federationService.hasCapability(partnerId, CapabilityType.BOARD_SHARE, Direction.IMPORT))
@@ -590,7 +593,8 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 "1",
                 Instant.now(),
                 Instant.now(),
-                "https://remote.example.com");
+                "https://remote.example.com",
+                null);
         when(federationService.findPartners(station1.id())).thenReturn(List.of(partner));
         when(federationService.hasCapability(partnerId, CapabilityType.BOARD_SHARE, Direction.IMPORT))
                 .thenReturn(true);
@@ -625,7 +629,8 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 "1",
                 Instant.now(),
                 Instant.now(),
-                "https://remote.example.com");
+                "https://remote.example.com",
+                null);
         when(federationService.findPartners(station1.id())).thenReturn(List.of(partner));
         when(federationService.hasCapability(partnerId, CapabilityType.BOARD_SHARE, Direction.IMPORT))
                 .thenReturn(true);
@@ -680,6 +685,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 "1",
                 Instant.now(),
                 Instant.now(),
+                null,
                 null);
     }
 
@@ -695,7 +701,8 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 "1",
                 Instant.now(),
                 Instant.now(),
-                "https://remote.example.com");
+                "https://remote.example.com",
+                null);
     }
 
     // -- Local proxy read tests --
@@ -1109,6 +1116,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 "1",
                 Instant.now(),
                 Instant.now(),
+                null,
                 null);
         when(federationRepository.findPartnerById(partner2Id)).thenReturn(Optional.of(partner2));
         // Reverse lookup: board is on station1, partner2 is on station2.

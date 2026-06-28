@@ -40,7 +40,6 @@ import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
-import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.PandocConverter;
 import dev.chojo.ember.util.SafeContentDisposition;
@@ -1069,7 +1068,8 @@ public class KnowledgeBaseRoutes implements Routes {
         var items = service.browseSharedKb(session.stationId());
         ctx.json(items.stream()
                 .map(i -> {
-                    var partner = federationRepository.findPartnerById(i.partnerId()).orElse(null);
+                    var partner =
+                            federationRepository.findPartnerById(i.partnerId()).orElse(null);
                     String name = FederationDisplayNames.partnerName(stationRepository, partner, "Unknown");
                     return new FederatedKbItem(
                             i.file().id(),

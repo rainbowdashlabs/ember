@@ -25,7 +25,6 @@ import dev.chojo.ember.feature.protocol.entity.TestProtocolRunMember;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolSection;
 import dev.chojo.ember.feature.protocol.service.TestProtocolPdfService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
-import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -183,7 +182,9 @@ public class TestProtocolRoutes implements Routes {
         var sharedItems = service.browseSharedProtocols(session.stationId());
         var shared = sharedItems.stream()
                 .map(item -> {
-                    var partner = federationRepository.findPartnerById(item.partnerId()).orElse(null);
+                    var partner = federationRepository
+                            .findPartnerById(item.partnerId())
+                            .orElse(null);
                     String stationName = FederationDisplayNames.partnerName(stationRepository, partner, "Unknown");
                     return new SharedProtocolItem(
                             item.id(), item.name(), item.description(), stationName, item.sourceStationId());
@@ -559,7 +560,8 @@ public class TestProtocolRoutes implements Routes {
         var items = service.browseSharedProtocols(session.stationId());
         ctx.json(items.stream()
                 .map(i -> {
-                    var partner = federationRepository.findPartnerById(i.partnerId()).orElse(null);
+                    var partner =
+                            federationRepository.findPartnerById(i.partnerId()).orElse(null);
                     String stationName = FederationDisplayNames.partnerName(stationRepository, partner, "Unknown");
                     return new SharedProtocolItem(i.id(), i.name(), i.description(), stationName, i.sourceStationId());
                 })

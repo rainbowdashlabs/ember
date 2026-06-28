@@ -53,9 +53,7 @@ public class FederationPartnerTransferFixupService {
                         WHERE fp.station_id = :station_id
                           AND s.uid = fp.partner_station_id
                           AND (fp.partner_station_name IS NULL OR fp.partner_station_name = '');
-                        """)
-                .single(call().bind("station_id", stationId))
-                .update();
+                        """).single(call().bind("station_id", stationId)).update();
 
         int cleared =
                 query("""
