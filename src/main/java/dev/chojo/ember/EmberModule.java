@@ -128,6 +128,7 @@ import dev.chojo.ember.feature.station.route.SetupRoutes;
 import dev.chojo.ember.feature.station.route.StationApplicationRoutes;
 import dev.chojo.ember.feature.station.route.StationManageRoutes;
 import dev.chojo.ember.feature.station.route.StationRoutes;
+import dev.chojo.ember.feature.station.service.TransferTimeoutWatchdog;
 import dev.chojo.ember.feature.statistics.route.StatisticsRoutes;
 import dev.chojo.ember.feature.storage.route.StationStorageBackendRoutes;
 import dev.chojo.ember.feature.storage.route.StorageRoutes;
@@ -297,6 +298,7 @@ public class EmberModule extends AbstractModule {
         bind(StorageReconciliationService.class).asEagerSingleton();
         bind(FederationVersionBroadcaster.class).asEagerSingleton();
         bind(FeedMetricsService.class).asEagerSingleton();
+        bind(TransferTimeoutWatchdog.class).asEagerSingleton();
         // Discovery chain
         bind(FederationPartnerSeeder.class).asEagerSingleton();
         bind(DiscoveryPingScheduler.class).asEagerSingleton();

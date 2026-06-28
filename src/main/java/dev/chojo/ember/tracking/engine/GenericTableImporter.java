@@ -115,7 +115,7 @@ public final class GenericTableImporter {
         }
         var sql = new StringBuilder("INSERT INTO ").append(tableName);
         sql.append('(').append(cols).append(") VALUES(").append(vals).append(')');
-        if (!hasIdPk) sql.append(" ON CONFLICT DO NOTHING");
+        sql.append(" ON CONFLICT DO NOTHING");
         if (hasIdPk) sql.append(" RETURNING id");
         sql.append(';');
         return sql.toString();
@@ -163,9 +163,26 @@ public final class GenericTableImporter {
                 Integer i = toInteger(val);
                 yield i == null ? c.bind(name, (Integer) null) : c.bind(name, i);
             }
+            case "numeric", "float4", "float8" -> {
+                Double d = toDouble(val);
+                yield d == null ? c.bind(name, (Double) null) : c.bind(name, d);
+            }
             case "bool" -> c.bind(name, asBool(val));
             default -> c.bind(name, val.toString());
         };
+    }
+
+    private static Double toDouble(Object val) {
+        if (val == null) return null;
+        if (val instanceof Number n) return n.doubleValue();
+        if (val instanceof String s && !s.isBlank()) {
+            try {
+                return Double.parseDouble(s);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
     }
 
     private static Instant asInstant(Object val) {

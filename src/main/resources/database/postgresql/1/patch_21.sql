@@ -101,3 +101,15 @@ ALTER TABLE ember_schema.lost_and_found_item
     ALTER COLUMN created_by DROP NOT NULL,
     ADD CONSTRAINT lost_and_found_item_created_by_fkey FOREIGN KEY (created_by)
         REFERENCES ember_schema.station_member (id) ON DELETE SET NULL;
+
+-- Heartbeat column for transfer-token timeout. The destination instance touches this
+-- on every token-authenticated GET; a watchdog scans for tokens whose last_activity_at
+-- is older than 5 minutes and treats the transfer as failed (invalidates the token and
+-- clears the source station's read-only-for-transfer flag), so a destination that
+-- crashes or hangs mid-pull does not leave the source locked indefinitely.
+
+ALTER TABLE ember_schema.transfer_token
+    ADD COLUMN last_activity_at TIMESTAMPTZ NOT NULL DEFAULT now();
+
+COMMENT ON COLUMN ember_schema.transfer_token.last_activity_at IS
+    'Timestamp of the most recent token-authenticated request from the destination. Refreshed on every successful validateToken(). The TransferTimeoutWatchdog marks tokens stale after 5 minutes of inactivity, invalidating them and clearing the source station''s read-only-for-transfer flag.';

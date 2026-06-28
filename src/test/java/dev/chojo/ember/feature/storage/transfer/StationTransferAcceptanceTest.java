@@ -87,7 +87,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         var backendImporter = new TransferBackendImporter(configRepo, credentialCipher, resolver);
         var descriptorService = new TransferBackendDescriptorService(configRepo, credentialCipher);
 
-        exportService = new StationExportService(stationRepo);
+        exportService = new StationExportService(stationRepo, new dev.chojo.ember.conf.file.elements.Api());
         importService = new StationImportService(
                 stationRepo, accountRepo, exportService, new Api(), backendImporter, storageService, avatarService);
 

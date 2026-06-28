@@ -1016,6 +1016,11 @@ const router = createRouter({
                     component: AdminStationEditView,
                 },
                 {
+                    path: 'stations/import/:stationUid',
+                    name: 'admin-station-import',
+                    component: () => import('@/views/adminview/AdminStationImportView.vue'),
+                },
+                {
                     path: 'stations/applications',
                     name: 'admin-station-applications',
                     component: () => import('@/views/adminview/AdminApplicationsView.vue'),
@@ -2070,6 +2075,11 @@ const router = createRouter({
                     path: 'stations/applications',
                     name: 'help-admin-station-applications',
                     component: () => import('@/views/helpcenter/adminview/ApplicationsHelp.vue')
+                },
+                {
+                    path: 'stations/import/:stationUid',
+                    name: 'help-admin-station-import',
+                    component: () => import('@/views/helpcenter/adminview/StationImportHelp.vue')
                 },
                 {
                     path: 'settings',

@@ -24,7 +24,7 @@ public class Api {
     private int port = 8080;
 
     @Overwrite(env = @Env)
-    private String baseUrl = "http://localhost:5173";
+    private String baseUrl = "http://localhost:3000";
 
     @Overwrite(env = @Env)
     private String demoUrl = "https://demo.ember-panel.de";

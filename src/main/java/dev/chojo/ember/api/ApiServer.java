@@ -299,20 +299,19 @@ public class ApiServer {
             config.registerPlugin(new OpenApiPlugin(this::configureOpenApi));
             config.registerPlugin(new SwaggerPlugin(this::configureSwagger));
 
-            config.bundledPlugins.enableCors(cors -> {
+            if (demoConfig.dev()) {
+                // config.bundledPlugins.enableDevLogging();
+            }
+
+            config.bundledPlugins.enableCors(cors -> cors.addRule(rule -> {
                 for (String origin : apiConfig.allowedOrigins()) {
-                    cors.addRule(rule -> rule.allowHost(origin));
+                    rule.allowHost(origin);
                 }
-                // In dev mode also allow the Nuxt dev server origins the docker dev
-                // compose binds (source on :3000, transfer-profile target on :3001).
-                // Without this, the CORS plugin pre-stamps the response status with 400
-                // even though it lets the matched handler run — producing the deeply
-                // confusing 400-with-success-body that bit the transfer flow.
                 if (demoConfig.dev()) {
-                    cors.addRule(rule -> rule.allowHost("http://localhost:3000"));
-                    cors.addRule(rule -> rule.allowHost("http://localhost:3001"));
+                    rule.allowHost("http://localhost:3000");
+                    rule.allowHost("http://localhost:3001");
                 }
-            });
+            }));
 
             config.routes.before(ctx -> {
                 if (ctx.method() == HandlerType.OPTIONS) return;

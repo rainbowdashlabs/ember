@@ -38,7 +38,7 @@ class StationExportServiceTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void setup() {
-        exportService = new StationExportService(stationRepo);
+        exportService = new StationExportService(stationRepo, new dev.chojo.ember.conf.file.elements.Api());
 
         var station = stationRepo.create("Export Test Station");
         stationId = station.id();

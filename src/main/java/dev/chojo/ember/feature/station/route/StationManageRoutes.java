@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
+import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
 import dev.chojo.ember.feature.station.service.StationLocationService;
 import dev.chojo.ember.feature.station.service.StationService;
@@ -529,13 +530,16 @@ public class StationManageRoutes implements Routes {
     private void importInto(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(StationImportRequest.class);
-        if (req.sourceUrl() == null || req.sourceUrl().isBlank()) {
-            throw new BadRequestResponse("sourceUrl is required");
-        }
         if (req.token() == null || req.token().isBlank()) {
             throw new BadRequestResponse("token is required");
         }
-        importService.startRemoteImportInto(session.stationId(), req.sourceUrl().replaceAll("/+$", ""), req.token());
+        var parsed = StationExportService.parseToken(req.token())
+                .orElseThrow(() -> new BadRequestResponse("Invalid transfer token"));
+        String sourceUrl = (req.sourceUrl() != null && !req.sourceUrl().isBlank()) ? req.sourceUrl() : parsed.host();
+        if (sourceUrl == null || sourceUrl.isBlank()) {
+            throw new BadRequestResponse("token does not contain a source URL; sourceUrl is required");
+        }
+        importService.startRemoteImportInto(session.stationId(), sourceUrl.replaceAll("/+$", ""), parsed.token());
         ctx.status(HttpStatus.CREATED).json(new MessageResponse("Import started"));
     }
 
@@ -557,9 +561,11 @@ public class StationManageRoutes implements Routes {
                 progress.stationId(),
                 progress.stationName(),
                 progress.status(),
-                progress.totalTables(),
-                progress.completedTables(),
-                progress.currentTable(),
+                progress.phases(),
+                progress.completedPhases(),
+                progress.currentPhase(),
+                progress.subTotal(),
+                progress.subCompleted(),
                 progress.error()));
     }
 
@@ -720,17 +726,20 @@ public class StationManageRoutes implements Routes {
      * @param stationId       the target station ID
      * @param stationName     the target station name
      * @param status          the import status (IN_PROGRESS, COMPLETED, FAILED)
-     * @param totalTables     the total number of tables to import
-     * @param completedTables the number of tables imported so far
-     * @param currentTable    the table currently being imported, or {@code null} if completed
+     * @param phases          the ordered list of phase ids the import walks (tables, storage
+     *                        backend, per-category file copies, avatar carry-over)
+     * @param completedPhases the number of phases finished so far
+     * @param currentPhase    the phase id currently being processed, or {@code null} if completed
      * @param error           the error message if the import failed, or {@code null}
      */
     public record ImportProgressResponse(
             int stationId,
             String stationName,
             StationImportService.ImportProgress.Status status,
-            int totalTables,
-            int completedTables,
-            String currentTable,
+            java.util.List<String> phases,
+            int completedPhases,
+            String currentPhase,
+            int subTotal,
+            int subCompleted,
             String error) {}
 }

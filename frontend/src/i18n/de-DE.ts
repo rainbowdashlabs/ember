@@ -4,6 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 export default {
+    transferImport: {
+        completed: 'Import abgeschlossen.',
+        failed: 'Import fehlgeschlagen: {error}',
+        morePending: 'noch {count} weitere Schritte ausstehend',
+    },
+    adminStationImport: {
+        title: 'Wache importieren',
+        backToStations: 'Zurück zu den Wachen',
+    },
     publicConsent: {
         label: 'Ich habe die {privacy} und die {tos} gelesen und stimme ihnen zu.',
         privacy: 'Datenschutzerklärung',
@@ -3511,6 +3520,16 @@ volumes:
             exampleTitle: 'So sieht die Seite aus',
             tip: 'Der Antragsteller muss seine E-Mail-Adresse bestätigen, bevor du den Antrag bearbeiten kannst.',
         },
+        adminStationImport: {
+            title: 'Wache importieren',
+            subtitle: 'Eine Wache von einer anderen Ember-Instanz übernehmen.',
+            whatIs: 'Was ist das?',
+            whatIsText: 'Diese Seite zeigt den Fortschritt eines laufenden Imports. Tabellen, das Speicher-Backend, Dateien und Avatare werden nacheinander abgearbeitet.',
+            phasesTitle: 'Ablauf',
+            phasesText: 'Zuerst werden alle Tabellen in topologischer Reihenfolge übernommen, dann wird das Speicher-Backend abgeglichen und schließlich werden Dateien und Avatare kopiert.',
+            failureTitle: 'Was passiert bei einem Fehler?',
+            failureText: 'Schlägt der Import fehl, wird die Zielwache nicht automatisch gelöscht. Sende den Transfer-Code erneut oder lösche die Wache manuell und beginne neu.',
+        },
         adminStationEdit: {
             title: 'Wache bearbeiten',
             subtitle: 'Eine einzelne Wache konfigurieren.',
@@ -4584,9 +4603,7 @@ volumes:
         accountPending: 'Einrichtung ausstehend',
         cancelTransfer: 'Abbrechen',
         importStation: 'Wache importieren',
-        importHint: 'Importiere eine Wache von einer anderen Ember-Instanz. Der Manager der Quell-Wache muss einen Transfer-Code erstellen.',
-        importSourceUrl: 'Quell-URL',
-        importSourceUrlPlaceholder: 'https://ember.example.com',
+        importHint: 'Importiere eine Wache von einer anderen Ember-Instanz. Der Manager der Quell-Wache erstellt einen Transfer-Code; die Quell-URL ist im Code enthalten.',
         importToken: 'Transfer-Code',
         importTokenPlaceholder: 'Code vom Quell-Manager',
         importStart: 'Import starten',
@@ -6271,9 +6288,7 @@ volumes:
         deleteRequesting: 'Wird gesendet...',
         deleteRequested: 'Bestätigungs-E-Mail wurde gesendet. Prüfe deinen Posteingang.',
         importTitle: 'Wache importieren',
-        importHint: 'Importiere Daten von einer anderen Ember-Instanz in diese Wache. Der Manager der Quell-Wache muss einen Transfer-Code erstellen.',
-        importSourceUrl: 'Quell-URL',
-        importSourceUrlPlaceholder: 'https://ember.example.com',
+        importHint: 'Importiere Daten von einer anderen Ember-Instanz in diese Wache. Der Manager der Quell-Wache erstellt einen Transfer-Code; die Quell-URL ist im Code enthalten.',
         importToken: 'Transfer-Code',
         importTokenPlaceholder: 'Code vom Quell-Manager',
         importStart: 'Import starten',

@@ -27,6 +27,8 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -36,6 +38,8 @@ import java.util.List;
  */
 @Singleton
 public class TransferRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(TransferRoutes.class);
+
     private final StationExportService exportService;
     private final StationImportService importService;
     private final StationRepository stationRepository;
@@ -65,8 +69,12 @@ public class TransferRoutes implements Routes {
         // Import (async, fetches from remote)
         routes.post(prefix + "/admin/transfer/import", this::startImport, InstancePermission.ADMINISTRATOR);
         routes.get(
-                prefix + "/admin/transfer/import/{stationId}/progress",
+                prefix + "/admin/transfer/import/{stationUid}/progress",
                 this::importProgress,
+                InstancePermission.ADMINISTRATOR);
+        routes.post(
+                prefix + "/admin/transfer/import/{stationUid}/retry",
+                this::retryImport,
                 InstancePermission.ADMINISTRATOR);
     }
 
@@ -88,6 +96,7 @@ public class TransferRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TokenResponse.class)))
     private void createToken(Context ctx) {
         UserSession session = UserSession.from(ctx);
+        log.info("[export] create token for station {}", session.stationId());
         String token = exportService.createTransferToken(session.stationId());
         ctx.json(new TokenResponse(token, exportService.getAppVersion()));
     }
@@ -100,6 +109,7 @@ public class TransferRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void abortTransfer(Context ctx) {
         UserSession session = UserSession.from(ctx);
+        log.info("[export] abort transfer for station {}", session.stationId());
         exportService.abortTransfer(session.stationId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -130,11 +140,17 @@ public class TransferRoutes implements Routes {
             responses = {@OpenApiResponse(status = "200"), @OpenApiResponse(status = "403")})
     private void tokenListTables(Context ctx) {
         String token = ctx.pathParam("token");
-        exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
+        int stationId =
+                exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
         String importingFrom = ctx.header("X-Ember-Importing-From");
+        log.info(
+                "[export] tables manifest requested for station {} by destination {} — flipping read-only flag",
+                stationId,
+                importingFrom == null || importingFrom.isBlank() ? "<not declared>" : importingFrom);
         if (importingFrom != null && !importingFrom.isBlank()) {
             exportService.recordTransferTarget(token, importingFrom);
         }
+        exportService.markTransferStarted(stationId);
         ctx.json(new TablesResponse(
                 exportService.getTableOrder(), exportService.getSchemaHash(), exportService.getAppVersion()));
     }
@@ -166,6 +182,7 @@ public class TransferRoutes implements Routes {
         }
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(500);
+        log.info("[export] serving table '{}' offset={} limit={} for station {}", table, offset, limit, stationId);
         ctx.json(exportService.exportTable(stationId, table, offset, limit));
     }
 
@@ -185,41 +202,73 @@ public class TransferRoutes implements Routes {
             })
     private void startImport(Context ctx) {
         var req = ctx.bodyAsClass(ImportRequest.class);
-        if (req.sourceUrl() == null || req.sourceUrl().isBlank()) {
-            throw new BadRequestResponse("sourceUrl is required");
-        }
         if (req.token() == null || req.token().isBlank()) {
             throw new BadRequestResponse("token is required");
         }
-        String sourceUrl = req.sourceUrl().replaceAll("/+$", "");
-        var result = importService.startRemoteImport(sourceUrl, req.token());
+        var parsed = StationExportService.parseToken(req.token())
+                .orElseThrow(() -> new BadRequestResponse("Invalid transfer token"));
+        String sourceUrl = (req.sourceUrl() != null && !req.sourceUrl().isBlank()) ? req.sourceUrl() : parsed.host();
+        if (sourceUrl == null || sourceUrl.isBlank()) {
+            throw new BadRequestResponse("token does not contain a source URL; sourceUrl is required");
+        }
+        sourceUrl = sourceUrl.replaceAll("/+$", "");
+        var result = importService.startRemoteImport(sourceUrl, parsed.token());
         ctx.status(HttpStatus.CREATED).json(new ImportStartResponse(result.stationId(), result.stationName()));
     }
 
     @OpenApi(
-            path = "/api/v1/admin/transfer/import/{stationId}/progress",
+            path = "/api/v1/admin/transfer/import/{stationUid}/progress",
             methods = HttpMethod.GET,
             summary = "Get the progress of a running import",
             tags = {"Transfer"},
-            pathParams = @OpenApiParam(name = "stationId", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "stationUid", required = true),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = ImportProgressResponse.class)),
                 @OpenApiResponse(status = "404")
             })
     private void importProgress(Context ctx) {
-        int stationId = ctx.pathParamAsClass("stationId", Integer.class).get();
-        var progress = importService.getProgress(stationId);
+        java.util.UUID stationUid;
+        try {
+            stationUid = java.util.UUID.fromString(ctx.pathParam("stationUid"));
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse("Invalid stationUid");
+        }
+        var progress = importService.getProgressByUid(stationUid);
         if (progress == null) {
-            throw new NotFoundResponse("No active import for station " + stationId);
+            throw new NotFoundResponse("No active import for station " + stationUid);
         }
         ctx.json(new ImportProgressResponse(
                 progress.stationId(),
                 progress.stationName(),
                 progress.status(),
-                progress.totalTables(),
-                progress.completedTables(),
-                progress.currentTable(),
+                progress.phases(),
+                progress.completedPhases(),
+                progress.currentPhase(),
+                progress.subTotal(),
+                progress.subCompleted(),
                 progress.error()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/admin/transfer/import/{stationUid}/retry",
+            methods = HttpMethod.POST,
+            summary = "Delete the half-imported station from a failed import and restart with the same token",
+            tags = {"Transfer"},
+            pathParams = @OpenApiParam(name = "stationUid", required = true),
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = ImportStartResponse.class)),
+                @OpenApiResponse(status = "400"),
+                @OpenApiResponse(status = "404")
+            })
+    private void retryImport(Context ctx) {
+        java.util.UUID stationUid;
+        try {
+            stationUid = java.util.UUID.fromString(ctx.pathParam("stationUid"));
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse("Invalid stationUid");
+        }
+        var result = importService.retryFailedImport(stationUid);
+        ctx.status(HttpStatus.CREATED).json(new ImportStartResponse(result.stationId(), result.stationName()));
     }
 
     public record TransferStatusResponse(boolean readOnly, String targetInstanceUrl) {}
@@ -239,8 +288,10 @@ public class TransferRoutes implements Routes {
             int stationId,
             String stationName,
             StationImportService.ImportProgress.Status status,
-            int totalTables,
-            int completedTables,
-            String currentTable,
+            List<String> phases,
+            int completedPhases,
+            String currentPhase,
+            int subTotal,
+            int subCompleted,
             String error) {}
 }

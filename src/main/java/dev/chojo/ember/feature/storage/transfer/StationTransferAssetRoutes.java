@@ -26,6 +26,8 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -43,6 +45,7 @@ import java.util.UUID;
 @Singleton
 public class StationTransferAssetRoutes implements Routes {
 
+    private static final Logger log = LoggerFactory.getLogger(StationTransferAssetRoutes.class);
     private static final int DEFAULT_LIST_LIMIT = 500;
     private static final int MAX_LIST_LIMIT = 2000;
 
@@ -91,12 +94,14 @@ public class StationTransferAssetRoutes implements Routes {
         String token = ctx.pathParam("token");
         exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
         int stationId = exportService.claimBackendDescriptor(token).orElseThrow(() -> {
+            log.info("[export] backend descriptor already claimed — responding 429");
             ctx.status(HttpStatus.TOO_MANY_REQUESTS);
             return new io.javalin.http.HttpResponseException(
                     HttpStatus.TOO_MANY_REQUESTS.getCode(),
                     "Backend descriptor has already been fetched for this transfer token",
                     java.util.Map.of());
         });
+        log.info("[export] serving backend descriptor for station {}", stationId);
         ctx.json(descriptorService.describe(stationId));
     }
 
@@ -145,6 +150,14 @@ public class StationTransferAssetRoutes implements Routes {
         int endIndex = Math.min(startIndex + limit, sorted.size());
         List<String> page = sorted.subList(startIndex, endIndex);
         String next = endIndex < sorted.size() ? page.getLast() : null;
+        log.info(
+                "[export] listing files: station {} category {} after='{}' limit={} → {} key(s), next={}",
+                stationId,
+                category,
+                after == null ? "" : after,
+                limit,
+                page.size(),
+                next == null ? "none" : "present");
         ctx.json(new ListKeysResponse(List.copyOf(page), next));
     }
 
@@ -184,6 +197,12 @@ public class StationTransferAssetRoutes implements Routes {
         var stream = storageService
                 .readRelative(scope, category, key)
                 .orElseThrow(() -> new NotFoundResponse("Key not found: " + key));
+        log.info(
+                "[export] streaming file: station {} category {} key '{}' ({} bytes)",
+                stationId,
+                category,
+                key,
+                stream.contentLength());
         ctx.contentType(stream.metadata().contentType());
         ctx.header("Content-Length", String.valueOf(stream.contentLength()));
         try {
@@ -225,6 +244,7 @@ public class StationTransferAssetRoutes implements Routes {
             throw new BadRequestResponse("Invalid accountUid");
         }
         var avatar = avatarService.read(accountUid, 0).orElseThrow(() -> new NotFoundResponse("Avatar not found"));
+        log.info("[export] streaming avatar for account {} ({} bytes)", accountUid, avatar.data().length);
         ctx.contentType(avatar.contentType());
         ctx.result(avatar.data());
     }
