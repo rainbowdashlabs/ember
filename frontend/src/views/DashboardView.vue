@@ -31,6 +31,7 @@ import {useOnboardingTour} from '@/composables/useOnboardingTour'
 import InventorySidebarGroup from '@/views/dashboardview/InventorySidebarGroup.vue'
 import SetupSidebarGroup from '@/views/dashboardview/SetupSidebarGroup.vue'
 import QuickSearchPalette from '@/components/quicksearch/QuickSearchPalette.vue'
+import QuickSearchTrigger from '@/components/quicksearch/QuickSearchTrigger.vue'
 import {useQuickSearch} from '@/composables/useQuickSearch'
 import {useStationTransferStatus} from '@/composables/useStationTransferStatus'
 
@@ -437,7 +438,7 @@ const manageDefaultRoute = computed(() => {
 
     <template #header>
       <div class="hidden lg:flex"><StationSwitcher/></div>
-      <IconButton :icon="['fas', 'magnifying-glass']" :label="t('quickSearch.openLabel')" @click="openQuickSearch('station')"/>
+      <QuickSearchTrigger scope="station" @open="openQuickSearch"/>
       <HelpCenterLink/>
 
       <router-link v-if="isAdmin()" to="/admin/dashboard/overview">

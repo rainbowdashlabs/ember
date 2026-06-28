@@ -4592,6 +4592,8 @@ volumes:
     },
     quickSearch: {
         openLabel: 'Schnellsuche öffnen (Strg+K)',
+        triggerLabel: 'Suchen…',
+        shortcut: 'Strg + K',
         placeholder: 'Seite, Mitglied, Termin oder Wiki suchen…',
         startTyping: 'Tippe einen Suchbegriff, um Ergebnisse zu sehen.',
         noResults: 'Keine Treffer.',

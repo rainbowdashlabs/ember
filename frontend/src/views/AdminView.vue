@@ -16,6 +16,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import {useSession} from '@/composables/useSession'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
 import QuickSearchPalette from '@/components/quicksearch/QuickSearchPalette.vue'
+import QuickSearchTrigger from '@/components/quicksearch/QuickSearchTrigger.vue'
 import {useQuickSearch} from '@/composables/useQuickSearch'
 
 const {t, te} = useI18n()
@@ -164,7 +165,7 @@ const pageSubtitle = computed(() => {
     </template>
 
     <template #header>
-      <IconButton :icon="['fas', 'magnifying-glass']" :label="t('quickSearch.openLabel')" @click="openQuickSearch('admin')"/>
+      <QuickSearchTrigger scope="admin" @open="openQuickSearch"/>
       <HelpCenterLink/>
       <SmartStationButton/>
       <AccountMenuButton/>

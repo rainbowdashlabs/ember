@@ -20,7 +20,7 @@ import {usePride} from '@/composables/usePride'
 import { emberLogo } from '@/composables/useEmberLogo'
 
 const {t} = useI18n()
-const {loaded, load, fullName} = useSession()
+const {sessionInfo, loaded, load} = useSession()
 const {loaded: stationsLoaded, load: loadStations} = useStations()
 const {prideActive, prideVariant} = usePride()
 const logo = emberLogo()
@@ -47,7 +47,7 @@ onMounted(async () => {
       <PrideText :active="prideActive" :variant="prideVariant">Ember</PrideText>
     </router-link>
 
-    <div v-if="loaded && fullName()" class="flex items-center gap-3">
+    <div v-if="loaded && sessionInfo?.account" class="flex items-center gap-3">
       <AdminPanelButton variant="primary"/>
       <SmartStationButton variant="primary"/>
       <AccountMenuButton/>

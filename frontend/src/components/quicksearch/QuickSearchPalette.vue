@@ -240,6 +240,11 @@ function onKeydown(event: KeyboardEvent) {
             <div ref="inputWrapper" class="flex-1">
               <TextInput v-model="query" borderless :placeholder="t('quickSearch.placeholder')"/>
             </div>
+            <kbd class="hidden sm:inline-flex px-1.5 py-0.5 text-xs font-mono rounded
+                        border border-bg-light-accent dark:border-bg-dark-accent
+                        bg-bg-light dark:bg-bg-dark text-(--text-muted)">
+              {{ t('quickSearch.shortcut') }}
+            </kbd>
             <IconButton
                 :icon="['fas', 'xmark']"
                 :label="t('quickSearch.hintClose')"
