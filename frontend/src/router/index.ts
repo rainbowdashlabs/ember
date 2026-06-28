@@ -240,6 +240,16 @@ const router = createRouter({
                     component: OverviewView,
                 },
                 {
+                    path: 'moved',
+                    name: 'station-moved',
+                    component: () => import('@/views/dashboardview/MovedStationInfoView.vue'),
+                },
+                {
+                    path: 'moved/delete',
+                    name: 'station-moved-delete',
+                    component: () => import('@/views/dashboardview/MovedStationDeleteView.vue'),
+                },
+                {
                     path: 'dashboard/statistics',
                     name: 'dashboard-statistics',
                     component: StatisticsView,
@@ -1186,6 +1196,16 @@ const router = createRouter({
                     path: 'dashboard/statistics',
                     name: 'help-dashboard-statistics',
                     component: () => import('@/views/helpcenter/dashboardview/StatisticsHelp.vue')
+                },
+                {
+                    path: 'moved',
+                    name: 'help-station-moved',
+                    component: () => import('@/views/helpcenter/stationmovedview/StationMovedHelp.vue')
+                },
+                {
+                    path: 'moved/delete',
+                    name: 'help-station-moved-delete',
+                    component: () => import('@/views/helpcenter/stationmovedview/StationMovedDeleteHelp.vue')
                 },
                 // Requirements
                 {

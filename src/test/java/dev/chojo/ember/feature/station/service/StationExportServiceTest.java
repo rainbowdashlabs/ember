@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.station.service;
 
+import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
@@ -38,7 +39,7 @@ class StationExportServiceTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void setup() {
-        exportService = new StationExportService(stationRepo, new dev.chojo.ember.conf.file.elements.Api());
+        exportService = new StationExportService(stationRepo, new Api());
 
         var station = stationRepo.create("Export Test Station");
         stationId = station.id();
@@ -148,32 +149,32 @@ class StationExportServiceTest extends RepositoryTestBase {
     @Test
     @Order(7)
     void transferTokenWorks() {
-        String token = exportService.createTransferToken(stationId);
-        assertNotNull(token);
+        String encoded = exportService.createTransferToken(stationId);
+        assertNotNull(encoded);
+        String rawToken = StationExportService.parseToken(encoded).orElseThrow().token();
 
-        var result = exportService.validateAndConsumeToken(token);
+        var result = exportService.validateAndConsumeToken(rawToken);
         assertTrue(result.isPresent());
         assertEquals(stationId, result.get());
 
-        var secondUse = exportService.validateAndConsumeToken(token);
+        var secondUse = exportService.validateAndConsumeToken(rawToken);
         assertTrue(secondUse.isEmpty());
     }
 
     @Test
     @Order(8)
     void validateTokenWithoutConsuming() {
-        String token = exportService.createTransferToken(stationId);
-        assertNotNull(token);
+        String encoded = exportService.createTransferToken(stationId);
+        assertNotNull(encoded);
+        String rawToken = StationExportService.parseToken(encoded).orElseThrow().token();
 
-        // Validate without consuming — should work repeatedly
-        var first = exportService.validateToken(token);
+        var first = exportService.validateToken(rawToken);
         assertTrue(first.isPresent());
-        var second = exportService.validateToken(token);
+        var second = exportService.validateToken(rawToken);
         assertTrue(second.isPresent());
 
-        // Now consume
-        exportService.validateAndConsumeToken(token);
-        var afterConsume = exportService.validateToken(token);
+        exportService.validateAndConsumeToken(rawToken);
+        var afterConsume = exportService.validateToken(rawToken);
         assertTrue(afterConsume.isEmpty());
     }
 

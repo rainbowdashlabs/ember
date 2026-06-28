@@ -9,6 +9,8 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
@@ -31,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Routes for station data transfer including token-authenticated public export endpoints
@@ -43,15 +46,18 @@ public class TransferRoutes implements Routes {
     private final StationExportService exportService;
     private final StationImportService importService;
     private final StationRepository stationRepository;
+    private final FederationPartnerTransferFixupService federationFixup;
 
     @Inject
     public TransferRoutes(
             StationExportService exportService,
             StationImportService importService,
-            StationRepository stationRepository) {
+            StationRepository stationRepository,
+            FederationPartnerTransferFixupService federationFixup) {
         this.exportService = exportService;
         this.importService = importService;
         this.stationRepository = stationRepository;
+        this.federationFixup = federationFixup;
     }
 
     @Override
@@ -65,6 +71,8 @@ public class TransferRoutes implements Routes {
         // Token-authenticated export (public, for remote import)
         routes.get(prefix + "/public/transfer/{token}/tables", this::tokenListTables);
         routes.get(prefix + "/public/transfer/{token}/{table}", this::tokenExportTable);
+        routes.post(prefix + "/public/transfer/{token}/abort", this::tokenAbortTransfer);
+        routes.post(prefix + "/public/transfer/{token}/complete", this::tokenCompleteTransfer);
 
         // Import (async, fetches from remote)
         routes.post(prefix + "/admin/transfer/import", this::startImport, InstancePermission.ADMINISTRATOR);
@@ -96,7 +104,7 @@ public class TransferRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TokenResponse.class)))
     private void createToken(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        log.info("[export] create token for station {}", session.stationId());
+        log.info("create token for station {}", session.stationId());
         String token = exportService.createTransferToken(session.stationId());
         ctx.json(new TokenResponse(token, exportService.getAppVersion()));
     }
@@ -109,7 +117,7 @@ public class TransferRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void abortTransfer(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        log.info("[export] abort transfer for station {}", session.stationId());
+        log.info("abort transfer for station {}", session.stationId());
         exportService.abortTransfer(session.stationId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -144,7 +152,7 @@ public class TransferRoutes implements Routes {
                 exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
         String importingFrom = ctx.header("X-Ember-Importing-From");
         log.info(
-                "[export] tables manifest requested for station {} by destination {} — flipping read-only flag",
+                "tables manifest requested for station {} by destination {} — flipping read-only flag",
                 stationId,
                 importingFrom == null || importingFrom.isBlank() ? "<not declared>" : importingFrom);
         if (importingFrom != null && !importingFrom.isBlank()) {
@@ -182,8 +190,56 @@ public class TransferRoutes implements Routes {
         }
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(500);
-        log.info("[export] serving table '{}' offset={} limit={} for station {}", table, offset, limit, stationId);
+        log.info("serving table '{}' offset={} limit={} for station {}", table, offset, limit, stationId);
         ctx.json(exportService.exportTable(stationId, table, offset, limit));
+    }
+
+    @OpenApi(
+            path = "/api/v1/public/transfer/{token}/abort",
+            methods = HttpMethod.POST,
+            summary = "Abort an in-flight transfer using a transfer token",
+            description =
+                    "Token-authenticated abort: the destination instance calls this endpoint when its import fails so the source can clear the read-only-for-transfer flag immediately instead of waiting for the idle-timeout watchdog. The endpoint is idempotent — a second call after the token has already been invalidated answers 403 like any expired token.",
+            tags = {"Transfer"},
+            pathParams = @OpenApiParam(name = "token", required = true),
+            responses = {@OpenApiResponse(status = "204"), @OpenApiResponse(status = "403")})
+    private void tokenAbortTransfer(Context ctx) {
+        String token = ctx.pathParam("token");
+        int stationId =
+                exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
+        log.info("destination requested abort for station {}", stationId);
+        exportService.abortTransfer(stationId);
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/public/transfer/{token}/complete",
+            methods = HttpMethod.POST,
+            summary = "Signal successful completion of a transfer using a transfer token",
+            description =
+                    "Token-authenticated completion: the destination instance calls this endpoint after every table imports successfully so the source can invalidate the token, point retained federation partner rows at the destination URL, and keep the source station read-only.",
+            tags = {"Transfer"},
+            pathParams = @OpenApiParam(name = "token", required = true),
+            responses = {@OpenApiResponse(status = "204"), @OpenApiResponse(status = "403")})
+    private void tokenCompleteTransfer(Context ctx) {
+        String token = ctx.pathParam("token");
+        int stationId =
+                exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
+        String header = ctx.header("X-Ember-Importing-From");
+        String destinationUrl = header != null && !header.isBlank()
+                ? header
+                : exportService.findTransferTarget(stationId).orElse(null);
+        log.info(
+                "destination signalled completion for station {} (destination url={})",
+                stationId,
+                destinationUrl == null ? "<unknown>" : destinationUrl);
+        exportService.markTransferComplete(stationId);
+        final String url = destinationUrl;
+        stationRepository
+                .findById(stationId)
+                .map(Station::uid)
+                .ifPresent(uid -> federationFixup.flipSourceSideRetainedPartners(uid, url));
+        ctx.status(HttpStatus.NO_CONTENT);
     }
 
     // -- Import --
@@ -227,9 +283,9 @@ public class TransferRoutes implements Routes {
                 @OpenApiResponse(status = "404")
             })
     private void importProgress(Context ctx) {
-        java.util.UUID stationUid;
+        UUID stationUid;
         try {
-            stationUid = java.util.UUID.fromString(ctx.pathParam("stationUid"));
+            stationUid = UUID.fromString(ctx.pathParam("stationUid"));
         } catch (IllegalArgumentException e) {
             throw new BadRequestResponse("Invalid stationUid");
         }
@@ -261,9 +317,9 @@ public class TransferRoutes implements Routes {
                 @OpenApiResponse(status = "404")
             })
     private void retryImport(Context ctx) {
-        java.util.UUID stationUid;
+        UUID stationUid;
         try {
-            stationUid = java.util.UUID.fromString(ctx.pathParam("stationUid"));
+            stationUid = UUID.fromString(ctx.pathParam("stationUid"));
         } catch (IllegalArgumentException e) {
             throw new BadRequestResponse("Invalid stationUid");
         }

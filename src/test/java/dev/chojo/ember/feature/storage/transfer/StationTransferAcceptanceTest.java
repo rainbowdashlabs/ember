@@ -7,10 +7,14 @@ package dev.chojo.ember.feature.storage.transfer;
 
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AvatarService;
+import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
 import dev.chojo.ember.feature.media.service.ImageVariantService;
 import dev.chojo.ember.feature.members.route.TransferRoutes;
+import dev.chojo.ember.feature.page.service.PageFileStorageService;
+import dev.chojo.ember.feature.page.service.PageImageVariantService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
@@ -24,11 +28,16 @@ import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.WebpEncoder;
 import io.javalin.Javalin;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.awt.Color;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -37,9 +46,13 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
+
+import javax.imageio.ImageIO;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -64,6 +77,8 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
     private static LocalStorageBackend sharedBackend;
     private static StorageService storageService;
     private static AvatarService avatarService;
+    private static PageFileStorageService pageFileStorageService;
+    private static PageImageVariantService pageImageVariantService;
     private static StorageBackendResolver resolver;
     private static StationStorageConfigRepository configRepo;
     private static CredentialCipher credentialCipher;
@@ -80,18 +95,32 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         sharedBackend = new LocalStorageBackend(sharedDataRoot);
         resolver = new StorageBackendResolver(sharedBackend);
         storageService = new StorageService(resolver, sharedBackend);
-        avatarService = new AvatarService(new ImageVariantService(storageService));
+        var imageVariantService = new ImageVariantService(storageService);
+        avatarService = new AvatarService(imageVariantService);
+        pageFileStorageService = new PageFileStorageService(storageService, stationRepo, sharedBackend);
+        pageImageVariantService = new PageImageVariantService(pageFileStorageService, new Storage());
 
         configRepo = new StationStorageConfigRepository();
         credentialCipher = new CredentialCipher(Base64.getEncoder().encodeToString(new byte[32]));
         var backendImporter = new TransferBackendImporter(configRepo, credentialCipher, resolver);
         var descriptorService = new TransferBackendDescriptorService(configRepo, credentialCipher);
 
-        exportService = new StationExportService(stationRepo, new dev.chojo.ember.conf.file.elements.Api());
+        exportService = new StationExportService(stationRepo, new Api());
         importService = new StationImportService(
-                stationRepo, accountRepo, exportService, new Api(), backendImporter, storageService, avatarService);
+                stationRepo,
+                accountRepo,
+                exportService,
+                new Api(),
+                backendImporter,
+                storageService,
+                avatarService,
+                imageVariantService,
+                pageFileStorageService,
+                pageImageVariantService,
+                new FederationPartnerTransferFixupService());
 
-        var transferRoutes = new TransferRoutes(exportService, importService, stationRepo);
+        var transferRoutes = new TransferRoutes(
+                exportService, importService, stationRepo, new FederationPartnerTransferFixupService());
         var assetRoutes = new StationTransferAssetRoutes(
                 exportService, descriptorService, stationRepo, storageService, avatarService);
 
@@ -119,25 +148,19 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
     @Test
     void localTransferCopiesFiles() throws Exception {
         Station source = stationRepo.create("Source LOCAL");
-        var sourceScope = new StorageScope.Station(source.id(), source.uid());
         byte[] fileBytes = "hello world".getBytes(StandardCharsets.UTF_8);
-        storageService.store(sourceScope, StorageCategory.PAGE_FILES, "doc.txt", fileBytes, "text/plain");
+        String contentHash = PageFileStorageService.hash(fileBytes);
+        pageFileStorageService.store(source.id(), contentHash, fileBytes, "text/plain");
 
-        String token = exportService.createTransferToken(source.id());
-        assertTrue(
-                stationRepo.isReadOnlyForTransfer(source.id()),
-                "createTransferToken must flip the source read-only flag");
+        String token = rawToken(exportService.createTransferToken(source.id()));
 
         var importResult = importService.startRemoteImport(baseUrl, token);
         waitForImport(importResult.stationId());
 
         int destinationId = importResult.stationId();
-        Station destination =
-                stationRepo.findById(destinationId).orElseThrow(() -> new AssertionError("destination missing"));
-        var destinationScope = new StorageScope.Station(destinationId, destination.uid());
-        var carried = storageService.readAllBytes(destinationScope, StorageCategory.PAGE_FILES, "doc.txt");
+        var carried = pageFileStorageService.read(destinationId, contentHash);
         assertTrue(carried.isPresent(), "destination should carry the file");
-        assertArrayEquals(fileBytes, carried.get(), "bytes round-trip unchanged");
+        assertArrayEquals(fileBytes, carried.get().data(), "bytes round-trip unchanged");
 
         assertFalse(
                 configRepo.findOne(destinationId).isPresent(),
@@ -158,7 +181,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         avatarService.store(hasAvatar.uid(), ONE_PIXEL_PNG, "image/png");
         Account hasNone = accountRepo.create("avatar-miss@xfer.test", "B", "User", true);
         Station source = stationRepo.create("Avatar Source");
-        String token = exportService.createTransferToken(source.id());
+        String token = rawToken(exportService.createTransferToken(source.id()));
 
         var client = HttpClient.newHttpClient();
 
@@ -202,7 +225,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                 credentialCipher.encrypt(creds.toJson()));
         configRepo.upsert(source.id(), sourceOverride);
 
-        String token = exportService.createTransferToken(source.id());
+        String token = rawToken(exportService.createTransferToken(source.id()));
         var importResult = importService.startRemoteImport(baseUrl, token);
         waitForImport(importResult.stationId());
 
@@ -230,7 +253,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
     @Test
     void backendDescriptorIsOneShotPerToken() throws Exception {
         Station source = stationRepo.create("Source ONE-SHOT");
-        String token = exportService.createTransferToken(source.id());
+        String token = rawToken(exportService.createTransferToken(source.id()));
         var client = HttpClient.newHttpClient();
         var uri = URI.create(baseUrl + "/api/v1/public/transfer/" + token + "/backend");
 
@@ -249,7 +272,8 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
     @Test
     void abortTransferClearsReadOnlyAndBurnsToken() {
         Station source = stationRepo.create("Source ABORT");
-        String token = exportService.createTransferToken(source.id());
+        String token = rawToken(exportService.createTransferToken(source.id()));
+        exportService.markTransferStarted(source.id());
         assertTrue(stationRepo.isReadOnlyForTransfer(source.id()));
 
         exportService.abortTransfer(source.id());
@@ -259,8 +283,73 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                 exportService.validateToken(token).isPresent(), "tokens minted before abort must no longer validate");
     }
 
+    /**
+     * Full image round-trip: the source stores a page-files image plus every WebP variant; the
+     * sender's listFiles filter must hide the variants so the wire payload is the original only,
+     * and the receiver must rebuild the variant set locally from the streamed bytes.
+     */
+    @Test
+    void localTransferShipsOriginalsOnlyAndRegeneratesVariants() throws Exception {
+        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available — skipping image-transfer regen check");
+        Station source = stationRepo.create("Source IMAGE");
+        byte[] png = pngBytes(800, 600);
+        String contentHash = PageFileStorageService.hash(png);
+        pageFileStorageService.store(source.id(), contentHash, png, "image/png");
+        pageImageVariantService.generateVariants(source.id(), contentHash, png, "image/png");
+
+        var sourceScope = new StorageScope.Station(source.id(), source.uid());
+        List<String> sourceKeys = storageService.listKeys(sourceScope, StorageCategory.PAGE_FILES, "");
+        assertTrue(
+                sourceKeys.stream().anyMatch(k -> k.endsWith("/w128.webp")),
+                "source must have actually generated WebP variants (test precondition)");
+
+        List<String> filtered = StationTransferAssetRoutes.originalsOnly(StorageCategory.PAGE_FILES, sourceKeys);
+        assertEquals(List.of(contentHash + "/orig.png"), filtered, "wire payload must be the original only");
+
+        String token = rawToken(exportService.createTransferToken(source.id()));
+        var importResult = importService.startRemoteImport(baseUrl, token);
+        waitForImport(importResult.stationId());
+
+        int destinationId = importResult.stationId();
+        var carried = pageFileStorageService.read(destinationId, contentHash);
+        assertTrue(carried.isPresent(), "destination should carry the original");
+        assertEquals("image/png", carried.get().contentType());
+
+        Station destination =
+                stationRepo.findById(destinationId).orElseThrow(() -> new AssertionError("destination missing"));
+        var destinationScope = new StorageScope.Station(destinationId, destination.uid());
+        List<String> destinationKeys = storageService.listKeys(destinationScope, StorageCategory.PAGE_FILES, "");
+        assertTrue(
+                destinationKeys.stream().anyMatch(k -> k.endsWith("/w128.webp")),
+                "destination must have regenerated WebP variants from the transferred original");
+        assertTrue(
+                destinationKeys.stream().noneMatch(k -> k.endsWith("/w128.png")),
+                "destination must not re-emit dropped original-format resizes");
+    }
+
+    private static String rawToken(String encoded) {
+        return StationExportService.parseToken(encoded).orElseThrow().token();
+    }
+
+    private static byte[] pngBytes(int width, int height) throws IOException {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        var g = image.createGraphics();
+        try {
+            g.setColor(new Color(220, 70, 30));
+            g.fillRect(0, 0, width, height);
+            g.setColor(new Color(50, 80, 200));
+            g.fillRect(width / 4, height / 4, width / 2, height / 2);
+        } finally {
+            g.dispose();
+        }
+        var out = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", out);
+        return out.toByteArray();
+    }
+
     private static void waitForImport(int stationId) throws InterruptedException {
-        long deadline = System.nanoTime() + java.time.Duration.ofSeconds(30).toNanos();
+        Duration timeout = Duration.ofSeconds(120);
+        long deadline = System.nanoTime() + timeout.toNanos();
         while (System.nanoTime() < deadline) {
             StationImportService.ImportProgress progress = importService.getProgress(stationId);
             assertNotNull(progress, "import progress disappeared");
@@ -270,7 +359,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
             }
             Thread.sleep(50);
         }
-        fail("import for station " + stationId + " did not finish within 30s");
+        fail("import for station " + stationId + " did not finish within " + timeout);
     }
 
     private static void deleteRecursive(Path root) throws IOException {

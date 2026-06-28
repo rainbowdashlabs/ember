@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.station.service;
 
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -29,11 +30,16 @@ public class TransferTimeoutWatchdog {
     private static final int SCAN_INTERVAL_SECONDS = 60;
 
     @Inject
-    public TransferTimeoutWatchdog(StationExportService exportService) {
+    public TransferTimeoutWatchdog(StationExportService exportService, StationRepository stationRepository) {
         try {
             exportService.abortAllInFlightTransfers();
         } catch (Exception e) {
             log.warn("Startup transfer cleanup failed: {}", e.getMessage());
+        }
+        try {
+            stationRepository.sweepOrphanedAccounts();
+        } catch (Exception e) {
+            log.warn("Startup orphan-account sweep failed: {}", e.getMessage());
         }
         var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             var t = new Thread(r, "transfer-timeout-watchdog");

@@ -51,14 +51,28 @@ public final class GenericTableImporter {
     }
 
     /**
-     * Looks up an id in {@code table} where {@code column = value}. Returns null when no row matches.
+     * Looks up an id in {@code table} where {@code column = value}. Returns null when no row
+     * matches. Adds a {@code ::uuid} cast to the bound value whenever the target column type is
+     * declared as {@code uuid} in the tracking config — Postgres rejects a {@code uuid = text}
+     * comparison without the cast.
      */
-    private static Integer resolveByColumn(String table, String column, Object value) {
-        return query("SELECT id FROM " + table + " WHERE " + column + " = :v LIMIT 1;")
+    private Integer resolveByColumn(String table, String column, Object value) {
+        String columnType = lookupColumnType(table, column);
+        String cast = "uuid".equalsIgnoreCase(columnType) ? "::uuid" : "";
+        return query("SELECT id FROM " + table + " WHERE " + column + " = :v" + cast + " LIMIT 1;")
                 .single(call().bind("v", value == null ? null : value.toString()))
                 .map(row -> row.getInt("id"))
                 .first()
                 .orElse(null);
+    }
+
+    private String lookupColumnType(String tableName, String columnName) {
+        var t = tracking.tables() == null ? null : tracking.tables().get(tableName);
+        if (t == null || t.columns() == null) return null;
+        for (ColumnEntry col : t.columns()) {
+            if (col.name().equals(columnName)) return col.type();
+        }
+        return null;
     }
 
     private static ForeignKey findFk(TableEntry table, String column) {

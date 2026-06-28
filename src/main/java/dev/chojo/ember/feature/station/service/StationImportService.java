@@ -7,8 +7,13 @@ package dev.chojo.ember.feature.station.service;
 
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AvatarService;
+import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
+import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.page.service.PageFileStorageService;
+import dev.chojo.ember.feature.page.service.PageImageVariantService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -24,6 +29,9 @@ import dev.chojo.ember.tracking.OutputShape;
 import dev.chojo.ember.tracking.engine.GenericTableImporter;
 import dev.chojo.ember.tracking.engine.GenericTableImporter.IdRemapper;
 import dev.chojo.ember.tracking.engine.TableOrder;
+import io.javalin.http.BadRequestResponse;
+import io.javalin.http.HttpResponseException;
+import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -31,12 +39,15 @@ import org.slf4j.LoggerFactory;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -44,6 +55,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -84,6 +96,10 @@ public class StationImportService {
     private final TransferBackendImporter backendImporter;
     private final StorageService storageService;
     private final AvatarService avatarService;
+    private final ImageVariantService imageVariantService;
+    private final PageFileStorageService pageFileStorageService;
+    private final PageImageVariantService pageImageVariantService;
+    private final FederationPartnerTransferFixupService federationFixup;
     private final GenericTableImporter engine;
     private final List<String> tableOrder;
     private final DataTracking tracking;
@@ -106,7 +122,11 @@ public class StationImportService {
             Api api,
             TransferBackendImporter backendImporter,
             StorageService storageService,
-            AvatarService avatarService) {
+            AvatarService avatarService,
+            ImageVariantService imageVariantService,
+            PageFileStorageService pageFileStorageService,
+            PageImageVariantService pageImageVariantService,
+            FederationPartnerTransferFixupService federationFixup) {
         this.stationRepository = stationRepository;
         this.accountRepository = accountRepository;
         this.exportService = exportService;
@@ -114,6 +134,10 @@ public class StationImportService {
         this.backendImporter = backendImporter;
         this.storageService = storageService;
         this.avatarService = avatarService;
+        this.imageVariantService = imageVariantService;
+        this.pageFileStorageService = pageFileStorageService;
+        this.pageImageVariantService = pageImageVariantService;
+        this.federationFixup = federationFixup;
         DataTracking t;
         try {
             t = DataTrackingLoader.loadFromClasspath();
@@ -169,8 +193,7 @@ public class StationImportService {
         var sb = new StringBuilder();
         for (int i = 0; i < parts.length; i++) {
             if (i > 0) sb.append('/');
-            sb.append(java.net.URLEncoder.encode(parts[i], java.nio.charset.StandardCharsets.UTF_8)
-                    .replace("+", "%20"));
+            sb.append(URLEncoder.encode(parts[i], StandardCharsets.UTF_8).replace("+", "%20"));
         }
         return sb.toString();
     }
@@ -196,11 +219,13 @@ public class StationImportService {
      * working through a wire-format transition.
      */
     private static Instant toInstant(Object val) {
-        if (val == null) return null;
-        if (val instanceof Instant i) return i;
-        if (val instanceof Number n) return Instant.ofEpochMilli(n.longValue());
-        if (val instanceof String s && !s.isBlank()) return Instant.parse(s);
-        return null;
+        return switch (val) {
+            case null -> null;
+            case Instant i -> i;
+            case Number n -> Instant.ofEpochMilli(n.longValue());
+            case String s when !s.isBlank() -> Instant.parse(s);
+            default -> null;
+        };
     }
 
     @SuppressWarnings("unchecked")
@@ -261,7 +286,7 @@ public class StationImportService {
      */
     public ImportResult startRemoteImport(String sourceUrl, String token) {
         String baseUrl = sourceUrl.replaceAll("/+$", "");
-        log.info("[import] start remote-import-as-new-station from source {}", baseUrl);
+        log.info("start remote-import-as-new-station from source {}", baseUrl);
         var mapper = JsonMapper.builder().build();
         var httpClient = buildImportHttpClient(baseUrl);
         verifyRemoteSchemaHash(httpClient, mapper, baseUrl, token);
@@ -269,7 +294,7 @@ public class StationImportService {
         Map<String, Object> stationPage = fetchRemotePage(httpClient, mapper, baseUrl, token, "station", 0, PAGE_SIZE);
         Map<String, Object> stationData = asMap(stationPage.get("station"));
         if (stationData == null) {
-            throw new io.javalin.http.BadRequestResponse("Remote station table missing 'station' field");
+            throw new BadRequestResponse("Remote station table missing 'station' field");
         }
 
         String stationName = asString(stationData.get("name"), "Imported Station");
@@ -281,7 +306,8 @@ public class StationImportService {
         // stationRepository.updateUid(...) — the original Station instance's uid() is stale,
         // and getProgressByUid (and the StationIdModule-serialized response stationId) both
         // need the current uid.
-        UUID currentUid = stationRepository.findById(stationId).map(Station::uid).orElse(station.uid());
+        UUID currentUid =
+                stationRepository.findById(stationId).map(Station::uid).orElse(station.uid());
         var progress = new ImportProgress(stationId, currentUid, stationName, buildPhases(), baseUrl, token);
         activeImports.put(stationId, progress);
         importExecutor.submit(() -> runRemoteImport(stationId, baseUrl, token, httpClient, mapper, progress));
@@ -293,7 +319,7 @@ public class StationImportService {
      */
     public ImportResult startRemoteImportInto(int stationId, String sourceUrl, String token) {
         String baseUrl = sourceUrl.replaceAll("/+$", "");
-        log.info("[import] start remote-import-into-station {} from source {}", stationId, baseUrl);
+        log.info("start remote-import-into-station {} from source {}", stationId, baseUrl);
         var mapper = JsonMapper.builder().build();
         var httpClient = buildImportHttpClient(baseUrl);
         verifyRemoteSchemaHash(httpClient, mapper, baseUrl, token);
@@ -304,7 +330,7 @@ public class StationImportService {
 
         Station target = stationRepository
                 .findById(stationId)
-                .orElseThrow(() -> new io.javalin.http.BadRequestResponse("Target station not found"));
+                .orElseThrow(() -> new BadRequestResponse("Target station not found"));
         var progress = new ImportProgress(stationId, target.uid(), target.name(), buildPhases(), baseUrl, token);
         activeImports.put(stationId, progress);
         importExecutor.submit(() -> runRemoteImport(stationId, baseUrl, token, httpClient, mapper, progress));
@@ -334,10 +360,10 @@ public class StationImportService {
     public ImportResult retryFailedImport(UUID stationUid) {
         ImportProgress failed = getProgressByUid(stationUid);
         if (failed == null) {
-            throw new io.javalin.http.NotFoundResponse("No import progress for that station");
+            throw new NotFoundResponse("No import progress for that station");
         }
         if (failed.status() != ImportProgress.Status.FAILED) {
-            throw new io.javalin.http.BadRequestResponse("Import is not in FAILED state");
+            throw new BadRequestResponse("Import is not in FAILED state");
         }
         try {
             stationRepository.delete(failed.stationId());
@@ -403,7 +429,7 @@ public class StationImportService {
         var session = new RemoteImportSession();
         activeRemoteSession = session;
         log.info(
-                "[import] async run starting for station {} ('{}'), {} tables in topological order",
+                "async run starting for station {} ('{}'), {} tables in topological order",
                 stationId,
                 p.stationName(),
                 tableOrder.size());
@@ -414,18 +440,18 @@ public class StationImportService {
                 p.startPhase(table);
                 if ("station".equals(table)) {
                     log.info(
-                            "[import] table {}/{} '{}' — already applied synchronously, skipping",
+                            "table {}/{} '{}' — already applied synchronously, skipping",
                             ++i,
                             tableOrder.size(),
                             table);
                     p.completePhase();
                     continue;
                 }
-                log.info("[import] table {}/{} '{}' — fetching from source", ++i, tableOrder.size(), table);
+                log.info("table {}/{} '{}' — fetching from source", ++i, tableOrder.size(), table);
                 fetchAndImportPaginated(stationId, table, baseUrl, token, httpClient, mapper, idMap);
                 p.completePhase();
             }
-            log.info("[import] tables done, applying source storage backend");
+            log.info("tables done, applying source storage backend");
             p.startPhase("storage_backend");
             boolean installedRemote = applySourceBackend(stationId, baseUrl, token, httpClient, mapper);
             p.completePhase();
@@ -441,23 +467,75 @@ public class StationImportService {
                 }
                 p.completePhase();
             }
-            log.info("[import] copying avatars for newly-created accounts");
+            log.info("copying avatars for newly-created accounts");
             p.startPhase("account_avatars");
             copyNewAccountAvatars(session, baseUrl, token, httpClient, p);
             p.completePhase();
+            federationFixup.rewriteAfterImport(stationId, baseUrl);
+            notifySourceOfComplete(baseUrl, token, httpClient);
             p.complete();
-            log.info("[import] completed for station '{}' (id={})", p.stationName(), stationId);
+            log.info("completed for station '{}' (id={})", p.stationName(), stationId);
         } catch (Exception e) {
-            log.error("[import] failed for station {}", stationId, e);
+            log.error("failed for station {}", stationId, e);
             p.fail(e.getMessage());
+            notifySourceOfAbort(baseUrl, token, httpClient);
             try {
                 stationRepository.delete(stationId);
-                log.warn("[import] deleted half-imported station {} after failure", stationId);
+                log.warn("deleted half-imported station {} after failure", stationId);
             } catch (Exception deleteErr) {
-                log.error("[import] could not clean up failed station {}", stationId, deleteErr);
+                log.error("could not clean up failed station {}", stationId, deleteErr);
             }
         } finally {
             activeRemoteSession = null;
+        }
+    }
+
+    /**
+     * Best-effort POST to the source's token-authenticated complete endpoint so the source can
+     * flip {@code remote_host} on every {@code federation_partner} row that points at the
+     * departed station, redirecting partnerships from the old local row to this destination's
+     * URL. Any failure here is logged and swallowed — partnerships on the source will fall
+     * back to manual reconfiguration if this call is lost.
+     */
+    private void notifySourceOfComplete(String baseUrl, String token, HttpClient httpClient) {
+        try {
+            var uri = URI.create(baseUrl + "/api/v1/public/transfer/" + token + "/complete");
+            var builder = HttpRequest.newBuilder()
+                    .uri(uri)
+                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .timeout(Duration.ofSeconds(30));
+            String ourUrl = api.baseUrl();
+            if (ourUrl != null && !ourUrl.isBlank()) {
+                builder.header("X-Ember-Importing-From", ourUrl);
+            }
+            var response = sendThrottled(httpClient, builder.build(), HttpResponse.BodyHandlers.discarding());
+            log.info("notified source of completion: HTTP {}", response.statusCode());
+        } catch (Exception e) {
+            log.warn("could not notify source of completion: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Best-effort POST to the source's token-authenticated abort endpoint so the source can
+     * clear the {@code read_only_for_transfer} flag immediately instead of waiting for the
+     * idle-timeout watchdog. Any failure here is logged and swallowed — the source's watchdog
+     * is the safety net.
+     */
+    private void notifySourceOfAbort(String baseUrl, String token, HttpClient httpClient) {
+        try {
+            var uri = URI.create(baseUrl + "/api/v1/public/transfer/" + token + "/abort");
+            var builder = HttpRequest.newBuilder()
+                    .uri(uri)
+                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .timeout(Duration.ofSeconds(30));
+            String ourUrl = api.baseUrl();
+            if (ourUrl != null && !ourUrl.isBlank()) {
+                builder.header("X-Ember-Importing-From", ourUrl);
+            }
+            var response = sendThrottled(httpClient, builder.build(), HttpResponse.BodyHandlers.discarding());
+            log.info("notified source of abort: HTTP {}", response.statusCode());
+        } catch (Exception e) {
+            log.warn("could not notify source of abort: {}", e.getMessage());
         }
     }
 
@@ -498,9 +576,16 @@ public class StationImportService {
         int copied = 0;
         int skipped = 0;
         String after = null;
+        boolean totalPinned = false;
         while (true) {
             ListKeysPage page = listRemoteKeys(httpClient, mapper, baseUrl, token, category, after);
-            progress.setSubTotal(progress.subTotal() + page.keys().size());
+            if (!totalPinned) {
+                progress.setSubTotal(
+                        page.total() != null ? page.total() : page.keys().size());
+                totalPinned = true;
+            } else if (page.total() == null) {
+                progress.setSubTotal(progress.subTotal() + page.keys().size());
+            }
             for (String key : page.keys()) {
                 if (storageService.readRelative(scope, category, key).isPresent()) {
                     skipped++;
@@ -521,6 +606,10 @@ public class StationImportService {
      * Returns {@code true} when the key was streamed successfully; {@code false} when the source
      * answered 404 (the row was deleted concurrently — acceptable, the row will likely be
      * re-listed in a later transfer or stay absent).
+     *
+     * <p>For image-producing categories the source only ships the uploaded original; the
+     * receiver re-generates the size and WebP variants locally via the matching domain
+     * service. For everything else the bytes are persisted verbatim via {@link StorageService}.
      */
     private boolean streamRemoteFile(
             StorageScope.Station scope,
@@ -532,12 +621,12 @@ public class StationImportService {
         String encodedKey = encodeKeyPath(key);
         var uri = URI.create(
                 baseUrl + "/api/v1/public/transfer/" + token + "/files/" + category.name() + "/" + encodedKey);
-        log.info("[import] stream file: GET {}", redactToken(uri));
+        log.info("stream file: GET {}", redactToken(uri));
         try {
             var request = newImportRequest(uri);
-            var response = sendThrottled(httpClient, request, HttpResponse.BodyHandlers.ofInputStream());
+            var response = sendThrottled(httpClient, request, HttpResponse.BodyHandlers.ofByteArray());
             if (response.statusCode() == 404) {
-                log.info("[import] stream file: category {} key '{}' — source 404, skipping", category, key);
+                log.info("stream file: category {} key '{}' — source 404, skipping", category, key);
                 return false;
             }
             if (response.statusCode() != 200) {
@@ -545,19 +634,49 @@ public class StationImportService {
                         + response.statusCode());
             }
             String contentType = response.headers().firstValue("Content-Type").orElse("application/octet-stream");
-            long contentLength = response.headers()
-                    .firstValueAsLong("Content-Length")
-                    .orElseThrow(() ->
-                            new RuntimeException("Source did not advertise Content-Length for key '" + key + "'"));
-            try (InputStream body = response.body()) {
-                storageService.store(scope, category, key, body, contentLength, contentType);
-            }
+            byte[] body = response.body();
+            storeImported(scope, category, key, body, contentType);
             return true;
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
             throw new RuntimeException("Failed to stream key '" + key + "' from remote", e);
         }
+    }
+
+    /**
+     * Routes a byte payload received during transfer to the right destination service. Image
+     * categories go through their variant-generating service so the destination rebuilds the
+     * resized / WebP set without pulling the duplicates over the wire. Non-image categories
+     * fall back to a direct {@link StorageService} write.
+     */
+    private void storeImported(
+            StorageScope.Station scope, StorageCategory category, String relativeKey, byte[] body, String contentType)
+            throws IOException {
+        switch (category) {
+            case PAGE_FILES -> {
+                String contentHash = parentOf(relativeKey);
+                pageFileStorageService.store(scope.stationId(), contentHash, body, contentType);
+                pageImageVariantService.generateVariants(scope.stationId(), contentHash, body, contentType);
+            }
+            case PAGE_IMAGES, IMAGE_LOST_AND_FOUND, IMAGE_QUIZ_QUESTION, IMAGE_KB_ICON, IMAGE_KB_IMAGE -> {
+                String baseKey = parentOf(relativeKey);
+                imageVariantService.store(scope, category, baseKey, body, contentType);
+            }
+            default ->
+                storageService.store(
+                        scope, category, relativeKey, new ByteArrayInputStream(body), body.length, contentType);
+        }
+    }
+
+    /**
+     * Returns the slash-separated parent segment of {@code relativeKey} — for an original key
+     * like {@code <hash>/orig.png} this is the {@code <hash>}; for a flat key with no slash
+     * the input is returned as-is.
+     */
+    private static String parentOf(String relativeKey) {
+        int slash = relativeKey.lastIndexOf('/');
+        return slash < 0 ? relativeKey : relativeKey.substring(0, slash);
     }
 
     @SuppressWarnings("unchecked")
@@ -574,10 +693,10 @@ public class StationImportService {
                 .append("/files/")
                 .append(category.name());
         if (after != null && !after.isBlank()) {
-            sb.append("?after=").append(java.net.URLEncoder.encode(after, java.nio.charset.StandardCharsets.UTF_8));
+            sb.append("?after=").append(URLEncoder.encode(after, StandardCharsets.UTF_8));
         }
         var uri = URI.create(sb.toString());
-        log.info("[import] list keys: GET {}", redactToken(uri));
+        log.info("list keys: GET {}", redactToken(uri));
         try {
             var request = newImportRequest(uri);
             var response = sendThrottled(httpClient, request, HttpResponse.BodyHandlers.ofString());
@@ -588,12 +707,14 @@ public class StationImportService {
             Map<String, Object> body = mapper.readValue(response.body(), Map.class);
             List<String> keys = (List<String>) body.getOrDefault("keys", List.of());
             String next = (String) body.get("next");
+            Integer total = asInteger(body.get("total"));
             log.info(
-                    "[import] list keys: category {} returned {} key(s), next-cursor={}",
+                    "list keys: category {} returned {} key(s), next-cursor={}, total={}",
                     category,
                     keys.size(),
-                    next == null ? "none" : "present");
-            return new ListKeysPage(keys, next);
+                    next == null ? "none" : "present",
+                    total == null ? "absent" : total);
+            return new ListKeysPage(keys, next, total);
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
@@ -609,19 +730,19 @@ public class StationImportService {
     private void copyNewAccountAvatars(
             RemoteImportSession session, String baseUrl, String token, HttpClient httpClient, ImportProgress progress) {
         if (session.newAccounts().isEmpty()) {
-            log.info("[import] avatar carry-over: no newly-created accounts, skipping");
+            log.info("avatar carry-over: no newly-created accounts, skipping");
             return;
         }
         progress.setSubTotal(session.newAccounts().size());
         log.info(
-                "[import] avatar carry-over: {} newly-created account(s) to fetch",
+                "avatar carry-over: {} newly-created account(s) to fetch",
                 session.newAccounts().size());
         int copied = 0;
         int skipped = 0;
         for (NewAccountRef ref : session.newAccounts()) {
             try {
                 var uri = URI.create(baseUrl + "/api/v1/public/transfer/" + token + "/avatars/" + ref.sourceUid());
-                log.info("[import] fetch avatar: GET {}", redactToken(uri));
+                log.info("fetch avatar: GET {}", redactToken(uri));
                 var request = newImportRequest(uri);
                 var response = sendThrottled(httpClient, request, HttpResponse.BodyHandlers.ofByteArray());
                 if (response.statusCode() == 404) {
@@ -633,9 +754,8 @@ public class StationImportService {
                             ref.sourceUid());
                     skipped++;
                 } else {
-                    String contentType = response.headers()
-                            .firstValue("Content-Type")
-                            .orElse("application/octet-stream");
+                    String contentType =
+                            response.headers().firstValue("Content-Type").orElse("application/octet-stream");
                     avatarService.store(ref.destinationUid(), response.body(), contentType);
                     copied++;
                 }
@@ -652,11 +772,11 @@ public class StationImportService {
     private TransferBackendDescriptor fetchBackendDescriptor(
             HttpClient httpClient, ObjectMapper mapper, String baseUrl, String token) {
         var uri = URI.create(baseUrl + "/api/v1/public/transfer/" + token + "/backend");
-        log.info("[import] fetch backend descriptor: GET {}", redactToken(uri));
+        log.info("fetch backend descriptor: GET {}", redactToken(uri));
         try {
             var request = newImportRequest(uri);
             var response = sendThrottled(httpClient, request, HttpResponse.BodyHandlers.ofString());
-            log.info("[import] fetch backend descriptor: HTTP {}", response.statusCode());
+            log.info("fetch backend descriptor: HTTP {}", response.statusCode());
             if (response.statusCode() != 200) {
                 throw new RuntimeException("Failed to fetch /backend from remote: HTTP " + response.statusCode());
             }
@@ -704,33 +824,56 @@ public class StationImportService {
     }
 
     /**
-     * Match-by-email; create with no credential if the email is new. Every matched or created
-     * account also seeds the {@code account} entry in {@code idMap} so downstream tables
-     * (notably {@code station_member}, group memberships, audit pointers) resolve their
-     * {@code account_id} FK via the proper id-remap rather than depending on the email-lookup
-     * fallback in {@link GenericTableImporter}.
+     * Imports the source's account rows, populating the {@code account} entry in {@code idMap} for
+     * every row so downstream tables (notably {@code station_member}, group memberships, audit
+     * pointers) can remap their {@code account_id} FK without relying on email-lookup fallbacks.
+     *
+     * <p>Matching rules:
+     * <ul>
+     *   <li>A row whose source {@code email} is non-blank and already exists on the destination
+     *       reuses that destination account — this is the "same human, different instance" merge
+     *       case. The destination keeps its own UID.</li>
+     *   <li>Every other row (blank email, or non-blank email with no destination match) creates a
+     *       fresh destination account. Blank-email rows are intentional in this product — youth
+     *       too young to have an address still need a member record.</li>
+     * </ul>
+     *
+     * <p>Newly-created accounts try to preserve the source UID so UID-typed columns elsewhere
+     * (e.g. {@code author_account_uid} on comments) round-trip without remap. A unique-constraint
+     * collision on UID is rare; when it happens we accept the auto-generated UID and move on.
      */
     private int importAccounts(List<Map<String, Object>> rows, IdRemapper idMap) {
         int created = 0;
         var session = activeRemoteSession;
         for (var row : rows) {
             Integer sourceId = asInteger(row.get("id"));
-            String email = asString(row.get("email"), null);
-            if (email == null || email.isBlank()) continue;
+            String rawEmail = asString(row.get("email"), null);
+            boolean hasEmail = rawEmail != null && !rawEmail.isBlank();
+            String storedEmail = hasEmail ? rawEmail : null;
             int targetId;
-            var existing = accountRepository.findByEmail(email);
+            var existing = hasEmail ? accountRepository.findByEmail(rawEmail) : Optional.<Account>empty();
             if (existing.isPresent()) {
                 targetId = existing.get().id();
             } else {
                 String first = asString(row.get("first_name"), "");
                 String last = asString(row.get("last_name"), "");
-                var newAccount = accountRepository.create(email, first, last, true);
+                var newAccount = accountRepository.create(storedEmail, first, last, true);
                 targetId = newAccount.id();
-                if (session != null) {
-                    UUID sourceUid = parseUuidOrNull(row.get("uid"));
-                    if (sourceUid != null) {
-                        session.newAccounts().add(new NewAccountRef(sourceUid, newAccount.uid()));
+                UUID sourceUid = parseUuidOrNull(row.get("uid"));
+                UUID destinationUid = newAccount.uid();
+                if (sourceUid != null && !sourceUid.equals(destinationUid)) {
+                    try {
+                        accountRepository.setUid(newAccount.id(), sourceUid);
+                        destinationUid = sourceUid;
+                    } catch (Exception e) {
+                        log.warn(
+                                "Source account UID {} already used on destination; keeping generated UID {}",
+                                sourceUid,
+                                destinationUid);
                     }
+                }
+                if (session != null && sourceUid != null) {
+                    session.newAccounts().add(new NewAccountRef(sourceUid, destinationUid));
                 }
                 created++;
             }
@@ -860,11 +1003,6 @@ public class StationImportService {
     }
 
     /**
-     * Builds a GET request and pins the destination instance URL on the source so the source
-     * banner can surface where the station is going. The source records the value off the first
-     * {@code /tables} call; subsequent calls re-send it but the source treats them as no-ops.
-     */
-    /**
      * Builds the HTTP client for talking to the source instance. Uses HTTP/2 over HTTPS so
      * production runs benefit from ALPN-negotiated multiplexing, but falls back to HTTP/1.1
      * over plain HTTP because the JDK client's HTTP/2 default sends an {@code Upgrade: h2c}
@@ -877,13 +1015,12 @@ public class StationImportService {
                 : HttpClient.Version.HTTP_1_1;
         return HttpClient.newBuilder()
                 .version(version)
-                .connectTimeout(java.time.Duration.ofSeconds(10))
+                .connectTimeout(Duration.ofSeconds(10))
                 .build();
     }
 
     private HttpRequest newImportRequest(URI uri) {
-        var builder =
-                HttpRequest.newBuilder().uri(uri).GET().timeout(java.time.Duration.ofSeconds(30));
+        var builder = HttpRequest.newBuilder().uri(uri).GET().timeout(Duration.ofSeconds(30));
         String ourUrl = api.baseUrl();
         if (ourUrl != null && !ourUrl.isBlank()) {
             builder.header("X-Ember-Importing-From", ourUrl);
@@ -937,31 +1074,30 @@ public class StationImportService {
     private void verifyRemoteSchemaHash(HttpClient httpClient, ObjectMapper mapper, String baseUrl, String token) {
         String localHash = exportService.getSchemaHash();
         var uri = URI.create(baseUrl + "/api/v1/public/transfer/" + token + "/tables");
-        log.info("[import] verify schema hash: GET {}", redactToken(uri));
+        log.info("verify schema hash: GET {}", redactToken(uri));
         try {
             var request = newImportRequest(uri);
             var response = sendThrottled(httpClient, request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
-                throw new io.javalin.http.BadRequestResponse(
-                        "Failed to fetch /tables from remote: HTTP " + response.statusCode());
+                throw new BadRequestResponse("Failed to fetch /tables from remote: HTTP " + response.statusCode());
             }
             Map<String, Object> body = mapper.readValue(response.body(), Map.class);
             String remoteHash = (String) body.get("schemaHash");
             if (remoteHash == null || remoteHash.isBlank()) {
-                throw new io.javalin.http.BadRequestResponse("""
-                        Cannot import: remote instance did not provide a schemaHash. \
+                throw new BadRequestResponse("""
+                        Cannot import: remote instance did not provide a schemaHash.
                         Upgrade the source instance to a version that supports schema parity checks.""");
             }
             if (!remoteHash.equals(localHash)) {
-                throw new io.javalin.http.BadRequestResponse("""
+                throw new BadRequestResponse("""
                         Cannot import station bundle: schema hash mismatch.
                           Source schema: %s
                           This instance: %s
-                        Both instances must be on the same DB schema version. \
-                        Update the importing instance to match, or re-export from a matching instance.\
+                        Both instances must be on the same DB schema version.
+                        Update the importing instance to match, or re-export from a matching instance.
                         """.formatted(remoteHash, localHash));
             }
-        } catch (io.javalin.http.HttpResponseException e) {
+        } catch (HttpResponseException e) {
             throw e;
         } catch (Exception e) {
             throw new RuntimeException(
@@ -982,11 +1118,11 @@ public class StationImportService {
             int limit) {
         var uri = URI.create(
                 baseUrl + "/api/v1/public/transfer/" + token + "/" + table + "?offset=" + offset + "&limit=" + limit);
-        log.info("[import] fetch page: GET {}", redactToken(uri));
+        log.info("fetch page: GET {}", redactToken(uri));
         try {
             var request = newImportRequest(uri);
             var response = sendThrottled(httpClient, request, HttpResponse.BodyHandlers.ofString());
-            log.info("[import] fetch page: table '{}' offset={} HTTP {}", table, offset, response.statusCode());
+            log.info("fetch page: table '{}' offset={} HTTP {}", table, offset, response.statusCode());
             if (response.statusCode() != 200) {
                 throw new RuntimeException(
                         "Failed to fetch table '" + table + "' from remote: HTTP " + response.statusCode());
@@ -999,7 +1135,7 @@ public class StationImportService {
         }
     }
 
-    private record ListKeysPage(List<String> keys, String next) {}
+    private record ListKeysPage(List<String> keys, String next, Integer total) {}
 
     // -- Coercion helpers --
 

@@ -177,6 +177,18 @@ public class StationExportService {
         stationRepository.clearReadOnlyForTransfer(stationId);
     }
 
+    /**
+     * Marks every outstanding transfer token for the station as used so the idle-timeout
+     * watchdog does not later clear the read-only-for-transfer flag. The read-only flag
+     * itself is intentionally left on — after a successful transfer the source station
+     * must stay locked until an operator decides whether to keep, archive, or delete it.
+     */
+    public void markTransferComplete(int stationId) {
+        query("UPDATE transfer_token SET used = TRUE WHERE station_id = :station_id AND used = FALSE;")
+                .single(call().bind("station_id", stationId))
+                .update();
+    }
+
     public Optional<Integer> validateToken(String token) {
         return query("""
                         UPDATE transfer_token

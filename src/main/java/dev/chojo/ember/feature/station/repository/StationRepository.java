@@ -360,10 +360,32 @@ public class StationRepository {
      * @return {@code true} if a row was deleted
      */
     public boolean delete(int id) {
-        return query("DELETE FROM station WHERE id = :id;")
+        boolean removed = query("DELETE FROM station WHERE id = :id;")
                 .single(call().bind("id", id))
                 .delete()
                 .changed();
+        if (removed) {
+            sweepOrphanedAccounts();
+        }
+        return removed;
+    }
+
+    /**
+     * Deletes accounts that are no longer connected to any station member and are not instance
+     * authorities. Runs after a station is removed so that accounts which only existed because of
+     * that station (typically blank-email applicants carried in through the waitlist or a
+     * cross-instance transfer) are not left as ghost data. Administrators are always preserved
+     * because they need to be able to administer the instance with no station of their own.
+     *
+     * <p>Also called once at startup so that accounts left behind by a failed transfer that
+     * happened on an older build (where the on-delete sweep did not yet exist) get cleaned
+     * up the next time the backend boots.
+     */
+    public void sweepOrphanedAccounts() {
+        query("""
+                DELETE FROM account
+                 WHERE instance_user_type = 'USER'
+                   AND id NOT IN (SELECT account_id FROM station_member WHERE account_id IS NOT NULL);""").single().delete();
     }
 
     /**
@@ -377,8 +399,7 @@ public class StationRepository {
         return query("SELECT setup_completed_at FROM station WHERE id = :id;")
                 .single(call().bind("id", stationId))
                 .map(row -> row.get("setup_completed_at", INSTANT_TIMESTAMP))
-                .first()
-                .flatMap(Optional::ofNullable);
+                .first();
     }
 
     /**

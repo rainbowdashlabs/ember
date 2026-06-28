@@ -41,3 +41,18 @@ export async function getImportProgress(stationId: string): Promise<ImportProgre
     const res = await client.get<ImportProgress>(`/admin/transfer/import/${stationId}/progress`)
     return res.data
 }
+
+export interface TransferStatus {
+    readOnly: boolean
+    targetInstanceUrl: string | null
+}
+
+export async function getTransferStatus(): Promise<TransferStatus> {
+    const res = await client.get<TransferStatus>('/station/transfer/status')
+    return res.data
+}
+
+export async function deleteMovedStation(): Promise<{message: string}> {
+    const res = await client.post<{message: string}>('/station/manage/delete-moved')
+    return res.data
+}

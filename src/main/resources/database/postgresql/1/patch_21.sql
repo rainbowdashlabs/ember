@@ -113,3 +113,119 @@ ALTER TABLE ember_schema.transfer_token
 
 COMMENT ON COLUMN ember_schema.transfer_token.last_activity_at IS
     'Timestamp of the most recent token-authenticated request from the destination. Refreshed on every successful validateToken(). The TransferTimeoutWatchdog marks tokens stale after 5 minutes of inactivity, invalidating them and clearing the source station''s read-only-for-transfer flag.';
+
+-- Federation index pass. Every repository query in LendingRepository and FederationRepository
+-- filters on one of the peer / partner / station columns below, but those columns had no index
+-- beyond the primary key, so each call was a full sequential scan. Cheap fix while data is small;
+-- avoids the planner falling over the moment a station has more than a few hundred federation
+-- rows. The indexes below are aligned with the WHERE clauses in:
+--   LendingRepository.findIncomingForStation (owning_station_id [+ status])
+--   LendingRepository.findOutgoingForStation (requesting_station_id)
+--   LendingRepository.countOpenIncomingForStation (owning_station_id, status)
+--   LendingRepository.findMessagesForRequest (request_id ORDER BY created_at)
+--   LendingRepository.findItemsForRequest (request_id ORDER BY id)
+--   LendingRepository.findBlocksForStation (station_id ORDER BY block_from)
+--   FederationRepository.findKbSharesForStation / findQuizSharesForStation /
+--                        findProtocolSharesForStation / findInventorySharesForStation (station_id)
+-- The *_share_target partner_id indexes cover reverse-lookup queries that ask "which shares is
+-- this partner a recipient of" — currently linear scans of the share-target tables.
+
+CREATE INDEX idx_federation_lending_request_requesting
+    ON ember_schema.federation_lending_request (requesting_station_id);
+
+CREATE INDEX idx_federation_lending_request_owning_status
+    ON ember_schema.federation_lending_request (owning_station_id, status);
+
+CREATE INDEX idx_federation_lending_message_request
+    ON ember_schema.federation_lending_message (request_id, created_at);
+
+CREATE INDEX idx_federation_lending_request_item_request
+    ON ember_schema.federation_lending_request_item (request_id);
+
+CREATE INDEX idx_federation_inventory_block_station
+    ON ember_schema.federation_inventory_block (station_id, block_from);
+
+CREATE INDEX idx_federation_kb_share_station
+    ON ember_schema.federation_kb_share (station_id);
+
+CREATE INDEX idx_federation_quiz_share_station
+    ON ember_schema.federation_quiz_share (station_id);
+
+CREATE INDEX idx_federation_protocol_share_station
+    ON ember_schema.federation_protocol_share (station_id);
+
+CREATE INDEX idx_federation_inventory_share_station
+    ON ember_schema.federation_inventory_share (station_id);
+
+CREATE INDEX idx_federation_kb_share_target_partner
+    ON ember_schema.federation_kb_share_target (partner_id);
+
+CREATE INDEX idx_federation_quiz_share_target_partner
+    ON ember_schema.federation_quiz_share_target (partner_id);
+
+CREATE INDEX idx_federation_protocol_share_target_partner
+    ON ember_schema.federation_protocol_share_target (partner_id);
+
+CREATE INDEX idx_federation_inventory_share_target_partner
+    ON ember_schema.federation_inventory_share_target (partner_id);
+
+-- Federation lending peer columns switch from local-int-FK to plain UUID.
+-- Reason: federation_lending_request and federation_lending_message reference both sides of a
+-- partnership, and one side can sit on a different Ember instance. Keeping a direct FK to the
+-- local station table forced both peers to be local-only — the structural reason cross-instance
+-- lending could not be modelled and the reason the rows did not survive a cross-instance station
+-- transfer. Switching to station.uid (a UUID that is stable across instances) removes the
+-- requirement for FK referential integrity at the schema layer; "is this station on my instance?"
+-- becomes a SELECT 1 FROM station WHERE uid = ? at use time, and the federation_partner table
+-- handles routing / public key / remote_host for the remote-station case (same pattern already
+-- used by author_member_uid / author_station_uid on comment tables).
+
+ALTER TABLE ember_schema.federation_lending_request
+    ADD COLUMN requesting_station_uid UUID,
+    ADD COLUMN owning_station_uid     UUID;
+
+UPDATE ember_schema.federation_lending_request flr
+SET requesting_station_uid = (SELECT s.uid FROM ember_schema.station s WHERE s.id = flr.requesting_station_id),
+    owning_station_uid     = (SELECT s.uid FROM ember_schema.station s WHERE s.id = flr.owning_station_id);
+
+ALTER TABLE ember_schema.federation_lending_request
+    ALTER COLUMN requesting_station_uid SET NOT NULL,
+    ALTER COLUMN owning_station_uid     SET NOT NULL;
+
+ALTER TABLE ember_schema.federation_lending_request
+    DROP CONSTRAINT federation_lending_request_requesting_station_id_fkey,
+    DROP CONSTRAINT federation_lending_request_owning_station_id_fkey,
+    DROP COLUMN requesting_station_id,
+    DROP COLUMN owning_station_id;
+
+ALTER TABLE ember_schema.federation_lending_message
+    ADD COLUMN sender_station_uid UUID;
+
+UPDATE ember_schema.federation_lending_message flm
+SET sender_station_uid = (SELECT s.uid FROM ember_schema.station s WHERE s.id = flm.sender_station_id);
+
+ALTER TABLE ember_schema.federation_lending_message
+    ALTER COLUMN sender_station_uid SET NOT NULL;
+
+ALTER TABLE ember_schema.federation_lending_message
+    DROP CONSTRAINT federation_lending_message_sender_station_id_fkey,
+    DROP COLUMN sender_station_id;
+
+-- The Phase B indexes above were created against the now-dropped int columns; DROP COLUMN already
+-- cascaded them out. Recreate the lookup indexes against the new uid columns so the lending list
+-- queries (LendingRepository.findRequestsByStation, countActionableRequests, findLentOutByInventory)
+-- stay covered.
+CREATE INDEX idx_federation_lending_request_requesting
+    ON ember_schema.federation_lending_request (requesting_station_uid);
+
+CREATE INDEX idx_federation_lending_request_owning_status
+    ON ember_schema.federation_lending_request (owning_station_uid, status);
+
+ALTER TABLE ember_schema.federation_partner
+    ADD COLUMN partner_station_name TEXT;
+
+UPDATE ember_schema.federation_partner fp
+SET partner_station_name = s.name
+FROM ember_schema.station s
+WHERE s.uid = fp.partner_station_id
+  AND fp.partner_station_name IS NULL;

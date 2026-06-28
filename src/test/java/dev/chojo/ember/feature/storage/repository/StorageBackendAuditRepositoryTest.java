@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.storage.repository;
 
+import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.audit.StorageAuditAction;
@@ -29,6 +30,7 @@ class StorageBackendAuditRepositoryTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         account = accountRepo.create("audit@test.example", "Aud", "It");
+        accountRepo.setInstanceUserType(account.id(), InstanceUserType.ADMINISTRATOR);
         stationA = stationRepo.create("Audit Station A");
         stationB = stationRepo.create("Audit Station B");
     }

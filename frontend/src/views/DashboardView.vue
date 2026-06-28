@@ -32,6 +32,7 @@ import InventorySidebarGroup from '@/views/dashboardview/InventorySidebarGroup.v
 import SetupSidebarGroup from '@/views/dashboardview/SetupSidebarGroup.vue'
 import QuickSearchPalette from '@/components/quicksearch/QuickSearchPalette.vue'
 import {useQuickSearch} from '@/composables/useQuickSearch'
+import {useStationTransferStatus} from '@/composables/useStationTransferStatus'
 
 const {t, te} = useI18n()
 const route = useRoute()
@@ -56,6 +57,12 @@ const {
 const {activeStation, activeLogoUrl} = useStations()
 const {counts, refresh: refreshSidebarCounts} = useSidebarCounts()
 const {bookmarks: bookmarkedBoards, refresh: refreshBookmarkedBoards} = useFederatedBoardBookmarks()
+const {
+  status: transferStatus,
+  hasMoved: stationMoved,
+  load: loadTransferStatus,
+  reset: resetTransferStatus,
+} = useStationTransferStatus()
 
 const isDemo = ref(false)
 const visibleBoards = ref<Board[]>([])
@@ -100,6 +107,8 @@ onMounted(async () => {
   if (!loaded.value) {
     load()
   }
+  resetTransferStatus()
+  loadTransferStatus()
   try {
     const res = await client.get<{ demo: boolean }>('/demo/status')
     isDemo.value = res.data.demo
@@ -107,6 +116,26 @@ onMounted(async () => {
     isDemo.value = false
   }
 })
+
+watch(
+    () => activeStation.value?.stationId,
+    () => {
+      resetTransferStatus()
+      loadTransferStatus()
+    },
+)
+
+watch(
+    [stationMoved, () => route.name],
+    ([moved, currentName]) => {
+      if (!moved) return
+      const allowed = new Set(['station-moved', 'station-moved-delete'])
+      if (typeof currentName === 'string' && !allowed.has(currentName)) {
+        router.replace({name: 'station-moved'})
+      }
+    },
+    {immediate: true},
+)
 
 watch(loaded, (isLoaded) => {
   if (!isLoaded) return
@@ -174,6 +203,25 @@ const manageDefaultRoute = computed(() => {
   <SidebarLayout :station-logo-url="activeLogoUrl" :station-name="activeStation?.stationName" :subtitle="pageSubtitle"
                  :title="pageTitle">
     <template #sidebar="{ close }">
+      <SidebarGroup v-if="stationMoved"
+                    :open-group="isDesktop ? undefined : openGroup"
+                    @update:open-group="v => openGroup = v"
+                    :icon="['fas', 'map-location-dot']"
+                    :label="t('sidebar.stationMoved')"
+                    to="/station/moved"
+                    name="station-moved"
+                    @navigate="close"/>
+
+      <SidebarGroup v-if="stationMoved && hasPermission(StationPermission.STATION_ADMINISTRATOR)"
+                    :open-group="isDesktop ? undefined : openGroup"
+                    @update:open-group="v => openGroup = v"
+                    :icon="['fas', 'trash']"
+                    :label="t('pages.station-moved.tabDelete')"
+                    to="/station/moved/delete"
+                    name="station-moved-delete"
+                    @navigate="close"/>
+
+      <template v-else>
       <SetupSidebarGroup
           v-if="hasPermission(StationPermission.STATION_ADMINISTRATOR) && sessionInfo?.setupCompletedAt == null"
           :is-desktop="isDesktop"
@@ -383,6 +431,7 @@ const manageDefaultRoute = computed(() => {
           {{ t('sidebar.discovery') }}
         </SidebarLink>
       </SidebarGroup>
+      </template>
 
     </template>
 
