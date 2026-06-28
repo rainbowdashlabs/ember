@@ -13,6 +13,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
@@ -182,10 +183,8 @@ public class TestProtocolRoutes implements Routes {
         var sharedItems = service.browseSharedProtocols(session.stationId());
         var shared = sharedItems.stream()
                 .map(item -> {
-                    String stationName = stationRepository
-                            .findById(item.sourceStationId())
-                            .map(Station::name)
-                            .orElse("Unknown");
+                    var partner = federationRepository.findPartnerById(item.partnerId()).orElse(null);
+                    String stationName = FederationDisplayNames.partnerName(stationRepository, partner, "Unknown");
                     return new SharedProtocolItem(
                             item.id(), item.name(), item.description(), stationName, item.sourceStationId());
                 })
@@ -560,10 +559,8 @@ public class TestProtocolRoutes implements Routes {
         var items = service.browseSharedProtocols(session.stationId());
         ctx.json(items.stream()
                 .map(i -> {
-                    String stationName = stationRepository
-                            .findById(i.sourceStationId())
-                            .map(Station::name)
-                            .orElse("Unknown");
+                    var partner = federationRepository.findPartnerById(i.partnerId()).orElse(null);
+                    String stationName = FederationDisplayNames.partnerName(stationRepository, partner, "Unknown");
                     return new SharedProtocolItem(i.id(), i.name(), i.description(), stationName, i.sourceStationId());
                 })
                 .toList());

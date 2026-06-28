@@ -89,8 +89,8 @@ public class MemberNameResolver {
         }
         return federationRepository
                 .findPartnerById(partnerId)
-                .flatMap(p -> stationRepository.findByUid(p.partnerStationId()))
-                .map(Station::name)
+                .map(p -> dev.chojo.ember.feature.federation.service.FederationDisplayNames.partnerName(
+                        stationRepository, p, null))
                 .orElse(null);
     }
 

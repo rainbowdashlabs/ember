@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.ConversionStatus;
@@ -675,10 +676,7 @@ public class KnowledgeBaseService {
             if (partner.status() != FederationPartner.FederationStatus.ACTIVE) continue;
             if (!federationService.hasCapability(partner.id(), CapabilityType.KB_SHARE, Direction.IMPORT)) continue;
             int remoteStationId = resolvePartnerStationId(partner);
-            String stationName = stationRepository
-                    .findByUid(partner.partnerStationId())
-                    .map(Station::name)
-                    .orElse("?");
+            String stationName = FederationDisplayNames.partnerName(stationRepository, partner, "?");
             String stationUid = partner.partnerStationId().toString();
 
             futures.add(CompletableFuture.supplyAsync(() -> {

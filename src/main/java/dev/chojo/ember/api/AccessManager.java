@@ -204,7 +204,19 @@ public class AccessManager {
             return Optional.empty();
         }
 
-        var partner = federationRepository.findPartnerByRemoteStationUid(remoteStationUid);
+        String targetHeader = ctx.header("X-Federation-Target-Station-Id");
+        UUID targetStationUid = null;
+        if (targetHeader != null && !targetHeader.isBlank()) {
+            try {
+                targetStationUid = UUID.fromString(targetHeader);
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid X-Federation-Target-Station-Id header value: {}", targetHeader);
+                return Optional.empty();
+            }
+        }
+        Optional<FederationPartner> partner = targetStationUid != null
+                ? federationRepository.findPartnerByLocalAndRemoteStationUid(targetStationUid, remoteStationUid)
+                : federationRepository.findPartnerByRemoteStationUid(remoteStationUid);
         if (partner.isEmpty()) {
             log.warn("Unknown federation partner for station UUID: {}", remoteStationUid);
             return Optional.empty();
