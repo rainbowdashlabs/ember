@@ -118,7 +118,7 @@ class SidebarCountServiceTest {
         when(profileFieldChangeRepository.countPendingChanges(STATION_ID, MEMBER_ID))
                 .thenReturn(2);
         when(eventRepository.countPendingRegistrations(STATION_ID)).thenReturn(7);
-        when(lendingRepository.countActionableRequests(STATION_ID)).thenReturn(4);
+        when(lendingRepository.countActionableRequests(STATION_UID)).thenReturn(4);
         when(waitingListRepository.countPendingEntries(STATION_ID)).thenReturn(6);
         when(lostAndFoundRepository.countClaimedNotProvided(STATION_ID)).thenReturn(1);
 

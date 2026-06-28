@@ -36,6 +36,8 @@ import jakarta.inject.Singleton;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 /**
  * Routes for cross-station inventory lending, chat messages, and date blocking.
@@ -154,7 +156,8 @@ public class LendingRoutes implements Routes {
         var requests = service.findRequestsByStation(session.stationId());
         var stream = requests.stream();
         if (!session.hasPermission(StationPermission.INVENTORY_LENDING_MANAGER)) {
-            stream = stream.filter(r -> r.requestingStationId() == session.stationId());
+            UUID sessionStationUid = stationRepository.resolveUid(session.stationId());
+            stream = stream.filter(r -> Objects.equals(r.requestingStationUid(), sessionStationUid));
         }
         ctx.json(stream.map(r -> enrichRequest(r, session.stationId())).toList());
     }
@@ -327,7 +330,7 @@ public class LendingRoutes implements Routes {
                     .orElse(null);
         }
         String stationName = stationRepository
-                .findById(msg.senderStationId())
+                .findByUid(msg.senderStationUid())
                 .map(Station::name)
                 .orElse("Unknown");
         return new EnrichedMessage(msg, senderName, stationName);
@@ -391,27 +394,31 @@ public class LendingRoutes implements Routes {
     // -- Helpers --
 
     private void verifyAccess(LendingRequest request, int stationId) {
-        if (request.requestingStationId() != stationId && request.owningStationId() != stationId) {
+        UUID stationUid = stationRepository.resolveUid(stationId);
+        if (!Objects.equals(request.requestingStationUid(), stationUid)
+                && !Objects.equals(request.owningStationUid(), stationUid)) {
             throw new NotFoundResponse();
         }
     }
 
     private void verifyOwner(LendingRequest request, int stationId) {
-        if (request.owningStationId() != stationId) {
+        UUID stationUid = stationRepository.resolveUid(stationId);
+        if (!Objects.equals(request.owningStationUid(), stationUid)) {
             throw new BadRequestResponse("Only the owning station can perform this action");
         }
     }
 
     private LendingRequestResponse enrichRequest(LendingRequest request, int currentStationId) {
         String requestingName = stationRepository
-                .findById(request.requestingStationId())
+                .findByUid(request.requestingStationUid())
                 .map(Station::name)
                 .orElse("Unknown");
         String owningName = stationRepository
-                .findById(request.owningStationId())
+                .findByUid(request.owningStationUid())
                 .map(Station::name)
                 .orElse("Unknown");
-        boolean isOwner = request.owningStationId() == currentStationId;
+        UUID currentStationUid = stationRepository.resolveUid(currentStationId);
+        boolean isOwner = Objects.equals(request.owningStationUid(), currentStationUid);
 
         // Build item summary for list display
         var items = service.findRequestItems(request.id());
@@ -453,7 +460,8 @@ public class LendingRoutes implements Routes {
     private void lentOutByInventory(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int inventoryId = ctx.pathParamAsClass("inventoryId", Integer.class).get();
-        var lentItems = lendingRepository.findLentOutByInventory(inventoryId, session.stationId());
+        var lentItems = lendingRepository.findLentOutByInventory(
+                inventoryId, stationRepository.resolveUid(session.stationId()));
         ctx.json(lentItems);
     }
 

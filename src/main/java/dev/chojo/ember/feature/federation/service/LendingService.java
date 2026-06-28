@@ -31,11 +31,16 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Business logic for cross-station inventory lending.
+ * Business logic for cross-station inventory lending. Internally peer references travel as
+ * {@link UUID} (the station's stable cross-instance identity); the public surface still accepts
+ * local integer ids so existing routes / services / events stay unchanged. Conversion happens
+ * at the edges via {@link StationRepository#resolveUid(int)}.
  */
 @Singleton
 public class LendingService {
@@ -66,7 +71,9 @@ public class LendingService {
 
     public LendingRequest createRequest(
             int requestingStationId, int owningStationId, LocalDate dateFrom, LocalDate dateTo, int createdBy) {
-        var request = repository.createRequest(requestingStationId, owningStationId, dateFrom, dateTo, createdBy);
+        UUID requestingUid = stationRepository.resolveUid(requestingStationId);
+        UUID owningUid = stationRepository.resolveUid(owningStationId);
+        var request = repository.createRequest(requestingUid, owningUid, dateFrom, dateTo, createdBy);
         eventBus.publish(new LendingRequested(
                 requestingStationId,
                 owningStationId,
@@ -81,7 +88,7 @@ public class LendingService {
     }
 
     public List<LendingRequest> findRequestsByStation(int stationId) {
-        return repository.findRequestsByStation(stationId);
+        return repository.findRequestsByStation(stationRepository.resolveUid(stationId));
     }
 
     // -- Requests --
@@ -102,7 +109,8 @@ public class LendingService {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.APPROVED);
         if (updated) {
             autoAssignItems(requestId);
-            repository.createMessage(requestId, stationId, null, "Anfrage genehmigt", true);
+            repository.createMessage(
+                    requestId, stationRepository.resolveUid(stationId), null, "Anfrage genehmigt", true);
             repository
                     .findRequestById(requestId)
                     .ifPresent(r -> publishStatusChange(r, stationId, LendingStatus.APPROVED));
@@ -117,7 +125,7 @@ public class LendingService {
             repository
                     .findRequestById(requestId)
                     .ifPresent(r -> publishStatusChange(r, stationId, LendingStatus.DECLINED));
-            repository.createMessage(requestId, stationId, null, msg, true);
+            repository.createMessage(requestId, stationRepository.resolveUid(stationId), null, msg, true);
         }
         return updated;
     }
@@ -125,7 +133,8 @@ public class LendingService {
     public boolean markLent(int requestId, int stationId) {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.LENT);
         if (updated) {
-            repository.createMessage(requestId, stationId, null, "Ausrüstung ausgeliehen", true);
+            repository.createMessage(
+                    requestId, stationRepository.resolveUid(stationId), null, "Ausrüstung ausgeliehen", true);
             repository.findRequestById(requestId).ifPresent(r -> publishStatusChange(r, stationId, LendingStatus.LENT));
         }
         return updated;
@@ -136,7 +145,8 @@ public class LendingService {
     public boolean markReturned(int requestId, int stationId) {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.RETURNED);
         if (updated) {
-            repository.createMessage(requestId, stationId, null, "Ausrüstung zurückgegeben", true);
+            repository.createMessage(
+                    requestId, stationRepository.resolveUid(stationId), null, "Ausrüstung zurückgegeben", true);
             repository
                     .findRequestById(requestId)
                     .ifPresent(r -> publishStatusChange(r, stationId, LendingStatus.RETURNED));
@@ -147,7 +157,8 @@ public class LendingService {
     public boolean closeRequest(int requestId, int stationId) {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.CLOSED);
         if (updated) {
-            repository.createMessage(requestId, stationId, null, "Anfrage geschlossen", true);
+            repository.createMessage(
+                    requestId, stationRepository.resolveUid(stationId), null, "Anfrage geschlossen", true);
             repository
                     .findRequestById(requestId)
                     .ifPresent(r -> publishStatusChange(r, stationId, LendingStatus.CLOSED));
@@ -157,10 +168,16 @@ public class LendingService {
 
     public LendingMessage sendMessage(
             int requestId, int senderStationId, int senderMemberId, String senderName, String message) {
-        var msg = repository.createMessage(requestId, senderStationId, senderMemberId, message, false);
+        UUID senderStationUid = stationRepository.resolveUid(senderStationId);
+        var msg = repository.createMessage(requestId, senderStationUid, senderMemberId, message, false);
         repository.findRequestById(requestId).ifPresent(r -> {
-            int targetStationId =
-                    r.requestingStationId() == senderStationId ? r.owningStationId() : r.requestingStationId();
+            UUID targetStationUid = Objects.equals(r.requestingStationUid(), senderStationUid)
+                    ? r.owningStationUid()
+                    : r.requestingStationUid();
+            int targetStationId = stationRepository
+                    .findByUid(targetStationUid)
+                    .map(Station::id)
+                    .orElse(0);
             eventBus.publish(new LendingMessageSent(
                     senderStationId, targetStationId, requestId, stationName(senderStationId), senderName));
         });
@@ -168,7 +185,7 @@ public class LendingService {
     }
 
     public List<LendingMessage> getLocalMessages(int requestId, int stationId) {
-        return repository.findLocalMessages(requestId, stationId);
+        return repository.findLocalMessages(requestId, stationRepository.resolveUid(stationId));
     }
 
     /**
@@ -178,20 +195,21 @@ public class LendingService {
      */
     public List<LendingMessage> getMessages(int requestId, int localStationId) {
         var request = repository.findRequestById(requestId).orElseThrow();
-        int partnerStationId = request.requestingStationId() == localStationId
-                ? request.owningStationId()
-                : request.requestingStationId();
+        UUID localStationUid = stationRepository.resolveUid(localStationId);
+        UUID partnerStationUid = Objects.equals(request.requestingStationUid(), localStationUid)
+                ? request.owningStationUid()
+                : request.requestingStationUid();
 
-        var localMessages = repository.findLocalMessages(requestId, localStationId);
+        var localMessages = repository.findLocalMessages(requestId, localStationUid);
 
         // Check if the partner is remote
-        var partner = findPartnerForStation(localStationId, partnerStationId);
+        var partner = findPartnerForStation(localStationId, partnerStationUid);
         List<LendingMessage> remoteMessages;
         if (partner != null && partner.isRemote()) {
             remoteMessages = fetchRemoteMessagesViaHttp(partner, requestId, localStationId);
         } else {
             // Local partner — directly query their messages from shared DB
-            remoteMessages = repository.findLocalMessages(requestId, partnerStationId);
+            remoteMessages = repository.findLocalMessages(requestId, partnerStationUid);
         }
 
         var all = new ArrayList<>(localMessages);
@@ -272,9 +290,12 @@ public class LendingService {
     }
 
     private void publishStatusChange(LendingRequest request, int actingStationId, LendingStatus status) {
-        int targetStationId = request.requestingStationId() == actingStationId
-                ? request.owningStationId()
-                : request.requestingStationId();
+        UUID actingStationUid = stationRepository.resolveUid(actingStationId);
+        UUID targetStationUid = Objects.equals(request.requestingStationUid(), actingStationUid)
+                ? request.owningStationUid()
+                : request.requestingStationUid();
+        int targetStationId =
+                stationRepository.findByUid(targetStationUid).map(Station::id).orElse(0);
         eventBus.publish(new LendingStatusChanged(
                 actingStationId,
                 targetStationId,
@@ -325,13 +346,11 @@ public class LendingService {
 
     // -- Federated available inventory (parallel fetch from all partners) --
 
-    private FederationPartner findPartnerForStation(int localStationId, int partnerStationId) {
+    private FederationPartner findPartnerForStation(int localStationId, UUID partnerStationUid) {
         var partners = federationService.findPartners(localStationId);
         for (var p : partners) {
-            var partnerStation =
-                    stationRepository.findByUid(p.partnerStationId()).orElse(null);
-            int remoteId = partnerStation != null ? partnerStation.id() : 0;
-            if (remoteId == partnerStationId && p.status() == FederationPartner.FederationStatus.ACTIVE) {
+            if (Objects.equals(p.partnerStationId(), partnerStationUid)
+                    && p.status() == FederationPartner.FederationStatus.ACTIVE) {
                 return p;
             }
         }

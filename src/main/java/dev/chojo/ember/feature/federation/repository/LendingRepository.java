@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.federation.repository;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.federation.entity.InventoryBlock;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
 import dev.chojo.ember.feature.federation.entity.LendingRequest;
@@ -16,12 +17,16 @@ import jakarta.inject.Singleton;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
- * Data access for inventory lending requests, messages, and blocks.
+ * Data access for inventory lending requests, messages, and blocks. Peer references on the
+ * lending tables are stored as {@code uuid} (the station's stable cross-instance identity);
+ * inventory and station_member references stay as local integer FKs because they are by
+ * definition local to whichever instance hosts the row.
  */
 @Singleton
 public class LendingRepository {
@@ -29,13 +34,13 @@ public class LendingRepository {
     // -- Lending Requests --
 
     public LendingRequest createRequest(
-            int requestingStationId, int owningStationId, LocalDate dateFrom, LocalDate dateTo, int createdBy) {
+            UUID requestingStationUid, UUID owningStationUid, LocalDate dateFrom, LocalDate dateTo, int createdBy) {
         return query("""
-                INSERT INTO federation_lending_request(requesting_station_id, owning_station_id, status, requested_date_from, requested_date_to, created_by)
-                VALUES (:requesting_station_id, :owning_station_id, :status, :date_from, :date_to, :created_by)
+                INSERT INTO federation_lending_request(requesting_station_uid, owning_station_uid, status, requested_date_from, requested_date_to, created_by)
+                VALUES (:requesting_station_uid::uuid, :owning_station_uid::uuid, :status, :date_from, :date_to, :created_by)
                 RETURNING *;""")
-                .single(call().bind("requesting_station_id", requestingStationId)
-                        .bind("owning_station_id", owningStationId)
+                .single(call().bind("requesting_station_uid", requestingStationUid, StandardValueConverter.UUID_STRING)
+                        .bind("owning_station_uid", owningStationUid, StandardValueConverter.UUID_STRING)
                         .bind("status", LendingStatus.REQUESTED)
                         .bind("date_from", dateFrom)
                         .bind("date_to", dateTo)
@@ -52,15 +57,15 @@ public class LendingRepository {
                 .first();
     }
 
-    public List<LendingRequest> findRequestsByStation(int stationId) {
+    public List<LendingRequest> findRequestsByStation(UUID stationUid) {
         return query("""
                 SELECT *
                 FROM
                     federation_lending_request
-                WHERE requesting_station_id = :station_id
-                   OR owning_station_id = :station_id
+                WHERE requesting_station_uid = :station_uid::uuid
+                   OR owning_station_uid = :station_uid::uuid
                 ORDER BY created_at DESC;""")
-                .single(call().bind("station_id", stationId))
+                .single(call().bind("station_uid", stationUid, StandardValueConverter.UUID_STRING))
                 .map(LendingRequest.map())
                 .all();
     }
@@ -102,7 +107,7 @@ public class LendingRepository {
                 .changed();
     }
 
-    public List<LentOutItem> findLentOutByInventory(int inventoryId, int owningStationId) {
+    public List<LentOutItem> findLentOutByInventory(int inventoryId, UUID owningStationUid) {
         return query("""
                 SELECT
                     ri.id                 AS request_item_id,
@@ -118,25 +123,26 @@ public class LendingRepository {
                     federation_lending_request_item ri
                         JOIN federation_lending_request r
                         ON r.id = ri.request_id
-                        JOIN station s
-                        ON s.id = r.requesting_station_id
+                        LEFT JOIN station s
+                        ON s.uid = r.requesting_station_uid
                 WHERE ri.inventory_id = :inventory_id
-                  AND r.owning_station_id = :owning_station_id
+                  AND r.owning_station_uid = :owning_station_uid::uuid
                   AND r.status IN ('APPROVED', 'LENT')
                 ORDER BY r.requested_date_to ASC NULLS LAST;""")
-                .single(call().bind("inventory_id", inventoryId).bind("owning_station_id", owningStationId))
+                .single(call().bind("inventory_id", inventoryId)
+                        .bind("owning_station_uid", owningStationUid, StandardValueConverter.UUID_STRING))
                 .map(LentOutItem.map())
                 .all();
     }
 
     public LendingMessage createMessage(
-            int requestId, int senderStationId, Integer senderMemberId, String message, boolean isSystem) {
+            int requestId, UUID senderStationUid, Integer senderMemberId, String message, boolean isSystem) {
         return query("""
-                INSERT INTO federation_lending_message(request_id, sender_station_id, sender_member_id, message, is_system)
-                VALUES (:request_id, :sender_station_id, :sender_member_id, :message, :is_system)
+                INSERT INTO federation_lending_message(request_id, sender_station_uid, sender_member_id, message, is_system)
+                VALUES (:request_id, :sender_station_uid::uuid, :sender_member_id, :message, :is_system)
                 RETURNING *;""")
                 .single(call().bind("request_id", requestId)
-                        .bind("sender_station_id", senderStationId)
+                        .bind("sender_station_uid", senderStationUid, StandardValueConverter.UUID_STRING)
                         .bind("sender_member_id", senderMemberId)
                         .bind("message", message)
                         .bind("is_system", isSystem))
@@ -158,15 +164,16 @@ public class LendingRepository {
      * Returns only messages sent by the given station for a lending request.
      * Used for distributed message storage where each station stores only its own messages.
      */
-    public List<LendingMessage> findLocalMessages(int requestId, int stationId) {
+    public List<LendingMessage> findLocalMessages(int requestId, UUID stationUid) {
         return query("""
                 SELECT *
                 FROM
                     federation_lending_message
                 WHERE request_id = :request_id
-                  AND sender_station_id = :station_id
+                  AND sender_station_uid = :station_uid::uuid
                 ORDER BY created_at;""")
-                .single(call().bind("request_id", requestId).bind("station_id", stationId))
+                .single(call().bind("request_id", requestId)
+                        .bind("station_uid", stationUid, StandardValueConverter.UUID_STRING))
                 .map(LendingMessage.map())
                 .all();
     }
@@ -236,10 +243,11 @@ public class LendingRepository {
         return false;
     }
 
-    public int countActionableRequests(int stationId) {
-        return query(
-                        "SELECT count(*) AS cnt FROM federation_lending_request WHERE owning_station_id = :station_id AND status = 'REQUESTED';")
-                .single(call().bind("station_id", stationId))
+    public int countActionableRequests(UUID stationUid) {
+        return query("""
+                SELECT count(*) AS cnt FROM federation_lending_request
+                WHERE owning_station_uid = :station_uid::uuid AND status = 'REQUESTED';""")
+                .single(call().bind("station_uid", stationUid, StandardValueConverter.UUID_STRING))
                 .map(row -> row.getInt("cnt"))
                 .first()
                 .orElse(0);
